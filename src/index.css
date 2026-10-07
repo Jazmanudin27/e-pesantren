@@ -485,7 +485,7 @@ body {
   color: #0f172a;
 }
 
-/* CRISP BORDERED TABLE */
+/* CRISP BORDERED TABLE (COMPACT PADDING) */
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -495,8 +495,8 @@ body {
 
 .data-table th {
   background: #f8fafc;
-  padding: 9px 12px;
-  font-size: 0.7rem;
+  padding: 6px 10px;
+  font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: #334155;
@@ -505,8 +505,9 @@ body {
 }
 
 .data-table td {
-  padding: 9px 12px;
-  font-size: 0.78rem;
+  padding: 5px 10px;
+  font-size: 0.74rem;
+  line-height: 1.35;
   border: 1px solid var(--border-color);
   color: #0f172a;
   vertical-align: middle;
@@ -636,8 +637,8 @@ body {
 }
 
 .btn-sm {
-  padding: 3px 8px;
-  font-size: 0.72rem;
+  padding: 2px 7px;
+  font-size: 0.7rem;
 }
 
 .btn-primary {
@@ -707,12 +708,12 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 3px 8px;
+  gap: 3px;
+  padding: 2px 7px;
   border-radius: 4px;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 1.2;
   text-align: center;
   white-space: nowrap;
 }
