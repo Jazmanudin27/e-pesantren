@@ -417,7 +417,7 @@ export default function AsramaView() {
                           onClick={() => openDetail(k)}
                           title="Lihat Detail Kamar Kobong"
                         >
-                          <Eye size={12} /> Detail
+                          <Eye size={12} />
                         </button>
                         <button 
                           className="btn btn-warning btn-sm"

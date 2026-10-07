@@ -224,8 +224,8 @@ export default function AbsensiFingerprintView() {
                     </div>
                   </td>
                   <td className="td-center">
-                    <button className="btn btn-success btn-sm">
-                      <Eye size={12} /> Detail
+                    <button className="btn btn-success btn-sm" title="Detail">
+                      <Eye size={12} />
                     </button>
                   </td>
                 </tr>

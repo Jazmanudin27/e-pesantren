@@ -378,7 +378,7 @@ export default function KelasView() {
                         onClick={() => openDetail(h)}
                         title="Lihat Detail Halaqah"
                       >
-                        <Eye size={12} /> Detail
+                        <Eye size={12} />
                       </button>
                       <button 
                         className="btn btn-warning btn-sm"

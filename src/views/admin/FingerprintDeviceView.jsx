@@ -376,7 +376,7 @@ export default function FingerprintDeviceView() {
                         onClick={() => openDetail(d)}
                         title="Lihat Detail Konfigurasi Mesin"
                       >
-                        <Eye size={12} /> Detail
+                        <Eye size={12} />
                       </button>
                       <button 
                         className="btn btn-warning btn-sm"

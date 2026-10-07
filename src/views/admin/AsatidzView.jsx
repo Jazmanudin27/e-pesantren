@@ -381,7 +381,7 @@ export default function AsatidzView() {
                         onClick={() => openDetail(ast)}
                         title="Lihat Detail Profil Asatidz"
                       >
-                        <Eye size={12} /> Detail
+                        <Eye size={12} />
                       </button>
                       <button 
                         className="btn btn-warning btn-sm"
