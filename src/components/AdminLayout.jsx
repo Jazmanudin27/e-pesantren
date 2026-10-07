@@ -16,6 +16,7 @@ import DashboardAdmin from '../views/admin/DashboardAdmin';
 import SantriView from '../views/admin/SantriView';
 import TahfidzView from '../views/admin/TahfidzView';
 import PerizinanView from '../views/admin/PerizinanView';
+import AbsensiFingerprintView from '../views/admin/AbsensiFingerprintView';
 
 export default function AdminLayout() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -28,6 +29,8 @@ export default function AdminLayout() {
         return <SantriView />;
       case 'tahfidz':
         return <TahfidzView />;
+      case 'absensi-fp':
+        return <AbsensiFingerprintView />;
       case 'perizinan':
         return <PerizinanView />;
       default:
@@ -75,24 +78,13 @@ export default function AdminLayout() {
             className={`nav-link ${activeTab === 'absensi-fp' ? 'active' : ''}`}
             onClick={() => setActiveTab('absensi-fp')}
           >
-            <Fingerprint size={15} /> Absensi Fingerprint Shalat
+            <Fingerprint size={15} /> Absensi Fingerprint
           </button>
           <button 
             className={`nav-link ${activeTab === 'perizinan' ? 'active' : ''}`}
             onClick={() => setActiveTab('perizinan')}
           >
             <DoorOpen size={15} /> Perizinan Gerbang
-          </button>
-          <button className="nav-link" onClick={() => setActiveTab('asatidz')}>
-            <GraduationCap size={15} /> Asatidz & Musyrif
-          </button>
-
-          <div className="menu-category">Kedisiplinan & Sistem</div>
-          <button className="nav-link" onClick={() => setActiveTab('tata-tertib')}>
-            <ShieldAlert size={15} /> Pelanggaran & Ta'zir
-          </button>
-          <button className="nav-link" onClick={() => setActiveTab('pengaturan')}>
-            <Settings size={15} /> Pengaturan Mesin FP
           </button>
         </nav>
       </aside>

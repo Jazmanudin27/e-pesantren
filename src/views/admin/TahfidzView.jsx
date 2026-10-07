@@ -1,100 +1,137 @@
-import React from 'react';
-import { BookOpen, Award, CheckCircle, Plus, Sparkles, Filter } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { Loader2, Sparkles, Plus, BookOpen } from 'lucide-react';
 
 export default function TahfidzView() {
-  const halaqahList = [
-    { nama: 'Halaqah Imam Nafi\'', ustadz: 'Ust. Hamdan Al-Hafidz', jumlah: '16 Santri', target: 'Saba\' / Sabqi (Juz 15-20)', waktu: 'Ba\'da Shubuh & Maghrib' },
-    { nama: 'Halaqah Imam Ashim', ustadz: 'Ust. Nurul Huda Al-Hafidz', jumlah: '18 Santri', target: 'Muroja\'ah Mutqin (Juz 25-30)', waktu: 'Ba\'da Shubuh & Ashar' },
-    { nama: 'Halaqah Fathimah (Putri)', ustadz: 'Usth. Salma M.Pd', jumlah: '20 Santriwati', target: 'Ziyadah Juz 1-5', waktu: 'Ba\'da Shubuh & Isya' },
-  ];
+  const [halaqahList, setHalaqahList] = useState([]);
+  const [setoranList, setSetoranList] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchTahfidzData = async () => {
+    try {
+      setLoading(true);
+      const [resHalaqah, resSetoran] = await Promise.all([
+        axios.get('/api/tahfidz/halaqah'),
+        axios.get('/api/tahfidz/setoran')
+      ]);
+
+      if (resHalaqah.data && resHalaqah.data.success) {
+        setHalaqahList(resHalaqah.data.data || []);
+      }
+      if (resSetoran.data && resSetoran.data.success) {
+        setSetoranList(resSetoran.data.data || []);
+      }
+    } catch (err) {
+      console.error('Gagal mengambil data tahfidz:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTahfidzData();
+  }, []);
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <div>
           <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Manajemen Tahfidz & Muroja'ah Qur'an</h2>
-          <p style={{ color: '#64748b', fontSize: '0.75rem' }}>Monitoring halaqah setoran hafalan Ziyadah, Sabqi, dan Muroja'ah santri.</p>
+          <p style={{ color: '#64748b', fontSize: '0.75rem' }}>Data halaqah & riwayat setoran mutaba'ah langsung dari database MySQL.</p>
         </div>
         <div style={{ display: 'flex', gap: '6px' }}>
-          <button className="btn btn-gold btn-sm">
-            <Sparkles size={13} /> Setoran Baru
-          </button>
-          <button className="btn btn-primary btn-sm">
-            <Plus size={13} /> Buat Halaqah
+          <button className="btn btn-outline btn-sm" onClick={fetchTahfidzData}>
+            Refresh
           </button>
         </div>
       </div>
 
       {/* Halaqah Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px', marginBottom: '20px' }}>
-        {halaqahList.map((h, i) => (
-          <div className="card" key={i} style={{ padding: '14px', borderTop: '3px solid #059669' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-              <div>
-                <h3 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#064e3b' }}>{h.nama}</h3>
-                <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>{h.ustadz}</div>
-              </div>
-              <span className="badge badge-success">{h.jumlah}</span>
-            </div>
-            <div style={{ background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', fontSize: '0.74rem', marginBottom: '10px' }}>
-              <div style={{ color: '#475569', marginBottom: '2px' }}><strong>Fokus:</strong> {h.target}</div>
-              <div style={{ color: '#64748b' }}><strong>Jadwal:</strong> {h.waktu}</div>
-            </div>
-            <button className="btn btn-outline btn-sm" style={{ width: '100%' }}>
-              Buka Mutaba'ah
-            </button>
+        {loading ? (
+          <div style={{ padding: '20px', color: '#64748b' }}>
+            <Loader2 size={18} className="animate-spin" /> Memuat data halaqah...
           </div>
-        ))}
+        ) : halaqahList.length === 0 ? (
+          <div className="card" style={{ padding: '16px', color: '#64748b', fontSize: '0.8rem' }}>
+            Belum ada kelompok halaqah terdaftar di database.
+          </div>
+        ) : (
+          halaqahList.map((h) => (
+            <div className="card" key={h.id} style={{ padding: '14px', borderTop: '3px solid #059669' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                <div>
+                  <h3 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#064e3b' }}>{h.nama_halaqah}</h3>
+                  <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>{h.nama_asatidz || 'Musyrif'}</div>
+                </div>
+                <span className="badge badge-success">{h.gender === 'L' ? 'Ikhwan' : 'Akhwat'}</span>
+              </div>
+              <div style={{ background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', fontSize: '0.74rem', marginBottom: '10px' }}>
+                <div style={{ color: '#475569', marginBottom: '2px' }}><strong>Fokus:</strong> {h.target_program}</div>
+                <div style={{ color: '#64748b' }}><strong>Waktu:</strong> {h.waktu_halaqah}</div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Tabel Mutaba'ah Terkini */}
       <div className="card">
         <div className="card-header">
-          <h3>📋 Riwayat Setoran Mutaba'ah Terbaru</h3>
-          <span className="badge badge-info">Oktober 2026</span>
+          <h3>📋 Riwayat Setoran Mutaba'ah Real-Time</h3>
+          <span className="badge badge-info">Total: {setoranList.length} Catatan</span>
         </div>
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Tanggal</th>
-              <th>Nama Santri</th>
-              <th>Jenis Setoran</th>
-              <th>Surat & Ayat</th>
-              <th>Tajwid</th>
-              <th>Status</th>
-              <th>Penguji</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>07/10/2026</td>
-              <td><strong>Ahmad Faiz Al-Hafidz</strong></td>
-              <td><span className="badge badge-success">Ziyadah</span></td>
-              <td>QS. Al-Isra': 1 - 25</td>
-              <td><span className="badge badge-success">Mumtaz (A)</span></td>
-              <td>Lulus Ziyadah</td>
-              <td>Ust. Hamdan S.Th.I</td>
-            </tr>
-            <tr>
-              <td>07/10/2026</td>
-              <td><strong>Muhammad Rifqi</strong></td>
-              <td><span className="badge badge-warning">Muroja'ah</span></td>
-              <td>QS. An-Nisa': 50 - 80</td>
-              <td><span className="badge badge-warning">Jayyid (B)</span></td>
-              <td>Perlu Ulang Ayat 64</td>
-              <td>Ust. Hamdan S.Th.I</td>
-            </tr>
-            <tr>
-              <td>06/10/2026</td>
-              <td><strong>Fatimah Az-Zahra</strong></td>
-              <td><span className="badge badge-purple">Tasmi' 5 Juz</span></td>
-              <td>Juz 26 s/d 30 (Bil-Ghoib)</td>
-              <td><span className="badge badge-success">Mumtaz (A+)</span></td>
-              <td>Syahadah Diberikan</td>
-              <td>Usth. Salma M.Pd</td>
-            </tr>
-          </tbody>
-        </table>
+        {loading ? (
+          <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
+            <Loader2 size={24} className="animate-spin" /> Memuat riwayat setoran...
+          </div>
+        ) : setoranList.length === 0 ? (
+          <div style={{ padding: '30px', textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>
+            Belum ada data setoran tahfidz di database.
+          </div>
+        ) : (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Tanggal</th>
+                <th>Nama Santri</th>
+                <th>Jenis Setoran</th>
+                <th>Surat & Ayat</th>
+                <th>Tajwid & Nilai</th>
+                <th>Status</th>
+                <th>Asatidz Penguji</th>
+              </tr>
+            </thead>
+            <tbody>
+              {setoranList.map((st) => (
+                <tr key={st.id}>
+                  <td>
+                    {st.tanggal ? new Date(st.tanggal).toLocaleDateString('id-ID') : '-'}
+                  </td>
+                  <td>
+                    <strong style={{ fontSize: '0.8rem' }}>{st.nama_santri}</strong>
+                    <div style={{ fontSize: '0.68rem', color: '#64748b' }}>NIS: {st.nis}</div>
+                  </td>
+                  <td>
+                    <span className={`badge ${st.jenis_setoran === 'Ziyadah' ? 'badge-success' : 'badge-warning'}`}>
+                      {st.jenis_setoran}
+                    </span>
+                  </td>
+                  <td>
+                    <strong>Juz {st.juz}</strong>: {st.surat_mulai} ({st.ayat_mulai} - {st.ayat_selesai})
+                  </td>
+                  <td>
+                    <span className={`badge ${st.kualitas_tajwid?.includes('Mumtaz') ? 'badge-success' : 'badge-warning'}`}>
+                      {st.kualitas_tajwid}
+                    </span>
+                  </td>
+                  <td>{st.status}</td>
+                  <td>{st.nama_asatidz || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
