@@ -11,7 +11,14 @@ import {
   GraduationCap, 
   Fingerprint, 
   Loader2,
-  Building
+  Building,
+  X,
+  Phone,
+  Calendar,
+  Award,
+  ShieldCheck,
+  MapPin,
+  User
 } from 'lucide-react';
 
 export default function SantriView() {
@@ -22,6 +29,10 @@ export default function SantriView() {
   const [filterAsrama, setFilterAsrama] = useState('Semua Asrama');
   const [filterStatus, setFilterStatus] = useState('Semua Status');
 
+  // Modal Detail State
+  const [selectedSantri, setSelectedSantri] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const fetchSantri = async () => {
     try {
       setLoading(true);
@@ -30,12 +41,12 @@ export default function SantriView() {
         setSantriList(res.data.data);
       } else {
         setSantriList([
-          { id: 1, nama_santri: 'Ahmad Faiz Al-Hafidz', nis: '2601001', jk: 'L', status_santri: 'Mukim', nama_asrama: 'Asrama Ali bin Abi Thalib', nama_kamar: 'Kamar 04', fingerprint_pin: 1001, capaian_hafalan_juz: 15, nama_wali: 'H. Abdullah', no_wa_wali: '0812-8888-1111', status: 'Aktif' },
-          { id: 2, nama_santri: 'Zaidan Muhammad', nis: '2601002', jk: 'L', status_santri: 'Mukim', nama_asrama: 'Asrama Umar bin Khattab', nama_kamar: 'Kamar 02', fingerprint_pin: 1002, capaian_hafalan_juz: 28, nama_wali: 'Drs. Subagja', no_wa_wali: '0813-7777-2222', status: 'Aktif' },
-          { id: 3, nama_santri: 'Fatimah Az-Zahra', nis: '2602001', jk: 'P', status_santri: 'Mukim', nama_asrama: 'Asrama Fathimah Az-Zahra', nama_kamar: 'Kamar 01', fingerprint_pin: 2001, capaian_hafalan_juz: 30, nama_wali: 'H. Usman', no_wa_wali: '0811-9999-3333', status: 'Aktif' },
-          { id: 4, nama_santri: 'Muhammad Rifqi', nis: '2601003', jk: 'L', status_santri: 'Mukim', nama_asrama: 'Asrama Abu Bakar Ash-Shiddiq', nama_kamar: 'Kamar 06', fingerprint_pin: 1003, capaian_hafalan_juz: 5, nama_wali: 'Bpk. Hendra', no_wa_wali: '0857-4444-5555', status: 'Aktif' },
-          { id: 5, nama_santri: 'Aisyah Humaira', nis: '2602002', jk: 'P', status_santri: 'Kalong', nama_asrama: 'Asrama Khadijah Al-Kubra', nama_kamar: 'Kamar 03', fingerprint_pin: 2002, capaian_hafalan_juz: 3, nama_wali: 'Hj. Rohmah', no_wa_wali: '0812-3333-6666', status: 'Aktif' },
-          { id: 6, nama_santri: 'Bilal Abdurrahman', nis: '2601004', jk: 'L', status_santri: 'Mukim', nama_asrama: 'Asrama Utsman bin Affan', nama_kamar: 'Kamar 03', fingerprint_pin: 1004, capaian_hafalan_juz: 12, nama_wali: 'H. Rahman', no_wa_wali: '0812-5555-7777', status: 'Aktif' }
+          { id: 1, kode_santri: 'STR-26-001', nama_santri: 'Ahmad Faiz Al-Hafidz', nis: '2601001', nisn: '0089123456', jk: 'L', tempat_lahir: 'Tasikmalaya', tgl_lahir: '2008-05-12', status_santri: 'Mukim', nama_asrama: 'Asrama Ali bin Abi Thalib', nama_kamar: 'Kamar 04', fingerprint_pin: 1001, rfid_card_uid: 'RF-88391', capaian_hafalan_juz: 15, tingkat_diniyah: 'Wustho', nama_wali: 'H. Abdullah', no_wa_wali: '081288881111', hubungan_wali: 'Orang Tua (Ayah)', alamat_asal: 'Jl. Sutisna Senjaya No. 45, Kota Tasikmalaya', status: 'Aktif', tahun_masuk: '2026/2027' },
+          { id: 2, kode_santri: 'STR-26-002', nama_santri: 'Zaidan Muhammad', nis: '2601002', nisn: '0089123457', jk: 'L', tempat_lahir: 'Bandung', tgl_lahir: '2007-09-20', status_santri: 'Mukim', nama_asrama: 'Asrama Umar bin Khattab', nama_kamar: 'Kamar 02', fingerprint_pin: 1002, rfid_card_uid: 'RF-88392', capaian_hafalan_juz: 28, tingkat_diniyah: 'Ulya', nama_wali: 'Drs. Subagja', no_wa_wali: '081377772222', hubungan_wali: 'Orang Tua (Ayah)', alamat_asal: 'Komp. Margahayu Raya Blok C-12, Bandung', status: 'Aktif', tahun_masuk: '2026/2027' },
+          { id: 3, kode_santri: 'STR-26-003', nama_santri: 'Fatimah Az-Zahra', nis: '2602001', nisn: '0089123458', jk: 'P', tempat_lahir: 'Ciamis', tgl_lahir: '2007-11-15', status_santri: 'Mukim', nama_asrama: 'Asrama Fathimah Az-Zahra', nama_kamar: 'Kamar 01', fingerprint_pin: 2001, rfid_card_uid: 'RF-88393', capaian_hafalan_juz: 30, tingkat_diniyah: 'Ulya', nama_wali: 'H. Usman', no_wa_wali: '081199993333', hubungan_wali: 'Orang Tua (Ayah)', alamat_asal: 'Jl. Raya Panjalu No. 10, Ciamis', status: 'Aktif', tahun_masuk: '2026/2027' },
+          { id: 4, kode_santri: 'STR-26-004', nama_santri: 'Muhammad Rifqi', nis: '2601003', nisn: '0089123459', jk: 'L', tempat_lahir: 'Garut', tgl_lahir: '2009-02-18', status_santri: 'Mukim', nama_asrama: 'Asrama Abu Bakar Ash-Shiddiq', nama_kamar: 'Kamar 06', fingerprint_pin: 1003, rfid_card_uid: 'RF-88394', capaian_hafalan_juz: 5, tingkat_diniyah: 'Ula', nama_wali: 'Bpk. Hendra', no_wa_wali: '085744445555', hubungan_wali: 'Orang Tua (Ayah)', alamat_asal: 'Tarogong Kaler, Garut', status: 'Aktif', tahun_masuk: '2026/2027' },
+          { id: 5, kode_santri: 'STR-26-005', nama_santri: 'Aisyah Humaira', nis: '2602002', nisn: '0089123460', jk: 'P', tempat_lahir: 'Tasikmalaya', tgl_lahir: '2009-06-25', status_santri: 'Kalong', nama_asrama: 'Asrama Khadijah Al-Kubra', nama_kamar: 'Kamar 03', fingerprint_pin: 2002, rfid_card_uid: 'RF-88395', capaian_hafalan_juz: 3, tingkat_diniyah: 'Ula', nama_wali: 'Hj. Rohmah', no_wa_wali: '081233336666', hubungan_wali: 'Orang Tua (Ibu)', alamat_asal: 'Jl. Cisalak No. 88, Tasikmalaya', status: 'Aktif', tahun_masuk: '2026/2027' },
+          { id: 6, kode_santri: 'STR-26-006', nama_santri: 'Bilal Abdurrahman', nis: '2601004', nisn: '0089123461', jk: 'L', tempat_lahir: 'Jakarta', tgl_lahir: '2008-08-10', status_santri: 'Mukim', nama_asrama: 'Asrama Utsman bin Affan', nama_kamar: 'Kamar 03', fingerprint_pin: 1004, rfid_card_uid: 'RF-88396', capaian_hafalan_juz: 12, tingkat_diniyah: 'Wustho', nama_wali: 'H. Rahman', no_wa_wali: '081255557777', hubungan_wali: 'Orang Tua (Ayah)', alamat_asal: 'Tebet Timur, Jakarta Selatan', status: 'Aktif', tahun_masuk: '2026/2027' }
         ]);
       }
     } catch (err) {
@@ -49,6 +60,17 @@ export default function SantriView() {
     fetchSantri();
   }, []);
 
+  const openDetail = (santri) => {
+    setSelectedSantri(santri);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedSantri(null);
+  };
+
+  // Filter logic
   const filteredList = santriList.filter((s) => {
     const q = search.toLowerCase();
     const matchSearch = (
@@ -75,9 +97,8 @@ export default function SantriView() {
 
   return (
     <div>
-      {/* 1. TOP 4 COLORED STATS CARDS (CLEAN WITHOUT SUBTEXT) */}
+      {/* 1. TOP 4 COLORED STATS CARDS */}
       <div className="top-stats-grid">
-        {/* Total Santri - Blue Card */}
         <div className="stat-card-colored stat-card-blue">
           <div>
             <div className="stat-colored-title">TOTAL SANTRI TERDAFTAR</div>
@@ -88,7 +109,6 @@ export default function SantriView() {
           </div>
         </div>
 
-        {/* Santri Mukim - Green Card */}
         <div className="stat-card-colored stat-card-green">
           <div>
             <div className="stat-colored-title">SANTRI MUKIM (ASRAMA)</div>
@@ -99,7 +119,6 @@ export default function SantriView() {
           </div>
         </div>
 
-        {/* Santri Kalong - Amber Card */}
         <div className="stat-card-colored stat-card-amber">
           <div>
             <div className="stat-colored-title">SANTRI KALONG (NON-MUKIM)</div>
@@ -110,7 +129,6 @@ export default function SantriView() {
           </div>
         </div>
 
-        {/* Fingerprint Enrolled - Purple Card */}
         <div className="stat-card-colored stat-card-purple">
           <div>
             <div className="stat-colored-title">FINGERPRINT ENROLLED</div>
@@ -214,7 +232,7 @@ export default function SantriView() {
         </select>
       </div>
 
-      {/* 5. DATA TABLE (BORDERED WITH BTN-SUCCESS) */}
+      {/* 5. DATA TABLE */}
       <div className="table-container-card">
         {loading ? (
           <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
@@ -277,7 +295,11 @@ export default function SantriView() {
                     </div>
                   </td>
                   <td className="td-center">
-                    <button className="btn btn-success btn-sm">
+                    <button 
+                      className="btn btn-success btn-sm"
+                      onClick={() => openDetail(row)}
+                      title="Lihat Detail Santri"
+                    >
                       <Eye size={12} /> Detail
                     </button>
                   </td>
@@ -287,6 +309,179 @@ export default function SantriView() {
           </table>
         )}
       </div>
+
+      {/* ==================================================== */}
+      {/* MODAL DETAIL SANTRI & BIODATA LENGKAP               */}
+      {/* ==================================================== */}
+      {isModalOpen && selectedSantri && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '620px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            border: '1px solid #cbd5e1',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '14px 18px',
+              borderBottom: '1px solid #e2e8f0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: '#f8fafc'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#0284c7', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>
+                  <User size={16} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>Biodata & Riwayat Santri</h3>
+                  <p style={{ fontSize: '0.68rem', color: '#64748b' }}>NIS: {selectedSantri.nis} • Kode: {selectedSantri.kode_santri || 'STR-2026'}</p>
+                </div>
+              </div>
+              <button 
+                onClick={closeModal}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b', padding: '4px' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '18px' }}>
+              
+              {/* Profile Card Banner */}
+              <div style={{
+                background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                color: '#ffffff',
+                borderRadius: '8px',
+                padding: '14px 16px',
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff' }}>{selectedSantri.nama_santri}</div>
+                  <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '2px' }}>
+                    Status: <strong style={{ color: selectedSantri.status_santri === 'Mukim' ? '#34d399' : '#fbbf24' }}>Santri {selectedSantri.status_santri}</strong> • {selectedSantri.jk === 'L' ? 'Ikhwan' : 'Akhwat'}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span className="badge badge-success" style={{ fontSize: '0.74rem', padding: '3px 8px' }}>
+                    {selectedSantri.status || 'Aktif'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Info Grid 2 Kolom */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+                
+                {/* Asrama & Kamar */}
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', background: '#f8fafc' }}>
+                  <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Home size={12} color="#059669" /> Asrama & Kamar Kobong
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#0f172a' }}>{selectedSantri.nama_asrama || '-'}</div>
+                  <div style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 600 }}>{selectedSantri.nama_kamar || '-'}</div>
+                </div>
+
+                {/* Tahfidz & Hafalan */}
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', background: '#f8fafc' }}>
+                  <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Award size={12} color="#0284c7" /> Capaian Tahfidz Qur'an
+                  </div>
+                  <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0284c7' }}>{selectedSantri.capaian_hafalan_juz || 0} Juz</div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Tingkat: {selectedSantri.tingkat_diniyah || 'Wustho'}</div>
+                </div>
+
+                {/* Biometrik Mesin Fingerprint */}
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', background: '#f8fafc' }}>
+                  <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Fingerprint size={12} color="#7c3aed" /> Biometrik Presensi
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#0f172a' }}>PIN Mesin: <code>{selectedSantri.fingerprint_pin || '-'}</code></div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>RFID: {selectedSantri.rfid_card_uid || 'Terdaftar'}</div>
+                </div>
+
+                {/* Tempat & Tanggal Lahir */}
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', background: '#f8fafc' }}>
+                  <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Calendar size={12} color="#d97706" /> TTL & Tahun Masuk
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: '0.78rem', color: '#0f172a' }}>{selectedSantri.tempat_lahir || 'Tasikmalaya'}, {selectedSantri.tgl_lahir || '-'}</div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Tahun Masuk: {selectedSantri.tahun_masuk || '2026/2027'}</div>
+                </div>
+
+              </div>
+
+              {/* Data Wali & Kontak Mahrom */}
+              <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff', marginBottom: '8px' }}>
+                <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Phone size={13} color="#059669" /> Data Mahrom & Wali Santri
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.76rem' }}>
+                  <div>
+                    <span style={{ color: '#64748b' }}>Nama Wali:</span> <strong>{selectedSantri.nama_wali || '-'}</strong> ({selectedSantri.hubungan_wali || 'Orang Tua'})
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b' }}>No. WhatsApp:</span> <strong>{selectedSantri.no_wa_wali || '-'}</strong>
+                  </div>
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <span style={{ color: '#64748b' }}>Alamat Asal:</span> {selectedSantri.alamat_asal || 'Kota Tasikmalaya, Jawa Barat'}
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              padding: '12px 18px',
+              borderTop: '1px solid #e2e8f0',
+              background: '#f8fafc',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '8px'
+            }}>
+              {selectedSantri.no_wa_wali && (
+                <a 
+                  href={`https://wa.me/${selectedSantri.no_wa_wali.replace(/[^0-9]/g, '')}`} 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="btn btn-primary btn-sm"
+                  style={{ background: '#25D366', borderColor: '#25D366' }}
+                >
+                  <Phone size={12} /> Chat WhatsApp Wali
+                </a>
+              )}
+              <button className="btn btn-outline btn-sm" onClick={closeModal}>
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
