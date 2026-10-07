@@ -90,9 +90,9 @@ app.get('/api/dashboard/stats', async (req, res) => {
     res.json({
       success: true,
       stats: {
-        total_santri,
-        total_halaqah,
-        total_izin_aktif,
+        total_santri: total_santri || 0,
+        total_halaqah: total_halaqah || 0,
+        total_izin_aktif: total_izin_aktif || 0,
         avg_juz: parseFloat(avg_juz || 0).toFixed(1)
       },
       recentSetoran,
@@ -119,7 +119,33 @@ app.get('/api/santri', async (req, res) => {
   }
 });
 
-// 4. Data Tahfidz & Halaqah
+// 4. Data Asrama & Kamar Kobong
+app.get('/api/asrama', async (req, res) => {
+  try {
+    const [asramaRows] = await pool.query(`
+      SELECT a.*, ast.nama_asatidz as pembina,
+             (SELECT COUNT(*) FROM santri s WHERE s.asrama_id = a.id) as total_santri,
+             (SELECT COUNT(*) FROM kamar_kobong k WHERE k.asrama_id = a.id) as total_kamar
+      FROM asrama a
+      LEFT JOIN asatidz ast ON a.pembina_asatidz_id = ast.id
+      ORDER BY a.id ASC
+    `);
+
+    const [kamarRows] = await pool.query(`
+      SELECT k.*, a.nama_asrama, a.gender as asrama_gender,
+             (SELECT COUNT(*) FROM santri s WHERE s.kamar_id = k.id) as terisi
+      FROM kamar_kobong k
+      JOIN asrama a ON k.asrama_id = a.id
+      ORDER BY k.asrama_id ASC, k.id ASC
+    `);
+
+    res.json({ success: true, asrama: asramaRows, kamar: kamarRows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 5. Data Tahfidz & Halaqah
 app.get('/api/tahfidz/halaqah', async (req, res) => {
   try {
     const [rows] = await pool.query(`
@@ -153,7 +179,7 @@ app.get('/api/tahfidz/setoran', async (req, res) => {
   }
 });
 
-// 5. Data Perizinan Santri
+// 6. Data Perizinan Santri
 app.get('/api/perizinan', async (req, res) => {
   try {
     const [rows] = await pool.query(`
@@ -170,7 +196,6 @@ app.get('/api/perizinan', async (req, res) => {
   }
 });
 
-// Check-in santri perizinan
 app.post('/api/perizinan/checkin', async (req, res) => {
   try {
     const { id, satpam } = req.body;
@@ -178,14 +203,14 @@ app.post('/api/perizinan/checkin', async (req, res) => {
       UPDATE santri_perizinan 
       SET status = 'Kembali Tepat Waktu', tgl_kembali_aktual = NOW(), satpam_kembali = ?
       WHERE id = ?
-    `, [satpam || 'Petugas Gerbang', id]);
+    `, [satpam || 'Petugas Pos Gerbang', id]);
     res.json({ success: true, message: 'Santri berhasil check-in kembali ke pesantren' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// 6. Data Absensi Fingerprint Shalat & Mengaji
+// 7. Data Absensi Fingerprint Shalat & Mengaji
 app.get('/api/absensi-fingerprint', async (req, res) => {
   try {
     const [rows] = await pool.query(`
@@ -206,7 +231,7 @@ app.get('/api/absensi-fingerprint', async (req, res) => {
   }
 });
 
-// 7. Data Master Mesin Fingerprint & Sesi Kegiatan
+// 8. Data Master Mesin Fingerprint & Sesi
 app.get('/api/fingerprint/devices', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM fingerprint_device ORDER BY id ASC');
@@ -225,7 +250,7 @@ app.get('/api/fingerprint/sesi', async (req, res) => {
   }
 });
 
-// 8. Data Asatidz / Musyrif
+// 9. Data Asatidz / Musyrif
 app.get('/api/asatidz', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM asatidz ORDER BY id ASC');

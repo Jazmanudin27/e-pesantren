@@ -10,18 +10,27 @@ import {
   Fingerprint,
   ChevronRight,
   ChevronDown,
-  FileText,
+  Building,
+  GraduationCap,
+  HardDrive,
   BarChart3,
-  Clock
+  FileText,
+  Clock,
+  Database
 } from 'lucide-react';
 import DashboardAdmin from '../views/admin/DashboardAdmin';
 import SantriView from '../views/admin/SantriView';
+import AsramaView from '../views/admin/AsramaView';
+import KelasView from '../views/admin/KelasView';
+import AsatidzView from '../views/admin/AsatidzView';
+import FingerprintDeviceView from '../views/admin/FingerprintDeviceView';
 import TahfidzView from '../views/admin/TahfidzView';
 import PerizinanView from '../views/admin/PerizinanView';
 import AbsensiFingerprintView from '../views/admin/AbsensiFingerprintView';
 
 export default function AdminLayout() {
-  const [activeTab, setActiveTab] = useState('presensi');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [isMasterOpen, setIsMasterOpen] = useState(true);
   const [currentTime, setCurrentTime] = useState('');
 
   useEffect(() => {
@@ -43,20 +52,30 @@ export default function AdminLayout() {
         return <DashboardAdmin />;
       case 'presensi':
         return <AbsensiFingerprintView />;
-      case 'santri':
-        return <SantriView />;
       case 'tahfidz':
         return <TahfidzView />;
       case 'perizinan':
         return <PerizinanView />;
+      case 'master-santri':
+        return <SantriView />;
+      case 'master-asrama':
+        return <AsramaView />;
+      case 'master-kelas':
+        return <KelasView />;
+      case 'master-asatidz':
+        return <AsatidzView />;
+      case 'master-device':
+        return <FingerprintDeviceView />;
       default:
-        return <AbsensiFingerprintView />;
+        return <DashboardAdmin />;
     }
   };
 
+  const isMasterActive = ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-device'].includes(activeTab);
+
   return (
     <div className="admin-layout">
-      {/* Sidebar Desktop (Exact Dark Navy Aspartech Style) */}
+      {/* Sidebar Desktop (Dark Navy Aspartech Style) */}
       <aside className="admin-sidebar">
         {/* Brand */}
         <div className="sidebar-brand">
@@ -112,18 +131,6 @@ export default function AdminLayout() {
             <ChevronRight size={13} className="nav-chevron" />
           </button>
 
-          <div className="menu-category">KEPESANTRENAN & SANTRI</div>
-          <button 
-            className={`nav-link ${activeTab === 'santri' ? 'active' : ''}`}
-            onClick={() => setActiveTab('santri')}
-          >
-            <div className="nav-link-left">
-              <Users size={15} />
-              <span>Data Santri & Asrama</span>
-            </div>
-            <ChevronRight size={13} className="nav-chevron" />
-          </button>
-
           <button 
             className={`nav-link ${activeTab === 'perizinan' ? 'active' : ''}`}
             onClick={() => setActiveTab('perizinan')}
@@ -135,7 +142,65 @@ export default function AdminLayout() {
             <ChevronRight size={13} className="nav-chevron" />
           </button>
 
-          <button className="nav-link" onClick={() => setActiveTab('tata-tertib')}>
+          {/* DATA MASTER DROPDOWN / ACCORDION */}
+          <div className="menu-category">DATA MASTER</div>
+          <button 
+            className={`nav-link ${isMasterActive ? 'active' : ''}`}
+            onClick={() => setIsMasterOpen(!isMasterOpen)}
+          >
+            <div className="nav-link-left">
+              <Database size={15} />
+              <span>Data Master</span>
+            </div>
+            <ChevronDown size={13} className={`nav-chevron ${isMasterOpen ? 'open' : ''}`} />
+          </button>
+
+          {isMasterOpen && (
+            <div className="nav-submenu">
+              <button 
+                className={`nav-sublink ${activeTab === 'master-santri' ? 'active' : ''}`}
+                onClick={() => setActiveTab('master-santri')}
+              >
+                <span className="sublink-dot"></span>
+                <span>Data Santri</span>
+              </button>
+
+              <button 
+                className={`nav-sublink ${activeTab === 'master-asrama' ? 'active' : ''}`}
+                onClick={() => setActiveTab('master-asrama')}
+              >
+                <span className="sublink-dot"></span>
+                <span>Data Asrama & Kobong</span>
+              </button>
+
+              <button 
+                className={`nav-sublink ${activeTab === 'master-kelas' ? 'active' : ''}`}
+                onClick={() => setActiveTab('master-kelas')}
+              >
+                <span className="sublink-dot"></span>
+                <span>Data Kelas & Halaqah</span>
+              </button>
+
+              <button 
+                className={`nav-sublink ${activeTab === 'master-asatidz' ? 'active' : ''}`}
+                onClick={() => setActiveTab('master-asatidz')}
+              >
+                <span className="sublink-dot"></span>
+                <span>Data Asatidz & Musyrif</span>
+              </button>
+
+              <button 
+                className={`nav-sublink ${activeTab === 'master-device' ? 'active' : ''}`}
+                onClick={() => setActiveTab('master-device')}
+              >
+                <span className="sublink-dot"></span>
+                <span>Data Mesin Fingerprint</span>
+              </button>
+            </div>
+          )}
+
+          <div className="menu-category">KEPESANTRENAN</div>
+          <button className="nav-link" onClick={() => setActiveTab('perizinan')}>
             <div className="nav-link-left">
               <ShieldAlert size={15} />
               <span>Tata Tertib & Ta'zir</span>
@@ -152,10 +217,10 @@ export default function AdminLayout() {
             <ChevronRight size={13} className="nav-chevron" />
           </button>
 
-          <button className="nav-link" onClick={() => setActiveTab('perizinan')}>
+          <button className="nav-link" onClick={() => setActiveTab('tahfidz')}>
             <div className="nav-link-left">
               <FileText size={15} />
-              <span>Laporan Perizinan</span>
+              <span>Laporan Tahfidz & Tasmi'</span>
             </div>
             <ChevronRight size={13} className="nav-chevron" />
           </button>
@@ -176,7 +241,7 @@ export default function AdminLayout() {
             {/* Realtime Clock Pill */}
             <div className="header-time-pill">
               <Clock size={13} color="#64748b" />
-              <span>{currentTime || '7 Oktober 2026 • 22:53:43'}</span>
+              <span>{currentTime || '8 Oktober 2026 • 05:05:19'}</span>
             </div>
 
             {/* Notification Button */}
