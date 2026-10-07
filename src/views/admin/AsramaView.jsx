@@ -638,17 +638,26 @@ export default function AsramaView() {
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>GEDUNG ASRAMA</label>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>PILIH GEDUNG ASRAMA *</label>
                     <select 
                       className="filter-select" 
                       style={{ width: '100%', padding: '6px 10px' }}
-                      value={formData.nama_asrama}
-                      onChange={(e) => setFormData({ ...formData, nama_asrama: e.target.value })}
+                      value={formData.asrama_id || (data.asrama[0]?.id || 1)}
+                      onChange={(e) => {
+                        const selectedAsr = data.asrama.find(a => a.id === parseInt(e.target.value));
+                        setFormData({
+                          ...formData,
+                          asrama_id: parseInt(e.target.value),
+                          nama_asrama: selectedAsr ? selectedAsr.nama_asrama : formData.nama_asrama,
+                          asrama_gender: selectedAsr ? selectedAsr.gender : formData.asrama_gender
+                        });
+                      }}
                     >
-                      <option value="Asrama Ali bin Abi Thalib">Asrama Ali bin Abi Thalib (Putra)</option>
-                      <option value="Asrama Umar bin Khattab">Asrama Umar bin Khattab (Putra)</option>
-                      <option value="Asrama Fathimah Az-Zahra">Asrama Fathimah Az-Zahra (Putri)</option>
-                      <option value="Asrama Khadijah Al-Kubra">Asrama Khadijah Al-Kubra (Putri)</option>
+                      {data.asrama.map(a => (
+                        <option key={a.id} value={a.id}>
+                          {a.nama_asrama} ({a.gender === 'L' ? 'Putra' : 'Putri'})
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>

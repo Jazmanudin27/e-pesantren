@@ -33,6 +33,9 @@ export default function SantriView() {
   const [filterAsrama, setFilterAsrama] = useState('Semua Asrama');
   const [filterStatus, setFilterStatus] = useState('Semua Status');
 
+  const [asramaList, setAsramaList] = useState([]);
+  const [kamarList, setKamarList] = useState([]);
+
   // Modal Detail State
   const [selectedSantri, setSelectedSantri] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -48,8 +51,10 @@ export default function SantriView() {
     kode_santri: '',
     jk: 'L',
     status_santri: 'Mukim',
+    asrama_id: 1,
     nama_asrama: 'Asrama Ali bin Abi Thalib',
-    nama_kamar: 'Kamar 01',
+    kamar_id: 1,
+    nama_kamar: 'Kamar Abu Bakar 01',
     tempat_lahir: 'Tasikmalaya',
     tgl_lahir: '2008-01-01',
     fingerprint_pin: '',
@@ -64,6 +69,18 @@ export default function SantriView() {
     tingkat_diniyah: 'Wustho'
   });
 
+  const fetchAsramaData = async () => {
+    try {
+      const res = await axios.get('/api/asrama');
+      if (res.data && res.data.success) {
+        setAsramaList(res.data.asrama || []);
+        setKamarList(res.data.kamar || []);
+      }
+    } catch (err) {
+      console.error('Gagal mengambil master asrama:', err);
+    }
+  };
+
   const fetchSantri = async () => {
     try {
       setLoading(true);
@@ -72,12 +89,12 @@ export default function SantriView() {
         setSantriList(res.data.data);
       } else {
         setSantriList([
-          { id: 1, kode_santri: 'STR-26-001', nama_santri: 'Ahmad Faiz Al-Hafidz', nis: '2601001', nisn: '0089123456', jk: 'L', tempat_lahir: 'Tasikmalaya', tgl_lahir: '2008-05-12', status_santri: 'Mukim', nama_asrama: 'Asrama Ali bin Abi Thalib', nama_kamar: 'Kamar 04', fingerprint_pin: 1001, rfid_card_uid: 'RF-88391', capaian_hafalan_juz: 15, tingkat_diniyah: 'Wustho', nama_wali: 'H. Abdullah', no_wa_wali: '081288881111', hubungan_wali: 'Orang Tua (Ayah)', alamat_asal: 'Jl. Sutisna Senjaya No. 45, Kota Tasikmalaya', status: 'Aktif', tahun_masuk: '2026/2027' },
-          { id: 2, kode_santri: 'STR-26-002', nama_santri: 'Zaidan Muhammad', nis: '2601002', nisn: '0089123457', jk: 'L', tempat_lahir: 'Bandung', tgl_lahir: '2007-09-20', status_santri: 'Mukim', nama_asrama: 'Asrama Umar bin Khattab', nama_kamar: 'Kamar 02', fingerprint_pin: 1002, rfid_card_uid: 'RF-88392', capaian_hafalan_juz: 28, tingkat_diniyah: 'Ulya', nama_wali: 'Drs. Subagja', no_wa_wali: '081377772222', hubungan_wali: 'Orang Tua (Ayah)', alamat_asal: 'Komp. Margahayu Raya Blok C-12, Bandung', status: 'Aktif', tahun_masuk: '2026/2027' },
-          { id: 3, kode_santri: 'STR-26-003', nama_santri: 'Fatimah Az-Zahra', nis: '2602001', nisn: '0089123458', jk: 'P', tempat_lahir: 'Ciamis', tgl_lahir: '2007-11-15', status_santri: 'Mukim', nama_asrama: 'Asrama Fathimah Az-Zahra', nama_kamar: 'Kamar 01', fingerprint_pin: 2001, rfid_card_uid: 'RF-88393', capaian_hafalan_juz: 30, tingkat_diniyah: 'Ulya', nama_wali: 'H. Usman', no_wa_wali: '081199993333', hubungan_wali: 'Orang Tua (Ayah)', alamat_asal: 'Jl. Raya Panjalu No. 10, Ciamis', status: 'Aktif', tahun_masuk: '2026/2027' },
-          { id: 4, kode_santri: 'STR-26-004', nama_santri: 'Muhammad Rifqi', nis: '2601003', nisn: '0089123459', jk: 'L', tempat_lahir: 'Garut', tgl_lahir: '2009-02-18', status_santri: 'Mukim', nama_asrama: 'Asrama Abu Bakar Ash-Shiddiq', nama_kamar: 'Kamar 06', fingerprint_pin: 1003, rfid_card_uid: 'RF-88394', capaian_hafalan_juz: 5, tingkat_diniyah: 'Ula', nama_wali: 'Bpk. Hendra', no_wa_wali: '085744445555', hubungan_wali: 'Orang Tua (Ayah)', alamat_asal: 'Tarogong Kaler, Garut', status: 'Aktif', tahun_masuk: '2026/2027' },
-          { id: 5, kode_santri: 'STR-26-005', nama_santri: 'Aisyah Humaira', nis: '2602002', nisn: '0089123460', jk: 'P', tempat_lahir: 'Tasikmalaya', tgl_lahir: '2009-06-25', status_santri: 'Kalong', nama_asrama: 'Asrama Khadijah Al-Kubra', nama_kamar: 'Kamar 03', fingerprint_pin: 2002, rfid_card_uid: 'RF-88395', capaian_hafalan_juz: 3, tingkat_diniyah: 'Ula', nama_wali: 'Hj. Rohmah', no_wa_wali: '081233336666', hubungan_wali: 'Orang Tua (Ibu)', alamat_asal: 'Jl. Cisalak No. 88, Tasikmalaya', status: 'Aktif', tahun_masuk: '2026/2027' },
-          { id: 6, kode_santri: 'STR-26-006', nama_santri: 'Bilal Abdurrahman', nis: '2601004', nisn: '0089123461', jk: 'L', tempat_lahir: 'Jakarta', tgl_lahir: '2008-08-10', status_santri: 'Mukim', nama_asrama: 'Asrama Utsman bin Affan', nama_kamar: 'Kamar 03', fingerprint_pin: 1004, rfid_card_uid: 'RF-88396', capaian_hafalan_juz: 12, tingkat_diniyah: 'Wustho', nama_wali: 'H. Rahman', no_wa_wali: '081255557777', hubungan_wali: 'Orang Tua (Ayah)', alamat_asal: 'Tebet Timur, Jakarta Selatan', status: 'Aktif', tahun_masuk: '2026/2027' }
+          { id: 1, kode_santri: 'STR-26-001', nama_santri: 'Ahmad Faiz Al-Hafidz', nis: '2601001', nisn: '0089123456', jk: 'L', tempat_lahir: 'Tasikmalaya', tgl_lahir: '2008-05-12', status_santri: 'Mukim', asrama_id: 1, nama_asrama: 'Asrama Ali bin Abi Thalib', kamar_id: 1, nama_kamar: 'Kamar Abu Bakar 01', fingerprint_pin: 1001, rfid_card_uid: 'RF-88391', capaian_hafalan_juz: 15, tingkat_diniyah: 'Wustho', nama_wali: 'H. Abdullah', no_wa_wali: '081288881111', hubungan_wali: 'Orang Tua (Ayah)', alamat_asal: 'Jl. Sutisna Senjaya No. 45, Kota Tasikmalaya', status: 'Aktif', tahun_masuk: '2026/2027' },
+          { id: 2, kode_santri: 'STR-26-002', nama_santri: 'Zaidan Muhammad', nis: '2601002', nisn: '0089123457', jk: 'L', tempat_lahir: 'Bandung', tgl_lahir: '2007-09-20', status_santri: 'Mukim', asrama_id: 2, nama_asrama: 'Asrama Umar bin Khattab', kamar_id: 3, nama_kamar: 'Kamar Umar 01', fingerprint_pin: 1002, rfid_card_uid: 'RF-88392', capaian_hafalan_juz: 28, tingkat_diniyah: 'Ulya', nama_wali: 'Drs. Subagja', no_wa_wali: '081377772222', hubungan_wali: 'Orang Tua (Ayah)', alamat_asal: 'Komp. Margahayu Raya Blok C-12, Bandung', status: 'Aktif', tahun_masuk: '2026/2027' },
+          { id: 3, kode_santri: 'STR-26-003', nama_santri: 'Fatimah Az-Zahra', nis: '2602001', nisn: '0089123458', jk: 'P', tempat_lahir: 'Ciamis', tgl_lahir: '2007-11-15', status_santri: 'Mukim', asrama_id: 3, nama_asrama: 'Asrama Fathimah Az-Zahra', kamar_id: 4, nama_kamar: 'Kamar Aisyah 01', fingerprint_pin: 2001, rfid_card_uid: 'RF-88393', capaian_hafalan_juz: 30, tingkat_diniyah: 'Ulya', nama_wali: 'H. Usman', no_wa_wali: '081199993333', hubungan_wali: 'Orang Tua (Ayah)', alamat_asal: 'Jl. Raya Panjalu No. 10, Ciamis', status: 'Aktif', tahun_masuk: '2026/2027' },
+          { id: 4, kode_santri: 'STR-26-004', nama_santri: 'Muhammad Rifqi', nis: '2601003', nisn: '0089123459', jk: 'L', tempat_lahir: 'Garut', tgl_lahir: '2009-02-18', status_santri: 'Mukim', asrama_id: 1, nama_asrama: 'Asrama Ali bin Abi Thalib', kamar_id: 2, nama_kamar: 'Kamar Abu Bakar 02', fingerprint_pin: 1003, rfid_card_uid: 'RF-88394', capaian_hafalan_juz: 5, tingkat_diniyah: 'Ula', nama_wali: 'Bpk. Hendra', no_wa_wali: '085744445555', hubungan_wali: 'Orang Tua (Ayah)', alamat_asal: 'Tarogong Kaler, Garut', status: 'Aktif', tahun_masuk: '2026/2027' },
+          { id: 5, kode_santri: 'STR-26-005', nama_santri: 'Aisyah Humaira', nis: '2602002', nisn: '0089123460', jk: 'P', tempat_lahir: 'Tasikmalaya', tgl_lahir: '2009-06-25', status_santri: 'Kalong', asrama_id: 3, nama_asrama: 'Asrama Fathimah Az-Zahra', kamar_id: 5, nama_kamar: 'Kamar Aisyah 02', fingerprint_pin: 2002, rfid_card_uid: 'RF-88395', capaian_hafalan_juz: 3, tingkat_diniyah: 'Ula', nama_wali: 'Hj. Rohmah', no_wa_wali: '081233336666', hubungan_wali: 'Orang Tua (Ibu)', alamat_asal: 'Jl. Cisalak No. 88, Tasikmalaya', status: 'Aktif', tahun_masuk: '2026/2027' },
+          { id: 6, kode_santri: 'STR-26-006', nama_santri: 'Bilal Abdurrahman', nis: '2601004', nisn: '0089123461', jk: 'L', tempat_lahir: 'Jakarta', tgl_lahir: '2008-08-10', status_santri: 'Mukim', asrama_id: 2, nama_asrama: 'Asrama Umar bin Khattab', kamar_id: 3, nama_kamar: 'Kamar Umar 01', fingerprint_pin: 1004, rfid_card_uid: 'RF-88396', capaian_hafalan_juz: 12, tingkat_diniyah: 'Wustho', nama_wali: 'H. Rahman', no_wa_wali: '081255557777', hubungan_wali: 'Orang Tua (Ayah)', alamat_asal: 'Tebet Timur, Jakarta Selatan', status: 'Aktif', tahun_masuk: '2026/2027' }
         ]);
       }
     } catch (err) {
@@ -89,6 +106,7 @@ export default function SantriView() {
 
   useEffect(() => {
     fetchSantri();
+    fetchAsramaData();
   }, []);
 
   const openDetail = (santri) => {
@@ -103,6 +121,10 @@ export default function SantriView() {
 
   const openAddForm = () => {
     setFormMode('add');
+    const firstAsr = asramaList[0];
+    const matchingKamars = kamarList.filter(k => k.asrama_id === (firstAsr?.id || 1));
+    const firstKmr = matchingKamars[0] || kamarList[0];
+
     setFormData({
       id: null,
       nama_santri: '',
@@ -110,8 +132,10 @@ export default function SantriView() {
       kode_santri: `STR-26-00${santriList.length + 1}`,
       jk: 'L',
       status_santri: 'Mukim',
-      nama_asrama: 'Asrama Ali bin Abi Thalib',
-      nama_kamar: 'Kamar 01',
+      asrama_id: firstAsr?.id || 1,
+      nama_asrama: firstAsr?.nama_asrama || 'Asrama Ali bin Abi Thalib',
+      kamar_id: firstKmr?.id || 1,
+      nama_kamar: firstKmr?.nama_kamar || 'Kamar Abu Bakar 01',
       tempat_lahir: 'Tasikmalaya',
       tgl_lahir: '2008-01-01',
       fingerprint_pin: `${1000 + santriList.length + 1}`,
@@ -137,7 +161,9 @@ export default function SantriView() {
       kode_santri: santri.kode_santri || '',
       jk: santri.jk || 'L',
       status_santri: santri.status_santri || 'Mukim',
+      asrama_id: santri.asrama_id || (asramaList[0]?.id || 1),
       nama_asrama: santri.nama_asrama || 'Asrama Ali bin Abi Thalib',
+      kamar_id: santri.kamar_id || (kamarList[0]?.id || 1),
       nama_kamar: santri.nama_kamar || 'Kamar 01',
       tempat_lahir: santri.tempat_lahir || '',
       tgl_lahir: santri.tgl_lahir ? (typeof santri.tgl_lahir === 'string' ? santri.tgl_lahir.split('T')[0] : santri.tgl_lahir) : '2008-01-01',
@@ -153,6 +179,29 @@ export default function SantriView() {
       tingkat_diniyah: santri.tingkat_diniyah || 'Wustho'
     });
     setIsFormOpen(true);
+  };
+
+  const handleAsramaSelect = (asramaId) => {
+    const selectedAsr = asramaList.find(a => a.id === parseInt(asramaId));
+    const matchingKamars = kamarList.filter(k => k.asrama_id === parseInt(asramaId));
+    const firstKamar = matchingKamars[0];
+
+    setFormData({
+      ...formData,
+      asrama_id: parseInt(asramaId),
+      nama_asrama: selectedAsr ? selectedAsr.nama_asrama : formData.nama_asrama,
+      kamar_id: firstKamar ? firstKamar.id : null,
+      nama_kamar: firstKamar ? firstKamar.nama_kamar : ''
+    });
+  };
+
+  const handleKamarSelect = (kamarId) => {
+    const selectedKmr = kamarList.find(k => k.id === parseInt(kamarId));
+    setFormData({
+      ...formData,
+      kamar_id: parseInt(kamarId),
+      nama_kamar: selectedKmr ? selectedKmr.nama_kamar : formData.nama_kamar
+    });
   };
 
   const closeForm = () => {
@@ -761,27 +810,63 @@ export default function SantriView() {
                   </div>
                 </div>
 
-                {/* Baris 3: Asrama & Kamar */}
+                {/* Baris 3: Asrama & Kamar Kobong (PILIH DARI DATABASE) */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>ASRAMA</label>
-                    <input 
-                      type="text" 
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
+                      PILIH BLOK GEDUNG ASRAMA *
+                    </label>
+                    <select 
+                      required
                       className="filter-select" 
                       style={{ width: '100%', padding: '6px 10px' }} 
-                      value={formData.nama_asrama}
-                      onChange={(e) => setFormData({ ...formData, nama_asrama: e.target.value })}
-                    />
+                      value={formData.asrama_id || (asramaList[0]?.id || 1)}
+                      onChange={(e) => handleAsramaSelect(e.target.value)}
+                    >
+                      {asramaList.length > 0 ? (
+                        asramaList.map(a => (
+                          <option key={a.id} value={a.id}>
+                            {a.nama_asrama} ({a.gender === 'L' ? 'Putra' : 'Putri'})
+                          </option>
+                        ))
+                      ) : (
+                        <>
+                          <option value="1">Asrama Ali bin Abi Thalib (Putra)</option>
+                          <option value="2">Asrama Umar bin Khattab (Putra)</option>
+                          <option value="3">Asrama Fathimah Az-Zahra (Putri)</option>
+                          <option value="4">Asrama Khadijah Al-Kubra (Putri)</option>
+                        </>
+                      )}
+                    </select>
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>KAMAR KOBONG</label>
-                    <input 
-                      type="text" 
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
+                      PILIH KAMAR KOBONG (DATABASE) *
+                    </label>
+                    <select 
+                      required
                       className="filter-select" 
                       style={{ width: '100%', padding: '6px 10px' }} 
-                      value={formData.nama_kamar}
-                      onChange={(e) => setFormData({ ...formData, nama_kamar: e.target.value })}
-                    />
+                      value={formData.kamar_id || ''}
+                      onChange={(e) => handleKamarSelect(e.target.value)}
+                    >
+                      {kamarList.filter(k => !formData.asrama_id || k.asrama_id === parseInt(formData.asrama_id)).length > 0 ? (
+                        kamarList
+                          .filter(k => !formData.asrama_id || k.asrama_id === parseInt(formData.asrama_id))
+                          .map(k => (
+                            <option key={k.id} value={k.id}>
+                              {k.nama_kamar} (Lantai {k.lantai || 1} • Kapasitas {k.kapasitas || 10})
+                            </option>
+                          ))
+                      ) : (
+                        <>
+                          <option value="1">Kamar 01 (Lantai 1)</option>
+                          <option value="2">Kamar 02 (Lantai 1)</option>
+                          <option value="3">Kamar 03 (Lantai 2)</option>
+                          <option value="4">Kamar 04 (Lantai 2)</option>
+                        </>
+                      )}
+                    </select>
                   </div>
                 </div>
 
