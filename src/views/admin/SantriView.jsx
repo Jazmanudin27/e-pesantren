@@ -12,28 +12,28 @@ export default function SantriView() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a' }}>Data Induk Santri & Asrama</h2>
-          <p style={{ color: '#64748b', fontSize: '0.88rem' }}>Kelola biodata santri, penempatan kamar kobong/asrama, data mahrom, dan capaian hafalan.</p>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Data Induk Santri & Asrama</h2>
+          <p style={{ color: '#64748b', fontSize: '0.75rem' }}>Kelola biodata santri, penempatan kamar kobong, dan capaian hafalan.</p>
         </div>
-        <button className="btn btn-primary">
-          <Plus size={16} /> Tambah Santri Baru
+        <button className="btn btn-primary btn-sm">
+          <Plus size={14} /> Tambah Santri
         </button>
       </div>
 
       <div className="card">
-        <div className="card-header" style={{ gap: '16px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: '12px', flex: 1 }}>
-            <div className="header-search" style={{ width: '100%', maxWidth: '360px' }}>
-              <Search size={18} color="#94a3b8" />
-              <input type="text" placeholder="Cari santri, NIS, asrama, wali..." />
+        <div className="card-header" style={{ gap: '10px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px', flex: 1 }}>
+            <div className="header-search" style={{ width: '100%', maxWidth: '280px' }}>
+              <Search size={14} color="#94a3b8" />
+              <input type="text" placeholder="Cari santri, NIS, asrama..." />
             </div>
-            <button className="btn btn-outline">
-              <Filter size={16} /> Filter Asrama
+            <button className="btn btn-outline btn-sm">
+              <Filter size={13} /> Filter
             </button>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '6px' }}>
             <span className="badge badge-success">Total: 648 Santri</span>
           </div>
         </div>
@@ -45,8 +45,8 @@ export default function SantriView() {
               <th>Gender</th>
               <th>Asrama & Kobong</th>
               <th>Status</th>
-              <th>Capaian Hafalan</th>
-              <th>Wali / Kontak Mahrom</th>
+              <th>Hafalan</th>
+              <th>Wali / Mahrom</th>
               <th>Aksi</th>
             </tr>
           </thead>
@@ -54,19 +54,19 @@ export default function SantriView() {
             {santriList.map((s) => (
               <tr key={s.id}>
                 <td>
-                  <div style={{ fontWeight: 700, color: '#0f172a' }}>{s.nama}</div>
-                  <div style={{ fontSize: '0.78rem', color: '#059669', fontWeight: 600 }}>NIS: {s.nis}</div>
+                  <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.8rem' }}>{s.nama}</div>
+                  <div style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 600 }}>NIS: {s.nis}</div>
                 </td>
                 <td>
                   <span className={`badge ${s.gender === 'L' ? 'badge-info' : 'badge-purple'}`}>
-                    {s.gender === 'L' ? 'Ikhwan (L)' : 'Akhwat (P)'}
+                    {s.gender === 'L' ? 'Ikhwan' : 'Akhwat'}
                   </span>
                 </td>
                 <td>
-                  <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Home size={14} color="#059669" /> {s.asrama}
+                  <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem' }}>
+                    <Home size={12} color="#059669" /> {s.asrama}
                   </div>
-                  <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{s.kamar}</div>
+                  <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{s.kamar}</div>
                 </td>
                 <td>
                   <span className={`badge ${s.status === 'Mukim' ? 'badge-success' : 'badge-warning'}`}>
@@ -79,10 +79,10 @@ export default function SantriView() {
                   </span>
                 </td>
                 <td>
-                  <div style={{ fontSize: '0.85rem' }}>{s.wali}</div>
+                  <div style={{ fontSize: '0.76rem' }}>{s.wali}</div>
                 </td>
                 <td>
-                  <button className="btn btn-outline" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
+                  <button className="btn btn-outline btn-sm">
                     Detail
                   </button>
                 </td>

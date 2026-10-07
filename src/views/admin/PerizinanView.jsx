@@ -10,13 +10,13 @@ export default function PerizinanView() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a' }}>Perizinan Keluar / Pulang Santri</h2>
-          <p style={{ color: '#64748b', fontSize: '0.88rem' }}>Sistem keamanan terintegrasi gerbang pos satpam pesantren, validasi mahrom & barcode digital.</p>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Perizinan Keluar / Pulang Santri</h2>
+          <p style={{ color: '#64748b', fontSize: '0.75rem' }}>Sistem pos gerbang satpam, validasi mahrom & scan barcode.</p>
         </div>
-        <button className="btn btn-primary">
-          <Plus size={16} /> Buat Surat Izin Santri
+        <button className="btn btn-primary btn-sm">
+          <Plus size={14} /> Surat Izin Baru
         </button>
       </div>
 
@@ -28,33 +28,33 @@ export default function PerizinanView() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Kode Izin</th>
+              <th>Kode Barcode</th>
               <th>Nama Santri</th>
               <th>Jenis Izin</th>
               <th>Rentang Waktu</th>
               <th>Penjemput / Mahrom</th>
               <th>Status</th>
-              <th>Aksi Satpam / TU</th>
+              <th>Aksi Satpam</th>
             </tr>
           </thead>
           <tbody>
             {izinList.map((row) => (
               <tr key={row.id}>
                 <td>
-                  <span style={{ fontWeight: 700, color: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <QrCode size={14} /> {row.barcode}
+                  <span style={{ fontWeight: 700, color: '#059669', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.76rem' }}>
+                    <QrCode size={12} /> {row.barcode}
                   </span>
                 </td>
                 <td>
-                  <div style={{ fontWeight: 700 }}>{row.santri}</div>
-                  <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{row.kamar}</div>
+                  <div style={{ fontWeight: 700, fontSize: '0.8rem' }}>{row.santri}</div>
+                  <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{row.kamar}</div>
                 </td>
                 <td><span className="badge badge-info">{row.jenis}</span></td>
                 <td>
-                  <div style={{ fontSize: '0.85rem' }}>Keluar: {row.tglKeluar}</div>
-                  <div style={{ fontSize: '0.78rem', color: '#dc2626', fontWeight: 600 }}>Kembali: {row.tglKembali}</div>
+                  <div style={{ fontSize: '0.75rem' }}>Keluar: {row.tglKeluar}</div>
+                  <div style={{ fontSize: '0.7rem', color: '#dc2626', fontWeight: 600 }}>Kembali: {row.tglKembali}</div>
                 </td>
-                <td>{row.mahrom}</td>
+                <td><div style={{ fontSize: '0.76rem' }}>{row.mahrom}</div></td>
                 <td>
                   <span className={`badge ${
                     row.status.includes('Aktif') ? 'badge-success' : 
@@ -64,11 +64,9 @@ export default function PerizinanView() {
                   </span>
                 </td>
                 <td>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button className="btn btn-primary" style={{ padding: '6px 10px', fontSize: '0.75rem' }}>
-                      <CheckCircle size={14} /> Check-In Masuk
-                    </button>
-                  </div>
+                  <button className="btn btn-primary btn-sm">
+                    <CheckCircle size={12} /> Check-In
+                  </button>
                 </td>
               </tr>
             ))}

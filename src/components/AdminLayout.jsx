@@ -3,22 +3,18 @@ import {
   LayoutDashboard, 
   Users, 
   BookOpen, 
-  Wallet, 
   DoorOpen, 
   GraduationCap, 
-  Calendar, 
-  BookMarked, 
   ShieldAlert, 
   Settings, 
   Bell, 
   Search, 
-  LogOut,
+  Fingerprint,
   Building2
 } from 'lucide-react';
 import DashboardAdmin from '../views/admin/DashboardAdmin';
 import SantriView from '../views/admin/SantriView';
 import TahfidzView from '../views/admin/TahfidzView';
-import SyahriahView from '../views/admin/SyahriahView';
 import PerizinanView from '../views/admin/PerizinanView';
 
 export default function AdminLayout() {
@@ -32,8 +28,6 @@ export default function AdminLayout() {
         return <SantriView />;
       case 'tahfidz':
         return <TahfidzView />;
-      case 'syahriah':
-        return <SyahriahView />;
       case 'perizinan':
         return <PerizinanView />;
       default:
@@ -47,7 +41,7 @@ export default function AdminLayout() {
       <aside className="admin-sidebar">
         <div className="sidebar-brand">
           <div className="brand-icon">
-            <Building2 size={24} />
+            <Building2 size={18} />
           </div>
           <div className="brand-info">
             <h2>E-PESANTREN</h2>
@@ -61,7 +55,7 @@ export default function AdminLayout() {
             className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
             onClick={() => setActiveTab('dashboard')}
           >
-            <LayoutDashboard size={18} /> Dashboard Pondok
+            <LayoutDashboard size={15} /> Dashboard
           </button>
 
           <div className="menu-category">Kepesantrenan & Santri</div>
@@ -69,42 +63,36 @@ export default function AdminLayout() {
             className={`nav-link ${activeTab === 'santri' ? 'active' : ''}`}
             onClick={() => setActiveTab('santri')}
           >
-            <Users size={18} /> Data Santri & Asrama
+            <Users size={15} /> Data Santri & Asrama
           </button>
           <button 
             className={`nav-link ${activeTab === 'tahfidz' ? 'active' : ''}`}
             onClick={() => setActiveTab('tahfidz')}
           >
-            <BookOpen size={18} /> Tahfidz & Muroja'ah
+            <BookOpen size={15} /> Tahfidz & Muroja'ah
+          </button>
+          <button 
+            className={`nav-link ${activeTab === 'absensi-fp' ? 'active' : ''}`}
+            onClick={() => setActiveTab('absensi-fp')}
+          >
+            <Fingerprint size={15} /> Absensi Fingerprint Shalat
           </button>
           <button 
             className={`nav-link ${activeTab === 'perizinan' ? 'active' : ''}`}
             onClick={() => setActiveTab('perizinan')}
           >
-            <DoorOpen size={18} /> Perizinan Santri
-          </button>
-          <button className="nav-link" onClick={() => setActiveTab('diniyah')}>
-            <BookMarked size={18} /> Madrasah Diniyah / Kitab
+            <DoorOpen size={15} /> Perizinan Gerbang
           </button>
           <button className="nav-link" onClick={() => setActiveTab('asatidz')}>
-            <GraduationCap size={18} /> Asatidz & Pengasuh
+            <GraduationCap size={15} /> Asatidz & Musyrif
           </button>
 
-          <div className="menu-category">Keuangan & Administrasi</div>
-          <button 
-            className={`nav-link ${activeTab === 'syahriah' ? 'active' : ''}`}
-            onClick={() => setActiveTab('syahriah')}
-          >
-            <Wallet size={18} /> Syahriah & SPP
-          </button>
+          <div className="menu-category">Kedisiplinan & Sistem</div>
           <button className="nav-link" onClick={() => setActiveTab('tata-tertib')}>
-            <ShieldAlert size={18} /> Pelanggaran / Ta'zir
-          </button>
-          <button className="nav-link" onClick={() => setActiveTab('kalender')}>
-            <Calendar size={18} /> Kalender Hijriah / Kegiatan
+            <ShieldAlert size={15} /> Pelanggaran & Ta'zir
           </button>
           <button className="nav-link" onClick={() => setActiveTab('pengaturan')}>
-            <Settings size={18} /> Pengaturan Pesantren
+            <Settings size={15} /> Pengaturan Mesin FP
           </button>
         </nav>
       </aside>
@@ -114,18 +102,18 @@ export default function AdminLayout() {
         {/* Top Header */}
         <header className="admin-header">
           <div className="header-search">
-            <Search size={18} color="#94a3b8" />
-            <input type="text" placeholder="Cari santri, nomor kamar, tagihan..." />
+            <Search size={14} color="#94a3b8" />
+            <input type="text" placeholder="Cari santri, kobong, perizinan..." />
           </div>
 
           <div className="header-user">
-            <button className="btn btn-outline" style={{ padding: '8px', borderRadius: '50%' }}>
-              <Bell size={18} />
+            <button className="btn btn-outline btn-sm" style={{ padding: '4px', borderRadius: '50%' }}>
+              <Bell size={14} />
             </button>
             <div className="user-avatar">AD</div>
-            <div style={{ fontSize: '0.88rem' }}>
+            <div style={{ fontSize: '0.78rem' }}>
               <div style={{ fontWeight: 700 }}>Ust. Administrator</div>
-              <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>Pengasuh Pondok</div>
+              <div style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 600 }}>Pengasuh Pondok</div>
             </div>
           </div>
         </header>
