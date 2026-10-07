@@ -58,56 +58,44 @@ export default function AbsensiFingerprintView() {
 
   return (
     <div>
-      {/* 1. TOP 4 STATS BOXES */}
+      {/* 1. TOP 4 COLORED STATS CARDS */}
       <div className="top-stats-grid">
-        <div className="stat-box">
+        <div className="stat-card-colored stat-card-blue">
           <div>
-            <div className="stat-box-title">TOTAL LOG PRESENSI</div>
-            <div className="stat-box-number">90</div>
-            <div className="stat-box-sub">
-              <span className="dot-blue">●</span> Presensi tercatat
-            </div>
+            <div className="stat-colored-title">TOTAL LOG PRESENSI</div>
+            <div className="stat-colored-number">90</div>
           </div>
-          <div className="stat-box-icon bg-stat-blue">
+          <div className="stat-colored-icon-box">
             <Fingerprint size={22} />
           </div>
         </div>
 
-        <div className="stat-box">
+        <div className="stat-card-colored stat-card-green">
           <div>
-            <div className="stat-box-title">PRESENSI LENGKAP</div>
-            <div className="stat-box-number" style={{ color: '#059669' }}>66</div>
-            <div className="stat-box-sub">
-              <span className="dot-green">●</span> Sudah scan pulang
-            </div>
+            <div className="stat-colored-title">PRESENSI LENGKAP</div>
+            <div className="stat-colored-number">66</div>
           </div>
-          <div className="stat-box-icon bg-stat-green">
+          <div className="stat-colored-icon-box">
             <CheckCircle size={22} />
           </div>
         </div>
 
-        <div className="stat-box">
+        <div className="stat-card-colored stat-card-amber">
           <div>
-            <div className="stat-box-title">BELUM SCAN PULANG</div>
-            <div className="stat-box-number" style={{ color: '#d97706' }}>24</div>
-            <div className="stat-box-sub">
-              <span className="dot-amber">●</span> Masih di asrama
-            </div>
+            <div className="stat-colored-title">BELUM SCAN PULANG</div>
+            <div className="stat-colored-number">24</div>
           </div>
-          <div className="stat-box-icon bg-stat-amber">
+          <div className="stat-colored-icon-box">
             <Clock size={22} />
           </div>
         </div>
 
-        <div className="stat-box">
+        <div className="stat-card-colored stat-card-purple">
           <div>
-            <div className="stat-box-title">TERLAMBAT (&gt; 04:45)</div>
-            <div className="stat-box-number" style={{ color: '#dc2626' }}>28</div>
-            <div className="stat-box-sub">
-              <span className="dot-red">●</span> Lewat batas masuk
-            </div>
+            <div className="stat-colored-title">TERLAMBAT (&gt; 04:45)</div>
+            <div className="stat-colored-number">28</div>
           </div>
-          <div className="stat-box-icon bg-stat-red">
+          <div className="stat-colored-icon-box">
             <AlertCircle size={22} />
           </div>
         </div>

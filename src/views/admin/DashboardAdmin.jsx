@@ -15,7 +15,7 @@ import {
 export default function DashboardAdmin() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({
-    stats: { total_santri: 648, total_halaqah: 32, total_izin_aktif: 18, avg_juz: '8.4' },
+    stats: { total_santri: 6, total_halaqah: 3, total_izin_aktif: 2, avg_juz: '8.4' },
     recentSetoran: [],
     activeIzin: []
   });
@@ -27,9 +27,9 @@ export default function DashboardAdmin() {
       if (res.data && res.data.success) {
         setData({
           stats: {
-            total_santri: res.data.stats.total_santri || 648,
-            total_halaqah: res.data.stats.total_halaqah || 32,
-            total_izin_aktif: res.data.stats.total_izin_aktif || 18,
+            total_santri: res.data.stats.total_santri || 6,
+            total_halaqah: res.data.stats.total_halaqah || 3,
+            total_izin_aktif: res.data.stats.total_izin_aktif || 2,
             avg_juz: res.data.stats.avg_juz || '8.4'
           },
           recentSetoran: res.data.recentSetoran && res.data.recentSetoran.length > 0 ? res.data.recentSetoran : [
@@ -82,57 +82,45 @@ export default function DashboardAdmin() {
         </button>
       </div>
 
-      {/* 2. TOP 4 STATS BOXES */}
+      {/* 2. TOP 4 COLORED STATS CARDS (CLEAN WITHOUT SUBTEXT) */}
       <div className="top-stats-grid">
-        <div className="stat-box">
+        <div className="stat-card-colored stat-card-blue">
           <div>
-            <div className="stat-box-title">TOTAL SANTRI MUKIM</div>
-            <div className="stat-box-number">{data.stats.total_santri}</div>
-            <div className="stat-box-sub">
-              <span className="dot-blue" style={{ color: '#0284c7' }}>●</span> Terdaftar Aktif
-            </div>
+            <div className="stat-colored-title">TOTAL SANTRI MUKIM</div>
+            <div className="stat-colored-number">{data.stats.total_santri}</div>
           </div>
-          <div className="stat-box-icon bg-stat-blue">
-            <Users size={20} />
+          <div className="stat-colored-icon-box">
+            <Users size={22} />
           </div>
         </div>
 
-        <div className="stat-box">
+        <div className="stat-card-colored stat-card-green">
           <div>
-            <div className="stat-box-title">HALAQAH TAHFIDZ</div>
-            <div className="stat-box-number" style={{ color: '#059669' }}>{data.stats.total_halaqah}</div>
-            <div className="stat-box-sub">
-              <span className="dot-green" style={{ color: '#10b981' }}>●</span> Rata-rata {data.stats.avg_juz} Juz
-            </div>
+            <div className="stat-colored-title">HALAQAH TAHFIDZ</div>
+            <div className="stat-colored-number">{data.stats.total_halaqah}</div>
           </div>
-          <div className="stat-box-icon bg-stat-green">
-            <BookOpen size={20} />
+          <div className="stat-colored-icon-box">
+            <BookOpen size={22} />
           </div>
         </div>
 
-        <div className="stat-box">
+        <div className="stat-card-colored stat-card-amber">
           <div>
-            <div className="stat-box-title">SANTRI IZIN GERBANG</div>
-            <div className="stat-box-number" style={{ color: '#d97706' }}>{data.stats.total_izin_aktif}</div>
-            <div className="stat-box-sub">
-              <span className="dot-amber" style={{ color: '#f59e0b' }}>●</span> Status Aktif Keluar
-            </div>
+            <div className="stat-colored-title">SANTRI IZIN GERBANG</div>
+            <div className="stat-colored-number">{data.stats.total_izin_aktif}</div>
           </div>
-          <div className="stat-box-icon bg-stat-amber">
-            <DoorOpen size={20} />
+          <div className="stat-colored-icon-box">
+            <DoorOpen size={22} />
           </div>
         </div>
 
-        <div className="stat-box">
+        <div className="stat-card-colored stat-card-purple">
           <div>
-            <div className="stat-box-title">PRESENSI FINGERPRINT</div>
-            <div className="stat-box-number" style={{ color: '#0284c7' }}>Online</div>
-            <div className="stat-box-sub">
-              <span className="dot-blue" style={{ color: '#0284c7' }}>●</span> Mesin Siap Digunakan
-            </div>
+            <div className="stat-colored-title">PRESENSI FINGERPRINT</div>
+            <div className="stat-colored-number">Online</div>
           </div>
-          <div className="stat-box-icon bg-stat-blue">
-            <Fingerprint size={20} />
+          <div className="stat-colored-icon-box">
+            <Fingerprint size={22} />
           </div>
         </div>
       </div>
@@ -207,7 +195,7 @@ export default function DashboardAdmin() {
               data.activeIzin.map((iz) => (
                 <div key={iz.id} style={{
                   background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
+                  border: '1px solid #cbd5e1',
                   borderRadius: '6px',
                   padding: '8px 10px',
                   marginBottom: '8px'

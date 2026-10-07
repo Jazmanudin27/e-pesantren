@@ -379,7 +379,7 @@ body {
 }
 
 /* =========================================
-   DASHBOARD & TOP STATS CARDS
+   VIBRANT COLORED TOP STATS CARDS
    ========================================= */
 .top-stats-grid, .stats-grid {
   display: grid;
@@ -388,61 +388,75 @@ body {
   margin-bottom: 16px;
 }
 
-.stat-box, .stat-card {
-  background: #ffffff;
+.stat-card-colored {
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
-  padding: 14px 16px;
+  padding: 16px 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  color: #ffffff;
   transition: transform 0.15s, box-shadow 0.15s;
 }
 
-.stat-box:hover, .stat-card:hover {
-  box-shadow: var(--shadow-md);
+.stat-card-colored:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
-.stat-box-title, .stat-info h4 {
-  font-size: 0.68rem;
+/* Blue Card */
+.stat-card-blue {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  border: 1px solid #0284c7;
+}
+
+/* Green Card */
+.stat-card-green {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  border: 1px solid #059669;
+}
+
+/* Amber / Orange Card */
+.stat-card-amber {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  border: 1px solid #d97706;
+}
+
+/* Purple / Indigo Card */
+.stat-card-purple {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  border: 1px solid #7c3aed;
+}
+
+/* Stat Box Typography inside Colored Cards */
+.stat-colored-title {
+  font-size: 0.7rem;
   text-transform: uppercase;
-  color: #64748b;
+  color: rgba(255, 255, 255, 0.88);
   font-weight: 700;
   letter-spacing: 0.04em;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
-.stat-box-number, .stat-info .stat-value {
-  font-size: 1.5rem;
+.stat-colored-number {
+  font-size: 1.75rem;
   font-weight: 800;
-  color: #0f172a;
-  line-height: 1.1;
+  color: #ffffff;
+  line-height: 1;
 }
 
-.stat-box-sub, .stat-info .stat-sub {
-  font-size: 0.68rem;
-  color: #64748b;
-  margin-top: 4px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.stat-box-icon, .stat-icon {
-  width: 42px;
-  height: 42px;
+.stat-colored-icon-box {
+  width: 44px;
+  height: 44px;
   border-radius: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
 }
-
-.bg-stat-blue, .icon-blue { background: #0284c7; color: #ffffff; }
-.bg-stat-green, .icon-emerald { background: #059669; color: #ffffff; }
-.bg-stat-amber, .icon-amber { background: #d97706; color: #ffffff; }
-.bg-stat-red, .icon-purple { background: #dc2626; color: #ffffff; }
 
 /* =========================================
    CARDS & CLEARLY BORDERED TABLES
@@ -481,7 +495,7 @@ body {
 
 .data-table th {
   background: #f8fafc;
-  padding: 8px 12px;
+  padding: 9px 12px;
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -491,7 +505,7 @@ body {
 }
 
 .data-table td {
-  padding: 8px 12px;
+  padding: 9px 12px;
   font-size: 0.78rem;
   border: 1px solid var(--border-color);
   color: #0f172a;

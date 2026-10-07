@@ -75,56 +75,48 @@ export default function SantriView() {
 
   return (
     <div>
-      {/* 1. TOP 4 STATS BOXES */}
+      {/* 1. TOP 4 COLORED STATS CARDS (CLEAN WITHOUT SUBTEXT) */}
       <div className="top-stats-grid">
-        <div className="stat-box">
+        {/* Total Santri - Blue Card */}
+        <div className="stat-card-colored stat-card-blue">
           <div>
-            <div className="stat-box-title">TOTAL SANTRI TERDAFTAR</div>
-            <div className="stat-box-number">{santriList.length || 6}</div>
-            <div className="stat-box-sub">
-              <span className="dot-blue">●</span> Terdaftar di database
-            </div>
+            <div className="stat-colored-title">TOTAL SANTRI TERDAFTAR</div>
+            <div className="stat-colored-number">{santriList.length || 6}</div>
           </div>
-          <div className="stat-box-icon bg-stat-blue">
+          <div className="stat-colored-icon-box">
             <Users size={22} />
           </div>
         </div>
 
-        <div className="stat-box">
+        {/* Santri Mukim - Green Card */}
+        <div className="stat-card-colored stat-card-green">
           <div>
-            <div className="stat-box-title">SANTRI MUKIM (ASRAMA)</div>
-            <div className="stat-box-number" style={{ color: '#059669' }}>{countMukim || 5}</div>
-            <div className="stat-box-sub">
-              <span className="dot-green">●</span> Menetap di kobong
-            </div>
+            <div className="stat-colored-title">SANTRI MUKIM (ASRAMA)</div>
+            <div className="stat-colored-number">{countMukim || 5}</div>
           </div>
-          <div className="stat-box-icon bg-stat-green">
+          <div className="stat-colored-icon-box">
             <Home size={22} />
           </div>
         </div>
 
-        <div className="stat-box">
+        {/* Santri Kalong - Amber Card */}
+        <div className="stat-card-colored stat-card-amber">
           <div>
-            <div className="stat-box-title">SANTRI KALONG (NON-MUKIM)</div>
-            <div className="stat-box-number" style={{ color: '#d97706' }}>{countKalong || 1}</div>
-            <div className="stat-box-sub">
-              <span className="dot-amber">●</span> Pulang pergi
-            </div>
+            <div className="stat-colored-title">SANTRI KALONG (NON-MUKIM)</div>
+            <div className="stat-colored-number">{countKalong || 1}</div>
           </div>
-          <div className="stat-box-icon bg-stat-amber">
+          <div className="stat-colored-icon-box">
             <Clock size={22} />
           </div>
         </div>
 
-        <div className="stat-box">
+        {/* Fingerprint Enrolled - Purple Card */}
+        <div className="stat-card-colored stat-card-purple">
           <div>
-            <div className="stat-box-title">FINGERPRINT ENROLLED</div>
-            <div className="stat-box-number" style={{ color: '#0284c7' }}>{santriList.length || 6}</div>
-            <div className="stat-box-sub">
-              <span className="dot-blue">●</span> Terdaftar di mesin FP
-            </div>
+            <div className="stat-colored-title">FINGERPRINT ENROLLED</div>
+            <div className="stat-colored-number">{santriList.length || 6}</div>
           </div>
-          <div className="stat-box-icon bg-stat-blue">
+          <div className="stat-colored-icon-box">
             <Fingerprint size={22} />
           </div>
         </div>
