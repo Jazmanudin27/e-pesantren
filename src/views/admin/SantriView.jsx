@@ -7,14 +7,11 @@ import {
   RotateCw, 
   Eye, 
   Home, 
-  CheckCircle, 
   Clock, 
-  AlertCircle, 
   GraduationCap, 
   Fingerprint, 
   Loader2,
-  Building,
-  UserCheck
+  Building
 } from 'lucide-react';
 
 export default function SantriView() {
@@ -32,7 +29,6 @@ export default function SantriView() {
       if (res.data && res.data.success && res.data.data && res.data.data.length > 0) {
         setSantriList(res.data.data);
       } else {
-        // Fallback default structure from DB schema
         setSantriList([
           { id: 1, nama_santri: 'Ahmad Faiz Al-Hafidz', nis: '2601001', jk: 'L', status_santri: 'Mukim', nama_asrama: 'Asrama Ali bin Abi Thalib', nama_kamar: 'Kamar 04', fingerprint_pin: 1001, capaian_hafalan_juz: 15, nama_wali: 'H. Abdullah', no_wa_wali: '0812-8888-1111', status: 'Aktif' },
           { id: 2, nama_santri: 'Zaidan Muhammad', nis: '2601002', jk: 'L', status_santri: 'Mukim', nama_asrama: 'Asrama Umar bin Khattab', nama_kamar: 'Kamar 02', fingerprint_pin: 1002, capaian_hafalan_juz: 28, nama_wali: 'Drs. Subagja', no_wa_wali: '0813-7777-2222', status: 'Aktif' },
@@ -53,7 +49,6 @@ export default function SantriView() {
     fetchSantri();
   }, []);
 
-  // Filter logic
   const filteredList = santriList.filter((s) => {
     const q = search.toLowerCase();
     const matchSearch = (
@@ -80,13 +75,12 @@ export default function SantriView() {
 
   return (
     <div>
-      {/* 1. TOP 4 STATS BOXES (IDENTICAL TO ASPARTECH PORTAL) */}
+      {/* 1. TOP 4 STATS BOXES */}
       <div className="top-stats-grid">
-        {/* Total Santri */}
         <div className="stat-box">
           <div>
             <div className="stat-box-title">TOTAL SANTRI TERDAFTAR</div>
-            <div className="stat-box-number">{santriList.length || 648}</div>
+            <div className="stat-box-number">{santriList.length || 6}</div>
             <div className="stat-box-sub">
               <span className="dot-blue">●</span> Terdaftar di database
             </div>
@@ -96,11 +90,10 @@ export default function SantriView() {
           </div>
         </div>
 
-        {/* Santri Mukim */}
         <div className="stat-box">
           <div>
             <div className="stat-box-title">SANTRI MUKIM (ASRAMA)</div>
-            <div className="stat-box-number" style={{ color: '#059669' }}>{countMukim || 580}</div>
+            <div className="stat-box-number" style={{ color: '#059669' }}>{countMukim || 5}</div>
             <div className="stat-box-sub">
               <span className="dot-green">●</span> Menetap di kobong
             </div>
@@ -110,11 +103,10 @@ export default function SantriView() {
           </div>
         </div>
 
-        {/* Santri Kalong */}
         <div className="stat-box">
           <div>
             <div className="stat-box-title">SANTRI KALONG (NON-MUKIM)</div>
-            <div className="stat-box-number" style={{ color: '#d97706' }}>{countKalong || 68}</div>
+            <div className="stat-box-number" style={{ color: '#d97706' }}>{countKalong || 1}</div>
             <div className="stat-box-sub">
               <span className="dot-amber">●</span> Pulang pergi
             </div>
@@ -124,11 +116,10 @@ export default function SantriView() {
           </div>
         </div>
 
-        {/* Biometric Enrolled */}
         <div className="stat-box">
           <div>
             <div className="stat-box-title">FINGERPRINT ENROLLED</div>
-            <div className="stat-box-number" style={{ color: '#0284c7' }}>{santriList.length || 648}</div>
+            <div className="stat-box-number" style={{ color: '#0284c7' }}>{santriList.length || 6}</div>
             <div className="stat-box-sub">
               <span className="dot-blue">●</span> Terdaftar di mesin FP
             </div>
@@ -142,7 +133,7 @@ export default function SantriView() {
       {/* 2. TITLE STRIP */}
       <div className="page-title-strip">
         <div className="page-title-left">
-          <Users size={22} className="page-title-icon" />
+          <Users size={22} className="page-title-icon" style={{ color: '#0284c7' }} />
           <div>
             <h2>Data Induk Santri & Penempatan Kobong</h2>
             <p>Kelola biodata santri, NIS, penempatan asrama/kamar kobong, data mahrom wali, dan capaian hafalan</p>
@@ -231,7 +222,7 @@ export default function SantriView() {
         </select>
       </div>
 
-      {/* 5. DATA TABLE (EXACT MATCH TO ASPARTECH REFERENCE) */}
+      {/* 5. DATA TABLE (BORDERED WITH BTN-SUCCESS) */}
       <div className="table-container-card">
         {loading ? (
           <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
@@ -248,7 +239,7 @@ export default function SantriView() {
                 <th className="td-center">STATUS MUKIM</th>
                 <th className="td-center">PIN FINGERPRINT</th>
                 <th>WALI & KONTAK MAHROM</th>
-                <th className="td-center">DETAIL</th>
+                <th className="td-center" style={{ width: '90px' }}>DETAIL</th>
               </tr>
             </thead>
             <tbody>
@@ -294,7 +285,7 @@ export default function SantriView() {
                     </div>
                   </td>
                   <td className="td-center">
-                    <button className="btn btn-outline-blue btn-sm">
+                    <button className="btn btn-success btn-sm">
                       <Eye size={12} /> Detail
                     </button>
                   </td>

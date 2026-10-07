@@ -27,7 +27,6 @@ export default function AbsensiFingerprintView() {
       if (res.data && res.data.success && res.data.data && res.data.data.length > 0) {
         setAbsensiList(res.data.data);
       } else {
-        // Fallback default sample records matching database structure if empty
         setAbsensiList([
           { id: 1, nama_santri: 'Ahmad Faiz Al-Hafidz', nis: '2601001', tanggal: '2026-10-07', jam_masuk: '04:42:15', jam_pulang: '05:30:10', status: 'Terlambat', nama_asrama: 'Asrama Ali bin Abi Thalib', nama_kamar: 'Kamar 04', lat_lng: '-7.325374, 108.208331' },
           { id: 2, nama_santri: 'Zaidan Muhammad', nis: '2601002', tanggal: '2026-10-07', jam_masuk: '04:36:24', jam_pulang: '05:32:12', status: 'Tepat Waktu', nama_asrama: 'Asrama Umar bin Khattab', nama_kamar: 'Kamar 02', lat_lng: '-7.325593, 108.208196' },
@@ -59,9 +58,8 @@ export default function AbsensiFingerprintView() {
 
   return (
     <div>
-      {/* 1. TOP 4 STATS BOXES (IDENTICAL TO ASPARTECH REFERENCE) */}
+      {/* 1. TOP 4 STATS BOXES */}
       <div className="top-stats-grid">
-        {/* Total Log */}
         <div className="stat-box">
           <div>
             <div className="stat-box-title">TOTAL LOG PRESENSI</div>
@@ -75,7 +73,6 @@ export default function AbsensiFingerprintView() {
           </div>
         </div>
 
-        {/* Presensi Lengkap */}
         <div className="stat-box">
           <div>
             <div className="stat-box-title">PRESENSI LENGKAP</div>
@@ -89,7 +86,6 @@ export default function AbsensiFingerprintView() {
           </div>
         </div>
 
-        {/* Belum Scan Pulang */}
         <div className="stat-box">
           <div>
             <div className="stat-box-title">BELUM SCAN PULANG</div>
@@ -103,7 +99,6 @@ export default function AbsensiFingerprintView() {
           </div>
         </div>
 
-        {/* Terlambat */}
         <div className="stat-box">
           <div>
             <div className="stat-box-title">TERLAMBAT (&gt; 04:45)</div>
@@ -121,7 +116,7 @@ export default function AbsensiFingerprintView() {
       {/* 2. TITLE STRIP */}
       <div className="page-title-strip">
         <div className="page-title-left">
-          <Fingerprint size={22} className="page-title-icon" />
+          <Fingerprint size={22} className="page-title-icon" style={{ color: '#0284c7' }} />
           <div>
             <h2>Log Presensi Harian Santri & Shalat Berjamaah</h2>
             <p>Pemantauan waktu check-in, check-out, geolocation, dan foto scan presensi fingerprint</p>
@@ -187,7 +182,7 @@ export default function AbsensiFingerprintView() {
         </select>
       </div>
 
-      {/* 5. DATA TABLE (MATCHING ASPARTECH EXACT FORMAT) */}
+      {/* 5. DATA TABLE */}
       <div className="table-container-card">
         {loading ? (
           <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
@@ -203,7 +198,7 @@ export default function AbsensiFingerprintView() {
                 <th className="td-center">JAM MASUK</th>
                 <th className="td-center">JAM PULANG</th>
                 <th>LOKASI PRESENSI</th>
-                <th className="td-center">DETAIL</th>
+                <th className="td-center" style={{ width: '90px' }}>DETAIL</th>
               </tr>
             </thead>
             <tbody>
@@ -241,7 +236,7 @@ export default function AbsensiFingerprintView() {
                     </div>
                   </td>
                   <td className="td-center">
-                    <button className="btn btn-outline-blue btn-sm">
+                    <button className="btn btn-success btn-sm">
                       <Eye size={12} /> Detail
                     </button>
                   </td>

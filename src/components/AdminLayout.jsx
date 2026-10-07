@@ -8,7 +8,6 @@ import {
   Bell, 
   Menu, 
   Fingerprint,
-  ChevronRight,
   ChevronDown,
   Building,
   GraduationCap,
@@ -106,7 +105,6 @@ export default function AdminLayout() {
               <LayoutDashboard size={15} />
               <span>Dashboard</span>
             </div>
-            <ChevronRight size={13} className="nav-chevron" />
           </button>
 
           <button 
@@ -117,7 +115,6 @@ export default function AdminLayout() {
               <Fingerprint size={15} />
               <span>Presensi & Absensi</span>
             </div>
-            <ChevronRight size={13} className="nav-chevron" />
           </button>
 
           <button 
@@ -128,7 +125,6 @@ export default function AdminLayout() {
               <BookOpen size={15} />
               <span>Tahfidz & Muroja'ah</span>
             </div>
-            <ChevronRight size={13} className="nav-chevron" />
           </button>
 
           <button 
@@ -139,7 +135,6 @@ export default function AdminLayout() {
               <DoorOpen size={15} />
               <span>Perizinan & Gerbang</span>
             </div>
-            <ChevronRight size={13} className="nav-chevron" />
           </button>
 
           {/* DATA MASTER DROPDOWN / ACCORDION */}
@@ -161,7 +156,6 @@ export default function AdminLayout() {
                 className={`nav-sublink ${activeTab === 'master-santri' ? 'active' : ''}`}
                 onClick={() => setActiveTab('master-santri')}
               >
-                <span className="sublink-dot"></span>
                 <span>Data Santri</span>
               </button>
 
@@ -169,7 +163,6 @@ export default function AdminLayout() {
                 className={`nav-sublink ${activeTab === 'master-asrama' ? 'active' : ''}`}
                 onClick={() => setActiveTab('master-asrama')}
               >
-                <span className="sublink-dot"></span>
                 <span>Data Asrama & Kobong</span>
               </button>
 
@@ -177,7 +170,6 @@ export default function AdminLayout() {
                 className={`nav-sublink ${activeTab === 'master-kelas' ? 'active' : ''}`}
                 onClick={() => setActiveTab('master-kelas')}
               >
-                <span className="sublink-dot"></span>
                 <span>Data Kelas & Halaqah</span>
               </button>
 
@@ -185,7 +177,6 @@ export default function AdminLayout() {
                 className={`nav-sublink ${activeTab === 'master-asatidz' ? 'active' : ''}`}
                 onClick={() => setActiveTab('master-asatidz')}
               >
-                <span className="sublink-dot"></span>
                 <span>Data Asatidz & Musyrif</span>
               </button>
 
@@ -193,7 +184,6 @@ export default function AdminLayout() {
                 className={`nav-sublink ${activeTab === 'master-device' ? 'active' : ''}`}
                 onClick={() => setActiveTab('master-device')}
               >
-                <span className="sublink-dot"></span>
                 <span>Data Mesin Fingerprint</span>
               </button>
             </div>
@@ -205,7 +195,6 @@ export default function AdminLayout() {
               <ShieldAlert size={15} />
               <span>Tata Tertib & Ta'zir</span>
             </div>
-            <ChevronRight size={13} className="nav-chevron" />
           </button>
 
           <div className="menu-category">LAPORAN & REKAP</div>
@@ -214,7 +203,6 @@ export default function AdminLayout() {
               <BarChart3 size={15} />
               <span>Rekap Presensi Harian</span>
             </div>
-            <ChevronRight size={13} className="nav-chevron" />
           </button>
 
           <button className="nav-link" onClick={() => setActiveTab('tahfidz')}>
@@ -222,7 +210,6 @@ export default function AdminLayout() {
               <FileText size={15} />
               <span>Laporan Tahfidz & Tasmi'</span>
             </div>
-            <ChevronRight size={13} className="nav-chevron" />
           </button>
         </nav>
       </aside>
@@ -241,7 +228,7 @@ export default function AdminLayout() {
             {/* Realtime Clock Pill */}
             <div className="header-time-pill">
               <Clock size={13} color="#64748b" />
-              <span>{currentTime || '8 Oktober 2026 • 05:05:19'}</span>
+              <span>{currentTime || '8 Oktober 2026 • 05:22:53'}</span>
             </div>
 
             {/* Notification Button */}
