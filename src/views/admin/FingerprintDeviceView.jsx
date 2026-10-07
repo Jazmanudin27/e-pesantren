@@ -319,28 +319,30 @@ export default function FingerprintDeviceView() {
             {/* Modal Header */}
             <div style={{
               padding: '14px 18px',
-              borderBottom: '1px solid #e2e8f0',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              background: '#f8fafc'
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+              color: '#ffffff'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#0284c7', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Fingerprint size={16} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(56, 189, 248, 0.35)' }}>
+                  <Fingerprint size={18} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                  <h3 style={{ fontSize: '0.94rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
                     {selectedDevice.nama_device}
                   </h3>
-                  <p style={{ fontSize: '0.68rem', color: '#64748b', margin: 0 }}>
+                  <p style={{ fontSize: '0.68rem', color: '#94a3b8', margin: 0 }}>
                     Serial Number: {selectedDevice.sn_device}
                   </p>
                 </div>
               </div>
               <button 
                 onClick={closeModal}
-                style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: '4px', borderRadius: '4px' }}
+                style={{ background: 'rgba(255, 255, 255, 0.12)', border: 'none', color: '#ffffff', cursor: 'pointer', padding: '5px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                title="Tutup Modal"
               >
                 <X size={18} />
               </button>
