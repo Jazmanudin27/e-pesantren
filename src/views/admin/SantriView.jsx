@@ -369,7 +369,7 @@ export default function SantriView() {
             </div>
 
             {/* Modal Body */}
-            <div style={{ padding: '18px' }}>
+            <div style={{ padding: '18px', background: '#f1f5f9' }}>
               
               {/* Profile Card Banner */}
               <div style={{
@@ -377,10 +377,12 @@ export default function SantriView() {
                 color: '#ffffff',
                 borderRadius: '8px',
                 padding: '14px 16px',
-                marginBottom: '16px',
+                marginBottom: '14px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between'
+                justifyContent: 'space-between',
+                boxShadow: '0 2px 6px rgba(15, 23, 42, 0.15)',
+                border: '1px solid #334155'
               }}>
                 <div>
                   <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff' }}>{selectedSantri.nama_santri}</div>
@@ -395,51 +397,51 @@ export default function SantriView() {
                 </div>
               </div>
 
-              {/* Info Grid 2 Kolom */}
+              {/* Info Grid 2 Kolom (Pure White Cards with Crisp Borders) */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
                 
                 {/* Asrama & Kamar */}
-                <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', background: '#f8fafc' }}>
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                   <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Home size={12} color="#059669" /> Asrama & Kamar Kobong
+                    <Home size={13} color="#059669" /> Asrama & Kamar Kobong
                   </div>
-                  <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#0f172a' }}>{selectedSantri.nama_asrama || '-'}</div>
+                  <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#0f172a' }}>{selectedSantri.nama_asrama || '-'}</div>
                   <div style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 600 }}>{selectedSantri.nama_kamar || '-'}</div>
                 </div>
 
                 {/* Tahfidz & Hafalan */}
-                <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', background: '#f8fafc' }}>
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                   <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Award size={12} color="#0284c7" /> Capaian Tahfidz Qur'an
+                    <Award size={13} color="#0284c7" /> Capaian Tahfidz Qur'an
                   </div>
-                  <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0284c7' }}>{selectedSantri.capaian_hafalan_juz || 0} Juz</div>
+                  <div style={{ fontWeight: 800, fontSize: '0.98rem', color: '#0284c7' }}>{selectedSantri.capaian_hafalan_juz || 0} Juz</div>
                   <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Tingkat: {selectedSantri.tingkat_diniyah || 'Wustho'}</div>
                 </div>
 
                 {/* Biometrik Mesin Fingerprint */}
-                <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', background: '#f8fafc' }}>
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                   <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Fingerprint size={12} color="#7c3aed" /> Biometrik Presensi
+                    <Fingerprint size={13} color="#7c3aed" /> Biometrik Presensi
                   </div>
-                  <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#0f172a' }}>PIN Mesin: <code>{selectedSantri.fingerprint_pin || '-'}</code></div>
+                  <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#0f172a' }}>PIN Mesin: <code>{selectedSantri.fingerprint_pin || '-'}</code></div>
                   <div style={{ fontSize: '0.72rem', color: '#64748b' }}>RFID: {selectedSantri.rfid_card_uid || 'Terdaftar'}</div>
                 </div>
 
                 {/* Tempat & Tanggal Lahir */}
-                <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', background: '#f8fafc' }}>
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                   <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Calendar size={12} color="#d97706" /> TTL & Tahun Masuk
+                    <Calendar size={13} color="#d97706" /> TTL & Tahun Masuk
                   </div>
-                  <div style={{ fontWeight: 700, fontSize: '0.78rem', color: '#0f172a' }}>{selectedSantri.tempat_lahir || 'Tasikmalaya'}, {selectedSantri.tgl_lahir || '-'}</div>
+                  <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#0f172a' }}>{selectedSantri.tempat_lahir || 'Tasikmalaya'}, {selectedSantri.tgl_lahir || '-'}</div>
                   <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Tahun Masuk: {selectedSantri.tahun_masuk || '2026/2027'}</div>
                 </div>
 
               </div>
 
               {/* Data Wali & Kontak Mahrom */}
-              <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff', marginBottom: '8px' }}>
-                <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Phone size={13} color="#059669" /> Data Mahrom & Wali Santri
+              <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px 16px', background: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Phone size={14} color="#059669" /> Data Mahrom & Wali Santri
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.76rem' }}>
                   <div>
@@ -459,8 +461,8 @@ export default function SantriView() {
             {/* Modal Footer */}
             <div style={{
               padding: '12px 18px',
-              borderTop: '1px solid #e2e8f0',
-              background: '#f8fafc',
+              borderTop: '1px solid #cbd5e1',
+              background: '#ffffff',
               display: 'flex',
               justifyContent: 'flex-end',
               gap: '8px'
@@ -471,7 +473,7 @@ export default function SantriView() {
                   target="_blank" 
                   rel="noreferrer"
                   className="btn btn-primary btn-sm"
-                  style={{ background: '#25D366', borderColor: '#25D366' }}
+                  style={{ background: '#25D366', borderColor: '#25D366', color: '#ffffff', fontWeight: 700 }}
                 >
                   <Phone size={12} /> Chat WhatsApp Wali
                 </a>

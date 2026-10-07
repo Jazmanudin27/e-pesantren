@@ -354,38 +354,38 @@ export default function KelasView() {
             </div>
 
             {/* Modal Body */}
-            <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px', background: '#f1f5f9' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: '#ffffff', padding: '14px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                 <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>ASATIDZ / MUSYRIF</div>
-                  <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#059669' }}>{selectedHalaqah.nama_asatidz}</div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>ASATIDZ / MUSYRIF</div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#059669' }}>{selectedHalaqah.nama_asatidz}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>PERUNTUKAN GENDER</div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>PERUNTUKAN GENDER</div>
                   <span className={`badge ${selectedHalaqah.gender === 'L' ? 'badge-info' : 'badge-purple'}`}>
                     {selectedHalaqah.gender === 'L' ? 'Ikhwan (Putra)' : 'Akhwat (Putri)'}
                   </span>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>LOKASI HALAQAH</div>
-                  <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0f172a' }}>{selectedHalaqah.lokasi_halaqah || 'Masjid Utama'}</div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>LOKASI HALAQAH</div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>{selectedHalaqah.lokasi_halaqah || 'Masjid Utama'}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>TOTAL SANTRI AKTIF</div>
-                  <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0284c7' }}>{selectedHalaqah.total_santri} Santri</div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>TOTAL SANTRI AKTIF</div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0284c7' }}>{selectedHalaqah.total_santri} Santri</div>
                 </div>
               </div>
 
-              <div>
-                <h4 style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>
-                  Target & Jadwal Rutin
+              <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <h4 style={{ fontSize: '0.76rem', fontWeight: 800, color: '#334155', marginBottom: '10px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Sparkles size={14} color="#0284c7" /> Target & Jadwal Rutin Setoran
                 </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.76rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem' }}>
                     <span style={{ color: '#64748b' }}>Target Capaian:</span>
                     <strong style={{ color: '#0f172a' }}>{selectedHalaqah.target_program}</strong>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.76rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem' }}>
                     <span style={{ color: '#64748b' }}>Waktu Setoran:</span>
                     <strong style={{ color: '#0f172a' }}>{selectedHalaqah.waktu_halaqah}</strong>
                   </div>
@@ -394,8 +394,8 @@ export default function KelasView() {
             </div>
 
             {/* Modal Footer */}
-            <div style={{ padding: '12px 18px', borderTop: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end' }}>
-              <button className="btn btn-outline" onClick={closeModal}>
+            <div style={{ padding: '12px 18px', borderTop: '1px solid #cbd5e1', background: '#ffffff', display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn btn-outline btn-sm" onClick={closeModal}>
                 Tutup
               </button>
             </div>

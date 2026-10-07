@@ -376,40 +376,40 @@ export default function AsramaView() {
             </div>
 
             {/* Modal Body */}
-            <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px', background: '#f1f5f9' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: '#ffffff', padding: '14px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                 <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>GEDUNG ASRAMA</div>
-                  <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0f172a' }}>{selectedKamar.nama_asrama}</div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>GEDUNG ASRAMA</div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>{selectedKamar.nama_asrama}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>PERUNTUKAN GENDER</div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>PERUNTUKAN GENDER</div>
                   <span className={`badge ${selectedKamar.asrama_gender === 'L' ? 'badge-info' : 'badge-purple'}`}>
                     {selectedKamar.asrama_gender === 'L' ? 'Ikhwan (Putra)' : 'Akhwat (Putri)'}
                   </span>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>KAPASITAS SANTRI</div>
-                  <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0f172a' }}>{selectedKamar.kapasitas} Tempat Tidur</div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>KAPASITAS SANTRI</div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>{selectedKamar.kapasitas} Tempat Tidur</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>JUMLAH TERISI</div>
-                  <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#059669' }}>{selectedKamar.terisi} Santri Mukim</div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>JUMLAH TERISI</div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#059669' }}>{selectedKamar.terisi} Santri Mukim</div>
                 </div>
               </div>
 
-              <div>
-                <h4 style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>
-                  Petugas Kobong & Pembina Asrama
+              <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <h4 style={{ fontSize: '0.76rem', fontWeight: 800, color: '#334155', marginBottom: '10px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <ShieldCheck size={14} color="#059669" /> Petugas Kobong & Pembina Asrama
                 </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.76rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem' }}>
                     <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '5px' }}>
                       <UserCheck size={14} color="#0284c7" /> Ketua Kamar / Rais:
                     </span>
                     <strong style={{ color: '#0f172a' }}>{selectedKamar.ketua_kamar}</strong>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.76rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem' }}>
                     <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '5px' }}>
                       <ShieldCheck size={14} color="#059669" /> Musyrif / Pembina:
                     </span>
@@ -420,8 +420,8 @@ export default function AsramaView() {
             </div>
 
             {/* Modal Footer */}
-            <div style={{ padding: '12px 18px', borderTop: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end' }}>
-              <button className="btn btn-outline" onClick={closeModal}>
+            <div style={{ padding: '12px 18px', borderTop: '1px solid #cbd5e1', background: '#ffffff', display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn btn-outline btn-sm" onClick={closeModal}>
                 Tutup
               </button>
             </div>

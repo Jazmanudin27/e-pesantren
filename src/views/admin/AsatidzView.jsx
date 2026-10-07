@@ -351,41 +351,41 @@ export default function AsatidzView() {
             </div>
 
             {/* Modal Body */}
-            <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px', background: '#f1f5f9' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: '#ffffff', padding: '14px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                 <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>TUGAS UTAMA / AMANAH</div>
-                  <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#059669' }}>{selectedAsatidz.tugas_utama}</div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>TUGAS UTAMA / AMANAH</div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#059669' }}>{selectedAsatidz.tugas_utama}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>STATUS KEPEGAWAIAN</div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>STATUS KEPEGAWAIAN</div>
                   <span className="badge badge-success">
                     {selectedAsatidz.status}
                   </span>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>BIDANG ILMU / KEAHLIAN</div>
-                  <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0f172a' }}>{selectedAsatidz.bidang_keahlian || '-'}</div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>BIDANG ILMU / KEAHLIAN</div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>{selectedAsatidz.bidang_keahlian || '-'}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>KONTAK WHATSAPP</div>
-                  <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0284c7' }}>{selectedAsatidz.no_hp || '-'}</div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>KONTAK WHATSAPP</div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0284c7' }}>{selectedAsatidz.no_hp || '-'}</div>
                 </div>
               </div>
 
-              <div>
-                <h4 style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>
-                  Alamat & Informasi Domisili
+              <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <h4 style={{ fontSize: '0.76rem', fontWeight: 800, color: '#334155', marginBottom: '8px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Building size={14} color="#059669" /> Alamat & Informasi Domisili
                 </h4>
-                <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', fontSize: '0.76rem', color: '#334155' }}>
+                <div style={{ fontSize: '0.78rem', color: '#0f172a', fontWeight: 600 }}>
                   {selectedAsatidz.alamat || 'Komplek Perumahan Asatidz Pondok Pesantren'}
                 </div>
               </div>
             </div>
 
             {/* Modal Footer */}
-            <div style={{ padding: '12px 18px', borderTop: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end' }}>
-              <button className="btn btn-outline" onClick={closeModal}>
+            <div style={{ padding: '12px 18px', borderTop: '1px solid #cbd5e1', background: '#ffffff', display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn btn-outline btn-sm" onClick={closeModal}>
                 Tutup
               </button>
             </div>

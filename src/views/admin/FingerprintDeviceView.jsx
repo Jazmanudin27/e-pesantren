@@ -349,39 +349,39 @@ export default function FingerprintDeviceView() {
             </div>
 
             {/* Modal Body */}
-            <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px', background: '#f1f5f9' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: '#ffffff', padding: '14px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                 <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>IP ADDRESS & PORT</div>
-                  <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0f172a' }}>{selectedDevice.ip_address}:{selectedDevice.port || 4370}</div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>IP ADDRESS & PORT</div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>{selectedDevice.ip_address}:{selectedDevice.port || 4370}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>STATUS KONEKSI</div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>STATUS KONEKSI</div>
                   <span className={`badge ${selectedDevice.status_koneksi === 'Online' ? 'badge-success' : 'badge-danger'}`}>
                     {selectedDevice.status_koneksi === 'Online' ? <Wifi size={11} /> : <WifiOff size={11} />}
                     <span>{selectedDevice.status_koneksi}</span>
                   </span>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>LOKASI INSTALASI</div>
-                  <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#059669' }}>{selectedDevice.lokasi}</div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>LOKASI INSTALASI</div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#059669' }}>{selectedDevice.lokasi}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>TEMPLATE ENROLLED</div>
-                  <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0284c7' }}>{selectedDevice.total_enrolled || 180} Santri & Asatidz</div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>TEMPLATE ENROLLED</div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0284c7' }}>{selectedDevice.total_enrolled || 180} Santri & Asatidz</div>
                 </div>
               </div>
 
-              <div>
-                <h4 style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>
-                  Spesifikasi & Log Sinkronisasi
+              <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <h4 style={{ fontSize: '0.76rem', fontWeight: 800, color: '#334155', marginBottom: '10px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Activity size={14} color="#0284c7" /> Spesifikasi & Log Sinkronisasi
                 </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.76rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem' }}>
                     <span style={{ color: '#64748b' }}>Model / Tipe:</span>
                     <strong style={{ color: '#0f172a' }}>{selectedDevice.tipe_mesin || 'ZKTeco Standalone Biometric'}</strong>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.76rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem' }}>
                     <span style={{ color: '#64748b' }}>Waktu Terakhir Sinkron:</span>
                     <strong style={{ color: '#0f172a' }}>{selectedDevice.last_sync || 'Baru saja'}</strong>
                   </div>
@@ -390,8 +390,8 @@ export default function FingerprintDeviceView() {
             </div>
 
             {/* Modal Footer */}
-            <div style={{ padding: '12px 18px', borderTop: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end' }}>
-              <button className="btn btn-outline" onClick={closeModal}>
+            <div style={{ padding: '12px 18px', borderTop: '1px solid #cbd5e1', background: '#ffffff', display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn btn-outline btn-sm" onClick={closeModal}>
                 Tutup
               </button>
             </div>
