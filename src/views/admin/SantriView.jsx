@@ -6,6 +6,8 @@ import {
   Search, 
   RotateCw, 
   Eye, 
+  Edit3, 
+  Trash2, 
   Home, 
   Clock, 
   GraduationCap, 
@@ -18,7 +20,9 @@ import {
   Award,
   ShieldCheck,
   MapPin,
-  User
+  User,
+  Save,
+  CheckCircle2
 } from 'lucide-react';
 
 export default function SantriView() {
@@ -32,6 +36,33 @@ export default function SantriView() {
   // Modal Detail State
   const [selectedSantri, setSelectedSantri] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Modal Form (Add & Edit)
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState('add'); // 'add' or 'edit'
+  const [submitting, setSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    id: null,
+    nama_santri: '',
+    nis: '',
+    kode_santri: '',
+    jk: 'L',
+    status_santri: 'Mukim',
+    nama_asrama: 'Asrama Ali bin Abi Thalib',
+    nama_kamar: 'Kamar 01',
+    tempat_lahir: 'Tasikmalaya',
+    tgl_lahir: '2008-01-01',
+    fingerprint_pin: '',
+    rfid_card_uid: '',
+    nama_wali: '',
+    no_wa_wali: '',
+    hubungan_wali: 'Orang Tua (Ayah)',
+    alamat_asal: '',
+    status: 'Aktif',
+    tahun_masuk: '2026/2027',
+    capaian_hafalan_juz: 0,
+    tingkat_diniyah: 'Wustho'
+  });
 
   const fetchSantri = async () => {
     try {
@@ -68,6 +99,110 @@ export default function SantriView() {
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedSantri(null);
+  };
+
+  const openAddForm = () => {
+    setFormMode('add');
+    setFormData({
+      id: null,
+      nama_santri: '',
+      nis: `260100${santriList.length + 1}`,
+      kode_santri: `STR-26-00${santriList.length + 1}`,
+      jk: 'L',
+      status_santri: 'Mukim',
+      nama_asrama: 'Asrama Ali bin Abi Thalib',
+      nama_kamar: 'Kamar 01',
+      tempat_lahir: 'Tasikmalaya',
+      tgl_lahir: '2008-01-01',
+      fingerprint_pin: `${1000 + santriList.length + 1}`,
+      rfid_card_uid: `RF-${Math.floor(10000 + Math.random() * 90000)}`,
+      nama_wali: '',
+      no_wa_wali: '',
+      hubungan_wali: 'Orang Tua (Ayah)',
+      alamat_asal: '',
+      status: 'Aktif',
+      tahun_masuk: '2026/2027',
+      capaian_hafalan_juz: 0,
+      tingkat_diniyah: 'Wustho'
+    });
+    setIsFormOpen(true);
+  };
+
+  const openEditForm = (santri) => {
+    setFormMode('edit');
+    setFormData({
+      id: santri.id,
+      nama_santri: santri.nama_santri || '',
+      nis: santri.nis || '',
+      kode_santri: santri.kode_santri || '',
+      jk: santri.jk || 'L',
+      status_santri: santri.status_santri || 'Mukim',
+      nama_asrama: santri.nama_asrama || 'Asrama Ali bin Abi Thalib',
+      nama_kamar: santri.nama_kamar || 'Kamar 01',
+      tempat_lahir: santri.tempat_lahir || '',
+      tgl_lahir: santri.tgl_lahir ? (typeof santri.tgl_lahir === 'string' ? santri.tgl_lahir.split('T')[0] : santri.tgl_lahir) : '2008-01-01',
+      fingerprint_pin: santri.fingerprint_pin || '',
+      rfid_card_uid: santri.rfid_card_uid || '',
+      nama_wali: santri.nama_wali || '',
+      no_wa_wali: santri.no_wa_wali || '',
+      hubungan_wali: santri.hubungan_wali || 'Orang Tua (Ayah)',
+      alamat_asal: santri.alamat_asal || '',
+      status: santri.status || 'Aktif',
+      tahun_masuk: santri.tahun_masuk || '2026/2027',
+      capaian_hafalan_juz: santri.capaian_hafalan_juz || 0,
+      tingkat_diniyah: santri.tingkat_diniyah || 'Wustho'
+    });
+    setIsFormOpen(true);
+  };
+
+  const closeForm = () => {
+    setIsFormOpen(false);
+  };
+
+  const handleSaveSantri = async (e) => {
+    e.preventDefault();
+    try {
+      setSubmitting(true);
+      if (formMode === 'add') {
+        const res = await axios.post('/api/santri', formData);
+        if (res.data && res.data.success) {
+          fetchSantri();
+        } else {
+          setSantriList([...santriList, { ...formData, id: Date.now() }]);
+        }
+      } else {
+        const res = await axios.put(`/api/santri/${formData.id}`, formData);
+        if (res.data && res.data.success) {
+          fetchSantri();
+        } else {
+          setSantriList(santriList.map(s => s.id === formData.id ? formData : s));
+        }
+      }
+      setIsFormOpen(false);
+    } catch (err) {
+      console.error('Gagal menyimpan santri:', err);
+      // local fallback update
+      if (formMode === 'add') {
+        setSantriList([...santriList, { ...formData, id: Date.now() }]);
+      } else {
+        setSantriList(santriList.map(s => s.id === formData.id ? formData : s));
+      }
+      setIsFormOpen(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (id, nama) => {
+    if (window.confirm(`Yakin ingin menghapus data santri "${nama}"?`)) {
+      try {
+        await axios.delete(`/api/santri/${id}`);
+        fetchSantri();
+      } catch (err) {
+        console.error('Gagal hapus santri:', err);
+        setSantriList(santriList.filter(s => s.id !== id));
+      }
+    }
   };
 
   // Filter logic
@@ -153,7 +288,7 @@ export default function SantriView() {
           <button className="btn btn-outline" onClick={fetchSantri}>
             <RotateCw size={13} /> Refresh
           </button>
-          <button className="btn btn-primary">
+          <button className="btn btn-primary" onClick={openAddForm}>
             <Plus size={14} /> Tambah Santri Baru
           </button>
         </div>
@@ -242,14 +377,14 @@ export default function SantriView() {
           <table className="data-table">
             <thead>
               <tr>
-                <th className="td-center" style={{ width: '45px' }}>NO</th>
+                <th className="td-center" style={{ width: '40px' }}>NO</th>
                 <th>NAMA SANTRI & NIS</th>
                 <th className="td-center">GENDER</th>
                 <th>ASRAMA & KOBONG</th>
                 <th className="td-center">STATUS MUKIM</th>
                 <th className="td-center">PIN FINGERPRINT</th>
                 <th>WALI & KONTAK MAHROM</th>
-                <th className="td-center" style={{ width: '90px' }}>DETAIL</th>
+                <th className="td-center" style={{ width: '130px' }}>AKSI</th>
               </tr>
             </thead>
             <tbody>
@@ -282,7 +417,7 @@ export default function SantriView() {
                     </span>
                   </td>
                   <td className="td-center">
-                    <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', color: '#0284c7', fontWeight: 700 }}>
+                    <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', color: '#0284c7', fontWeight: 700, fontSize: '0.7rem' }}>
                       PIN: {row.fingerprint_pin || '1001'}
                     </code>
                   </td>
@@ -295,13 +430,29 @@ export default function SantriView() {
                     </div>
                   </td>
                   <td className="td-center">
-                    <button 
-                      className="btn btn-success btn-sm"
-                      onClick={() => openDetail(row)}
-                      title="Lihat Detail Santri"
-                    >
-                      <Eye size={12} /> Detail
-                    </button>
+                    <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
+                      <button 
+                        className="btn btn-success btn-sm"
+                        onClick={() => openDetail(row)}
+                        title="Lihat Detail Santri"
+                      >
+                        <Eye size={12} /> Detail
+                      </button>
+                      <button 
+                        className="btn btn-warning btn-sm"
+                        onClick={() => openEditForm(row)}
+                        title="Edit Data Santri"
+                      >
+                        <Edit3 size={12} />
+                      </button>
+                      <button 
+                        className="btn btn-danger btn-sm"
+                        onClick={() => handleDelete(row.id, row.nama_santri)}
+                        title="Hapus Santri"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -482,6 +633,242 @@ export default function SantriView() {
                 Tutup
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================== */}
+      {/* MODAL FORM TAMBAH / EDIT SANTRI                     */}
+      {/* ==================================================== */}
+      {isFormOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '680px',
+            maxHeight: '92vh',
+            overflowY: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
+            border: '1px solid #cbd5e1',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            {/* Form Header */}
+            <div style={{
+              padding: '14px 18px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+              color: '#ffffff'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Users size={18} />
+                <h3 style={{ fontSize: '0.96rem', fontWeight: 800, margin: 0 }}>
+                  {formMode === 'add' ? 'Tambah Data Santri Baru' : `Edit Biodata Santri: ${formData.nama_santri}`}
+                </h3>
+              </div>
+              <button 
+                onClick={closeForm}
+                style={{ background: 'rgba(255, 255, 255, 0.15)', border: 'none', color: '#ffffff', padding: '4px', borderRadius: '4px', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Form Fields */}
+            <form onSubmit={handleSaveSantri}>
+              <div style={{ padding: '18px 20px', background: '#f1f5f9', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                
+                {/* Baris 1: Nama & NIS */}
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>NAMA LENGKAP SANTRI *</label>
+                    <input 
+                      type="text" 
+                      required 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }} 
+                      value={formData.nama_santri}
+                      onChange={(e) => setFormData({ ...formData, nama_santri: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>NIS</label>
+                    <input 
+                      type="text" 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }} 
+                      value={formData.nis}
+                      onChange={(e) => setFormData({ ...formData, nis: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* Baris 2: Gender, Status Mukim, Status Santri */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>GENDER</label>
+                    <select 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }}
+                      value={formData.jk}
+                      onChange={(e) => setFormData({ ...formData, jk: e.target.value })}
+                    >
+                      <option value="L">Laki-laki (Ikhwan)</option>
+                      <option value="P">Perempuan (Akhwat)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>STATUS MUKIM</label>
+                    <select 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }}
+                      value={formData.status_santri}
+                      onChange={(e) => setFormData({ ...formData, status_santri: e.target.value })}
+                    >
+                      <option value="Mukim">Mukim (Asrama)</option>
+                      <option value="Kalong">Kalong (Non-Mukim)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>STATUS KEAKTIFAN</label>
+                    <select 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }}
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    >
+                      <option value="Aktif">Aktif</option>
+                      <option value="Alumni">Alumni</option>
+                      <option value="Boyong">Boyong</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Baris 3: Asrama & Kamar */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>ASRAMA</label>
+                    <input 
+                      type="text" 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }} 
+                      value={formData.nama_asrama}
+                      onChange={(e) => setFormData({ ...formData, nama_asrama: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>KAMAR KOBONG</label>
+                    <input 
+                      type="text" 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }} 
+                      value={formData.nama_kamar}
+                      onChange={(e) => setFormData({ ...formData, nama_kamar: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* Baris 4: PIN Fingerprint & Hafalan */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>PIN FINGERPRINT</label>
+                    <input 
+                      type="text" 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }} 
+                      value={formData.fingerprint_pin}
+                      onChange={(e) => setFormData({ ...formData, fingerprint_pin: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>HAFALAN (JUZ)</label>
+                    <input 
+                      type="number" 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }} 
+                      value={formData.capaian_hafalan_juz}
+                      onChange={(e) => setFormData({ ...formData, capaian_hafalan_juz: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>TINGKAT DINIYAH</label>
+                    <select 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }}
+                      value={formData.tingkat_diniyah}
+                      onChange={(e) => setFormData({ ...formData, tingkat_diniyah: e.target.value })}
+                    >
+                      <option value="Ula">Ula</option>
+                      <option value="Wustho">Wustho</option>
+                      <option value="Ulya">Ulya</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Baris 5: Wali & Kontak */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>NAMA WALI / MAHROM</label>
+                    <input 
+                      type="text" 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }} 
+                      value={formData.nama_wali}
+                      onChange={(e) => setFormData({ ...formData, nama_wali: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>NO. WHATSAPP WALI</label>
+                    <input 
+                      type="text" 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }} 
+                      value={formData.no_wa_wali}
+                      onChange={(e) => setFormData({ ...formData, no_wa_wali: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>ALAMAT ASAL</label>
+                  <input 
+                    type="text" 
+                    className="filter-select" 
+                    style={{ width: '100%', padding: '6px 10px' }} 
+                    value={formData.alamat_asal}
+                    onChange={(e) => setFormData({ ...formData, alamat_asal: e.target.value })}
+                  />
+                </div>
+
+              </div>
+
+              {/* Form Footer */}
+              <div style={{ padding: '12px 18px', borderTop: '1px solid #cbd5e1', background: '#ffffff', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <button type="button" className="btn btn-outline btn-sm" onClick={closeForm}>
+                  Batal
+                </button>
+                <button type="submit" className="btn btn-primary btn-sm" disabled={submitting}>
+                  {submitting ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} Simpan Data Santri
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -7,15 +7,15 @@ import {
   RotateCw, 
   Search, 
   Eye, 
+  Edit3, 
+  Trash2, 
   Loader2, 
   Phone, 
-  Mail, 
   Award, 
   ShieldCheck, 
   X, 
-  CheckCircle2, 
-  BookOpen, 
-  Building 
+  Building, 
+  Save 
 } from 'lucide-react';
 
 export default function AsatidzView() {
@@ -30,6 +30,24 @@ export default function AsatidzView() {
   const [selectedAsatidz, setSelectedAsatidz] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Modal Form (Add & Edit)
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState('add');
+  const [submitting, setSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    id: null,
+    nama_asatidz: '',
+    gelar: '',
+    nik_niy: '',
+    jk: 'L',
+    tugas_utama: '',
+    no_hp: '',
+    email: '',
+    alamat: '',
+    status: 'Aktif',
+    bidang_keahlian: ''
+  });
+
   const fetchAsatidz = async () => {
     try {
       setLoading(true);
@@ -37,14 +55,13 @@ export default function AsatidzView() {
       if (res.data && res.data.success && res.data.data && res.data.data.length > 0) {
         setAsatidzList(res.data.data);
       } else {
-        // Fallback default sample data
         setAsatidzList([
-          { id: 1, nama_asatidz: 'K.H. Abdullah Gymnastiar', gelar: 'Lc., M.Ag.', nik_niy: 'AST-2021-001', jk: 'L', tugas_utama: 'Pimpinan & Pengasuh Utama', no_hp: '08122334455', email: 'kh.abdullah@pesantren.id', alamat: 'Komp. Pondok Utama Blok A1', status: 'Aktif', tanggal_bergabung: '2021-01-01', bidang_keahlian: 'Tafsir & Akhlak Tasawuf' },
-          { id: 2, nama_asatidz: 'Ust. Ahmad Fauzi', gelar: 'S.Pd.I, Al-Hafidz', nik_niy: 'AST-2022-004', jk: 'L', tugas_utama: 'Kepala Bagian Tahfidz & Musyrif Asrama Putra', no_hp: '081344556677', email: 'ahmad.fauzi@pesantren.id', alamat: 'Asrama Ali bin Abi Thalib Lt. 1', status: 'Aktif', tanggal_bergabung: '2022-06-15', bidang_keahlian: 'Tahfidz 30 Juz & Qiraat Ashim' },
-          { id: 3, nama_asatidz: 'Ust. Muhammad Zaki', gelar: 'Lc.', nik_niy: 'AST-2023-008', jk: 'L', tugas_utama: 'Pengajar Kitab Kuning (Nahwu Shorof)', no_hp: '085711223344', email: 'zaki.lc@pesantren.id', alamat: 'Perum Gading Residence No. 12', status: 'Aktif', tanggal_bergabung: '2023-02-01', bidang_keahlian: 'Gramatika Arab & Fiqih Syafi\'i' },
-          { id: 4, nama_asatidz: 'Usth. Sarah Humaira', gelar: 'S.Th.I, Al-Hafidzah', nik_niy: 'AST-2022-009', jk: 'P', tugas_utama: 'Koordinator Tahfidz Putri & Musy مشرفah', no_hp: '081299887766', email: 'sarah.humaira@pesantren.id', alamat: 'Gedung Asrama Putri 01', status: 'Aktif', tanggal_bergabung: '2022-08-01', bidang_keahlian: 'Tahfidz 30 Juz & Tajwid Jazariyah' },
-          { id: 5, nama_asatidz: 'Usth. Siti Maryam', gelar: 'M.Ag.', nik_niy: 'AST-2021-003', jk: 'P', tugas_utama: 'Pengasuh Keputrian & Pengajar Sirah Nabawiyah', no_hp: '081322110099', email: 'siti.maryam@pesantren.id', alamat: 'Gedung Asrama Putri 02', status: 'Aktif', tanggal_bergabung: '2021-03-10', bidang_keahlian: 'Sirah Nabawiyah & Fiqih Wanita' },
-          { id: 6, nama_asatidz: 'Ust. Bilal Mansur', gelar: 'S.Pd.I', nik_niy: 'AST-2024-012', jk: 'L', tugas_utama: 'Musyrif Disiplin & Pengasuh Santri Baru', no_hp: '087855667788', email: 'bilal.mansur@pesantren.id', alamat: 'Asrama Umar bin Khattab', status: 'Aktif', tanggal_bergabung: '2024-01-10', bidang_keahlian: 'Bimbingan Konseling Santri' }
+          { id: 1, nama_asatidz: 'K.H. Abdullah Gymnastiar', gelar: 'Lc., M.Ag.', nik_niy: 'AST-2021-001', jk: 'L', tugas_utama: 'Pimpinan & Pengasuh Utama', no_hp: '08122334455', email: 'kh.abdullah@pesantren.id', alamat: 'Komp. Pondok Utama Blok A1', status: 'Aktif', bidang_keahlian: 'Tafsir & Akhlak Tasawuf' },
+          { id: 2, nama_asatidz: 'Ust. Ahmad Fauzi', gelar: 'S.Pd.I, Al-Hafidz', nik_niy: 'AST-2022-004', jk: 'L', tugas_utama: 'Kepala Bagian Tahfidz & Musyrif Asrama Putra', no_hp: '081344556677', email: 'ahmad.fauzi@pesantren.id', alamat: 'Asrama Ali bin Abi Thalib Lt. 1', status: 'Aktif', bidang_keahlian: 'Tahfidz 30 Juz & Qiraat Ashim' },
+          { id: 3, nama_asatidz: 'Ust. Muhammad Zaki', gelar: 'Lc.', nik_niy: 'AST-2023-008', jk: 'L', tugas_utama: 'Pengajar Kitab Kuning (Nahwu Shorof)', no_hp: '085711223344', email: 'zaki.lc@pesantren.id', alamat: 'Perum Gading Residence No. 12', status: 'Aktif', bidang_keahlian: 'Gramatika Arab & Fiqih Syafi\'i' },
+          { id: 4, nama_asatidz: 'Usth. Sarah Humaira', gelar: 'S.Th.I, Al-Hafidzah', nik_niy: 'AST-2022-009', jk: 'P', tugas_utama: 'Koordinator Tahfidz Putri & Musyrifah', no_hp: '081299887766', email: 'sarah.humaira@pesantren.id', alamat: 'Gedung Asrama Putri 01', status: 'Aktif', bidang_keahlian: 'Tahfidz 30 Juz & Tajwid Jazariyah' },
+          { id: 5, nama_asatidz: 'Usth. Siti Maryam', gelar: 'M.Ag.', nik_niy: 'AST-2021-003', jk: 'P', tugas_utama: 'Pengasuh Keputrian & Pengajar Sirah Nabawiyah', no_hp: '081322110099', email: 'siti.maryam@pesantren.id', alamat: 'Gedung Asrama Putri 02', status: 'Aktif', bidang_keahlian: 'Sirah Nabawiyah & Fiqih Wanita' },
+          { id: 6, nama_asatidz: 'Ust. Bilal Mansur', gelar: 'S.Pd.I', nik_niy: 'AST-2024-012', jk: 'L', tugas_utama: 'Musyrif Disiplin & Pengasuh Santri Baru', no_hp: '087855667788', email: 'bilal.mansur@pesantren.id', alamat: 'Asrama Umar bin Khattab', status: 'Aktif', bidang_keahlian: 'Bimbingan Konseling Santri' }
         ]);
       }
     } catch (err) {
@@ -66,6 +83,91 @@ export default function AsatidzView() {
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedAsatidz(null);
+  };
+
+  const openAddForm = () => {
+    setFormMode('add');
+    setFormData({
+      id: null,
+      nama_asatidz: '',
+      gelar: '',
+      nik_niy: `AST-2026-00${asatidzList.length + 1}`,
+      jk: 'L',
+      tugas_utama: '',
+      no_hp: '',
+      email: '',
+      alamat: '',
+      status: 'Aktif',
+      bidang_keahlian: ''
+    });
+    setIsFormOpen(true);
+  };
+
+  const openEditForm = (ast) => {
+    setFormMode('edit');
+    setFormData({
+      id: ast.id,
+      nama_asatidz: ast.nama_asatidz || '',
+      gelar: ast.gelar || '',
+      nik_niy: ast.nik_niy || '',
+      jk: ast.jk || 'L',
+      tugas_utama: ast.tugas_utama || '',
+      no_hp: ast.no_hp || '',
+      email: ast.email || '',
+      alamat: ast.alamat || '',
+      status: ast.status || 'Aktif',
+      bidang_keahlian: ast.bidang_keahlian || ''
+    });
+    setIsFormOpen(true);
+  };
+
+  const closeForm = () => {
+    setIsFormOpen(false);
+  };
+
+  const handleSaveAsatidz = async (e) => {
+    e.preventDefault();
+    try {
+      setSubmitting(true);
+      if (formMode === 'add') {
+        const res = await axios.post('/api/asatidz', formData);
+        if (res.data && res.data.success) {
+          fetchAsatidz();
+        } else {
+          setAsatidzList([...asatidzList, { ...formData, id: Date.now() }]);
+        }
+      } else {
+        const res = await axios.put(`/api/asatidz/${formData.id}`, formData);
+        if (res.data && res.data.success) {
+          fetchAsatidz();
+        } else {
+          setAsatidzList(asatidzList.map(a => a.id === formData.id ? formData : a));
+        }
+      }
+      setIsFormOpen(false);
+    } catch (err) {
+      console.error('Gagal simpan asatidz:', err);
+      if (formMode === 'add') {
+        setAsatidzList([...asatidzList, { ...formData, id: Date.now() }]);
+      } else {
+        setAsatidzList(asatidzList.map(a => a.id === formData.id ? formData : a));
+      }
+      setIsFormOpen(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteAsatidz = async (id, nama) => {
+    if (window.confirm(`Yakin ingin menghapus data asatidz "${nama}"?`)) {
+      try {
+        await axios.delete(`/api/asatidz/${id}`);
+        fetchAsatidz();
+      } catch (err) {
+        console.error('Gagal hapus asatidz:', err);
+        setAsatidzList(asatidzList.filter(a => a.id !== id));
+      }
+    }
   };
 
   const countIkhwan = asatidzList.filter(a => a.jk === 'L').length;
@@ -156,7 +258,7 @@ export default function AsatidzView() {
           <button className="btn btn-outline" onClick={fetchAsatidz}>
             <RotateCw size={13} /> Refresh
           </button>
-          <button className="btn btn-primary">
+          <button className="btn btn-primary" onClick={openAddForm}>
             <Plus size={14} /> Tambah Asatidz Baru
           </button>
         </div>
@@ -231,14 +333,14 @@ export default function AsatidzView() {
           <table className="data-table">
             <thead>
               <tr>
-                <th className="td-center" style={{ width: '45px' }}>NO</th>
+                <th className="td-center" style={{ width: '40px' }}>NO</th>
                 <th>NAMA ASATIDZ & GELAR</th>
                 <th className="td-center">GENDER</th>
                 <th>TUGAS UTAMA / AMANAH</th>
                 <th>BIDANG KEAHLIAN / ILMU</th>
                 <th>KONTAK WHATSAPP</th>
                 <th className="td-center">STATUS</th>
-                <th className="td-center" style={{ width: '90px' }}>DETAIL</th>
+                <th className="td-center" style={{ width: '130px' }}>AKSI</th>
               </tr>
             </thead>
             <tbody>
@@ -273,13 +375,29 @@ export default function AsatidzView() {
                     </span>
                   </td>
                   <td className="td-center">
-                    <button 
-                      className="btn btn-success btn-sm"
-                      onClick={() => openDetail(ast)}
-                      title="Lihat Detail Profil Asatidz"
-                    >
-                      <Eye size={12} /> Detail
-                    </button>
+                    <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
+                      <button 
+                        className="btn btn-success btn-sm"
+                        onClick={() => openDetail(ast)}
+                        title="Lihat Detail Profil Asatidz"
+                      >
+                        <Eye size={12} /> Detail
+                      </button>
+                      <button 
+                        className="btn btn-warning btn-sm"
+                        onClick={() => openEditForm(ast)}
+                        title="Edit Asatidz"
+                      >
+                        <Edit3 size={12} />
+                      </button>
+                      <button 
+                        className="btn btn-danger btn-sm"
+                        onClick={() => handleDeleteAsatidz(ast.id, ast.nama_asatidz)}
+                        title="Hapus Asatidz"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -392,6 +510,183 @@ export default function AsatidzView() {
           </div>
         </div>
       )}
+
+      {/* ==================================================== */}
+      {/* MODAL FORM TAMBAH / EDIT ASATIDZ                    */}
+      {/* ==================================================== */}
+      {isFormOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '580px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
+            border: '1px solid #cbd5e1',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <div style={{
+              padding: '14px 18px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+              color: '#ffffff'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <GraduationCap size={18} />
+                <h3 style={{ fontSize: '0.96rem', fontWeight: 800, margin: 0 }}>
+                  {formMode === 'add' ? 'Tambah Asatidz Baru' : `Edit Asatidz: ${formData.nama_asatidz}`}
+                </h3>
+              </div>
+              <button 
+                onClick={closeForm}
+                style={{ background: 'rgba(255, 255, 255, 0.15)', border: 'none', color: '#ffffff', padding: '4px', borderRadius: '4px', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAsatidz}>
+              <div style={{ padding: '18px 20px', background: '#f1f5f9', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>NAMA ASATIDZ / USTADZ *</label>
+                    <input 
+                      type="text" 
+                      required 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }} 
+                      value={formData.nama_asatidz}
+                      onChange={(e) => setFormData({ ...formData, nama_asatidz: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>GELAR</label>
+                    <input 
+                      type="text" 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }} 
+                      value={formData.gelar}
+                      onChange={(e) => setFormData({ ...formData, gelar: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>NIY / NIK</label>
+                    <input 
+                      type="text" 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }} 
+                      value={formData.nik_niy}
+                      onChange={(e) => setFormData({ ...formData, nik_niy: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>GENDER</label>
+                    <select 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }}
+                      value={formData.jk}
+                      onChange={(e) => setFormData({ ...formData, jk: e.target.value })}
+                    >
+                      <option value="L">Ustadz (Ikhwan)</option>
+                      <option value="P">Ustadzah (Akhwat)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>STATUS</label>
+                    <select 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }}
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    >
+                      <option value="Aktif">Aktif</option>
+                      <option value="Cuti">Cuti</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>TUGAS UTAMA / AMANAH</label>
+                    <input 
+                      type="text" 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }} 
+                      value={formData.tugas_utama}
+                      onChange={(e) => setFormData({ ...formData, tugas_utama: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>BIDANG KEAHLIAN</label>
+                    <input 
+                      type="text" 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }} 
+                      value={formData.bidang_keahlian}
+                      onChange={(e) => setFormData({ ...formData, bidang_keahlian: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>NO. WHATSAPP / HP</label>
+                    <input 
+                      type="text" 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }} 
+                      value={formData.no_hp}
+                      onChange={(e) => setFormData({ ...formData, no_hp: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>ALAMAT DOMISILI</label>
+                    <input 
+                      type="text" 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }} 
+                      value={formData.alamat}
+                      onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ padding: '12px 18px', borderTop: '1px solid #cbd5e1', background: '#ffffff', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <button type="button" className="btn btn-outline btn-sm" onClick={closeForm}>
+                  Batal
+                </button>
+                <button type="submit" className="btn btn-primary btn-sm" style={{ background: '#7c3aed', borderColor: '#6d28d9' }} disabled={submitting}>
+                  {submitting ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} Simpan Asatidz
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

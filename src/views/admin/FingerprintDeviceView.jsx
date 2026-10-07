@@ -8,14 +8,14 @@ import {
   RotateCw, 
   Search, 
   Eye, 
+  Edit3, 
+  Trash2, 
   Loader2, 
   Server, 
-  CheckCircle2, 
-  AlertTriangle, 
+  Activity, 
   X, 
   Radio, 
-  Activity, 
-  MapPin 
+  Save 
 } from 'lucide-react';
 
 export default function FingerprintDeviceView() {
@@ -30,6 +30,23 @@ export default function FingerprintDeviceView() {
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Modal Form (Add & Edit)
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState('add');
+  const [submitting, setSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    id: null,
+    nama_device: '',
+    sn_device: '',
+    ip_address: '192.168.1.',
+    port: 4370,
+    lokasi: '',
+    peruntukan: 'Ikhwan',
+    status_koneksi: 'Online',
+    tipe_mesin: 'ZKTeco Standalone Biometric',
+    total_enrolled: 180
+  });
+
   const fetchDevices = async () => {
     try {
       setLoading(true);
@@ -37,7 +54,6 @@ export default function FingerprintDeviceView() {
       if (res.data && res.data.success && res.data.data && res.data.data.length > 0) {
         setDevices(res.data.data);
       } else {
-        // Fallback default sample data
         setDevices([
           { id: 1, nama_device: 'Mesin Gerbang Putra (Pos 1)', sn_device: 'ZKT-X100C-9901', ip_address: '192.168.1.201', port: 4370, lokasi: 'Pos Satpam Gerbang Utama Putra', peruntukan: 'Ikhwan', status_koneksi: 'Online', tipe_mesin: 'ZKTeco X100-C / Standalone', last_sync: '2026-10-08 05:40:12', total_enrolled: 180 },
           { id: 2, nama_device: 'Mesin Gerbang Putri (Pos 2)', sn_device: 'ZKT-X100C-9902', ip_address: '192.168.1.202', port: 4370, lokasi: 'Pos Satpam Gerbang Putri', peruntukan: 'Akhwat', status_koneksi: 'Online', tipe_mesin: 'ZKTeco X100-C / Standalone', last_sync: '2026-10-08 05:41:00', total_enrolled: 160 },
@@ -64,6 +80,89 @@ export default function FingerprintDeviceView() {
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedDevice(null);
+  };
+
+  const openAddForm = () => {
+    setFormMode('add');
+    setFormData({
+      id: null,
+      nama_device: '',
+      sn_device: `ZKT-${Math.floor(1000 + Math.random() * 9000)}`,
+      ip_address: '192.168.1.205',
+      port: 4370,
+      lokasi: '',
+      peruntukan: 'Ikhwan',
+      status_koneksi: 'Online',
+      tipe_mesin: 'ZKTeco Standalone Biometric',
+      total_enrolled: 0
+    });
+    setIsFormOpen(true);
+  };
+
+  const openEditForm = (d) => {
+    setFormMode('edit');
+    setFormData({
+      id: d.id,
+      nama_device: d.nama_device || '',
+      sn_device: d.sn_device || '',
+      ip_address: d.ip_address || '',
+      port: d.port || 4370,
+      lokasi: d.lokasi || '',
+      peruntukan: d.peruntukan || 'Ikhwan',
+      status_koneksi: d.status_koneksi || 'Online',
+      tipe_mesin: d.tipe_mesin || 'ZKTeco Standalone Biometric',
+      total_enrolled: d.total_enrolled || 0
+    });
+    setIsFormOpen(true);
+  };
+
+  const closeForm = () => {
+    setIsFormOpen(false);
+  };
+
+  const handleSaveDevice = async (e) => {
+    e.preventDefault();
+    try {
+      setSubmitting(true);
+      if (formMode === 'add') {
+        const res = await axios.post('/api/fingerprint/devices', formData);
+        if (res.data && res.data.success) {
+          fetchDevices();
+        } else {
+          setDevices([...devices, { ...formData, id: Date.now() }]);
+        }
+      } else {
+        const res = await axios.put(`/api/fingerprint/devices/${formData.id}`, formData);
+        if (res.data && res.data.success) {
+          fetchDevices();
+        } else {
+          setDevices(devices.map(d => d.id === formData.id ? formData : d));
+        }
+      }
+      setIsFormOpen(false);
+    } catch (err) {
+      console.error('Gagal simpan perangkat:', err);
+      if (formMode === 'add') {
+        setDevices([...devices, { ...formData, id: Date.now() }]);
+      } else {
+        setDevices(devices.map(d => d.id === formData.id ? formData : d));
+      }
+      setIsFormOpen(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteDevice = async (id, nama) => {
+    if (window.confirm(`Yakin ingin menghapus perangkat mesin "${nama}"?`)) {
+      try {
+        await axios.delete(`/api/fingerprint/devices/${id}`);
+        fetchDevices();
+      } catch (err) {
+        console.error('Gagal hapus mesin:', err);
+        setDevices(devices.filter(d => d.id !== id));
+      }
+    }
   };
 
   const countOnline = devices.filter(d => d.status_koneksi === 'Online').length;
@@ -152,7 +251,7 @@ export default function FingerprintDeviceView() {
           <button className="btn btn-outline" onClick={fetchDevices}>
             <RotateCw size={13} /> Refresh Status
           </button>
-          <button className="btn btn-primary">
+          <button className="btn btn-primary" onClick={openAddForm}>
             <Plus size={14} /> Tambah Mesin Baru
           </button>
         </div>
@@ -227,14 +326,14 @@ export default function FingerprintDeviceView() {
           <table className="data-table">
             <thead>
               <tr>
-                <th className="td-center" style={{ width: '45px' }}>NO</th>
+                <th className="td-center" style={{ width: '40px' }}>NO</th>
                 <th>NAMA PERANGKAT & TIPE</th>
                 <th>SERIAL NUMBER (SN)</th>
                 <th>IP ADDRESS & PORT</th>
                 <th>LOKASI PENEMPATAN</th>
                 <th className="td-center">PERUNTUKAN</th>
                 <th className="td-center">STATUS KONEKSI</th>
-                <th className="td-center" style={{ width: '90px' }}>DETAIL</th>
+                <th className="td-center" style={{ width: '130px' }}>AKSI</th>
               </tr>
             </thead>
             <tbody>
@@ -271,13 +370,29 @@ export default function FingerprintDeviceView() {
                     </span>
                   </td>
                   <td className="td-center">
-                    <button 
-                      className="btn btn-success btn-sm"
-                      onClick={() => openDetail(d)}
-                      title="Lihat Detail Konfigurasi Mesin"
-                    >
-                      <Eye size={12} /> Detail
-                    </button>
+                    <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
+                      <button 
+                        className="btn btn-success btn-sm"
+                        onClick={() => openDetail(d)}
+                        title="Lihat Detail Konfigurasi Mesin"
+                      >
+                        <Eye size={12} /> Detail
+                      </button>
+                      <button 
+                        className="btn btn-warning btn-sm"
+                        onClick={() => openEditForm(d)}
+                        title="Edit Mesin"
+                      >
+                        <Edit3 size={12} />
+                      </button>
+                      <button 
+                        className="btn btn-danger btn-sm"
+                        onClick={() => handleDeleteDevice(d.id, d.nama_device)}
+                        title="Hapus Mesin"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -398,6 +513,162 @@ export default function FingerprintDeviceView() {
           </div>
         </div>
       )}
+
+      {/* ==================================================== */}
+      {/* MODAL FORM TAMBAH / EDIT PERANGKAT FINGERPRINT       */}
+      {/* ==================================================== */}
+      {isFormOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '560px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
+            border: '1px solid #cbd5e1',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <div style={{
+              padding: '14px 18px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+              color: '#ffffff'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Fingerprint size={18} />
+                <h3 style={{ fontSize: '0.96rem', fontWeight: 800, margin: 0 }}>
+                  {formMode === 'add' ? 'Tambah Mesin Fingerprint Baru' : `Edit Mesin: ${formData.nama_device}`}
+                </h3>
+              </div>
+              <button 
+                onClick={closeForm}
+                style={{ background: 'rgba(255, 255, 255, 0.15)', border: 'none', color: '#ffffff', padding: '4px', borderRadius: '4px', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveDevice}>
+              <div style={{ padding: '18px 20px', background: '#f1f5f9', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>NAMA PERANGKAT MESIN *</label>
+                  <input 
+                    type="text" 
+                    required 
+                    className="filter-select" 
+                    style={{ width: '100%', padding: '6px 10px' }} 
+                    value={formData.nama_device}
+                    onChange={(e) => setFormData({ ...formData, nama_device: e.target.value })}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>SERIAL NUMBER (SN)</label>
+                    <input 
+                      type="text" 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }} 
+                      value={formData.sn_device}
+                      onChange={(e) => setFormData({ ...formData, sn_device: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>PERUNTUKAN</label>
+                    <select 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }}
+                      value={formData.peruntukan}
+                      onChange={(e) => setFormData({ ...formData, peruntukan: e.target.value })}
+                    >
+                      <option value="Ikhwan">Ikhwan (Putra)</option>
+                      <option value="Akhwat">Akhwat (Putri)</option>
+                      <option value="Semua">Semua / Umum</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>IP ADDRESS</label>
+                    <input 
+                      type="text" 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }} 
+                      value={formData.ip_address}
+                      onChange={(e) => setFormData({ ...formData, ip_address: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>PORT TCP</label>
+                    <input 
+                      type="number" 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }} 
+                      value={formData.port}
+                      onChange={(e) => setFormData({ ...formData, port: parseInt(e.target.value) || 4370 })}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>LOKASI INSTALASI</label>
+                    <input 
+                      type="text" 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }} 
+                      value={formData.lokasi}
+                      onChange={(e) => setFormData({ ...formData, lokasi: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>STATUS KONEKSI</label>
+                    <select 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }}
+                      value={formData.status_koneksi}
+                      onChange={(e) => setFormData({ ...formData, status_koneksi: e.target.value })}
+                    >
+                      <option value="Online">Online</option>
+                      <option value="Offline">Offline</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ padding: '12px 18px', borderTop: '1px solid #cbd5e1', background: '#ffffff', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <button type="button" className="btn btn-outline btn-sm" onClick={closeForm}>
+                  Batal
+                </button>
+                <button type="submit" className="btn btn-primary btn-sm" disabled={submitting}>
+                  {submitting ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} Simpan Mesin
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

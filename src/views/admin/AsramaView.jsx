@@ -8,13 +8,16 @@ import {
   RotateCw, 
   Search, 
   Eye, 
+  Edit3, 
+  Trash2, 
   Loader2, 
   ShieldCheck, 
   CheckCircle2, 
   X, 
   UserCheck, 
   MapPin, 
-  BedDouble 
+  BedDouble, 
+  Save 
 } from 'lucide-react';
 
 export default function AsramaView() {
@@ -29,6 +32,24 @@ export default function AsramaView() {
   const [selectedKamar, setSelectedKamar] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Modal Form (Add & Edit)
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState('add');
+  const [submitting, setSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    id: null,
+    kode_kamar: '',
+    nama_kamar: '',
+    asrama_id: 1,
+    nama_asrama: 'Asrama Ali bin Abi Thalib',
+    asrama_gender: 'L',
+    lantai: 1,
+    kapasitas: 10,
+    terisi: 0,
+    ketua_kamar: '',
+    pembina: 'Ust. Ahmad Fauzi'
+  });
+
   const fetchAsrama = async () => {
     try {
       setLoading(true);
@@ -39,7 +60,6 @@ export default function AsramaView() {
           kamar: res.data.kamar || []
         });
       } else {
-        // Fallback default sample data
         setData({
           asrama: [
             { id: 1, nama_asrama: 'Asrama Ali bin Abi Thalib', kode_asrama: 'ASR-A', gender: 'L', lokasi_gedung: 'Gedung A Lantai 1-2', total_kamar: 8, total_santri: 64, pembina: 'Ust. Ahmad Fauzi, S.Pd.I' },
@@ -76,6 +96,100 @@ export default function AsramaView() {
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedKamar(null);
+  };
+
+  const openAddForm = () => {
+    setFormMode('add');
+    setFormData({
+      id: null,
+      kode_kamar: `KMR-${Date.now().toString().slice(-3)}`,
+      nama_kamar: '',
+      asrama_id: 1,
+      nama_asrama: 'Asrama Ali bin Abi Thalib',
+      asrama_gender: 'L',
+      lantai: 1,
+      kapasitas: 10,
+      terisi: 0,
+      ketua_kamar: '',
+      pembina: 'Ust. Ahmad Fauzi'
+    });
+    setIsFormOpen(true);
+  };
+
+  const openEditForm = (kamar) => {
+    setFormMode('edit');
+    setFormData({
+      id: kamar.id,
+      kode_kamar: kamar.kode_kamar || '',
+      nama_kamar: kamar.nama_kamar || '',
+      asrama_id: kamar.asrama_id || 1,
+      nama_asrama: kamar.nama_asrama || 'Asrama Ali bin Abi Thalib',
+      asrama_gender: kamar.asrama_gender || 'L',
+      lantai: kamar.lantai || 1,
+      kapasitas: kamar.kapasitas || 10,
+      terisi: kamar.terisi || 0,
+      ketua_kamar: kamar.ketua_kamar || '',
+      pembina: kamar.pembina || 'Musyrif Asrama'
+    });
+    setIsFormOpen(true);
+  };
+
+  const closeForm = () => {
+    setIsFormOpen(false);
+  };
+
+  const handleSaveKamar = async (e) => {
+    e.preventDefault();
+    try {
+      setSubmitting(true);
+      if (formMode === 'add') {
+        const res = await axios.post('/api/kamar', formData);
+        if (res.data && res.data.success) {
+          fetchAsrama();
+        } else {
+          setData({ ...data, kamar: [...data.kamar, { ...formData, id: Date.now() }] });
+        }
+      } else {
+        const res = await axios.put(`/api/kamar/${formData.id}`, formData);
+        if (res.data && res.data.success) {
+          fetchAsrama();
+        } else {
+          setData({
+            ...data,
+            kamar: data.kamar.map(k => k.id === formData.id ? formData : k)
+          });
+        }
+      }
+      setIsFormOpen(false);
+    } catch (err) {
+      console.error('Gagal simpan kamar:', err);
+      if (formMode === 'add') {
+        setData({ ...data, kamar: [...data.kamar, { ...formData, id: Date.now() }] });
+      } else {
+        setData({
+          ...data,
+          kamar: data.kamar.map(k => k.id === formData.id ? formData : k)
+        });
+      }
+      setIsFormOpen(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteKamar = async (id, nama) => {
+    if (window.confirm(`Yakin ingin menghapus kamar kobong "${nama}"?`)) {
+      try {
+        await axios.delete(`/api/kamar/${id}`);
+        fetchAsrama();
+      } catch (err) {
+        console.error('Gagal hapus kamar:', err);
+        setData({
+          ...data,
+          kamar: data.kamar.filter(k => k.id !== id)
+        });
+      }
+    }
   };
 
   // Filter calculation
@@ -167,8 +281,8 @@ export default function AsramaView() {
           <button className="btn btn-outline" onClick={fetchAsrama}>
             <RotateCw size={13} /> Refresh
           </button>
-          <button className="btn btn-primary">
-            <Plus size={14} /> Tambah Kamar / Asrama
+          <button className="btn btn-primary" onClick={openAddForm}>
+            <Plus size={14} /> Tambah Kamar Baru
           </button>
         </div>
       </div>
@@ -244,14 +358,14 @@ export default function AsramaView() {
           <table className="data-table">
             <thead>
               <tr>
-                <th className="td-center" style={{ width: '45px' }}>NO</th>
+                <th className="td-center" style={{ width: '40px' }}>NO</th>
                 <th>KODE & NAMA KAMAR KOBONG</th>
                 <th>BLOK GEDUNG ASRAMA</th>
                 <th className="td-center">PERUNTUKAN</th>
                 <th className="td-center">KAPASITAS</th>
                 <th className="td-center">STATUS KETERISIAN</th>
                 <th>KETUA KOBONG & PEMBINA</th>
-                <th className="td-center" style={{ width: '90px' }}>DETAIL</th>
+                <th className="td-center" style={{ width: '130px' }}>AKSI</th>
               </tr>
             </thead>
             <tbody>
@@ -297,13 +411,29 @@ export default function AsramaView() {
                       </div>
                     </td>
                     <td className="td-center">
-                      <button 
-                        className="btn btn-success btn-sm"
-                        onClick={() => openDetail(k)}
-                        title="Lihat Detail Kamar Kobong"
-                      >
-                        <Eye size={12} /> Detail
-                      </button>
+                      <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
+                        <button 
+                          className="btn btn-success btn-sm"
+                          onClick={() => openDetail(k)}
+                          title="Lihat Detail Kamar Kobong"
+                        >
+                          <Eye size={12} /> Detail
+                        </button>
+                        <button 
+                          className="btn btn-warning btn-sm"
+                          onClick={() => openEditForm(k)}
+                          title="Edit Kamar"
+                        >
+                          <Edit3 size={12} />
+                        </button>
+                        <button 
+                          className="btn btn-danger btn-sm"
+                          onClick={() => handleDeleteKamar(k.id, k.nama_kamar)}
+                          title="Hapus Kamar"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -428,6 +558,149 @@ export default function AsramaView() {
           </div>
         </div>
       )}
+
+      {/* ==================================================== */}
+      {/* MODAL FORM TAMBAH / EDIT KAMAR KOBONG               */}
+      {/* ==================================================== */}
+      {isFormOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '560px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
+            border: '1px solid #cbd5e1',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <div style={{
+              padding: '14px 18px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+              color: '#ffffff'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <BedDouble size={18} />
+                <h3 style={{ fontSize: '0.96rem', fontWeight: 800, margin: 0 }}>
+                  {formMode === 'add' ? 'Tambah Kamar Kobong Baru' : `Edit Kamar: ${formData.nama_kamar}`}
+                </h3>
+              </div>
+              <button 
+                onClick={closeForm}
+                style={{ background: 'rgba(255, 255, 255, 0.15)', border: 'none', color: '#ffffff', padding: '4px', borderRadius: '4px', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveKamar}>
+              <div style={{ padding: '18px 20px', background: '#f1f5f9', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>NAMA KAMAR KOBONG *</label>
+                  <input 
+                    type="text" 
+                    required 
+                    className="filter-select" 
+                    style={{ width: '100%', padding: '6px 10px' }} 
+                    value={formData.nama_kamar}
+                    onChange={(e) => setFormData({ ...formData, nama_kamar: e.target.value })}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>KODE KAMAR</label>
+                    <input 
+                      type="text" 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }} 
+                      value={formData.kode_kamar}
+                      onChange={(e) => setFormData({ ...formData, kode_kamar: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>GEDUNG ASRAMA</label>
+                    <select 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }}
+                      value={formData.nama_asrama}
+                      onChange={(e) => setFormData({ ...formData, nama_asrama: e.target.value })}
+                    >
+                      <option value="Asrama Ali bin Abi Thalib">Asrama Ali bin Abi Thalib (Putra)</option>
+                      <option value="Asrama Umar bin Khattab">Asrama Umar bin Khattab (Putra)</option>
+                      <option value="Asrama Fathimah Az-Zahra">Asrama Fathimah Az-Zahra (Putri)</option>
+                      <option value="Asrama Khadijah Al-Kubra">Asrama Khadijah Al-Kubra (Putri)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>KAPASITAS (TEMPAT TIDUR)</label>
+                    <input 
+                      type="number" 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }} 
+                      value={formData.kapasitas}
+                      onChange={(e) => setFormData({ ...formData, kapasitas: parseInt(e.target.value) || 10 })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>LANTAI GEDUNG</label>
+                    <input 
+                      type="number" 
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '6px 10px' }} 
+                      value={formData.lantai}
+                      onChange={(e) => setFormData({ ...formData, lantai: parseInt(e.target.value) || 1 })}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>KETUA KAMAR / RAIS</label>
+                  <input 
+                    type="text" 
+                    className="filter-select" 
+                    style={{ width: '100%', padding: '6px 10px' }} 
+                    value={formData.ketua_kamar}
+                    onChange={(e) => setFormData({ ...formData, ketua_kamar: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div style={{ padding: '12px 18px', borderTop: '1px solid #cbd5e1', background: '#ffffff', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <button type="button" className="btn btn-outline btn-sm" onClick={closeForm}>
+                  Batal
+                </button>
+                <button type="submit" className="btn btn-success btn-sm" disabled={submitting}>
+                  {submitting ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} Simpan Kamar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

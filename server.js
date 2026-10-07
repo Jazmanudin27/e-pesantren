@@ -103,7 +103,7 @@ app.get('/api/dashboard/stats', async (req, res) => {
   }
 });
 
-// 3. Data Santri
+// 3. Data Santri CRUD
 app.get('/api/santri', async (req, res) => {
   try {
     const [rows] = await pool.query(`
@@ -119,7 +119,90 @@ app.get('/api/santri', async (req, res) => {
   }
 });
 
-// 4. Data Asrama & Kamar Kobong
+app.post('/api/santri', async (req, res) => {
+  try {
+    const {
+      kode_santri, nis, nisn, nama_santri, jk, tempat_lahir, tgl_lahir,
+      status_santri, asrama_id, kamar_id, fingerprint_pin, rfid_card_uid,
+      nama_wali, no_wa_wali, hubungan_wali, alamat_asal, status, tahun_masuk
+    } = req.body;
+
+    const [result] = await pool.query(`
+      INSERT INTO santri (
+        kode_santri, nis, nisn, nama_santri, jk, tempat_lahir, tgl_lahir,
+        status_santri, asrama_id, kamar_id, fingerprint_pin, rfid_card_uid,
+        nama_wali, no_wa_wali, hubungan_wali, alamat_asal, status, tahun_masuk
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      kode_santri || `STR-${Date.now().toString().slice(-4)}`,
+      nis || Date.now().toString().slice(-6),
+      nisn || null,
+      nama_santri,
+      jk || 'L',
+      tempat_lahir || '',
+      tgl_lahir || null,
+      status_santri || 'Mukim',
+      asrama_id || null,
+      kamar_id || null,
+      fingerprint_pin || null,
+      rfid_card_uid || null,
+      nama_wali || '',
+      no_wa_wali || '',
+      hubungan_wali || 'Orang Tua (Ayah)',
+      alamat_asal || '',
+      status || 'Aktif',
+      tahun_masuk || '2026/2027'
+    ]);
+
+    res.json({ success: true, message: 'Data santri berhasil ditambahkan', id: result.insertId });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/santri/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      kode_santri, nis, nisn, nama_santri, jk, tempat_lahir, tgl_lahir,
+      status_santri, asrama_id, kamar_id, fingerprint_pin, rfid_card_uid,
+      nama_wali, no_wa_wali, hubungan_wali, alamat_asal, status, tahun_masuk,
+      capaian_hafalan_juz, tingkat_diniyah
+    } = req.body;
+
+    await pool.query(`
+      UPDATE santri SET
+        kode_santri = ?, nis = ?, nisn = ?, nama_santri = ?, jk = ?,
+        tempat_lahir = ?, tgl_lahir = ?, status_santri = ?, asrama_id = ?, kamar_id = ?,
+        fingerprint_pin = ?, rfid_card_uid = ?, nama_wali = ?, no_wa_wali = ?,
+        hubungan_wali = ?, alamat_asal = ?, status = ?, tahun_masuk = ?,
+        capaian_hafalan_juz = ?, tingkat_diniyah = ?
+      WHERE id = ?
+    `, [
+      kode_santri, nis, nisn, nama_santri, jk,
+      tempat_lahir, tgl_lahir, status_santri, asrama_id, kamar_id,
+      fingerprint_pin, rfid_card_uid, nama_wali, no_wa_wali,
+      hubungan_wali, alamat_asal, status, tahun_masuk,
+      capaian_hafalan_juz || 0, tingkat_diniyah || 'Wustho', id
+    ]);
+
+    res.json({ success: true, message: 'Data santri berhasil diperbarui' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/santri/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM santri WHERE id = ?', [id]);
+    res.json({ success: true, message: 'Data santri berhasil dihapus' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 4. Data Asrama & Kamar Kobong CRUD
 app.get('/api/asrama', async (req, res) => {
   try {
     const [asramaRows] = await pool.query(`
@@ -145,7 +228,58 @@ app.get('/api/asrama', async (req, res) => {
   }
 });
 
-// 5. Data Tahfidz & Halaqah
+app.post('/api/asrama', async (req, res) => {
+  try {
+    const { nama_asrama, kode_asrama, gender, lokasi_gedung, pembina_asatidz_id } = req.body;
+    const [result] = await pool.query(`
+      INSERT INTO asrama (nama_asrama, kode_asrama, gender, lokasi_gedung, pembina_asatidz_id)
+      VALUES (?, ?, ?, ?, ?)
+    `, [nama_asrama, kode_asrama || `ASR-${Date.now().toString().slice(-3)}`, gender || 'L', lokasi_gedung || '', pembina_asatidz_id || null]);
+    res.json({ success: true, message: 'Data asrama berhasil ditambahkan', id: result.insertId });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/kamar', async (req, res) => {
+  try {
+    const { asrama_id, kode_kamar, nama_kamar, lantai, kapasitas, ketua_kamar, status } = req.body;
+    const [result] = await pool.query(`
+      INSERT INTO kamar_kobong (asrama_id, kode_kamar, nama_kamar, lantai, kapasitas, ketua_kamar, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [asrama_id || 1, kode_kamar || `KMR-${Date.now().toString().slice(-3)}`, nama_kamar, lantai || 1, kapasitas || 10, ketua_kamar || '', status || 'Tersedia']);
+    res.json({ success: true, message: 'Data kamar kobong berhasil ditambahkan', id: result.insertId });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/kamar/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nama_kamar, kode_kamar, asrama_id, lantai, kapasitas, ketua_kamar } = req.body;
+    await pool.query(`
+      UPDATE kamar_kobong SET
+        nama_kamar = ?, kode_kamar = ?, asrama_id = ?, lantai = ?, kapasitas = ?, ketua_kamar = ?
+      WHERE id = ?
+    `, [nama_kamar, kode_kamar, asrama_id || 1, lantai || 1, kapasitas || 10, ketua_kamar || '', id]);
+    res.json({ success: true, message: 'Data kamar kobong berhasil diperbarui' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/kamar/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM kamar_kobong WHERE id = ?', [id]);
+    res.json({ success: true, message: 'Data kamar kobong berhasil dihapus' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 5. Data Tahfidz & Halaqah CRUD
 app.get('/api/tahfidz/halaqah', async (req, res) => {
   try {
     const [rows] = await pool.query(`
@@ -156,6 +290,44 @@ app.get('/api/tahfidz/halaqah', async (req, res) => {
       ORDER BY h.id ASC
     `);
     res.json({ success: true, data: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/tahfidz/halaqah', async (req, res) => {
+  try {
+    const { nama_halaqah, kode_halaqah, asatidz_id, gender, target_program, waktu_halaqah, lokasi_halaqah, tingkat } = req.body;
+    const [result] = await pool.query(`
+      INSERT INTO tahfidz_halaqah (nama_halaqah, kode_halaqah, asatidz_id, gender, target_program, waktu_halaqah, lokasi_halaqah, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+    `, [nama_halaqah, kode_halaqah || `HLQ-${Date.now().toString().slice(-3)}`, asatidz_id || null, gender || 'L', target_program || '', waktu_halaqah || '', lokasi_halaqah || '']);
+    res.json({ success: true, message: 'Halaqah berhasil ditambahkan', id: result.insertId });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/tahfidz/halaqah/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nama_halaqah, asatidz_id, gender, target_program, waktu_halaqah, lokasi_halaqah } = req.body;
+    await pool.query(`
+      UPDATE tahfidz_halaqah SET
+        nama_halaqah = ?, asatidz_id = ?, gender = ?, target_program = ?, waktu_halaqah = ?, lokasi_halaqah = ?
+      WHERE id = ?
+    `, [nama_halaqah, asatidz_id || null, gender || 'L', target_program || '', waktu_halaqah || '', lokasi_halaqah || '', id]);
+    res.json({ success: true, message: 'Halaqah berhasil diperbarui' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/tahfidz/halaqah/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM tahfidz_halaqah WHERE id = ?', [id]);
+    res.json({ success: true, message: 'Halaqah berhasil dihapus' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -231,11 +403,49 @@ app.get('/api/absensi-fingerprint', async (req, res) => {
   }
 });
 
-// 8. Data Master Mesin Fingerprint & Sesi
+// 8. Data Master Mesin Fingerprint CRUD & Sesi
 app.get('/api/fingerprint/devices', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM fingerprint_device ORDER BY id ASC');
     res.json({ success: true, data: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/fingerprint/devices', async (req, res) => {
+  try {
+    const { nama_device, sn_device, ip_address, port, lokasi, peruntukan, status_koneksi } = req.body;
+    const [result] = await pool.query(`
+      INSERT INTO fingerprint_device (nama_device, sn_device, ip_address, port, lokasi, peruntukan, status_koneksi)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [nama_device, sn_device, ip_address, port || 4370, lokasi, peruntukan || 'Semua', status_koneksi || 'Online']);
+    res.json({ success: true, message: 'Mesin fingerprint berhasil ditambahkan', id: result.insertId });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/fingerprint/devices/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nama_device, sn_device, ip_address, port, lokasi, peruntukan, status_koneksi } = req.body;
+    await pool.query(`
+      UPDATE fingerprint_device SET
+        nama_device = ?, sn_device = ?, ip_address = ?, port = ?, lokasi = ?, peruntukan = ?, status_koneksi = ?
+      WHERE id = ?
+    `, [nama_device, sn_device, ip_address, port || 4370, lokasi, peruntukan || 'Semua', status_koneksi || 'Online', id]);
+    res.json({ success: true, message: 'Mesin fingerprint berhasil diperbarui' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/fingerprint/devices/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM fingerprint_device WHERE id = ?', [id]);
+    res.json({ success: true, message: 'Mesin fingerprint berhasil dihapus' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -250,11 +460,49 @@ app.get('/api/fingerprint/sesi', async (req, res) => {
   }
 });
 
-// 9. Data Asatidz / Musyrif
+// 9. Data Asatidz / Musyrif CRUD
 app.get('/api/asatidz', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM asatidz ORDER BY id ASC');
     res.json({ success: true, data: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/asatidz', async (req, res) => {
+  try {
+    const { nama_asatidz, gelar, nik_niy, jk, tugas_utama, no_hp, email, alamat, status } = req.body;
+    const [result] = await pool.query(`
+      INSERT INTO asatidz (nama_asatidz, gelar, nik_niy, jk, tugas_utama, no_hp, email, alamat, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [nama_asatidz, gelar || '', nik_niy || `AST-${Date.now().toString().slice(-4)}`, jk || 'L', tugas_utama || '', no_hp || '', email || '', alamat || '', status || 'Aktif']);
+    res.json({ success: true, message: 'Data asatidz berhasil ditambahkan', id: result.insertId });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/asatidz/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nama_asatidz, gelar, nik_niy, jk, tugas_utama, no_hp, email, alamat, status } = req.body;
+    await pool.query(`
+      UPDATE asatidz SET
+        nama_asatidz = ?, gelar = ?, nik_niy = ?, jk = ?, tugas_utama = ?, no_hp = ?, email = ?, alamat = ?, status = ?
+      WHERE id = ?
+    `, [nama_asatidz, gelar || '', nik_niy || '', jk || 'L', tugas_utama || '', no_hp || '', email || '', alamat || '', status || 'Aktif', id]);
+    res.json({ success: true, message: 'Data asatidz berhasil diperbarui' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/asatidz/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM asatidz WHERE id = ?', [id]);
+    res.json({ success: true, message: 'Data asatidz berhasil dihapus' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
