@@ -28,10 +28,50 @@ import PerizinanView from '../views/admin/PerizinanView';
 import AbsensiFingerprintView from '../views/admin/AbsensiFingerprintView';
 
 export default function AdminLayout() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  // Get initial tab from URL hash or localStorage
+  const getInitialTab = () => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash) return hash;
+    const stored = localStorage.getItem('epesantren_tab');
+    if (stored) return stored;
+    return 'dashboard';
+  };
+
+  const [activeTab, setActiveTab] = useState(getInitialTab);
   const [isMasterOpen, setIsMasterOpen] = useState(true);
   const [currentTime, setCurrentTime] = useState('');
 
+  // Tab switcher with URL Hash and LocalStorage sync
+  const changeTab = (tab) => {
+    setActiveTab(tab);
+    window.location.hash = tab;
+    localStorage.setItem('epesantren_tab', tab);
+  };
+
+  // Listen to hash changes (back/forward browser buttons) & keep master dropdown open
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (hash) {
+        setActiveTab(hash);
+        localStorage.setItem('epesantren_tab', hash);
+        if (['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-device'].includes(hash)) {
+          setIsMasterOpen(true);
+        }
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    
+    // Auto set hash if empty
+    if (!window.location.hash) {
+      window.location.hash = activeTab;
+    }
+
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [activeTab]);
+
+  // Realtime clock
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
@@ -99,7 +139,7 @@ export default function AdminLayout() {
           <div className="menu-category">MAIN MENU</div>
           <button 
             className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
-            onClick={() => setActiveTab('dashboard')}
+            onClick={() => changeTab('dashboard')}
           >
             <div className="nav-link-left">
               <LayoutDashboard size={15} />
@@ -109,7 +149,7 @@ export default function AdminLayout() {
 
           <button 
             className={`nav-link ${activeTab === 'presensi' ? 'active' : ''}`}
-            onClick={() => setActiveTab('presensi')}
+            onClick={() => changeTab('presensi')}
           >
             <div className="nav-link-left">
               <Fingerprint size={15} />
@@ -119,7 +159,7 @@ export default function AdminLayout() {
 
           <button 
             className={`nav-link ${activeTab === 'tahfidz' ? 'active' : ''}`}
-            onClick={() => setActiveTab('tahfidz')}
+            onClick={() => changeTab('tahfidz')}
           >
             <div className="nav-link-left">
               <BookOpen size={15} />
@@ -129,7 +169,7 @@ export default function AdminLayout() {
 
           <button 
             className={`nav-link ${activeTab === 'perizinan' ? 'active' : ''}`}
-            onClick={() => setActiveTab('perizinan')}
+            onClick={() => changeTab('perizinan')}
           >
             <div className="nav-link-left">
               <DoorOpen size={15} />
@@ -154,35 +194,35 @@ export default function AdminLayout() {
             <div className="nav-submenu">
               <button 
                 className={`nav-sublink ${activeTab === 'master-santri' ? 'active' : ''}`}
-                onClick={() => setActiveTab('master-santri')}
+                onClick={() => changeTab('master-santri')}
               >
                 <span>Data Santri</span>
               </button>
 
               <button 
                 className={`nav-sublink ${activeTab === 'master-asrama' ? 'active' : ''}`}
-                onClick={() => setActiveTab('master-asrama')}
+                onClick={() => changeTab('master-asrama')}
               >
                 <span>Data Asrama & Kobong</span>
               </button>
 
               <button 
                 className={`nav-sublink ${activeTab === 'master-kelas' ? 'active' : ''}`}
-                onClick={() => setActiveTab('master-kelas')}
+                onClick={() => changeTab('master-kelas')}
               >
                 <span>Data Kelas & Halaqah</span>
               </button>
 
               <button 
                 className={`nav-sublink ${activeTab === 'master-asatidz' ? 'active' : ''}`}
-                onClick={() => setActiveTab('master-asatidz')}
+                onClick={() => changeTab('master-asatidz')}
               >
                 <span>Data Asatidz & Musyrif</span>
               </button>
 
               <button 
                 className={`nav-sublink ${activeTab === 'master-device' ? 'active' : ''}`}
-                onClick={() => setActiveTab('master-device')}
+                onClick={() => changeTab('master-device')}
               >
                 <span>Data Mesin Fingerprint</span>
               </button>
@@ -190,7 +230,10 @@ export default function AdminLayout() {
           )}
 
           <div className="menu-category">KEPESANTRENAN</div>
-          <button className="nav-link" onClick={() => setActiveTab('perizinan')}>
+          <button 
+            className={`nav-link ${activeTab === 'tata-tertib' ? 'active' : ''}`}
+            onClick={() => changeTab('tata-tertib')}
+          >
             <div className="nav-link-left">
               <ShieldAlert size={15} />
               <span>Tata Tertib & Ta'zir</span>
@@ -198,14 +241,20 @@ export default function AdminLayout() {
           </button>
 
           <div className="menu-category">LAPORAN & REKAP</div>
-          <button className="nav-link" onClick={() => setActiveTab('presensi')}>
+          <button 
+            className={`nav-link ${activeTab === 'laporan-presensi' ? 'active' : ''}`}
+            onClick={() => changeTab('laporan-presensi')}
+          >
             <div className="nav-link-left">
               <BarChart3 size={15} />
               <span>Rekap Presensi Harian</span>
             </div>
           </button>
 
-          <button className="nav-link" onClick={() => setActiveTab('tahfidz')}>
+          <button 
+            className={`nav-link ${activeTab === 'laporan-tahfidz' ? 'active' : ''}`}
+            onClick={() => changeTab('laporan-tahfidz')}
+          >
             <div className="nav-link-left">
               <FileText size={15} />
               <span>Laporan Tahfidz & Tasmi'</span>
