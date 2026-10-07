@@ -206,7 +206,7 @@ export default function AbsensiFingerprintView() {
                     <span style={{ fontWeight: 600, marginRight: '6px' }}>
                       {row.jam_masuk || row.waktu_scan || '04:42:15'}
                     </span>
-                    <span className={row.status === 'Tepat Waktu' || row.status?.includes('Tepat') ? 'badge-status-green' : 'badge-status-red'}>
+                    <span className={`badge ${row.status === 'Tepat Waktu' || row.status?.includes('Tepat') ? 'badge-success' : 'badge-danger'}`}>
                       {row.status?.includes('Tepat') ? 'Tepat Waktu' : 'Terlambat'}
                     </span>
                   </td>

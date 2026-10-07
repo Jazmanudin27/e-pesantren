@@ -277,8 +277,8 @@ export default function SantriView() {
                     </div>
                   </td>
                   <td className="td-center">
-                    <span className={row.status_santri === 'Mukim' ? 'badge-status-green' : 'badge-status-orange'}>
-                      {row.status_santri}
+                    <span className={`badge ${row.status_santri === 'Mukim' ? 'badge-success' : 'badge-warning'}`}>
+                      {row.status_santri || 'Mukim'}
                     </span>
                   </td>
                   <td className="td-center">
