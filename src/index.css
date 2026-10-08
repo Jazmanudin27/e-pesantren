@@ -1020,6 +1020,12 @@ body {
   z-index: 99;
 }
 
+@media (min-width: 769px) {
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+}
+
 .mobile-nav-item {
   display: flex;
   flex-direction: column;

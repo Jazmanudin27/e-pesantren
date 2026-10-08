@@ -399,49 +399,6 @@ export default function AdminLayout() {
           {renderContent()}
         </div>
       </div>
-
-      {/* Mobile Bottom Navigation Bar */}
-      <div className="mobile-bottom-nav">
-        <button 
-          className={`mobile-nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
-          onClick={() => changeTab('dashboard')}
-        >
-          <LayoutDashboard size={18} />
-          <span>Dashboard</span>
-        </button>
-
-        <button 
-          className={`mobile-nav-btn ${activeTab === 'presensi' ? 'active' : ''}`}
-          onClick={() => changeTab('presensi')}
-        >
-          <Fingerprint size={18} />
-          <span>Presensi</span>
-        </button>
-
-        <button 
-          className={`mobile-nav-btn ${activeTab === 'tahfidz' ? 'active' : ''}`}
-          onClick={() => changeTab('tahfidz')}
-        >
-          <BookOpen size={18} />
-          <span>Tahfidz</span>
-        </button>
-
-        <button 
-          className={`mobile-nav-btn ${activeTab === 'perizinan' ? 'active' : ''}`}
-          onClick={() => changeTab('perizinan')}
-        >
-          <DoorOpen size={18} />
-          <span>Perizinan</span>
-        </button>
-
-        <button 
-          className={`mobile-nav-btn ${isMobileMenuOpen ? 'active' : ''}`}
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        >
-          <Grid size={18} />
-          <span>Menu</span>
-        </button>
-      </div>
     </div>
   );
 }
