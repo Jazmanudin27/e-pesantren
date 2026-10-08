@@ -17,7 +17,8 @@ import {
   X,
   Wifi,
   Battery,
-  Signal
+  Signal,
+  ArrowLeft
 } from 'lucide-react';
 import MobileHome from '../views/mobile/MobileHome';
 import MobileTahfidz from '../views/mobile/MobileTahfidz';
@@ -42,6 +43,32 @@ export default function MobileLayout() {
     setMobileTab(tab);
     setIsMenuDrawerOpen(false);
   };
+
+  const getSubmenuTitle = () => {
+    switch (mobileTab) {
+      case 'dashboard': return 'Dashboard System';
+      case 'presensi': return 'Presensi & Absensi';
+      case 'tahfidz': return 'Tahfidz & Muroja\'ah';
+      case 'perizinan':
+      case 'izin': return 'Perizinan & Gerbang';
+      case 'master-santri': return 'Data Santri';
+      case 'master-asrama': return 'Data Asrama & Kobong';
+      case 'master-kelas': return 'Data Kelas & Halaqah';
+      case 'master-asatidz': return 'Data Asatidz & Musyrif';
+      case 'master-device': return 'Data Mesin Fingerprint';
+      case 'tata-tertib': return 'Tata Tertib & Ta\'zir';
+      case 'laporan-presensi': return 'Rekap Presensi Harian';
+      case 'laporan-tahfidz': return 'Laporan Tahfidz & Tasmi\'';
+      case 'syahriah': return 'Syahriah & Uang Saku';
+      default: return '';
+    }
+  };
+
+  const isOtherMenuActive = [
+    'dashboard', 'master-santri', 'master-asrama', 'master-kelas', 
+    'master-asatidz', 'master-device', 'tata-tertib', 
+    'laporan-presensi', 'laporan-tahfidz', 'syahriah'
+  ].includes(mobileTab);
 
   const renderContent = () => {
     switch (mobileTab) {
@@ -100,6 +127,64 @@ export default function MobileLayout() {
           </a>
         </div>
 
+        {/* Sub-Menu Top Navigation Header (Excludes Beranda/Home) */}
+        {mobileTab !== 'home' && (
+          <div style={{
+            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+            color: '#ffffff',
+            padding: '10px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)',
+            position: 'sticky',
+            top: 0,
+            zIndex: 20
+          }}>
+            <button 
+              onClick={() => handleSelectTab('home')}
+              style={{
+                background: 'rgba(255, 255, 255, 0.15)',
+                border: 'none',
+                color: '#ffffff',
+                padding: '5px 9px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                cursor: 'pointer',
+                fontSize: '0.74rem',
+                fontWeight: 700
+              }}
+            >
+              <ArrowLeft size={15} /> Beranda
+            </button>
+
+            <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#ffffff', textAlign: 'center', flex: 1, margin: '0 8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {getSubmenuTitle()}
+            </span>
+
+            <button 
+              onClick={() => setIsMenuDrawerOpen(!isMenuDrawerOpen)}
+              style={{
+                background: 'rgba(255, 255, 255, 0.15)',
+                border: 'none',
+                color: '#ffffff',
+                padding: '6px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+              title="Semua Menu"
+            >
+              <Grid size={16} />
+            </button>
+          </div>
+        )}
+
         {/* Dynamic Mobile Content */}
         <div className="mobile-content">
           {renderContent()}
@@ -155,16 +240,16 @@ export default function MobileLayout() {
                     MAIN MENU
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-                    <button onClick={() => handleSelectTab('dashboard')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                    <button onClick={() => handleSelectTab('dashboard')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'dashboard' ? '#e0f2fe' : '#f8fafc', border: mobileTab === 'dashboard' ? '1px solid #0284c7' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                       <LayoutDashboard size={16} color="#0284c7" /> Dashboard
                     </button>
-                    <button onClick={() => handleSelectTab('presensi')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                    <button onClick={() => handleSelectTab('presensi')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'presensi' ? '#f3e8ff' : '#f8fafc', border: mobileTab === 'presensi' ? '1px solid #7c3aed' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                       <Fingerprint size={16} color="#7c3aed" /> Presensi
                     </button>
-                    <button onClick={() => handleSelectTab('tahfidz')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                    <button onClick={() => handleSelectTab('tahfidz')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'tahfidz' ? '#dcfce7' : '#f8fafc', border: mobileTab === 'tahfidz' ? '1px solid #059669' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                       <BookOpen size={16} color="#059669" /> Tahfidz
                     </button>
-                    <button onClick={() => handleSelectTab('perizinan')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                    <button onClick={() => handleSelectTab('perizinan')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: (mobileTab === 'perizinan' || mobileTab === 'izin') ? '#dbeafe' : '#f8fafc', border: (mobileTab === 'perizinan' || mobileTab === 'izin') ? '1px solid #2563eb' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                       <DoorOpen size={16} color="#2563eb" /> Perizinan
                     </button>
                   </div>
@@ -175,22 +260,22 @@ export default function MobileLayout() {
                     DATA MASTER
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-                    <button onClick={() => handleSelectTab('master-santri')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                    <button onClick={() => handleSelectTab('master-santri')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-santri' ? '#ccfbf1' : '#f8fafc', border: mobileTab === 'master-santri' ? '1px solid #0d9488' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                       <Users size={16} color="#0d9488" /> Data Santri
                     </button>
-                    <button onClick={() => handleSelectTab('master-asrama')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                    <button onClick={() => handleSelectTab('master-asrama')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-asrama' ? '#fef3c7' : '#f8fafc', border: mobileTab === 'master-asrama' ? '1px solid #d97706' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                       <Building size={16} color="#d97706" /> Data Asrama
                     </button>
-                    <button onClick={() => handleSelectTab('master-kelas')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                    <button onClick={() => handleSelectTab('master-kelas')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-kelas' ? '#cffaff' : '#f8fafc', border: mobileTab === 'master-kelas' ? '1px solid #0891b2' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                       <GraduationCap size={16} color="#0891b2" /> Data Kelas
                     </button>
-                    <button onClick={() => handleSelectTab('master-asatidz')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                    <button onClick={() => handleSelectTab('master-asatidz')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-asatidz' ? '#f3e8ff' : '#f8fafc', border: mobileTab === 'master-asatidz' ? '1px solid #9333ea' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                       <Users size={16} color="#9333ea" /> Data Asatidz
                     </button>
-                    <button onClick={() => handleSelectTab('master-device')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                    <button onClick={() => handleSelectTab('master-device')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-device' ? '#e2e8f0' : '#f8fafc', border: mobileTab === 'master-device' ? '1px solid #475569' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                       <HardDrive size={16} color="#475569" /> Fingerprint
                     </button>
-                    <button onClick={() => handleSelectTab('tata-tertib')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                    <button onClick={() => handleSelectTab('tata-tertib')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'tata-tertib' ? '#ffe4e6' : '#f8fafc', border: mobileTab === 'tata-tertib' ? '1px solid #be123c' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                       <ShieldAlert size={16} color="#be123c" /> Tata Tertib
                     </button>
                   </div>
@@ -201,13 +286,13 @@ export default function MobileLayout() {
                     LAPORAN & KEUANGAN
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-                    <button onClick={() => handleSelectTab('laporan-presensi')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                    <button onClick={() => handleSelectTab('laporan-presensi')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'laporan-presensi' ? '#ffedd5' : '#f8fafc', border: mobileTab === 'laporan-presensi' ? '1px solid #ea580c' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                       <BarChart3 size={16} color="#ea580c" /> Rekap Absen
                     </button>
-                    <button onClick={() => handleSelectTab('laporan-tahfidz')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                    <button onClick={() => handleSelectTab('laporan-tahfidz')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'laporan-tahfidz' ? '#e0f2fe' : '#f8fafc', border: mobileTab === 'laporan-tahfidz' ? '1px solid #0284c7' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                       <FileText size={16} color="#0284c7" /> Laporan Tahfidz
                     </button>
-                    <button onClick={() => handleSelectTab('syahriah')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                    <button onClick={() => handleSelectTab('syahriah')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'syahriah' ? '#fef3c7' : '#f8fafc', border: mobileTab === 'syahriah' ? '1px solid #d97706' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                       <Wallet size={16} color="#d97706" /> Syahriah
                     </button>
                   </div>
@@ -217,7 +302,7 @@ export default function MobileLayout() {
           </div>
         )}
 
-        {/* Bottom Navigation */}
+        {/* Bottom Navigation Bar */}
         <nav className="mobile-bottom-nav">
           <button 
             className={`mobile-nav-item ${mobileTab === 'home' ? 'active' : ''}`}
@@ -244,7 +329,7 @@ export default function MobileLayout() {
           </button>
 
           <button 
-            className={`mobile-nav-item ${mobileTab === 'perizinan' ? 'active' : ''}`}
+            className={`mobile-nav-item ${(mobileTab === 'perizinan' || mobileTab === 'izin') ? 'active' : ''}`}
             onClick={() => handleSelectTab('perizinan')}
           >
             <DoorOpen size={19} />
@@ -252,7 +337,7 @@ export default function MobileLayout() {
           </button>
 
           <button 
-            className={`mobile-nav-item ${isMenuDrawerOpen ? 'active' : ''}`}
+            className={`mobile-nav-item ${(isMenuDrawerOpen || isOtherMenuActive) ? 'active' : ''}`}
             onClick={() => setIsMenuDrawerOpen(!isMenuDrawerOpen)}
           >
             <Grid size={19} />
