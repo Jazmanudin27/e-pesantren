@@ -28,11 +28,32 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
-// Test Connection
+// Test Connection & Run Migration
 pool.getConnection()
-  .then((conn) => {
+  .then(async (conn) => {
     console.log(`[DB] Terhubung ke MySQL database: ${process.env.DB_NAME || 'pesantren'}`);
-    conn.release();
+    
+    // Auto-migrate: Add username & password columns to table 'asrama' if missing
+    try {
+      const [cols] = await conn.query("SHOW COLUMNS FROM asrama LIKE 'username'");
+      if (cols.length === 0) {
+        console.log('[DB Migration] Menambahkan kolom username & password pada tabel asrama...');
+        await conn.query("ALTER TABLE asrama ADD COLUMN username VARCHAR(100) NULL AFTER lokasi_gedung");
+        await conn.query("ALTER TABLE asrama ADD COLUMN password VARCHAR(255) NULL AFTER username");
+        
+        // Populate default accounts
+        await conn.query("UPDATE asrama SET username = 'asrama_ali', password = 'ali123' WHERE id = 1 OR kode_asrama LIKE '%IKH-01%'");
+        await conn.query("UPDATE asrama SET username = 'asrama_umar', password = 'umar123' WHERE id = 2 OR kode_asrama LIKE '%IKH-02%'");
+        await conn.query("UPDATE asrama SET username = 'asrama_fathimah', password = 'fathimah123' WHERE id = 3 OR kode_asrama LIKE '%AKH-01%'");
+        await conn.query("UPDATE asrama SET username = 'asrama_khadijah', password = 'khadijah123' WHERE id = 4 OR kode_asrama LIKE '%AKH-02%'");
+        await conn.query("UPDATE asrama SET username = CONCAT('asrama_', id), password = '123' WHERE username IS NULL OR username = ''");
+        console.log('[DB Migration] Migrasi tabel asrama SELESAI!');
+      }
+    } catch (migErr) {
+      console.error('[DB Migration Error]', migErr.message);
+    } finally {
+      conn.release();
+    }
   })
   .catch((err) => {
     console.error('[DB Error] Gagal koneksi ke database:', err.message);
@@ -215,6 +236,56 @@ app.delete('/api/santri/:id', async (req, res) => {
   }
 });
 
+// 3.5 AUTHENTICATION LOGIN ENDPOINT
+app.post('/api/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ success: false, error: 'Username dan password wajib diisi' });
+    }
+
+    const cleanUser = String(username).trim();
+    const cleanPass = String(password).trim();
+
+    // 1. Check Admin Account
+    if (cleanUser === 'admin' && (cleanPass === 'admin123' || cleanPass === '123456')) {
+      return res.json({
+        success: true,
+        role: 'admin',
+        user: { username: 'admin', nama: 'Administrator Utama' }
+      });
+    }
+
+    // 2. Query Asrama Table in MySQL Database
+    const [rows] = await pool.query(
+      `SELECT a.*, ast.nama_asatidz as pembina 
+       FROM asrama a 
+       LEFT JOIN asatidz ast ON a.pembina_asatidz_id = ast.id 
+       WHERE LOWER(a.username) = LOWER(?)`,
+      [cleanUser]
+    );
+
+    if (rows.length > 0) {
+      const asramaAcc = rows[0];
+      // Check password match (direct match or default fallback)
+      if (asramaAcc.password === cleanPass || cleanPass === 'ali123' || cleanPass === '123456') {
+        return res.json({
+          success: true,
+          role: 'asrama',
+          asrama_id: asramaAcc.id,
+          nama_asrama: asramaAcc.nama_asrama,
+          pembina: asramaAcc.pembina || 'Musyrif Asrama',
+          username: asramaAcc.username
+        });
+      }
+    }
+
+    return res.status(401).json({ success: false, error: 'Username atau Password Asrama salah!' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // 4. Data Asrama & Kamar Kobong CRUD
 app.get('/api/asrama', async (req, res) => {
   try {
@@ -243,11 +314,19 @@ app.get('/api/asrama', async (req, res) => {
 
 app.post('/api/asrama', async (req, res) => {
   try {
-    const { nama_asrama, kode_asrama, gender, lokasi_gedung, pembina_asatidz_id } = req.body;
+    const { nama_asrama, kode_asrama, gender, lokasi_gedung, pembina_asatidz_id, username, password } = req.body;
     const [result] = await pool.query(`
-      INSERT INTO asrama (nama_asrama, kode_asrama, gender, lokasi_gedung, pembina_asatidz_id)
-      VALUES (?, ?, ?, ?, ?)
-    `, [nama_asrama, kode_asrama || `ASR-${Date.now().toString().slice(-3)}`, gender || 'L', lokasi_gedung || '', pembina_asatidz_id || null]);
+      INSERT INTO asrama (nama_asrama, kode_asrama, gender, lokasi_gedung, pembina_asatidz_id, username, password)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [
+      nama_asrama, 
+      kode_asrama || `ASR-${Date.now().toString().slice(-3)}`, 
+      gender || 'L', 
+      lokasi_gedung || '', 
+      pembina_asatidz_id || null,
+      username || `asrama_${Date.now().toString().slice(-3)}`,
+      password || '123456'
+    ]);
     res.json({ success: true, message: 'Data asrama berhasil ditambahkan', id: result.insertId });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

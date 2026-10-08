@@ -35,7 +35,32 @@ export default function MobileLogin({ onLoginSuccess }) {
     setLoading(true);
 
     try {
-      // 1. Try API login if server endpoint exists or query dbAsramaList
+      // 1. Try real API authentication endpoint /api/login
+      try {
+        const res = await axios.post('/api/login', { username, password });
+        if (res.data && res.data.success) {
+          const sessionData = {
+            role: res.data.role || 'asrama',
+            asrama_id: res.data.asrama_id || 1,
+            nama_asrama: res.data.nama_asrama || (res.data.user?.nama || 'Asrama Ali bin Abi Thalib'),
+            pembina: res.data.pembina || 'Musyrif Asrama',
+            username: username.trim(),
+            loginTime: new Date().toISOString()
+          };
+          localStorage.setItem('mobile_session', JSON.stringify(sessionData));
+          setLoading(false);
+          if (onLoginSuccess) onLoginSuccess(sessionData);
+          return;
+        }
+      } catch (apiErr) {
+        if (apiErr.response && apiErr.response.data && apiErr.response.data.error) {
+          setLoading(false);
+          setError(apiErr.response.data.error);
+          return;
+        }
+      }
+
+      // 2. Fallback check dbAsramaList / localStorage
       let asramaList = dbAsramaList;
       if (!asramaList.length) {
         const res = await axios.get('/api/asrama');
@@ -45,7 +70,6 @@ export default function MobileLogin({ onLoginSuccess }) {
         }
       }
 
-      // Default fallback accounts if db empty
       const defaultAsramaAccounts = [
         { id: 1, nama_asrama: 'Asrama Ali bin Abi Thalib', pembina: 'Ust. Ahmad Fauzi, S.Pd.I', username: 'asrama_ali', password: 'ali123' },
         { id: 2, nama_asrama: 'Asrama Umar bin Khattab', pembina: 'Ust. Ridwan Kamil, Lc.', username: 'asrama_umar', password: 'umar123' },
@@ -88,7 +112,7 @@ export default function MobileLogin({ onLoginSuccess }) {
       }
     } catch (err) {
       setLoading(false);
-      setError('Gagal memverifikasi akun ke database. Periksa koneksi internet.');
+      setError('Gagal memverifikasi akun ke database.');
     }
   };
 
