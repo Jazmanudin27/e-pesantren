@@ -35,112 +35,28 @@ export default function MobileLogin({ onLoginSuccess }) {
     setLoading(true);
 
     try {
-      // 1. Try real API authentication endpoint /api/login
-      try {
-        const res = await axios.post('/api/login', { username, password });
-        if (res.data && res.data.success) {
-          const sessionData = {
-            role: res.data.role || 'asrama',
-            asrama_id: res.data.asrama_id || 1,
-            nama_asrama: res.data.nama_asrama || (res.data.user?.nama || 'Asrama Ali bin Abi Thalib'),
-            pembina: res.data.pembina || 'Musyrif Asrama',
-            username: username.trim(),
-            loginTime: new Date().toISOString()
-          };
-          localStorage.setItem('mobile_session', JSON.stringify(sessionData));
-          setLoading(false);
-          if (onLoginSuccess) onLoginSuccess(sessionData);
-          return;
-        }
-      } catch (apiErr) {
-        if (apiErr.response && apiErr.response.data && apiErr.response.data.error) {
-          setLoading(false);
-          setError(apiErr.response.data.error);
-          return;
-        }
-      }
-
-      // 2. Fallback check dbAsramaList / localStorage
-      let asramaList = dbAsramaList;
-      if (!asramaList.length) {
-        const res = await axios.get('/api/asrama');
-        if (res.data && res.data.asrama) asramaList = res.data.asrama;
-        if (!asramaList.length) {
-          asramaList = JSON.parse(localStorage.getItem('master_asrama_list') || '[]');
-        }
-      }
-
-      const defaultAsramaAccounts = [
-        { id: 1, nama_asrama: 'Asrama Ali bin Abi Thalib', pembina: 'Ust. Ahmad Fauzi, S.Pd.I', username: 'asrama_ali', password: 'ali123' },
-        { id: 2, nama_asrama: 'Asrama Umar bin Khattab', pembina: 'Ust. Ridwan Kamil, Lc.', username: 'asrama_umar', password: 'umar123' },
-        { id: 3, nama_asrama: 'Asrama Fathimah Az-Zahra', pembina: 'Usth. Siti Maryam, M.Ag.', username: 'asrama_fathimah', password: 'fathimah123' },
-        { id: 4, nama_asrama: 'Asrama Khadijah Al-Kubra', pembina: 'Usth. Nur Aini, S.Pd.', username: 'asrama_khadijah', password: 'khadijah123' }
-      ];
-
-      const checkList = asramaList.length ? asramaList : defaultAsramaAccounts;
-
-      const inputU = username.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-      const inputP = password.trim();
-      const universalPasses = ['12345', '123456', 'ali123', 'umar123', 'fathimah123', 'khadijah123', 'asrama123', 'admin123', 'password'];
-
-      const matched = checkList.find((a, index) => {
-        const u = (a.username || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-        const k = (a.kode_asrama || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-        const alias1 = `asrama${a.id}`;
-        const alias2 = `asrama${index + 1}`;
-        const isUserMatch = u === inputU || k === inputU || alias1 === inputU || alias2 === inputU;
-
-        if (!isUserMatch) return false;
-
-        const dbPassStr = String(a.password || '').trim();
-        const isPassMatch = dbPassStr === inputP || universalPasses.includes(inputP) || dbPassStr.startsWith('$2y$') || dbPassStr.startsWith('$2a$') || dbPassStr.startsWith('$2b$');
-        return isPassMatch;
-      });
-
-      if (matched) {
+      // Send login request to real database API endpoint /api/login
+      const res = await axios.post('/api/login', { username, password });
+      if (res.data && res.data.success) {
         const sessionData = {
-          role: 'asrama',
-          asrama_id: matched.id,
-          nama_asrama: matched.nama_asrama || `Asrama ${matched.id}`,
-          pembina: matched.pembina || 'Musyrif Asrama',
-          username: matched.username || `asrama${matched.id}`,
+          role: res.data.role || 'asrama',
+          asrama_id: res.data.asrama_id || 1,
+          nama_asrama: res.data.nama_asrama || (res.data.user?.nama || 'Asrama'),
+          pembina: res.data.pembina || 'Musyrif Asrama',
+          username: username.trim(),
           loginTime: new Date().toISOString()
         };
         localStorage.setItem('mobile_session', JSON.stringify(sessionData));
         setLoading(false);
         if (onLoginSuccess) onLoginSuccess(sessionData);
-      } else if (inputU === 'admin' && (universalPasses.includes(inputP) || inputP === 'admin123')) {
-        const adminSession = {
-          role: 'admin',
-          nama_asrama: 'Semua Asrama (Admin)',
-          pembina: 'Administrator Utama',
-          username: 'admin',
-          loginTime: new Date().toISOString()
-        };
-        localStorage.setItem('mobile_session', JSON.stringify(adminSession));
-        setLoading(false);
-        if (onLoginSuccess) onLoginSuccess(adminSession);
-      } else if (inputU.startsWith('asrama')) {
-        // Universal fallback for any asrama account login (asrama1, asrama2, etc.)
-        const asramaId = parseInt(inputU.replace(/\D/g, '')) || 1;
-        const fallbackSession = {
-          role: 'asrama',
-          asrama_id: asramaId,
-          nama_asrama: `Asrama ${asramaId}`,
-          pembina: 'Musyrif Asrama',
-          username: `asrama${asramaId}`,
-          loginTime: new Date().toISOString()
-        };
-        localStorage.setItem('mobile_session', JSON.stringify(fallbackSession));
-        setLoading(false);
-        if (onLoginSuccess) onLoginSuccess(fallbackSession);
       } else {
         setLoading(false);
-        setError(`Username "${username}" atau Password salah! Periksa kembali data login Anda.`);
+        setError(res.data?.error || 'Username atau password salah!');
       }
     } catch (err) {
       setLoading(false);
-      setError('Gagal memverifikasi akun ke database.');
+      const errMsg = err.response?.data?.error || err.message || 'Gagal terhubung ke server database.';
+      setError(errMsg);
     }
   };
 

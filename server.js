@@ -190,22 +190,22 @@ app.delete('/api/santri/:id', async (req, res) => {
   }
 });
 
-// 3.5 MULTI-TABLE AUTHENTICATION LOGIN ENDPOINT
+// 3.5 STRICT DATABASE AUTHENTICATION LOGIN ENDPOINT
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
 
     if (!username || !password) {
-      return res.status(400).json({ success: false, error: 'Username / NIP / NIS / Email dan Password wajib diisi.' });
+      return res.status(400).json({ success: false, error: 'Username / ID dan Password wajib diisi.' });
     }
 
     const cleanUser = String(username).trim();
     const cleanPass = String(password).trim();
 
     let account = null;
-    let userType = null; // 'Admin', 'Asatidz', 'Asrama', 'Santri'
+    let userType = null;
 
-    // 1. Check in `users` table first (Admin / Operator accounts)
+    // 1. Check in `users` table
     try {
       const [uRows] = await pool.query(
         'SELECT * FROM users WHERE LOWER(TRIM(username)) = LOWER(TRIM(?)) OR LOWER(TRIM(email)) = LOWER(TRIM(?)) LIMIT 1',
@@ -216,30 +216,10 @@ app.post('/api/login', async (req, res) => {
         userType = 'Admin';
       }
     } catch (e) {
-      console.warn('Query users table error:', e.message);
+      console.warn('Query users error:', e.message);
     }
 
-    // 2. Check in `asatidz` table second (by username, email, nik_niy, or nama_asatidz)
-    if (!account) {
-      try {
-        const [astRows] = await pool.query(
-          `SELECT * FROM asatidz 
-           WHERE LOWER(TRIM(nik_niy)) = LOWER(TRIM(?)) 
-              OR LOWER(TRIM(email)) = LOWER(TRIM(?)) 
-              OR LOWER(TRIM(nama_asatidz)) = LOWER(TRIM(?)) 
-           LIMIT 1`,
-          [cleanUser, cleanUser, cleanUser]
-        );
-        if (astRows && astRows.length > 0) {
-          account = astRows[0];
-          userType = 'Asatidz';
-        }
-      } catch (e) {
-        console.warn('Query asatidz table error:', e.message);
-      }
-    }
-
-    // 3. Check in `asrama` table third (by username, kode_asrama, id, or alias asrama1, asrama2...)
+    // 2. Check in `asrama` table
     if (!account) {
       try {
         const [asrRows] = await pool.query(
@@ -247,42 +227,39 @@ app.post('/api/login', async (req, res) => {
            FROM asrama a 
            LEFT JOIN asatidz ast ON a.pembina_asatidz_id = ast.id 
            WHERE LOWER(TRIM(a.username)) = LOWER(TRIM(?)) 
-              OR LOWER(TRIM(a.kode_asrama)) = LOWER(TRIM(?))`,
+              OR LOWER(TRIM(a.kode_asrama)) = LOWER(TRIM(?)) 
+           LIMIT 1`,
           [cleanUser, cleanUser]
         );
-
         if (asrRows && asrRows.length > 0) {
           account = asrRows[0];
           userType = 'Asrama';
-        } else {
-          // Check aliased usernames (asrama1, asrama2, etc.)
-          const [allAsrama] = await pool.query(
-            `SELECT a.*, ast.nama_asatidz as pembina 
-             FROM asrama a 
-             LEFT JOIN asatidz ast ON a.pembina_asatidz_id = ast.id 
-             ORDER BY a.id ASC`
-          );
-
-          const searchLow = cleanUser.toLowerCase().replace(/[^a-z0-9]/g, '');
-          const matched = allAsrama.find((a, index) => {
-            const u = (a.username || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-            const k = (a.kode_asrama || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-            const alias1 = `asrama${a.id}`;
-            const alias2 = `asrama${index + 1}`;
-            return u === searchLow || k === searchLow || alias1 === searchLow || alias2 === searchLow;
-          });
-
-          if (matched) {
-            account = matched;
-            userType = 'Asrama';
-          }
         }
       } catch (e) {
-        console.warn('Query asrama table error:', e.message);
+        console.warn('Query asrama error:', e.message);
       }
     }
 
-    // 4. Check in `santri` table fourth (by NIS, NISN, kode_santri, or nama_santri)
+    // 3. Check in `asatidz` table
+    if (!account) {
+      try {
+        const [astRows] = await pool.query(
+          `SELECT * FROM asatidz 
+           WHERE LOWER(TRIM(nik_niy)) = LOWER(TRIM(?)) 
+              OR LOWER(TRIM(email)) = LOWER(TRIM(?)) 
+           LIMIT 1`,
+          [cleanUser, cleanUser]
+        );
+        if (astRows && astRows.length > 0) {
+          account = astRows[0];
+          userType = 'Asatidz';
+        }
+      } catch (e) {
+        console.warn('Query asatidz error:', e.message);
+      }
+    }
+
+    // 4. Check in `santri` table
     if (!account) {
       try {
         const [strRows] = await pool.query(
@@ -293,98 +270,82 @@ app.post('/api/login', async (req, res) => {
            WHERE LOWER(TRIM(s.nis)) = LOWER(TRIM(?)) 
               OR LOWER(TRIM(s.nisn)) = LOWER(TRIM(?)) 
               OR LOWER(TRIM(s.kode_santri)) = LOWER(TRIM(?)) 
-              OR LOWER(TRIM(s.nama_santri)) = LOWER(TRIM(?)) 
            LIMIT 1`,
-          [cleanUser, cleanUser, cleanUser, cleanUser]
+          [cleanUser, cleanUser, cleanUser]
         );
         if (strRows && strRows.length > 0) {
           account = strRows[0];
           userType = 'Santri';
         }
       } catch (e) {
-        console.warn('Query santri table error:', e.message);
+        console.warn('Query santri error:', e.message);
       }
     }
 
-    // Check if user was found in any of the 4 tables
     if (!account) {
       return res.status(401).json({
         success: false,
-        error: `Username / ID "${cleanUser}" tidak ditemukan di database (Users, Asatidz, Asrama, atau Santri).`
+        error: `Username / ID "${cleanUser}" tidak ditemukan di database!`
       });
     }
 
-    // VERIFY PASSWORD:
-    // A. Master Passwords
-    const masterPasswords = ['12345', '123456', 'Jazman@271998', 'admin', 'password', 'secret', 'artanita', 'ali123', 'umar123', 'fathimah123', 'khadijah123', 'asrama123'];
-    let isMatch = masterPasswords.includes(cleanPass);
-
-    // B. Santri default login: password match NIS / NISN / kode_santri
-    if (!isMatch && userType === 'Santri') {
-      const studentNis = String(account.nis || account.nisn || account.kode_santri || '').trim();
-      if (cleanPass === studentNis) {
-        isMatch = true;
-      }
-    }
-
+    // STRICT PASSWORD VERIFICATION AGAINST DATABASE RECORD
+    let isMatch = false;
     const dbPassword = String(account.password || account.pass || '').trim();
 
-    // C. Bcrypt Compare (Laravel $2y$ or $2a$)
-    if (!isMatch && dbPassword && (dbPassword.startsWith('$2y$') || dbPassword.startsWith('$2a$') || dbPassword.startsWith('$2b$'))) {
-      const hash = dbPassword.startsWith('$2y$') ? '$2a$' + dbPassword.substring(4) : dbPassword;
-      try {
-        isMatch = bcrypt.compareSync(cleanPass, hash);
-      } catch (e) {
-        console.warn('[Bcrypt Compare Warning]', e.message);
+    if (dbPassword) {
+      // A. Bcrypt Compare ($2y$, $2a$, $2b$)
+      if (dbPassword.startsWith('$2y$') || dbPassword.startsWith('$2a$') || dbPassword.startsWith('$2b$')) {
+        const hash = dbPassword.startsWith('$2y$') ? '$2a$' + dbPassword.substring(4) : dbPassword;
+        try {
+          isMatch = bcrypt.compareSync(cleanPass, hash);
+        } catch (e) {
+          console.warn('[Bcrypt Compare Error]', e.message);
+        }
       }
-    }
 
-    // D. Plain Text String Comparison
-    if (!isMatch && dbPassword && (dbPassword === cleanPass || dbPassword.toLowerCase() === cleanPass.toLowerCase())) {
-      isMatch = true;
-    }
-
-    // E. MD5 Hash Comparison (32 chars)
-    if (!isMatch && dbPassword && dbPassword.length === 32) {
-      const md5Hash = crypto.createHash('md5').update(cleanPass).digest('hex');
-      if (dbPassword.toLowerCase() === md5Hash.toLowerCase()) {
+      // B. Plain Text Compare
+      if (!isMatch && (dbPassword === cleanPass || dbPassword.toLowerCase() === cleanPass.toLowerCase())) {
         isMatch = true;
       }
-    }
 
-    // F. SHA1 Hash Comparison (40 chars)
-    if (!isMatch && dbPassword && dbPassword.length === 40) {
-      const sha1Hash = crypto.createHash('sha1').update(cleanPass).digest('hex');
-      if (dbPassword.toLowerCase() === sha1Hash.toLowerCase()) {
-        isMatch = true;
+      // C. MD5 Compare (32 chars)
+      if (!isMatch && dbPassword.length === 32) {
+        const md5Hash = crypto.createHash('md5').update(cleanPass).digest('hex');
+        if (dbPassword.toLowerCase() === md5Hash.toLowerCase()) {
+          isMatch = true;
+        }
       }
-    }
 
-    // G. Fallback for Asrama accounts
-    if (!isMatch && userType === 'Asrama') {
-      isMatch = true;
+      // D. SHA1 Compare (40 chars)
+      if (!isMatch && dbPassword.length === 40) {
+        const sha1Hash = crypto.createHash('sha1').update(cleanPass).digest('hex');
+        if (dbPassword.toLowerCase() === sha1Hash.toLowerCase()) {
+          isMatch = true;
+        }
+      }
     }
 
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        error: `Password untuk akun ${userType} "${cleanUser}" salah.`
+        error: `Password untuk username "${cleanUser}" salah!`
       });
     }
 
-    // Construct Response
+    // Success response
     return res.json({
       success: true,
       role: (account.role || userType || 'asrama').toLowerCase(),
       userType: userType,
       asrama_id: account.asrama_id || account.id || 1,
-      nama_asrama: account.nama_asrama || account.nama_santri || account.nama_asatidz || account.name || 'Asrama Santri',
+      nama_asrama: account.nama_asrama || account.nama_santri || account.nama_asatidz || account.name || 'Asrama',
       pembina: account.pembina || account.nama_asatidz || 'Musyrif Asrama',
       username: account.username || account.kode_asrama || cleanUser,
       user: account
     });
   } catch (err) {
-    res.status(500).json({ success: false, error: `Server / Database Error: ${err.message}` });
+    res.status(500).json({ success: false, error: `Database Error: ${err.message}` });
   }
 });
 
