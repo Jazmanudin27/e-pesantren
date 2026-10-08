@@ -1,21 +1,27 @@
 import React from 'react';
 import { 
+  LayoutDashboard,
+  Fingerprint,
   BookOpen, 
-  Wallet, 
   DoorOpen, 
-  Award, 
-  Clock, 
+  Users,
+  Building,
+  GraduationCap,
+  ShieldAlert,
+  HardDrive,
+  BarChart3,
+  FileText,
+  Wallet,
   QrCode, 
-  Bell, 
-  ChevronRight, 
-  CheckCircle2, 
   Sparkles,
-  CalendarCheck
+  CalendarCheck,
+  Grid,
+  ChevronRight
 } from 'lucide-react';
 
 export default function MobileHome({ onChangeTab }) {
   return (
-    <div>
+    <div style={{ paddingBottom: '24px' }}>
       {/* Mobile Header Card / Kartu Santri */}
       <div className="mobile-hero-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -45,15 +51,35 @@ export default function MobileHome({ onChangeTab }) {
               <div style={{ fontSize: '0.7rem', color: '#cbd5e1' }}>Saldo Kartu Uang Saku</div>
               <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fef08a' }}>Rp 350.000</div>
             </div>
-            <button style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#ffffff', padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <button style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#ffffff', padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
               <QrCode size={14} /> Scan Barcode
             </button>
           </div>
         </div>
       </div>
 
-      {/* Quick Menu */}
-      <div className="quick-menu-grid">
+      {/* Main Menu Grid 1: Fitur & Modul Utama */}
+      <div style={{ padding: '0 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          MAIN MENU & KEPESANTRENAN
+        </div>
+      </div>
+
+      <div className="quick-menu-grid" style={{ marginBottom: '16px' }}>
+        <button className="quick-menu-item" onClick={() => onChangeTab('dashboard')}>
+          <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #0284c7, #0369a1)' }}>
+            <LayoutDashboard size={22} />
+          </div>
+          <span>Dashboard</span>
+        </button>
+
+        <button className="quick-menu-item" onClick={() => onChangeTab('presensi')}>
+          <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)' }}>
+            <Fingerprint size={22} />
+          </div>
+          <span>Presensi</span>
+        </button>
+
         <button className="quick-menu-item" onClick={() => onChangeTab('tahfidz')}>
           <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #059669, #047857)' }}>
             <BookOpen size={22} />
@@ -61,25 +87,76 @@ export default function MobileHome({ onChangeTab }) {
           <span>Tahfidz</span>
         </button>
 
-        <button className="quick-menu-item" onClick={() => onChangeTab('syahriah')}>
-          <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #d97706, #b45309)' }}>
-            <Wallet size={22} />
-          </div>
-          <span>Syahriah</span>
-        </button>
-
-        <button className="quick-menu-item" onClick={() => onChangeTab('izin')}>
+        <button className="quick-menu-item" onClick={() => onChangeTab('perizinan')}>
           <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #2563eb, #1d4ed8)' }}>
             <DoorOpen size={22} />
           </div>
-          <span>Izin Pulang</span>
+          <span>Perizinan</span>
+        </button>
+      </div>
+
+      {/* Main Menu Grid 2: Data Master */}
+      <div style={{ padding: '0 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          DATA MASTER SISTEM
+        </div>
+      </div>
+
+      <div className="quick-menu-grid" style={{ marginBottom: '16px' }}>
+        <button className="quick-menu-item" onClick={() => onChangeTab('master-santri')}>
+          <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #0d9488, #0f766e)' }}>
+            <Users size={22} />
+          </div>
+          <span>Data Santri</span>
         </button>
 
-        <button className="quick-menu-item" onClick={() => onChangeTab('mutabaah')}>
-          <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)' }}>
-            <CalendarCheck size={22} />
+        <button className="quick-menu-item" onClick={() => onChangeTab('master-asrama')}>
+          <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #d97706, #b45309)' }}>
+            <Building size={22} />
           </div>
-          <span>Mutaba'ah</span>
+          <span>Data Asrama</span>
+        </button>
+
+        <button className="quick-menu-item" onClick={() => onChangeTab('master-kelas')}>
+          <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #0891b2, #0e7490)' }}>
+            <GraduationCap size={22} />
+          </div>
+          <span>Data Kelas</span>
+        </button>
+
+        <button className="quick-menu-item" onClick={() => onChangeTab('master-asatidz')}>
+          <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #9333ea, #7e22ce)' }}>
+            <Users size={22} />
+          </div>
+          <span>Data Asatidz</span>
+        </button>
+
+        <button className="quick-menu-item" onClick={() => onChangeTab('master-device')}>
+          <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #475569, #334155)' }}>
+            <HardDrive size={22} />
+          </div>
+          <span>Fingerprint</span>
+        </button>
+
+        <button className="quick-menu-item" onClick={() => onChangeTab('tata-tertib')}>
+          <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #e11d48, #be123c)' }}>
+            <ShieldAlert size={22} />
+          </div>
+          <span>Tata Tertib</span>
+        </button>
+
+        <button className="quick-menu-item" onClick={() => onChangeTab('laporan-presensi')}>
+          <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #f97316, #c2410c)' }}>
+            <BarChart3 size={22} />
+          </div>
+          <span>Rekap Absen</span>
+        </button>
+
+        <button className="quick-menu-item" onClick={() => onChangeTab('laporan-tahfidz')}>
+          <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #0284c7, #0284c7)' }}>
+            <FileText size={22} />
+          </div>
+          <span>Laporan Tahfidz</span>
         </button>
       </div>
 
