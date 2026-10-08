@@ -96,9 +96,16 @@ export default function MobileLayout() {
     setSession(null);
   };
 
+  const handleLoginSuccess = (userSession) => {
+    localStorage.setItem('mobileTab', 'home');
+    setMobileTab('home');
+    window.location.hash = 'mobile';
+    setSession(userSession);
+  };
+
   // If user is not logged in on mobile app, display MobileLogin screen!
   if (!session) {
-    return <MobileLogin onLoginSuccess={(userSession) => setSession(userSession)} />;
+    return <MobileLogin onLoginSuccess={handleLoginSuccess} />;
   }
 
   const getSubmenuTitle = () => {
