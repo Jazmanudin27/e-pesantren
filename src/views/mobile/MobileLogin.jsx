@@ -38,7 +38,11 @@ export default function MobileLogin({ onLoginSuccess }) {
       // Send login request to real database API endpoint /api/login
       const res = await axios.post('/api/login', { username, password });
       if (res.data && res.data.success) {
+        if (res.data.token) {
+          localStorage.setItem('token', res.data.token);
+        }
         const sessionData = {
+          token: res.data.token,
           role: res.data.role || 'asrama',
           asrama_id: res.data.asrama_id || 1,
           nama_asrama: res.data.nama_asrama || (res.data.user?.nama || 'Asrama'),
@@ -51,11 +55,11 @@ export default function MobileLogin({ onLoginSuccess }) {
         if (onLoginSuccess) onLoginSuccess(sessionData);
       } else {
         setLoading(false);
-        setError(res.data?.error || 'Username atau password salah!');
+        setError(res.data?.error || res.data?.message || 'Username atau password salah!');
       }
     } catch (err) {
       setLoading(false);
-      const errMsg = err.response?.data?.error || err.message || 'Gagal terhubung ke server database.';
+      const errMsg = err.response?.data?.error || err.response?.data?.message || err.message || 'Gagal terhubung ke server database.';
       setError(errMsg);
     }
   };
