@@ -20,6 +20,8 @@ import {
   Phone 
 } from 'lucide-react';
 
+import SearchableSelect from '../../components/SearchableSelect';
+
 export default function TataTertibView() {
   const [pelanggaranList, setPelanggaranList] = useState([]);
   const [santriList, setSantriList] = useState([]);
@@ -199,6 +201,24 @@ export default function TataTertibView() {
     return matchSearch && matchTab && matchKategori && matchStatus;
   });
 
+  const santriOptions = santriList.map((s) => ({
+    value: s.id,
+    label: s.nama_santri,
+    sublabel: `NIS: ${s.nis} • ${s.nama_asrama || 'Asrama'}`
+  }));
+
+  const kategoriOptions = [
+    { value: 'Ringan', label: 'Ringan (Poin 1-10)' },
+    { value: 'Sedang', label: 'Sedang (Poin 11-25)' },
+    { value: 'Berat', label: 'Berat (Poin 26-100)' }
+  ];
+
+  const statusTazirOptions = [
+    { value: 'Belum Dikerjakan', label: 'Belum Dikerjakan' },
+    { value: 'Sedang Proses', label: 'Sedang Proses' },
+    { value: "Selesai Ta'zir", label: "Selesai Ta'zir" }
+  ];
+
   return (
     <div>
       {/* 1. TOP 4 COLORED STATS CARDS */}
@@ -302,26 +322,22 @@ export default function TataTertibView() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <select 
-          className="filter-select"
-          value={filterKategori}
-          onChange={(e) => setFilterKategori(e.target.value)}
-        >
-          <option>Semua Kategori</option>
-          <option>Ringan</option>
-          <option>Sedang</option>
-          <option>Berat</option>
-        </select>
-        <select 
-          className="filter-select"
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-        >
-          <option>Semua Status</option>
-          <option>Belum Dikerjakan</option>
-          <option>Sedang Proses</option>
-          <option>Selesai Ta'zir</option>
-        </select>
+        <div style={{ minWidth: '160px' }}>
+          <SearchableSelect
+            options={['Semua Kategori', 'Ringan', 'Sedang', 'Berat']}
+            value={filterKategori}
+            onChange={(val) => setFilterKategori(val || 'Semua Kategori')}
+            placeholder="Semua Kategori"
+          />
+        </div>
+        <div style={{ minWidth: '160px' }}>
+          <SearchableSelect
+            options={['Semua Status', 'Belum Dikerjakan', 'Sedang Proses', "Selesai Ta'zir"]}
+            value={filterStatus}
+            onChange={(val) => setFilterStatus(val || 'Semua Status')}
+            placeholder="Semua Status"
+          />
+        </div>
       </div>
 
       {/* 5. DATA TABLE */}
@@ -677,19 +693,14 @@ export default function TataTertibView() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div style={{ gridColumn: 'span 2' }}>
                       <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Pilih Santri Pelanggar *</label>
-                      <select 
-                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                      <SearchableSelect
+                        options={santriOptions}
                         value={formData.santri_id}
-                        onChange={(e) => setFormData({ ...formData, santri_id: e.target.value })}
+                        onChange={(val) => setFormData({ ...formData, santri_id: val })}
+                        placeholder="-- Cari & Pilih Santri dari Database --"
+                        searchPlaceholder="Ketik nama santri atau NIS..."
                         required
-                      >
-                        <option value="">-- Pilih Santri dari Database --</option>
-                        {santriList.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.nama_santri} (NIS: {s.nis}) - {s.nama_asrama || 'Asrama'}
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </div>
 
                     <div>
@@ -705,20 +716,15 @@ export default function TataTertibView() {
 
                     <div>
                       <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Kategori Tingkat *</label>
-                      <select 
-                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                      <SearchableSelect
+                        options={kategoriOptions}
                         value={formData.kategori}
-                        onChange={(e) => {
-                          const kat = e.target.value;
-                          const defaultPoin = kat === 'Berat' ? 30 : kat === 'Sedang' ? 15 : 5;
-                          setFormData({ ...formData, kategori: kat, poin_pelanggaran: defaultPoin });
+                        onChange={(val) => {
+                          const defaultPoin = val === 'Berat' ? 30 : val === 'Sedang' ? 15 : 5;
+                          setFormData({ ...formData, kategori: val, poin_pelanggaran: defaultPoin });
                         }}
-                        required
-                      >
-                        <option value="Ringan">Ringan (Poin 1-10)</option>
-                        <option value="Sedang">Sedang (Poin 11-25)</option>
-                        <option value="Berat">Berat (Poin 26-100)</option>
-                      </select>
+                        placeholder="-- Pilih Kategori --"
+                      />
                     </div>
                   </div>
                 </div>
@@ -788,28 +794,25 @@ export default function TataTertibView() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div>
                       <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Status Ta'zir *</label>
-                      <select 
-                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                      <SearchableSelect
+                        options={statusTazirOptions}
                         value={formData.status_tazir}
-                        onChange={(e) => setFormData({ ...formData, status_tazir: e.target.value })}
-                        required
-                      >
-                        <option value="Belum Dikerjakan">Belum Dikerjakan</option>
-                        <option value="Sedang Proses">Sedang Proses</option>
-                        <option value="Selesai Ta'zir">Selesai Ta'zir</option>
-                      </select>
+                        onChange={(val) => setFormData({ ...formData, status_tazir: val })}
+                        placeholder="-- Status Ta'zir --"
+                      />
                     </div>
 
                     <div>
                       <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Notif WA Wali</label>
-                      <select 
-                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                      <SearchableSelect
+                        options={[
+                          { value: 1, label: 'Ya, Kirim Notifikasi' },
+                          { value: 0, label: 'Tidak Perlu' }
+                        ]}
                         value={formData.wa_notif_wali}
-                        onChange={(e) => setFormData({ ...formData, wa_notif_wali: parseInt(e.target.value) })}
-                      >
-                        <option value={1}>Ya, Kirim Notifikasi</option>
-                        <option value={0}>Tidak Perlu</option>
-                      </select>
+                        onChange={(val) => setFormData({ ...formData, wa_notif_wali: Number(val) })}
+                        placeholder="-- Status Notif --"
+                      />
                     </div>
                   </div>
                 </div>

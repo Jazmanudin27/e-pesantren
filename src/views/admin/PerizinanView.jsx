@@ -22,6 +22,8 @@ import {
   Phone 
 } from 'lucide-react';
 
+import SearchableSelect from '../../components/SearchableSelect';
+
 export default function PerizinanView() {
   const [izinList, setIzinList] = useState([]);
   const [santriList, setSantriList] = useState([]);
@@ -234,6 +236,36 @@ export default function PerizinanView() {
     return matchSearch && matchTab && matchJenis && matchStatus;
   });
 
+  const santriOptions = santriList.map((s) => ({
+    value: s.id,
+    label: s.nama_santri,
+    sublabel: `NIS: ${s.nis} • ${s.nama_asrama || 'Asrama'}`
+  }));
+
+  const jenisIzinOptions = [
+    { value: 'Izin Pulang', label: 'Izin Pulang' },
+    { value: 'Izin Berobat', label: 'Izin Berobat' },
+    { value: 'Izin Keluar Komplek', label: 'Izin Keluar Komplek' },
+    { value: 'Izin Khusus', label: 'Izin Khusus' }
+  ];
+
+  const statusIzinOptions = [
+    { value: 'Disetujui Pengasuh', label: 'Disetujui Pengasuh (Siap Keluar)' },
+    { value: 'Menunggu Persetujuan', label: 'Menunggu Persetujuan' },
+    { value: 'Aktif Keluar', label: 'Aktif Keluar (Sudah di Luar)' },
+    { value: 'Kembali Tepat Waktu', label: 'Kembali Tepat Waktu' },
+    { value: 'Terlambat Kembali', label: 'Terlambat Kembali' }
+  ];
+
+  const hubunganMahromOptions = [
+    { value: 'Orang Tua (Ayah)', label: 'Orang Tua (Ayah)' },
+    { value: 'Orang Tua (Ibu)', label: 'Orang Tua (Ibu)' },
+    { value: 'Kakak Kandung', label: 'Kakak Kandung' },
+    { value: 'Paman / Bibi (Mahrom)', label: 'Paman / Bibi (Mahrom)' },
+    { value: 'Kakek / Nenek', label: 'Kakek / Nenek' },
+    { value: 'Wali Resmi', label: 'Wali Resmi' }
+  ];
+
   return (
     <div>
       {/* 1. TOP 4 COLORED STATS CARDS */}
@@ -337,29 +369,22 @@ export default function PerizinanView() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <select 
-          className="filter-select"
-          value={filterJenis}
-          onChange={(e) => setFilterJenis(e.target.value)}
-        >
-          <option>Semua Jenis</option>
-          <option>Izin Pulang</option>
-          <option>Izin Berobat</option>
-          <option>Izin Keluar Komplek</option>
-          <option>Izin Khusus</option>
-        </select>
-        <select 
-          className="filter-select"
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-        >
-          <option>Semua Status</option>
-          <option>Disetujui Pengasuh</option>
-          <option>Menunggu Persetujuan</option>
-          <option>Aktif Keluar</option>
-          <option>Kembali Tepat Waktu</option>
-          <option>Terlambat Kembali</option>
-        </select>
+        <div style={{ minWidth: '160px' }}>
+          <SearchableSelect
+            options={['Semua Jenis', 'Izin Pulang', 'Izin Berobat', 'Izin Keluar Komplek', 'Izin Khusus']}
+            value={filterJenis}
+            onChange={(val) => setFilterJenis(val || 'Semua Jenis')}
+            placeholder="Semua Jenis"
+          />
+        </div>
+        <div style={{ minWidth: '170px' }}>
+          <SearchableSelect
+            options={['Semua Status', 'Disetujui Pengasuh', 'Menunggu Persetujuan', 'Aktif Keluar', 'Kembali Tepat Waktu', 'Terlambat Kembali']}
+            value={filterStatus}
+            onChange={(val) => setFilterStatus(val || 'Semua Status')}
+            placeholder="Semua Status"
+          />
+        </div>
       </div>
 
       {/* 5. DATA TABLE */}
@@ -773,50 +798,34 @@ export default function PerizinanView() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div style={{ gridColumn: 'span 2' }}>
                       <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Pilih Santri Pemohon *</label>
-                      <select 
-                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                      <SearchableSelect
+                        options={santriOptions}
                         value={formData.santri_id}
-                        onChange={(e) => handleSantriSelectChange(e.target.value)}
+                        onChange={(val) => handleSantriSelectChange(val)}
+                        placeholder="-- Cari & Pilih Santri dari Database --"
+                        searchPlaceholder="Ketik nama santri atau NIS..."
                         required
-                      >
-                        <option value="">-- Pilih Santri dari Database --</option>
-                        {santriList.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.nama_santri} (NIS: {s.nis}) - {s.nama_asrama || 'Asrama'}
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </div>
 
                     <div>
                       <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Jenis Izin *</label>
-                      <select 
-                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                      <SearchableSelect
+                        options={jenisIzinOptions}
                         value={formData.jenis_izin}
-                        onChange={(e) => setFormData({ ...formData, jenis_izin: e.target.value })}
-                        required
-                      >
-                        <option value="Izin Pulang">Izin Pulang</option>
-                        <option value="Izin Berobat">Izin Berobat</option>
-                        <option value="Izin Keluar Komplek">Izin Keluar Komplek</option>
-                        <option value="Izin Khusus">Izin Khusus</option>
-                      </select>
+                        onChange={(val) => setFormData({ ...formData, jenis_izin: val })}
+                        placeholder="-- Jenis Izin --"
+                      />
                     </div>
 
                     <div>
                       <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Status Persetujuan *</label>
-                      <select 
-                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                      <SearchableSelect
+                        options={statusIzinOptions}
                         value={formData.status}
-                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                        required
-                      >
-                        <option value="Disetujui Pengasuh">Disetujui Pengasuh (Siap Keluar)</option>
-                        <option value="Menunggu Persetujuan">Menunggu Persetujuan</option>
-                        <option value="Aktif Keluar">Aktif Keluar (Sudah di Luar)</option>
-                        <option value="Kembali Tepat Waktu">Kembali Tepat Waktu</option>
-                        <option value="Terlambat Kembali">Terlambat Kembali</option>
-                      </select>
+                        onChange={(val) => setFormData({ ...formData, status: val })}
+                        placeholder="-- Status Persetujuan --"
+                      />
                     </div>
 
                     <div style={{ gridColumn: 'span 2' }}>
@@ -883,19 +892,12 @@ export default function PerizinanView() {
 
                     <div>
                       <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Hubungan Mahrom *</label>
-                      <select 
-                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                      <SearchableSelect
+                        options={hubunganMahromOptions}
                         value={formData.hubungan_mahrom}
-                        onChange={(e) => setFormData({ ...formData, hubungan_mahrom: e.target.value })}
-                        required
-                      >
-                        <option value="Orang Tua (Ayah)">Orang Tua (Ayah)</option>
-                        <option value="Orang Tua (Ibu)">Orang Tua (Ibu)</option>
-                        <option value="Kakak Kandung">Kakak Kandung</option>
-                        <option value="Paman / Bibi (Mahrom)">Paman / Bibi (Mahrom)</option>
-                        <option value="Kakek / Nenek">Kakek / Nenek</option>
-                        <option value="Wali Resmi">Wali Resmi</option>
-                      </select>
+                        onChange={(val) => setFormData({ ...formData, hubungan_mahrom: val })}
+                        placeholder="-- Hubungan Mahrom --"
+                      />
                     </div>
 
                     <div>

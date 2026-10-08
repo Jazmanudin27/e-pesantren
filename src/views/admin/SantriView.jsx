@@ -24,6 +24,7 @@ import {
   Save,
   CheckCircle2
 } from 'lucide-react';
+import SearchableSelect from '../../components/SearchableSelect';
 
 export default function SantriView() {
   const [santriList, setSantriList] = useState([]);
@@ -773,40 +774,40 @@ export default function SantriView() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
                   <div>
                     <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>GENDER</label>
-                    <select 
-                      className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }}
+                    <SearchableSelect
+                      options={[
+                        { value: 'L', label: 'Laki-laki (Ikhwan)' },
+                        { value: 'P', label: 'Perempuan (Akhwat)' }
+                      ]}
                       value={formData.jk}
-                      onChange={(e) => setFormData({ ...formData, jk: e.target.value })}
-                    >
-                      <option value="L">Laki-laki (Ikhwan)</option>
-                      <option value="P">Perempuan (Akhwat)</option>
-                    </select>
+                      onChange={(val) => setFormData({ ...formData, jk: val })}
+                      placeholder="-- Gender --"
+                    />
                   </div>
                   <div>
                     <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>STATUS MUKIM</label>
-                    <select 
-                      className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }}
+                    <SearchableSelect
+                      options={[
+                        { value: 'Mukim', label: 'Mukim (Asrama)' },
+                        { value: 'Kalong', label: 'Kalong (Non-Mukim)' }
+                      ]}
                       value={formData.status_santri}
-                      onChange={(e) => setFormData({ ...formData, status_santri: e.target.value })}
-                    >
-                      <option value="Mukim">Mukim (Asrama)</option>
-                      <option value="Kalong">Kalong (Non-Mukim)</option>
-                    </select>
+                      onChange={(val) => setFormData({ ...formData, status_santri: val })}
+                      placeholder="-- Status Mukim --"
+                    />
                   </div>
                   <div>
                     <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>STATUS KEAKTIFAN</label>
-                    <select 
-                      className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }}
+                    <SearchableSelect
+                      options={[
+                        { value: 'Aktif', label: 'Aktif' },
+                        { value: 'Alumni', label: 'Alumni' },
+                        { value: 'Boyong', label: 'Boyong' }
+                      ]}
                       value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    >
-                      <option value="Aktif">Aktif</option>
-                      <option value="Alumni">Alumni</option>
-                      <option value="Boyong">Boyong</option>
-                    </select>
+                      onChange={(val) => setFormData({ ...formData, status: val })}
+                      placeholder="-- Status --"
+                    />
                   </div>
                 </div>
 
@@ -816,57 +817,41 @@ export default function SantriView() {
                     <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
                       PILIH BLOK GEDUNG ASRAMA *
                     </label>
-                    <select 
+                    <SearchableSelect
                       required
-                      className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }} 
+                      options={asramaList.length > 0 ? asramaList.map(a => ({
+                        value: a.id,
+                        label: `${a.nama_asrama} (${a.gender === 'L' ? 'Putra' : 'Putri'})`,
+                        sublabel: `Kapasitas Total: ${a.total_kamar || 0} Kamar`
+                      })) : [
+                        { value: 1, label: 'Asrama Ali bin Abi Thalib (Putra)' },
+                        { value: 2, label: 'Asrama Umar bin Khattab (Putra)' },
+                        { value: 3, label: 'Asrama Fathimah Az-Zahra (Putri)' },
+                        { value: 4, label: 'Asrama Khadijah Al-Kubra (Putri)' }
+                      ]}
                       value={formData.asrama_id || (asramaList[0]?.id || 1)}
-                      onChange={(e) => handleAsramaSelect(e.target.value)}
-                    >
-                      {asramaList.length > 0 ? (
-                        asramaList.map(a => (
-                          <option key={a.id} value={a.id}>
-                            {a.nama_asrama} ({a.gender === 'L' ? 'Putra' : 'Putri'})
-                          </option>
-                        ))
-                      ) : (
-                        <>
-                          <option value="1">Asrama Ali bin Abi Thalib (Putra)</option>
-                          <option value="2">Asrama Umar bin Khattab (Putra)</option>
-                          <option value="3">Asrama Fathimah Az-Zahra (Putri)</option>
-                          <option value="4">Asrama Khadijah Al-Kubra (Putri)</option>
-                        </>
-                      )}
-                    </select>
+                      onChange={(val) => handleAsramaSelect(val)}
+                      placeholder="-- Pilih Gedung Asrama --"
+                    />
                   </div>
                   <div>
                     <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
                       PILIH KAMAR KOBONG (DATABASE) *
                     </label>
-                    <select 
+                    <SearchableSelect
                       required
-                      className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }} 
+                      options={(kamarList.filter(k => !formData.asrama_id || k.asrama_id === parseInt(formData.asrama_id)).length > 0
+                        ? kamarList.filter(k => !formData.asrama_id || k.asrama_id === parseInt(formData.asrama_id))
+                        : kamarList
+                      ).map(k => ({
+                        value: k.id,
+                        label: `${k.nama_kamar} (Lantai ${k.lantai || 1})`,
+                        sublabel: `Kapasitas ${k.kapasitas || 10} Santri`
+                      }))}
                       value={formData.kamar_id || ''}
-                      onChange={(e) => handleKamarSelect(e.target.value)}
-                    >
-                      {kamarList.filter(k => !formData.asrama_id || k.asrama_id === parseInt(formData.asrama_id)).length > 0 ? (
-                        kamarList
-                          .filter(k => !formData.asrama_id || k.asrama_id === parseInt(formData.asrama_id))
-                          .map(k => (
-                            <option key={k.id} value={k.id}>
-                              {k.nama_kamar} (Lantai {k.lantai || 1} • Kapasitas {k.kapasitas || 10})
-                            </option>
-                          ))
-                      ) : (
-                        <>
-                          <option value="1">Kamar 01 (Lantai 1)</option>
-                          <option value="2">Kamar 02 (Lantai 1)</option>
-                          <option value="3">Kamar 03 (Lantai 2)</option>
-                          <option value="4">Kamar 04 (Lantai 2)</option>
-                        </>
-                      )}
-                    </select>
+                      onChange={(val) => handleKamarSelect(val)}
+                      placeholder="-- Pilih Kamar Kobong --"
+                    />
                   </div>
                 </div>
 
@@ -894,16 +879,16 @@ export default function SantriView() {
                   </div>
                   <div>
                     <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>TINGKAT DINIYAH</label>
-                    <select 
-                      className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }}
+                    <SearchableSelect
+                      options={[
+                        { value: 'Ula', label: 'Ula' },
+                        { value: 'Wustho', label: 'Wustho' },
+                        { value: 'Ulya', label: 'Ulya' }
+                      ]}
                       value={formData.tingkat_diniyah}
-                      onChange={(e) => setFormData({ ...formData, tingkat_diniyah: e.target.value })}
-                    >
-                      <option value="Ula">Ula</option>
-                      <option value="Wustho">Wustho</option>
-                      <option value="Ulya">Ulya</option>
-                    </select>
+                      onChange={(val) => setFormData({ ...formData, tingkat_diniyah: val })}
+                      placeholder="-- Tingkat Diniyah --"
+                    />
                   </div>
                 </div>
 

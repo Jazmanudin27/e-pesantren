@@ -20,6 +20,8 @@ import {
   Save 
 } from 'lucide-react';
 
+import SearchableSelect from '../../components/SearchableSelect';
+
 export default function TahfidzView() {
   const [setoranList, setSetoranList] = useState([]);
   const [santriList, setSantriList] = useState([]);
@@ -216,6 +218,48 @@ export default function TahfidzView() {
     return matchSearch && matchTab && matchTajwid && matchStatus;
   });
 
+  const santriOptions = santriList.map((s) => ({
+    value: s.id,
+    label: s.nama_santri,
+    sublabel: `NIS: ${s.nis} • ${s.nama_asrama || 'Asrama'}`
+  }));
+
+  const asatidzOptions = asatidzList.map((a) => ({
+    value: a.id,
+    label: `${a.nama_asatidz} ${a.gelar || ''}`.trim(),
+    sublabel: a.tugas_utama || 'Asatidz Penguji'
+  }));
+
+  const halaqahOptions = [
+    { value: '', label: '-- Tanpa Kelompok Khusus --', sublabel: null },
+    ...halaqahList.map((h) => ({
+      value: h.id,
+      label: h.nama_halaqah,
+      sublabel: h.gender === 'L' ? 'Ikhwan' : 'Akhwat'
+    }))
+  ];
+
+  const jenisSetoranOptions = [
+    { value: 'Ziyadah', label: 'Ziyadah (Hafalan Baru)' },
+    { value: "Muroja'ah", label: "Muroja'ah (Pengulangan Mutqin)" },
+    { value: 'Sabqi', label: 'Sabqi (Sambung Hafalan)' },
+    { value: "Tasmi' Bil-Ghoib", label: "Tasmi' Bil-Ghoib (Ujian Sekali Duduk)" }
+  ];
+
+  const tajwidOptions = [
+    { value: 'Mumtaz (A)', label: 'Mumtaz (A - Sangat Baik)' },
+    { value: 'Jayyid Jiddan (B+)', label: 'Jayyid Jiddan (B+ - Baik Sekali)' },
+    { value: 'Jayyid (B)', label: 'Jayyid (B - Baik)' },
+    { value: 'Maqbul (C)', label: 'Maqbul (C - Cukup)' },
+    { value: 'Rombak/Ulang', label: 'Rombak/Ulang (Mengulang Tajwid)' }
+  ];
+
+  const statusOptions = [
+    { value: 'Lulus', label: 'Lulus (Diterima)' },
+    { value: 'Perlu Pengulangan', label: 'Perlu Pengulangan' },
+    { value: 'Mengulang', label: 'Mengulang Penuh' }
+  ];
+
   return (
     <div>
       {/* 1. TOP 4 COLORED STATS CARDS */}
@@ -325,28 +369,22 @@ export default function TahfidzView() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <select 
-          className="filter-select"
-          value={filterTajwid}
-          onChange={(e) => setFilterTajwid(e.target.value)}
-        >
-          <option>Semua Tajwid</option>
-          <option>Mumtaz (A)</option>
-          <option>Jayyid Jiddan (B+)</option>
-          <option>Jayyid (B)</option>
-          <option>Maqbul (C)</option>
-          <option>Rombak/Ulang</option>
-        </select>
-        <select 
-          className="filter-select"
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-        >
-          <option>Semua Status</option>
-          <option>Lulus</option>
-          <option>Perlu Pengulangan</option>
-          <option>Mengulang</option>
-        </select>
+        <div style={{ minWidth: '160px' }}>
+          <SearchableSelect
+            options={['Semua Tajwid', 'Mumtaz (A)', 'Jayyid Jiddan (B+)', 'Jayyid (B)', 'Maqbul (C)', 'Rombak/Ulang']}
+            value={filterTajwid}
+            onChange={(val) => setFilterTajwid(val || 'Semua Tajwid')}
+            placeholder="Semua Tajwid"
+          />
+        </div>
+        <div style={{ minWidth: '150px' }}>
+          <SearchableSelect
+            options={['Semua Status', 'Lulus', 'Perlu Pengulangan', 'Mengulang']}
+            value={filterStatus}
+            onChange={(val) => setFilterStatus(val || 'Semua Status')}
+            placeholder="Semua Status"
+          />
+        </div>
       </div>
 
       {/* 5. DATA TABLE */}
@@ -679,52 +717,37 @@ export default function TahfidzView() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div style={{ gridColumn: 'span 2' }}>
                       <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Pilih Santri *</label>
-                      <select 
-                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                      <SearchableSelect
+                        options={santriOptions}
                         value={formData.santri_id}
-                        onChange={(e) => setFormData({ ...formData, santri_id: e.target.value })}
+                        onChange={(val) => setFormData({ ...formData, santri_id: val })}
+                        placeholder="-- Cari & Pilih Santri dari Database --"
+                        searchPlaceholder="Ketik nama santri atau NIS..."
                         required
-                      >
-                        <option value="">-- Pilih Santri dari Database --</option>
-                        {santriList.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.nama_santri} (NIS: {s.nis}) - {s.nama_asrama || 'Asrama'}
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </div>
 
                     <div>
                       <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Asatidz Penguji *</label>
-                      <select 
-                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                      <SearchableSelect
+                        options={asatidzOptions}
                         value={formData.asatidz_id}
-                        onChange={(e) => setFormData({ ...formData, asatidz_id: e.target.value })}
+                        onChange={(val) => setFormData({ ...formData, asatidz_id: val })}
+                        placeholder="-- Cari & Pilih Asatidz --"
+                        searchPlaceholder="Ketik nama ustadz..."
                         required
-                      >
-                        <option value="">-- Pilih Asatidz --</option>
-                        {asatidzList.map((a) => (
-                          <option key={a.id} value={a.id}>
-                            {a.nama_asatidz} {a.gelar || ''}
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </div>
 
                     <div>
                       <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Kelompok Halaqah</label>
-                      <select 
-                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                      <SearchableSelect
+                        options={halaqahOptions}
                         value={formData.halaqah_id}
-                        onChange={(e) => setFormData({ ...formData, halaqah_id: e.target.value })}
-                      >
-                        <option value="">-- Tanpa Kelompok Khusus --</option>
-                        {halaqahList.map((h) => (
-                          <option key={h.id} value={h.id}>
-                            {h.nama_halaqah} ({h.gender === 'L' ? 'Ikhwan' : 'Akhwat'})
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(val) => setFormData({ ...formData, halaqah_id: val })}
+                        placeholder="-- Pilih Halaqah (Opsional) --"
+                        searchPlaceholder="Ketik nama halaqah..."
+                      />
                     </div>
                   </div>
                 </div>
@@ -748,17 +771,12 @@ export default function TahfidzView() {
 
                     <div>
                       <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Jenis Setoran *</label>
-                      <select 
-                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                      <SearchableSelect
+                        options={jenisSetoranOptions}
                         value={formData.jenis_setoran}
-                        onChange={(e) => setFormData({ ...formData, jenis_setoran: e.target.value })}
-                        required
-                      >
-                        <option value="Ziyadah">Ziyadah (Hafalan Baru)</option>
-                        <option value="Muroja'ah">Muroja'ah (Pengulangan)</option>
-                        <option value="Sabqi">Sabqi (Sambung Hafalan)</option>
-                        <option value="Tasmi' Bil-Ghoib">Tasmi' Bil-Ghoib (Ujian Sekali Duduk)</option>
-                      </select>
+                        onChange={(val) => setFormData({ ...formData, jenis_setoran: val })}
+                        placeholder="-- Pilih Jenis Setoran --"
+                      />
                     </div>
 
                     <div>
@@ -776,18 +794,12 @@ export default function TahfidzView() {
 
                     <div>
                       <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Kualitas Tajwid *</label>
-                      <select 
-                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                      <SearchableSelect
+                        options={tajwidOptions}
                         value={formData.kualitas_tajwid}
-                        onChange={(e) => setFormData({ ...formData, kualitas_tajwid: e.target.value })}
-                        required
-                      >
-                        <option value="Mumtaz (A)">Mumtaz (A - Sangat Baik)</option>
-                        <option value="Jayyid Jiddan (B+)">Jayyid Jiddan (B+ - Baik Sekali)</option>
-                        <option value="Jayyid (B)">Jayyid (B - Baik)</option>
-                        <option value="Maqbul (C)">Maqbul (C - Cukup)</option>
-                        <option value="Rombak/Ulang">Rombak/Ulang (Mengulang)</option>
-                      </select>
+                        onChange={(val) => setFormData({ ...formData, kualitas_tajwid: val })}
+                        placeholder="-- Kualitas Tajwid --"
+                      />
                     </div>
 
                     <div>
@@ -845,16 +857,12 @@ export default function TahfidzView() {
                   </div>
                   <div style={{ marginBottom: '10px' }}>
                     <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Status Kelulusan *</label>
-                    <select 
-                      style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                    <SearchableSelect
+                      options={statusOptions}
                       value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                      required
-                    >
-                      <option value="Lulus">Lulus (Diterima)</option>
-                      <option value="Perlu Pengulangan">Perlu Pengulangan</option>
-                      <option value="Mengulang">Mengulang Penuh</option>
-                    </select>
+                      onChange={(val) => setFormData({ ...formData, status: val })}
+                      placeholder="-- Status Kelulusan --"
+                    />
                   </div>
 
                   <div>
