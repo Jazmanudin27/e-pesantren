@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Home, 
   BookOpen, 
@@ -38,11 +38,46 @@ import MobileLaporanTahfidz from '../views/mobile/MobileLaporanTahfidz';
 import MobileProfil from '../views/mobile/MobileProfil';
 
 export default function MobileLayout() {
-  const [mobileTab, setMobileTab] = useState('home');
+  const getInitialTab = () => {
+    const hash = window.location.hash;
+    if (hash.includes('/')) {
+      const sub = hash.split('/')[1];
+      if (sub) return sub;
+    }
+    return localStorage.getItem('mobileTab') || 'home';
+  };
+
+  const [mobileTab, setMobileTab] = useState(getInitialTab);
   const [isMenuDrawerOpen, setIsMenuDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    const syncTabFromHash = () => {
+      const hash = window.location.hash;
+      if (hash.includes('/')) {
+        const sub = hash.split('/')[1];
+        if (sub) {
+          setMobileTab(sub);
+          localStorage.setItem('mobileTab', sub);
+        }
+      } else if (hash === '#mobile') {
+        const saved = localStorage.getItem('mobileTab');
+        if (saved) {
+          setMobileTab(saved);
+        } else {
+          setMobileTab('home');
+        }
+      }
+    };
+
+    syncTabFromHash();
+    window.addEventListener('hashchange', syncTabFromHash);
+    return () => window.removeEventListener('hashchange', syncTabFromHash);
+  }, []);
 
   const handleSelectTab = (tab) => {
     setMobileTab(tab);
+    localStorage.setItem('mobileTab', tab);
+    window.location.hash = tab === 'home' ? 'mobile' : `mobile/${tab}`;
     setIsMenuDrawerOpen(false);
   };
 
