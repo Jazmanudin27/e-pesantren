@@ -124,6 +124,8 @@ export default function MobileLayout() {
             alignItems: 'center',
             justifyContent: 'space-between',
             borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
+            borderBottomLeftRadius: '20px',
+            borderBottomRightRadius: '20px',
             boxShadow: '0 8px 20px -4px rgba(6, 78, 59, 0.35)',
             position: 'sticky',
             top: 0,
