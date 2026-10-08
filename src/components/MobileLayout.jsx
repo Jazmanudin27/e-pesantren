@@ -147,23 +147,7 @@ export default function MobileLayout() {
               {getSubmenuTitle()}
             </span>
 
-            <button 
-              onClick={() => setIsMenuDrawerOpen(!isMenuDrawerOpen)}
-              style={{
-                background: 'rgba(255, 255, 255, 0.15)',
-                border: 'none',
-                color: '#ffffff',
-                padding: '6px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer'
-              }}
-              title="Semua Menu"
-            >
-              <Grid size={16} />
-            </button>
+            <div style={{ width: '75px' }} />
           </div>
         )}
 
