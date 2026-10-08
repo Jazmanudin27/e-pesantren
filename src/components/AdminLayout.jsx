@@ -353,6 +353,26 @@ export default function AdminLayout() {
           </div>
 
           <div className="header-right">
+            {/* Direct Link to Mobile Santri App */}
+            <a 
+              href="#mobile" 
+              style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '5px', 
+                background: 'linear-gradient(135deg, #059669, #047857)', 
+                color: '#ffffff', 
+                padding: '5px 10px', 
+                borderRadius: '6px', 
+                fontSize: '0.72rem', 
+                fontWeight: 700, 
+                textDecoration: 'none' 
+              }}
+              title="Buka Tampilan Mobile Santri App"
+            >
+              📱 App Santri Mobile
+            </a>
+
             {/* Realtime Clock Pill */}
             <div className="header-time-pill">
               <Clock size={13} color="#64748b" />
