@@ -1,6 +1,5 @@
 import React from 'react';
 import { 
-  LayoutDashboard,
   Fingerprint,
   BookOpen, 
   DoorOpen, 
@@ -11,13 +10,8 @@ import {
   HardDrive,
   BarChart3,
   FileText,
-  Wallet,
-  QrCode, 
   Sparkles,
-  CalendarCheck,
-  ChevronRight,
-  ShieldCheck,
-  UserCheck
+  ShieldCheck
 } from 'lucide-react';
 
 export default function MobileHome({ onChangeTab }) {
@@ -63,61 +57,14 @@ export default function MobileHome({ onChangeTab }) {
         </div>
       </div>
 
-      {/* Role Restriction Banner */}
-      <div style={{ padding: '0 16px', marginBottom: '14px' }}>
-        <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '12px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <UserCheck size={20} color="#059669" style={{ flexShrink: 0 }} />
-          <div style={{ fontSize: '0.74rem', color: '#064e3b', fontWeight: 600, lineHeight: 1.35 }}>
-            Aplikasi khusus <strong>Ustadz, Musyrif & Pengurus</strong>. <span style={{ color: '#047857' }}>Santri tidak bisa login ke aplikasi ini.</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Menu Grid 1: Fitur Utama Pengurus */}
+      {/* KATEGORI 1: DATA MASTER */}
       <div style={{ padding: '0 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          MENU UTAMA ASATIDZ
+          DATA MASTER
         </div>
       </div>
 
-      <div className="quick-menu-grid" style={{ marginBottom: '16px' }}>
-        <button className="quick-menu-item" onClick={() => onChangeTab('dashboard')}>
-          <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #0284c7, #0369a1)' }}>
-            <LayoutDashboard size={22} />
-          </div>
-          <span>Dashboard</span>
-        </button>
-
-        <button className="quick-menu-item" onClick={() => onChangeTab('presensi')}>
-          <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)' }}>
-            <Fingerprint size={22} />
-          </div>
-          <span>Absensi Santri</span>
-        </button>
-
-        <button className="quick-menu-item" onClick={() => onChangeTab('tahfidz')}>
-          <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #059669, #047857)' }}>
-            <BookOpen size={22} />
-          </div>
-          <span>Setoran Tahfidz</span>
-        </button>
-
-        <button className="quick-menu-item" onClick={() => onChangeTab('perizinan')}>
-          <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #2563eb, #1d4ed8)' }}>
-            <DoorOpen size={22} />
-          </div>
-          <span>Perizinan Santri</span>
-        </button>
-      </div>
-
-      {/* Main Menu Grid 2: Kelola Data Master */}
-      <div style={{ padding: '0 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          DATA MASTER & LAPORAN
-        </div>
-      </div>
-
-      <div className="quick-menu-grid" style={{ marginBottom: '16px' }}>
+      <div className="quick-menu-grid" style={{ marginBottom: '18px' }}>
         <button className="quick-menu-item" onClick={() => onChangeTab('master-santri')}>
           <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #0d9488, #0f766e)' }}>
             <Users size={22} />
@@ -145,6 +92,36 @@ export default function MobileHome({ onChangeTab }) {
           </div>
           <span>Data Asatidz</span>
         </button>
+      </div>
+
+      {/* KATEGORI 2: TRANSAKSI */}
+      <div style={{ padding: '0 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          TRANSAKSI
+        </div>
+      </div>
+
+      <div className="quick-menu-grid" style={{ marginBottom: '18px' }}>
+        <button className="quick-menu-item" onClick={() => onChangeTab('presensi')}>
+          <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)' }}>
+            <Fingerprint size={22} />
+          </div>
+          <span>Absensi</span>
+        </button>
+
+        <button className="quick-menu-item" onClick={() => onChangeTab('perizinan')}>
+          <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #2563eb, #1d4ed8)' }}>
+            <DoorOpen size={22} />
+          </div>
+          <span>Perizinan</span>
+        </button>
+
+        <button className="quick-menu-item" onClick={() => onChangeTab('tahfidz')}>
+          <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #059669, #047857)' }}>
+            <BookOpen size={22} />
+          </div>
+          <span>Setoran Hafidz</span>
+        </button>
 
         <button className="quick-menu-item" onClick={() => onChangeTab('master-device')}>
           <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #475569, #334155)' }}>
@@ -152,14 +129,16 @@ export default function MobileHome({ onChangeTab }) {
           </div>
           <span>Fingerprint</span>
         </button>
+      </div>
 
-        <button className="quick-menu-item" onClick={() => onChangeTab('tata-tertib')}>
-          <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #e11d48, #be123c)' }}>
-            <ShieldAlert size={22} />
-          </div>
-          <span>Ta'zir Santri</span>
-        </button>
+      {/* KATEGORI 3: LAPORAN & TATA TERTIB */}
+      <div style={{ padding: '0 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          LAPORAN
+        </div>
+      </div>
 
+      <div className="quick-menu-grid" style={{ marginBottom: '18px' }}>
         <button className="quick-menu-item" onClick={() => onChangeTab('laporan-presensi')}>
           <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #f97316, #c2410c)' }}>
             <BarChart3 size={22} />
@@ -171,7 +150,14 @@ export default function MobileHome({ onChangeTab }) {
           <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #0284c7, #0284c7)' }}>
             <FileText size={22} />
           </div>
-          <span>Laporan Tahfidz</span>
+          <span>Lap. Tahfidz</span>
+        </button>
+
+        <button className="quick-menu-item" onClick={() => onChangeTab('tata-tertib')}>
+          <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #e11d48, #be123c)' }}>
+            <ShieldAlert size={22} />
+          </div>
+          <span>Ta'zir Santri</span>
         </button>
       </div>
 
