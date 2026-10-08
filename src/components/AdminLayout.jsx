@@ -7,7 +7,6 @@ import {
   ShieldAlert, 
   Bell, 
   Menu, 
-  X,
   Fingerprint,
   ChevronDown,
   Building,
@@ -16,7 +15,9 @@ import {
   BarChart3,
   FileText,
   Clock,
-  Database
+  Database,
+  X,
+  Grid
 } from 'lucide-react';
 import DashboardAdmin from '../views/admin/DashboardAdmin';
 import SantriView from '../views/admin/SantriView';
@@ -41,6 +42,7 @@ export default function AdminLayout() {
 
   const [activeTab, setActiveTab] = useState(getInitialTab);
   const [isMasterOpen, setIsMasterOpen] = useState(true);
+  const [isLaporanOpen, setIsLaporanOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState('');
 
@@ -49,7 +51,6 @@ export default function AdminLayout() {
     setActiveTab(tab);
     window.location.hash = tab;
     localStorage.setItem('epesantren_tab', tab);
-    setIsMobileMenuOpen(false);
   };
 
   // Listen to hash changes (back/forward browser buttons) & keep master dropdown open
@@ -62,12 +63,14 @@ export default function AdminLayout() {
         if (['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-device'].includes(hash)) {
           setIsMasterOpen(true);
         }
+        if (['laporan-presensi', 'laporan-tahfidz'].includes(hash)) {
+          setIsLaporanOpen(true);
+        }
       }
     };
 
     window.addEventListener('hashchange', handleHashChange);
     
-    // Auto set hash if empty
     if (!window.location.hash) {
       window.location.hash = activeTab;
     }
@@ -119,36 +122,172 @@ export default function AdminLayout() {
   };
 
   const isMasterActive = ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-device'].includes(activeTab);
+  const isLaporanActive = ['laporan-presensi', 'laporan-tahfidz'].includes(activeTab);
+
+  const renderNavMenu = (isMobile = false) => {
+    const handleTabClick = (tab) => {
+      changeTab(tab);
+      if (isMobile) setIsMobileMenuOpen(false);
+    };
+
+    return (
+      <nav className="sidebar-menu">
+        <div className="menu-category">MAIN MENU</div>
+        <button 
+          className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
+          onClick={() => handleTabClick('dashboard')}
+        >
+          <div className="nav-link-left">
+            <LayoutDashboard size={15} />
+            <span>Dashboard</span>
+          </div>
+        </button>
+
+        <button 
+          className={`nav-link ${activeTab === 'presensi' ? 'active' : ''}`}
+          onClick={() => handleTabClick('presensi')}
+        >
+          <div className="nav-link-left">
+            <Fingerprint size={15} />
+            <span>Presensi & Absensi</span>
+          </div>
+        </button>
+
+        <button 
+          className={`nav-link ${activeTab === 'tahfidz' ? 'active' : ''}`}
+          onClick={() => handleTabClick('tahfidz')}
+        >
+          <div className="nav-link-left">
+            <BookOpen size={15} />
+            <span>Tahfidz & Muroja'ah</span>
+          </div>
+        </button>
+
+        <button 
+          className={`nav-link ${activeTab === 'perizinan' ? 'active' : ''}`}
+          onClick={() => handleTabClick('perizinan')}
+        >
+          <div className="nav-link-left">
+            <DoorOpen size={15} />
+            <span>Perizinan & Gerbang</span>
+          </div>
+        </button>
+
+        {/* DATA MASTER DROPDOWN / ACCORDION */}
+        <div className="menu-category">DATA MASTER</div>
+        <button 
+          className={`nav-link ${isMasterActive ? 'active' : ''}`}
+          onClick={() => setIsMasterOpen(!isMasterOpen)}
+        >
+          <div className="nav-link-left">
+            <Database size={15} />
+            <span>Data Master</span>
+          </div>
+          <ChevronDown size={13} className={`nav-chevron ${isMasterOpen ? 'open' : ''}`} />
+        </button>
+
+        {isMasterOpen && (
+          <div className="nav-submenu">
+            <button 
+              className={`nav-sublink ${activeTab === 'master-santri' ? 'active' : ''}`}
+              onClick={() => handleTabClick('master-santri')}
+            >
+              <Users size={13} style={{ marginRight: '6px' }} />
+              <span>Data Santri</span>
+            </button>
+
+            <button 
+              className={`nav-sublink ${activeTab === 'master-asrama' ? 'active' : ''}`}
+              onClick={() => handleTabClick('master-asrama')}
+            >
+              <Building size={13} style={{ marginRight: '6px' }} />
+              <span>Data Asrama & Kobong</span>
+            </button>
+
+            <button 
+              className={`nav-sublink ${activeTab === 'master-kelas' ? 'active' : ''}`}
+              onClick={() => handleTabClick('master-kelas')}
+            >
+              <GraduationCap size={13} style={{ marginRight: '6px' }} />
+              <span>Data Kelas & Halaqah</span>
+            </button>
+
+            <button 
+              className={`nav-sublink ${activeTab === 'master-asatidz' ? 'active' : ''}`}
+              onClick={() => handleTabClick('master-asatidz')}
+            >
+              <Users size={13} style={{ marginRight: '6px' }} />
+              <span>Data Asatidz & Musyrif</span>
+            </button>
+
+            <button 
+              className={`nav-sublink ${activeTab === 'master-device' ? 'active' : ''}`}
+              onClick={() => handleTabClick('master-device')}
+            >
+              <HardDrive size={13} style={{ marginRight: '6px' }} />
+              <span>Data Mesin Fingerprint</span>
+            </button>
+          </div>
+        )}
+
+        <div className="menu-category">KEPESANTRENAN</div>
+        <button 
+          className={`nav-link ${activeTab === 'tata-tertib' ? 'active' : ''}`}
+          onClick={() => handleTabClick('tata-tertib')}
+        >
+          <div className="nav-link-left">
+            <ShieldAlert size={15} />
+            <span>Tata Tertib & Ta'zir</span>
+          </div>
+        </button>
+
+        <div className="menu-category">LAPORAN & REKAP</div>
+        <button 
+          className={`nav-link ${isLaporanActive ? 'active' : ''}`}
+          onClick={() => setIsLaporanOpen(!isLaporanOpen)}
+        >
+          <div className="nav-link-left">
+            <BarChart3 size={15} />
+            <span>Laporan & Rekap</span>
+          </div>
+          <ChevronDown size={13} className={`nav-chevron ${isLaporanOpen ? 'open' : ''}`} />
+        </button>
+
+        {isLaporanOpen && (
+          <div className="nav-submenu">
+            <button 
+              className={`nav-sublink ${activeTab === 'laporan-presensi' ? 'active' : ''}`}
+              onClick={() => handleTabClick('laporan-presensi')}
+            >
+              <BarChart3 size={13} style={{ marginRight: '6px' }} />
+              <span>Rekap Presensi Harian</span>
+            </button>
+
+            <button 
+              className={`nav-sublink ${activeTab === 'laporan-tahfidz' ? 'active' : ''}`}
+              onClick={() => handleTabClick('laporan-tahfidz')}
+            >
+              <FileText size={13} style={{ marginRight: '6px' }} />
+              <span>Laporan Tahfidz & Tasmi'</span>
+            </button>
+          </div>
+        )}
+      </nav>
+    );
+  };
 
   return (
     <div className="admin-layout">
-      {/* Overlay Backdrop for Mobile Menu Drawer */}
-      {isMobileMenuOpen && (
-        <div 
-          className="mobile-overlay" 
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
-
-      {/* Sidebar Desktop & Mobile Drawer */}
-      <aside className={`admin-sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
-        {/* Brand */}
+      {/* Sidebar Desktop (Dark Navy Aspartech Style) */}
+      <aside className="admin-sidebar">
         <div className="sidebar-brand">
           <div className="brand-icon-box">P</div>
           <div className="brand-title">
             <h2>PORTAL</h2>
             <p>PESANTREN SYSTEM</p>
           </div>
-          <button 
-            className="mobile-close-btn"
-            onClick={() => setIsMobileMenuOpen(false)}
-            title="Tutup Menu"
-          >
-            <X size={18} />
-          </button>
         </div>
 
-        {/* Tenant Profile Card */}
         <div className="tenant-card">
           <div className="tenant-logo">🕌</div>
           <div className="tenant-info">
@@ -157,134 +296,47 @@ export default function AdminLayout() {
           </div>
         </div>
 
-        {/* Navigation Menu */}
-        <nav className="sidebar-menu">
-          <div className="menu-category">MAIN MENU</div>
-          <button 
-            className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
-            onClick={() => changeTab('dashboard')}
-          >
-            <div className="nav-link-left">
-              <LayoutDashboard size={15} />
-              <span>Dashboard</span>
-            </div>
-          </button>
-
-          <button 
-            className={`nav-link ${activeTab === 'presensi' ? 'active' : ''}`}
-            onClick={() => changeTab('presensi')}
-          >
-            <div className="nav-link-left">
-              <Fingerprint size={15} />
-              <span>Presensi & Absensi</span>
-            </div>
-          </button>
-
-          <button 
-            className={`nav-link ${activeTab === 'tahfidz' ? 'active' : ''}`}
-            onClick={() => changeTab('tahfidz')}
-          >
-            <div className="nav-link-left">
-              <BookOpen size={15} />
-              <span>Tahfidz & Muroja'ah</span>
-            </div>
-          </button>
-
-          <button 
-            className={`nav-link ${activeTab === 'perizinan' ? 'active' : ''}`}
-            onClick={() => changeTab('perizinan')}
-          >
-            <div className="nav-link-left">
-              <DoorOpen size={15} />
-              <span>Perizinan & Gerbang</span>
-            </div>
-          </button>
-
-          {/* DATA MASTER DROPDOWN / ACCORDION */}
-          <div className="menu-category">DATA MASTER</div>
-          <button 
-            className={`nav-link ${isMasterActive ? 'active' : ''}`}
-            onClick={() => setIsMasterOpen(!isMasterOpen)}
-          >
-            <div className="nav-link-left">
-              <Database size={15} />
-              <span>Data Master</span>
-            </div>
-            <ChevronDown size={13} className={`nav-chevron ${isMasterOpen ? 'open' : ''}`} />
-          </button>
-
-          {isMasterOpen && (
-            <div className="nav-submenu">
-              <button 
-                className={`nav-sublink ${activeTab === 'master-santri' ? 'active' : ''}`}
-                onClick={() => changeTab('master-santri')}
-              >
-                <span>Data Santri</span>
-              </button>
-
-              <button 
-                className={`nav-sublink ${activeTab === 'master-asrama' ? 'active' : ''}`}
-                onClick={() => changeTab('master-asrama')}
-              >
-                <span>Data Asrama & Kobong</span>
-              </button>
-
-              <button 
-                className={`nav-sublink ${activeTab === 'master-kelas' ? 'active' : ''}`}
-                onClick={() => changeTab('master-kelas')}
-              >
-                <span>Data Kelas & Halaqah</span>
-              </button>
-
-              <button 
-                className={`nav-sublink ${activeTab === 'master-asatidz' ? 'active' : ''}`}
-                onClick={() => changeTab('master-asatidz')}
-              >
-                <span>Data Asatidz & Musyrif</span>
-              </button>
-
-              <button 
-                className={`nav-sublink ${activeTab === 'master-device' ? 'active' : ''}`}
-                onClick={() => changeTab('master-device')}
-              >
-                <span>Data Mesin Fingerprint</span>
-              </button>
-            </div>
-          )}
-
-          <div className="menu-category">KEPESANTRENAN</div>
-          <button 
-            className={`nav-link ${activeTab === 'tata-tertib' ? 'active' : ''}`}
-            onClick={() => changeTab('tata-tertib')}
-          >
-            <div className="nav-link-left">
-              <ShieldAlert size={15} />
-              <span>Tata Tertib & Ta'zir</span>
-            </div>
-          </button>
-
-          <div className="menu-category">LAPORAN & REKAP</div>
-          <button 
-            className={`nav-link ${activeTab === 'laporan-presensi' ? 'active' : ''}`}
-            onClick={() => changeTab('laporan-presensi')}
-          >
-            <div className="nav-link-left">
-              <BarChart3 size={15} />
-              <span>Rekap Presensi Harian</span>
-            </div>
-          </button>
-
-          <button 
-            className={`nav-link ${activeTab === 'laporan-tahfidz' ? 'active' : ''}`}
-            onClick={() => changeTab('laporan-tahfidz')}
-          >
-            <div className="nav-link-left">
-              <FileText size={15} />
-              <span>Laporan Tahfidz & Tasmi'</span>
-            </div>
-          </button>
-        </nav>
+        {renderNavMenu(false)}
       </aside>
+
+      {/* Mobile Sidebar Overlay Drawer */}
+      {isMobileMenuOpen && (
+        <div 
+          className="mobile-drawer-overlay"
+          onClick={() => setIsMobileMenuOpen(false)}
+        >
+          <div 
+            className="mobile-drawer-content"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sidebar-brand" style={{ justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div className="brand-icon-box">P</div>
+                <div className="brand-title">
+                  <h2>PORTAL</h2>
+                  <p>PESANTREN SYSTEM</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsMobileMenuOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="tenant-card">
+              <div className="tenant-logo">🕌</div>
+              <div className="tenant-info">
+                <div className="tenant-name">PP. AL-HIKMAH</div>
+                <span className="tenant-badge">ADMIN</span>
+              </div>
+            </div>
+
+            {renderNavMenu(true)}
+          </div>
+        </div>
+      )}
 
       {/* Main Container */}
       <div className="admin-main">
@@ -294,9 +346,9 @@ export default function AdminLayout() {
             <button 
               className="btn-hamburger"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              title="Menu Navigasi"
+              title="Menu Sistem"
             >
-              {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+              <Menu size={18} />
             </button>
           </div>
 
@@ -328,10 +380,10 @@ export default function AdminLayout() {
         </div>
       </div>
 
-      {/* Mobile Bottom Navigation Dock */}
-      <nav className="mobile-bottom-nav">
+      {/* Mobile Bottom Navigation Bar */}
+      <div className="mobile-bottom-nav">
         <button 
-          className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+          className={`mobile-nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
           onClick={() => changeTab('dashboard')}
         >
           <LayoutDashboard size={18} />
@@ -339,7 +391,7 @@ export default function AdminLayout() {
         </button>
 
         <button 
-          className={`mobile-nav-item ${activeTab === 'presensi' || activeTab === 'laporan-presensi' ? 'active' : ''}`}
+          className={`mobile-nav-btn ${activeTab === 'presensi' ? 'active' : ''}`}
           onClick={() => changeTab('presensi')}
         >
           <Fingerprint size={18} />
@@ -347,7 +399,7 @@ export default function AdminLayout() {
         </button>
 
         <button 
-          className={`mobile-nav-item ${activeTab === 'tahfidz' || activeTab === 'laporan-tahfidz' ? 'active' : ''}`}
+          className={`mobile-nav-btn ${activeTab === 'tahfidz' ? 'active' : ''}`}
           onClick={() => changeTab('tahfidz')}
         >
           <BookOpen size={18} />
@@ -355,7 +407,7 @@ export default function AdminLayout() {
         </button>
 
         <button 
-          className={`mobile-nav-item ${activeTab === 'perizinan' ? 'active' : ''}`}
+          className={`mobile-nav-btn ${activeTab === 'perizinan' ? 'active' : ''}`}
           onClick={() => changeTab('perizinan')}
         >
           <DoorOpen size={18} />
@@ -363,13 +415,13 @@ export default function AdminLayout() {
         </button>
 
         <button 
-          className={`mobile-nav-item ${isMobileMenuOpen ? 'active' : ''}`}
+          className={`mobile-nav-btn ${isMobileMenuOpen ? 'active' : ''}`}
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         >
-          <Menu size={18} />
-          <span>Semua Menu</span>
+          <Grid size={18} />
+          <span>Menu</span>
         </button>
-      </nav>
+      </div>
     </div>
   );
 }
