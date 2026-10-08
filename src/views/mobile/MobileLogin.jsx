@@ -50,44 +50,10 @@ export default function MobileLogin({ onLoginSuccess }) {
         setLoading(false);
         if (onLoginSuccess) onLoginSuccess(sessionData);
       } else {
-        const inputU = username.trim().toLowerCase();
-        if (inputU.startsWith('asrama') || inputU === 'admin') {
-          const asramaId = parseInt(inputU.replace(/\D/g, '')) || 1;
-          const fallbackSession = {
-            role: inputU === 'admin' ? 'admin' : 'asrama',
-            asrama_id: asramaId,
-            nama_asrama: inputU === 'admin' ? 'Semua Asrama (Admin)' : `Asrama ${asramaId}`,
-            pembina: inputU === 'admin' ? 'Administrator Utama' : 'Musyrif Asrama',
-            username: username.trim(),
-            loginTime: new Date().toISOString()
-          };
-          localStorage.setItem('mobile_session', JSON.stringify(fallbackSession));
-          setLoading(false);
-          if (onLoginSuccess) onLoginSuccess(fallbackSession);
-          return;
-        }
-
         setLoading(false);
         setError(res.data?.error || 'Username atau password salah!');
       }
     } catch (err) {
-      const inputU = username.trim().toLowerCase();
-      if (inputU.startsWith('asrama') || inputU === 'admin') {
-        const asramaId = parseInt(inputU.replace(/\D/g, '')) || 1;
-        const fallbackSession = {
-          role: inputU === 'admin' ? 'admin' : 'asrama',
-          asrama_id: asramaId,
-          nama_asrama: inputU === 'admin' ? 'Semua Asrama (Admin)' : `Asrama ${asramaId}`,
-          pembina: inputU === 'admin' ? 'Administrator Utama' : 'Musyrif Asrama',
-          username: username.trim(),
-          loginTime: new Date().toISOString()
-        };
-        localStorage.setItem('mobile_session', JSON.stringify(fallbackSession));
-        setLoading(false);
-        if (onLoginSuccess) onLoginSuccess(fallbackSession);
-        return;
-      }
-
       setLoading(false);
       const errMsg = err.response?.data?.error || err.message || 'Gagal terhubung ke server database.';
       setError(errMsg);
