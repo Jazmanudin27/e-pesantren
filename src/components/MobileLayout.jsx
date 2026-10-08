@@ -109,14 +109,6 @@ export default function MobileLayout() {
   return (
     <div className="mobile-wrapper">
       <div className="mobile-app-container">
-        {/* Switch to Admin Link Bar */}
-        <div style={{ background: '#047857', padding: '6px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-          <span style={{ fontSize: '0.7rem', color: '#a7f3d0', fontWeight: 600 }}>App Mobile Santri Portal</span>
-          <a href="#dashboard" style={{ background: 'rgba(255,255,255,0.2)', color: '#ffffff', fontSize: '0.65rem', fontWeight: 700, padding: '3px 8px', borderRadius: '4px', textDecoration: 'none' }}>
-            💻 Portal Admin
-          </a>
-        </div>
-
         {/* Sub-Menu Top Navigation Header (Excludes Beranda/Home) */}
         {mobileTab !== 'home' && (
           <div style={{
