@@ -265,7 +265,6 @@ app.post('/api/login', async (req, res) => {
       // Universal fallback passwords for asrama login
       const universalPasses = ['12345', '123456', 'ali123', 'umar123', 'fathimah123', 'khadijah123', 'asrama123', 'admin123', 'password'];
       if (!isPasswordValid && (universalPasses.includes(cleanPass) || cleanPass.length > 0)) {
-        // Accept password for asrama accounts
         isPasswordValid = true;
       }
 
@@ -277,6 +276,11 @@ app.post('/api/login', async (req, res) => {
           nama_asrama: asramaAcc.nama_asrama,
           pembina: asramaAcc.pembina || 'Musyrif Asrama',
           username: asramaAcc.username || `asrama${asramaAcc.id}`
+        });
+      } else {
+        return res.status(401).json({ 
+          success: false, 
+          error: `Password untuk akun asrama "${cleanUser}" salah!` 
         });
       }
     }
@@ -307,15 +311,23 @@ app.post('/api/login', async (req, res) => {
             role: userAcc.role ? userAcc.role.toLowerCase() : 'admin',
             user: { id: userAcc.id, username: userAcc.username, nama: userAcc.name }
           });
+        } else {
+          return res.status(401).json({ 
+            success: false, 
+            error: `Password untuk akun user "${cleanUser}" salah!` 
+          });
         }
       }
     } catch (e) {
       console.warn('Users query fallback:', e.message);
     }
 
-    return res.status(401).json({ success: false, error: 'Username atau Password Asrama salah!' });
+    return res.status(401).json({ 
+      success: false, 
+      error: `Username "${cleanUser}" tidak ditemukan di database asrama maupun users!` 
+    });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: `Server / Database Error: ${err.message}` });
   }
 });
 
