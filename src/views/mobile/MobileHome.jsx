@@ -63,28 +63,28 @@ export default function MobileHome({ onChangeTab }) {
           <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #0d9488, #0f766e)' }}>
             <Users size={22} />
           </div>
-          <span>Data Santri</span>
+          <span>Santri</span>
         </button>
 
         <button className="quick-menu-item" onClick={() => onChangeTab('master-asrama')}>
           <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #d97706, #b45309)' }}>
             <Building size={22} />
           </div>
-          <span>Data Asrama</span>
+          <span>Asrama</span>
         </button>
 
         <button className="quick-menu-item" onClick={() => onChangeTab('master-kelas')}>
           <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #0891b2, #0e7490)' }}>
             <GraduationCap size={22} />
           </div>
-          <span>Data Kelas</span>
+          <span>Kelas</span>
         </button>
 
         <button className="quick-menu-item" onClick={() => onChangeTab('master-asatidz')}>
           <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #9333ea, #7e22ce)' }}>
             <Users size={22} />
           </div>
-          <span>Data Asatidz</span>
+          <span>Asatidz</span>
         </button>
 
         <button className="quick-menu-item" onClick={() => onChangeTab('presensi')}>
@@ -133,7 +133,7 @@ export default function MobileHome({ onChangeTab }) {
           <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #e11d48, #be123c)' }}>
             <ShieldAlert size={22} />
           </div>
-          <span>Ta'zir Santri</span>
+          <span>Ta'zir</span>
         </button>
       </div>
 
