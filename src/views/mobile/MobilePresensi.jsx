@@ -6,7 +6,7 @@ export default function MobilePresensi() {
   const [presensiLogs, setPresensiLogs] = useState([]);
   const [santriOptions, setSantriOptions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState('semua');
+  const [activeFilter, setActiveFilter] = useState('shalat');
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formMode, setFormMode] = useState('add');
@@ -155,7 +155,7 @@ export default function MobilePresensi() {
     const matchesQuery = nama.includes(q) || kegiatan.includes(q) || status.includes(q);
 
     if (activeFilter === 'shalat') {
-      return matchesQuery && (kegiatan.includes('shalat') || (log.kategori && log.kategori.toLowerCase().includes('shalat')));
+      return matchesQuery && (kegiatan.includes('shalat') || (log.kategori && log.kategori.toLowerCase().includes('shalat')) || !kegiatan.includes('ngaji'));
     }
     if (activeFilter === 'halaqah') {
       return matchesQuery && (kegiatan.includes('ngaji') || kegiatan.includes('halaqah') || (log.kategori && log.kategori.toLowerCase().includes('mengaji')));
@@ -164,47 +164,47 @@ export default function MobilePresensi() {
   });
 
   return (
-    <div style={{ padding: '16px', paddingBottom: '80px' }}>
-      {/* Header Banner */}
-      <div style={{
-        background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
-        color: '#ffffff',
-        borderRadius: '16px',
-        padding: '18px',
-        marginBottom: '16px',
-        boxShadow: '0 8px 18px rgba(124, 58, 237, 0.25)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div>
-          <div style={{ fontSize: '0.78rem', color: '#ddd6fe' }}>Presensi Realtime Fingerprint</div>
-          <div style={{ fontSize: '1.3rem', fontWeight: 800, margin: '4px 0 4px' }}>Kehadiran Shalat & Ngaji</div>
-          <div style={{ fontSize: '0.8rem', color: '#ede9fe' }}>{presensiLogs.length} Record Presensi Log</div>
-        </div>
+    <div style={{ padding: '16px', paddingBottom: '90px' }}>
+      {/* 2 Filter Tabs */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
         <button
-          onClick={handleOpenAdd}
+          onClick={() => setActiveFilter('shalat')}
           style={{
-            background: '#ffffff',
-            color: '#6d28d9',
-            border: 'none',
+            padding: '10px 12px',
             borderRadius: '12px',
-            padding: '10px 14px',
-            fontWeight: 800,
+            border: activeFilter === 'shalat' ? 'none' : '1px solid #cbd5e1',
+            background: activeFilter === 'shalat' ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : '#ffffff',
+            color: activeFilter === 'shalat' ? '#ffffff' : '#475569',
             fontSize: '0.82rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
+            fontWeight: 800,
             cursor: 'pointer',
-            boxShadow: '0 4px 10px rgba(0,0,0,0.15)'
+            boxShadow: activeFilter === 'shalat' ? '0 4px 12px rgba(37, 99, 235, 0.25)' : 'none',
+            transition: 'all 0.2s ease'
           }}
         >
-          <Plus size={16} /> Catat
+          🕌 Shalat Berjamaah
+        </button>
+        <button
+          onClick={() => setActiveFilter('halaqah')}
+          style={{
+            padding: '10px 12px',
+            borderRadius: '12px',
+            border: activeFilter === 'halaqah' ? 'none' : '1px solid #cbd5e1',
+            background: activeFilter === 'halaqah' ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : '#ffffff',
+            color: activeFilter === 'halaqah' ? '#ffffff' : '#475569',
+            fontSize: '0.82rem',
+            fontWeight: 800,
+            cursor: 'pointer',
+            boxShadow: activeFilter === 'halaqah' ? '0 4px 12px rgba(37, 99, 235, 0.25)' : 'none',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          📖 Kegiatan Mengaji
         </button>
       </div>
 
       {/* Input Cari */}
-      <div style={{ position: 'relative', marginBottom: '10px' }}>
+      <div style={{ position: 'relative', marginBottom: '14px' }}>
         <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
         <input
           type="text"
@@ -221,28 +221,6 @@ export default function MobilePresensi() {
             boxSizing: 'border-box'
           }}
         />
-      </div>
-
-      {/* Filter Tabs */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', overflowX: 'auto', paddingBottom: '4px' }}>
-        <button
-          onClick={() => setActiveFilter('semua')}
-          style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: activeFilter === 'semua' ? '#7c3aed' : '#ffffff', color: activeFilter === 'semua' ? '#ffffff' : '#64748b', fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer' }}
-        >
-          Semua Kegiatan
-        </button>
-        <button
-          onClick={() => setActiveFilter('shalat')}
-          style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: activeFilter === 'shalat' ? '#7c3aed' : '#ffffff', color: activeFilter === 'shalat' ? '#ffffff' : '#64748b', fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer' }}
-        >
-          Shalat Berjamaah
-        </button>
-        <button
-          onClick={() => setActiveFilter('halaqah')}
-          style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: activeFilter === 'halaqah' ? '#7c3aed' : '#ffffff', color: activeFilter === 'halaqah' ? '#ffffff' : '#64748b', fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer' }}
-        >
-          Halaqah Qur'an
-        </button>
       </div>
 
       {/* List Presensi Card */}
@@ -420,6 +398,31 @@ export default function MobilePresensi() {
           </div>
         </div>
       )}
+
+      {/* Floating Action Button (FAB) (+) Warna Biru Gaya Live Chat */}
+      <button
+        onClick={handleOpenAdd}
+        title="Input Presensi Santri Baru"
+        style={{
+          position: 'fixed',
+          right: '20px',
+          bottom: '80px',
+          width: '56px',
+          height: '56px',
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+          color: '#ffffff',
+          border: 'none',
+          boxShadow: '0 8px 24px rgba(37, 99, 235, 0.45)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          zIndex: 9999
+        }}
+      >
+        <Plus size={28} />
+      </button>
     </div>
   );
 }
