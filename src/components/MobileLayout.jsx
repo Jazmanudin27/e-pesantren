@@ -117,14 +117,14 @@ export default function MobileLayout() {
         {/* Sub-Menu Top Navigation Header (Excludes Beranda/Home) */}
         {mobileTab !== 'home' && (
           <div style={{
-            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+            background: 'linear-gradient(135deg, #064e3b 0%, #047857 60%, #059669 100%)',
             color: '#ffffff',
-            padding: '10px 14px',
+            padding: '15px 16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-            boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
+            boxShadow: '0 8px 20px -4px rgba(6, 78, 59, 0.35)',
             position: 'sticky',
             top: 0,
             zIndex: 20
@@ -132,27 +132,30 @@ export default function MobileLayout() {
             <button 
               onClick={() => handleSelectTab('home')}
               style={{
-                background: 'rgba(255, 255, 255, 0.15)',
-                border: 'none',
+                background: 'rgba(255, 255, 255, 0.2)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
                 color: '#ffffff',
-                padding: '5px 9px',
-                borderRadius: '8px',
+                width: '38px',
+                height: '38px',
+                borderRadius: '10px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
+                justifyContent: 'center',
                 cursor: 'pointer',
-                fontSize: '0.74rem',
-                fontWeight: 700
+                transition: 'transform 0.15s ease'
               }}
+              title="Kembali ke Beranda"
             >
-              <ArrowLeft size={15} /> Beranda
+              <ArrowLeft size={20} />
             </button>
 
-            <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#ffffff', textAlign: 'center', flex: 1, margin: '0 8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <span style={{ fontWeight: 800, fontSize: '0.98rem', color: '#ffffff', textAlign: 'center', flex: 1, margin: '0 12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '0.01em' }}>
               {getSubmenuTitle()}
             </span>
 
-            <div style={{ width: '75px' }} />
+            <div style={{ width: '38px' }} />
           </div>
         )}
 
