@@ -177,25 +177,6 @@ export default function MobileTahfidz() {
 
   return (
     <div style={{ padding: '16px', paddingBottom: '80px' }}>
-      {/* Header Info */}
-      <div style={{
-        background: 'linear-gradient(135deg, #064e3b 0%, #047857 100%)',
-        color: '#ffffff',
-        borderRadius: '16px',
-        padding: '18px',
-        marginBottom: '16px',
-        boxShadow: '0 8px 16px rgba(6, 78, 59, 0.2)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div>
-          <div style={{ fontSize: '0.78rem', color: '#a7f3d0' }}>Mutaba'ah & Setoran Qur'an</div>
-          <div style={{ fontSize: '1.3rem', fontWeight: 800, margin: '4px 0 4px' }}>Tahfidz Mobile</div>
-          <div style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>{setoranList.length} Record Setoran Terdaftar</div>
-        </div>
-      </div>
-
       {/* Input Cari */}
       <div style={{ position: 'relative', marginBottom: '14px' }}>
         <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />

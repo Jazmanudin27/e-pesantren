@@ -12,19 +12,6 @@ export default function MobileLaporanPresensi() {
 
   return (
     <div style={{ padding: '16px' }}>
-      {/* Banner Header Rekap Presensi */}
-      <div style={{
-        background: 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)',
-        color: '#ffffff',
-        borderRadius: '16px',
-        padding: '18px',
-        marginBottom: '16px',
-        boxShadow: '0 8px 18px rgba(234, 88, 12, 0.25)'
-      }}>
-        <div style={{ fontSize: '0.78rem', color: '#ffedd5' }}>Laporan & Analytics Kehadiran</div>
-        <div style={{ fontSize: '1.3rem', fontWeight: 800, margin: '4px 0 4px' }}>Rekap Presensi Harian</div>
-        <div style={{ fontSize: '0.8rem', color: '#fff7ed' }}>Periode: Oktober 2026 • Realtime Fingerprint</div>
-      </div>
 
       {/* Card Rekap List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

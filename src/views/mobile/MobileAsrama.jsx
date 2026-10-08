@@ -127,25 +127,6 @@ export default function MobileAsrama() {
 
   return (
     <div style={{ padding: '16px' }}>
-      {/* Banner Header Asrama */}
-      <div style={{
-        background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
-        color: '#ffffff',
-        borderRadius: '16px',
-        padding: '18px',
-        marginBottom: '16px',
-        boxShadow: '0 8px 18px rgba(217, 119, 6, 0.25)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div>
-          <div style={{ fontSize: '0.78rem', color: '#fef3c7' }}>Master Gedung Asrama</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, margin: '2px 0' }}>Data Asrama</div>
-          <div style={{ fontSize: '0.76rem', color: '#fffbeb' }}>{asramaList.length} Blok Gedung Active</div>
-        </div>
-      </div>
-
       {/* List Asrama Card */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '30px 0', color: '#64748b', fontSize: '0.84rem' }}>

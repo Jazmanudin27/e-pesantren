@@ -10,19 +10,6 @@ export default function MobileLaporanTahfidz() {
 
   return (
     <div style={{ padding: '16px' }}>
-      {/* Banner Header Laporan Tahfidz */}
-      <div style={{
-        background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-        color: '#ffffff',
-        borderRadius: '16px',
-        padding: '18px',
-        marginBottom: '16px',
-        boxShadow: '0 8px 18px rgba(2, 132, 199, 0.25)'
-      }}>
-        <div style={{ fontSize: '0.78rem', color: '#bae6fd' }}>Laporan Evaluasi & Ujian Tasmi'</div>
-        <div style={{ fontSize: '1.3rem', fontWeight: 800, margin: '4px 0 4px' }}>Laporan Tahfidz & Tasmi'</div>
-        <div style={{ fontSize: '0.8rem', color: '#e0f2fe' }}>Capaian Akumulasi: <strong>15 Juz Mutqin</strong></div>
-      </div>
 
       {/* List Ujian Tasmi Card */}
       <div style={{ fontWeight: 800, fontSize: '0.92rem', marginBottom: '10px', color: '#0f172a' }}>

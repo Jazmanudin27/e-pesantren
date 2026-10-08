@@ -169,25 +169,6 @@ export default function MobileIzin() {
 
   return (
     <div style={{ padding: '16px', paddingBottom: '80px' }}>
-      {/* Header Banner */}
-      <div style={{
-        background: 'linear-gradient(135deg, #0f766e 0%, #0d9488 100%)',
-        color: '#ffffff',
-        borderRadius: '16px',
-        padding: '18px',
-        marginBottom: '16px',
-        boxShadow: '0 8px 16px rgba(15, 118, 110, 0.2)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div>
-          <div style={{ fontSize: '0.78rem', color: '#99f6e4' }}>Manajemen Gerbang & Mahrom</div>
-          <div style={{ fontSize: '1.3rem', fontWeight: 800, margin: '4px 0 4px' }}>Perizinan Santri</div>
-          <div style={{ fontSize: '0.8rem', color: '#f0fdf4' }}>{izinList.length} Permohonan / Suratin Active</div>
-        </div>
-      </div>
-
       {/* Input Cari */}
       <div style={{ position: 'relative', marginBottom: '14px' }}>
         <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />

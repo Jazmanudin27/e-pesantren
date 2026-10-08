@@ -160,25 +160,6 @@ export default function MobileSantri() {
 
   return (
     <div style={{ padding: '16px' }}>
-      {/* Header Banner */}
-      <div style={{
-        background: 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)',
-        color: '#ffffff',
-        borderRadius: '16px',
-        padding: '18px',
-        marginBottom: '16px',
-        boxShadow: '0 8px 18px rgba(13, 148, 136, 0.25)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div>
-          <div style={{ fontSize: '0.78rem', color: '#ccfbf1' }}>Database Master Santri</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, margin: '2px 0' }}>Data Santri</div>
-          <div style={{ fontSize: '0.76rem', color: '#e6fffa' }}>{santriList.length} Santri Terdaftar</div>
-        </div>
-      </div>
-
       {/* Input Search */}
       <div style={{ position: 'relative', marginBottom: '14px' }}>
         <input 

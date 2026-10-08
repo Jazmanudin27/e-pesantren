@@ -120,25 +120,6 @@ export default function MobileKelas() {
 
   return (
     <div style={{ padding: '16px' }}>
-      {/* Banner Header Kelas */}
-      <div style={{
-        background: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)',
-        color: '#ffffff',
-        borderRadius: '16px',
-        padding: '18px',
-        marginBottom: '16px',
-        boxShadow: '0 8px 18px rgba(8, 145, 178, 0.25)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div>
-          <div style={{ fontSize: '0.78rem', color: '#cffaff' }}>Kelompok Mengaji & Diniyah</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, margin: '2px 0' }}>Halaqah Tahfidz & Kelas</div>
-          <div style={{ fontSize: '0.76rem', color: '#ecfeff' }}>{halaqahList.length} Kelompok Active</div>
-        </div>
-      </div>
-
       {/* List Halaqah Card */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '30px 0', color: '#64748b', fontSize: '0.84rem' }}>

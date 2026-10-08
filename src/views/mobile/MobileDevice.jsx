@@ -152,26 +152,6 @@ export default function MobileDevice() {
 
   return (
     <div style={{ padding: '16px', paddingBottom: '80px' }}>
-      {/* Banner Header Fingerprint */}
-      <div style={{
-        background: 'linear-gradient(135deg, #475569 0%, #334155 100%)',
-        color: '#ffffff',
-        borderRadius: '16px',
-        padding: '18px',
-        marginBottom: '16px',
-        boxShadow: '0 8px 18px rgba(71, 85, 105, 0.25)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div>
-          <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>Hardware Biometrik</div>
-          <div style={{ fontSize: '1.3rem', fontWeight: 800, margin: '4px 0 4px' }}>Mesin Fingerprint</div>
-          <div style={{ fontSize: '0.8rem', color: '#f1f5f9' }}>
-            {devices.length} Perangkat Terdaftar & System Sync
-          </div>
-        </div>
-      </div>
 
       {/* Input Cari */}
       <div style={{ position: 'relative', marginBottom: '14px' }}>

@@ -121,24 +121,6 @@ export default function MobileAsatidz() {
 
   return (
     <div style={{ padding: '16px' }}>
-      {/* Banner Header Asatidz */}
-      <div style={{
-        background: 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)',
-        color: '#ffffff',
-        borderRadius: '16px',
-        padding: '18px',
-        marginBottom: '16px',
-        boxShadow: '0 8px 18px rgba(147, 51, 234, 0.25)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div>
-          <div style={{ fontSize: '0.78rem', color: '#f3e8ff' }}>Dewan Guru & Musyrif</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, margin: '2px 0' }}>Data Asatidz</div>
-          <div style={{ fontSize: '0.76rem', color: '#faf5ff' }}>{asatidzList.length} Pengajar Active</div>
-        </div>
-      </div>
 
       {/* List Asatidz Card */}
       {loading ? (

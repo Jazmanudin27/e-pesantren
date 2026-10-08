@@ -160,25 +160,6 @@ export default function MobileTataTertib() {
 
   return (
     <div style={{ padding: '16px', paddingBottom: '80px' }}>
-      {/* Header Banner */}
-      <div style={{
-        background: 'linear-gradient(135deg, #be123c 0%, #9f1239 100%)',
-        color: '#ffffff',
-        borderRadius: '16px',
-        padding: '18px',
-        marginBottom: '16px',
-        boxShadow: '0 8px 18px rgba(190, 18, 60, 0.25)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div>
-          <div style={{ fontSize: '0.78rem', color: '#fecdd3' }}>Biro Kedisiplinan & Keamanan</div>
-          <div style={{ fontSize: '1.3rem', fontWeight: 800, margin: '4px 0 4px' }}>Tata Tertib & Ta'zir</div>
-          <div style={{ fontSize: '0.8rem', color: '#ffe4e6' }}>{pelanggaranList.length} Catatan Pelanggaran</div>
-        </div>
-      </div>
-
       {/* Input Cari */}
       <div style={{ position: 'relative', marginBottom: '14px' }}>
         <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
