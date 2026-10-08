@@ -336,14 +336,14 @@ app.delete('/api/tahfidz/halaqah/:id', async (req, res) => {
 app.get('/api/tahfidz/setoran', async (req, res) => {
   try {
     const [rows] = await pool.query(`
-      SELECT ts.*, s.nama_santri, s.nis, a.nama_asrama, k.nama_kamar, ast.nama_asatidz
+      SELECT ts.*, s.nama_santri, s.nis, a.nama_asrama, k.nama_kamar, ast.nama_asatidz, th.nama_halaqah
       FROM tahfidz_setoran ts
       JOIN santri s ON ts.santri_id = s.id
       LEFT JOIN asrama a ON s.asrama_id = a.id
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
       LEFT JOIN asatidz ast ON ts.asatidz_id = ast.id
+      LEFT JOIN tahfidz_halaqah th ON ts.halaqah_id = th.id
       ORDER BY ts.tanggal DESC, ts.id DESC
-      LIMIT 100
     `);
     res.json({ success: true, data: rows });
   } catch (err) {
@@ -351,11 +351,91 @@ app.get('/api/tahfidz/setoran', async (req, res) => {
   }
 });
 
-// 6. Data Perizinan Santri
+app.post('/api/tahfidz/setoran', async (req, res) => {
+  try {
+    const {
+      santri_id, halaqah_id, asatidz_id, tanggal, jenis_setoran, juz,
+      surat_mulai, ayat_mulai, surat_selesai, ayat_selesai, kualitas_tajwid,
+      status, catatan
+    } = req.body;
+
+    const [result] = await pool.query(`
+      INSERT INTO tahfidz_setoran (
+        santri_id, halaqah_id, asatidz_id, tanggal, jenis_setoran, juz,
+        surat_mulai, ayat_mulai, surat_selesai, ayat_selesai, kualitas_tajwid,
+        status, catatan
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      santri_id,
+      halaqah_id || null,
+      asatidz_id || 1,
+      tanggal || new Date().toISOString().split('T')[0],
+      jenis_setoran || 'Ziyadah',
+      juz || 1,
+      surat_mulai || 'Al-Baqarah',
+      ayat_mulai || 1,
+      surat_selesai || 'Al-Baqarah',
+      ayat_selesai || 10,
+      kualitas_tajwid || 'Mumtaz (A)',
+      status || 'Lulus',
+      catatan || ''
+    ]);
+
+    // Update santri capaian if juz is higher
+    if (santri_id && juz && status === 'Lulus') {
+      await pool.query(`
+        UPDATE santri SET capaian_hafalan_juz = GREATEST(capaian_hafalan_juz, ?) WHERE id = ?
+      `, [juz, santri_id]);
+    }
+
+    res.json({ success: true, message: 'Setoran tahfidz berhasil dicatat', id: result.insertId });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/tahfidz/setoran/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      santri_id, halaqah_id, asatidz_id, tanggal, jenis_setoran, juz,
+      surat_mulai, ayat_mulai, surat_selesai, ayat_selesai, kualitas_tajwid,
+      status, catatan
+    } = req.body;
+
+    await pool.query(`
+      UPDATE tahfidz_setoran SET
+        santri_id = ?, halaqah_id = ?, asatidz_id = ?, tanggal = ?, jenis_setoran = ?,
+        juz = ?, surat_mulai = ?, ayat_mulai = ?, surat_selesai = ?, ayat_selesai = ?,
+        kualitas_tajwid = ?, status = ?, catatan = ?
+      WHERE id = ?
+    `, [
+      santri_id, halaqah_id || null, asatidz_id || 1, tanggal, jenis_setoran || 'Ziyadah',
+      juz || 1, surat_mulai || '', ayat_mulai || 1, surat_selesai || '', ayat_selesai || 1,
+      kualitas_tajwid || 'Mumtaz (A)', status || 'Lulus', catatan || '', id
+    ]);
+
+    res.json({ success: true, message: 'Data setoran tahfidz berhasil diperbarui' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/tahfidz/setoran/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM tahfidz_setoran WHERE id = ?', [id]);
+    res.json({ success: true, message: 'Data setoran berhasil dihapus' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 6. Data Perizinan Santri CRUD & Validasi Gerbang
 app.get('/api/perizinan', async (req, res) => {
   try {
     const [rows] = await pool.query(`
-      SELECT sp.*, s.nama_santri, s.nis, a.nama_asrama, k.nama_kamar
+      SELECT sp.*, s.nama_santri, s.nis, s.no_wa_wali, a.nama_asrama, k.nama_kamar
       FROM santri_perizinan sp
       JOIN santri s ON sp.santri_id = s.id
       LEFT JOIN asrama a ON s.asrama_id = a.id
@@ -363,6 +443,95 @@ app.get('/api/perizinan', async (req, res) => {
       ORDER BY sp.id DESC
     `);
     res.json({ success: true, data: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/perizinan', async (req, res) => {
+  try {
+    const {
+      santri_id, jenis_izin, keperluan, tgl_keluar_rencana, tgl_kembali_rencana,
+      nama_penjemput_mahrom, no_hp_penjemput, hubungan_mahrom, status, disetujui_oleh
+    } = req.body;
+
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const kode_izin = `IZN-${Date.now().toString().slice(-4)}-${randomSuffix}`;
+    const barcode = `PSN-IZN-${Date.now().toString().slice(-6)}`;
+
+    const [result] = await pool.query(`
+      INSERT INTO santri_perizinan (
+        kode_izin, barcode, santri_id, jenis_izin, tgl_keluar_rencana, tgl_kembali_rencana,
+        nama_penjemput_mahrom, no_hp_penjemput, hubungan_mahrom, keperluan, status, disetujui_oleh
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      kode_izin,
+      barcode,
+      santri_id,
+      jenis_izin || 'Izin Pulang',
+      tgl_keluar_rencana || new Date(),
+      tgl_kembali_rencana || new Date(),
+      nama_penjemput_mahrom || '',
+      no_hp_penjemput || '',
+      hubungan_mahrom || 'Orang Tua',
+      keperluan || '',
+      status || 'Disetujui Pengasuh',
+      disetujui_oleh || 'Dewan Pengasuh'
+    ]);
+
+    res.json({ success: true, message: 'Izin santri berhasil dibuat', id: result.insertId, barcode, kode_izin });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/perizinan/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      santri_id, jenis_izin, keperluan, tgl_keluar_rencana, tgl_kembali_rencana,
+      nama_penjemput_mahrom, no_hp_penjemput, hubungan_mahrom, status, disetujui_oleh,
+      satpam_keluar, satpam_kembali
+    } = req.body;
+
+    await pool.query(`
+      UPDATE santri_perizinan SET
+        santri_id = ?, jenis_izin = ?, tgl_keluar_rencana = ?, tgl_kembali_rencana = ?,
+        nama_penjemput_mahrom = ?, no_hp_penjemput = ?, hubungan_mahrom = ?, keperluan = ?,
+        status = ?, disetujui_oleh = ?, satpam_keluar = ?, satpam_kembali = ?
+      WHERE id = ?
+    `, [
+      santri_id, jenis_izin || 'Izin Pulang', tgl_keluar_rencana, tgl_kembali_rencana,
+      nama_penjemput_mahrom || '', no_hp_penjemput || '', hubungan_mahrom || 'Orang Tua',
+      keperluan || '', status || 'Menunggu Persetujuan', disetujui_oleh || 'Dewan Pengasuh',
+      satpam_keluar || null, satpam_kembali || null, id
+    ]);
+
+    res.json({ success: true, message: 'Data perizinan berhasil diperbarui' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/perizinan/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM santri_perizinan WHERE id = ?', [id]);
+    res.json({ success: true, message: 'Data perizinan berhasil dihapus' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/perizinan/checkout', async (req, res) => {
+  try {
+    const { id, satpam } = req.body;
+    await pool.query(`
+      UPDATE santri_perizinan 
+      SET status = 'Aktif Keluar', tgl_keluar_aktual = NOW(), satpam_keluar = ?
+      WHERE id = ?
+    `, [satpam || 'Petugas Pos Gerbang', id]);
+    res.json({ success: true, message: 'Santri tercatat keluar gerbang' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -377,6 +546,108 @@ app.post('/api/perizinan/checkin', async (req, res) => {
       WHERE id = ?
     `, [satpam || 'Petugas Pos Gerbang', id]);
     res.json({ success: true, message: 'Santri berhasil check-in kembali ke pesantren' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 6.5. Data Tata Tertib & Ta'zir Pelanggaran CRUD
+app.get('/api/pelanggaran', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT tp.*, s.nama_santri, s.nis, s.no_wa_wali, a.nama_asrama, k.nama_kamar
+      FROM tata_tertib_pelanggaran tp
+      JOIN santri s ON tp.santri_id = s.id
+      LEFT JOIN asrama a ON s.asrama_id = a.id
+      LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+      ORDER BY tp.tanggal DESC, tp.id DESC
+    `);
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/pelanggaran', async (req, res) => {
+  try {
+    const {
+      santri_id, tanggal, kategori, jenis_pelanggaran, poin_pelanggaran,
+      bentuk_tazir, status_tazir, musyrif_pencatat, wa_notif_wali
+    } = req.body;
+
+    const [result] = await pool.query(`
+      INSERT INTO tata_tertib_pelanggaran (
+        santri_id, tanggal, kategori, jenis_pelanggaran, poin_pelanggaran,
+        bentuk_tazir, status_tazir, musyrif_pencatat, wa_notif_wali
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      santri_id,
+      tanggal || new Date().toISOString().split('T')[0],
+      kategori || 'Ringan',
+      jenis_pelanggaran || 'Terlambat Berjamaah',
+      poin_pelanggaran || 5,
+      bentuk_tazir || 'Membaca Surat Yasin',
+      status_tazir || 'Belum Dikerjakan',
+      musyrif_pencatat || 'Biro Keamanan & Disiplin',
+      wa_notif_wali !== undefined ? wa_notif_wali : 1
+    ]);
+
+    res.json({ success: true, message: 'Catatan pelanggaran berhasil disimpan', id: result.insertId });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/pelanggaran/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      santri_id, tanggal, kategori, jenis_pelanggaran, poin_pelanggaran,
+      bentuk_tazir, status_tazir, musyrif_pencatat, wa_notif_wali
+    } = req.body;
+
+    await pool.query(`
+      UPDATE tata_tertib_pelanggaran SET
+        santri_id = ?, tanggal = ?, kategori = ?, jenis_pelanggaran = ?,
+        poin_pelanggaran = ?, bentuk_tazir = ?, status_tazir = ?,
+        musyrif_pencatat = ?, wa_notif_wali = ?
+      WHERE id = ?
+    `, [
+      santri_id,
+      tanggal || new Date().toISOString().split('T')[0],
+      kategori || 'Ringan',
+      jenis_pelanggaran || '',
+      poin_pelanggaran || 5,
+      bentuk_tazir || '',
+      status_tazir || 'Belum Dikerjakan',
+      musyrif_pencatat || '',
+      wa_notif_wali !== undefined ? wa_notif_wali : 1,
+      id
+    ]);
+
+    res.json({ success: true, message: 'Catatan pelanggaran berhasil diperbarui' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/pelanggaran/selesai/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query(`
+      UPDATE tata_tertib_pelanggaran SET status_tazir = 'Selesai Ta''zir' WHERE id = ?
+    `, [id]);
+    res.json({ success: true, message: 'Ta\'zir telah dinyatakan selesai' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/pelanggaran/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM tata_tertib_pelanggaran WHERE id = ?', [id]);
+    res.json({ success: true, message: 'Catatan pelanggaran berhasil dihapus' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

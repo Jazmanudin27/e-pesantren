@@ -25,6 +25,7 @@ import AsatidzView from '../views/admin/AsatidzView';
 import FingerprintDeviceView from '../views/admin/FingerprintDeviceView';
 import TahfidzView from '../views/admin/TahfidzView';
 import PerizinanView from '../views/admin/PerizinanView';
+import TataTertibView from '../views/admin/TataTertibView';
 import AbsensiFingerprintView from '../views/admin/AbsensiFingerprintView';
 
 export default function AdminLayout() {
@@ -95,6 +96,8 @@ export default function AdminLayout() {
         return <TahfidzView />;
       case 'perizinan':
         return <PerizinanView />;
+      case 'tata-tertib':
+        return <TataTertibView />;
       case 'master-santri':
         return <SantriView />;
       case 'master-asrama':
