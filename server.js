@@ -718,6 +718,47 @@ app.get('/api/absensi-fingerprint', async (req, res) => {
   }
 });
 
+app.post('/api/absensi-fingerprint', async (req, res) => {
+  try {
+    const { santri_id, sesi_id, device_id, status_kehadiran, keteledoran_keterangan, waktu_scan, mnt_keterlambatan, metode_scan } = req.body;
+    const tgl = new Date().toISOString().split('T')[0];
+    const scanTime = waktu_scan || new Date().toTimeString().split(' ')[0];
+    const [result] = await pool.query(`
+      INSERT INTO absensi_jamaah_mengaji (
+        santri_id, sesi_id, device_id, tanggal, waktu_scan, mnt_keterlambatan, status_kehadiran, keteledoran_keterangan, metode_scan
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [santri_id || 1, sesi_id || 1, device_id || 1, tgl, scanTime, mnt_keterlambatan || 0, status_kehadiran || 'Hadir Tepat Waktu', keteledoran_keterangan || '', metode_scan || 'Fingerprint']);
+    res.json({ success: true, message: 'Presensi berhasil dicatat', id: result.insertId });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/absensi-fingerprint/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status_kehadiran, mnt_keterlambatan, keteledoran_keterangan, metode_scan } = req.body;
+    await pool.query(`
+      UPDATE absensi_jamaah_mengaji SET
+        status_kehadiran = ?, mnt_keterlambatan = ?, keteledoran_keterangan = ?, metode_scan = ?
+      WHERE id = ?
+    `, [status_kehadiran || 'Hadir Tepat Waktu', mnt_keterlambatan || 0, keteledoran_keterangan || '', metode_scan || 'Fingerprint', id]);
+    res.json({ success: true, message: 'Presensi berhasil diperbarui' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/absensi-fingerprint/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM absensi_jamaah_mengaji WHERE id = ?', [id]);
+    res.json({ success: true, message: 'Presensi berhasil dihapus' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // 8. Data Master Mesin Fingerprint CRUD & Sesi
 app.get('/api/fingerprint/devices', async (req, res) => {
   try {
