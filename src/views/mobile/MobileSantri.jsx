@@ -259,8 +259,19 @@ export default function MobileSantri() {
                   <div>📖 Capaian Tahfidz: <strong>{juz} Juz</strong></div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
-                  <span style={{ color: '#64748b' }}>Wali: {wali}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', marginTop: '4px' }}>
+                  <div style={{ color: '#475569', fontSize: '0.74rem' }}>
+                    Wali: <strong>{wali}</strong> {s.no_wa_wali && (
+                      <a 
+                        href={`https://wa.me/${String(s.no_wa_wali).replace(/[^0-9]/g, '')}`} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        style={{ color: '#059669', fontWeight: 700, textDecoration: 'none', marginLeft: '6px' }}
+                      >
+                        📱 {s.no_wa_wali}
+                      </a>
+                    )}
+                  </div>
 
                   {/* Actions CRUD buttons */}
                   <div style={{ display: 'flex', gap: '6px' }}>
@@ -367,24 +378,35 @@ export default function MobileSantri() {
                 </select>
               </div>
 
+              <div>
+                <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>CAPAIAN TAHFIDZ (JUZ)</label>
+                <input 
+                  type="number" 
+                  min="0" max="30"
+                  value={formData.capaian_hafalan_juz}
+                  onChange={(e) => setFormData({ ...formData, capaian_hafalan_juz: parseInt(e.target.value) || 0 })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box' }}
+                />
+              </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
-                  <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>CAPAIAN JUZ</label>
+                  <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>NAMA WALI SANTRI</label>
                   <input 
-                    type="number" 
-                    min="0" max="30"
-                    value={formData.capaian_hafalan_juz}
-                    onChange={(e) => setFormData({ ...formData, capaian_hafalan_juz: parseInt(e.target.value) || 0 })}
+                    type="text" 
+                    placeholder="Nama Orang Tua / Wali"
+                    value={formData.nama_wali}
+                    onChange={(e) => setFormData({ ...formData, nama_wali: e.target.value })}
                     style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>NAMA WALI</label>
+                  <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>NO. HP / WA WALI</label>
                   <input 
                     type="text" 
-                    placeholder="Nama Orang Tua"
-                    value={formData.nama_wali}
-                    onChange={(e) => setFormData({ ...formData, nama_wali: e.target.value })}
+                    placeholder="Contoh: 08123456789"
+                    value={formData.no_wa_wali}
+                    onChange={(e) => setFormData({ ...formData, no_wa_wali: e.target.value })}
                     style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box' }}
                   />
                 </div>
