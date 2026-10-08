@@ -316,14 +316,6 @@ export default function MobileLayout() {
         {/* Bottom Navigation Bar */}
         <nav className="mobile-bottom-nav">
           <button 
-            className={`mobile-nav-item ${mobileTab === 'home' ? 'active' : ''}`}
-            onClick={() => handleSelectTab('home')}
-          >
-            <Home size={19} />
-            <span>Beranda</span>
-          </button>
-
-          <button 
             className={`mobile-nav-item ${mobileTab === 'tahfidz' ? 'active' : ''}`}
             onClick={() => handleSelectTab('tahfidz')}
           >
@@ -336,7 +328,15 @@ export default function MobileLayout() {
             onClick={() => handleSelectTab('presensi')}
           >
             <Fingerprint size={19} />
-            <span>Presensi</span>
+            <span>Absensi</span>
+          </button>
+
+          <button 
+            className={`mobile-nav-item ${mobileTab === 'home' ? 'active' : ''}`}
+            onClick={() => handleSelectTab('home')}
+          >
+            <Home size={19} />
+            <span>Home</span>
           </button>
 
           <button 
