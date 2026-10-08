@@ -39,28 +39,42 @@ export default function MobileSantri() {
 
   const [formData, setFormData] = useState(initialForm);
 
+  const session = JSON.parse(localStorage.getItem('mobile_session') || '{}');
+  const userAsramaId = session?.asrama_id;
+  const isAsramaUser = session?.role === 'asrama' || session?.userType === 'Asrama';
+
   const fetchSantri = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('/api/santri');
-      if (res.data && res.data.success) {
-        setSantriList(res.data.data || []);
+      const url = (isAsramaUser && userAsramaId) ? `/api/santri?asrama_id=${userAsramaId}` : '/api/santri';
+      const res = await axios.get(url);
+      if (res.data && res.data.success && Array.isArray(res.data.data)) {
+        let list = res.data.data;
+        if (isAsramaUser && userAsramaId) {
+          list = list.filter(s => String(s.asrama_id) === String(userAsramaId) || (s.nama_asrama && session.nama_asrama && s.nama_asrama.toLowerCase().includes(session.nama_asrama.toLowerCase())));
+        }
+        setSantriList(list);
       } else {
-        setSantriList(defaultSantri);
+        setSantriList(filterDefaultByAsrama(defaultSantri));
       }
     } catch (err) {
-      setSantriList(defaultSantri);
+      setSantriList(filterDefaultByAsrama(defaultSantri));
     } finally {
       setLoading(false);
     }
   };
 
+  const filterDefaultByAsrama = (list) => {
+    if (!isAsramaUser || !userAsramaId) return list;
+    return list.filter(s => String(s.asrama_id || 1) === String(userAsramaId) || (s.nama_asrama && session.nama_asrama && s.nama_asrama.toLowerCase().includes(session.nama_asrama.toLowerCase())));
+  };
+
   const defaultSantri = [
-    { id: 1, nama_santri: 'Ahmad Faiz Al-Hafidz', nis: '2601001', jk: 'L', status_santri: 'Mukim', nama_asrama: 'Asrama Ali bin Abi Thalib', nama_kamar: 'Kamar 04', capaian_hafalan_juz: 15, nama_wali: 'H. Abdullah', no_wa_wali: '081288881111' },
-    { id: 2, nama_santri: 'Zaidan Muhammad', nis: '2601002', jk: 'L', status_santri: 'Mukim', nama_asrama: 'Asrama Umar bin Khattab', nama_kamar: 'Kamar 01', capaian_hafalan_juz: 28, nama_wali: 'Drs. Subagja', no_wa_wali: '081377772222' },
-    { id: 3, nama_santri: 'Fatimah Az-Zahra', nis: '2602001', jk: 'P', status_santri: 'Mukim', nama_asrama: 'Asrama Fathimah Az-Zahra', nama_kamar: 'Kamar 01', capaian_hafalan_juz: 30, nama_wali: 'H. Usman', no_wa_wali: '081199993333' },
-    { id: 4, nama_santri: 'Muhammad Rifqi', nis: '2601003', jk: 'L', status_santri: 'Mukim', nama_asrama: 'Asrama Ali bin Abi Thalib', nama_kamar: 'Kamar 02', capaian_hafalan_juz: 5, nama_wali: 'Bpk. Hendra', no_wa_wali: '085744445555' },
-    { id: 5, nama_santri: 'Aisyah Humaira', nis: '2602002', jk: 'P', status_santri: 'Kalong', nama_asrama: 'Asrama Fathimah Az-Zahra', nama_kamar: 'Kamar 02', capaian_hafalan_juz: 3, nama_wali: 'Hj. Rohmah', no_wa_wali: '081233336666' }
+    { id: 1, asrama_id: 1, nama_santri: 'Ahmad Faiz Al-Hafidz', nis: '2601001', jk: 'L', status_santri: 'Mukim', nama_asrama: 'Asrama Ali bin Abi Thalib', nama_kamar: 'Kamar 04', capaian_hafalan_juz: 15, nama_wali: 'H. Abdullah', no_wa_wali: '081288881111' },
+    { id: 2, asrama_id: 2, nama_santri: 'Zaidan Muhammad', nis: '2601002', jk: 'L', status_santri: 'Mukim', nama_asrama: 'Asrama Umar bin Khattab', nama_kamar: 'Kamar 01', capaian_hafalan_juz: 28, nama_wali: 'Drs. Subagja', no_wa_wali: '081377772222' },
+    { id: 3, asrama_id: 3, nama_santri: 'Fatimah Az-Zahra', nis: '2602001', jk: 'P', status_santri: 'Mukim', nama_asrama: 'Asrama Fathimah Az-Zahra', nama_kamar: 'Kamar 01', capaian_hafalan_juz: 30, nama_wali: 'H. Usman', no_wa_wali: '081199993333' },
+    { id: 4, asrama_id: 1, nama_santri: 'Muhammad Rifqi', nis: '2601003', jk: 'L', status_santri: 'Mukim', nama_asrama: 'Asrama Ali bin Abi Thalib', nama_kamar: 'Kamar 02', capaian_hafalan_juz: 5, nama_wali: 'Bpk. Hendra', no_wa_wali: '085744445555' },
+    { id: 5, asrama_id: 4, nama_santri: 'Aisyah Humaira', nis: '2602002', jk: 'P', status_santri: 'Kalong', nama_asrama: 'Asrama Khadijah Al-Kubra', nama_kamar: 'Kamar 02', capaian_hafalan_juz: 3, nama_wali: 'Hj. Rohmah', no_wa_wali: '081233336666' }
   ];
 
   useEffect(() => {

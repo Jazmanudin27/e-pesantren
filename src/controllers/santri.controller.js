@@ -3,13 +3,21 @@ import { sendSuccess, sendError } from '../utils/response.util.js';
 
 export const getAllSantri = async (req, res) => {
   try {
-    const [rows] = await pool.query(`
+    const { asrama_id } = req.query;
+    let sql = `
       SELECT s.*, a.nama_asrama, a.gender as asrama_gender, k.nama_kamar
       FROM santri s
       LEFT JOIN asrama a ON s.asrama_id = a.id
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
-      ORDER BY s.id ASC
-    `);
+    `;
+    const params = [];
+    if (asrama_id) {
+      sql += ` WHERE s.asrama_id = ? `;
+      params.push(asrama_id);
+    }
+    sql += ` ORDER BY s.id ASC `;
+
+    const [rows] = await pool.query(sql, params);
     return sendSuccess(res, 'Data santri berhasil diambil', { data: rows || [] });
   } catch (err) {
     return sendError(res, err.message, 500);
