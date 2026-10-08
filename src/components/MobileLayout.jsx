@@ -36,8 +36,18 @@ import MobileTataTertib from '../views/mobile/MobileTataTertib';
 import MobileLaporanPresensi from '../views/mobile/MobileLaporanPresensi';
 import MobileLaporanTahfidz from '../views/mobile/MobileLaporanTahfidz';
 import MobileProfil from '../views/mobile/MobileProfil';
+import MobileLogin from '../views/mobile/MobileLogin';
 
 export default function MobileLayout() {
+  const [session, setSession] = useState(() => {
+    try {
+      const saved = localStorage.getItem('mobile_session');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
   const getInitialTab = () => {
     const hash = window.location.hash;
     if (hash.includes('/')) {
@@ -80,6 +90,16 @@ export default function MobileLayout() {
     window.location.hash = tab === 'home' ? 'mobile' : `mobile/${tab}`;
     setIsMenuDrawerOpen(false);
   };
+
+  const handleLogout = () => {
+    localStorage.removeItem('mobile_session');
+    setSession(null);
+  };
+
+  // If user is not logged in on mobile app, display MobileLogin screen!
+  if (!session) {
+    return <MobileLogin onLoginSuccess={(userSession) => setSession(userSession)} />;
+  }
 
   const getSubmenuTitle = () => {
     switch (mobileTab) {
@@ -140,7 +160,7 @@ export default function MobileLayout() {
       case 'syahriah':
         return <MobileSyahriah />;
       case 'profil':
-        return <MobileProfil onChangeTab={handleSelectTab} />;
+        return <MobileProfil onChangeTab={handleSelectTab} onLogout={handleLogout} />;
       default:
         return <MobileHome onChangeTab={handleSelectTab} />;
     }

@@ -54,19 +54,27 @@ export default function AsramaView() {
     try {
       setLoading(true);
       const res = await axios.get('/api/asrama');
+      const defaultAsramaList = [
+        { id: 1, nama_asrama: 'Asrama Ali bin Abi Thalib', kode_asrama: 'ASR-A', gender: 'L', lokasi_gedung: 'Gedung A Lantai 1-2', total_kamar: 8, total_santri: 64, pembina: 'Ust. Ahmad Fauzi, S.Pd.I', username: 'asrama_ali', password: 'ali123' },
+        { id: 2, nama_asrama: 'Asrama Umar bin Khattab', kode_asrama: 'ASR-B', gender: 'L', lokasi_gedung: 'Gedung B Lantai 1-2', total_kamar: 8, total_santri: 60, pembina: 'Ust. Ridwan Kamil, Lc.', username: 'asrama_umar', password: 'umar123' },
+        { id: 3, nama_asrama: 'Asrama Fathimah Az-Zahra', kode_asrama: 'ASR-C', gender: 'P', lokasi_gedung: 'Gedung Putri 1 Lantai 1-3', total_kamar: 10, total_santri: 80, pembina: 'Usth. Siti Maryam, M.Ag.', username: 'asrama_fathimah', password: 'fathimah123' },
+        { id: 4, nama_asrama: 'Asrama Khadijah Al-Kubra', kode_asrama: 'ASR-D', gender: 'P', lokasi_gedung: 'Gedung Putri 2 Lantai 1-2', total_kamar: 6, total_santri: 45, pembina: 'Usth. Nur Aini, S.Pd.', username: 'asrama_khadijah', password: 'khadijah123' }
+      ];
+
+      const savedList = JSON.parse(localStorage.getItem('master_asrama_list') || 'null');
+      const finalAsrama = savedList || defaultAsramaList;
+      if (!savedList) {
+        localStorage.setItem('master_asrama_list', JSON.stringify(defaultAsramaList));
+      }
+
       if (res.data && res.data.success) {
         setData({
-          asrama: res.data.asrama || [],
+          asrama: res.data.asrama && res.data.asrama.length ? res.data.asrama : finalAsrama,
           kamar: res.data.kamar || []
         });
       } else {
         setData({
-          asrama: [
-            { id: 1, nama_asrama: 'Asrama Ali bin Abi Thalib', kode_asrama: 'ASR-A', gender: 'L', lokasi_gedung: 'Gedung A Lantai 1-2', total_kamar: 8, total_santri: 64, pembina: 'Ust. Ahmad Fauzi, S.Pd.I' },
-            { id: 2, nama_asrama: 'Asrama Umar bin Khattab', kode_asrama: 'ASR-B', gender: 'L', lokasi_gedung: 'Gedung B Lantai 1-2', total_kamar: 8, total_santri: 60, pembina: 'Ust. Ridwan Kamil, Lc.' },
-            { id: 3, nama_asrama: 'Asrama Fathimah Az-Zahra', kode_asrama: 'ASR-C', gender: 'P', lokasi_gedung: 'Gedung Putri 1 Lantai 1-3', total_kamar: 10, total_santri: 80, pembina: 'Usth. Siti Maryam, M.Ag.' },
-            { id: 4, nama_asrama: 'Asrama Khadijah Al-Kubra', kode_asrama: 'ASR-D', gender: 'P', lokasi_gedung: 'Gedung Putri 2 Lantai 1-2', total_kamar: 6, total_santri: 45, pembina: 'Usth. Nur Aini, S.Pd.' }
-          ],
+          asrama: finalAsrama,
           kamar: [
             { id: 1, kode_kamar: 'KMR-A01', nama_kamar: 'Kamar Abu Bakar 01', nama_asrama: 'Asrama Ali bin Abi Thalib', asrama_gender: 'L', lantai: 1, kapasitas: 10, terisi: 9, ketua_kamar: 'Ahmad Faiz Al-Hafidz', pembina: 'Ust. Ahmad Fauzi' },
             { id: 2, kode_kamar: 'KMR-A02', nama_kamar: 'Kamar Abu Bakar 02', nama_asrama: 'Asrama Ali bin Abi Thalib', asrama_gender: 'L', lantai: 1, kapasitas: 10, terisi: 10, ketua_kamar: 'Zaidan Muhammad', pembina: 'Ust. Ahmad Fauzi' },
@@ -348,7 +356,66 @@ export default function AsramaView() {
         </select>
       </div>
 
-      {/* 5. DATA TABLE */}
+      {/* 4.5 TABLE DATA ASRAMA & AKUN LOGIN MOBILE */}
+      <div className="table-container-card" style={{ marginBottom: '24px' }}>
+        <div style={{ padding: '14px 18px', background: 'linear-gradient(135deg, #064e3b 0%, #047857 100%)', color: '#ffffff', borderTopLeftRadius: '12px', borderTopRightRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, fontSize: '0.9rem' }}>
+            <Building size={18} /> Master Gedung Asrama & Credential Login Mobile Musyrif
+          </div>
+          <span style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.2)', padding: '3px 8px', borderRadius: '6px', fontWeight: 700 }}>
+            Khusus Akses Login App Mobile
+          </span>
+        </div>
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th className="td-center" style={{ width: '40px' }}>NO</th>
+              <th>NAMA ASRAMA / GEDUNG</th>
+              <th className="td-center">PERUNTUKAN</th>
+              <th>PEMBINA / MUSYRIF</th>
+              <th>USERNAME (MOBILE LOGIN)</th>
+              <th>PASSWORD</th>
+              <th className="td-center">AKSES APP MOBILE</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.asrama.map((a, idx) => (
+              <tr key={a.id || idx}>
+                <td className="td-center" style={{ fontWeight: 600 }}>{idx + 1}</td>
+                <td>
+                  <div style={{ fontWeight: 800, color: '#0f172a' }}>{a.nama_asrama}</div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Kode: {a.kode_asrama || `ASR-${a.id}`} • {a.lokasi_gedung || 'Gedung Asrama'}</div>
+                </td>
+                <td className="td-center">
+                  <span className={`badge ${a.gender === 'L' ? 'badge-info' : 'badge-purple'}`}>
+                    {a.gender === 'L' ? 'Ikhwan (L)' : 'Akhwat (P)'}
+                  </span>
+                </td>
+                <td style={{ fontWeight: 700, color: '#1e293b' }}>
+                  {a.pembina || 'Musyrif Asrama'}
+                </td>
+                <td>
+                  <span style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', padding: '4px 10px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 800 }}>
+                    {a.username || `asrama_${a.id}`}
+                  </span>
+                </td>
+                <td>
+                  <span style={{ background: '#f8fafc', border: '1px solid #cbd5e1', color: '#334155', padding: '4px 10px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 700, fontFamily: 'monospace' }}>
+                    {a.password || '123456'}
+                  </span>
+                </td>
+                <td className="td-center">
+                  <span className="badge badge-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <ShieldCheck size={12} /> Aktif (Mobile)
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* 5. DATA TABLE KAMAR KOBONG */}
       <div className="table-container-card">
         {loading ? (
           <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>

@@ -15,7 +15,28 @@ import {
   UserCheck
 } from 'lucide-react';
 
-export default function MobileProfil({ onChangeTab }) {
+export default function MobileProfil({ onChangeTab, onLogout }) {
+  const sessionData = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('mobile_session') || '{}');
+    } catch (e) {
+      return {};
+    }
+  })();
+
+  const namaAsrama = sessionData.nama_asrama || 'Asrama Ali bin Abi Thalib';
+  const pembina = sessionData.pembina || 'Ust. Ahmad Fauzi, S.Pd.I';
+  const username = sessionData.username || 'asrama_ali';
+
+  const handleLogoutClick = () => {
+    localStorage.removeItem('mobile_session');
+    if (onLogout) {
+      onLogout();
+    } else {
+      window.location.reload();
+    }
+  };
+
   return (
     <div style={{ padding: '16px', paddingBottom: '24px' }}>
       {/* Profile Header Card */}
@@ -44,17 +65,17 @@ export default function MobileProfil({ onChangeTab }) {
             border: '3px solid rgba(255, 255, 255, 0.2)',
             boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
           }}>
-            AF
+            {namaAsrama.slice(7, 9).toUpperCase() || 'AS'}
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', padding: '3px 8px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: 700, marginBottom: '4px', border: '1px solid rgba(52, 211, 153, 0.3)' }}>
-              <UserCheck size={12} /> Ustadz / Pengurus Active
+              <UserCheck size={12} /> Akun Asrama Active
             </div>
             <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#ffffff' }}>
-              Ust. Ahmad Fauzi, S.Pd.I
+              {namaAsrama}
             </h2>
             <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
-              NIP: AST-2024-001 • Pengajar Tahfidz & Musyrif
+              Pembina: {pembina} • User: {username}
             </div>
           </div>
         </div>
@@ -149,7 +170,7 @@ export default function MobileProfil({ onChangeTab }) {
 
       {/* Logout Button */}
       <button 
-        onClick={() => window.location.hash = '#dashboard'}
+        onClick={handleLogoutClick}
         style={{
           width: '100%',
           background: '#ffe4e6',
@@ -167,7 +188,7 @@ export default function MobileProfil({ onChangeTab }) {
           boxShadow: '0 2px 6px rgba(225, 29, 72, 0.1)'
         }}
       >
-        <LogOut size={18} /> Keluar / Ke Dashboard Desktop
+        <LogOut size={18} /> Keluar dari Akun Mobile
       </button>
     </div>
   );
