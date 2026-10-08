@@ -57,14 +57,8 @@ export default function MobileHome({ onChangeTab }) {
         </div>
       </div>
 
-      {/* KATEGORI 1: DATA MASTER */}
-      <div style={{ padding: '0 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          DATA MASTER
-        </div>
-      </div>
-
-      <div className="quick-menu-grid" style={{ marginBottom: '18px' }}>
+      {/* UNIFIED MENU GRID */}
+      <div className="quick-menu-grid" style={{ marginBottom: '20px' }}>
         <button className="quick-menu-item" onClick={() => onChangeTab('master-santri')}>
           <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #0d9488, #0f766e)' }}>
             <Users size={22} />
@@ -92,16 +86,7 @@ export default function MobileHome({ onChangeTab }) {
           </div>
           <span>Data Asatidz</span>
         </button>
-      </div>
 
-      {/* KATEGORI 2: TRANSAKSI */}
-      <div style={{ padding: '0 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          TRANSAKSI
-        </div>
-      </div>
-
-      <div className="quick-menu-grid" style={{ marginBottom: '18px' }}>
         <button className="quick-menu-item" onClick={() => onChangeTab('presensi')}>
           <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)' }}>
             <Fingerprint size={22} />
@@ -129,16 +114,7 @@ export default function MobileHome({ onChangeTab }) {
           </div>
           <span>Fingerprint</span>
         </button>
-      </div>
 
-      {/* KATEGORI 3: LAPORAN & TATA TERTIB */}
-      <div style={{ padding: '0 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          LAPORAN
-        </div>
-      </div>
-
-      <div className="quick-menu-grid" style={{ marginBottom: '18px' }}>
         <button className="quick-menu-item" onClick={() => onChangeTab('laporan-presensi')}>
           <div className="quick-icon-wrap" style={{ background: 'linear-gradient(135deg, #f97316, #c2410c)' }}>
             <BarChart3 size={22} />
