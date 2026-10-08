@@ -41,12 +41,15 @@ export default function MobileLogin({ onLoginSuccess }) {
         if (res.data.token) {
           localStorage.setItem('token', res.data.token);
         }
+        const userObj = res.data.user || {};
         const sessionData = {
           token: res.data.token,
-          role: res.data.role || 'asrama',
-          asrama_id: res.data.asrama_id || 1,
-          nama_asrama: res.data.nama_asrama || (res.data.user?.nama || 'Asrama'),
-          pembina: res.data.pembina || 'Musyrif Asrama',
+          role: res.data.role || userObj.role || 'admin',
+          userType: res.data.userType || userObj.userType || (username.toLowerCase() === 'admin' ? 'Admin' : 'Pengurus'),
+          nama: userObj.nama || userObj.name || userObj.nama_asatidz || userObj.nama_santri || userObj.nama_asrama || res.data.nama_asrama || username,
+          asrama_id: res.data.asrama_id || userObj.asrama_id || 1,
+          nama_asrama: res.data.nama_asrama || userObj.nama_asrama || '',
+          pembina: res.data.pembina || userObj.pembina || userObj.nama_asatidz || '',
           username: username.trim(),
           loginTime: new Date().toISOString()
         };

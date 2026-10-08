@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { 
   Fingerprint,
   BookOpen, 
@@ -15,6 +16,39 @@ import {
 } from 'lucide-react';
 
 export default function MobileHome({ onChangeTab }) {
+  const [santriCount, setSantriCount] = useState(0);
+
+  const sessionData = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('mobile_session') || '{}');
+    } catch (e) {
+      return {};
+    }
+  })();
+
+  const rawName = sessionData.nama || sessionData.username || 'Admin';
+  const displayName = rawName.includes('_') ? rawName.replace('_', ' ').toUpperCase() : rawName;
+  const displayRole = sessionData.userType || (sessionData.role ? sessionData.role.toUpperCase() : 'ADMIN');
+  const initial = displayName.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase() || 'AD';
+
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const res = await axios.get('/api/santri');
+        if (res.data && res.data.success && res.data.santri) {
+          let list = res.data.santri;
+          if (sessionData.asrama_id && sessionData.role !== 'admin' && sessionData.userType !== 'Admin') {
+            list = list.filter(s => s.asrama_id === sessionData.asrama_id);
+          }
+          setSantriCount(list.length);
+        }
+      } catch (err) {
+        console.warn('Err load santri stats:', err);
+      }
+    };
+    loadStats();
+  }, []);
+
   return (
     <div style={{ paddingBottom: '24px' }}>
       {/* Mobile Header Card / Kartu Ustadz & Pengurus */}
@@ -22,10 +56,10 @@ export default function MobileHome({ onChangeTab }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: '0.8rem', color: '#a7f3d0', fontWeight: 600 }}>Assalamu'alaikum,</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 800 }}>Ust. Ahmad Fauzi, S.Pd.I</div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 800 }}>{displayName}</div>
           </div>
           <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#ffffff', color: '#064e3b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, border: '2px solid rgba(255,255,255,0.4)' }}>
-            AF
+            {initial}
           </div>
         </div>
 
@@ -34,10 +68,10 @@ export default function MobileHome({ onChangeTab }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
             <div>
               <div style={{ fontSize: '0.72rem', color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Portal Asatidz & Pengurus Pesantren
+                Portal Sistem e-Pesantren
               </div>
               <div style={{ fontSize: '0.92rem', fontWeight: 700, marginTop: '2px' }}>
-                NIP: AST-2024-001 • Musyrif & Pengajar
+                Akun: {sessionData.username || 'admin'} • {displayRole}
               </div>
             </div>
             <span style={{ background: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: 800 }}>
@@ -47,11 +81,11 @@ export default function MobileHome({ onChangeTab }) {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '12px' }}>
             <div>
-              <div style={{ fontSize: '0.68rem', color: '#cbd5e1' }}>Binaan Halaqah & Kobong</div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fef08a' }}>18 Santri Tahfidz</div>
+              <div style={{ fontSize: '0.68rem', color: '#cbd5e1' }}>Data Santri Terdaftar</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fef08a' }}>{santriCount || 0} Santri</div>
             </div>
             <div style={{ background: 'rgba(255,255,255,0.18)', padding: '5px 10px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 700, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <ShieldCheck size={14} color="#34d399" /> Admin / Guru
+              <ShieldCheck size={14} color="#34d399" /> {displayRole}
             </div>
           </div>
         </div>

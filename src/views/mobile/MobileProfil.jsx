@@ -24,9 +24,12 @@ export default function MobileProfil({ onChangeTab, onLogout }) {
     }
   })();
 
-  const namaAsrama = sessionData.nama_asrama || 'Asrama Ali bin Abi Thalib';
-  const pembina = sessionData.pembina || 'Ust. Ahmad Fauzi, S.Pd.I';
-  const username = sessionData.username || 'asrama_ali';
+  const rawName = sessionData.nama || sessionData.nama_asrama || sessionData.username || 'Administrator';
+  const displayName = rawName.includes('_') ? rawName.replace('_', ' ').toUpperCase() : rawName;
+  const userRole = sessionData.userType || (sessionData.role ? sessionData.role.toUpperCase() : 'ADMINISTRATOR');
+  const username = sessionData.username || 'admin';
+  const subDetail = sessionData.nama_asrama ? `Asrama: ${sessionData.nama_asrama}` : (sessionData.pembina ? `Pembina: ${sessionData.pembina}` : `User: ${username}`);
+  const initial = displayName.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase() || 'AD';
 
   const handleLogoutClick = () => {
     localStorage.removeItem('mobile_session');
@@ -65,17 +68,17 @@ export default function MobileProfil({ onChangeTab, onLogout }) {
             border: '3px solid rgba(255, 255, 255, 0.2)',
             boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
           }}>
-            {namaAsrama.slice(7, 9).toUpperCase() || 'AS'}
+            {initial}
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', padding: '3px 8px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: 700, marginBottom: '4px', border: '1px solid rgba(52, 211, 153, 0.3)' }}>
-              <UserCheck size={12} /> Akun Asrama Active
+              <UserCheck size={12} /> {userRole} Active
             </div>
             <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#ffffff' }}>
-              {namaAsrama}
+              {displayName}
             </h2>
             <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
-              Pembina: {pembina} • User: {username}
+              {subDetail}
             </div>
           </div>
         </div>
