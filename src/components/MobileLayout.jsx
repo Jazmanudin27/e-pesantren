@@ -18,7 +18,8 @@ import {
   Wifi,
   Battery,
   Signal,
-  ArrowLeft
+  ArrowLeft,
+  User
 } from 'lucide-react';
 import MobileHome from '../views/mobile/MobileHome';
 import MobileTahfidz from '../views/mobile/MobileTahfidz';
@@ -34,6 +35,7 @@ import MobileDevice from '../views/mobile/MobileDevice';
 import MobileTataTertib from '../views/mobile/MobileTataTertib';
 import MobileLaporanPresensi from '../views/mobile/MobileLaporanPresensi';
 import MobileLaporanTahfidz from '../views/mobile/MobileLaporanTahfidz';
+import MobileProfil from '../views/mobile/MobileProfil';
 
 export default function MobileLayout() {
   const [mobileTab, setMobileTab] = useState('home');
@@ -60,6 +62,7 @@ export default function MobileLayout() {
       case 'laporan-presensi': return 'Rekap Presensi Harian';
       case 'laporan-tahfidz': return 'Laporan Tahfidz & Tasmi\'';
       case 'syahriah': return 'Syahriah & Uang Saku';
+      case 'profil': return 'Profil Asatidz & Admin';
       default: return '';
     }
   };
@@ -101,6 +104,8 @@ export default function MobileLayout() {
         return <MobileLaporanTahfidz />;
       case 'syahriah':
         return <MobileSyahriah />;
+      case 'profil':
+        return <MobileProfil onChangeTab={handleSelectTab} />;
       default:
         return <MobileHome onChangeTab={handleSelectTab} />;
     }
@@ -303,11 +308,11 @@ export default function MobileLayout() {
           </button>
 
           <button 
-            className={`mobile-nav-item ${(isMenuDrawerOpen || isOtherMenuActive) ? 'active' : ''}`}
-            onClick={() => setIsMenuDrawerOpen(!isMenuDrawerOpen)}
+            className={`mobile-nav-item ${mobileTab === 'profil' ? 'active' : ''}`}
+            onClick={() => handleSelectTab('profil')}
           >
-            <Grid size={19} />
-            <span>Semua Menu</span>
+            <User size={19} />
+            <span>Profil</span>
           </button>
         </nav>
       </div>
