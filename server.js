@@ -18,8 +18,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// REST API Router (E-Sekolah Architecture)
+// REST API Router (E-Sekolah Architecture - Handles both /api and Nginx stripped paths)
 app.use('/api', apiRoutes);
+app.use('/', apiRoutes);
 
 // Serve Static Frontend Build (Vite /dist)
 const distPath = path.join(__dirname, 'dist');
