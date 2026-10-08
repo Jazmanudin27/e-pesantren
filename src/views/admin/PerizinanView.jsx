@@ -556,23 +556,23 @@ export default function PerizinanView() {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
           backdropFilter: 'blur(4px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 9999,
-          padding: '16px'
+          padding: 0
         }}>
           <div style={{
             background: '#ffffff',
-            borderRadius: '12px',
-            width: '100%',
-            maxWidth: '620px',
-            maxHeight: '90vh',
+            borderRadius: 0,
+            width: '100vw',
+            height: '100vh',
+            maxWidth: '100%',
+            maxHeight: '100vh',
             overflowY: 'auto',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-            border: '1px solid #cbd5e1',
+            boxShadow: 'none',
             display: 'flex',
             flexDirection: 'column'
           }}>
@@ -748,23 +748,23 @@ export default function PerizinanView() {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
           backdropFilter: 'blur(4px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 9999,
-          padding: '16px'
+          padding: 0
         }}>
           <div style={{
             background: '#ffffff',
-            borderRadius: '12px',
-            width: '100%',
-            maxWidth: '620px',
-            maxHeight: '90vh',
+            borderRadius: 0,
+            width: '100vw',
+            height: '100vh',
+            maxWidth: '100%',
+            maxHeight: '100vh',
             overflowY: 'auto',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-            border: '1px solid #cbd5e1',
+            boxShadow: 'none',
             display: 'flex',
             flexDirection: 'column'
           }}>
