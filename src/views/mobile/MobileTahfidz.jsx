@@ -194,25 +194,6 @@ export default function MobileTahfidz() {
           <div style={{ fontSize: '1.3rem', fontWeight: 800, margin: '4px 0 4px' }}>Tahfidz Mobile</div>
           <div style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>{setoranList.length} Record Setoran Terdaftar</div>
         </div>
-        <button
-          onClick={handleOpenAdd}
-          style={{
-            background: '#ffffff',
-            color: '#064e3b',
-            border: 'none',
-            borderRadius: '12px',
-            padding: '10px 14px',
-            fontWeight: 800,
-            fontSize: '0.82rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            cursor: 'pointer',
-            boxShadow: '0 4px 10px rgba(0,0,0,0.15)'
-          }}
-        >
-          <Plus size={16} /> Input Setoran
-        </button>
       </div>
 
       {/* Input Cari */}
@@ -439,6 +420,31 @@ export default function MobileTahfidz() {
           </div>
         </div>
       )}
+
+      {/* Floating Action Button (FAB) (+) Warna Biru Gaya Live Chat */}
+      <button
+        onClick={handleOpenAdd}
+        title="Input Setoran Tahfidz Baru"
+        style={{
+          position: 'fixed',
+          right: '20px',
+          bottom: '80px',
+          width: '56px',
+          height: '56px',
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+          color: '#ffffff',
+          border: 'none',
+          boxShadow: '0 8px 24px rgba(37, 99, 235, 0.45)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          zIndex: 9999
+        }}
+      >
+        <Plus size={28} />
+      </button>
     </div>
   );
 }

@@ -177,25 +177,6 @@ export default function MobileTataTertib() {
           <div style={{ fontSize: '1.3rem', fontWeight: 800, margin: '4px 0 4px' }}>Tata Tertib & Ta'zir</div>
           <div style={{ fontSize: '0.8rem', color: '#ffe4e6' }}>{pelanggaranList.length} Catatan Pelanggaran</div>
         </div>
-        <button
-          onClick={handleOpenAdd}
-          style={{
-            background: '#ffffff',
-            color: '#be123c',
-            border: 'none',
-            borderRadius: '12px',
-            padding: '10px 14px',
-            fontWeight: 800,
-            fontSize: '0.82rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            cursor: 'pointer',
-            boxShadow: '0 4px 10px rgba(0,0,0,0.15)'
-          }}
-        >
-          <Plus size={16} /> Catat
-        </button>
       </div>
 
       {/* Input Cari */}
@@ -410,6 +391,31 @@ export default function MobileTataTertib() {
           </div>
         </div>
       )}
+
+      {/* Floating Action Button (FAB) (+) Warna Biru Gaya Live Chat */}
+      <button
+        onClick={handleOpenAdd}
+        title="Catat Pelanggaran Santri Baru"
+        style={{
+          position: 'fixed',
+          right: '20px',
+          bottom: '80px',
+          width: '56px',
+          height: '56px',
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+          color: '#ffffff',
+          border: 'none',
+          boxShadow: '0 8px 24px rgba(37, 99, 235, 0.45)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          zIndex: 9999
+        }}
+      >
+        <Plus size={28} />
+      </button>
     </div>
   );
 }

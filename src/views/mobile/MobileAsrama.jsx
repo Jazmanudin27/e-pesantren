@@ -144,26 +144,6 @@ export default function MobileAsrama() {
           <div style={{ fontSize: '1.25rem', fontWeight: 800, margin: '2px 0' }}>Data Asrama</div>
           <div style={{ fontSize: '0.76rem', color: '#fffbeb' }}>{asramaList.length} Blok Gedung Active</div>
         </div>
-
-        <button 
-          onClick={handleOpenAdd}
-          style={{
-            background: '#ffffff',
-            color: '#b45309',
-            border: 'none',
-            padding: '8px 14px',
-            borderRadius: '10px',
-            fontSize: '0.78rem',
-            fontWeight: 800,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '5px',
-            cursor: 'pointer',
-            boxShadow: '0 4px 10px rgba(0,0,0,0.15)'
-          }}
-        >
-          <Plus size={16} /> Tambah Asrama
-        </button>
       </div>
 
       {/* List Asrama Card */}
@@ -352,6 +332,31 @@ export default function MobileAsrama() {
           </div>
         </div>
       )}
+
+      {/* Floating Action Button (FAB) (+) Warna Biru Gaya Live Chat */}
+      <button
+        onClick={handleOpenAdd}
+        title="Tambah Asrama Baru"
+        style={{
+          position: 'fixed',
+          right: '20px',
+          bottom: '80px',
+          width: '56px',
+          height: '56px',
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+          color: '#ffffff',
+          border: 'none',
+          boxShadow: '0 8px 24px rgba(37, 99, 235, 0.45)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          zIndex: 9999
+        }}
+      >
+        <Plus size={28} />
+      </button>
     </div>
   );
 }

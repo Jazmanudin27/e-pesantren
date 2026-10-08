@@ -186,25 +186,6 @@ export default function MobileIzin() {
           <div style={{ fontSize: '1.3rem', fontWeight: 800, margin: '4px 0 4px' }}>Perizinan Santri</div>
           <div style={{ fontSize: '0.8rem', color: '#f0fdf4' }}>{izinList.length} Permohonan / Suratin Active</div>
         </div>
-        <button
-          onClick={handleOpenAdd}
-          style={{
-            background: '#ffffff',
-            color: '#0f766e',
-            border: 'none',
-            borderRadius: '12px',
-            padding: '10px 14px',
-            fontWeight: 800,
-            fontSize: '0.82rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            cursor: 'pointer',
-            boxShadow: '0 4px 10px rgba(0,0,0,0.15)'
-          }}
-        >
-          <Plus size={16} /> Ajukan Izin
-        </button>
       </div>
 
       {/* Input Cari */}
@@ -445,6 +426,31 @@ export default function MobileIzin() {
           </div>
         </div>
       )}
+
+      {/* Floating Action Button (FAB) (+) Warna Biru Gaya Live Chat */}
+      <button
+        onClick={handleOpenAdd}
+        title="Ajukan Izin Santri Baru"
+        style={{
+          position: 'fixed',
+          right: '20px',
+          bottom: '80px',
+          width: '56px',
+          height: '56px',
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+          color: '#ffffff',
+          border: 'none',
+          boxShadow: '0 8px 24px rgba(37, 99, 235, 0.45)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          zIndex: 9999
+        }}
+      >
+        <Plus size={28} />
+      </button>
     </div>
   );
 }
