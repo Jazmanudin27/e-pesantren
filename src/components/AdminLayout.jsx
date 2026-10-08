@@ -7,6 +7,7 @@ import {
   ShieldAlert, 
   Bell, 
   Menu, 
+  X,
   Fingerprint,
   ChevronDown,
   Building,
@@ -40,6 +41,7 @@ export default function AdminLayout() {
 
   const [activeTab, setActiveTab] = useState(getInitialTab);
   const [isMasterOpen, setIsMasterOpen] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState('');
 
   // Tab switcher with URL Hash and LocalStorage sync
@@ -47,6 +49,7 @@ export default function AdminLayout() {
     setActiveTab(tab);
     window.location.hash = tab;
     localStorage.setItem('epesantren_tab', tab);
+    setIsMobileMenuOpen(false);
   };
 
   // Listen to hash changes (back/forward browser buttons) & keep master dropdown open
@@ -91,8 +94,10 @@ export default function AdminLayout() {
       case 'dashboard':
         return <DashboardAdmin />;
       case 'presensi':
+      case 'laporan-presensi':
         return <AbsensiFingerprintView />;
       case 'tahfidz':
+      case 'laporan-tahfidz':
         return <TahfidzView />;
       case 'perizinan':
         return <PerizinanView />;
@@ -117,8 +122,16 @@ export default function AdminLayout() {
 
   return (
     <div className="admin-layout">
-      {/* Sidebar Desktop (Dark Navy Aspartech Style) */}
-      <aside className="admin-sidebar">
+      {/* Overlay Backdrop for Mobile Menu Drawer */}
+      {isMobileMenuOpen && (
+        <div 
+          className="mobile-overlay" 
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar Desktop & Mobile Drawer */}
+      <aside className={`admin-sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
         {/* Brand */}
         <div className="sidebar-brand">
           <div className="brand-icon-box">P</div>
@@ -126,6 +139,13 @@ export default function AdminLayout() {
             <h2>PORTAL</h2>
             <p>PESANTREN SYSTEM</p>
           </div>
+          <button 
+            className="mobile-close-btn"
+            onClick={() => setIsMobileMenuOpen(false)}
+            title="Tutup Menu"
+          >
+            <X size={18} />
+          </button>
         </div>
 
         {/* Tenant Profile Card */}
@@ -271,8 +291,12 @@ export default function AdminLayout() {
         {/* Top Header */}
         <header className="admin-header">
           <div className="header-left">
-            <button className="btn-hamburger">
-              <Menu size={16} />
+            <button 
+              className="btn-hamburger"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              title="Menu Navigasi"
+            >
+              {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
           </div>
 
@@ -303,6 +327,49 @@ export default function AdminLayout() {
           {renderContent()}
         </div>
       </div>
+
+      {/* Mobile Bottom Navigation Dock */}
+      <nav className="mobile-bottom-nav">
+        <button 
+          className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+          onClick={() => changeTab('dashboard')}
+        >
+          <LayoutDashboard size={18} />
+          <span>Dashboard</span>
+        </button>
+
+        <button 
+          className={`mobile-nav-item ${activeTab === 'presensi' || activeTab === 'laporan-presensi' ? 'active' : ''}`}
+          onClick={() => changeTab('presensi')}
+        >
+          <Fingerprint size={18} />
+          <span>Presensi</span>
+        </button>
+
+        <button 
+          className={`mobile-nav-item ${activeTab === 'tahfidz' || activeTab === 'laporan-tahfidz' ? 'active' : ''}`}
+          onClick={() => changeTab('tahfidz')}
+        >
+          <BookOpen size={18} />
+          <span>Tahfidz</span>
+        </button>
+
+        <button 
+          className={`mobile-nav-item ${activeTab === 'perizinan' ? 'active' : ''}`}
+          onClick={() => changeTab('perizinan')}
+        >
+          <DoorOpen size={18} />
+          <span>Perizinan</span>
+        </button>
+
+        <button 
+          className={`mobile-nav-item ${isMobileMenuOpen ? 'active' : ''}`}
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          <Menu size={18} />
+          <span>Semua Menu</span>
+        </button>
+      </nav>
     </div>
   );
 }
