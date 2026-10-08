@@ -3,22 +3,21 @@ import axios from 'axios';
 import { 
   BookOpen, 
   Plus, 
-  RotateCw, 
   Search, 
+  RotateCw, 
   Eye, 
   Edit3, 
   Trash2, 
-  Loader2, 
   Sparkles, 
   Award, 
-  CheckCircle, 
+  Layers, 
+  CheckCircle2, 
+  Loader2, 
   X, 
-  Save, 
   User, 
   Building, 
-  Calendar,
-  Layers,
-  GraduationCap
+  Calendar, 
+  Save 
 } from 'lucide-react';
 
 export default function TahfidzView() {
@@ -29,9 +28,10 @@ export default function TahfidzView() {
   const [loading, setLoading] = useState(true);
   const [activeFilterTab, setActiveFilterTab] = useState('semua');
   const [search, setSearch] = useState('');
-  const [filterTajwid, setFilterTajwid] = useState('Semua Kualitas');
+  const [filterTajwid, setFilterTajwid] = useState('Semua Tajwid');
+  const [filterStatus, setFilterStatus] = useState('Semua Status');
 
-  // Modal Detail
+  // Modal Detail State
   const [selectedItem, setSelectedItem] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -101,11 +101,14 @@ export default function TahfidzView() {
 
   const openAddForm = () => {
     setFormMode('add');
+    const firstSantri = santriList[0];
+    const firstAsatidz = asatidzList[0];
+    const firstHalaqah = halaqahList[0];
     setFormData({
       id: null,
-      santri_id: santriList.length > 0 ? santriList[0].id : '',
-      halaqah_id: halaqahList.length > 0 ? halaqahList[0].id : '',
-      asatidz_id: asatidzList.length > 0 ? asatidzList[0].id : '',
+      santri_id: firstSantri?.id || '',
+      halaqah_id: firstHalaqah?.id || '',
+      asatidz_id: firstAsatidz?.id || '',
       tanggal: new Date().toISOString().split('T')[0],
       jenis_setoran: 'Ziyadah',
       juz: 1,
@@ -186,7 +189,7 @@ export default function TahfidzView() {
   // Stats calculation
   const totalSetoran = setoranList.length;
   const countZiyadah = setoranList.filter(s => s.jenis_setoran === 'Ziyadah').length;
-  const countMurojaah = setoranList.filter(s => s.jenis_setoran === 'Muroja\'ah').length;
+  const countMurojaah = setoranList.filter(s => s.jenis_setoran === "Muroja'ah").length;
   const countMumtaz = setoranList.filter(s => s.kualitas_tajwid?.includes('Mumtaz')).length;
 
   const filteredList = setoranList.filter((st) => {
@@ -197,7 +200,7 @@ export default function TahfidzView() {
       st.surat_mulai?.toLowerCase().includes(q) ||
       st.surat_selesai?.toLowerCase().includes(q) ||
       st.nama_asatidz?.toLowerCase().includes(q) ||
-      st.nama_halaqah?.toLowerCase().includes(q)
+      st.nama_asrama?.toLowerCase().includes(q)
     );
 
     const matchTab = 
@@ -207,359 +210,395 @@ export default function TahfidzView() {
       activeFilterTab === 'sabqi' ? st.jenis_setoran === 'Sabqi' :
       activeFilterTab === 'tasmi' ? st.jenis_setoran?.includes('Tasmi') : true;
 
-    const matchTajwid = filterTajwid === 'Semua Kualitas' ? true : st.kualitas_tajwid === filterTajwid;
+    const matchTajwid = filterTajwid === 'Semua Tajwid' ? true : st.kualitas_tajwid === filterTajwid;
+    const matchStatus = filterStatus === 'Semua Status' ? true : st.status === filterStatus;
 
-    return matchSearch && matchTab && matchTajwid;
+    return matchSearch && matchTab && matchTajwid && matchStatus;
   });
 
   return (
-    <div className="tab-content-fade">
-      {/* 4 TOP VIBRANT STAT CARDS */}
-      <div className="stat-cards-grid">
-        <div className="stat-vibrant-card stat-card-blue">
-          <div className="stat-vibrant-header">
-            <span>TOTAL MUTABA'AH SETORAN</span>
-            <div className="stat-vibrant-icon"><BookOpen size={16} /></div>
+    <div>
+      {/* 1. TOP 4 COLORED STATS CARDS */}
+      <div className="top-stats-grid">
+        <div className="stat-card-colored stat-card-blue">
+          <div>
+            <div className="stat-colored-title">TOTAL MUTABA'AH SETORAN</div>
+            <div className="stat-colored-number">{totalSetoran}</div>
           </div>
-          <div className="stat-vibrant-number">{totalSetoran}</div>
-          <div className="stat-vibrant-sub">Riwayat setoran terdata di DB</div>
+          <div className="stat-colored-icon-box">
+            <BookOpen size={22} />
+          </div>
         </div>
 
-        <div className="stat-vibrant-card stat-card-green">
-          <div className="stat-vibrant-header">
-            <span>SETORAN ZIYADAH</span>
-            <div className="stat-vibrant-icon"><Sparkles size={16} /></div>
+        <div className="stat-card-colored stat-card-green">
+          <div>
+            <div className="stat-colored-title">SETORAN ZIYADAH</div>
+            <div className="stat-colored-number">{countZiyadah}</div>
           </div>
-          <div className="stat-vibrant-number">{countZiyadah}</div>
-          <div className="stat-vibrant-sub">Penambahan hafalan baru</div>
+          <div className="stat-colored-icon-box">
+            <Sparkles size={22} />
+          </div>
         </div>
 
-        <div className="stat-vibrant-card stat-card-amber">
-          <div className="stat-vibrant-header">
-            <span>SETORAN MUROJA'AH</span>
-            <div className="stat-vibrant-icon"><Layers size={16} /></div>
+        <div className="stat-card-colored stat-card-amber">
+          <div>
+            <div className="stat-colored-title">SETORAN MUROJA'AH</div>
+            <div className="stat-colored-number">{countMurojaah}</div>
           </div>
-          <div className="stat-vibrant-number">{countMurojaah}</div>
-          <div className="stat-vibrant-sub">Pengulangan hafalan mutqin</div>
+          <div className="stat-colored-icon-box">
+            <Layers size={22} />
+          </div>
         </div>
 
-        <div className="stat-vibrant-card stat-card-purple">
-          <div className="stat-vibrant-header">
-            <span>PREDIKAT MUMTAZ (A)</span>
-            <div className="stat-vibrant-icon"><Award size={16} /></div>
+        <div className="stat-card-colored stat-card-purple">
+          <div>
+            <div className="stat-colored-title">PREDIKAT MUMTAZ (A)</div>
+            <div className="stat-colored-number">{countMumtaz}</div>
           </div>
-          <div className="stat-vibrant-number">{countMumtaz}</div>
-          <div className="stat-vibrant-sub">Kualitas tajwid & fashohah terbaik</div>
+          <div className="stat-colored-icon-box">
+            <Award size={22} />
+          </div>
         </div>
       </div>
 
-      {/* PAGE TITLE STRIP WITH ACTIONS */}
+      {/* 2. TITLE STRIP */}
       <div className="page-title-strip">
-        <div>
-          <h2>Tahfidz & Muroja'ah Al-Qur'an</h2>
-          <p>Pencatatan mutaba'ah setoran harian santri, penilaian tajwid, juz, dan riwayat bimbingan asatidz.</p>
+        <div className="page-title-left">
+          <BookOpen size={22} className="page-title-icon" style={{ color: '#059669' }} />
+          <div>
+            <h2>Tahfidz & Muroja'ah Al-Qur'an</h2>
+            <p>Pencatatan mutaba'ah setoran harian santri, penilaian tajwid, juz, dan riwayat bimbingan asatidz</p>
+          </div>
         </div>
-        <div className="action-buttons-group">
-          <button className="btn btn-refresh" onClick={fetchData} title="Refresh Data">
-            <RotateCw size={13} className={loading ? 'animate-spin' : ''} />
-            <span>Refresh</span>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="btn btn-outline" onClick={fetchData}>
+            <RotateCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
-          <button className="btn btn-add-primary" onClick={openAddForm}>
-            <Plus size={14} />
-            <span>+ Input Setoran Santri</span>
+          <button className="btn btn-primary" onClick={openAddForm}>
+            <Plus size={14} /> + Input Setoran Santri
           </button>
         </div>
       </div>
 
-      {/* MAIN CONTAINER CARD */}
-      <div className="main-data-card">
-        {/* TABS & FILTER BAR */}
-        <div className="toolbar-section">
-          <div className="tab-pills-row">
-            <button 
-              className={`tab-pill-item ${activeFilterTab === 'semua' ? 'active' : ''}`}
-              onClick={() => setActiveFilterTab('semua')}
-            >
-              Semua ({setoranList.length})
-            </button>
-            <button 
-              className={`tab-pill-item ${activeFilterTab === 'ziyadah' ? 'active' : ''}`}
-              onClick={() => setActiveFilterTab('ziyadah')}
-            >
-              Ziyadah ({countZiyadah})
-            </button>
-            <button 
-              className={`tab-pill-item ${activeFilterTab === 'murojaah' ? 'active' : ''}`}
-              onClick={() => setActiveFilterTab('murojaah')}
-            >
-              Muroja'ah ({countMurojaah})
-            </button>
-            <button 
-              className={`tab-pill-item ${activeFilterTab === 'sabqi' ? 'active' : ''}`}
-              onClick={() => setActiveFilterTab('sabqi')}
-            >
-              Sabqi ({setoranList.filter(s => s.jenis_setoran === 'Sabqi').length})
-            </button>
-            <button 
-              className={`tab-pill-item ${activeFilterTab === 'tasmi' ? 'active' : ''}`}
-              onClick={() => setActiveFilterTab('tasmi')}
-            >
-              Tasmi' Bil-Ghoib ({setoranList.filter(s => s.jenis_setoran?.includes('Tasmi')).length})
-            </button>
-          </div>
+      {/* 3. TAB FILTER BAR */}
+      <div className="tab-filter-bar">
+        <button 
+          className={`tab-btn ${activeFilterTab === 'semua' ? 'active' : ''}`}
+          onClick={() => setActiveFilterTab('semua')}
+        >
+          <BookOpen size={14} /> Semua Setoran ({setoranList.length})
+        </button>
+        <button 
+          className={`tab-btn ${activeFilterTab === 'ziyadah' ? 'active' : ''}`}
+          onClick={() => setActiveFilterTab('ziyadah')}
+        >
+          <Sparkles size={14} /> Ziyadah ({countZiyadah})
+        </button>
+        <button 
+          className={`tab-btn ${activeFilterTab === 'murojaah' ? 'active' : ''}`}
+          onClick={() => setActiveFilterTab('murojaah')}
+        >
+          <Layers size={14} /> Muroja'ah ({countMurojaah})
+        </button>
+        <button 
+          className={`tab-btn ${activeFilterTab === 'sabqi' ? 'active' : ''}`}
+          onClick={() => setActiveFilterTab('sabqi')}
+        >
+          <Award size={14} /> Sabqi ({setoranList.filter(s => s.jenis_setoran === 'Sabqi').length})
+        </button>
+        <button 
+          className={`tab-btn ${activeFilterTab === 'tasmi' ? 'active' : ''}`}
+          onClick={() => setActiveFilterTab('tasmi')}
+        >
+          <CheckCircle2 size={14} /> Tasmi' Bil-Ghoib
+        </button>
+      </div>
 
-          <div className="search-filter-row">
-            <div className="search-input-box">
-              <Search size={14} color="#94a3b8" />
-              <input 
-                type="text" 
-                placeholder="Cari santri, NIS, surat atau asatidz..." 
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-              {search && (
-                <button className="search-clear-btn" onClick={() => setSearch('')}>
-                  <X size={13} />
-                </button>
-              )}
-            </div>
-
-            <div className="filter-dropdown-group">
-              <select 
-                className="filter-select-input"
-                value={filterTajwid}
-                onChange={(e) => setFilterTajwid(e.target.value)}
-              >
-                <option value="Semua Kualitas">Semua Tajwid</option>
-                <option value="Mumtaz (A)">Mumtaz (A)</option>
-                <option value="Jayyid Jiddan (B+)">Jayyid Jiddan (B+)</option>
-                <option value="Jayyid (B)">Jayyid (B)</option>
-                <option value="Maqbul (C)">Maqbul (C)</option>
-                <option value="Rombak/Ulang">Rombak/Ulang</option>
-              </select>
-            </div>
-          </div>
+      {/* 4. FILTER SEARCH BAR STRIP */}
+      <div className="filter-search-box">
+        <div className="filter-search-input">
+          <Search size={15} color="#94a3b8" />
+          <input 
+            type="text" 
+            placeholder="Cari nama santri, NIS, surat, atau nama asatidz..." 
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
+        <select 
+          className="filter-select"
+          value={filterTajwid}
+          onChange={(e) => setFilterTajwid(e.target.value)}
+        >
+          <option>Semua Tajwid</option>
+          <option>Mumtaz (A)</option>
+          <option>Jayyid Jiddan (B+)</option>
+          <option>Jayyid (B)</option>
+          <option>Maqbul (C)</option>
+          <option>Rombak/Ulang</option>
+        </select>
+        <select 
+          className="filter-select"
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+        >
+          <option>Semua Status</option>
+          <option>Lulus</option>
+          <option>Perlu Pengulangan</option>
+          <option>Mengulang</option>
+        </select>
+      </div>
 
-        {/* DATA TABLE */}
-        <div className="table-responsive">
-          {loading ? (
-            <div className="loading-state">
-              <Loader2 size={24} className="animate-spin text-blue" />
-              <span>Memuat data setoran tahfidz...</span>
-            </div>
-          ) : filteredList.length === 0 ? (
-            <div className="empty-state">
-              <BookOpen size={36} color="#cbd5e1" />
-              <h4>Tidak ada riwayat setoran ditemukan</h4>
-              <p>Silakan sesuaikan kata kunci pencarian atau buat setoran baru.</p>
-            </div>
-          ) : (
-            <table className="custom-bordered-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '45px', textAlign: 'center' }}>NO</th>
-                  <th style={{ width: '95px' }}>TANGGAL</th>
-                  <th>NAMA SANTRI & ASRAMA</th>
-                  <th style={{ width: '110px' }}>JENIS SETORAN</th>
-                  <th>CAPAIAN AYAT & SURAT</th>
-                  <th style={{ width: '65px', textAlign: 'center' }}>JUZ</th>
-                  <th style={{ width: '130px' }}>KUALITAS TAJWID</th>
-                  <th style={{ width: '100px' }}>STATUS</th>
-                  <th>ASATIDZ / MUSYRIF</th>
-                  <th style={{ width: '85px', textAlign: 'center' }}>AKSI</th>
+      {/* 5. DATA TABLE */}
+      <div className="table-container-card">
+        {loading ? (
+          <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
+            <Loader2 size={24} className="animate-spin" /> Memuat data setoran tahfidz...
+          </div>
+        ) : filteredList.length === 0 ? (
+          <div style={{ padding: '30px', textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>
+            Belum ada data setoran tahfidz di database.
+          </div>
+        ) : (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th className="td-center" style={{ width: '40px' }}>NO</th>
+                <th className="td-center" style={{ width: '90px' }}>TANGGAL</th>
+                <th>NAMA SANTRI & ASRAMA</th>
+                <th className="td-center">JENIS SETORAN</th>
+                <th>CAPAIAN AYAT & SURAT</th>
+                <th className="td-center" style={{ width: '65px' }}>JUZ</th>
+                <th className="td-center">KUALITAS TAJWID</th>
+                <th className="td-center">STATUS</th>
+                <th>ASATIDZ PENGUJI</th>
+                <th className="td-center" style={{ width: '130px' }}>AKSI</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredList.map((row, idx) => (
+                <tr key={row.id || idx}>
+                  <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
+                    {idx + 1}
+                  </td>
+                  <td className="td-center" style={{ fontSize: '0.74rem', fontWeight: 600 }}>
+                    {row.tanggal ? new Date(row.tanggal).toLocaleDateString('id-ID') : '-'}
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{row.nama_santri}</div>
+                    <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>
+                      NIS: {row.nis || '-'} • {row.nama_asrama || 'Asrama'} ({row.nama_kamar || '-'})
+                    </div>
+                  </td>
+                  <td className="td-center">
+                    <span className={`badge ${
+                      row.jenis_setoran === 'Ziyadah' ? 'badge-success' :
+                      row.jenis_setoran === "Muroja'ah" ? 'badge-info' :
+                      row.jenis_setoran === 'Sabqi' ? 'badge-warning' : 'badge-purple'
+                    }`}>
+                      {row.jenis_setoran}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.78rem' }}>
+                      QS. {row.surat_mulai} ({row.ayat_mulai}) - QS. {row.surat_selesai} ({row.ayat_selesai})
+                    </div>
+                  </td>
+                  <td className="td-center">
+                    <span className="badge badge-info" style={{ fontWeight: 800 }}>
+                      Juz {row.juz}
+                    </span>
+                  </td>
+                  <td className="td-center">
+                    <span className={`badge ${
+                      row.kualitas_tajwid?.includes('Mumtaz') ? 'badge-success' :
+                      row.kualitas_tajwid?.includes('Jayyid Jiddan') ? 'badge-info' :
+                      row.kualitas_tajwid?.includes('Jayyid') ? 'badge-warning' : 'badge-danger'
+                    }`}>
+                      {row.kualitas_tajwid}
+                    </span>
+                  </td>
+                  <td className="td-center">
+                    <span className={`badge ${row.status === 'Lulus' ? 'badge-success' : 'badge-danger'}`}>
+                      {row.status}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#0f172a' }}>
+                      {row.nama_asatidz || 'Musyrif'}
+                    </div>
+                    {row.nama_halaqah && (
+                      <div style={{ fontSize: '0.68rem', color: '#059669' }}>
+                        {row.nama_halaqah}
+                      </div>
+                    )}
+                  </td>
+                  <td className="td-center">
+                    <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
+                      <button 
+                        className="btn btn-success btn-sm"
+                        onClick={() => openDetail(row)}
+                        title="Lihat Detail Setoran"
+                      >
+                        <Eye size={12} />
+                      </button>
+                      <button 
+                        className="btn btn-warning btn-sm"
+                        onClick={() => openEditForm(row)}
+                        title="Edit Setoran"
+                      >
+                        <Edit3 size={12} />
+                      </button>
+                      <button 
+                        className="btn btn-danger btn-sm"
+                        onClick={() => handleDelete(row.id, `${row.nama_santri} - Juz ${row.juz}`)}
+                        title="Hapus Setoran"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filteredList.map((st, idx) => (
-                  <tr key={st.id}>
-                    <td style={{ textAlign: 'center', color: '#64748b' }}>{idx + 1}</td>
-                    <td>
-                      <div style={{ fontWeight: 600, fontSize: '0.74rem' }}>
-                        {st.tanggal ? new Date(st.tanggal).toLocaleDateString('id-ID') : '-'}
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.8rem' }}>
-                        {st.nama_santri}
-                      </div>
-                      <div style={{ fontSize: '0.69rem', color: '#64748b' }}>
-                        NIS: {st.nis || '-'} • {st.nama_asrama || 'Asrama'} ({st.nama_kamar || '-'})
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`badge ${
-                        st.jenis_setoran === 'Ziyadah' ? 'badge-success' :
-                        st.jenis_setoran === "Muroja'ah" ? 'badge-info' :
-                        st.jenis_setoran === 'Sabqi' ? 'badge-warning' : 'badge-purple'
-                      }`}>
-                        {st.jenis_setoran}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.78rem' }}>
-                        {st.surat_mulai} ({st.ayat_mulai}) s/d {st.surat_selesai} ({st.ayat_selesai})
-                      </div>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <span className="badge badge-info" style={{ fontWeight: 800 }}>
-                        Juz {st.juz}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`badge ${
-                        st.kualitas_tajwid?.includes('Mumtaz') ? 'badge-success' :
-                        st.kualitas_tajwid?.includes('Jayyid Jiddan') ? 'badge-info' :
-                        st.kualitas_tajwid?.includes('Jayyid') ? 'badge-warning' : 'badge-danger'
-                      }`}>
-                        {st.kualitas_tajwid}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`badge ${st.status === 'Lulus' ? 'badge-success' : 'badge-danger'}`}>
-                        {st.status}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ fontSize: '0.74rem', color: '#475569', fontWeight: 600 }}>
-                        {st.nama_asatidz || 'Musyrif'}
-                      </div>
-                      {st.nama_halaqah && (
-                        <div style={{ fontSize: '0.68rem', color: '#059669' }}>
-                          {st.nama_halaqah}
-                        </div>
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div className="table-action-icons">
-                        <button 
-                          className="icon-btn icon-btn-view" 
-                          title="Lihat Detail"
-                          onClick={() => openDetail(st)}
-                        >
-                          <Eye size={13} />
-                        </button>
-                        <button 
-                          className="icon-btn icon-btn-edit" 
-                          title="Edit Setoran"
-                          onClick={() => openEditForm(st)}
-                        >
-                          <Edit3 size={13} />
-                        </button>
-                        <button 
-                          className="icon-btn icon-btn-delete" 
-                          title="Hapus Setoran"
-                          onClick={() => handleDelete(st.id, `${st.nama_santri} - Juz ${st.juz}`)}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
-      {/* MODAL DETAIL */}
+      {/* ==================================================== */}
+      {/* MODAL DETAIL TAHFIDZ                                */}
+      {/* ==================================================== */}
       {isModalOpen && selectedItem && (
-        <div className="modal-backdrop-custom" onClick={closeModal}>
-          <div className="modal-box-custom modal-md" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header-gradient" style={{ background: 'linear-gradient(135deg, #065f46 0%, #059669 50%, #10b981 100%)' }}>
-              <div className="modal-header-content">
-                <div className="modal-header-icon" style={{ background: 'rgba(255,255,255,0.2)' }}>
-                  <BookOpen size={22} color="#ffffff" />
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '620px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            border: '1px solid #cbd5e1',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '14px 18px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+              color: '#ffffff'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.2)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, border: '1px solid rgba(255, 255, 255, 0.3)' }}>
+                  <BookOpen size={18} />
                 </div>
                 <div>
-                  <h3 style={{ color: '#ffffff', margin: 0, fontSize: '1rem', fontWeight: 800 }}>Detail Mutaba'ah Setoran Tahfidz</h3>
-                  <p style={{ color: '#d1fae5', margin: 0, fontSize: '0.72rem' }}>
-                    Tanggal: {selectedItem.tanggal ? new Date(selectedItem.tanggal).toLocaleDateString('id-ID') : '-'} • {selectedItem.jenis_setoran}
+                  <h3 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>Detail Mutaba'ah Setoran Tahfidz</h3>
+                  <p style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.85)', margin: 0 }}>
+                    Tanggal: {selectedItem.tanggal ? new Date(selectedItem.tanggal).toLocaleDateString('id-ID') : '-'} • Jenis: {selectedItem.jenis_setoran}
                   </p>
                 </div>
               </div>
-              <button className="modal-close-btn" onClick={closeModal}>
-                <X size={16} />
+              <button 
+                onClick={closeModal}
+                style={{ background: 'rgba(255, 255, 255, 0.15)', border: 'none', cursor: 'pointer', color: '#ffffff', padding: '5px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                title="Tutup Modal"
+              >
+                <X size={18} />
               </button>
             </div>
 
-            <div className="modal-body-slate">
-              <div className="detail-card-white" style={{ marginBottom: '10px' }}>
-                <div className="detail-section-title">
-                  <User size={14} className="text-blue" />
-                  <span>IDENTITAS SANTRI & KELOMPOK</span>
+            {/* Modal Body */}
+            <div style={{ padding: '18px', background: '#f1f5f9' }}>
+              {/* Profile Card Banner */}
+              <div style={{
+                background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                color: '#ffffff',
+                borderRadius: '8px',
+                padding: '14px 16px',
+                marginBottom: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                border: '1px solid #334155'
+              }}>
+                <div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff' }}>{selectedItem.nama_santri}</div>
+                  <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '2px' }}>
+                    NIS: {selectedItem.nis || '-'} • {selectedItem.nama_asrama || 'Asrama'} ({selectedItem.nama_kamar || '-'})
+                  </div>
                 </div>
-                <div className="detail-grid-2">
-                  <div className="detail-field">
-                    <label>Nama Santri</label>
-                    <p style={{ fontWeight: 800, color: '#0f172a' }}>{selectedItem.nama_santri}</p>
+                <div style={{ textAlign: 'right' }}>
+                  <span className="badge badge-success" style={{ fontSize: '0.74rem', padding: '3px 8px' }}>
+                    {selectedItem.status || 'Lulus'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Info Grid 2 Kolom */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff' }}>
+                  <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px' }}>
+                    Posisi Juz & Jenis Setoran
                   </div>
-                  <div className="detail-field">
-                    <label>NIS Santri</label>
-                    <p>{selectedItem.nis || '-'}</p>
+                  <div style={{ fontWeight: 800, fontSize: '0.98rem', color: '#059669' }}>Juz {selectedItem.juz}</div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>Jenis: {selectedItem.jenis_setoran}</div>
+                </div>
+
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff' }}>
+                  <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px' }}>
+                    Kualitas Tajwid & Fashohah
                   </div>
-                  <div className="detail-field">
-                    <label>Asrama & Kamar</label>
-                    <p>{selectedItem.nama_asrama || '-'} ({selectedItem.nama_kamar || '-'})</p>
+                  <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#0f172a' }}>{selectedItem.kualitas_tajwid}</div>
+                  <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 600 }}>Penguji: {selectedItem.nama_asatidz || 'Musyrif'}</div>
+                </div>
+
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff', gridColumn: 'span 2' }}>
+                  <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px' }}>
+                    Rincian Surat & Ayat Yang Disetorkan
                   </div>
-                  <div className="detail-field">
-                    <label>Halaqah & Asatidz</label>
-                    <p>{selectedItem.nama_halaqah || 'Halaqah'} • {selectedItem.nama_asatidz || 'Musyrif'}</p>
+                  <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#0f172a' }}>
+                    QS. {selectedItem.surat_mulai} (Ayat {selectedItem.ayat_mulai}) s/d QS. {selectedItem.surat_selesai} (Ayat {selectedItem.ayat_selesai})
                   </div>
                 </div>
               </div>
 
-              <div className="detail-card-white" style={{ marginBottom: '10px' }}>
-                <div className="detail-section-title">
-                  <Sparkles size={14} className="text-green" />
-                  <span>RINCIAN CAPAIAN QUR'AN</span>
+              {/* Catatan Bimbingan */}
+              <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px 16px', background: '#ffffff' }}>
+                <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '6px' }}>
+                  Catatan Evaluasi / Bimbingan Ustadz
                 </div>
-                <div className="detail-grid-2">
-                  <div className="detail-field">
-                    <label>Jenis Setoran</label>
-                    <span className="badge badge-success">{selectedItem.jenis_setoran}</span>
-                  </div>
-                  <div className="detail-field">
-                    <label>Posisi Juz</label>
-                    <span className="badge badge-info" style={{ fontWeight: 800 }}>Juz {selectedItem.juz}</span>
-                  </div>
-                  <div className="detail-field" style={{ gridColumn: 'span 2' }}>
-                    <label>Ayat & Surat Yang Disetorkan</label>
-                    <p style={{ fontWeight: 700, color: '#065f46', fontSize: '0.88rem' }}>
-                      QS. {selectedItem.surat_mulai} (Ayat {selectedItem.ayat_mulai}) s/d QS. {selectedItem.surat_selesai} (Ayat {selectedItem.ayat_selesai})
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="detail-card-white">
-                <div className="detail-section-title">
-                  <Award size={14} className="text-amber" />
-                  <span>EVALUASI TAJWID & CATATAN MUSYRIF</span>
-                </div>
-                <div className="detail-grid-2" style={{ marginBottom: '10px' }}>
-                  <div className="detail-field">
-                    <label>Kualitas Tajwid & Makhraj</label>
-                    <span className="badge badge-success">{selectedItem.kualitas_tajwid}</span>
-                  </div>
-                  <div className="detail-field">
-                    <label>Status Kelulusan</label>
-                    <span className={`badge ${selectedItem.status === 'Lulus' ? 'badge-success' : 'badge-danger'}`}>
-                      {selectedItem.status}
-                    </span>
-                  </div>
-                </div>
-                <div className="detail-field">
-                  <label>Catatan Pembinaan / Evaluasi</label>
-                  <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0', color: '#334155', fontSize: '0.78rem' }}>
-                    {selectedItem.catatan || 'Tidak ada catatan khusus.'}
-                  </div>
+                <div style={{ fontSize: '0.78rem', color: '#334155' }}>
+                  {selectedItem.catatan || 'Tidak ada catatan khusus.'}
                 </div>
               </div>
             </div>
 
-            <div className="modal-footer-slate">
+            {/* Modal Footer */}
+            <div style={{
+              padding: '12px 18px',
+              borderTop: '1px solid #cbd5e1',
+              background: '#ffffff',
+              display: 'flex',
+              justifyContent: 'flex-end'
+            }}>
               <button className="btn btn-outline" onClick={closeModal}>
                 Tutup
               </button>
@@ -568,41 +607,80 @@ export default function TahfidzView() {
         </div>
       )}
 
-      {/* MODAL FORM (ADD & EDIT) */}
+      {/* ==================================================== */}
+      {/* MODAL FORM (ADD & EDIT)                             */}
+      {/* ==================================================== */}
       {isFormOpen && (
-        <div className="modal-backdrop-custom" onClick={closeForm}>
-          <div className="modal-box-custom modal-md" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header-gradient" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)' }}>
-              <div className="modal-header-content">
-                <div className="modal-header-icon">
-                  <BookOpen size={20} color="#ffffff" />
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '620px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            border: '1px solid #cbd5e1',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <div style={{
+              padding: '14px 18px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+              color: '#ffffff'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.15)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>
+                  <BookOpen size={18} />
                 </div>
                 <div>
-                  <h3 style={{ color: '#ffffff', margin: 0, fontSize: '0.98rem', fontWeight: 800 }}>
+                  <h3 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
                     {formMode === 'add' ? 'Input Setoran Tahfidz Santri' : 'Edit Riwayat Setoran Tahfidz'}
                   </h3>
-                  <p style={{ color: '#94a3b8', margin: 0, fontSize: '0.72rem' }}>
+                  <p style={{ fontSize: '0.7rem', color: '#94a3b8', margin: 0 }}>
                     Catat capaian hafalan Al-Qur'an secara teliti dan akurat.
                   </p>
                 </div>
               </div>
-              <button className="modal-close-btn" onClick={closeForm}>
-                <X size={16} />
+              <button 
+                onClick={closeForm}
+                style={{ background: 'rgba(255, 255, 255, 0.15)', border: 'none', cursor: 'pointer', color: '#ffffff', padding: '5px', borderRadius: '6px' }}
+                title="Tutup Form"
+              >
+                <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleSave}>
-              <div className="modal-body-slate">
-                <div className="detail-card-white" style={{ marginBottom: '10px' }}>
-                  <div className="detail-section-title">
-                    <User size={14} className="text-blue" />
-                    <span>SANTRI & ASATIDZ PENGUJI</span>
+              <div style={{ padding: '18px', background: '#f1f5f9' }}>
+                
+                {/* Santri & Musyrif Card */}
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px', background: '#ffffff', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <User size={14} color="#0284c7" /> SANTRI & ASATIDZ PENGUJI
                   </div>
-                  <div className="form-grid-2">
-                    <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                      <label className="form-label">Pilih Santri *</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div style={{ gridColumn: 'span 2' }}>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Pilih Santri *</label>
                       <select 
-                        className="form-input-control"
+                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.santri_id}
                         onChange={(e) => setFormData({ ...formData, santri_id: e.target.value })}
                         required
@@ -616,10 +694,10 @@ export default function TahfidzView() {
                       </select>
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">Asatidz / Musyrif Penguji *</label>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Asatidz Penguji *</label>
                       <select 
-                        className="form-input-control"
+                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.asatidz_id}
                         onChange={(e) => setFormData({ ...formData, asatidz_id: e.target.value })}
                         required
@@ -633,10 +711,10 @@ export default function TahfidzView() {
                       </select>
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">Kelompok Halaqah</label>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Kelompok Halaqah</label>
                       <select 
-                        className="form-input-control"
+                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.halaqah_id}
                         onChange={(e) => setFormData({ ...formData, halaqah_id: e.target.value })}
                       >
@@ -651,27 +729,27 @@ export default function TahfidzView() {
                   </div>
                 </div>
 
-                <div className="detail-card-white" style={{ marginBottom: '10px' }}>
-                  <div className="detail-section-title">
-                    <BookOpen size={14} className="text-green" />
-                    <span>MUTABA'AH AYAT & JUZ</span>
+                {/* Mutaba'ah Rincian Card */}
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px', background: '#ffffff', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <BookOpen size={14} color="#059669" /> MUTABA'AH AYAT & JUZ
                   </div>
-                  <div className="form-grid-2">
-                    <div className="form-group">
-                      <label className="form-label">Tanggal Setoran *</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Tanggal Setoran *</label>
                       <input 
-                        type="date" 
-                        className="form-input-control"
+                        type="date"
+                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.tanggal}
                         onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
                         required
                       />
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">Jenis Setoran *</label>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Jenis Setoran *</label>
                       <select 
-                        className="form-input-control"
+                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.jenis_setoran}
                         onChange={(e) => setFormData({ ...formData, jenis_setoran: e.target.value })}
                         required
@@ -683,23 +761,23 @@ export default function TahfidzView() {
                       </select>
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">Juz Ke- *</label>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Juz Ke- *</label>
                       <input 
-                        type="number" 
-                        min="1" 
-                        max="30" 
-                        className="form-input-control"
+                        type="number"
+                        min="1"
+                        max="30"
+                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.juz}
                         onChange={(e) => setFormData({ ...formData, juz: parseInt(e.target.value) || 1 })}
                         required
                       />
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">Kualitas Tajwid & Fashohah *</label>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Kualitas Tajwid *</label>
                       <select 
-                        className="form-input-control"
+                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.kualitas_tajwid}
                         onChange={(e) => setFormData({ ...formData, kualitas_tajwid: e.target.value })}
                         required
@@ -708,52 +786,50 @@ export default function TahfidzView() {
                         <option value="Jayyid Jiddan (B+)">Jayyid Jiddan (B+ - Baik Sekali)</option>
                         <option value="Jayyid (B)">Jayyid (B - Baik)</option>
                         <option value="Maqbul (C)">Maqbul (C - Cukup)</option>
-                        <option value="Rombak/Ulang">Rombak/Ulang (Mengulang Tajwid)</option>
+                        <option value="Rombak/Ulang">Rombak/Ulang (Mengulang)</option>
                       </select>
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">Surat Mulai *</label>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Surat Mulai *</label>
                       <input 
-                        type="text" 
-                        className="form-input-control"
-                        placeholder="Contoh: Al-Baqarah"
+                        type="text"
+                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.surat_mulai}
                         onChange={(e) => setFormData({ ...formData, surat_mulai: e.target.value })}
                         required
                       />
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">Ayat Mulai *</label>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Ayat Mulai *</label>
                       <input 
-                        type="number" 
-                        min="1" 
-                        className="form-input-control"
+                        type="number"
+                        min="1"
+                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.ayat_mulai}
                         onChange={(e) => setFormData({ ...formData, ayat_mulai: parseInt(e.target.value) || 1 })}
                         required
                       />
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">Surat Selesai *</label>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Surat Selesai *</label>
                       <input 
-                        type="text" 
-                        className="form-input-control"
-                        placeholder="Contoh: Al-Baqarah"
+                        type="text"
+                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.surat_selesai}
                         onChange={(e) => setFormData({ ...formData, surat_selesai: e.target.value })}
                         required
                       />
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">Ayat Selesai *</label>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Ayat Selesai *</label>
                       <input 
-                        type="number" 
-                        min="1" 
-                        className="form-input-control"
+                        type="number"
+                        min="1"
+                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.ayat_selesai}
                         onChange={(e) => setFormData({ ...formData, ayat_selesai: parseInt(e.target.value) || 1 })}
                         required
@@ -762,33 +838,30 @@ export default function TahfidzView() {
                   </div>
                 </div>
 
-                <div className="detail-card-white">
-                  <div className="detail-section-title">
-                    <Award size={14} className="text-purple" />
-                    <span>STATUS & CATATAN MUSYRIF</span>
+                {/* Status & Catatan */}
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px', background: '#ffffff' }}>
+                  <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Award size={14} color="#7c3aed" /> STATUS & CATATAN MUSYRIF
                   </div>
-                  <div className="form-grid-2" style={{ marginBottom: '10px' }}>
-                    <div className="form-group">
-                      <label className="form-label">Status Kelulusan Setoran *</label>
-                      <select 
-                        className="form-input-control"
-                        value={formData.status}
-                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                        required
-                      >
-                        <option value="Lulus">Lulus (Diterima)</option>
-                        <option value="Perlu Pengulangan">Perlu Pengulangan</option>
-                        <option value="Mengulang">Mengulang Penuh</option>
-                      </select>
-                    </div>
+                  <div style={{ marginBottom: '10px' }}>
+                    <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Status Kelulusan *</label>
+                    <select 
+                      style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                      required
+                    >
+                      <option value="Lulus">Lulus (Diterima)</option>
+                      <option value="Perlu Pengulangan">Perlu Pengulangan</option>
+                      <option value="Mengulang">Mengulang Penuh</option>
+                    </select>
                   </div>
 
-                  <div className="form-group">
-                    <label className="form-label">Catatan Bimbingan / Evaluasi</label>
+                  <div>
+                    <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Catatan Bimbingan</label>
                     <textarea 
-                      className="form-input-control"
+                      style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                       rows="2"
-                      placeholder="Catatan tajwid, makhraj, atau kelancaran..."
                       value={formData.catatan}
                       onChange={(e) => setFormData({ ...formData, catatan: e.target.value })}
                     />
@@ -796,11 +869,19 @@ export default function TahfidzView() {
                 </div>
               </div>
 
-              <div className="modal-footer-slate">
+              {/* Modal Footer */}
+              <div style={{
+                padding: '12px 18px',
+                borderTop: '1px solid #cbd5e1',
+                background: '#ffffff',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '8px'
+              }}>
                 <button type="button" className="btn btn-outline" onClick={closeForm}>
                   Batal
                 </button>
-                <button type="submit" className="btn btn-add-primary" disabled={submitting}>
+                <button type="submit" className="btn btn-primary" disabled={submitting}>
                   {submitting ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
                   <span>{formMode === 'add' ? 'Simpan Setoran' : 'Simpan Perubahan'}</span>
                 </button>

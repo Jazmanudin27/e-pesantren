@@ -3,22 +3,21 @@ import axios from 'axios';
 import { 
   ShieldAlert, 
   Plus, 
-  RotateCw, 
   Search, 
+  RotateCw, 
   Eye, 
   Edit3, 
   Trash2, 
-  Loader2, 
   AlertTriangle, 
-  CheckCircle, 
+  CheckCircle2, 
+  Loader2, 
   X, 
-  Save, 
-  Phone, 
   User, 
   Building, 
   Award, 
   Clock, 
-  FileText 
+  Save, 
+  Phone 
 } from 'lucide-react';
 
 export default function TataTertibView() {
@@ -28,8 +27,9 @@ export default function TataTertibView() {
   const [activeFilterTab, setActiveFilterTab] = useState('semua');
   const [search, setSearch] = useState('');
   const [filterKategori, setFilterKategori] = useState('Semua Kategori');
+  const [filterStatus, setFilterStatus] = useState('Semua Status');
 
-  // Modal Detail
+  // Modal Detail State
   const [selectedItem, setSelectedItem] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -65,7 +65,7 @@ export default function TataTertibView() {
         setSantriList(resSantri.data.data || []);
       }
     } catch (err) {
-      console.error('Gagal mengambil data pelanggaran:', err);
+      console.error('Gagal memuat data tata tertib:', err);
     } finally {
       setLoading(false);
     }
@@ -87,9 +87,10 @@ export default function TataTertibView() {
 
   const openAddForm = () => {
     setFormMode('add');
+    const firstSantri = santriList[0];
     setFormData({
       id: null,
-      santri_id: santriList.length > 0 ? santriList[0].id : '',
+      santri_id: firstSantri?.id || '',
       tanggal: new Date().toISOString().split('T')[0],
       kategori: 'Ringan',
       jenis_pelanggaran: 'Terlambat Shalat Berjamaah',
@@ -144,7 +145,7 @@ export default function TataTertibView() {
       }
       setIsFormOpen(false);
     } catch (err) {
-      alert('Gagal menyimpan data pelanggaran: ' + (err.response?.data?.error || err.message));
+      alert('Gagal menyimpan pelanggaran: ' + (err.response?.data?.error || err.message));
     } finally {
       setSubmitting(false);
     }
@@ -173,7 +174,7 @@ export default function TataTertibView() {
   // Stats calculation
   const totalPelanggaran = pelanggaranList.length;
   const countRingan = pelanggaranList.filter(p => p.kategori === 'Ringan').length;
-  const countSedang = pelanggaranList.filter(p => p.kategori === 'Sedang').length;
+  const countSedang = pelanggaranList.filter(p => p.kategori === 'Sedang' || p.kategori === 'Berat').length;
   const countBelumTazir = pelanggaranList.filter(p => p.status_tazir === 'Belum Dikerjakan').length;
 
   const filteredList = pelanggaranList.filter((p) => {
@@ -193,381 +194,407 @@ export default function TataTertibView() {
       activeFilterTab === 'selesai' ? p.status_tazir === "Selesai Ta'zir" : true;
 
     const matchKategori = filterKategori === 'Semua Kategori' ? true : p.kategori === filterKategori;
+    const matchStatus = filterStatus === 'Semua Status' ? true : p.status_tazir === filterStatus;
 
-    return matchSearch && matchTab && matchKategori;
+    return matchSearch && matchTab && matchKategori && matchStatus;
   });
 
   return (
-    <div className="tab-content-fade">
-      {/* 4 TOP VIBRANT STAT CARDS */}
-      <div className="stat-cards-grid">
-        <div className="stat-vibrant-card stat-card-blue">
-          <div className="stat-vibrant-header">
-            <span>TOTAL PELANGGARAN</span>
-            <div className="stat-vibrant-icon"><ShieldAlert size={16} /></div>
+    <div>
+      {/* 1. TOP 4 COLORED STATS CARDS */}
+      <div className="top-stats-grid">
+        <div className="stat-card-colored stat-card-blue">
+          <div>
+            <div className="stat-colored-title">TOTAL PELANGGARAN</div>
+            <div className="stat-colored-number">{totalPelanggaran}</div>
           </div>
-          <div className="stat-vibrant-number">{totalPelanggaran}</div>
-          <div className="stat-vibrant-sub">Akumulasi catatan santri</div>
+          <div className="stat-colored-icon-box">
+            <ShieldAlert size={22} />
+          </div>
         </div>
 
-        <div className="stat-vibrant-card stat-card-green">
-          <div className="stat-vibrant-header">
-            <span>KATEGORI RINGAN</span>
-            <div className="stat-vibrant-icon"><FileText size={16} /></div>
+        <div className="stat-card-colored stat-card-green">
+          <div>
+            <div className="stat-colored-title">KATEGORI RINGAN</div>
+            <div className="stat-colored-number">{countRingan}</div>
           </div>
-          <div className="stat-vibrant-number">{countRingan}</div>
-          <div className="stat-vibrant-sub">Pelanggaran poin 1 - 10</div>
+          <div className="stat-colored-icon-box">
+            <Award size={22} />
+          </div>
         </div>
 
-        <div className="stat-vibrant-card stat-card-amber">
-          <div className="stat-vibrant-header">
-            <span>KATEGORI SEDANG & BERAT</span>
-            <div className="stat-vibrant-icon"><AlertTriangle size={16} /></div>
+        <div className="stat-card-colored stat-card-amber">
+          <div>
+            <div className="stat-colored-title">KATEGORI SEDANG & BERAT</div>
+            <div className="stat-colored-number">{countSedang}</div>
           </div>
-          <div className="stat-vibrant-number">{countSedang + (pelanggaranList.filter(p => p.kategori === 'Berat').length)}</div>
-          <div className="stat-vibrant-sub">Perlu pembinaan khusus</div>
+          <div className="stat-colored-icon-box">
+            <AlertTriangle size={22} />
+          </div>
         </div>
 
-        <div className="stat-vibrant-card stat-card-purple">
-          <div className="stat-vibrant-header">
-            <span>BELUM SELESAI TA'ZIR</span>
-            <div className="stat-vibrant-icon"><Clock size={16} /></div>
+        <div className="stat-card-colored stat-card-purple">
+          <div>
+            <div className="stat-colored-title">BELUM SELESAI TA'ZIR</div>
+            <div className="stat-colored-number">{countBelumTazir}</div>
           </div>
-          <div className="stat-vibrant-number">{countBelumTazir}</div>
-          <div className="stat-vibrant-sub">Menunggu eksekusi sanksi</div>
+          <div className="stat-colored-icon-box">
+            <Clock size={22} />
+          </div>
         </div>
       </div>
 
-      {/* PAGE TITLE STRIP WITH ACTIONS */}
+      {/* 2. TITLE STRIP */}
       <div className="page-title-strip">
-        <div>
-          <h2>Tata Tertib, Pelanggaran & Ta'zir Santri</h2>
-          <p>Pencatatan kedisiplinan, poin pelanggaran, eksekusi ta'zir mendidik, dan notifikasi wali.</p>
+        <div className="page-title-left">
+          <ShieldAlert size={22} className="page-title-icon" style={{ color: '#dc2626' }} />
+          <div>
+            <h2>Tata Tertib, Kedisiplinan & Ta'zir Santri</h2>
+            <p>Pencatatan pelanggaran santri, akumulasi poin kedisiplinan, sanksi ta'zir mendidik, dan notifikasi wali</p>
+          </div>
         </div>
-        <div className="action-buttons-group">
-          <button className="btn btn-refresh" onClick={fetchData} title="Refresh Data">
-            <RotateCw size={13} className={loading ? 'animate-spin' : ''} />
-            <span>Refresh</span>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="btn btn-outline" onClick={fetchData}>
+            <RotateCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
-          <button className="btn btn-add-primary" onClick={openAddForm}>
-            <Plus size={14} />
-            <span>+ Catat Pelanggaran</span>
+          <button className="btn btn-primary" onClick={openAddForm} style={{ background: '#dc2626', borderColor: '#dc2626' }}>
+            <Plus size={14} /> + Catat Pelanggaran Baru
           </button>
         </div>
       </div>
 
-      {/* MAIN CONTAINER CARD */}
-      <div className="main-data-card">
-        {/* TABS & FILTER BAR */}
-        <div className="toolbar-section">
-          <div className="tab-pills-row">
-            <button 
-              className={`tab-pill-item ${activeFilterTab === 'semua' ? 'active' : ''}`}
-              onClick={() => setActiveFilterTab('semua')}
-            >
-              Semua ({pelanggaranList.length})
-            </button>
-            <button 
-              className={`tab-pill-item ${activeFilterTab === 'belum' ? 'active' : ''}`}
-              onClick={() => setActiveFilterTab('belum')}
-            >
-              Belum Dikerjakan ({countBelumTazir})
-            </button>
-            <button 
-              className={`tab-pill-item ${activeFilterTab === 'proses' ? 'active' : ''}`}
-              onClick={() => setActiveFilterTab('proses')}
-            >
-              Sedang Proses ({pelanggaranList.filter(p => p.status_tazir === 'Sedang Proses').length})
-            </button>
-            <button 
-              className={`tab-pill-item ${activeFilterTab === 'selesai' ? 'active' : ''}`}
-              onClick={() => setActiveFilterTab('selesai')}
-            >
-              Selesai Ta'zir ({pelanggaranList.filter(p => p.status_tazir === "Selesai Ta'zir").length})
-            </button>
-          </div>
+      {/* 3. TAB FILTER BAR */}
+      <div className="tab-filter-bar">
+        <button 
+          className={`tab-btn ${activeFilterTab === 'semua' ? 'active' : ''}`}
+          onClick={() => setActiveFilterTab('semua')}
+        >
+          <ShieldAlert size={14} /> Semua Catatan ({pelanggaranList.length})
+        </button>
+        <button 
+          className={`tab-btn ${activeFilterTab === 'belum' ? 'active' : ''}`}
+          onClick={() => setActiveFilterTab('belum')}
+        >
+          <Clock size={14} /> Belum Dikerjakan ({countBelumTazir})
+        </button>
+        <button 
+          className={`tab-btn ${activeFilterTab === 'proses' ? 'active' : ''}`}
+          onClick={() => setActiveFilterTab('proses')}
+        >
+          <AlertTriangle size={14} /> Sedang Proses ({pelanggaranList.filter(p => p.status_tazir === 'Sedang Proses').length})
+        </button>
+        <button 
+          className={`tab-btn ${activeFilterTab === 'selesai' ? 'active' : ''}`}
+          onClick={() => setActiveFilterTab('selesai')}
+        >
+          <CheckCircle2 size={14} /> Selesai Ta'zir ({pelanggaranList.filter(p => p.status_tazir === "Selesai Ta'zir").length})
+        </button>
+      </div>
 
-          <div className="search-filter-row">
-            <div className="search-input-box">
-              <Search size={14} color="#94a3b8" />
-              <input 
-                type="text" 
-                placeholder="Cari santri, NIS, atau jenis pelanggaran..." 
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-              {search && (
-                <button className="search-clear-btn" onClick={() => setSearch('')}>
-                  <X size={13} />
-                </button>
-              )}
-            </div>
-
-            <div className="filter-dropdown-group">
-              <select 
-                className="filter-select-input"
-                value={filterKategori}
-                onChange={(e) => setFilterKategori(e.target.value)}
-              >
-                <option value="Semua Kategori">Semua Kategori</option>
-                <option value="Ringan">Ringan</option>
-                <option value="Sedang">Sedang</option>
-                <option value="Berat">Berat</option>
-              </select>
-            </div>
-          </div>
+      {/* 4. FILTER SEARCH BAR STRIP */}
+      <div className="filter-search-box">
+        <div className="filter-search-input">
+          <Search size={15} color="#94a3b8" />
+          <input 
+            type="text" 
+            placeholder="Cari santri, NIS, jenis pelanggaran, atau musyrif..." 
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
+        <select 
+          className="filter-select"
+          value={filterKategori}
+          onChange={(e) => setFilterKategori(e.target.value)}
+        >
+          <option>Semua Kategori</option>
+          <option>Ringan</option>
+          <option>Sedang</option>
+          <option>Berat</option>
+        </select>
+        <select 
+          className="filter-select"
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+        >
+          <option>Semua Status</option>
+          <option>Belum Dikerjakan</option>
+          <option>Sedang Proses</option>
+          <option>Selesai Ta'zir</option>
+        </select>
+      </div>
 
-        {/* DATA TABLE */}
-        <div className="table-responsive">
-          {loading ? (
-            <div className="loading-state">
-              <Loader2 size={24} className="animate-spin text-blue" />
-              <span>Memuat data tata tertib & ta'zir...</span>
-            </div>
-          ) : filteredList.length === 0 ? (
-            <div className="empty-state">
-              <ShieldAlert size={36} color="#cbd5e1" />
-              <h4>Tidak ada data pelanggaran ditemukan</h4>
-              <p>Silakan sesuaikan pencarian filter atau catat pelanggaran baru.</p>
-            </div>
-          ) : (
-            <table className="custom-bordered-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '45px', textAlign: 'center' }}>NO</th>
-                  <th style={{ width: '95px' }}>TANGGAL</th>
-                  <th>NAMA SANTRI & ASRAMA</th>
-                  <th style={{ width: '100px' }}>KATEGORI</th>
-                  <th>JENIS PELANGGARAN</th>
-                  <th style={{ width: '70px', textAlign: 'center' }}>POIN</th>
-                  <th>BENTUK TA'ZIR</th>
-                  <th style={{ width: '120px' }}>STATUS TA'ZIR</th>
-                  <th>MUSYRIF PENCATAT</th>
-                  <th style={{ width: '110px', textAlign: 'center' }}>AKSI</th>
+      {/* 5. DATA TABLE */}
+      <div className="table-container-card">
+        {loading ? (
+          <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
+            <Loader2 size={24} className="animate-spin" /> Memuat catatan pelanggaran & ta'zir...
+          </div>
+        ) : filteredList.length === 0 ? (
+          <div style={{ padding: '30px', textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>
+            Belum ada catatan pelanggaran santri di database.
+          </div>
+        ) : (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th className="td-center" style={{ width: '40px' }}>NO</th>
+                <th className="td-center" style={{ width: '90px' }}>TANGGAL</th>
+                <th>NAMA SANTRI & ASRAMA</th>
+                <th className="td-center">KATEGORI</th>
+                <th>JENIS PELANGGARAN</th>
+                <th className="td-center" style={{ width: '65px' }}>POIN</th>
+                <th>BENTUK TA'ZIR</th>
+                <th className="td-center">STATUS TA'ZIR</th>
+                <th>MUSYRIF PENCATAT</th>
+                <th className="td-center" style={{ width: '130px' }}>AKSI</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredList.map((row, idx) => (
+                <tr key={row.id || idx}>
+                  <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
+                    {idx + 1}
+                  </td>
+                  <td className="td-center" style={{ fontSize: '0.74rem', fontWeight: 600 }}>
+                    {row.tanggal ? new Date(row.tanggal).toLocaleDateString('id-ID') : '-'}
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{row.nama_santri}</div>
+                    <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>
+                      NIS: {row.nis || '-'} • {row.nama_asrama || 'Asrama'} ({row.nama_kamar || '-'})
+                    </div>
+                  </td>
+                  <td className="td-center">
+                    <span className={`badge ${
+                      row.kategori === 'Berat' ? 'badge-danger' :
+                      row.kategori === 'Sedang' ? 'badge-warning' : 'badge-info'
+                    }`}>
+                      {row.kategori}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.78rem' }}>
+                      {row.jenis_pelanggaran}
+                    </div>
+                  </td>
+                  <td className="td-center">
+                    <span style={{ 
+                      fontWeight: 700, 
+                      color: row.poin_pelanggaran >= 20 ? '#dc2626' : row.poin_pelanggaran >= 10 ? '#d97706' : '#0284c7',
+                      fontSize: '0.78rem' 
+                    }}>
+                      +{row.poin_pelanggaran}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ fontSize: '0.74rem', color: '#475569', maxWidth: '240px', lineHeight: 1.3 }}>
+                      {row.bentuk_tazir}
+                    </div>
+                  </td>
+                  <td className="td-center">
+                    <span className={`badge ${
+                      row.status_tazir === "Selesai Ta'zir" ? 'badge-success' :
+                      row.status_tazir === 'Sedang Proses' ? 'badge-warning' : 'badge-danger'
+                    }`}>
+                      {row.status_tazir}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#0f172a' }}>
+                      {row.musyrif_pencatat}
+                    </div>
+                  </td>
+                  <td className="td-center">
+                    <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
+                      <button 
+                        className="btn btn-success btn-sm"
+                        onClick={() => openDetail(row)}
+                        title="Lihat Detail"
+                      >
+                        <Eye size={12} />
+                      </button>
+
+                      {row.status_tazir !== "Selesai Ta'zir" && (
+                        <button 
+                          className="btn btn-primary btn-sm"
+                          style={{ background: '#059669', borderColor: '#059669' }}
+                          onClick={() => handleTazirSelesai(row.id)}
+                          title="Tandai Selesai Ta'zir"
+                        >
+                          <CheckCircle2 size={12} />
+                        </button>
+                      )}
+
+                      <button 
+                        className="btn btn-warning btn-sm"
+                        onClick={() => openEditForm(row)}
+                        title="Edit Pelanggaran"
+                      >
+                        <Edit3 size={12} />
+                      </button>
+                      <button 
+                        className="btn btn-danger btn-sm"
+                        onClick={() => handleDelete(row.id, row.jenis_pelanggaran)}
+                        title="Hapus Catatan"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filteredList.map((row, idx) => (
-                  <tr key={row.id}>
-                    <td style={{ textAlign: 'center', color: '#64748b' }}>{idx + 1}</td>
-                    <td>
-                      <div style={{ fontWeight: 600, fontSize: '0.74rem' }}>
-                        {row.tanggal ? new Date(row.tanggal).toLocaleDateString('id-ID') : '-'}
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.8rem' }}>
-                        {row.nama_santri || 'Santri'}
-                      </div>
-                      <div style={{ fontSize: '0.69rem', color: '#64748b' }}>
-                        NIS: {row.nis || '-'} • {row.nama_asrama || 'Asrama'} ({row.nama_kamar || '-'})
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`badge ${
-                        row.kategori === 'Berat' ? 'badge-danger' :
-                        row.kategori === 'Sedang' ? 'badge-warning' : 'badge-info'
-                      }`}>
-                        {row.kategori}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.78rem' }}>
-                        {row.jenis_pelanggaran}
-                      </div>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <span style={{ 
-                        fontWeight: 700, 
-                        color: row.poin_pelanggaran >= 20 ? '#dc2626' : row.poin_pelanggaran >= 10 ? '#d97706' : '#2563eb',
-                        fontSize: '0.78rem' 
-                      }}>
-                        +{row.poin_pelanggaran}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ fontSize: '0.73rem', color: '#475569', maxWidth: '240px', lineHeight: 1.3 }}>
-                        {row.bentuk_tazir}
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`badge ${
-                        row.status_tazir === "Selesai Ta'zir" ? 'badge-success' :
-                        row.status_tazir === 'Sedang Proses' ? 'badge-warning' : 'badge-danger'
-                      }`}>
-                        {row.status_tazir}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ fontSize: '0.73rem', color: '#475569', fontWeight: 500 }}>
-                        {row.musyrif_pencatat}
-                      </div>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div className="table-action-icons">
-                        <button 
-                          className="icon-btn icon-btn-view" 
-                          title="Lihat Detail"
-                          onClick={() => openDetail(row)}
-                        >
-                          <Eye size={13} />
-                        </button>
-
-                        {row.status_tazir !== "Selesai Ta'zir" && (
-                          <button 
-                            className="icon-btn icon-btn-success" 
-                            title="Tandai Selesai Ta'zir"
-                            onClick={() => handleTazirSelesai(row.id)}
-                          >
-                            <CheckCircle size={13} />
-                          </button>
-                        )}
-
-                        <button 
-                          className="icon-btn icon-btn-edit" 
-                          title="Edit Pelanggaran"
-                          onClick={() => openEditForm(row)}
-                        >
-                          <Edit3 size={13} />
-                        </button>
-                        <button 
-                          className="icon-btn icon-btn-delete" 
-                          title="Hapus Data"
-                          onClick={() => handleDelete(row.id, row.jenis_pelanggaran)}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
-      {/* MODAL DETAIL */}
+      {/* ==================================================== */}
+      {/* MODAL DETAIL TATA TERTIB                            */}
+      {/* ==================================================== */}
       {isModalOpen && selectedItem && (
-        <div className="modal-backdrop-custom" onClick={closeModal}>
-          <div className="modal-box-custom modal-md" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header-gradient" style={{ background: 'linear-gradient(135deg, #991b1b 0%, #dc2626 50%, #b91c1c 100%)' }}>
-              <div className="modal-header-content">
-                <div className="modal-header-icon" style={{ background: 'rgba(255,255,255,0.2)' }}>
-                  <ShieldAlert size={22} color="#ffffff" />
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '620px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            border: '1px solid #cbd5e1',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '14px 18px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'linear-gradient(135deg, #b91c1c 0%, #dc2626 100%)',
+              color: '#ffffff'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.2)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, border: '1px solid rgba(255, 255, 255, 0.3)' }}>
+                  <ShieldAlert size={18} />
                 </div>
                 <div>
-                  <h3 style={{ color: '#ffffff', margin: 0, fontSize: '1rem', fontWeight: 800 }}>Detail Pelanggaran & Ta'zir</h3>
-                  <p style={{ color: '#fecaca', margin: 0, fontSize: '0.72rem' }}>
+                  <h3 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>Detail Catatan Pelanggaran</h3>
+                  <p style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.85)', margin: 0 }}>
                     Tanggal: {selectedItem.tanggal ? new Date(selectedItem.tanggal).toLocaleDateString('id-ID') : '-'} • Poin: +{selectedItem.poin_pelanggaran}
                   </p>
                 </div>
               </div>
-              <button className="modal-close-btn" onClick={closeModal}>
-                <X size={16} />
+              <button 
+                onClick={closeModal}
+                style={{ background: 'rgba(255, 255, 255, 0.15)', border: 'none', cursor: 'pointer', color: '#ffffff', padding: '5px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                title="Tutup Modal"
+              >
+                <X size={18} />
               </button>
             </div>
 
-            <div className="modal-body-slate">
-              <div className="detail-card-white" style={{ marginBottom: '10px' }}>
-                <div className="detail-section-title">
-                  <User size={14} className="text-blue" />
-                  <span>IDENTITAS SANTRI</span>
-                </div>
-                <div className="detail-grid-2">
-                  <div className="detail-field">
-                    <label>Nama Lengkap Santri</label>
-                    <p style={{ fontWeight: 800, color: '#0f172a' }}>{selectedItem.nama_santri}</p>
-                  </div>
-                  <div className="detail-field">
-                    <label>NIS Santri</label>
-                    <p>{selectedItem.nis || '-'}</p>
-                  </div>
-                  <div className="detail-field">
-                    <label>Asrama & Kobong</label>
-                    <p>{selectedItem.nama_asrama || '-'} ({selectedItem.nama_kamar || '-'})</p>
-                  </div>
-                  <div className="detail-field">
-                    <label>No. WhatsApp Wali</label>
-                    <p style={{ color: '#059669', fontWeight: 600 }}>{selectedItem.no_wa_wali || '-'}</p>
+            {/* Modal Body */}
+            <div style={{ padding: '18px', background: '#f1f5f9' }}>
+              {/* Profile Card Banner */}
+              <div style={{
+                background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                color: '#ffffff',
+                borderRadius: '8px',
+                padding: '14px 16px',
+                marginBottom: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                border: '1px solid #334155'
+              }}>
+                <div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff' }}>{selectedItem.nama_santri}</div>
+                  <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '2px' }}>
+                    NIS: {selectedItem.nis || '-'} • {selectedItem.nama_asrama || 'Asrama'} ({selectedItem.nama_kamar || '-'})
                   </div>
                 </div>
-              </div>
-
-              <div className="detail-card-white" style={{ marginBottom: '10px' }}>
-                <div className="detail-section-title">
-                  <AlertTriangle size={14} className="text-amber" />
-                  <span>RINCIAN PELANGGARAN</span>
-                </div>
-                <div className="detail-grid-2">
-                  <div className="detail-field">
-                    <label>Kategori Pelanggaran</label>
-                    <span className={`badge ${
-                      selectedItem.kategori === 'Berat' ? 'badge-danger' :
-                      selectedItem.kategori === 'Sedang' ? 'badge-warning' : 'badge-info'
-                    }`}>
-                      {selectedItem.kategori}
-                    </span>
-                  </div>
-                  <div className="detail-field">
-                    <label>Poin Pelanggaran</label>
-                    <p style={{ color: '#dc2626', fontWeight: 800, fontSize: '0.9rem' }}>+{selectedItem.poin_pelanggaran} Poin</p>
-                  </div>
-                  <div className="detail-field" style={{ gridColumn: 'span 2' }}>
-                    <label>Deskripsi Pelanggaran</label>
-                    <p style={{ fontWeight: 600, color: '#1e293b' }}>{selectedItem.jenis_pelanggaran}</p>
-                  </div>
-                  <div className="detail-field">
-                    <label>Musyrif / Petugas Pencatat</label>
-                    <p>{selectedItem.musyrif_pencatat}</p>
-                  </div>
-                  <div className="detail-field">
-                    <label>Notifikasi WhatsApp Wali</label>
-                    <span className={`badge ${selectedItem.wa_notif_wali ? 'badge-success' : 'badge-neutral'}`}>
-                      {selectedItem.wa_notif_wali ? 'Terkirim ke Wali' : 'Tidak Dikirim'}
-                    </span>
-                  </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span className={`badge ${selectedItem.kategori === 'Berat' ? 'badge-danger' : selectedItem.kategori === 'Sedang' ? 'badge-warning' : 'badge-info'}`} style={{ fontSize: '0.74rem', padding: '3px 8px' }}>
+                    Kategori {selectedItem.kategori}
+                  </span>
                 </div>
               </div>
 
-              <div className="detail-card-white">
-                <div className="detail-section-title">
-                  <Award size={14} className="text-green" />
-                  <span>SANKSI & EKSEKUSI TA'ZIR</span>
-                </div>
-                <div className="detail-field" style={{ marginBottom: '10px' }}>
-                  <label>Bentuk Ta'zir Mendidik</label>
-                  <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0', fontWeight: 600, color: '#0f172a', fontSize: '0.8rem' }}>
-                    {selectedItem.bentuk_tazir}
+              {/* Info Grid 2 Kolom */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff', gridColumn: 'span 2' }}>
+                  <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px' }}>
+                    Deskripsi Pelanggaran
                   </div>
+                  <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a' }}>{selectedItem.jenis_pelanggaran}</div>
+                  <div style={{ fontSize: '0.74rem', color: '#dc2626', fontWeight: 700, marginTop: '2px' }}>Akumulasi Poin: +{selectedItem.poin_pelanggaran}</div>
                 </div>
-                <div className="detail-grid-2">
-                  <div className="detail-field">
-                    <label>Status Ta'zir</label>
-                    <span className={`badge ${
-                      selectedItem.status_tazir === "Selesai Ta'zir" ? 'badge-success' :
-                      selectedItem.status_tazir === 'Sedang Proses' ? 'badge-warning' : 'badge-danger'
-                    }`}>
+
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff' }}>
+                  <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px' }}>
+                    Musyrif / Biro Keamanan
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#0f172a' }}>{selectedItem.musyrif_pencatat}</div>
+                </div>
+
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff' }}>
+                  <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px' }}>
+                    Status Eksekusi Ta'zir
+                  </div>
+                  <div style={{ marginTop: '2px' }}>
+                    <span className={`badge ${selectedItem.status_tazir === "Selesai Ta'zir" ? 'badge-success' : selectedItem.status_tazir === 'Sedang Proses' ? 'badge-warning' : 'badge-danger'}`}>
                       {selectedItem.status_tazir}
                     </span>
                   </div>
                 </div>
               </div>
+
+              {/* Sanksi Ta'zir Card */}
+              <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px 16px', background: '#ffffff' }}>
+                <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '6px' }}>
+                  Bentuk Sanksi / Ta'zir Mendidik
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#334155', fontWeight: 600, background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                  {selectedItem.bentuk_tazir}
+                </div>
+              </div>
             </div>
 
-            <div className="modal-footer-slate">
+            {/* Modal Footer */}
+            <div style={{
+              padding: '12px 18px',
+              borderTop: '1px solid #cbd5e1',
+              background: '#ffffff',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '8px'
+            }}>
               {selectedItem.status_tazir !== "Selesai Ta'zir" && (
                 <button 
-                  className="btn btn-add-primary"
+                  className="btn btn-primary"
                   style={{ background: '#059669', borderColor: '#059669' }}
                   onClick={() => {
                     handleTazirSelesai(selectedItem.id);
                     closeModal();
                   }}
                 >
-                  <CheckCircle size={14} />
-                  <span>Nyatakan Selesai Ta'zir</span>
+                  <CheckCircle2 size={13} /> Selesaikan Ta'zir
                 </button>
               )}
               <button className="btn btn-outline" onClick={closeModal}>
@@ -578,41 +605,80 @@ export default function TataTertibView() {
         </div>
       )}
 
-      {/* MODAL FORM (ADD & EDIT) */}
+      {/* ==================================================== */}
+      {/* MODAL FORM (ADD & EDIT)                             */}
+      {/* ==================================================== */}
       {isFormOpen && (
-        <div className="modal-backdrop-custom" onClick={closeForm}>
-          <div className="modal-box-custom modal-md" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header-gradient" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)' }}>
-              <div className="modal-header-content">
-                <div className="modal-header-icon">
-                  <ShieldAlert size={20} color="#ffffff" />
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '620px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            border: '1px solid #cbd5e1',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <div style={{
+              padding: '14px 18px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+              color: '#ffffff'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.15)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>
+                  <ShieldAlert size={18} />
                 </div>
                 <div>
-                  <h3 style={{ color: '#ffffff', margin: 0, fontSize: '0.98rem', fontWeight: 800 }}>
-                    {formMode === 'add' ? 'Catat Pelanggaran Santri Baru' : 'Edit Data Pelanggaran & Ta\'zir'}
+                  <h3 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
+                    {formMode === 'add' ? 'Catat Pelanggaran Santri Baru' : 'Edit Catatan Pelanggaran & Ta\'zir'}
                   </h3>
-                  <p style={{ color: '#94a3b8', margin: 0, fontSize: '0.72rem' }}>
-                    Pastikan informasi pelanggaran dan bentuk ta'zir dicatat secara objektif.
+                  <p style={{ fontSize: '0.7rem', color: '#94a3b8', margin: 0 }}>
+                    Catat pelanggaran dan penentuan sanksi mendidik secara objektif.
                   </p>
                 </div>
               </div>
-              <button className="modal-close-btn" onClick={closeForm}>
-                <X size={16} />
+              <button 
+                onClick={closeForm}
+                style={{ background: 'rgba(255, 255, 255, 0.15)', border: 'none', cursor: 'pointer', color: '#ffffff', padding: '5px', borderRadius: '6px' }}
+                title="Tutup Form"
+              >
+                <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleSave}>
-              <div className="modal-body-slate">
-                <div className="detail-card-white" style={{ marginBottom: '10px' }}>
-                  <div className="detail-section-title">
-                    <User size={14} className="text-blue" />
-                    <span>SANTRI & TANGGAL KEJADIAN</span>
+              <div style={{ padding: '18px', background: '#f1f5f9' }}>
+                
+                {/* Santri & Tanggal Card */}
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px', background: '#ffffff', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <User size={14} color="#0284c7" /> SANTRI & TANGGAL
                   </div>
-                  <div className="form-grid-2">
-                    <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                      <label className="form-label">Pilih Santri Pelanggar *</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div style={{ gridColumn: 'span 2' }}>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Pilih Santri Pelanggar *</label>
                       <select 
-                        className="form-input-control"
+                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.santri_id}
                         onChange={(e) => setFormData({ ...formData, santri_id: e.target.value })}
                         required
@@ -626,21 +692,21 @@ export default function TataTertibView() {
                       </select>
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">Tanggal Pelanggaran *</label>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Tanggal Pelanggaran *</label>
                       <input 
-                        type="date" 
-                        className="form-input-control"
+                        type="date"
+                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.tanggal}
                         onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
                         required
                       />
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">Kategori Tingkat *</label>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Kategori Tingkat *</label>
                       <select 
-                        className="form-input-control"
+                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.kategori}
                         onChange={(e) => {
                           const kat = e.target.value;
@@ -657,43 +723,43 @@ export default function TataTertibView() {
                   </div>
                 </div>
 
-                <div className="detail-card-white" style={{ marginBottom: '10px' }}>
-                  <div className="detail-section-title">
-                    <AlertTriangle size={14} className="text-amber" />
-                    <span>PELANGGARAN & POIN</span>
+                {/* Jenis & Poin Card */}
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px', background: '#ffffff', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <AlertTriangle size={14} color="#d97706" /> PELANGGARAN & POIN
                   </div>
-                  <div className="form-grid-2">
-                    <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                      <label className="form-label">Jenis Pelanggaran *</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div style={{ gridColumn: 'span 2' }}>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Jenis Pelanggaran *</label>
                       <input 
-                        type="text" 
-                        className="form-input-control"
-                        placeholder="Contoh: Terlambat Shalat Berjamaah, Keluar Komplek Tanpa Izin..."
+                        type="text"
+                        placeholder="Contoh: Terlambat Shalat Berjamaah, Membawa HP..."
+                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.jenis_pelanggaran}
                         onChange={(e) => setFormData({ ...formData, jenis_pelanggaran: e.target.value })}
                         required
                       />
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">Poin Pelanggaran *</label>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Poin Pelanggaran *</label>
                       <input 
-                        type="number" 
-                        className="form-input-control"
+                        type="number"
                         min="1"
                         max="100"
+                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.poin_pelanggaran}
                         onChange={(e) => setFormData({ ...formData, poin_pelanggaran: parseInt(e.target.value) || 0 })}
                         required
                       />
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">Musyrif / Petugas Pencatat *</label>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Musyrif Pencatat *</label>
                       <input 
-                        type="text" 
-                        className="form-input-control"
+                        type="text"
                         placeholder="Nama Ustadz / Musyrif"
+                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.musyrif_pencatat}
                         onChange={(e) => setFormData({ ...formData, musyrif_pencatat: e.target.value })}
                         required
@@ -702,28 +768,28 @@ export default function TataTertibView() {
                   </div>
                 </div>
 
-                <div className="detail-card-white">
-                  <div className="detail-section-title">
-                    <Award size={14} className="text-green" />
-                    <span>BENTUK TA'ZIR & STATUS</span>
+                {/* Sanksi & Status */}
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px', background: '#ffffff' }}>
+                  <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Award size={14} color="#059669" /> BENTUK TA'ZIR & STATUS
                   </div>
-                  <div className="form-group" style={{ marginBottom: '10px' }}>
-                    <label className="form-label">Bentuk Ta'zir Mendidik *</label>
+                  <div style={{ marginBottom: '10px' }}>
+                    <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Bentuk Ta'zir Mendidik *</label>
                     <textarea 
-                      className="form-input-control"
+                      style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                       rows="2"
-                      placeholder="Contoh: Membaca Surat Al-Mulk, membersihkan aula asrama, dll."
+                      placeholder="Contoh: Membaca Surat Al-Mulk, membersihkan aula asrama..."
                       value={formData.bentuk_tazir}
                       onChange={(e) => setFormData({ ...formData, bentuk_tazir: e.target.value })}
                       required
                     />
                   </div>
 
-                  <div className="form-grid-2">
-                    <div className="form-group">
-                      <label className="form-label">Status Ta'zir *</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Status Ta'zir *</label>
                       <select 
-                        className="form-input-control"
+                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.status_tazir}
                         onChange={(e) => setFormData({ ...formData, status_tazir: e.target.value })}
                         required
@@ -734,14 +800,14 @@ export default function TataTertibView() {
                       </select>
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">Kirim Notifikasi WA Wali</label>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Notif WA Wali</label>
                       <select 
-                        className="form-input-control"
+                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.wa_notif_wali}
                         onChange={(e) => setFormData({ ...formData, wa_notif_wali: parseInt(e.target.value) })}
                       >
-                        <option value={1}>Ya, Kirim Otomatis</option>
+                        <option value={1}>Ya, Kirim Notifikasi</option>
                         <option value={0}>Tidak Perlu</option>
                       </select>
                     </div>
@@ -749,11 +815,19 @@ export default function TataTertibView() {
                 </div>
               </div>
 
-              <div className="modal-footer-slate">
+              {/* Modal Footer */}
+              <div style={{
+                padding: '12px 18px',
+                borderTop: '1px solid #cbd5e1',
+                background: '#ffffff',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '8px'
+              }}>
                 <button type="button" className="btn btn-outline" onClick={closeForm}>
                   Batal
                 </button>
-                <button type="submit" className="btn btn-add-primary" disabled={submitting}>
+                <button type="submit" className="btn btn-primary" style={{ background: '#dc2626', borderColor: '#dc2626' }} disabled={submitting}>
                   {submitting ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
                   <span>{formMode === 'add' ? 'Simpan Catatan' : 'Simpan Perubahan'}</span>
                 </button>

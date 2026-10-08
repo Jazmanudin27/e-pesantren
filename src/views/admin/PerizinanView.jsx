@@ -3,25 +3,23 @@ import axios from 'axios';
 import { 
   DoorOpen, 
   Plus, 
-  RotateCw, 
   Search, 
+  RotateCw, 
   Eye, 
   Edit3, 
   Trash2, 
-  Loader2, 
   QrCode, 
-  CheckCircle, 
+  CheckCircle2, 
   LogOut, 
   LogIn, 
+  Loader2, 
   X, 
-  Save, 
   User, 
-  Phone, 
-  Clock, 
+  Building, 
   Calendar, 
-  FileText, 
-  ShieldCheck,
-  AlertTriangle
+  Clock, 
+  Save, 
+  Phone 
 } from 'lucide-react';
 
 export default function PerizinanView() {
@@ -31,8 +29,9 @@ export default function PerizinanView() {
   const [activeFilterTab, setActiveFilterTab] = useState('semua');
   const [search, setSearch] = useState('');
   const [filterJenis, setFilterJenis] = useState('Semua Jenis');
+  const [filterStatus, setFilterStatus] = useState('Semua Status');
 
-  // Modal Detail
+  // Modal Detail State
   const [selectedItem, setSelectedItem] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -44,7 +43,7 @@ export default function PerizinanView() {
     id: null,
     santri_id: '',
     jenis_izin: 'Izin Pulang',
-    keperluan: 'Kepentingan keluarga / libur semester',
+    keperluan: 'Kepentingan keluarga / libur pondok',
     tgl_keluar_rencana: new Date().toISOString().slice(0, 16),
     tgl_kembali_rencana: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
     nama_penjemput_mahrom: '',
@@ -91,12 +90,12 @@ export default function PerizinanView() {
 
   const openAddForm = () => {
     setFormMode('add');
-    const firstSantri = santriList.length > 0 ? santriList[0] : null;
+    const firstSantri = santriList[0];
     setFormData({
       id: null,
-      santri_id: firstSantri ? firstSantri.id : '',
+      santri_id: firstSantri?.id || '',
       jenis_izin: 'Izin Pulang',
-      keperluan: 'Kepentingan keluarga / libur semester',
+      keperluan: 'Kepentingan keluarga / libur pondok',
       tgl_keluar_rencana: new Date().toISOString().slice(0, 16),
       tgl_kembali_rencana: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
       nama_penjemput_mahrom: firstSantri ? firstSantri.nama_wali || '' : '',
@@ -186,7 +185,7 @@ export default function PerizinanView() {
   const handleGateCheckout = async (id) => {
     if (window.confirm('Verifikasi santri keluar gerbang pondok sekarang?')) {
       try {
-        await axios.post('/api/perizinan/checkout', { id, satpam: 'Petugas Pos Gerbang Utama' });
+        await axios.post('/api/perizinan/checkout', { id, satpam: 'Petugas Pos Gerbang' });
         fetchData();
       } catch (err) {
         alert('Gagal check-out: ' + err.message);
@@ -197,7 +196,7 @@ export default function PerizinanView() {
   const handleGateCheckin = async (id) => {
     if (window.confirm('Verifikasi santri telah tiba dan masuk kembali ke pondok?')) {
       try {
-        await axios.post('/api/perizinan/checkin', { id, satpam: 'Petugas Pos Gerbang Utama' });
+        await axios.post('/api/perizinan/checkin', { id, satpam: 'Petugas Pos Gerbang' });
         fetchData();
       } catch (err) {
         alert('Gagal check-in: ' + err.message);
@@ -209,7 +208,7 @@ export default function PerizinanView() {
   const totalIzin = izinList.length;
   const countAktifKeluar = izinList.filter(i => i.status === 'Aktif Keluar').length;
   const countTepatWaktu = izinList.filter(i => i.status === 'Kembali Tepat Waktu').length;
-  const countTerlambat = izinList.filter(i => i.status === 'Terlambat Kembali').length;
+  const countTerlambat = izinList.filter(i => i.status === 'Terlambat Kembali' || i.status === 'Menunggu Persetujuan').length;
 
   const filteredList = izinList.filter((row) => {
     const q = search.toLowerCase();
@@ -225,408 +224,450 @@ export default function PerizinanView() {
 
     const matchTab = 
       activeFilterTab === 'semua' ? true :
-      activeFilterTab === 'menunggu' ? row.status === 'Menunggu Persetujuan' :
       activeFilterTab === 'disetujui' ? row.status === 'Disetujui Pengasuh' :
       activeFilterTab === 'keluar' ? row.status === 'Aktif Keluar' :
       activeFilterTab === 'selesai' ? (row.status === 'Kembali Tepat Waktu' || row.status === 'Terlambat Kembali') : true;
 
     const matchJenis = filterJenis === 'Semua Jenis' ? true : row.jenis_izin === filterJenis;
+    const matchStatus = filterStatus === 'Semua Status' ? true : row.status === filterStatus;
 
-    return matchSearch && matchTab && matchJenis;
+    return matchSearch && matchTab && matchJenis && matchStatus;
   });
 
   return (
-    <div className="tab-content-fade">
-      {/* 4 TOP VIBRANT STAT CARDS */}
-      <div className="stat-cards-grid">
-        <div className="stat-vibrant-card stat-card-blue">
-          <div className="stat-vibrant-header">
-            <span>TOTAL PENGAJUAN IZIN</span>
-            <div className="stat-vibrant-icon"><DoorOpen size={16} /></div>
+    <div>
+      {/* 1. TOP 4 COLORED STATS CARDS */}
+      <div className="top-stats-grid">
+        <div className="stat-card-colored stat-card-blue">
+          <div>
+            <div className="stat-colored-title">TOTAL PENGAJUAN IZIN</div>
+            <div className="stat-colored-number">{totalIzin}</div>
           </div>
-          <div className="stat-vibrant-number">{totalIzin}</div>
-          <div className="stat-vibrant-sub">Surat perizinan santri terdata</div>
+          <div className="stat-colored-icon-box">
+            <DoorOpen size={22} />
+          </div>
         </div>
 
-        <div className="stat-vibrant-card stat-card-amber">
-          <div className="stat-vibrant-header">
-            <span>SANTRI AKTIF DI LUAR</span>
-            <div className="stat-vibrant-icon"><LogOut size={16} /></div>
+        <div className="stat-card-colored stat-card-amber">
+          <div>
+            <div className="stat-colored-title">SANTRI AKTIF DI LUAR</div>
+            <div className="stat-colored-number">{countAktifKeluar}</div>
           </div>
-          <div className="stat-vibrant-number">{countAktifKeluar}</div>
-          <div className="stat-vibrant-sub">Sedang berada di luar komplek</div>
+          <div className="stat-colored-icon-box">
+            <LogOut size={22} />
+          </div>
         </div>
 
-        <div className="stat-vibrant-card stat-card-green">
-          <div className="stat-vibrant-header">
-            <span>KEMBALI TEPAT WAKTU</span>
-            <div className="stat-vibrant-icon"><CheckCircle size={16} /></div>
+        <div className="stat-card-colored stat-card-green">
+          <div>
+            <div className="stat-colored-title">KEMBALI TEPAT WAKTU</div>
+            <div className="stat-colored-number">{countTepatWaktu}</div>
           </div>
-          <div className="stat-vibrant-number">{countTepatWaktu}</div>
-          <div className="stat-vibrant-sub">Check-in sesuai jadwal izin</div>
+          <div className="stat-colored-icon-box">
+            <CheckCircle2 size={22} />
+          </div>
         </div>
 
-        <div className="stat-vibrant-card stat-card-purple">
-          <div className="stat-vibrant-header">
-            <span>TERLAMBAT KEMBALI</span>
-            <div className="stat-vibrant-icon"><AlertTriangle size={16} /></div>
+        <div className="stat-card-colored stat-card-purple">
+          <div>
+            <div className="stat-colored-title">MENUNGGU / TERLAMBAT</div>
+            <div className="stat-colored-number">{countTerlambat}</div>
           </div>
-          <div className="stat-vibrant-number">{countTerlambat}</div>
-          <div className="stat-vibrant-sub">Melebihi estimasi batas jam</div>
+          <div className="stat-colored-icon-box">
+            <Clock size={22} />
+          </div>
         </div>
       </div>
 
-      {/* PAGE TITLE STRIP WITH ACTIONS */}
+      {/* 2. TITLE STRIP */}
       <div className="page-title-strip">
-        <div>
-          <h2>Perizinan Keluar & Validasi Gerbang Satpam</h2>
-          <p>Manajemen perizinan pulang santri, verifikasi mahrom penjemput, barcode digital, dan monitoring pos gerbang.</p>
+        <div className="page-title-left">
+          <DoorOpen size={22} className="page-title-icon" style={{ color: '#0284c7' }} />
+          <div>
+            <h2>Perizinan Santri & Validasi Gerbang Satpam</h2>
+            <p>Kelola surat izin santri, barcode digital gate pass, data mahrom penjemput, dan kepulangan santri</p>
+          </div>
         </div>
-        <div className="action-buttons-group">
-          <button className="btn btn-refresh" onClick={fetchData} title="Refresh Data">
-            <RotateCw size={13} className={loading ? 'animate-spin' : ''} />
-            <span>Refresh</span>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="btn btn-outline" onClick={fetchData}>
+            <RotateCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
-          <button className="btn btn-add-primary" onClick={openAddForm}>
-            <Plus size={14} />
-            <span>+ Buat Surat Izin Baru</span>
+          <button className="btn btn-primary" onClick={openAddForm}>
+            <Plus size={14} /> + Buat Surat Izin Baru
           </button>
         </div>
       </div>
 
-      {/* MAIN CONTAINER CARD */}
-      <div className="main-data-card">
-        {/* TABS & FILTER BAR */}
-        <div className="toolbar-section">
-          <div className="tab-pills-row">
-            <button 
-              className={`tab-pill-item ${activeFilterTab === 'semua' ? 'active' : ''}`}
-              onClick={() => setActiveFilterTab('semua')}
-            >
-              Semua ({izinList.length})
-            </button>
-            <button 
-              className={`tab-pill-item ${activeFilterTab === 'disetujui' ? 'active' : ''}`}
-              onClick={() => setActiveFilterTab('disetujui')}
-            >
-              Siap Keluar ({izinList.filter(i => i.status === 'Disetujui Pengasuh').length})
-            </button>
-            <button 
-              className={`tab-pill-item ${activeFilterTab === 'keluar' ? 'active' : ''}`}
-              onClick={() => setActiveFilterTab('keluar')}
-            >
-              Aktif Keluar ({countAktifKeluar})
-            </button>
-            <button 
-              className={`tab-pill-item ${activeFilterTab === 'selesai' ? 'active' : ''}`}
-              onClick={() => setActiveFilterTab('selesai')}
-            >
-              Selesai / Kembali ({countTepatWaktu + countTerlambat})
-            </button>
-          </div>
+      {/* 3. TAB FILTER BAR */}
+      <div className="tab-filter-bar">
+        <button 
+          className={`tab-btn ${activeFilterTab === 'semua' ? 'active' : ''}`}
+          onClick={() => setActiveFilterTab('semua')}
+        >
+          <DoorOpen size={14} /> Semua Permohonan ({izinList.length})
+        </button>
+        <button 
+          className={`tab-btn ${activeFilterTab === 'disetujui' ? 'active' : ''}`}
+          onClick={() => setActiveFilterTab('disetujui')}
+        >
+          <CheckCircle2 size={14} /> Siap Keluar ({izinList.filter(i => i.status === 'Disetujui Pengasuh').length})
+        </button>
+        <button 
+          className={`tab-btn ${activeFilterTab === 'keluar' ? 'active' : ''}`}
+          onClick={() => setActiveFilterTab('keluar')}
+        >
+          <LogOut size={14} /> Aktif di Luar ({countAktifKeluar})
+        </button>
+        <button 
+          className={`tab-btn ${activeFilterTab === 'selesai' ? 'active' : ''}`}
+          onClick={() => setActiveFilterTab('selesai')}
+        >
+          <LogIn size={14} /> Selesai / Tiba ({countTepatWaktu + izinList.filter(i => i.status === 'Terlambat Kembali').length})
+        </button>
+      </div>
 
-          <div className="search-filter-row">
-            <div className="search-input-box">
-              <Search size={14} color="#94a3b8" />
-              <input 
-                type="text" 
-                placeholder="Cari santri, barcode, kode izin, atau penjemput..." 
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-              {search && (
-                <button className="search-clear-btn" onClick={() => setSearch('')}>
-                  <X size={13} />
-                </button>
-              )}
-            </div>
-
-            <div className="filter-dropdown-group">
-              <select 
-                className="filter-select-input"
-                value={filterJenis}
-                onChange={(e) => setFilterJenis(e.target.value)}
-              >
-                <option value="Semua Jenis">Semua Jenis Izin</option>
-                <option value="Izin Pulang">Izin Pulang</option>
-                <option value="Izin Berobat">Izin Berobat</option>
-                <option value="Izin Keluar Komplek">Izin Keluar Komplek</option>
-                <option value="Izin Khusus">Izin Khusus</option>
-              </select>
-            </div>
-          </div>
+      {/* 4. FILTER SEARCH BAR STRIP */}
+      <div className="filter-search-box">
+        <div className="filter-search-input">
+          <Search size={15} color="#94a3b8" />
+          <input 
+            type="text" 
+            placeholder="Cari barcode, nama santri, NIS, atau nama penjemput..." 
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
+        <select 
+          className="filter-select"
+          value={filterJenis}
+          onChange={(e) => setFilterJenis(e.target.value)}
+        >
+          <option>Semua Jenis</option>
+          <option>Izin Pulang</option>
+          <option>Izin Berobat</option>
+          <option>Izin Keluar Komplek</option>
+          <option>Izin Khusus</option>
+        </select>
+        <select 
+          className="filter-select"
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+        >
+          <option>Semua Status</option>
+          <option>Disetujui Pengasuh</option>
+          <option>Menunggu Persetujuan</option>
+          <option>Aktif Keluar</option>
+          <option>Kembali Tepat Waktu</option>
+          <option>Terlambat Kembali</option>
+        </select>
+      </div>
 
-        {/* DATA TABLE */}
-        <div className="table-responsive">
-          {loading ? (
-            <div className="loading-state">
-              <Loader2 size={24} className="animate-spin text-blue" />
-              <span>Memuat data perizinan santri...</span>
-            </div>
-          ) : filteredList.length === 0 ? (
-            <div className="empty-state">
-              <DoorOpen size={36} color="#cbd5e1" />
-              <h4>Tidak ada perizinan ditemukan</h4>
-              <p>Silakan sesuaikan kata kunci pencarian atau buat surat izin baru.</p>
-            </div>
-          ) : (
-            <table className="custom-bordered-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '45px', textAlign: 'center' }}>NO</th>
-                  <th style={{ width: '135px' }}>BARCODE & KODE</th>
-                  <th>NAMA SANTRI & ASRAMA</th>
-                  <th style={{ width: '110px' }}>JENIS IZIN</th>
-                  <th>RENCANA JADWAL</th>
-                  <th>PENJEMPUT / MAHROM</th>
-                  <th style={{ width: '125px' }}>STATUS</th>
-                  <th style={{ width: '130px', textAlign: 'center' }}>POS GERBANG</th>
-                  <th style={{ width: '85px', textAlign: 'center' }}>AKSI</th>
+      {/* 5. DATA TABLE */}
+      <div className="table-container-card">
+        {loading ? (
+          <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
+            <Loader2 size={24} className="animate-spin" /> Memuat data perizinan...
+          </div>
+        ) : filteredList.length === 0 ? (
+          <div style={{ padding: '30px', textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>
+            Belum ada data perizinan santri di database.
+          </div>
+        ) : (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th className="td-center" style={{ width: '40px' }}>NO</th>
+                <th className="td-center" style={{ width: '135px' }}>BARCODE & KODE</th>
+                <th>NAMA SANTRI & ASRAMA</th>
+                <th className="td-center">JENIS IZIN</th>
+                <th>RENCANA JADWAL</th>
+                <th>PENJEMPUT / MAHROM</th>
+                <th className="td-center">STATUS</th>
+                <th className="td-center" style={{ width: '130px' }}>POS GERBANG</th>
+                <th className="td-center" style={{ width: '130px' }}>AKSI</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredList.map((row, idx) => (
+                <tr key={row.id || idx}>
+                  <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
+                    {idx + 1}
+                  </td>
+                  <td className="td-center">
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: '#059669', fontWeight: 700, fontSize: '0.74rem' }}>
+                      <QrCode size={13} />
+                      <span>{row.barcode || 'PSN-IZN'}</span>
+                    </div>
+                    <div style={{ fontSize: '0.67rem', color: '#64748b' }}>
+                      {row.kode_izin}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{row.nama_santri}</div>
+                    <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>
+                      NIS: {row.nis || '-'} • {row.nama_asrama || 'Asrama'} ({row.nama_kamar || '-'})
+                    </div>
+                  </td>
+                  <td className="td-center">
+                    <span className={`badge ${
+                      row.jenis_izin === 'Izin Pulang' ? 'badge-primary' :
+                      row.jenis_izin === 'Izin Berobat' ? 'badge-danger' :
+                      row.jenis_izin === 'Izin Keluar Komplek' ? 'badge-warning' : 'badge-purple'
+                    }`}>
+                      {row.jenis_izin}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ fontSize: '0.72rem', color: '#334155' }}>
+                      <strong>Keluar:</strong> {row.tgl_keluar_rencana ? new Date(row.tgl_keluar_rencana).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) : '-'}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#dc2626' }}>
+                      <strong>Kembali:</strong> {row.tgl_kembali_rencana ? new Date(row.tgl_kembali_rencana).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) : '-'}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.76rem' }}>
+                      {row.nama_penjemput_mahrom || '-'}
+                    </div>
+                    <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                      {row.hubungan_mahrom} {row.no_hp_penjemput ? `• ${row.no_hp_penjemput}` : ''}
+                    </div>
+                  </td>
+                  <td className="td-center">
+                    <span className={`badge ${
+                      row.status === 'Kembali Tepat Waktu' ? 'badge-success' :
+                      row.status === 'Aktif Keluar' ? 'badge-danger' :
+                      row.status === 'Disetujui Pengasuh' ? 'badge-info' : 'badge-warning'
+                    }`}>
+                      {row.status}
+                    </span>
+                  </td>
+                  <td className="td-center">
+                    {row.status === 'Disetujui Pengasuh' && (
+                      <button 
+                        className="btn btn-warning btn-sm"
+                        style={{ fontSize: '0.68rem', padding: '3px 7px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                        onClick={() => handleGateCheckout(row.id)}
+                        title="Santri Keluar Gerbang"
+                      >
+                        <LogOut size={11} /> Keluar Gerbang
+                      </button>
+                    )}
+
+                    {row.status === 'Aktif Keluar' && (
+                      <button 
+                        className="btn btn-primary btn-sm"
+                        style={{ fontSize: '0.68rem', padding: '3px 7px', background: '#059669', borderColor: '#059669', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                        onClick={() => handleGateCheckin(row.id)}
+                        title="Santri Masuk / Tiba Kembali"
+                      >
+                        <LogIn size={11} /> Check-In Masuk
+                      </button>
+                    )}
+
+                    {row.status === 'Kembali Tepat Waktu' && (
+                      <span style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                        <CheckCircle2 size={12} /> Tuntas
+                      </span>
+                    )}
+
+                    {row.status === 'Menunggu Persetujuan' && (
+                      <span style={{ fontSize: '0.7rem', color: '#d97706', fontWeight: 600 }}>
+                        Menunggu ACC
+                      </span>
+                    )}
+                  </td>
+                  <td className="td-center">
+                    <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
+                      <button 
+                        className="btn btn-success btn-sm"
+                        onClick={() => openDetail(row)}
+                        title="Lihat Pass & Detail"
+                      >
+                        <Eye size={12} />
+                      </button>
+                      <button 
+                        className="btn btn-warning btn-sm"
+                        onClick={() => openEditForm(row)}
+                        title="Edit Izin"
+                      >
+                        <Edit3 size={12} />
+                      </button>
+                      <button 
+                        className="btn btn-danger btn-sm"
+                        onClick={() => handleDelete(row.id, row.barcode || row.kode_izin)}
+                        title="Hapus Izin"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filteredList.map((row, idx) => (
-                  <tr key={row.id}>
-                    <td style={{ textAlign: 'center', color: '#64748b' }}>{idx + 1}</td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#059669', fontWeight: 700, fontSize: '0.74rem' }}>
-                        <QrCode size={13} />
-                        <span>{row.barcode || 'PSN-IZN'}</span>
-                      </div>
-                      <div style={{ fontSize: '0.67rem', color: '#64748b' }}>
-                        {row.kode_izin}
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.8rem' }}>
-                        {row.nama_santri}
-                      </div>
-                      <div style={{ fontSize: '0.69rem', color: '#64748b' }}>
-                        NIS: {row.nis || '-'} • {row.nama_asrama || 'Asrama'} ({row.nama_kamar || '-'})
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`badge ${
-                        row.jenis_izin === 'Izin Pulang' ? 'badge-primary' :
-                        row.jenis_izin === 'Izin Berobat' ? 'badge-danger' :
-                        row.jenis_izin === 'Izin Keluar Komplek' ? 'badge-warning' : 'badge-purple'
-                      }`}>
-                        {row.jenis_izin}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ fontSize: '0.72rem', color: '#334155' }}>
-                        <strong>Keluar:</strong> {row.tgl_keluar_rencana ? new Date(row.tgl_keluar_rencana).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) : '-'}
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: '#dc2626' }}>
-                        <strong>Kembali:</strong> {row.tgl_kembali_rencana ? new Date(row.tgl_kembali_rencana).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) : '-'}
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.76rem' }}>
-                        {row.nama_penjemput_mahrom || '-'}
-                      </div>
-                      <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
-                        {row.hubungan_mahrom} {row.no_hp_penjemput ? `• ${row.no_hp_penjemput}` : ''}
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`badge ${
-                        row.status === 'Kembali Tepat Waktu' ? 'badge-success' :
-                        row.status === 'Aktif Keluar' ? 'badge-danger' :
-                        row.status === 'Disetujui Pengasuh' ? 'badge-info' : 'badge-warning'
-                      }`}>
-                        {row.status}
-                      </span>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      {row.status === 'Disetujui Pengasuh' && (
-                        <button 
-                          className="btn btn-warning btn-sm"
-                          style={{ fontSize: '0.68rem', padding: '3px 7px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
-                          onClick={() => handleGateCheckout(row.id)}
-                          title="Santri Keluar Gerbang"
-                        >
-                          <LogOut size={11} /> Keluar Gerbang
-                        </button>
-                      )}
-
-                      {row.status === 'Aktif Keluar' && (
-                        <button 
-                          className="btn btn-primary btn-sm"
-                          style={{ fontSize: '0.68rem', padding: '3px 7px', background: '#059669', borderColor: '#059669', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
-                          onClick={() => handleGateCheckin(row.id)}
-                          title="Santri Tiba / Masuk Kembali"
-                        >
-                          <LogIn size={11} /> Check-In Masuk
-                        </button>
-                      )}
-
-                      {row.status === 'Kembali Tepat Waktu' && (
-                        <span style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                          <CheckCircle size={12} /> Tuntas
-                        </span>
-                      )}
-
-                      {row.status === 'Menunggu Persetujuan' && (
-                        <span style={{ fontSize: '0.7rem', color: '#d97706', fontWeight: 600 }}>
-                          Menunggu ACC
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div className="table-action-icons">
-                        <button 
-                          className="icon-btn icon-btn-view" 
-                          title="Lihat Pass Gerbang & Detail"
-                          onClick={() => openDetail(row)}
-                        >
-                          <Eye size={13} />
-                        </button>
-                        <button 
-                          className="icon-btn icon-btn-edit" 
-                          title="Edit Izin"
-                          onClick={() => openEditForm(row)}
-                        >
-                          <Edit3 size={13} />
-                        </button>
-                        <button 
-                          className="icon-btn icon-btn-delete" 
-                          title="Hapus Izin"
-                          onClick={() => handleDelete(row.id, row.barcode || row.kode_izin)}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
-      {/* MODAL DETAIL (PASS DIGITAL GERBANG) */}
+      {/* ==================================================== */}
+      {/* MODAL DETAIL PERIZINAN & DIGITAL GATE PASS          */}
+      {/* ==================================================== */}
       {isModalOpen && selectedItem && (
-        <div className="modal-backdrop-custom" onClick={closeModal}>
-          <div className="modal-box-custom modal-md" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header-gradient" style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%)' }}>
-              <div className="modal-header-content">
-                <div className="modal-header-icon" style={{ background: 'rgba(255,255,255,0.2)' }}>
-                  <QrCode size={22} color="#ffffff" />
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '620px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            border: '1px solid #cbd5e1',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '14px 18px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+              color: '#ffffff'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.2)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, border: '1px solid rgba(255, 255, 255, 0.3)' }}>
+                  <QrCode size={18} />
                 </div>
                 <div>
-                  <h3 style={{ color: '#ffffff', margin: 0, fontSize: '1rem', fontWeight: 800 }}>Digital Gate Pass & Surat Izin</h3>
-                  <p style={{ color: '#bfdbfe', margin: 0, fontSize: '0.72rem' }}>
-                    Kode: {selectedItem.kode_izin} • Barcode: {selectedItem.barcode}
+                  <h3 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>Digital Gate Pass & Surat Izin</h3>
+                  <p style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.85)', margin: 0 }}>
+                    Barcode: {selectedItem.barcode} • Kode: {selectedItem.kode_izin}
                   </p>
                 </div>
               </div>
-              <button className="modal-close-btn" onClick={closeModal}>
-                <X size={16} />
+              <button 
+                onClick={closeModal}
+                style={{ background: 'rgba(255, 255, 255, 0.15)', border: 'none', cursor: 'pointer', color: '#ffffff', padding: '5px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                title="Tutup Modal"
+              >
+                <X size={18} />
               </button>
             </div>
 
-            <div className="modal-body-slate">
-              {/* BARCODE BADGE CARD */}
-              <div className="detail-card-white" style={{ textAlign: 'center', marginBottom: '10px', background: '#f8fafc', border: '2px dashed #93c5fd' }}>
-                <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, letterSpacing: '1px' }}>VALIDASI DIGITAL GERBANG SANTRI</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#1e3a8a', margin: '4px 0', letterSpacing: '2px' }}>
+            {/* Modal Body */}
+            <div style={{ padding: '18px', background: '#f1f5f9' }}>
+              
+              {/* Barcode Banner Card */}
+              <div style={{
+                background: '#ffffff',
+                border: '2px dashed #0284c7',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                textAlign: 'center',
+                marginBottom: '14px'
+              }}>
+                <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, letterSpacing: '1px' }}>
+                  VALIDASI DIGITAL GERBANG UTAMA
+                </div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0284c7', margin: '4px 0', letterSpacing: '2px' }}>
                   {selectedItem.barcode}
                 </div>
-                <span className={`badge ${
-                  selectedItem.status === 'Kembali Tepat Waktu' ? 'badge-success' :
-                  selectedItem.status === 'Aktif Keluar' ? 'badge-danger' : 'badge-info'
-                }`}>
+                <span className={`badge ${selectedItem.status === 'Kembali Tepat Waktu' ? 'badge-success' : selectedItem.status === 'Aktif Keluar' ? 'badge-danger' : 'badge-info'}`}>
                   Status: {selectedItem.status}
                 </span>
               </div>
 
-              <div className="detail-card-white" style={{ marginBottom: '10px' }}>
-                <div className="detail-section-title">
-                  <User size={14} className="text-blue" />
-                  <span>IDENTITAS SANTRI</span>
+              {/* Info Grid 2 Kolom */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff' }}>
+                  <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px' }}>
+                    Nama Santri
+                  </div>
+                  <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>{selectedItem.nama_santri}</div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>NIS: {selectedItem.nis || '-'}</div>
                 </div>
-                <div className="detail-grid-2">
-                  <div className="detail-field">
-                    <label>Nama Santri</label>
-                    <p style={{ fontWeight: 800, color: '#0f172a' }}>{selectedItem.nama_santri}</p>
+
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff' }}>
+                  <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px' }}>
+                    Asrama & Kobong
                   </div>
-                  <div className="detail-field">
-                    <label>NIS Santri</label>
-                    <p>{selectedItem.nis || '-'}</p>
+                  <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#0f172a' }}>{selectedItem.nama_asrama || '-'}</div>
+                  <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 600 }}>{selectedItem.nama_kamar || '-'}</div>
+                </div>
+
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff', gridColumn: 'span 2' }}>
+                  <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px' }}>
+                    Keperluan & Jenis Izin
                   </div>
-                  <div className="detail-field">
-                    <label>Asrama & Kobong</label>
-                    <p>{selectedItem.nama_asrama || '-'} ({selectedItem.nama_kamar || '-'})</p>
+                  <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#0284c7', marginBottom: '2px' }}>{selectedItem.jenis_izin}</div>
+                  <div style={{ fontSize: '0.78rem', color: '#334155' }}>{selectedItem.keperluan}</div>
+                </div>
+
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff' }}>
+                  <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px' }}>
+                    Rencana Keluar Pondok
                   </div>
-                  <div className="detail-field">
-                    <label>Jenis Permohonan</label>
-                    <span className="badge badge-primary">{selectedItem.jenis_izin}</span>
+                  <div style={{ fontWeight: 600, fontSize: '0.76rem', color: '#0f172a' }}>
+                    {selectedItem.tgl_keluar_rencana ? new Date(selectedItem.tgl_keluar_rencana).toLocaleString('id-ID') : '-'}
                   </div>
-                  <div className="detail-field" style={{ gridColumn: 'span 2' }}>
-                    <label>Keperluan Izin</label>
-                    <p style={{ color: '#334155', fontWeight: 500 }}>{selectedItem.keperluan}</p>
+                </div>
+
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff' }}>
+                  <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#dc2626', fontWeight: 700, marginBottom: '4px' }}>
+                    Batas Maksimal Kembali
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: '0.76rem', color: '#dc2626' }}>
+                    {selectedItem.tgl_kembali_rencana ? new Date(selectedItem.tgl_kembali_rencana).toLocaleString('id-ID') : '-'}
                   </div>
                 </div>
               </div>
 
-              <div className="detail-card-white" style={{ marginBottom: '10px' }}>
-                <div className="detail-section-title">
-                  <Clock size={14} className="text-amber" />
-                  <span>RENTANG WAKTU & AKTUAL GERBANG</span>
+              {/* Data Mahrom Card */}
+              <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px 16px', background: '#ffffff' }}>
+                <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Phone size={14} color="#059669" /> Data Penjemput Mahrom Sah & Persetujuan
                 </div>
-                <div className="detail-grid-2">
-                  <div className="detail-field">
-                    <label>Rencana Keluar</label>
-                    <p>{selectedItem.tgl_keluar_rencana ? new Date(selectedItem.tgl_keluar_rencana).toLocaleString('id-ID') : '-'}</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.76rem' }}>
+                  <div>
+                    <span style={{ color: '#64748b' }}>Nama Penjemput:</span> <strong>{selectedItem.nama_penjemput_mahrom || '-'}</strong>
                   </div>
-                  <div className="detail-field">
-                    <label>Rencana Kembali (Batas)</label>
-                    <p style={{ color: '#dc2626', fontWeight: 700 }}>
-                      {selectedItem.tgl_kembali_rencana ? new Date(selectedItem.tgl_kembali_rencana).toLocaleString('id-ID') : '-'}
-                    </p>
+                  <div>
+                    <span style={{ color: '#64748b' }}>Hubungan Mahrom:</span> <strong>{selectedItem.hubungan_mahrom || '-'}</strong>
                   </div>
-                  <div className="detail-field">
-                    <label>Aktual Keluar Gerbang</label>
-                    <p>{selectedItem.tgl_keluar_aktual ? new Date(selectedItem.tgl_keluar_aktual).toLocaleString('id-ID') : 'Belum tercatat keluar'}</p>
+                  <div>
+                    <span style={{ color: '#64748b' }}>No. HP / WA:</span> <strong>{selectedItem.no_hp_penjemput || '-'}</strong>
                   </div>
-                  <div className="detail-field">
-                    <label>Aktual Kembali Gerbang</label>
-                    <p>{selectedItem.tgl_kembali_aktual ? new Date(selectedItem.tgl_kembali_aktual).toLocaleString('id-ID') : 'Belum check-in'}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="detail-card-white">
-                <div className="detail-section-title">
-                  <ShieldCheck size={14} className="text-green" />
-                  <span>VERIFIKASI MAHROM & PENGASUH</span>
-                </div>
-                <div className="detail-grid-2">
-                  <div className="detail-field">
-                    <label>Nama Penjemput (Mahrom)</label>
-                    <p style={{ fontWeight: 700, color: '#0f172a' }}>{selectedItem.nama_penjemput_mahrom || '-'}</p>
-                  </div>
-                  <div className="detail-field">
-                    <label>Hubungan Mahrom</label>
-                    <p>{selectedItem.hubungan_mahrom || '-'}</p>
-                  </div>
-                  <div className="detail-field">
-                    <label>No. HP / WA Penjemput</label>
-                    <p style={{ color: '#059669', fontWeight: 600 }}>{selectedItem.no_hp_penjemput || '-'}</p>
-                  </div>
-                  <div className="detail-field">
-                    <label>Disetujui Oleh</label>
-                    <p>{selectedItem.disetujui_oleh || 'Dewan Pengasuh'}</p>
+                  <div>
+                    <span style={{ color: '#64748b' }}>Disetujui Oleh:</span> <strong>{selectedItem.disetujui_oleh || 'Dewan Pengasuh'}</strong>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="modal-footer-slate">
+            {/* Modal Footer */}
+            <div style={{
+              padding: '12px 18px',
+              borderTop: '1px solid #cbd5e1',
+              background: '#ffffff',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '8px'
+            }}>
               {selectedItem.status === 'Disetujui Pengasuh' && (
                 <button 
                   className="btn btn-warning"
@@ -635,22 +676,20 @@ export default function PerizinanView() {
                     closeModal();
                   }}
                 >
-                  <LogOut size={14} />
-                  <span>Catat Santri Keluar Gerbang</span>
+                  <LogOut size={13} /> Santri Keluar Gerbang
                 </button>
               )}
 
               {selectedItem.status === 'Aktif Keluar' && (
                 <button 
-                  className="btn btn-add-primary"
+                  className="btn btn-primary"
                   style={{ background: '#059669', borderColor: '#059669' }}
                   onClick={() => {
                     handleGateCheckin(selectedItem.id);
                     closeModal();
                   }}
                 >
-                  <LogIn size={14} />
-                  <span>Check-In Santri Kembali</span>
+                  <LogIn size={13} /> Check-In Masuk
                 </button>
               )}
 
@@ -662,41 +701,80 @@ export default function PerizinanView() {
         </div>
       )}
 
-      {/* MODAL FORM (ADD & EDIT) */}
+      {/* ==================================================== */}
+      {/* MODAL FORM (ADD & EDIT)                             */}
+      {/* ==================================================== */}
       {isFormOpen && (
-        <div className="modal-backdrop-custom" onClick={closeForm}>
-          <div className="modal-box-custom modal-md" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header-gradient" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)' }}>
-              <div className="modal-header-content">
-                <div className="modal-header-icon">
-                  <DoorOpen size={20} color="#ffffff" />
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '620px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            border: '1px solid #cbd5e1',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <div style={{
+              padding: '14px 18px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+              color: '#ffffff'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.15)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>
+                  <DoorOpen size={18} />
                 </div>
                 <div>
-                  <h3 style={{ color: '#ffffff', margin: 0, fontSize: '0.98rem', fontWeight: 800 }}>
-                    {formMode === 'add' ? 'Buat Surat Permohonan Izin Santri' : 'Edit Surat Izin Santri'}
+                  <h3 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
+                    {formMode === 'add' ? 'Buat Surat Izin Santri Baru' : 'Edit Surat Izin Santri'}
                   </h3>
-                  <p style={{ color: '#94a3b8', margin: 0, fontSize: '0.72rem' }}>
-                    Pastikan penjemput mahrom sah dan tanggal kepulangan tervalidasi.
+                  <p style={{ fontSize: '0.7rem', color: '#94a3b8', margin: 0 }}>
+                    Pastikan penjemput mahrom sah dan jadwal kepulangan tervalidasi.
                   </p>
                 </div>
               </div>
-              <button className="modal-close-btn" onClick={closeForm}>
-                <X size={16} />
+              <button 
+                onClick={closeForm}
+                style={{ background: 'rgba(255, 255, 255, 0.15)', border: 'none', cursor: 'pointer', color: '#ffffff', padding: '5px', borderRadius: '6px' }}
+                title="Tutup Form"
+              >
+                <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleSave}>
-              <div className="modal-body-slate">
-                <div className="detail-card-white" style={{ marginBottom: '10px' }}>
-                  <div className="detail-section-title">
-                    <User size={14} className="text-blue" />
-                    <span>SANTRI & KEPERLUAN</span>
+              <div style={{ padding: '18px', background: '#f1f5f9' }}>
+                
+                {/* Santri & Keperluan Card */}
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px', background: '#ffffff', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <User size={14} color="#0284c7" /> SANTRI & JENIS PERMOHONAN
                   </div>
-                  <div className="form-grid-2">
-                    <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                      <label className="form-label">Pilih Santri Pemohon *</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div style={{ gridColumn: 'span 2' }}>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Pilih Santri Pemohon *</label>
                       <select 
-                        className="form-input-control"
+                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.santri_id}
                         onChange={(e) => handleSantriSelectChange(e.target.value)}
                         required
@@ -710,10 +788,10 @@ export default function PerizinanView() {
                       </select>
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">Jenis Izin *</label>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Jenis Izin *</label>
                       <select 
-                        className="form-input-control"
+                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.jenis_izin}
                         onChange={(e) => setFormData({ ...formData, jenis_izin: e.target.value })}
                         required
@@ -725,10 +803,10 @@ export default function PerizinanView() {
                       </select>
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">Status Persetujuan *</label>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Status Persetujuan *</label>
                       <select 
-                        className="form-input-control"
+                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.status}
                         onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                         required
@@ -741,12 +819,12 @@ export default function PerizinanView() {
                       </select>
                     </div>
 
-                    <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                      <label className="form-label">Keperluan / Alasan Izin *</label>
+                    <div style={{ gridColumn: 'span 2' }}>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Keperluan / Alasan Izin *</label>
                       <textarea 
-                        className="form-input-control"
+                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         rows="2"
-                        placeholder="Contoh: Menghadiri pernikahan kakak kandung / periksa dokter gigi..."
+                        placeholder="Alasan kepulangan / keluar pondok..."
                         value={formData.keperluan}
                         onChange={(e) => setFormData({ ...formData, keperluan: e.target.value })}
                         required
@@ -755,28 +833,28 @@ export default function PerizinanView() {
                   </div>
                 </div>
 
-                <div className="detail-card-white" style={{ marginBottom: '10px' }}>
-                  <div className="detail-section-title">
-                    <Clock size={14} className="text-amber" />
-                    <span>RENCANA WAKTU KELUAR & KEMBALI</span>
+                {/* Jadwal Waktu Card */}
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px', background: '#ffffff', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Clock size={14} color="#d97706" /> RENCANA WAKTU KELUAR & KEMBALI
                   </div>
-                  <div className="form-grid-2">
-                    <div className="form-group">
-                      <label className="form-label">Rencana Tanggal & Jam Keluar *</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Rencana Keluar *</label>
                       <input 
-                        type="datetime-local" 
-                        className="form-input-control"
+                        type="datetime-local"
+                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.tgl_keluar_rencana}
                         onChange={(e) => setFormData({ ...formData, tgl_keluar_rencana: e.target.value })}
                         required
                       />
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">Rencana Tanggal & Jam Kembali *</label>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Rencana Kembali (Batas) *</label>
                       <input 
-                        type="datetime-local" 
-                        className="form-input-control"
+                        type="datetime-local"
+                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.tgl_kembali_rencana}
                         onChange={(e) => setFormData({ ...formData, tgl_kembali_rencana: e.target.value })}
                         required
@@ -785,28 +863,28 @@ export default function PerizinanView() {
                   </div>
                 </div>
 
-                <div className="detail-card-white">
-                  <div className="detail-section-title">
-                    <ShieldCheck size={14} className="text-green" />
-                    <span>PENJEMPUT MAHROM & APPROVAL</span>
+                {/* Mahrom & Approval Card */}
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px', background: '#ffffff' }}>
+                  <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Phone size={14} color="#059669" /> PENJEMPUT MAHROM & APPROVAL
                   </div>
-                  <div className="form-grid-2">
-                    <div className="form-group">
-                      <label className="form-label">Nama Penjemput Mahrom *</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Nama Penjemput Mahrom *</label>
                       <input 
-                        type="text" 
-                        className="form-input-control"
-                        placeholder="Nama penjemput sesuai KTP"
+                        type="text"
+                        placeholder="Nama penjemput sah"
+                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.nama_penjemput_mahrom}
                         onChange={(e) => setFormData({ ...formData, nama_penjemput_mahrom: e.target.value })}
                         required
                       />
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">Hubungan Mahrom *</label>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Hubungan Mahrom *</label>
                       <select 
-                        className="form-input-control"
+                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.hubungan_mahrom}
                         onChange={(e) => setFormData({ ...formData, hubungan_mahrom: e.target.value })}
                         required
@@ -820,24 +898,24 @@ export default function PerizinanView() {
                       </select>
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">No. HP / WhatsApp Penjemput *</label>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>No. HP / WA Penjemput *</label>
                       <input 
-                        type="text" 
-                        className="form-input-control"
+                        type="text"
                         placeholder="08123456789"
+                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.no_hp_penjemput}
                         onChange={(e) => setFormData({ ...formData, no_hp_penjemput: e.target.value })}
                         required
                       />
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label">Disetujui Oleh</label>
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Disetujui Oleh</label>
                       <input 
-                        type="text" 
-                        className="form-input-control"
+                        type="text"
                         placeholder="KH. Ahmad Fauzan (Pengasuh)"
+                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.disetujui_oleh}
                         onChange={(e) => setFormData({ ...formData, disetujui_oleh: e.target.value })}
                       />
@@ -846,11 +924,19 @@ export default function PerizinanView() {
                 </div>
               </div>
 
-              <div className="modal-footer-slate">
+              {/* Modal Footer */}
+              <div style={{
+                padding: '12px 18px',
+                borderTop: '1px solid #cbd5e1',
+                background: '#ffffff',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '8px'
+              }}>
                 <button type="button" className="btn btn-outline" onClick={closeForm}>
                   Batal
                 </button>
-                <button type="submit" className="btn btn-add-primary" disabled={submitting}>
+                <button type="submit" className="btn btn-primary" disabled={submitting}>
                   {submitting ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
                   <span>{formMode === 'add' ? 'Terbitkan Surat Izin' : 'Simpan Perubahan'}</span>
                 </button>
