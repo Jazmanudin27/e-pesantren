@@ -39,10 +39,24 @@ export default function SearchableSelect({
   // Normalize options to { value, label, sublabel }
   const normalizedOptions = options.map((opt) => {
     if (typeof opt === 'object' && opt !== null) {
+      const label = opt.label !== undefined ? opt.label : (opt.nama_santri || opt.nama_asatidz || opt.nama_halaqah || opt.nama_asrama || opt.nama_kamar || opt.nama || opt.name || opt.text || '');
+      let sublabel = opt.sublabel;
+      if (sublabel === undefined) {
+        if (opt.nis) {
+          sublabel = `NIS: ${opt.nis}`;
+        } else if (opt.gender) {
+          sublabel = opt.gender === 'L' ? 'Ikhwan' : 'Akhwat';
+        } else {
+          sublabel = null;
+        }
+      }
+      if (typeof sublabel === 'string' && sublabel.includes('undefined')) {
+        sublabel = sublabel.replace(/ • NIS: undefined|NIS: undefined • |NIS: undefined/g, '').trim() || null;
+      }
       return {
         value: opt.value !== undefined ? opt.value : opt.id,
-        label: opt.label !== undefined ? opt.label : opt.nama || opt.nama_santri || opt.nama_asrama || opt.nama_kamar || opt.nama_asatidz || opt.nama_halaqah || opt.name || opt.text,
-        sublabel: opt.sublabel || opt.nis ? `NIS: ${opt.nis}` : opt.gender ? (opt.gender === 'L' ? 'Ikhwan' : 'Akhwat') : null
+        label,
+        sublabel
       };
     }
     return { value: opt, label: String(opt), sublabel: null };
@@ -74,7 +88,7 @@ export default function SearchableSelect({
   return (
     <div 
       ref={containerRef} 
-      style={{ position: 'relative', width: '100%', userSelect: 'none', ...style }}
+      style={{ position: 'relative', width: '100%', boxSizing: 'border-box', userSelect: 'none', ...style }}
     >
       {/* Hidden input for HTML5 form validation if required */}
       {required && (
@@ -101,6 +115,7 @@ export default function SearchableSelect({
         onClick={() => !disabled && setIsOpen(!isOpen)}
         style={{
           width: '100%',
+          boxSizing: 'border-box',
           padding: '6px 10px',
           border: isOpen ? '1px solid #0284c7' : '1px solid #cbd5e1',
           borderRadius: '6px',
@@ -114,13 +129,13 @@ export default function SearchableSelect({
           transition: 'all 0.15s ease'
         }}
       >
-        <div style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: '6px' }}>
+        <div style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: '6px' }}>
           {selectedOption ? (
-            <span style={{ color: '#0f172a', fontWeight: 600 }}>
+            <span style={{ color: '#0f172a', fontWeight: 600, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {selectedOption.label} {selectedOption.sublabel ? `(${selectedOption.sublabel})` : ''}
             </span>
           ) : (
-            <span style={{ color: '#94a3b8' }}>{placeholder}</span>
+            <span style={{ color: '#94a3b8', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>{placeholder}</span>
           )}
         </div>
 
@@ -155,7 +170,8 @@ export default function SearchableSelect({
             position: 'absolute',
             top: 'calc(100% + 4px)',
             left: 0,
-            right: 0,
+            width: '100%',
+            boxSizing: 'border-box',
             zIndex: 99999,
             background: '#ffffff',
             border: '1px solid #cbd5e1',

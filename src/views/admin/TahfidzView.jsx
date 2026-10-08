@@ -252,7 +252,7 @@ export default function TahfidzView() {
   const santriOptions = santriList.map((s) => ({
     value: s.id,
     label: s.nama_santri,
-    sublabel: `NIS: ${s.nis} • ${s.nama_asrama || 'Asrama'}`
+    sublabel: s.nis ? `NIS: ${s.nis}${s.nama_asrama ? ' • ' + s.nama_asrama : ''}` : (s.nama_asrama || null)
   }));
 
   const asatidzOptions = asatidzList.map((a) => ({
