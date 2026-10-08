@@ -28,41 +28,6 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
-// Test Connection & Run Migration
-pool.getConnection()
-  .then(async (conn) => {
-    console.log(`[DB] Terhubung ke MySQL database: ${process.env.DB_NAME || 'pesantren'}`);
-    
-    // Auto-migrate: Add username & password columns to table 'asrama' if missing
-    try {
-      const [cols] = await conn.query("SHOW COLUMNS FROM asrama LIKE 'username'");
-      if (cols.length === 0) {
-        console.log('[DB Migration] Menambahkan kolom username & password pada tabel asrama...');
-        await conn.query("ALTER TABLE asrama ADD COLUMN username VARCHAR(100) NULL AFTER lokasi_gedung");
-        await conn.query("ALTER TABLE asrama ADD COLUMN password VARCHAR(255) NULL AFTER username");
-        
-        // Populate default accounts
-        await conn.query("UPDATE asrama SET username = 'asrama_ali', password = 'ali123' WHERE id = 1 OR kode_asrama LIKE '%IKH-01%'");
-        await conn.query("UPDATE asrama SET username = 'asrama_umar', password = 'umar123' WHERE id = 2 OR kode_asrama LIKE '%IKH-02%'");
-        await conn.query("UPDATE asrama SET username = 'asrama_fathimah', password = 'fathimah123' WHERE id = 3 OR kode_asrama LIKE '%AKH-01%'");
-        await conn.query("UPDATE asrama SET username = 'asrama_khadijah', password = 'khadijah123' WHERE id = 4 OR kode_asrama LIKE '%AKH-02%'");
-        await conn.query("UPDATE asrama SET username = CONCAT('asrama_', id), password = '123' WHERE username IS NULL OR username = ''");
-        console.log('[DB Migration] Migrasi tabel asrama SELESAI!');
-      }
-    } catch (migErr) {
-      console.error('[DB Migration Error]', migErr.message);
-    } finally {
-      conn.release();
-    }
-  })
-  .catch((err) => {
-    console.error('[DB Error] Gagal koneksi ke database:', err.message);
-  });
-
-// -------------------------------------------------------------
-// API ENDPOINTS (DATA DARI DATABASE)
-// -------------------------------------------------------------
-
 // 1. Health check & profil pesantren
 app.get('/api/pesantren/profil', async (req, res) => {
   try {
