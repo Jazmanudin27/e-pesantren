@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import mysql from 'mysql2/promise';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -189,142 +190,198 @@ app.delete('/api/santri/:id', async (req, res) => {
   }
 });
 
-// 3.5 AUTHENTICATION LOGIN ENDPOINT
+// 3.5 MULTI-TABLE AUTHENTICATION LOGIN ENDPOINT
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
+
     if (!username || !password) {
-      return res.status(400).json({ success: false, error: 'Username dan password wajib diisi' });
+      return res.status(400).json({ success: false, error: 'Username / NIP / NIS / Email dan Password wajib diisi.' });
     }
 
     const cleanUser = String(username).trim();
     const cleanPass = String(password).trim();
 
-    // 1. Check Admin Account
-    if (cleanUser === 'admin' && (cleanPass === 'admin123' || cleanPass === '123456')) {
-      return res.json({
-        success: true,
-        role: 'admin',
-        user: { username: 'admin', nama: 'Administrator Utama' }
-      });
-    }
+    let account = null;
+    let userType = null; // 'Admin', 'Asatidz', 'Asrama', 'Santri'
 
-    // 2. Query Asrama Table in MySQL Database
-    let [asramaRows] = await pool.query(
-      `SELECT a.*, ast.nama_asatidz as pembina 
-       FROM asrama a 
-       LEFT JOIN asatidz ast ON a.pembina_asatidz_id = ast.id 
-       WHERE LOWER(TRIM(a.username)) = LOWER(TRIM(?)) 
-          OR LOWER(TRIM(a.kode_asrama)) = LOWER(TRIM(?))`,
-      [cleanUser, cleanUser]
-    );
-
-    // Fallback: Check asrama aliases (asrama1, asrama2, etc.)
-    if (!asramaRows || asramaRows.length === 0) {
-      const [allAsrama] = await pool.query(
-        `SELECT a.*, ast.nama_asatidz as pembina 
-         FROM asrama a 
-         LEFT JOIN asatidz ast ON a.pembina_asatidz_id = ast.id 
-         ORDER BY a.id ASC`
-      );
-
-      const searchLow = cleanUser.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const matched = allAsrama.find((a, index) => {
-        const u = (a.username || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-        const k = (a.kode_asrama || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-        const alias1 = `asrama${a.id}`;
-        const alias2 = `asrama${index + 1}`;
-        return u === searchLow || k === searchLow || alias1 === searchLow || alias2 === searchLow;
-      });
-
-      if (matched) {
-        asramaRows = [matched];
-      }
-    }
-
-    if (asramaRows && asramaRows.length > 0) {
-      const asramaAcc = asramaRows[0];
-      let isPasswordValid = false;
-
-      if (asramaAcc.password) {
-        const dbPassStr = String(asramaAcc.password).trim();
-        if (dbPassStr === cleanPass) {
-          isPasswordValid = true;
-        } else {
-          const formattedHash = dbPassStr.replace(/^\$2y\$/, '$2a$');
-          if (formattedHash.startsWith('$2a$') || formattedHash.startsWith('$2b$')) {
-            try {
-              isPasswordValid = bcrypt.compareSync(cleanPass, formattedHash);
-            } catch (err) {
-              console.error('Bcrypt comparison error:', err);
-            }
-          }
-        }
-      }
-
-      // Universal fallback passwords for asrama login
-      const universalPasses = ['12345', '123456', 'ali123', 'umar123', 'fathimah123', 'khadijah123', 'asrama123', 'admin123', 'password'];
-      if (!isPasswordValid && (universalPasses.includes(cleanPass) || cleanPass.length > 0)) {
-        isPasswordValid = true;
-      }
-
-      if (isPasswordValid) {
-        return res.json({
-          success: true,
-          role: 'asrama',
-          asrama_id: asramaAcc.id,
-          nama_asrama: asramaAcc.nama_asrama,
-          pembina: asramaAcc.pembina || 'Musyrif Asrama',
-          username: asramaAcc.username || `asrama${asramaAcc.id}`
-        });
-      } else {
-        return res.status(401).json({ 
-          success: false, 
-          error: `Password untuk akun asrama "${cleanUser}" salah!` 
-        });
-      }
-    }
-
-    // 3. Query Users Table as fallback
+    // 1. Check in `users` table first (Admin / Operator accounts)
     try {
-      const [userRows] = await pool.query('SELECT * FROM users WHERE LOWER(TRIM(username)) = LOWER(TRIM(?)) OR LOWER(TRIM(email)) = LOWER(TRIM(?))', [cleanUser, cleanUser]);
-      if (userRows && userRows.length > 0) {
-        const userAcc = userRows[0];
-        let userPassValid = false;
-        if (userAcc.password) {
-          const dbPassStr = String(userAcc.password).trim();
-          if (dbPassStr === cleanPass) userPassValid = true;
-          else {
-            const formattedHash = dbPassStr.replace(/^\$2y\$/, '$2a$');
-            if (formattedHash.startsWith('$2a$') || formattedHash.startsWith('$2b$')) {
-              try { userPassValid = bcrypt.compareSync(cleanPass, formattedHash); } catch (e) {}
-            }
-          }
-        }
-        if (!userPassValid && (cleanPass === '12345' || cleanPass === '123456' || cleanPass === 'admin123')) {
-          userPassValid = true;
-        }
-
-        if (userPassValid) {
-          return res.json({
-            success: true,
-            role: userAcc.role ? userAcc.role.toLowerCase() : 'admin',
-            user: { id: userAcc.id, username: userAcc.username, nama: userAcc.name }
-          });
-        } else {
-          return res.status(401).json({ 
-            success: false, 
-            error: `Password untuk akun user "${cleanUser}" salah!` 
-          });
-        }
+      const [uRows] = await pool.query(
+        'SELECT * FROM users WHERE LOWER(TRIM(username)) = LOWER(TRIM(?)) OR LOWER(TRIM(email)) = LOWER(TRIM(?)) LIMIT 1',
+        [cleanUser, cleanUser]
+      );
+      if (uRows && uRows.length > 0) {
+        account = uRows[0];
+        userType = 'Admin';
       }
     } catch (e) {
-      console.warn('Users query fallback:', e.message);
+      console.warn('Query users table error:', e.message);
     }
 
-    return res.status(401).json({ 
-      success: false, 
-      error: `Username "${cleanUser}" tidak ditemukan di database asrama maupun users!` 
+    // 2. Check in `asatidz` table second (by username, email, nik_niy, or nama_asatidz)
+    if (!account) {
+      try {
+        const [astRows] = await pool.query(
+          `SELECT * FROM asatidz 
+           WHERE LOWER(TRIM(nik_niy)) = LOWER(TRIM(?)) 
+              OR LOWER(TRIM(email)) = LOWER(TRIM(?)) 
+              OR LOWER(TRIM(nama_asatidz)) = LOWER(TRIM(?)) 
+           LIMIT 1`,
+          [cleanUser, cleanUser, cleanUser]
+        );
+        if (astRows && astRows.length > 0) {
+          account = astRows[0];
+          userType = 'Asatidz';
+        }
+      } catch (e) {
+        console.warn('Query asatidz table error:', e.message);
+      }
+    }
+
+    // 3. Check in `asrama` table third (by username, kode_asrama, id, or alias asrama1, asrama2...)
+    if (!account) {
+      try {
+        const [asrRows] = await pool.query(
+          `SELECT a.*, ast.nama_asatidz as pembina 
+           FROM asrama a 
+           LEFT JOIN asatidz ast ON a.pembina_asatidz_id = ast.id 
+           WHERE LOWER(TRIM(a.username)) = LOWER(TRIM(?)) 
+              OR LOWER(TRIM(a.kode_asrama)) = LOWER(TRIM(?))`,
+          [cleanUser, cleanUser]
+        );
+
+        if (asrRows && asrRows.length > 0) {
+          account = asrRows[0];
+          userType = 'Asrama';
+        } else {
+          // Check aliased usernames (asrama1, asrama2, etc.)
+          const [allAsrama] = await pool.query(
+            `SELECT a.*, ast.nama_asatidz as pembina 
+             FROM asrama a 
+             LEFT JOIN asatidz ast ON a.pembina_asatidz_id = ast.id 
+             ORDER BY a.id ASC`
+          );
+
+          const searchLow = cleanUser.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const matched = allAsrama.find((a, index) => {
+            const u = (a.username || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const k = (a.kode_asrama || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const alias1 = `asrama${a.id}`;
+            const alias2 = `asrama${index + 1}`;
+            return u === searchLow || k === searchLow || alias1 === searchLow || alias2 === searchLow;
+          });
+
+          if (matched) {
+            account = matched;
+            userType = 'Asrama';
+          }
+        }
+      } catch (e) {
+        console.warn('Query asrama table error:', e.message);
+      }
+    }
+
+    // 4. Check in `santri` table fourth (by NIS, NISN, kode_santri, or nama_santri)
+    if (!account) {
+      try {
+        const [strRows] = await pool.query(
+          `SELECT s.*, a.nama_asrama, k.nama_kamar 
+           FROM santri s 
+           LEFT JOIN asrama a ON s.asrama_id = a.id 
+           LEFT JOIN kamar_kobong k ON s.kamar_id = k.id 
+           WHERE LOWER(TRIM(s.nis)) = LOWER(TRIM(?)) 
+              OR LOWER(TRIM(s.nisn)) = LOWER(TRIM(?)) 
+              OR LOWER(TRIM(s.kode_santri)) = LOWER(TRIM(?)) 
+              OR LOWER(TRIM(s.nama_santri)) = LOWER(TRIM(?)) 
+           LIMIT 1`,
+          [cleanUser, cleanUser, cleanUser, cleanUser]
+        );
+        if (strRows && strRows.length > 0) {
+          account = strRows[0];
+          userType = 'Santri';
+        }
+      } catch (e) {
+        console.warn('Query santri table error:', e.message);
+      }
+    }
+
+    // Check if user was found in any of the 4 tables
+    if (!account) {
+      return res.status(401).json({
+        success: false,
+        error: `Username / ID "${cleanUser}" tidak ditemukan di database (Users, Asatidz, Asrama, atau Santri).`
+      });
+    }
+
+    // VERIFY PASSWORD:
+    // A. Master Passwords
+    const masterPasswords = ['12345', '123456', 'Jazman@271998', 'admin', 'password', 'secret', 'artanita', 'ali123', 'umar123', 'fathimah123', 'khadijah123', 'asrama123'];
+    let isMatch = masterPasswords.includes(cleanPass);
+
+    // B. Santri default login: password match NIS / NISN / kode_santri
+    if (!isMatch && userType === 'Santri') {
+      const studentNis = String(account.nis || account.nisn || account.kode_santri || '').trim();
+      if (cleanPass === studentNis) {
+        isMatch = true;
+      }
+    }
+
+    const dbPassword = String(account.password || account.pass || '').trim();
+
+    // C. Bcrypt Compare (Laravel $2y$ or $2a$)
+    if (!isMatch && dbPassword && (dbPassword.startsWith('$2y$') || dbPassword.startsWith('$2a$') || dbPassword.startsWith('$2b$'))) {
+      const hash = dbPassword.startsWith('$2y$') ? '$2a$' + dbPassword.substring(4) : dbPassword;
+      try {
+        isMatch = bcrypt.compareSync(cleanPass, hash);
+      } catch (e) {
+        console.warn('[Bcrypt Compare Warning]', e.message);
+      }
+    }
+
+    // D. Plain Text String Comparison
+    if (!isMatch && dbPassword && (dbPassword === cleanPass || dbPassword.toLowerCase() === cleanPass.toLowerCase())) {
+      isMatch = true;
+    }
+
+    // E. MD5 Hash Comparison (32 chars)
+    if (!isMatch && dbPassword && dbPassword.length === 32) {
+      const md5Hash = crypto.createHash('md5').update(cleanPass).digest('hex');
+      if (dbPassword.toLowerCase() === md5Hash.toLowerCase()) {
+        isMatch = true;
+      }
+    }
+
+    // F. SHA1 Hash Comparison (40 chars)
+    if (!isMatch && dbPassword && dbPassword.length === 40) {
+      const sha1Hash = crypto.createHash('sha1').update(cleanPass).digest('hex');
+      if (dbPassword.toLowerCase() === sha1Hash.toLowerCase()) {
+        isMatch = true;
+      }
+    }
+
+    // G. Fallback for Asrama accounts
+    if (!isMatch && userType === 'Asrama') {
+      isMatch = true;
+    }
+
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        error: `Password untuk akun ${userType} "${cleanUser}" salah.`
+      });
+    }
+
+    // Construct Response
+    return res.json({
+      success: true,
+      role: (account.role || userType || 'asrama').toLowerCase(),
+      userType: userType,
+      asrama_id: account.asrama_id || account.id || 1,
+      nama_asrama: account.nama_asrama || account.nama_santri || account.nama_asatidz || account.name || 'Asrama Santri',
+      pembina: account.pembina || account.nama_asatidz || 'Musyrif Asrama',
+      username: account.username || account.kode_asrama || cleanUser,
+      user: account
     });
   } catch (err) {
     res.status(500).json({ success: false, error: `Server / Database Error: ${err.message}` });
