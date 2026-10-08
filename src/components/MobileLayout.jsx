@@ -15,7 +15,6 @@ import {
   Fingerprint,
   Grid,
   X,
-  ChevronRight,
   Wifi,
   Battery,
   Signal
@@ -24,16 +23,16 @@ import MobileHome from '../views/mobile/MobileHome';
 import MobileTahfidz from '../views/mobile/MobileTahfidz';
 import MobileSyahriah from '../views/mobile/MobileSyahriah';
 import MobileIzin from '../views/mobile/MobileIzin';
-import DashboardAdmin from '../views/admin/DashboardAdmin';
-import SantriView from '../views/admin/SantriView';
-import AsramaView from '../views/admin/AsramaView';
-import KelasView from '../views/admin/KelasView';
-import AsatidzView from '../views/admin/AsatidzView';
-import FingerprintDeviceView from '../views/admin/FingerprintDeviceView';
-import TahfidzView from '../views/admin/TahfidzView';
-import PerizinanView from '../views/admin/PerizinanView';
-import TataTertibView from '../views/admin/TataTertibView';
-import AbsensiFingerprintView from '../views/admin/AbsensiFingerprintView';
+import MobileDashboard from '../views/mobile/MobileDashboard';
+import MobilePresensi from '../views/mobile/MobilePresensi';
+import MobileSantri from '../views/mobile/MobileSantri';
+import MobileAsrama from '../views/mobile/MobileAsrama';
+import MobileKelas from '../views/mobile/MobileKelas';
+import MobileAsatidz from '../views/mobile/MobileAsatidz';
+import MobileDevice from '../views/mobile/MobileDevice';
+import MobileTataTertib from '../views/mobile/MobileTataTertib';
+import MobileLaporanPresensi from '../views/mobile/MobileLaporanPresensi';
+import MobileLaporanTahfidz from '../views/mobile/MobileLaporanTahfidz';
 
 export default function MobileLayout() {
   const [mobileTab, setMobileTab] = useState('home');
@@ -49,28 +48,30 @@ export default function MobileLayout() {
       case 'home':
         return <MobileHome onChangeTab={handleSelectTab} />;
       case 'dashboard':
-        return <DashboardAdmin />;
+        return <MobileDashboard />;
       case 'presensi':
-      case 'laporan-presensi':
-        return <AbsensiFingerprintView />;
+        return <MobilePresensi />;
       case 'tahfidz':
-      case 'laporan-tahfidz':
-        return <TahfidzView />;
+        return <MobileTahfidz />;
       case 'perizinan':
       case 'izin':
-        return <PerizinanView />;
-      case 'tata-tertib':
-        return <TataTertibView />;
+        return <MobileIzin />;
       case 'master-santri':
-        return <SantriView />;
+        return <MobileSantri />;
       case 'master-asrama':
-        return <AsramaView />;
+        return <MobileAsrama />;
       case 'master-kelas':
-        return <KelasView />;
+        return <MobileKelas />;
       case 'master-asatidz':
-        return <AsatidzView />;
+        return <MobileAsatidz />;
       case 'master-device':
-        return <FingerprintDeviceView />;
+        return <MobileDevice />;
+      case 'tata-tertib':
+        return <MobileTataTertib />;
+      case 'laporan-presensi':
+        return <MobileLaporanPresensi />;
+      case 'laporan-tahfidz':
+        return <MobileLaporanTahfidz />;
       case 'syahriah':
         return <MobileSyahriah />;
       default:
@@ -137,7 +138,7 @@ export default function MobileLayout() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Grid size={18} color="#059669" />
-                  <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f172a' }}>Daftar Semua Menu Sistem</span>
+                  <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f172a' }}>Daftar Semua Menu Mobile</span>
                 </div>
                 <button 
                   onClick={() => setIsMenuDrawerOpen(false)}
@@ -190,21 +191,24 @@ export default function MobileLayout() {
                       <HardDrive size={16} color="#475569" /> Fingerprint
                     </button>
                     <button onClick={() => handleSelectTab('tata-tertib')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
-                      <ShieldAlert size={16} color="#e11d48" /> Tata Tertib
+                      <ShieldAlert size={16} color="#be123c" /> Tata Tertib
                     </button>
                   </div>
                 </div>
 
                 <div>
                   <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#059669', textTransform: 'uppercase', marginBottom: '8px' }}>
-                    LAPORAN & REKAP
+                    LAPORAN & KEUANGAN
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
                     <button onClick={() => handleSelectTab('laporan-presensi')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
-                      <BarChart3 size={16} color="#f97316" /> Rekap Absen
+                      <BarChart3 size={16} color="#ea580c" /> Rekap Absen
                     </button>
                     <button onClick={() => handleSelectTab('laporan-tahfidz')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                       <FileText size={16} color="#0284c7" /> Laporan Tahfidz
+                    </button>
+                    <button onClick={() => handleSelectTab('syahriah')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                      <Wallet size={16} color="#d97706" /> Syahriah
                     </button>
                   </div>
                 </div>
