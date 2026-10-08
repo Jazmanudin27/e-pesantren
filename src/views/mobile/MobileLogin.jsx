@@ -1,31 +1,62 @@
-import React, { useState } from 'react';
-import { Building, Lock, User, LogIn, Key, ShieldCheck, AlertCircle, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { Building, Lock, User, LogIn, AlertCircle } from 'lucide-react';
 
 export default function MobileLogin({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [dbAsramaList, setDbAsramaList] = useState([]);
 
-  // List akun asrama (default / fallback)
-  const defaultAsramaAccounts = [
-    { id: 1, nama_asrama: 'Asrama Ali bin Abi Thalib', pembina: 'Ust. Ahmad Fauzi, S.Pd.I', username: 'asrama_ali', password: 'ali123' },
-    { id: 2, nama_asrama: 'Asrama Umar bin Khattab', pembina: 'Ust. Ridwan Kamil, Lc.', username: 'asrama_umar', password: 'umar123' },
-    { id: 3, nama_asrama: 'Asrama Fathimah Az-Zahra', pembina: 'Usth. Siti Maryam, M.Ag.', username: 'asrama_fathimah', password: 'fathimah123' },
-    { id: 4, nama_asrama: 'Asrama Khadijah Al-Kubra', pembina: 'Usth. Nur Aini, S.Pd.', username: 'asrama_khadijah', password: 'khadijah123' }
-  ];
+  useEffect(() => {
+    // Fetch real database asrama list
+    const loadAsramaData = async () => {
+      try {
+        const res = await axios.get('/api/asrama');
+        if (res.data && res.data.success && res.data.asrama && res.data.asrama.length) {
+          setDbAsramaList(res.data.asrama);
+        } else {
+          const saved = JSON.parse(localStorage.getItem('master_asrama_list') || '[]');
+          setDbAsramaList(saved);
+        }
+      } catch (err) {
+        const saved = JSON.parse(localStorage.getItem('master_asrama_list') || '[]');
+        setDbAsramaList(saved);
+      }
+    };
 
-  const handleLogin = (e) => {
+    loadAsramaData();
+  }, []);
+
+  const handleLogin = async (e) => {
     e?.preventDefault();
     setError('');
     setLoading(true);
 
-    setTimeout(() => {
-      // Check saved accounts in localStorage or fallback
-      const savedAsramaList = JSON.parse(localStorage.getItem('master_asrama_list') || 'null') || defaultAsramaAccounts;
-      
-      const matched = savedAsramaList.find(
-        (a) => a.username?.toLowerCase() === username.trim().toLowerCase() && a.password === password.trim()
+    try {
+      // 1. Try API login if server endpoint exists or query dbAsramaList
+      let asramaList = dbAsramaList;
+      if (!asramaList.length) {
+        const res = await axios.get('/api/asrama');
+        if (res.data && res.data.asrama) asramaList = res.data.asrama;
+        if (!asramaList.length) {
+          asramaList = JSON.parse(localStorage.getItem('master_asrama_list') || '[]');
+        }
+      }
+
+      // Default fallback accounts if db empty
+      const defaultAsramaAccounts = [
+        { id: 1, nama_asrama: 'Asrama Ali bin Abi Thalib', pembina: 'Ust. Ahmad Fauzi, S.Pd.I', username: 'asrama_ali', password: 'ali123' },
+        { id: 2, nama_asrama: 'Asrama Umar bin Khattab', pembina: 'Ust. Ridwan Kamil, Lc.', username: 'asrama_umar', password: 'umar123' },
+        { id: 3, nama_asrama: 'Asrama Fathimah Az-Zahra', pembina: 'Usth. Siti Maryam, M.Ag.', username: 'asrama_fathimah', password: 'fathimah123' },
+        { id: 4, nama_asrama: 'Asrama Khadijah Al-Kubra', pembina: 'Usth. Nur Aini, S.Pd.', username: 'asrama_khadijah', password: 'khadijah123' }
+      ];
+
+      const checkList = asramaList.length ? asramaList : defaultAsramaAccounts;
+
+      const matched = checkList.find(
+        (a) => a.username?.toLowerCase() === username.trim().toLowerCase() && String(a.password).trim() === password.trim()
       );
 
       if (matched) {
@@ -33,14 +64,14 @@ export default function MobileLogin({ onLoginSuccess }) {
           role: 'asrama',
           asrama_id: matched.id,
           nama_asrama: matched.nama_asrama,
-          pembina: matched.pembina,
+          pembina: matched.pembina || 'Musyrif Asrama',
           username: matched.username,
           loginTime: new Date().toISOString()
         };
         localStorage.setItem('mobile_session', JSON.stringify(sessionData));
         setLoading(false);
         if (onLoginSuccess) onLoginSuccess(sessionData);
-      } else if (username === 'admin' && password === 'admin123') {
+      } else if (username.trim() === 'admin' && password.trim() === 'admin123') {
         const adminSession = {
           role: 'admin',
           nama_asrama: 'Semua Asrama (Admin)',
@@ -55,24 +86,10 @@ export default function MobileLogin({ onLoginSuccess }) {
         setLoading(false);
         setError('Username atau Password Asrama salah! Silakan periksa kembali.');
       }
-    }, 400);
-  };
-
-  const handleQuickLogin = (acc) => {
-    setUsername(acc.username);
-    setPassword(acc.password);
-    setError('');
-    
-    const sessionData = {
-      role: 'asrama',
-      asrama_id: acc.id,
-      nama_asrama: acc.nama_asrama,
-      pembina: acc.pembina,
-      username: acc.username,
-      loginTime: new Date().toISOString()
-    };
-    localStorage.setItem('mobile_session', JSON.stringify(sessionData));
-    if (onLoginSuccess) onLoginSuccess(sessionData);
+    } catch (err) {
+      setLoading(false);
+      setError('Gagal memverifikasi akun ke database. Periksa koneksi internet.');
+    }
   };
 
   return (
@@ -149,7 +166,7 @@ export default function MobileLogin({ onLoginSuccess }) {
               <User size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
               <input 
                 type="text"
-                placeholder="Contoh: asrama_ali"
+                placeholder="Masukkan username asrama"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
@@ -215,40 +232,6 @@ export default function MobileLogin({ onLoginSuccess }) {
             <LogIn size={18} /> {loading ? 'Memverifikasi...' : 'Masuk Aplikasi Mobile'}
           </button>
         </form>
-
-        {/* Quick Demo Login Accounts Section */}
-        <div style={{ marginTop: '24px', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', textAlign: 'center' }}>
-            🔑 Pilihan Login Cepat Asrama (Demo)
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {defaultAsramaAccounts.map((acc) => (
-              <button 
-                key={acc.id}
-                onClick={() => handleQuickLogin(acc)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '9px 12px',
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'background 0.15s ease'
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0f172a' }}>{acc.nama_asrama}</div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Username: <strong>{acc.username}</strong> • Pass: {acc.password}</div>
-                </div>
-                <Key size={14} color="#059669" />
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );
