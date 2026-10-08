@@ -108,17 +108,7 @@ export default function MobileLayout() {
 
   return (
     <div className="mobile-wrapper">
-      <div className="mobile-frame">
-        {/* Status Bar Mobile */}
-        <div className="mobile-status-bar">
-          <span>09:41</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Signal size={14} />
-            <Wifi size={14} />
-            <Battery size={16} />
-          </div>
-        </div>
-
+      <div className="mobile-app-container">
         {/* Switch to Admin Link Bar */}
         <div style={{ background: '#047857', padding: '6px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
           <span style={{ fontSize: '0.7rem', color: '#a7f3d0', fontWeight: 600 }}>App Mobile Santri Portal</span>
