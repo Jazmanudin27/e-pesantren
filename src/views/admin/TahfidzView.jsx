@@ -58,6 +58,28 @@ export default function TahfidzView() {
     catatan: 'Bacaan tartil, makharijul huruf fasih, dengung tajwid tepat.'
   });
 
+  const DEFAULT_SANTRI = [
+    { id: 1, kode_santri: 'STR-26-001', nama_santri: 'Ahmad Faiz Al-Hafidz', nis: '2601001', nama_asrama: 'Asrama Ali bin Abi Thalib' },
+    { id: 2, kode_santri: 'STR-26-002', nama_santri: 'Zaidan Muhammad', nis: '2601002', nama_asrama: 'Asrama Umar bin Khattab' },
+    { id: 3, kode_santri: 'STR-26-003', nama_santri: 'Fatimah Az-Zahra', nis: '2602001', nama_asrama: 'Asrama Fathimah Az-Zahra' },
+    { id: 4, kode_santri: 'STR-26-004', nama_santri: 'Muhammad Rifqi', nis: '2601003', nama_asrama: 'Asrama Ali bin Abi Thalib' },
+    { id: 5, kode_santri: 'STR-26-005', nama_santri: 'Aisyah Humaira', nis: '2602002', nama_asrama: 'Asrama Fathimah Az-Zahra' },
+    { id: 6, kode_santri: 'STR-26-006', nama_santri: 'Bilal Abdurrahman', nis: '2601004', nama_asrama: 'Asrama Umar bin Khattab' }
+  ];
+
+  const DEFAULT_ASATIDZ = [
+    { id: 1, nama_asatidz: 'Ust. Hamdan', gelar: 'S.Th.I, Al-Hafidz', tugas_utama: 'Musyrif Tahfidz Ikhwan' },
+    { id: 2, nama_asatidz: 'Ust. Nurul Huda', gelar: 'Al-Hafidz', tugas_utama: 'Musyrif Pengasuhan Putra' },
+    { id: 3, nama_asatidz: 'Usth. Salma', gelar: 'M.Pd, Al-Hafidzah', tugas_utama: 'Musyrifah Asrama Putri' },
+    { id: 4, nama_asatidz: 'Ust. Ahmad Fauzi', gelar: 'S.Pd.I, Al-Hafidz', tugas_utama: 'Kepala Bagian Tahfidz' }
+  ];
+
+  const DEFAULT_HALAQAH = [
+    { id: 1, nama_halaqah: "Halaqah Imam Nafi' (Putra)", gender: 'L' },
+    { id: 2, nama_halaqah: "Halaqah Imam Ashim (Putra)", gender: 'L' },
+    { id: 3, nama_halaqah: "Halaqah Fathimah (Putri)", gender: 'P' }
+  ];
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -71,17 +93,26 @@ export default function TahfidzView() {
       if (resSetoran.data && resSetoran.data.success) {
         setSetoranList(resSetoran.data.data || []);
       }
-      if (resSantri.data && resSantri.data.success) {
-        setSantriList(resSantri.data.data || []);
+      if (resSantri.data && resSantri.data.success && resSantri.data.data && resSantri.data.data.length > 0) {
+        setSantriList(resSantri.data.data);
+      } else {
+        setSantriList(DEFAULT_SANTRI);
       }
-      if (resAsatidz.data && resAsatidz.data.success) {
-        setAsatidzList(resAsatidz.data.data || []);
+      if (resAsatidz.data && resAsatidz.data.success && resAsatidz.data.data && resAsatidz.data.data.length > 0) {
+        setAsatidzList(resAsatidz.data.data);
+      } else {
+        setAsatidzList(DEFAULT_ASATIDZ);
       }
-      if (resHalaqah.data && resHalaqah.data.success) {
-        setHalaqahList(resHalaqah.data.data || []);
+      if (resHalaqah.data && resHalaqah.data.success && resHalaqah.data.data && resHalaqah.data.data.length > 0) {
+        setHalaqahList(resHalaqah.data.data);
+      } else {
+        setHalaqahList(DEFAULT_HALAQAH);
       }
     } catch (err) {
       console.error('Gagal memuat data tahfidz:', err);
+      setSantriList(DEFAULT_SANTRI);
+      setAsatidzList(DEFAULT_ASATIDZ);
+      setHalaqahList(DEFAULT_HALAQAH);
     } finally {
       setLoading(false);
     }
