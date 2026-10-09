@@ -269,14 +269,43 @@ export default function MobilePresensi() {
       tempat: selectedKegiatan.tempat
     };
 
-    // Optimistic UI update
+    // Optimistic UI update dengan pencegahan duplikasi
     const newRecord = {
       id: Date.now(),
       ...payload
     };
 
     setPresensiLogs(prev => {
-      const updated = [newRecord, ...prev];
+      // Cari apakah santri ini sudah tercatat pada hari & sesi kegiatan yang sama
+      const existingIndex = prev.findIndex(item => {
+        const sameSantri = (item.santri_id && item.santri_id === santri.id) || 
+                           (item.nama_santri && item.nama_santri.toLowerCase() === santri.nama_santri.toLowerCase());
+        const sameSesi = (item.sesi_id && item.sesi_id === selectedKegiatan.id) ||
+                         (item.kegiatan && item.kegiatan === selectedKegiatan.nama);
+        const itemTgl = item.tanggal ? String(item.tanggal).split('T')[0] : dateStr;
+        const sameTgl = itemTgl === dateStr;
+
+        return sameSantri && sameSesi && sameTgl;
+      });
+
+      let updated;
+      if (existingIndex !== -1) {
+        // UPDATE status record yang ada di posisi yang sama (TIDAK DOUBLE)
+        updated = prev.map((item, idx) => {
+          if (idx === existingIndex) {
+            return {
+              ...item,
+              ...payload,
+              id: item.id // pertahankan id sebelumnya
+            };
+          }
+          return item;
+        });
+      } else {
+        // Baru tambahkan jika belum pernah diabsen pada sesi ini
+        updated = [newRecord, ...prev];
+      }
+
       localStorage.setItem('mobile_presensi_logs', JSON.stringify(updated));
       return updated;
     });

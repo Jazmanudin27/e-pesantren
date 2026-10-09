@@ -54,19 +54,42 @@ export const createAbsensiFingerprint = async (req, res) => {
     const finalStatus = status_kehadiran || status || 'Hadir Tepat Waktu';
     const finalMetode = metode_presensi || metode_scan || 'Manual_Musyrif';
     const finalKet = keterangan || keteledoran_keterangan || '';
+    const finalSantriId = parseInt(santri_id) || 1;
+    const finalSesiId = parseInt(sesi_id) || 1;
 
-    // Coba insert sesuai struktur schema_lengkap.sql
+    // 1. CEK APAKAH SUDAH ADA RECORD (HARI YANG SAMA + KEGIATAN YANG SAMA + SANTRI YANG SAMA)
+    const [existing] = await pool.query(`
+      SELECT id FROM absensi_jamaah_mengaji 
+      WHERE tanggal = ? AND sesi_id = ? AND santri_id = ? 
+      ORDER BY id DESC LIMIT 1
+    `, [tgl, finalSesiId, finalSantriId]).catch(() => [[]]);
+
+    if (existing && existing.length > 0) {
+      const existingId = existing[0].id;
+      // UPDATE status record yang ada, JANGAN buat baru (cegah duplikasi)
+      try {
+        await pool.query(`
+          UPDATE absensi_jamaah_mengaji 
+          SET status = ?, waktu_scan = ?, metode_presensi = ?, keterangan = ?
+          WHERE id = ?
+        `, [finalStatus, scanTime, finalMetode, finalKet, existingId]);
+      } catch (errUp) {
+        await pool.query(`
+          UPDATE absensi_jamaah_mengaji 
+          SET status_kehadiran = ?, waktu_scan = ?, metode_scan = ?
+          WHERE id = ?
+        `, [finalStatus, scanTime, finalMetode, existingId]);
+      }
+      return sendSuccess(res, 'Presensi berhasil diperbarui (tidak duplikat)', { id: existingId });
+    }
+
+    // 2. JIKA BELUM ADA, INSERT BARU
     try {
       const [result] = await pool.query(`
         INSERT INTO absensi_jamaah_mengaji (
           tanggal, sesi_id, santri_id, waktu_scan, status, device_id, metode_presensi, keterangan
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE 
-          waktu_scan = VALUES(waktu_scan), 
-          status = VALUES(status), 
-          metode_presensi = VALUES(metode_presensi), 
-          keterangan = VALUES(keterangan)
-      `, [tgl, sesi_id || 1, santri_id || 1, scanTime, finalStatus, device_id || 1, finalMetode, finalKet]);
+      `, [tgl, finalSesiId, finalSantriId, scanTime, finalStatus, device_id || 1, finalMetode, finalKet]);
       return sendSuccess(res, 'Presensi berhasil dicatat', { id: result.insertId }, 201);
     } catch (err1) {
       // Fallback jika tabel menggunakan nama kolom alternatif
@@ -74,7 +97,7 @@ export const createAbsensiFingerprint = async (req, res) => {
         INSERT INTO absensi_jamaah_mengaji (
           santri_id, sesi_id, device_id, tanggal, waktu_scan, status_kehadiran, metode_scan
         ) VALUES (?, ?, ?, ?, ?, ?, ?)
-      `, [santri_id || 1, sesi_id || 1, device_id || 1, tgl, scanTime, finalStatus, finalMetode]);
+      `, [finalSantriId, finalSesiId, device_id || 1, tgl, scanTime, finalStatus, finalMetode]);
       return sendSuccess(res, 'Presensi berhasil dicatat', { id: result.insertId }, 201);
     }
   } catch (err) {
