@@ -363,19 +363,19 @@ export default function TataTertibView() {
             Belum ada catatan pelanggaran santri di database.
           </div>
         ) : (
-          <table className="data-table" style={{ minWidth: '1200px' }}>
+          <table className="data-table">
             <thead>
               <tr>
-                <th className="td-center" style={{ width: '45px' }}>NO</th>
-                <th className="td-center" style={{ width: '105px' }}>TANGGAL</th>
-                <th style={{ minWidth: '220px' }}>NAMA SANTRI & ASRAMA</th>
-                <th className="td-center" style={{ width: '105px' }}>KATEGORI</th>
-                <th style={{ minWidth: '180px' }}>JENIS PELANGGARAN</th>
-                <th className="td-center" style={{ width: '85px' }}>POIN</th>
-                <th style={{ minWidth: '240px' }}>BENTUK TA'ZIR</th>
-                <th className="td-center" style={{ width: '135px' }}>STATUS TA'ZIR</th>
-                <th style={{ minWidth: '170px' }}>MUSYRIF PENCATAT</th>
-                <th className="td-center" style={{ width: '150px' }}>AKSI</th>
+                <th className="td-center" style={{ width: '40px' }}>NO</th>
+                <th className="td-center" style={{ width: '95px' }}>TANGGAL</th>
+                <th>NAMA SANTRI & ASRAMA</th>
+                <th className="td-center">KATEGORI</th>
+                <th>JENIS PELANGGARAN</th>
+                <th className="td-center" style={{ width: '65px' }}>POIN</th>
+                <th>BENTUK TA'ZIR</th>
+                <th className="td-center">STATUS TA'ZIR</th>
+                <th>MUSYRIF PENCATAT</th>
+                <th className="td-center" style={{ width: '130px' }}>AKSI</th>
               </tr>
             </thead>
             <tbody>
