@@ -363,19 +363,19 @@ export default function TataTertibView() {
             Belum ada catatan pelanggaran santri di database.
           </div>
         ) : (
-          <table className="data-table">
+          <table className="data-table" style={{ minWidth: '1200px' }}>
             <thead>
               <tr>
-                <th className="td-center" style={{ width: '40px' }}>NO</th>
-                <th className="td-center" style={{ width: '90px' }}>TANGGAL</th>
-                <th>NAMA SANTRI & ASRAMA</th>
-                <th className="td-center">KATEGORI</th>
-                <th>JENIS PELANGGARAN</th>
-                <th className="td-center" style={{ width: '65px' }}>POIN</th>
-                <th>BENTUK TA'ZIR</th>
-                <th className="td-center">STATUS TA'ZIR</th>
-                <th>MUSYRIF PENCATAT</th>
-                <th className="td-center" style={{ width: '130px' }}>AKSI</th>
+                <th className="td-center" style={{ width: '45px' }}>NO</th>
+                <th className="td-center" style={{ width: '105px' }}>TANGGAL</th>
+                <th style={{ minWidth: '220px' }}>NAMA SANTRI & ASRAMA</th>
+                <th className="td-center" style={{ width: '105px' }}>KATEGORI</th>
+                <th style={{ minWidth: '180px' }}>JENIS PELANGGARAN</th>
+                <th className="td-center" style={{ width: '85px' }}>POIN</th>
+                <th style={{ minWidth: '240px' }}>BENTUK TA'ZIR</th>
+                <th className="td-center" style={{ width: '135px' }}>STATUS TA'ZIR</th>
+                <th style={{ minWidth: '170px' }}>MUSYRIF PENCATAT</th>
+                <th className="td-center" style={{ width: '150px' }}>AKSI</th>
               </tr>
             </thead>
             <tbody>
@@ -384,13 +384,20 @@ export default function TataTertibView() {
                   <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
                     {idx + 1}
                   </td>
-                  <td className="td-center" style={{ fontSize: '0.74rem', fontWeight: 600 }}>
+                  <td className="td-center" style={{ fontSize: '0.76rem', fontWeight: 600, color: '#334155' }}>
                     {row.tanggal ? new Date(row.tanggal).toLocaleDateString('id-ID') : '-'}
                   </td>
                   <td>
-                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{row.nama_santri}</div>
-                    <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>
-                      NIS: {row.nis || '-'} • {row.nama_asrama || 'Asrama'} ({row.nama_kamar || '-'})
+                    <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.84rem', marginBottom: '3px' }}>
+                      {row.nama_santri}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span style={{ background: '#f1f5f9', color: '#0284c7', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>
+                        NIS: {row.nis || '-'}
+                      </span>
+                      <span style={{ color: '#64748b', fontSize: '0.72rem' }}>
+                        {row.nama_asrama || 'Asrama'} ({row.nama_kamar || '-'})
+                      </span>
                     </div>
                   </td>
                   <td className="td-center">
@@ -402,21 +409,25 @@ export default function TataTertibView() {
                     </span>
                   </td>
                   <td>
-                    <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.78rem' }}>
+                    <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.82rem', lineHeight: 1.4 }}>
                       {row.jenis_pelanggaran}
                     </div>
                   </td>
                   <td className="td-center">
                     <span style={{ 
-                      fontWeight: 700, 
-                      color: row.poin_pelanggaran >= 20 ? '#dc2626' : row.poin_pelanggaran >= 10 ? '#d97706' : '#0284c7',
-                      fontSize: '0.78rem' 
+                      display: 'inline-block',
+                      padding: '3px 10px',
+                      borderRadius: '12px',
+                      fontWeight: 800, 
+                      fontSize: '0.78rem',
+                      background: row.poin_pelanggaran >= 20 ? '#fee2e2' : row.poin_pelanggaran >= 10 ? '#fef3c7' : '#e0f2fe',
+                      color: row.poin_pelanggaran >= 20 ? '#dc2626' : row.poin_pelanggaran >= 10 ? '#d97706' : '#0284c7'
                     }}>
                       +{row.poin_pelanggaran}
                     </span>
                   </td>
                   <td>
-                    <div style={{ fontSize: '0.74rem', color: '#475569', maxWidth: '240px', lineHeight: 1.3 }}>
+                    <div style={{ fontSize: '0.78rem', color: '#334155', lineHeight: 1.5 }}>
                       {row.bentuk_tazir}
                     </div>
                   </td>
@@ -429,7 +440,7 @@ export default function TataTertibView() {
                     </span>
                   </td>
                   <td>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#0f172a' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#0f172a' }}>
                       {row.musyrif_pencatat}
                     </div>
                   </td>
