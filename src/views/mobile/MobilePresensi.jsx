@@ -524,34 +524,6 @@ export default function MobilePresensi() {
             textAlign: 'center',
             marginBottom: '16px'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <div style={{ textAlign: 'left' }}>
-                <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>
-                  Arahkan Kamera ke QR Santri
-                </h3>
-                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                  Otomatis bersuara "beep" & menyimpan kehadiran
-                </span>
-              </div>
-              <button
-                onClick={startScanner}
-                style={{
-                  background: '#f1f5f9',
-                  border: 'none',
-                  borderRadius: '10px',
-                  padding: '6px 10px',
-                  color: '#0284c7',
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  cursor: 'pointer'
-                }}
-              >
-                <RefreshCw size={13} /> Muat Ulang
-              </button>
-            </div>
 
             {/* Video Container */}
             <div style={{
