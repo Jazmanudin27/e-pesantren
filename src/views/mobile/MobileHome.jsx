@@ -351,7 +351,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
           zIndex: 10
         }}>
           {/* 4 Status Badges (Hadir, Sakit, Izin, Alfa) */}
-          <div style={{
+          <div className="mobile-rekap-grid" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(4, 1fr)',
             gap: '8px'
@@ -500,7 +500,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
           SQUIRCLE GRID MENU (IDENTIK DENGAN SCREENSHOT E-SEKOLAH)
           4 Kolom, warna solid vibran, rounded squircle halus & bayangan lembut
       ========================================================================= */}
-      <div style={{
+      <div className="mobile-squircle-grid" style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(4, 1fr)',
         gap: '16px 10px',

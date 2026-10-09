@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from './components/AdminLayout';
 import MobileLayout from './components/MobileLayout';
+import SplashScreen from './components/SplashScreen';
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
+
   const getMode = () => {
     const hostname = window.location.hostname.toLowerCase();
     const hash = window.location.hash;
@@ -39,9 +42,10 @@ export default function App() {
     };
   }, []);
 
-  if (mode === 'mobile') {
-    return <MobileLayout />;
-  }
-
-  return <AdminLayout />;
+  return (
+    <>
+      {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
+      {mode === 'mobile' ? <MobileLayout /> : <AdminLayout />}
+    </>
+  );
 }
