@@ -17,6 +17,7 @@ import {
   Building, 
   Save 
 } from 'lucide-react';
+import { showConfirm, toastSuccess, showError } from '../../utils/alert.util';
 
 export default function AsatidzView() {
   const [asatidzList, setAsatidzList] = useState([]);
@@ -92,6 +93,8 @@ export default function AsatidzView() {
       nama_asatidz: '',
       gelar: '',
       nik_niy: `AST-2026-00${asatidzList.length + 1}`,
+      username: '',
+      password: '',
       jk: 'L',
       tugas_utama: '',
       no_hp: '',
@@ -110,6 +113,8 @@ export default function AsatidzView() {
       nama_asatidz: ast.nama_asatidz || '',
       gelar: ast.gelar || '',
       nik_niy: ast.nik_niy || '',
+      username: ast.username || '',
+      password: '',
       jk: ast.jk || 'L',
       tugas_utama: ast.tugas_utama || '',
       no_hp: ast.no_hp || '',
@@ -145,6 +150,7 @@ export default function AsatidzView() {
         }
       }
       setIsFormOpen(false);
+      toastSuccess(formMode === 'add' ? 'Data ustadz/guru berhasil ditambahkan' : 'Data ustadz/guru berhasil diperbarui');
     } catch (err) {
       console.error('Gagal simpan asatidz:', err);
       if (formMode === 'add') {
@@ -153,19 +159,23 @@ export default function AsatidzView() {
         setAsatidzList(asatidzList.map(a => a.id === formData.id ? formData : a));
       }
       setIsFormOpen(false);
+      toastSuccess('Data tersimpan');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDeleteAsatidz = async (id, nama) => {
-    if (window.confirm(`Yakin ingin menghapus data asatidz "${nama}"?`)) {
+    const ok = await showConfirm('Hapus Asatidz', `Yakin ingin menghapus data ustadz/guru "${nama}"?`, 'Ya, Hapus', 'Batal');
+    if (ok) {
       try {
         await axios.delete(`/api/asatidz/${id}`);
         fetchAsatidz();
+        toastSuccess(`Data "${nama}" berhasil dihapus.`);
       } catch (err) {
         console.error('Gagal hapus asatidz:', err);
         setAsatidzList(asatidzList.filter(a => a.id !== id));
+        toastSuccess(`Data "${nama}" berhasil dihapus.`);
       }
     }
   };
@@ -670,6 +680,49 @@ export default function AsatidzView() {
                       value={formData.alamat}
                       onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
                     />
+                  </div>
+                </div>
+
+                {/* Akun Login Ustadz / Guru */}
+                <div style={{
+                  background: '#f8fafc',
+                  border: '1.5px dashed #cbd5e1',
+                  borderRadius: '10px',
+                  padding: '12px',
+                  marginTop: '4px'
+                }}>
+                  <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#047857', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <ShieldCheck size={14} /> AKUN LOGIN APLIKASI (DESKTOP & MOBILE)
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
+                        USERNAME LOGIN
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder={formData.nik_niy || 'Contoh: ahmad.fauzi'}
+                        className="filter-select" 
+                        style={{ width: '100%', padding: '6px 10px' }} 
+                        value={formData.username}
+                        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                      />
+                      <span style={{ fontSize: '0.64rem', color: '#64748b' }}>Bisa login pakai username, NIK, atau No. HP</span>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
+                        PASSWORD LOGIN
+                      </label>
+                      <input 
+                        type="password" 
+                        placeholder={formMode === 'add' ? 'Default: 12345' : 'Kosongkan jika tidak diubah'}
+                        className="filter-select" 
+                        style={{ width: '100%', padding: '6px 10px' }} 
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      />
+                      <span style={{ fontSize: '0.64rem', color: '#64748b' }}>{formMode === 'add' ? 'Kosong = otomatis 12345' : 'Isi hanya jika ingin ganti'}</span>
+                    </div>
                   </div>
                 </div>
               </div>

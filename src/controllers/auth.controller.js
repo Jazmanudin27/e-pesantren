@@ -82,13 +82,14 @@ export const login = async (req, res, next) => {
       try {
         const [astRows] = await pool.query(
           `SELECT * FROM asatidz 
-           WHERE LOWER(TRIM(nik_niy)) = LOWER(TRIM(?)) 
+           WHERE LOWER(TRIM(COALESCE(username, ''))) = LOWER(TRIM(?))
+              OR LOWER(TRIM(nik_niy)) = LOWER(TRIM(?)) 
               OR LOWER(TRIM(email)) = LOWER(TRIM(?)) 
               OR LOWER(TRIM(no_hp)) = LOWER(TRIM(?))
               OR LOWER(TRIM(nama_asatidz)) = LOWER(TRIM(?))
               OR LOWER(TRIM(nama_asatidz)) LIKE LOWER(?)
            LIMIT 1`,
-          [cleanUser, cleanUser, cleanUser, cleanUser, `%${cleanUser}%`]
+          [cleanUser, cleanUser, cleanUser, cleanUser, cleanUser, `%${cleanUser}%`]
         );
         if (astRows && astRows.length > 0) {
           account = astRows[0];
