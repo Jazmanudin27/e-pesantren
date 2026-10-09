@@ -35,6 +35,7 @@ import MobileDevice from '../views/mobile/MobileDevice';
 import MobileTataTertib from '../views/mobile/MobileTataTertib';
 import MobileLaporanPresensi from '../views/mobile/MobileLaporanPresensi';
 import MobileLaporanTahfidz from '../views/mobile/MobileLaporanTahfidz';
+import MobileKitab from '../views/mobile/MobileKitab';
 import MobileProfil from '../views/mobile/MobileProfil';
 import MobileLogin from '../views/mobile/MobileLogin';
 
@@ -139,6 +140,7 @@ export default function MobileLayout() {
       case 'master-asrama': return 'Data Asrama & Kobong';
       case 'master-kelas': return 'Data Kelas & Halaqah';
       case 'master-asatidz': return 'Data Asatidz & Musyrif';
+      case 'kitab': return 'Kajian Kitab Kuning';
       case 'master-device': return 'Data Mesin Fingerprint';
       case 'tata-tertib': return 'Tata Tertib & Ta\'zir';
       case 'laporan-presensi': return 'Rekap Presensi Harian';
@@ -151,7 +153,7 @@ export default function MobileLayout() {
 
   const isOtherMenuActive = [
     'dashboard', 'master-santri', 'master-asrama', 'master-kelas', 
-    'master-asatidz', 'master-device', 'tata-tertib', 
+    'master-asatidz', 'kitab', 'master-device', 'tata-tertib', 
     'laporan-presensi', 'laporan-tahfidz', 'syahriah'
   ].includes(mobileTab);
 
@@ -176,6 +178,8 @@ export default function MobileLayout() {
         return <MobileKelas />;
       case 'master-asatidz':
         return <MobileAsatidz />;
+      case 'kitab':
+        return <MobileKitab />;
       case 'master-device':
         return <MobileDevice />;
       case 'tata-tertib':

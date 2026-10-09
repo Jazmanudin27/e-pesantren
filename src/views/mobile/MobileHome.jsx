@@ -497,145 +497,86 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       </div>
 
       {/* =========================================================================
-          SQUIRCLE GRID MENU (IDENTIK DENGAN SCREENSHOT E-SEKOLAH)
-          4 Kolom, warna solid vibran, rounded squircle halus & bayangan lembut
+          SQUIRCLE GRID MENU: FITUR RESMI E-PESANTREN
+          (Santri, Asrama, Kelas, Kitab, Guru, Perizinan, Pelanggaran, Absensi Kegiatan, Hafalan)
+          4 Kolom responsif, tema pesantren elegan & dinamis
       ========================================================================= */}
       <div className="mobile-squircle-grid" style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '16px 10px',
-        padding: '24px 16px 14px'
+        gap: '16px 8px',
+        padding: '24px 14px 14px'
       }}>
-        {/* ROW 1 */}
-        {/* 1. Siswa / Santri */}
+        {/* 1. Santri */}
         <div onClick={() => onChangeTab('master-santri')} style={menuCardStyle}>
           <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', boxShadow: '0 8px 16px -2px rgba(37, 99, 235, 0.35)' }}>
-            <GraduationCap size={26} />
+            <Users size={26} />
           </div>
-          <span style={menuLabelStyle}>Siswa</span>
+          <span style={menuLabelStyle}>Santri</span>
         </div>
 
-        {/* 2. Guru / Asatidz */}
-        <div onClick={() => onChangeTab('master-asatidz')} style={menuCardStyle}>
+        {/* 2. Asrama */}
+        <div onClick={() => onChangeTab('master-asrama')} style={menuCardStyle}>
+          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #6366f1, #4f46e5)', boxShadow: '0 8px 16px -2px rgba(99, 102, 241, 0.35)' }}>
+            <Building size={26} />
+          </div>
+          <span style={menuLabelStyle}>Asrama</span>
+        </div>
+
+        {/* 3. Kelas */}
+        <div onClick={() => onChangeTab('master-kelas')} style={menuCardStyle}>
+          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #f59e0b, #d97706)', boxShadow: '0 8px 16px -2px rgba(245, 158, 11, 0.35)' }}>
+            <Layers size={26} />
+          </div>
+          <span style={menuLabelStyle}>Kelas</span>
+        </div>
+
+        {/* 4. Kitab */}
+        <div onClick={() => onChangeTab('kitab')} style={menuCardStyle}>
           <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #059669, #047857)', boxShadow: '0 8px 16px -2px rgba(5, 150, 105, 0.35)' }}>
-            <Users size={26} />
+            <BookOpen size={26} />
+          </div>
+          <span style={menuLabelStyle}>Kitab</span>
+        </div>
+
+        {/* 5. Guru (Asatidz) */}
+        <div onClick={() => onChangeTab('master-asatidz')} style={menuCardStyle}>
+          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #0d9488, #0f766e)', boxShadow: '0 8px 16px -2px rgba(13, 148, 136, 0.35)' }}>
+            <UserCheck size={26} />
           </div>
           <span style={menuLabelStyle}>Guru</span>
         </div>
 
-        {/* 3. Kelas / Halaqah (Mapel) */}
-        <div onClick={() => onChangeTab('master-kelas')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #f59e0b, #d97706)', boxShadow: '0 8px 16px -2px rgba(245, 158, 11, 0.35)' }}>
-            <BookOpen size={26} />
-          </div>
-          <span style={menuLabelStyle}>Mapel</span>
-        </div>
-
-        {/* 4. Riwayat / History */}
-        <div onClick={() => onChangeTab('laporan-presensi')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #e11d48, #be123c)', boxShadow: '0 8px 16px -2px rgba(225, 29, 72, 0.35)' }}>
-            <Clock size={26} />
-          </div>
-          <span style={menuLabelStyle}>History</span>
-        </div>
-
-        {/* ROW 2 */}
-        {/* 5. Asrama / Jadwal */}
-        <div onClick={() => onChangeTab('master-asrama')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', boxShadow: '0 8px 16px -2px rgba(139, 92, 246, 0.35)' }}>
-            <Calendar size={26} />
-          </div>
-          <span style={menuLabelStyle}>Jadwal</span>
-        </div>
-
-        {/* 6. Tahfidz / Kalender */}
-        <div onClick={() => onChangeTab('tahfidz')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #0d9488, #0f766e)', boxShadow: '0 8px 16px -2px rgba(13, 148, 136, 0.35)' }}>
-            <Building size={26} />
-          </div>
-          <span style={menuLabelStyle}>Kalender</span>
-        </div>
-
-        {/* 7. Perizinan (Izin) */}
+        {/* 6. Perizinan */}
         <div onClick={() => onChangeTab('perizinan')} style={menuCardStyle}>
           <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #ea580c, #c2410c)', boxShadow: '0 8px 16px -2px rgba(234, 88, 12, 0.35)' }}>
-            <Send size={24} />
+            <DoorOpen size={26} />
           </div>
-          <span style={menuLabelStyle}>Izin</span>
+          <span style={menuLabelStyle}>Perizinan</span>
         </div>
 
-        {/* 8. Absen Siswa */}
-        <div onClick={() => onChangeTab('presensi')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #ec4899, #db2777)', boxShadow: '0 8px 16px -2px rgba(236, 72, 153, 0.35)' }}>
-            <UserCheck size={26} />
-          </div>
-          <span style={menuLabelStyle}>Absen Siswa</span>
-        </div>
-
-        {/* ROW 3 */}
-        {/* 9. Tata Tertib (Absen Mapel) */}
+        {/* 7. Pelanggaran (Tata Tertib & Ta'zir) */}
         <div onClick={() => onChangeTab('tata-tertib')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #3b82f6, #2563eb)', boxShadow: '0 8px 16px -2px rgba(59, 130, 246, 0.35)' }}>
-            <BookOpen size={26} />
+          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #e11d48, #be123c)', boxShadow: '0 8px 16px -2px rgba(225, 29, 72, 0.35)' }}>
+            <ShieldAlert size={26} />
           </div>
-          <span style={menuLabelStyle}>Absen Mapel</span>
+          <span style={menuLabelStyle}>Pelanggaran</span>
         </div>
 
-        {/* 10. Rekap Siswa */}
-        <div onClick={() => onChangeTab('laporan-presensi')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #d97706, #b45309)', boxShadow: '0 8px 16px -2px rgba(217, 119, 6, 0.35)' }}>
-            <BarChart3 size={26} />
-          </div>
-          <span style={menuLabelStyle}>Rekap Siswa</span>
-        </div>
-
-        {/* 11. Rekap Mapel */}
-        <div onClick={() => onChangeTab('laporan-tahfidz')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #06b6d4, #0891b2)', boxShadow: '0 8px 16px -2px rgba(6, 182, 212, 0.35)' }}>
-            <PieChart size={26} />
-          </div>
-          <span style={menuLabelStyle}>Rekap Mapel</span>
-        </div>
-
-        {/* 12. Rekap Guru */}
-        <div onClick={() => onChangeTab('master-asatidz')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #be123c, #9f1239)', boxShadow: '0 8px 16px -2px rgba(190, 18, 60, 0.35)' }}>
-            <Award size={26} />
-          </div>
-          <span style={menuLabelStyle}>Rekap Guru</span>
-        </div>
-
-        {/* ROW 4 */}
-        {/* 13. Mesin Fingerprint */}
-        <div onClick={() => onChangeTab('master-device')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', boxShadow: '0 8px 16px -2px rgba(139, 92, 246, 0.35)' }}>
-            <HardDrive size={26} />
-          </div>
-          <span style={menuLabelStyle}>Perangkat</span>
-        </div>
-
-        {/* 14. Kamar Kobong */}
-        <div onClick={() => onChangeTab('master-asrama')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #059669, #047857)', boxShadow: '0 8px 16px -2px rgba(5, 150, 105, 0.35)' }}>
-            <Building size={26} />
-          </div>
-          <span style={menuLabelStyle}>Kobong</span>
-        </div>
-
-        {/* 15. Setoran Qur'an */}
-        <div onClick={() => onChangeTab('tahfidz')} style={menuCardStyle}>
+        {/* 8. Absensi Kegiatan (Berjamaah, Mengaji, dll) */}
+        <div onClick={() => onChangeTab('presensi')} style={menuCardStyle}>
           <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #0284c7, #0369a1)', boxShadow: '0 8px 16px -2px rgba(2, 132, 199, 0.35)' }}>
-            <FileText size={26} />
+            <Fingerprint size={26} />
           </div>
-          <span style={menuLabelStyle}>Setoran</span>
+          <span style={menuLabelStyle}>Absensi Kegiatan</span>
         </div>
 
-        {/* 16. Profil Pengguna */}
-        <div onClick={() => onChangeTab('profil')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #ea580c, #c2410c)', boxShadow: '0 8px 16px -2px rgba(234, 88, 12, 0.35)' }}>
-            <User size={26} />
+        {/* 9. Hafalan (Tahfidz & Muroja'ah) */}
+        <div onClick={() => onChangeTab('tahfidz')} style={menuCardStyle}>
+          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', boxShadow: '0 8px 16px -2px rgba(139, 92, 246, 0.35)' }}>
+            <Sparkles size={26} />
           </div>
-          <span style={menuLabelStyle}>Profil</span>
+          <span style={menuLabelStyle}>Hafalan</span>
         </div>
       </div>
     </div>
@@ -668,8 +609,11 @@ const menuLabelStyle = {
   fontWeight: 700,
   color: '#334155',
   textAlign: 'center',
-  whiteSpace: 'nowrap',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  maxWidth: '68px'
+  lineHeight: 1.2,
+  maxWidth: '74px',
+  wordBreak: 'break-word',
+  display: '-webkit-box',
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: 'vertical',
+  overflow: 'hidden'
 };
