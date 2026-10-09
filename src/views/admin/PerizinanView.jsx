@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 
 import SearchableSelect from '../../components/SearchableSelect';
+import { showConfirm, showError, toastSuccess } from '../../utils/alert.util';
 
 export default function PerizinanView() {
   const [izinList, setIzinList] = useState([]);
@@ -161,7 +162,7 @@ export default function PerizinanView() {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!formData.santri_id) {
-      alert('Pilih santri terlebih dahulu!');
+      showError('Validasi Gagal', 'Pilih santri terlebih dahulu!');
       return;
     }
     try {
@@ -178,42 +179,49 @@ export default function PerizinanView() {
         }
       }
       setIsFormOpen(false);
+      toastSuccess(formMode === 'add' ? 'Surat perizinan santri berhasil diterbitkan' : 'Data perizinan berhasil diperbarui');
     } catch (err) {
-      alert('Gagal menyimpan perizinan: ' + (err.response?.data?.error || err.message));
+      showError('Gagal Menyimpan', err.response?.data?.error || err.message);
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (id, barcode) => {
-    if (window.confirm(`Yakin ingin menghapus surat izin "${barcode}"?`)) {
+    const ok = await showConfirm('Hapus Perizinan', `Yakin ingin menghapus surat izin "${barcode}"?`, 'Ya, Hapus', 'Batal');
+    if (ok) {
       try {
         await axios.delete(`/api/perizinan/${id}`);
         fetchData();
+        toastSuccess(`Surat izin "${barcode}" berhasil dihapus.`);
       } catch (err) {
-        alert('Gagal menghapus: ' + err.message);
+        showError('Gagal Menghapus', err.message);
       }
     }
   };
 
   const handleGateCheckout = async (id) => {
-    if (window.confirm('Verifikasi santri keluar gerbang pondok sekarang?')) {
+    const ok = await showConfirm('Check-Out Gerbang', 'Verifikasi santri keluar gerbang pondok sekarang?', 'Ya, Check-Out', 'Batal');
+    if (ok) {
       try {
         await axios.post('/api/perizinan/checkout', { id, satpam: 'Petugas Pos Gerbang' });
         fetchData();
+        toastSuccess('Santri berhasil diverifikasi keluar gerbang.');
       } catch (err) {
-        alert('Gagal check-out: ' + err.message);
+        showError('Gagal Check-Out', err.message);
       }
     }
   };
 
   const handleGateCheckin = async (id) => {
-    if (window.confirm('Verifikasi santri telah tiba dan masuk kembali ke pondok?')) {
+    const ok = await showConfirm('Check-In Gerbang', 'Verifikasi santri telah tiba dan masuk kembali ke pondok?', 'Ya, Check-In', 'Batal');
+    if (ok) {
       try {
         await axios.post('/api/perizinan/checkin', { id, satpam: 'Petugas Pos Gerbang' });
         fetchData();
+        toastSuccess('Santri berhasil diverifikasi tiba kembali di pondok.');
       } catch (err) {
-        alert('Gagal check-in: ' + err.message);
+        showError('Gagal Check-In', err.message);
       }
     }
   };

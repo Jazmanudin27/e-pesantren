@@ -164,12 +164,6 @@ export const login = async (req, res, next) => {
       }
     }
 
-    // Common master/default passwords & Asrama / Asatidz convenience
-    const masterPasswords = ['12345', '123456', 'Jazman@271998', 'admin', 'ali123', 'pass123', 'ustadz123', 'guru123'];
-    if (!isMatch && (masterPasswords.includes(cleanPass) || userType === 'Asrama' || userType === 'Asatidz')) {
-      isMatch = true;
-    }
-
     if (!isMatch) {
       return sendError(res, `Password untuk akun "${cleanUser}" salah!`, 401);
     }

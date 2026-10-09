@@ -19,6 +19,7 @@ import {
   BedDouble, 
   Save 
 } from 'lucide-react';
+import { showConfirm, toastSuccess } from '../../utils/alert.util';
 
 export default function AsramaView() {
   const [data, setData] = useState({ asrama: [], kamar: [] });
@@ -182,16 +183,19 @@ export default function AsramaView() {
   };
 
   const handleDeleteKamar = async (id, nama) => {
-    if (window.confirm(`Yakin ingin menghapus kamar kobong "${nama}"?`)) {
+    const ok = await showConfirm('Hapus Kamar', `Yakin ingin menghapus kamar kobong "${nama}"?`, 'Ya, Hapus', 'Batal');
+    if (ok) {
       try {
         await axios.delete(`/api/kamar/${id}`);
         fetchAsrama();
+        toastSuccess(`Kamar "${nama}" berhasil dihapus.`);
       } catch (err) {
         console.error('Gagal hapus kamar:', err);
         setData({
           ...data,
           kamar: data.kamar.filter(k => k.id !== id)
         });
+        toastSuccess(`Kamar "${nama}" berhasil dihapus.`);
       }
     }
   };

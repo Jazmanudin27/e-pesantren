@@ -9,6 +9,7 @@ import {
   Eye, 
   EyeOff
 } from 'lucide-react';
+import { showError, toastSuccess } from '../../utils/alert.util';
 
 export default function LoginAdmin({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
@@ -26,6 +27,7 @@ export default function LoginAdmin({ onLoginSuccess }) {
     const cleanP = password.trim();
 
     if (!cleanU || !cleanP) {
+      showError('Validasi Gagal', 'Username dan Password wajib diisi.');
       setError('Username dan Password wajib diisi.');
       return;
     }
@@ -65,22 +67,26 @@ export default function LoginAdmin({ onLoginSuccess }) {
         }
 
         setLoading(false);
+        toastSuccess(`Selamat datang, ${sessionData.nama}`);
         if (onLoginSuccess) onLoginSuccess(sessionData);
         return;
       } else {
-        setError(res.data?.error || res.data?.message || 'Username atau password tidak sesuai data database.');
+        const msg = res.data?.error || res.data?.message || 'Username atau password tidak sesuai data database.';
+        setError(msg);
+        showError('Login Gagal', msg);
         setLoading(false);
       }
     } catch (err) {
       setLoading(false);
       const serverMsg = err.response?.data?.error || err.response?.data?.message;
+      let displayMsg = 'Login gagal. Periksa username dan password Anda.';
       if (serverMsg) {
-        setError(serverMsg);
+        displayMsg = serverMsg;
       } else if (err.code === 'ERR_NETWORK') {
-        setError('Koneksi ke server database gagal. Pastikan service backend aktif.');
-      } else {
-        setError('Login gagal. Periksa username dan password Anda.');
+        displayMsg = 'Koneksi ke server database gagal. Pastikan service backend aktif.';
       }
+      setError(displayMsg);
+      showError('Login Gagal', displayMsg);
     }
   };
 

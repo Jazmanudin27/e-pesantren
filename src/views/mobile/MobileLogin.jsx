@@ -14,6 +14,7 @@ import {
   Sparkles,
   Phone
 } from 'lucide-react';
+import { showError, toastSuccess } from '../../utils/alert.util';
 
 export default function MobileLogin({ onLoginSuccess }) {
   const [roleTab, setRoleTab] = useState('ustadz'); // 'ustadz' | 'asrama' | 'admin'
@@ -111,45 +112,26 @@ export default function MobileLogin({ onLoginSuccess }) {
         };
         localStorage.setItem('mobile_session', JSON.stringify(sessionData));
         setLoading(false);
+        toastSuccess(`Selamat datang, ${sessionData.nama}`);
         if (onLoginSuccess) onLoginSuccess(sessionData);
         return;
+      } else {
+        const msg = res.data?.error || res.data?.message || 'Login gagal. Periksa data Anda.';
+        setError(msg);
+        showError('Login Gagal', msg);
+        setLoading(false);
       }
     } catch (err) {
-      // Offline fallback: if backend is unreachable, still permit login for demo/testing!
-      const isNetworkErr = !err.response || err.code === 'ERR_NETWORK' || err.message.includes('Network');
-      if (isNetworkErr) {
-        let matchedName = cleanUser;
-        if (roleTab === 'ustadz') {
-          const found = asatidzList.find(a => 
-            a.nik_niy?.toLowerCase() === cleanUser.toLowerCase() || 
-            a.no_hp === cleanUser || 
-            a.nama_asatidz?.toLowerCase().includes(cleanUser.toLowerCase())
-          );
-          if (found) matchedName = found.nama_asatidz;
-          else matchedName = cleanUser || 'Ust. Ahmad Fauzi';
-        }
-
-        const sessionData = {
-          token: 'offline_token_' + Date.now(),
-          role: roleTab === 'ustadz' ? 'asatidz' : (roleTab === 'admin' ? 'admin' : 'asrama'),
-          userType: roleTab === 'ustadz' ? 'Ustadz / Guru' : (roleTab === 'admin' ? 'Admin' : 'Asrama'),
-          nama: matchedName,
-          nama_asatidz: matchedName,
-          asrama_id: 1,
-          nama_asrama: 'Asrama Ali bin Abi Thalib',
-          pembina: matchedName,
-          username: cleanUser,
-          loginTime: new Date().toISOString()
-        };
-        localStorage.setItem('mobile_session', JSON.stringify(sessionData));
-        setLoading(false);
-        if (onLoginSuccess) onLoginSuccess(sessionData);
-        return;
-      }
-
       setLoading(false);
-      const errMsg = err.response?.data?.error || err.response?.data?.message || 'Username atau password salah!';
-      setError(errMsg);
+      const serverMsg = err.response?.data?.error || err.response?.data?.message;
+      let displayMsg = 'Login gagal. Periksa username dan password Anda.';
+      if (serverMsg) {
+        displayMsg = serverMsg;
+      } else if (err.code === 'ERR_NETWORK') {
+        displayMsg = 'Koneksi ke database terputus. Pastikan server aktif.';
+      }
+      setError(displayMsg);
+      showError('Login Gagal', displayMsg);
     }
   };
 

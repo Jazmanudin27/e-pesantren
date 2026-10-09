@@ -22,6 +22,7 @@ import {
 
 import SearchableSelect from '../../components/SearchableSelect';
 import { SURAH_LIST } from '../../utils/quranSurah.util';
+import { showConfirm, showError, toastSuccess } from '../../utils/alert.util';
 
 export default function TahfidzView() {
   const [setoranList, setSetoranList] = useState([]);
@@ -185,7 +186,7 @@ export default function TahfidzView() {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!formData.santri_id) {
-      alert('Pilih santri terlebih dahulu!');
+      showError('Validasi Gagal', 'Pilih santri terlebih dahulu!');
       return;
     }
     try {
@@ -202,20 +203,23 @@ export default function TahfidzView() {
         }
       }
       setIsFormOpen(false);
+      toastSuccess(formMode === 'add' ? 'Setoran tahfidz berhasil dicatat' : 'Data setoran berhasil diperbarui');
     } catch (err) {
-      alert('Gagal menyimpan data setoran: ' + (err.response?.data?.error || err.message));
+      showError('Gagal Menyimpan', err.response?.data?.error || err.message);
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (id, nama) => {
-    if (window.confirm(`Yakin ingin menghapus riwayat setoran "${nama}"?`)) {
+    const ok = await showConfirm('Hapus Setoran', `Yakin ingin menghapus riwayat setoran "${nama}"?`, 'Ya, Hapus', 'Batal');
+    if (ok) {
       try {
         await axios.delete(`/api/tahfidz/setoran/${id}`);
         fetchData();
+        toastSuccess(`Riwayat setoran "${nama}" berhasil dihapus.`);
       } catch (err) {
-        alert('Gagal menghapus: ' + err.message);
+        showError('Gagal Menghapus', err.message);
       }
     }
   };

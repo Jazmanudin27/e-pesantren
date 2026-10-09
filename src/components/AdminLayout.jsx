@@ -37,6 +37,7 @@ import PerizinanView from '../views/admin/PerizinanView';
 import TataTertibView from '../views/admin/TataTertibView';
 import AbsensiFingerprintView from '../views/admin/AbsensiFingerprintView';
 import LoginAdmin from '../views/admin/LoginAdmin';
+import { showConfirm, toastSuccess } from '../utils/alert.util';
 
 export default function AdminLayout() {
   const isMasterTab = (tab) => ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-device'].includes(tab);
@@ -127,15 +128,22 @@ export default function AdminLayout() {
     };
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setIsUserDropdownOpen(false);
-    if (window.confirm('Apakah Anda yakin ingin keluar dari sistem Admin E-Pesantren?')) {
+    const confirmed = await showConfirm(
+      'Konfirmasi Keluar',
+      'Apakah Anda yakin ingin keluar dari sistem E-Pesantren Nurul Wafa?',
+      'Ya, Keluar',
+      'Batal'
+    );
+    if (confirmed) {
       localStorage.removeItem('token');
       localStorage.removeItem('desktop_session');
       sessionStorage.removeItem('desktop_session');
       localStorage.removeItem('epesantren_tab');
       setCurrentUser(null);
       window.location.hash = '';
+      toastSuccess('Berhasil keluar dari sistem');
     }
   };
 

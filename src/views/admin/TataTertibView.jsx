@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 
 import SearchableSelect from '../../components/SearchableSelect';
+import { showConfirm, showError, toastSuccess } from '../../utils/alert.util';
 
 export default function TataTertibView() {
   const [pelanggaranList, setPelanggaranList] = useState([]);
@@ -141,7 +142,7 @@ export default function TataTertibView() {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!formData.santri_id) {
-      alert('Pilih santri terlebih dahulu!');
+      showError('Validasi Gagal', 'Pilih santri terlebih dahulu!');
       return;
     }
     try {
@@ -158,30 +159,37 @@ export default function TataTertibView() {
         }
       }
       setIsFormOpen(false);
+      toastSuccess(formMode === 'add' ? 'Catatan pelanggaran berhasil disimpan' : 'Catatan berhasil diperbarui');
     } catch (err) {
-      alert('Gagal menyimpan pelanggaran: ' + (err.response?.data?.error || err.message));
+      showError('Gagal Menyimpan', err.response?.data?.error || err.message);
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (id, jenis) => {
-    if (window.confirm(`Yakin ingin menghapus catatan pelanggaran "${jenis}"?`)) {
+    const ok = await showConfirm('Hapus Pelanggaran', `Yakin ingin menghapus catatan pelanggaran "${jenis}"?`, 'Ya, Hapus', 'Batal');
+    if (ok) {
       try {
         await axios.delete(`/api/pelanggaran/${id}`);
         fetchData();
+        toastSuccess(`Catatan pelanggaran "${jenis}" berhasil dihapus.`);
       } catch (err) {
-        alert('Gagal menghapus: ' + err.message);
+        showError('Gagal Menghapus', err.message);
       }
     }
   };
 
   const handleTazirSelesai = async (id) => {
-    try {
-      await axios.post(`/api/pelanggaran/selesai/${id}`);
-      fetchData();
-    } catch (err) {
-      alert('Gagal update status ta\'zir: ' + err.message);
+    const ok = await showConfirm('Konfirmasi Ta\'zir', 'Tandai ta\'zir / sanksi santri ini telah selesai dijalankan?', 'Ya, Selesai', 'Batal');
+    if (ok) {
+      try {
+        await axios.post(`/api/pelanggaran/selesai/${id}`);
+        fetchData();
+        toastSuccess('Status ta\'zir berhasil diupdate ke Selesai.');
+      } catch (err) {
+        showError('Gagal Update', err.message);
+      }
     }
   };
 

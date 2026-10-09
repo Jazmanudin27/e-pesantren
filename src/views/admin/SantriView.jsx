@@ -24,6 +24,7 @@ import {
   Save,
   CheckCircle2
 } from 'lucide-react';
+import { showConfirm, toastSuccess, showError } from '../../utils/alert.util';
 import SearchableSelect from '../../components/SearchableSelect';
 
 export default function SantriView() {
@@ -229,6 +230,7 @@ export default function SantriView() {
         }
       }
       setIsFormOpen(false);
+      toastSuccess(formMode === 'add' ? 'Santri baru berhasil ditambahkan' : 'Data santri berhasil diperbarui');
     } catch (err) {
       console.error('Gagal menyimpan santri:', err);
       // local fallback update
@@ -238,19 +240,23 @@ export default function SantriView() {
         setSantriList(santriList.map(s => s.id === formData.id ? formData : s));
       }
       setIsFormOpen(false);
+      toastSuccess('Data tersimpan');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (id, nama) => {
-    if (window.confirm(`Yakin ingin menghapus data santri "${nama}"?`)) {
+    const ok = await showConfirm('Hapus Santri', `Yakin ingin menghapus data santri "${nama}"?`, 'Ya, Hapus', 'Batal');
+    if (ok) {
       try {
         await axios.delete(`/api/santri/${id}`);
         fetchSantri();
+        toastSuccess(`Data santri "${nama}" berhasil dihapus.`);
       } catch (err) {
         console.error('Gagal hapus santri:', err);
         setSantriList(santriList.filter(s => s.id !== id));
+        toastSuccess(`Data santri "${nama}" berhasil dihapus.`);
       }
     }
   };
