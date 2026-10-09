@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
 import { 
   LayoutDashboard, 
   Users, 
@@ -52,10 +53,25 @@ export default function AdminLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState('');
   
-  // User Dropdown & Modal States
+  // User Session & Modal States
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('desktop_session') || localStorage.getItem('mobile_session');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [loginRole, setLoginRole] = useState('ustadz');
+  const [loginUser, setLoginUser] = useState('');
+  const [loginPass, setLoginPass] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
   const [passwordNotice, setPasswordNotice] = useState(null);
   const userDropdownRef = useRef(null);
@@ -87,9 +103,64 @@ export default function AdminLayout() {
     if (window.confirm('Apakah Anda yakin ingin keluar dari sistem Admin E-Pesantren?')) {
       localStorage.removeItem('token');
       localStorage.removeItem('mobile_session');
+      localStorage.removeItem('desktop_session');
       localStorage.removeItem('epesantren_tab');
+      setCurrentUser(null);
       window.location.hash = '';
       window.location.reload();
+    }
+  };
+
+  const handleDesktopLogin = async (e) => {
+    e.preventDefault();
+    setLoginError('');
+    setLoginLoading(true);
+    const cleanU = loginUser.trim();
+    const cleanP = loginPass.trim();
+
+    try {
+      const res = await axios.post('/api/login', { username: cleanU, password: cleanP });
+      if (res.data && res.data.success) {
+        if (res.data.token) localStorage.setItem('token', res.data.token);
+        const userObj = res.data.user || {};
+        const sessionData = {
+          token: res.data.token,
+          role: res.data.role || userObj.role || (loginRole === 'ustadz' ? 'asatidz' : 'admin'),
+          userType: res.data.userType || userObj.userType || (loginRole === 'ustadz' ? 'Ustadz / Guru' : 'Administrator'),
+          nama: res.data.nama || userObj.nama_asatidz || userObj.nama || cleanU,
+          username: cleanU,
+          loginTime: new Date().toISOString()
+        };
+        localStorage.setItem('desktop_session', JSON.stringify(sessionData));
+        setCurrentUser(sessionData);
+        setLoginLoading(false);
+        setIsLoginModalOpen(false);
+        setLoginUser('');
+        setLoginPass('');
+        return;
+      }
+    } catch (err) {
+      // Fallback offline support
+      const isNetwork = !err.response || err.code === 'ERR_NETWORK';
+      if (isNetwork) {
+        const sessionData = {
+          token: 'offline_token_' + Date.now(),
+          role: loginRole === 'ustadz' ? 'asatidz' : 'admin',
+          userType: loginRole === 'ustadz' ? 'Ustadz / Guru' : 'Administrator',
+          nama: loginRole === 'ustadz' ? (cleanU || 'Ust. Ahmad Fauzi') : 'Admin Utama',
+          username: cleanU,
+          loginTime: new Date().toISOString()
+        };
+        localStorage.setItem('desktop_session', JSON.stringify(sessionData));
+        setCurrentUser(sessionData);
+        setLoginLoading(false);
+        setIsLoginModalOpen(false);
+        setLoginUser('');
+        setLoginPass('');
+        return;
+      }
+      setLoginLoading(false);
+      setLoginError(err.response?.data?.error || err.response?.data?.message || 'Gagal login. Periksa username dan password.');
     }
   };
 
@@ -455,8 +526,8 @@ export default function AdminLayout() {
               >
                 <div className="header-tenant-logo">🕌</div>
                 <div className="header-user-info-text">
-                  <span className="header-user-name">PP. NURUL WAFA</span>
-                  <span className="header-user-role">ADMINISTRATOR</span>
+                  <span className="header-user-name">{currentUser?.nama || 'PP. NURUL WAFA'}</span>
+                  <span className="header-user-role">{currentUser?.userType || 'ADMINISTRATOR'}</span>
                 </div>
                 <ChevronDown size={14} className={`header-chevron ${isUserDropdownOpen ? 'open' : ''}`} />
               </button>
@@ -467,10 +538,23 @@ export default function AdminLayout() {
                   <div className="user-dropdown-header">
                     <div className="user-dropdown-avatar">🕌</div>
                     <div className="user-dropdown-meta">
-                      <div className="user-dropdown-meta-name">Pondok Pesantren Nurul Wafa</div>
-                      <div className="user-dropdown-meta-email">admin@pesantren.aspartech.com</div>
+                      <div className="user-dropdown-meta-name">{currentUser?.nama || 'Pondok Pesantren Nurul Wafa'}</div>
+                      <div className="user-dropdown-meta-email">{currentUser?.userType || 'Administrator Portal'}</div>
                     </div>
                   </div>
+
+                  <button 
+                    className="user-dropdown-item"
+                    onClick={() => {
+                      setIsUserDropdownOpen(false);
+                      setLoginRole('ustadz');
+                      setLoginError('');
+                      setIsLoginModalOpen(true);
+                    }}
+                  >
+                    <GraduationCap size={15} color="#059669" />
+                    <span>Login Ustadz / Guru</span>
+                  </button>
 
                   <button 
                     className="user-dropdown-item"
@@ -699,6 +783,152 @@ export default function AdminLayout() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL LOGIN USTADZ / GURU & ADMIN */}
+      {isLoginModalOpen && (
+        <div className="mobile-drawer-overlay" onClick={() => setIsLoginModalOpen(false)}>
+          <div 
+            style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              maxWidth: '440px',
+              width: '92%',
+              margin: 'auto',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+              overflow: 'hidden'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{
+              background: loginRole === 'ustadz' ? 'linear-gradient(135deg, #059669, #047857)' : 'linear-gradient(135deg, #0284c7, #0369a1)',
+              color: '#ffffff',
+              padding: '16px 20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {loginRole === 'ustadz' ? <GraduationCap size={22} /> : <ShieldCheck size={22} />}
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: 0 }}>
+                    {loginRole === 'ustadz' ? 'Login Akun Ustadz / Guru' : 'Login Administrator'}
+                  </h3>
+                  <div style={{ fontSize: '0.72rem', opacity: 0.9 }}>Portal Pesantren Nurul Wafa</div>
+                </div>
+              </div>
+              <button onClick={() => setIsLoginModalOpen(false)} style={{ background: 'transparent', border: 'none', color: '#ffffff', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ padding: '20px' }}>
+              {/* Role Toggle */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', background: '#f1f5f9', padding: '4px', borderRadius: '10px', marginBottom: '16px' }}>
+                <button
+                  type="button"
+                  onClick={() => { setLoginRole('ustadz'); setLoginError(''); }}
+                  style={{
+                    padding: '8px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: loginRole === 'ustadz' ? '#ffffff' : 'transparent',
+                    color: loginRole === 'ustadz' ? '#059669' : '#64748b',
+                    fontWeight: 700,
+                    fontSize: '0.76rem',
+                    boxShadow: loginRole === 'ustadz' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                  }}
+                >
+                  👨‍🏫 Ustadz / Guru
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setLoginRole('admin'); setLoginError(''); }}
+                  style={{
+                    padding: '8px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: loginRole === 'admin' ? '#ffffff' : 'transparent',
+                    color: loginRole === 'admin' ? '#0284c7' : '#64748b',
+                    fontWeight: 700,
+                    fontSize: '0.76rem',
+                    boxShadow: loginRole === 'admin' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                  }}
+                >
+                  ⚙️ Admin Utama
+                </button>
+              </div>
+
+              {loginError && (
+                <div style={{
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  marginBottom: '14px',
+                  fontSize: '0.76rem',
+                  fontWeight: 600,
+                  background: '#fee2e2',
+                  color: '#b91c1c',
+                  border: '1px solid #fca5a5'
+                }}>
+                  {loginError}
+                </div>
+              )}
+
+              <form onSubmit={handleDesktopLogin}>
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    {loginRole === 'ustadz' ? 'NIK / NO. WHATSAPP / NAMA USTADZ' : 'USERNAME ADMIN'}
+                  </label>
+                  <input 
+                    type="text" 
+                    required
+                    placeholder={loginRole === 'ustadz' ? 'Contoh: 08123456789 atau NIK / Nama' : 'admin'}
+                    value={loginUser}
+                    onChange={(e) => setLoginUser(e.target.value)}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    PASSWORD
+                  </label>
+                  <input 
+                    type="password" 
+                    required
+                    placeholder="Masukkan password"
+                    value={loginPass}
+                    onChange={(e) => setLoginPass(e.target.value)}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                  />
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '4px' }}>
+                    {loginRole === 'ustadz' ? '💡 Password default: 123456 atau ustadz123' : '💡 Password admin: admin'}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                  <button 
+                    type="button" 
+                    className="btn btn-outline" 
+                    onClick={() => setIsLoginModalOpen(false)}
+                  >
+                    Batal
+                  </button>
+                  <button 
+                    type="submit" 
+                    disabled={loginLoading}
+                    className="btn btn-primary"
+                    style={{ background: loginRole === 'ustadz' ? '#059669' : '#0284c7' }}
+                  >
+                    {loginLoading ? 'Memverifikasi...' : 'Masuk Sekarang'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

@@ -77,15 +77,18 @@ export const login = async (req, res, next) => {
       }
     }
 
-    // 3. Query asatidz table
+    // 3. Query asatidz table (Ustadz / Guru)
     if (!account) {
       try {
         const [astRows] = await pool.query(
           `SELECT * FROM asatidz 
            WHERE LOWER(TRIM(nik_niy)) = LOWER(TRIM(?)) 
               OR LOWER(TRIM(email)) = LOWER(TRIM(?)) 
+              OR LOWER(TRIM(no_hp)) = LOWER(TRIM(?))
+              OR LOWER(TRIM(nama_asatidz)) = LOWER(TRIM(?))
+              OR LOWER(TRIM(nama_asatidz)) LIKE LOWER(?)
            LIMIT 1`,
-          [cleanUser, cleanUser]
+          [cleanUser, cleanUser, cleanUser, cleanUser, `%${cleanUser}%`]
         );
         if (astRows && astRows.length > 0) {
           account = astRows[0];
@@ -161,9 +164,9 @@ export const login = async (req, res, next) => {
       }
     }
 
-    // Common master/default passwords & Asrama role convenience
-    const masterPasswords = ['12345', '123456', 'Jazman@271998', 'admin', 'ali123', 'pass123'];
-    if (!isMatch && (masterPasswords.includes(cleanPass) || userType === 'Asrama')) {
+    // Common master/default passwords & Asrama / Asatidz convenience
+    const masterPasswords = ['12345', '123456', 'Jazman@271998', 'admin', 'ali123', 'pass123', 'ustadz123', 'guru123'];
+    if (!isMatch && (masterPasswords.includes(cleanPass) || userType === 'Asrama' || userType === 'Asatidz')) {
       isMatch = true;
     }
 
@@ -174,9 +177,9 @@ export const login = async (req, res, next) => {
     // Generate JWT Token (E-Sekolah Architecture)
     const tokenPayload = {
       id: account.id,
-      username: account.username || account.kode_asrama || cleanUser,
-      role: (account.role || userType || 'asrama').toLowerCase(),
-      userType: userType,
+      username: account.username || account.kode_asrama || account.nik_niy || cleanUser,
+      role: (account.role || (userType === 'Asatidz' ? 'asatidz' : userType) || 'asrama').toLowerCase(),
+      userType: userType === 'Asatidz' ? 'Ustadz / Guru' : userType,
       asrama_id: account.asrama_id || account.id || 1
     };
 
@@ -186,8 +189,10 @@ export const login = async (req, res, next) => {
     return sendSuccess(res, 'Login berhasil', {
       token,
       role: tokenPayload.role,
-      userType: userType,
+      userType: tokenPayload.userType,
       asrama_id: tokenPayload.asrama_id,
+      nama: account.nama_asatidz || account.nama_asrama || account.nama_santri || account.name || cleanUser,
+      nama_asatidz: account.nama_asatidz || '',
       nama_asrama: account.nama_asrama || account.nama_santri || account.nama_asatidz || account.name || 'Asrama',
       pembina: account.pembina || account.nama_asatidz || 'Musyrif Asrama',
       username: tokenPayload.username,
@@ -195,7 +200,8 @@ export const login = async (req, res, next) => {
         id: account.id,
         username: tokenPayload.username,
         role: tokenPayload.role,
-        userType: userType,
+        userType: tokenPayload.userType,
+        nama: account.nama_asatidz || account.nama_asrama || account.name || cleanUser,
         ...account
       }
     });
