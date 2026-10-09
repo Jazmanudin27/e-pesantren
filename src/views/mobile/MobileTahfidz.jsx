@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BookOpen, Plus, Edit3, Trash2, X, Save, Loader2, Search, CheckCircle, Award } from 'lucide-react';
+import { SURAH_LIST } from '../../utils/quranSurah.util';
 
 export default function MobileTahfidz() {
   const [setoranList, setSetoranList] = useState([]);
@@ -15,8 +16,8 @@ export default function MobileTahfidz() {
     id: null,
     santri_id: 1,
     jenis_setoran: 'Ziyadah',
-    juz: 15,
-    surat_mulai: 'Al-Isra\'',
+    juz: 1,
+    surat_mulai: '1. Al-Fatihah',
     ayat_mulai: 1,
     surat_selesai: 'Al-Isra\'',
     ayat_selesai: 25,
@@ -326,12 +327,17 @@ export default function MobileTahfidz() {
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Surat Mulai *</label>
-                  <input
-                    type="text" required placeholder="Contoh: Al-Isra'"
+                  <select
+                    required
                     value={formData.surat_mulai}
                     onChange={(e) => setFormData({ ...formData, surat_mulai: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
-                  />
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#ffffff' }}
+                  >
+                    <option value="">-- Pilih Surah --</option>
+                    {SURAH_LIST.map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Ayat Mulai</label>
@@ -347,12 +353,17 @@ export default function MobileTahfidz() {
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Surat Selesai *</label>
-                  <input
-                    type="text" required placeholder="Contoh: Al-Isra'"
+                  <select
+                    required
                     value={formData.surat_selesai}
                     onChange={(e) => setFormData({ ...formData, surat_selesai: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
-                  />
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#ffffff' }}
+                  >
+                    <option value="">-- Pilih Surah --</option>
+                    {SURAH_LIST.map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Ayat Selesai</label>

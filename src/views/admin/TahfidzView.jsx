@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 
 import SearchableSelect from '../../components/SearchableSelect';
+import { SURAH_LIST } from '../../utils/quranSurah.util';
 
 export default function TahfidzView() {
   const [setoranList, setSetoranList] = useState([]);
@@ -290,6 +291,8 @@ export default function TahfidzView() {
     { value: 'Perlu Pengulangan', label: 'Perlu Pengulangan' },
     { value: 'Mengulang', label: 'Mengulang Penuh' }
   ];
+
+  const surahOptions = SURAH_LIST.map(s => ({ value: s, label: s }));
 
   return (
     <div>
@@ -835,12 +838,12 @@ export default function TahfidzView() {
 
                     <div>
                       <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Surat Mulai *</label>
-                      <input 
-                        type="text"
-                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                      <SearchableSelect
+                        options={surahOptions}
                         value={formData.surat_mulai}
-                        onChange={(e) => setFormData({ ...formData, surat_mulai: e.target.value })}
-                        required
+                        onChange={(val) => setFormData({ ...formData, surat_mulai: val })}
+                        placeholder="-- Pilih Surat Mulai --"
+                        searchPlaceholder="Cari Surah (1 - 114)..."
                       />
                     </div>
 
@@ -858,12 +861,12 @@ export default function TahfidzView() {
 
                     <div>
                       <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Surat Selesai *</label>
-                      <input 
-                        type="text"
-                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                      <SearchableSelect
+                        options={surahOptions}
                         value={formData.surat_selesai}
-                        onChange={(e) => setFormData({ ...formData, surat_selesai: e.target.value })}
-                        required
+                        onChange={(val) => setFormData({ ...formData, surat_selesai: val })}
+                        placeholder="-- Pilih Surat Selesai --"
+                        searchPlaceholder="Cari Surah (1 - 114)..."
                       />
                     </div>
 
