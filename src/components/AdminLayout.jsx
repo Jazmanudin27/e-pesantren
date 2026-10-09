@@ -31,18 +31,20 @@ import TataTertibView from '../views/admin/TataTertibView';
 import AbsensiFingerprintView from '../views/admin/AbsensiFingerprintView';
 
 export default function AdminLayout() {
-  // Get initial tab from URL hash or localStorage
+  const isMasterTab = (tab) => ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-device'].includes(tab);
+  const isLaporanTab = (tab) => ['laporan-presensi', 'laporan-tahfidz'].includes(tab);
+
+  // Get initial tab from URL hash
   const getInitialTab = () => {
     const hash = window.location.hash.replace('#', '');
     if (hash) return hash;
-    const stored = localStorage.getItem('epesantren_tab');
-    if (stored) return stored;
     return 'dashboard';
   };
 
-  const [activeTab, setActiveTab] = useState(getInitialTab);
-  const [isMasterOpen, setIsMasterOpen] = useState(true);
-  const [isLaporanOpen, setIsLaporanOpen] = useState(true);
+  const initialTab = getInitialTab();
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const [isMasterOpen, setIsMasterOpen] = useState(() => isMasterTab(initialTab));
+  const [isLaporanOpen, setIsLaporanOpen] = useState(() => isLaporanTab(initialTab));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState('');
 
@@ -51,22 +53,21 @@ export default function AdminLayout() {
     setActiveTab(tab);
     window.location.hash = tab;
     localStorage.setItem('epesantren_tab', tab);
+    
+    // Auto open/close dropdown based on active tab
+    setIsMasterOpen(isMasterTab(tab));
+    setIsLaporanOpen(isLaporanTab(tab));
   };
 
-  // Listen to hash changes (back/forward browser buttons) & keep master dropdown open
+  // Listen to hash changes (back/forward browser buttons)
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash) {
-        setActiveTab(hash);
-        localStorage.setItem('epesantren_tab', hash);
-        if (['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-device'].includes(hash)) {
-          setIsMasterOpen(true);
-        }
-        if (['laporan-presensi', 'laporan-tahfidz'].includes(hash)) {
-          setIsLaporanOpen(true);
-        }
-      }
+      const current = hash || 'dashboard';
+      setActiveTab(current);
+      localStorage.setItem('epesantren_tab', current);
+      setIsMasterOpen(isMasterTab(current));
+      setIsLaporanOpen(isLaporanTab(current));
     };
 
     window.addEventListener('hashchange', handleHashChange);
@@ -76,7 +77,7 @@ export default function AdminLayout() {
     }
 
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [activeTab]);
+  }, []);
 
   // Realtime clock
   useEffect(() => {
@@ -176,7 +177,7 @@ export default function AdminLayout() {
         {/* DATA MASTER DROPDOWN / ACCORDION */}
         <div className="menu-category">DATA MASTER</div>
         <button 
-          className={`nav-link ${isMasterActive ? 'active' : ''}`}
+          className={`nav-link has-dropdown ${isMasterActive ? 'active' : ''}`}
           onClick={() => setIsMasterOpen(!isMasterOpen)}
         >
           <div className="nav-link-left">
@@ -243,7 +244,7 @@ export default function AdminLayout() {
 
         <div className="menu-category">LAPORAN & REKAP</div>
         <button 
-          className={`nav-link ${isLaporanActive ? 'active' : ''}`}
+          className={`nav-link has-dropdown ${isLaporanActive ? 'active' : ''}`}
           onClick={() => setIsLaporanOpen(!isLaporanOpen)}
         >
           <div className="nav-link-left">

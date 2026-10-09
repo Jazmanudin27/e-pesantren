@@ -260,6 +260,17 @@ body {
   font-weight: 600;
 }
 
+/* PARENT DROPDOWN ACCORDION (SUBTLE HIGHLIGHT WHEN CHILD ACTIVE) */
+.nav-link.has-dropdown.active {
+  background: rgba(2, 132, 199, 0.12);
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+.nav-link.has-dropdown.active .nav-chevron {
+  color: #38bdf8;
+}
+
 .nav-chevron {
   color: #64748b;
   font-size: 0.75rem;
@@ -274,15 +285,15 @@ body {
 .nav-submenu {
   display: flex;
   flex-direction: column;
-  padding: 2px 0 4px 18px;
-  gap: 1px;
+  padding: 2px 0 4px 14px;
+  gap: 2px;
 }
 
 .nav-sublink {
   display: flex;
   align-items: center;
-  padding: 5px 10px;
-  border-radius: 4px;
+  padding: 6px 10px;
+  border-radius: 6px;
   color: #94a3b8;
   font-size: 0.75rem;
   font-weight: 500;
@@ -296,13 +307,13 @@ body {
 
 .nav-sublink:hover {
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .nav-sublink.active {
-  color: #38bdf8;
+  color: #ffffff;
   font-weight: 700;
-  background: rgba(56, 189, 248, 0.12);
+  background: #0284c7;
 }
 
 /* MAIN CONTENT AREA */
