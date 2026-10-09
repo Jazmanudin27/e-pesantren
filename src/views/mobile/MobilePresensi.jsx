@@ -23,7 +23,10 @@ import {
   UploadCloud,
   FileCheck,
   Check,
-  AlertTriangle
+  AlertTriangle,
+  History,
+  ClipboardList,
+  Filter
 } from 'lucide-react';
 import { showSuccess, showError, toastSuccess } from '../../utils/alert.util';
 
@@ -39,7 +42,7 @@ const DAFTAR_KEGIATAN = [
 ];
 
 export default function MobilePresensi() {
-  // Mode Utama: 'qr' atau 'manual'
+  // Mode Utama: 'qr', 'manual', atau 'riwayat'
   const [activeMode, setActiveMode] = useState('qr');
   const [selectedKegiatan, setSelectedKegiatan] = useState(DAFTAR_KEGIATAN[0]);
   
@@ -48,6 +51,10 @@ export default function MobilePresensi() {
   const [presensiLogs, setPresensiLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchManual, setSearchManual] = useState('');
+
+  // Riwayat State
+  const [searchRiwayat, setSearchRiwayat] = useState('');
+  const [filterStatusRiwayat, setFilterStatusRiwayat] = useState('Semua');
   
   // QR Scanner State
   const [scannerActive, setScannerActive] = useState(false);
@@ -56,16 +63,6 @@ export default function MobilePresensi() {
   const [scanCooldown, setScanCooldown] = useState(false);
   const qrInstanceRef = useRef(null);
   const fileInputRef = useRef(null);
-
-  // Modal Manual Input Satuan
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState(null);
-  const [manualForm, setManualForm] = useState({
-    santri_id: 1,
-    status_kehadiran: 'Hadir Tepat Waktu',
-    metode_scan: 'Manual Musyrif',
-    keterangan: ''
-  });
 
   // Sound Beep Generator (Web Audio API)
   const playBeep = () => {
@@ -171,7 +168,7 @@ export default function MobilePresensi() {
       setScannerActive(true);
     } catch (err) {
       console.error('Kamera Error:', err);
-      setCameraError('Izin kamera ditolak atau kamera tidak ditemukan. Gunakan opsi upload QR atau input manual.');
+      setCameraError('Izin kamera belum aktif atau tidak ditemukan. Gunakan tombol upload QR atau presensi manual.');
       setScannerActive(false);
     }
   };
@@ -276,9 +273,11 @@ export default function MobilePresensi() {
       device_id: 1,
       tanggal: dateStr,
       waktu_scan: timeStr,
+      status: status,
       status_kehadiran: status,
+      metode_presensi: metode,
       metode_scan: metode,
-      keteledoran_keterangan: ket,
+      keterangan: ket,
       nama_santri: santri.nama_santri,
       kegiatan: selectedKegiatan.nama,
       tempat: selectedKegiatan.tempat
@@ -328,6 +327,27 @@ export default function MobilePresensi() {
       s.nis?.toLowerCase().includes(q) ||
       s.nama_asrama?.toLowerCase().includes(q);
   });
+
+  // Filter riwayat untuk tab riwayat
+  const filteredRiwayat = presensiLogs.filter(log => {
+    const q = searchRiwayat.toLowerCase();
+    const matchSearch = (log.nama_santri || '').toLowerCase().includes(q) ||
+      (log.kegiatan || '').toLowerCase().includes(q) ||
+      (log.nis || '').toLowerCase().includes(q);
+
+    const statusStr = String(log.status_kehadiran || log.status || 'Hadir');
+    const matchStatus = 
+      filterStatusRiwayat === 'Semua' ? true :
+      statusStr.toLowerCase().includes(filterStatusRiwayat.toLowerCase());
+
+    return matchSearch && matchStatus;
+  });
+
+  // Perhitungan statistik
+  const countHadir = presensiLogs.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('hadir')).length;
+  const countSakit = presensiLogs.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('sakit')).length;
+  const countIzin = presensiLogs.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('izin')).length;
+  const countAlpa = presensiLogs.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('alpa') || (l.status_kehadiran || l.status || '').toLowerCase().includes('alpha')).length;
 
   return (
     <div style={{
@@ -404,59 +424,103 @@ export default function MobilePresensi() {
         </div>
       </div>
 
-      {/* 2 OPSI MODE PRESENSI (TAB TOGGLE) */}
+      {/* 3 OPSI MODE PRESENSI (TAB TOGGLE: SCAN QR, MANUAL, RIWAYAT) */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
+        gridTemplateColumns: '1fr 1fr 1fr',
         background: '#e2e8f0',
         borderRadius: '16px',
         padding: '4px',
-        marginBottom: '16px'
+        marginBottom: '16px',
+        gap: '4px'
       }}>
+        {/* Tab 1: Scan QR */}
         <button
           onClick={() => setActiveMode('qr')}
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '8px',
-            padding: '10px',
-            borderRadius: '13px',
+            gap: '6px',
+            padding: '9px 4px',
+            borderRadius: '12px',
             border: 'none',
             background: activeMode === 'qr' ? '#ffffff' : 'transparent',
             color: activeMode === 'qr' ? '#0284c7' : '#64748b',
             fontWeight: 800,
-            fontSize: '0.84rem',
+            fontSize: '0.78rem',
             cursor: 'pointer',
-            boxShadow: activeMode === 'qr' ? '0 4px 12px rgba(0,0,0,0.08)' : 'none',
-            transition: 'all 0.2s ease'
+            boxShadow: activeMode === 'qr' ? '0 4px 10px rgba(0,0,0,0.08)' : 'none',
+            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap'
           }}
         >
-          <QrCode size={18} />
-          <span>Scan QR Code</span>
+          <QrCode size={16} />
+          <span>Scan QR</span>
         </button>
 
+        {/* Tab 2: Manual */}
         <button
           onClick={() => setActiveMode('manual')}
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '8px',
-            padding: '10px',
-            borderRadius: '13px',
+            gap: '6px',
+            padding: '9px 4px',
+            borderRadius: '12px',
             border: 'none',
             background: activeMode === 'manual' ? '#ffffff' : 'transparent',
             color: activeMode === 'manual' ? '#059669' : '#64748b',
             fontWeight: 800,
-            fontSize: '0.84rem',
+            fontSize: '0.78rem',
             cursor: 'pointer',
-            boxShadow: activeMode === 'manual' ? '0 4px 12px rgba(0,0,0,0.08)' : 'none',
-            transition: 'all 0.2s ease'
+            boxShadow: activeMode === 'manual' ? '0 4px 10px rgba(0,0,0,0.08)' : 'none',
+            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap'
           }}
         >
-          <UserCheck size={18} />
-          <span>Presensi Manual</span>
+          <UserCheck size={16} />
+          <span>Manual</span>
+        </button>
+
+        {/* Tab 3: Riwayat */}
+        <button
+          onClick={() => setActiveMode('riwayat')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            padding: '9px 4px',
+            borderRadius: '12px',
+            border: 'none',
+            background: activeMode === 'riwayat' ? '#ffffff' : 'transparent',
+            color: activeMode === 'riwayat' ? '#7c3aed' : '#64748b',
+            fontWeight: 800,
+            fontSize: '0.78rem',
+            cursor: 'pointer',
+            boxShadow: activeMode === 'riwayat' ? '0 4px 10px rgba(0,0,0,0.08)' : 'none',
+            transition: 'all 0.15s ease',
+            position: 'relative',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          <History size={16} />
+          <span>Riwayat</span>
+          {presensiLogs.length > 0 && (
+            <span style={{
+              background: activeMode === 'riwayat' ? '#7c3aed' : '#94a3b8',
+              color: '#ffffff',
+              fontSize: '0.62rem',
+              fontWeight: 800,
+              padding: '1px 5px',
+              borderRadius: '999px',
+              marginLeft: '2px'
+            }}>
+              {presensiLogs.length}
+            </span>
+          )}
         </button>
       </div>
 
@@ -481,7 +545,7 @@ export default function MobilePresensi() {
                   Arahkan Kamera ke QR Santri
                 </h3>
                 <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                  Akan otomatis membunyikan "beep" dan menyimpan absensi
+                  Otomatis bersuara "beep" & menyimpan kehadiran
                 </span>
               </div>
               <button
@@ -578,7 +642,7 @@ export default function MobilePresensi() {
                 }}
               >
                 <UploadCloud size={16} />
-                <span>Upload QR / Galeri</span>
+                <span>Upload QR / Foto</span>
               </button>
 
               {/* Simulator Test Scan button */}
@@ -653,6 +717,27 @@ export default function MobilePresensi() {
               </div>
             </div>
           )}
+
+          {/* Quick link ke tab riwayat */}
+          <div style={{ textAlign: 'center', marginTop: '10px' }}>
+            <button
+              onClick={() => setActiveMode('riwayat')}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#0284c7',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <History size={14} />
+              <span>Lihat Rekap Seluruh Presensi di Tab Riwayat &rarr;</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -734,7 +819,7 @@ export default function MobilePresensi() {
                         borderRadius: '6px',
                         border: '1px solid #a7f3d0'
                       }}>
-                        {existingLog.status_kehadiran || 'Hadir'}
+                        {existingLog.status_kehadiran || existingLog.status || 'Hadir'}
                       </span>
                     )}
                   </div>
@@ -744,7 +829,7 @@ export default function MobilePresensi() {
                     <button
                       onClick={() => handleQuickManualAction(santri, 'Hadir Tepat Waktu')}
                       style={{
-                        padding: '6px 4px',
+                        padding: '7px 4px',
                         borderRadius: '8px',
                         border: 'none',
                         background: '#10b981',
@@ -759,7 +844,7 @@ export default function MobilePresensi() {
                     <button
                       onClick={() => handleQuickManualAction(santri, 'Sakit')}
                       style={{
-                        padding: '6px 4px',
+                        padding: '7px 4px',
                         borderRadius: '8px',
                         border: 'none',
                         background: '#8b5cf6',
@@ -774,7 +859,7 @@ export default function MobilePresensi() {
                     <button
                       onClick={() => handleQuickManualAction(santri, 'Izin')}
                       style={{
-                        padding: '6px 4px',
+                        padding: '7px 4px',
                         borderRadius: '8px',
                         border: 'none',
                         background: '#f59e0b',
@@ -789,7 +874,7 @@ export default function MobilePresensi() {
                     <button
                       onClick={() => handleQuickManualAction(santri, 'Alpa / Tanpa Keterangan')}
                       style={{
-                        padding: '6px 4px',
+                        padding: '7px 4px',
                         borderRadius: '8px',
                         border: 'none',
                         background: '#ef4444',
@@ -816,108 +901,195 @@ export default function MobilePresensi() {
       )}
 
       {/* =========================================================================
-          RIWAYAT PRESENSI HARI INI
+          TAB 3: RIWAYAT PRESENSI LENGKAP (FITUR BARU)
       ========================================================================= */}
-      <div style={{ marginTop: '18px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-          <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-            Riwayat Presensi ({presensiLogs.length})
-          </h3>
-          <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
-            {selectedKegiatan.nama.split(' ')[0]}
-          </span>
-        </div>
+      {activeMode === 'riwayat' && (
+        <div>
+          {/* 4 Summary Mini Cards */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '8px',
+            marginBottom: '14px'
+          }}>
+            <div style={{ background: '#ffffff', padding: '10px 6px', borderRadius: '14px', textAlign: 'center', border: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0284c7' }}>{presensiLogs.length}</div>
+              <div style={{ fontSize: '0.64rem', color: '#64748b', fontWeight: 700 }}>Total</div>
+            </div>
+            <div style={{ background: '#ecfdf5', padding: '10px 6px', borderRadius: '14px', textAlign: 'center', border: '1px solid #a7f3d0' }}>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#059669' }}>{countHadir}</div>
+              <div style={{ fontSize: '0.64rem', color: '#047857', fontWeight: 700 }}>Hadir</div>
+            </div>
+            <div style={{ background: '#f5f3ff', padding: '10px 6px', borderRadius: '14px', textAlign: 'center', border: '1px solid #ddd6fe' }}>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#7c3aed' }}>{countSakit}</div>
+              <div style={{ fontSize: '0.64rem', color: '#6d28d9', fontWeight: 700 }}>Sakit</div>
+            </div>
+            <div style={{ background: '#fef2f2', padding: '10px 6px', borderRadius: '14px', textAlign: 'center', border: '1px solid #fecdd3' }}>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#dc2626' }}>{countIzin + countAlpa}</div>
+              <div style={{ fontSize: '0.64rem', color: '#b91c1c', fontWeight: 700 }}>Izin/Alpa</div>
+            </div>
+          </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {presensiLogs.slice(0, 15).map((log) => {
-            const isQr = String(log.metode_scan || '').toLowerCase().includes('qr');
-            const isHadir = String(log.status_kehadiran || '').toLowerCase().includes('hadir');
+          {/* Search Box Riwayat */}
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '14px',
+            padding: '2px 12px',
+            border: '1.5px solid #e2e8f0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '10px'
+          }}>
+            <Search size={18} color="#94a3b8" />
+            <input
+              type="text"
+              placeholder="Cari di riwayat presensi..."
+              value={searchRiwayat}
+              onChange={(e) => setSearchRiwayat(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 0',
+                border: 'none',
+                outline: 'none',
+                fontSize: '0.85rem'
+              }}
+            />
+            {searchRiwayat && (
+              <X size={16} color="#94a3b8" onClick={() => setSearchRiwayat('')} style={{ cursor: 'pointer' }} />
+            )}
+          </div>
 
-            return (
-              <div
-                key={log.id}
-                style={{
-                  background: '#ffffff',
-                  borderRadius: '14px',
-                  padding: '12px 14px',
-                  border: '1px solid #e2e8f0',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  boxShadow: '0 2px 5px rgba(0,0,0,0.02)'
-                }}
-              >
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
-                      {log.nama_santri || 'Santri'}
-                    </span>
-                    <span style={{
-                      background: isQr ? '#dbeafe' : '#f1f5f9',
-                      color: isQr ? '#1d4ed8' : '#475569',
-                      fontSize: '0.62rem',
-                      fontWeight: 800,
-                      padding: '2px 6px',
-                      borderRadius: '6px'
-                    }}>
-                      {isQr ? '📷 QR Code' : '📝 Manual'}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
-                    {log.kegiatan || selectedKegiatan.nama} • {log.waktu_scan || 'Barusan'}
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{
+          {/* Filter Pills Status */}
+          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '8px', marginBottom: '12px' }}>
+            {['Semua', 'Hadir', 'Sakit', 'Izin', 'Alpa'].map(st => {
+              const active = filterStatusRiwayat === st;
+              return (
+                <button
+                  key={st}
+                  onClick={() => setFilterStatusRiwayat(st)}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: '999px',
                     fontSize: '0.72rem',
                     fontWeight: 800,
-                    color: isHadir ? '#059669' : '#dc2626',
-                    background: isHadir ? '#ecfdf5' : '#fef2f2',
-                    padding: '4px 8px',
-                    borderRadius: '8px'
-                  }}>
-                    {log.status_kehadiran || 'Hadir'}
-                  </span>
-                  <button
-                    onClick={() => handleDeleteLog(log.id)}
-                    style={{
-                      background: '#fee2e2',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '6px',
-                      color: '#b91c1c',
-                      cursor: 'pointer'
-                    }}
-                    title="Hapus"
-                  >
-                    <Trash2 size={13} />
-                  </button>
+                    border: 'none',
+                    background: active ? '#7c3aed' : '#ffffff',
+                    color: active ? '#ffffff' : '#64748b',
+                    cursor: 'pointer',
+                    boxShadow: active ? '0 3px 8px rgba(124, 58, 237, 0.25)' : '0 1px 3px rgba(0,0,0,0.04)',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {st}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* List Kartu Riwayat */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {filteredRiwayat.map((log) => {
+              const isQr = String(log.metode_scan || log.metode_presensi || '').toLowerCase().includes('qr');
+              const statusStr = String(log.status_kehadiran || log.status || 'Hadir');
+              const isHadir = statusStr.toLowerCase().includes('hadir');
+              const isSakit = statusStr.toLowerCase().includes('sakit');
+              const isIzin = statusStr.toLowerCase().includes('izin');
+
+              const statusColor = isHadir ? '#059669' : (isSakit ? '#7c3aed' : (isIzin ? '#d97706' : '#dc2626'));
+              const statusBg = isHadir ? '#ecfdf5' : (isSakit ? '#f5f3ff' : (isIzin ? '#fffbeb' : '#fef2f2'));
+
+              return (
+                <div
+                  key={log.id}
+                  style={{
+                    background: '#ffffff',
+                    borderRadius: '16px',
+                    padding: '12px 14px',
+                    border: '1.5px solid #f1f5f9',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>
+                        {log.nama_santri || 'Santri'}
+                      </span>
+                      <span style={{
+                        background: isQr ? '#dbeafe' : '#f1f5f9',
+                        color: isQr ? '#1d4ed8' : '#475569',
+                        fontSize: '0.62rem',
+                        fontWeight: 800,
+                        padding: '2px 6px',
+                        borderRadius: '6px'
+                      }}>
+                        {isQr ? '📷 QR Code' : '📝 Manual'}
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+                      {log.kegiatan || selectedKegiatan.nama}
+                    </div>
+
+                    <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '1px' }}>
+                      📅 {log.tanggal ? String(log.tanggal).split('T')[0] : 'Hari ini'} • ⏰ {log.waktu_scan || 'Barusan'}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      color: statusColor,
+                      background: statusBg,
+                      padding: '4px 10px',
+                      borderRadius: '8px'
+                    }}>
+                      {statusStr}
+                    </span>
+                    <button
+                      onClick={() => handleDeleteLog(log.id)}
+                      style={{
+                        background: '#fee2e2',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '7px',
+                        color: '#b91c1c',
+                        cursor: 'pointer'
+                      }}
+                      title="Hapus Record"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+
+            {filteredRiwayat.length === 0 && (
+              <div style={{
+                background: '#ffffff',
+                borderRadius: '16px',
+                padding: '36px 16px',
+                textAlign: 'center',
+                color: '#94a3b8',
+                border: '1.5px dashed #cbd5e1'
+              }}>
+                <ClipboardList size={38} style={{ margin: '0 auto 8px', opacity: 0.4 }} />
+                <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#475569' }}>
+                  Tidak Ada Data Riwayat
+                </div>
+                <div style={{ fontSize: '0.75rem', marginTop: '4px' }}>
+                  Belum ada presensi yang cocok dengan filter pencarian.
                 </div>
               </div>
-            );
-          })}
-
-          {presensiLogs.length === 0 && (
-            <div style={{
-              background: '#ffffff',
-              borderRadius: '16px',
-              padding: '30px 16px',
-              textAlign: 'center',
-              color: '#94a3b8',
-              border: '1.5px dashed #cbd5e1'
-            }}>
-              <QrCode size={36} style={{ margin: '0 auto 8px', opacity: 0.4 }} />
-              <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#475569' }}>
-                Belum Ada Santri yang Diabsen
-              </div>
-              <div style={{ fontSize: '0.74rem', marginTop: '4px' }}>
-                Gunakan tab "Scan QR Code" atau "Presensi Manual" untuk mulai mencatat.
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

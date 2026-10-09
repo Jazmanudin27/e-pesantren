@@ -4,35 +4,79 @@ import { sendSuccess, sendError } from '../utils/response.util.js';
 export const getAbsensiFingerprint = async (req, res) => {
   try {
     const [rows] = await pool.query(`
-      SELECT aj.*, s.nama_santri, s.nis, s.fingerprint_pin, a.nama_asrama, k.nama_kamar,
+      SELECT aj.*, 
+             COALESCE(aj.status, aj.status_kehadiran, 'Hadir Tepat Waktu') as status_kehadiran,
+             COALESCE(aj.metode_presensi, aj.metode_scan, 'Manual_Musyrif') as metode_scan,
+             s.nama_santri, s.nis, s.fingerprint_pin, a.nama_asrama, k.nama_kamar,
              ks.nama_sesi, ks.kategori, fd.nama_device
       FROM absensi_jamaah_mengaji aj
       JOIN santri s ON aj.santri_id = s.id
       LEFT JOIN asrama a ON s.asrama_id = a.id
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
-      JOIN kegiatan_sesi ks ON aj.sesi_id = ks.id
+      LEFT JOIN kegiatan_sesi ks ON aj.sesi_id = ks.id
       LEFT JOIN fingerprint_device fd ON aj.device_id = fd.id
       ORDER BY aj.tanggal DESC, aj.waktu_scan DESC
       LIMIT 100
     `);
     return sendSuccess(res, 'Data absensi fingerprint berhasil diambil', { data: rows });
   } catch (err) {
-    return sendError(res, err.message, 500);
+    try {
+      const [rows] = await pool.query(`
+        SELECT aj.*, s.nama_santri, s.nis 
+        FROM absensi_jamaah_mengaji aj 
+        JOIN santri s ON aj.santri_id = s.id 
+        ORDER BY aj.id DESC LIMIT 100
+      `);
+      return sendSuccess(res, 'Data absensi berhasil diambil', { data: rows });
+    } catch (e2) {
+      return sendError(res, err.message, 500);
+    }
   }
 };
 
 export const createAbsensiFingerprint = async (req, res) => {
   try {
-    const { santri_id, sesi_id, device_id, status_kehadiran, keteledoran_keterangan, waktu_scan, mnt_keterlambatan, metode_scan } = req.body;
+    const { 
+      santri_id, 
+      sesi_id, 
+      device_id, 
+      status_kehadiran, 
+      status,
+      keteledoran_keterangan, 
+      keterangan,
+      waktu_scan, 
+      metode_scan, 
+      metode_presensi 
+    } = req.body;
+
     const tgl = new Date().toISOString().split('T')[0];
     const scanTime = waktu_scan || new Date().toTimeString().split(' ')[0];
+    const finalStatus = status_kehadiran || status || 'Hadir Tepat Waktu';
+    const finalMetode = metode_presensi || metode_scan || 'Manual_Musyrif';
+    const finalKet = keterangan || keteledoran_keterangan || '';
 
-    const [result] = await pool.query(`
-      INSERT INTO absensi_jamaah_mengaji (
-        santri_id, sesi_id, device_id, tanggal, waktu_scan, mnt_keterlambatan, status_kehadiran, keteledoran_keterangan, metode_scan
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [santri_id || 1, sesi_id || 1, device_id || 1, tgl, scanTime, mnt_keterlambatan || 0, status_kehadiran || 'Hadir Tepat Waktu', keteledoran_keterangan || '', metode_scan || 'Fingerprint']);
-    return sendSuccess(res, 'Presensi berhasil dicatat', { id: result.insertId }, 201);
+    // Coba insert sesuai struktur schema_lengkap.sql
+    try {
+      const [result] = await pool.query(`
+        INSERT INTO absensi_jamaah_mengaji (
+          tanggal, sesi_id, santri_id, waktu_scan, status, device_id, metode_presensi, keterangan
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE 
+          waktu_scan = VALUES(waktu_scan), 
+          status = VALUES(status), 
+          metode_presensi = VALUES(metode_presensi), 
+          keterangan = VALUES(keterangan)
+      `, [tgl, sesi_id || 1, santri_id || 1, scanTime, finalStatus, device_id || 1, finalMetode, finalKet]);
+      return sendSuccess(res, 'Presensi berhasil dicatat', { id: result.insertId }, 201);
+    } catch (err1) {
+      // Fallback jika tabel menggunakan nama kolom alternatif
+      const [result] = await pool.query(`
+        INSERT INTO absensi_jamaah_mengaji (
+          santri_id, sesi_id, device_id, tanggal, waktu_scan, status_kehadiran, metode_scan
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      `, [santri_id || 1, sesi_id || 1, device_id || 1, tgl, scanTime, finalStatus, finalMetode]);
+      return sendSuccess(res, 'Presensi berhasil dicatat', { id: result.insertId }, 201);
+    }
   } catch (err) {
     return sendError(res, err.message, 500);
   }
