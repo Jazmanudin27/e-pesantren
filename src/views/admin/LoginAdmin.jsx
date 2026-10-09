@@ -6,17 +6,13 @@ import {
   User, 
   LogIn, 
   AlertCircle, 
-  GraduationCap, 
-  ShieldCheck, 
   Eye, 
   EyeOff, 
   Sparkles,
-  ExternalLink,
-  CheckCircle2
+  ExternalLink
 } from 'lucide-react';
 
 export default function LoginAdmin({ onLoginSuccess }) {
-  const [roleTab, setRoleTab] = useState('admin'); // 'admin' | 'ustadz'
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -49,10 +45,16 @@ export default function LoginAdmin({ onLoginSuccess }) {
           localStorage.setItem('token', res.data.token);
         }
         const userObj = res.data.user || {};
+        
+        // Role & userType otomatis terbaca dari server backend
+        const detectedRole = res.data.role || userObj.role || 'admin';
+        const detectedType = res.data.userType || userObj.userType || 
+          (detectedRole === 'asatidz' ? 'Ustadz / Guru' : detectedRole === 'asrama' ? 'Pembina Asrama' : 'Administrator');
+
         const sessionData = {
           token: res.data.token || 'tok_' + Date.now(),
-          role: res.data.role || userObj.role || (roleTab === 'ustadz' ? 'asatidz' : 'admin'),
-          userType: res.data.userType || userObj.userType || (roleTab === 'ustadz' ? 'Ustadz / Guru' : 'Administrator'),
+          role: detectedRole,
+          userType: detectedType,
           nama: res.data.nama || userObj.nama_asatidz || userObj.nama || cleanU,
           username: cleanU,
           loginTime: new Date().toISOString()
@@ -76,11 +78,12 @@ export default function LoginAdmin({ onLoginSuccess }) {
       
       // Standalone / offline fallback mode
       if (isNetwork) {
+        const isUst = !cleanU.toLowerCase().includes('admin');
         const sessionData = {
           token: 'offline_desktop_token_' + Date.now(),
-          role: roleTab === 'ustadz' ? 'asatidz' : 'admin',
-          userType: roleTab === 'ustadz' ? 'Ustadz / Guru' : 'Administrator',
-          nama: roleTab === 'ustadz' ? (cleanU || 'Ust. Ahmad Fauzi') : 'Administrator Nurul Wafa',
+          role: isUst ? 'asatidz' : 'admin',
+          userType: isUst ? 'Ustadz / Guru' : 'Administrator',
+          nama: isUst ? (cleanU || 'Ust. Ahmad Fauzi') : 'Administrator Nurul Wafa',
           username: cleanU,
           loginTime: new Date().toISOString()
         };
@@ -99,17 +102,10 @@ export default function LoginAdmin({ onLoginSuccess }) {
     }
   };
 
-  const handleQuickFill = (type) => {
+  const handleQuickFill = (u, p) => {
     setError('');
-    if (type === 'admin') {
-      setRoleTab('admin');
-      setUsername('admin');
-      setPassword('admin123');
-    } else {
-      setRoleTab('ustadz');
-      setUsername('ustadz');
-      setPassword('ustadz123');
-    }
+    setUsername(u);
+    setPassword(p);
   };
 
   return (
@@ -124,7 +120,7 @@ export default function LoginAdmin({ onLoginSuccess }) {
       overflow: 'hidden',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
     }}>
-      {/* Decorative Background Elements */}
+      {/* Decorative Glow */}
       <div style={{
         position: 'absolute',
         top: '-10%',
@@ -149,7 +145,7 @@ export default function LoginAdmin({ onLoginSuccess }) {
       {/* Main Card */}
       <div style={{
         width: '100%',
-        maxWidth: '460px',
+        maxWidth: '440px',
         background: '#ffffff',
         borderRadius: '24px',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.15)',
@@ -157,17 +153,16 @@ export default function LoginAdmin({ onLoginSuccess }) {
         position: 'relative',
         zIndex: 10
       }}>
-        {/* Header Header */}
+        {/* Card Header */}
         <div style={{
           background: 'linear-gradient(135deg, #065f46 0%, #047857 100%)',
-          padding: '32px 28px 28px',
+          padding: '32px 28px 26px',
           textAlign: 'center',
-          color: '#ffffff',
-          position: 'relative'
+          color: '#ffffff'
         }}>
           <div style={{
-            width: '68px',
-            height: '68px',
+            width: '64px',
+            height: '64px',
             background: 'rgba(255, 255, 255, 0.15)',
             backdropFilter: 'blur(8px)',
             borderRadius: '20px',
@@ -178,7 +173,7 @@ export default function LoginAdmin({ onLoginSuccess }) {
             border: '2px solid rgba(255, 255, 255, 0.25)',
             boxShadow: '0 10px 20px -5px rgba(0, 0, 0, 0.2)'
           }}>
-            <Building size={34} color="#ffffff" strokeWidth={2.2} />
+            <Building size={32} color="#ffffff" strokeWidth={2.2} />
           </div>
 
           <h1 style={{
@@ -202,65 +197,6 @@ export default function LoginAdmin({ onLoginSuccess }) {
 
         {/* Content Body */}
         <div style={{ padding: '28px' }}>
-          {/* Role Tabs */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '8px',
-            background: '#f1f5f9',
-            padding: '5px',
-            borderRadius: '14px',
-            marginBottom: '22px'
-          }}>
-            <button
-              type="button"
-              onClick={() => { setRoleTab('admin'); setError(''); }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                padding: '10px 14px',
-                borderRadius: '10px',
-                border: 'none',
-                fontWeight: 600,
-                fontSize: '13px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                background: roleTab === 'admin' ? '#ffffff' : 'transparent',
-                color: roleTab === 'admin' ? '#047857' : '#64748b',
-                boxShadow: roleTab === 'admin' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none'
-              }}
-            >
-              <ShieldCheck size={16} />
-              <span>Administrator</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => { setRoleTab('ustadz'); setError(''); }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                padding: '10px 14px',
-                borderRadius: '10px',
-                border: 'none',
-                fontWeight: 600,
-                fontSize: '13px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                background: roleTab === 'ustadz' ? '#ffffff' : 'transparent',
-                color: roleTab === 'ustadz' ? '#047857' : '#64748b',
-                boxShadow: roleTab === 'ustadz' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none'
-              }}
-            >
-              <GraduationCap size={16} />
-              <span>Ustadz / Guru</span>
-            </button>
-          </div>
-
           {/* Error Message */}
           {error && (
             <div style={{
@@ -280,9 +216,9 @@ export default function LoginAdmin({ onLoginSuccess }) {
             </div>
           )}
 
-          {/* Form */}
+          {/* Single Unified Form */}
           <form onSubmit={handleSubmit}>
-            {/* Username / NIP Field */}
+            {/* Username Field */}
             <div style={{ marginBottom: '18px' }}>
               <label style={{
                 display: 'block',
@@ -291,7 +227,7 @@ export default function LoginAdmin({ onLoginSuccess }) {
                 color: '#334155',
                 marginBottom: '7px'
               }}>
-                {roleTab === 'admin' ? 'Username / Email Admin' : 'NIK / NIY / No. HP / Username'}
+                Username
               </label>
               <div style={{ position: 'relative' }}>
                 <div style={{
@@ -308,7 +244,7 @@ export default function LoginAdmin({ onLoginSuccess }) {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder={roleTab === 'admin' ? 'Masukkan username admin...' : 'Masukkan NIK/NIY atau No. HP...'}
+                  placeholder="Username, NIP, atau No. HP..."
                   autoFocus
                   required
                   style={{
@@ -337,23 +273,15 @@ export default function LoginAdmin({ onLoginSuccess }) {
 
             {/* Password Field */}
             <div style={{ marginBottom: '20px' }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
+              <label style={{
+                display: 'block',
+                fontSize: '13px',
+                fontWeight: 600,
+                color: '#334155',
                 marginBottom: '7px'
               }}>
-                <label style={{
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  color: '#334155'
-                }}>
-                  Password
-                </label>
-                <span style={{ fontSize: '11px', color: '#64748b' }}>
-                  Akses Desktop
-                </span>
-              </div>
+                Password
+              </label>
               <div style={{ position: 'relative' }}>
                 <div style={{
                   position: 'absolute',
@@ -484,7 +412,7 @@ export default function LoginAdmin({ onLoginSuccess }) {
               ) : (
                 <>
                   <LogIn size={18} />
-                  <span>Masuk ke Dashboard Desktop</span>
+                  <span>Masuk ke Sistem</span>
                 </>
               )}
             </button>
@@ -492,28 +420,28 @@ export default function LoginAdmin({ onLoginSuccess }) {
 
           {/* Quick Shortcuts */}
           <div style={{
-            padding: '14px',
+            padding: '12px 14px',
             background: '#f8fafc',
             borderRadius: '14px',
             border: '1px solid #e2e8f0',
-            marginBottom: '18px'
+            marginBottom: '16px'
           }}>
             <div style={{
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              fontSize: '12px',
+              fontSize: '11.5px',
               fontWeight: 700,
               color: '#475569',
-              marginBottom: '10px'
+              marginBottom: '8px'
             }}>
-              <Sparkles size={14} color="#059669" />
+              <Sparkles size={13} color="#059669" />
               <span>Akses Cepat Pengujian:</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               <button
                 type="button"
-                onClick={() => handleQuickFill('admin')}
+                onClick={() => handleQuickFill('admin', 'admin123')}
                 style={{
                   padding: '7px 10px',
                   borderRadius: '8px',
@@ -523,18 +451,14 @@ export default function LoginAdmin({ onLoginSuccess }) {
                   fontWeight: 600,
                   color: '#1e293b',
                   cursor: 'pointer',
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
+                  textAlign: 'center'
                 }}
               >
-                <ShieldCheck size={14} color="#059669" />
-                <span>Admin Utama</span>
+                admin / admin123
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickFill('ustadz')}
+                onClick={() => handleQuickFill('ustadz', 'ustadz123')}
                 style={{
                   padding: '7px 10px',
                   borderRadius: '8px',
@@ -544,20 +468,16 @@ export default function LoginAdmin({ onLoginSuccess }) {
                   fontWeight: 600,
                   color: '#1e293b',
                   cursor: 'pointer',
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
+                  textAlign: 'center'
                 }}
               >
-                <GraduationCap size={14} color="#059669" />
-                <span>Ust. Fauzi</span>
+                ustadz / ustadz123
               </button>
             </div>
           </div>
 
           {/* Mobile Switcher link */}
-          <div style={{ textAlign: 'center', marginTop: '12px' }}>
+          <div style={{ textAlign: 'center', marginTop: '10px' }}>
             <a
               href="https://mnurulwafa.ruangtech.com"
               target="_blank"
@@ -566,7 +486,7 @@ export default function LoginAdmin({ onLoginSuccess }) {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                fontSize: '12.5px',
+                fontSize: '12px',
                 color: '#059669',
                 textDecoration: 'none',
                 fontWeight: 600
@@ -581,7 +501,7 @@ export default function LoginAdmin({ onLoginSuccess }) {
         {/* Card Footer */}
         <div style={{
           background: '#f8fafc',
-          padding: '14px 20px',
+          padding: '12px 20px',
           borderTop: '1px solid #f1f5f9',
           textAlign: 'center',
           fontSize: '11.5px',
