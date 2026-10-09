@@ -57,7 +57,7 @@ async function autoMigrateDatabase() {
       console.log('[E-PESANTREN] Sukses menambah kolom username & password di tabel asatidz!');
     }
 
-    const defaultHash = bcrypt.hashSync('12345', 10);
+    const defaultHash = '$2y$10$E468yHLUZBwtBS7lZe5o3..jCD6UO1NdkCkQi1SaN5lUnjANLlD9m';
     await pool.query(`
       UPDATE \`asatidz\` 
       SET \`username\` = 'hamdan', \`password\` = ? 
