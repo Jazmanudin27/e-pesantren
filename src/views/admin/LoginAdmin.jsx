@@ -7,9 +7,7 @@ import {
   LogIn, 
   AlertCircle, 
   Eye, 
-  EyeOff, 
-  Sparkles,
-  ExternalLink
+  EyeOff
 } from 'lucide-react';
 
 export default function LoginAdmin({ onLoginSuccess }) {
@@ -46,13 +44,13 @@ export default function LoginAdmin({ onLoginSuccess }) {
         }
         const userObj = res.data.user || {};
         
-        // Role & userType otomatis terbaca dari server backend
+        // Data akun dan peran resmi dari Database
         const detectedRole = res.data.role || userObj.role || 'admin';
         const detectedType = res.data.userType || userObj.userType || 
           (detectedRole === 'asatidz' ? 'Ustadz / Guru' : detectedRole === 'asrama' ? 'Pembina Asrama' : 'Administrator');
 
         const sessionData = {
-          token: res.data.token || 'tok_' + Date.now(),
+          token: res.data.token || '',
           role: detectedRole,
           userType: detectedType,
           nama: res.data.nama || userObj.nama_asatidz || userObj.nama || cleanU,
@@ -70,42 +68,20 @@ export default function LoginAdmin({ onLoginSuccess }) {
         if (onLoginSuccess) onLoginSuccess(sessionData);
         return;
       } else {
-        setError(res.data?.error || res.data?.message || 'Gagal login. Kredensial tidak valid.');
+        setError(res.data?.error || res.data?.message || 'Username atau password tidak sesuai data database.');
         setLoading(false);
       }
     } catch (err) {
-      const isNetwork = !err.response || err.code === 'ERR_NETWORK';
-      
-      // Standalone / offline fallback mode
-      if (isNetwork) {
-        const isUst = !cleanU.toLowerCase().includes('admin');
-        const sessionData = {
-          token: 'offline_desktop_token_' + Date.now(),
-          role: isUst ? 'asatidz' : 'admin',
-          userType: isUst ? 'Ustadz / Guru' : 'Administrator',
-          nama: isUst ? (cleanU || 'Ust. Ahmad Fauzi') : 'Administrator Nurul Wafa',
-          username: cleanU,
-          loginTime: new Date().toISOString()
-        };
-        if (rememberMe) {
-          localStorage.setItem('desktop_session', JSON.stringify(sessionData));
-        } else {
-          sessionStorage.setItem('desktop_session', JSON.stringify(sessionData));
-        }
-        setLoading(false);
-        if (onLoginSuccess) onLoginSuccess(sessionData);
-        return;
-      }
-
       setLoading(false);
-      setError(err.response?.data?.error || err.response?.data?.message || 'Login gagal. Periksa username dan password.');
+      const serverMsg = err.response?.data?.error || err.response?.data?.message;
+      if (serverMsg) {
+        setError(serverMsg);
+      } else if (err.code === 'ERR_NETWORK') {
+        setError('Koneksi ke server database gagal. Pastikan service backend aktif.');
+      } else {
+        setError('Login gagal. Periksa username dan password Anda.');
+      }
     }
-  };
-
-  const handleQuickFill = (u, p) => {
-    setError('');
-    setUsername(u);
-    setPassword(p);
   };
 
   return (
@@ -145,7 +121,7 @@ export default function LoginAdmin({ onLoginSuccess }) {
       {/* Main Card */}
       <div style={{
         width: '100%',
-        maxWidth: '440px',
+        maxWidth: '430px',
         background: '#ffffff',
         borderRadius: '24px',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.15)',
@@ -156,7 +132,7 @@ export default function LoginAdmin({ onLoginSuccess }) {
         {/* Card Header */}
         <div style={{
           background: 'linear-gradient(135deg, #065f46 0%, #047857 100%)',
-          padding: '32px 28px 26px',
+          padding: '34px 28px 28px',
           textAlign: 'center',
           color: '#ffffff'
         }}>
@@ -216,7 +192,7 @@ export default function LoginAdmin({ onLoginSuccess }) {
             </div>
           )}
 
-          {/* Single Unified Form */}
+          {/* Form */}
           <form onSubmit={handleSubmit}>
             {/* Username Field */}
             <div style={{ marginBottom: '18px' }}>
@@ -244,7 +220,7 @@ export default function LoginAdmin({ onLoginSuccess }) {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Username, NIP, atau No. HP..."
+                  placeholder="Username, NIP, atau Email..."
                   autoFocus
                   required
                   style={{
@@ -393,8 +369,7 @@ export default function LoginAdmin({ onLoginSuccess }) {
                 justifyContent: 'center',
                 gap: '8px',
                 boxShadow: loading ? 'none' : '0 10px 20px -5px rgba(5, 150, 105, 0.4)',
-                transition: 'all 0.2s',
-                marginBottom: '20px'
+                transition: 'all 0.2s'
               }}
             >
               {loading ? (
@@ -407,7 +382,7 @@ export default function LoginAdmin({ onLoginSuccess }) {
                     borderRadius: '50%',
                     animation: 'spin 0.8s linear infinite'
                   }} />
-                  <span>Memverifikasi Akses...</span>
+                  <span>Memverifikasi Database...</span>
                 </>
               ) : (
                 <>
@@ -417,91 +392,12 @@ export default function LoginAdmin({ onLoginSuccess }) {
               )}
             </button>
           </form>
-
-          {/* Quick Shortcuts */}
-          <div style={{
-            padding: '12px 14px',
-            background: '#f8fafc',
-            borderRadius: '14px',
-            border: '1px solid #e2e8f0',
-            marginBottom: '16px'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '11.5px',
-              fontWeight: 700,
-              color: '#475569',
-              marginBottom: '8px'
-            }}>
-              <Sparkles size={13} color="#059669" />
-              <span>Akses Cepat Pengujian:</span>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('admin', 'admin123')}
-                style={{
-                  padding: '7px 10px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  background: '#ffffff',
-                  fontSize: '11.5px',
-                  fontWeight: 600,
-                  color: '#1e293b',
-                  cursor: 'pointer',
-                  textAlign: 'center'
-                }}
-              >
-                admin / admin123
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('ustadz', 'ustadz123')}
-                style={{
-                  padding: '7px 10px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  background: '#ffffff',
-                  fontSize: '11.5px',
-                  fontWeight: 600,
-                  color: '#1e293b',
-                  cursor: 'pointer',
-                  textAlign: 'center'
-                }}
-              >
-                ustadz / ustadz123
-              </button>
-            </div>
-          </div>
-
-          {/* Mobile Switcher link */}
-          <div style={{ textAlign: 'center', marginTop: '10px' }}>
-            <a
-              href="https://mnurulwafa.ruangtech.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '12px',
-                color: '#059669',
-                textDecoration: 'none',
-                fontWeight: 600
-              }}
-            >
-              <span>Beralih ke Portal Mobile (mnurulwafa.ruangtech.com)</span>
-              <ExternalLink size={13} />
-            </a>
-          </div>
         </div>
 
         {/* Card Footer */}
         <div style={{
           background: '#f8fafc',
-          padding: '12px 20px',
+          padding: '14px 20px',
           borderTop: '1px solid #f1f5f9',
           textAlign: 'center',
           fontSize: '11.5px',
