@@ -355,7 +355,7 @@ export default function AdminLayout() {
         <div className="tenant-card">
           <div className="tenant-logo">🕌</div>
           <div className="tenant-info">
-            <div className="tenant-name">PP. AL-HIKMAH</div>
+            <div className="tenant-name">PP. NURUL WAFA</div>
             <span className="tenant-badge">ADMIN</span>
           </div>
         </div>
@@ -392,7 +392,7 @@ export default function AdminLayout() {
             <div className="tenant-card">
               <div className="tenant-logo">🕌</div>
               <div className="tenant-info">
-                <div className="tenant-name">PP. AL-HIKMAH</div>
+                <div className="tenant-name">PP. NURUL WAFA</div>
                 <span className="tenant-badge">ADMIN</span>
               </div>
             </div>
@@ -455,7 +455,7 @@ export default function AdminLayout() {
               >
                 <div className="header-tenant-logo">🕌</div>
                 <div className="header-user-info-text">
-                  <span className="header-user-name">PP. AL-HIKMAH</span>
+                  <span className="header-user-name">PP. NURUL WAFA</span>
                   <span className="header-user-role">ADMINISTRATOR</span>
                 </div>
                 <ChevronDown size={14} className={`header-chevron ${isUserDropdownOpen ? 'open' : ''}`} />
@@ -467,7 +467,7 @@ export default function AdminLayout() {
                   <div className="user-dropdown-header">
                     <div className="user-dropdown-avatar">🕌</div>
                     <div className="user-dropdown-meta">
-                      <div className="user-dropdown-meta-name">Pondok Pesantren Al-Hikmah</div>
+                      <div className="user-dropdown-meta-name">Pondok Pesantren Nurul Wafa</div>
                       <div className="user-dropdown-meta-email">admin@pesantren.aspartech.com</div>
                     </div>
                   </div>
@@ -578,7 +578,7 @@ export default function AdminLayout() {
             <div style={{ padding: '18px 20px', fontSize: '0.82rem', color: '#334155' }}>
               <div style={{ textAlign: 'center', marginBottom: '14px' }}>
                 <div style={{ width: '56px', height: '56px', background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px', fontSize: '1.8rem' }}>🕌</div>
-                <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: '0 0 2px' }}>Pondok Pesantren Al-Hikmah</h4>
+                <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: '0 0 2px' }}>Pondok Pesantren Nurul Wafa</h4>
                 <p style={{ fontSize: '0.74rem', color: '#64748b', margin: 0 }}>NSPP: 510032060012 • Berdiri Sejak 1988 M</p>
               </div>
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', marginBottom: '14px' }}>

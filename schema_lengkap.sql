@@ -15,7 +15,7 @@ SET time_zone = "+07:00";
 CREATE TABLE IF NOT EXISTS `pesantren_profil` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `kode_pesantren` VARCHAR(50) NOT NULL UNIQUE,
-  `nama_pesantren` VARCHAR(255) NOT NULL DEFAULT 'Pondok Pesantren Terpadu Al-Hikmah',
+  `nama_pesantren` VARCHAR(255) NOT NULL DEFAULT 'Pondok Pesantren Nurul Wafa',
   `nsp` VARCHAR(50) DEFAULT '510032780001',
   `pengasuh_kiai` VARCHAR(150) DEFAULT 'KH. M. Syukron Ma\'mun, Lc., M.A.',
   `alamat` TEXT NULL,
@@ -313,7 +313,7 @@ CREATE TABLE IF NOT EXISTS `fingerprint_raw_log` (
 
 -- 1. SEED PROFIL PESANTREN
 INSERT INTO `pesantren_profil` (`id`, `kode_pesantren`, `nama_pesantren`, `nsp`, `pengasuh_kiai`, `alamat`, `kota`, `no_hp`, `email`)
-VALUES (1, 'PSN001', 'Pondok Pesantren Terpadu Al-Hikmah', '510032780001', 'KH. M. Syukron Ma\'mun, Lc., M.A.', 'Jl. Pesantren No. 99, Sukarame', 'Tasikmalaya', '081288881111', 'info@epesantren.sch.id')
+VALUES (1, 'PSN001', 'Pondok Pesantren Nurul Wafa', '510032780001', 'KH. M. Syukron Ma\'mun, Lc., M.A.', 'Jl. Pesantren No. 99, Sukarame', 'Tasikmalaya', '081288881111', 'info@epesantren.sch.id')
 ON DUPLICATE KEY UPDATE `nama_pesantren` = VALUES(`nama_pesantren`);
 
 -- 2. SEED USERS
