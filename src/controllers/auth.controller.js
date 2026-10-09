@@ -80,19 +80,48 @@ export const login = async (req, res, next) => {
     // 3. Query asatidz table (Ustadz / Guru)
     if (!account) {
       try {
-        const [astRows] = await pool.query(
-          `SELECT * FROM asatidz 
-           WHERE LOWER(TRIM(COALESCE(username, ''))) = LOWER(TRIM(?))
-              OR LOWER(TRIM(nik_niy)) = LOWER(TRIM(?)) 
-              OR LOWER(TRIM(email)) = LOWER(TRIM(?)) 
-              OR LOWER(TRIM(no_hp)) = LOWER(TRIM(?))
-              OR LOWER(TRIM(nama_asatidz)) = LOWER(TRIM(?))
-              OR LOWER(TRIM(nama_asatidz)) LIKE LOWER(?)
-           LIMIT 1`,
-          [cleanUser, cleanUser, cleanUser, cleanUser, cleanUser, `%${cleanUser}%`]
-        );
+        let astRows = [];
+        try {
+          // Coba query dengan kolom username & join users
+          const [resWithUser] = await pool.query(
+            `SELECT ast.*, u.username as user_username, u.password as user_password 
+             FROM asatidz ast 
+             LEFT JOIN users u ON ast.user_id = u.id 
+             WHERE LOWER(TRIM(COALESCE(ast.username, ''))) = LOWER(TRIM(?))
+                OR (u.username IS NOT NULL AND LOWER(TRIM(u.username)) = LOWER(TRIM(?)))
+                OR LOWER(TRIM(ast.nik_niy)) = LOWER(TRIM(?)) 
+                OR LOWER(TRIM(ast.email)) = LOWER(TRIM(?)) 
+                OR LOWER(TRIM(ast.no_hp)) = LOWER(TRIM(?))
+                OR LOWER(TRIM(ast.nama_asatidz)) = LOWER(TRIM(?))
+                OR LOWER(TRIM(ast.nama_asatidz)) LIKE LOWER(?)
+             LIMIT 1`,
+            [cleanUser, cleanUser, cleanUser, cleanUser, cleanUser, cleanUser, `%${cleanUser}%`]
+          );
+          astRows = resWithUser;
+        } catch (colErr) {
+          // Fallback jika kolom username belum ada di tabel asatidz
+          const [resLegacy] = await pool.query(
+            `SELECT ast.*, u.username as user_username, u.password as user_password 
+             FROM asatidz ast 
+             LEFT JOIN users u ON ast.user_id = u.id 
+             WHERE LOWER(TRIM(ast.nik_niy)) = LOWER(TRIM(?)) 
+                OR LOWER(TRIM(ast.email)) = LOWER(TRIM(?)) 
+                OR LOWER(TRIM(ast.no_hp)) = LOWER(TRIM(?))
+                OR LOWER(TRIM(ast.nama_asatidz)) = LOWER(TRIM(?))
+                OR LOWER(TRIM(ast.nama_asatidz)) LIKE LOWER(?)
+                OR (u.username IS NOT NULL AND LOWER(TRIM(u.username)) = LOWER(TRIM(?)))
+             LIMIT 1`,
+            [cleanUser, cleanUser, cleanUser, cleanUser, `%${cleanUser}%`, cleanUser]
+          );
+          astRows = resLegacy;
+        }
+
         if (astRows && astRows.length > 0) {
           account = astRows[0];
+          // Jika asatidz.password kosong, gunakan user_password dari tabel users
+          if (!account.password && account.user_password) {
+            account.password = account.user_password;
+          }
           userType = 'Asatidz';
         }
       } catch (e) {

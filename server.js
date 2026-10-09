@@ -40,7 +40,49 @@ app.use((err, req, res, next) => {
   });
 });
 
+import pool from './src/config/database.js';
+import bcrypt from 'bcryptjs';
+
+// Auto-migrate database table columns
+async function autoMigrateDatabase() {
+  try {
+    const [cols] = await pool.query("SHOW COLUMNS FROM `asatidz` LIKE 'username'");
+    if (!cols || cols.length === 0) {
+      console.log('[E-PESANTREN] Migrasi database: menambah kolom username & password ke tabel asatidz...');
+      await pool.query(`
+        ALTER TABLE \`asatidz\`
+        ADD COLUMN \`username\` VARCHAR(100) NULL AFTER \`nama_asatidz\`,
+        ADD COLUMN \`password\` VARCHAR(255) NULL AFTER \`username\`
+      `);
+      console.log('[E-PESANTREN] Sukses menambah kolom username & password di tabel asatidz!');
+    }
+
+    const defaultHash = bcrypt.hashSync('12345', 10);
+    await pool.query(`
+      UPDATE \`asatidz\` 
+      SET \`username\` = 'hamdan', \`password\` = ? 
+      WHERE \`id\` = 1 AND (\`username\` IS NULL OR \`username\` = '')
+    `, [defaultHash]).catch(() => {});
+
+    await pool.query(`
+      UPDATE \`asatidz\` 
+      SET \`username\` = 'huda', \`password\` = ? 
+      WHERE \`id\` = 2 AND (\`username\` IS NULL OR \`username\` = '')
+    `, [defaultHash]).catch(() => {});
+
+    await pool.query(`
+      UPDATE \`asatidz\` 
+      SET \`username\` = 'salma', \`password\` = ? 
+      WHERE \`id\` = 3 AND (\`username\` IS NULL OR \`username\` = '')
+    `, [defaultHash]).catch(() => {});
+
+  } catch (err) {
+    console.warn('[E-PESANTREN AUTO-MIGRATE NOTICE]', err.message);
+  }
+}
+
 // Start HTTP Server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`[E-PESANTREN] Server aktif & rapi di http://0.0.0.0:${PORT}`);
+  autoMigrateDatabase();
 });
