@@ -172,16 +172,51 @@ export default function MobilePresensi() {
     }
   };
 
-  // Stop Camera Scanner
+  // Stop Camera Scanner (Release Hardware & Battery)
   const stopScanner = async () => {
+    // 1. Force stop and release all MediaStream tracks from hardware
+    try {
+      const container = document.getElementById('mobile-qr-reader');
+      if (container) {
+        const videos = container.querySelectorAll('video');
+        videos.forEach(v => {
+          if (v.srcObject && typeof v.srcObject.getTracks === 'function') {
+            v.srcObject.getTracks().forEach(track => {
+              try {
+                track.stop();
+                track.enabled = false;
+              } catch (e) {}
+            });
+            v.srcObject = null;
+          }
+          try {
+            v.pause();
+          } catch (e) {}
+        });
+      }
+    } catch (e) {}
+
+    // 2. Stop Html5Qrcode instance
     if (qrInstanceRef.current) {
       try {
         await qrInstanceRef.current.stop();
+      } catch (e) {}
+      try {
         qrInstanceRef.current.clear();
       } catch (e) {}
       qrInstanceRef.current = null;
     }
+
     setScannerActive(false);
+  };
+
+  // Switch Tab Helper with Immediate Camera Release
+  const handleSwitchTab = async (newMode) => {
+    if (newMode === activeMode) return;
+    if (activeMode === 'qr') {
+      await stopScanner();
+    }
+    setActiveMode(newMode);
   };
 
   // Toggle mode tab
@@ -189,11 +224,24 @@ export default function MobilePresensi() {
     if (activeMode === 'qr') {
       const timer = setTimeout(() => {
         startScanner();
-      }, 300);
+      }, 250);
       return () => clearTimeout(timer);
     } else {
       stopScanner();
     }
+  }, [activeMode]);
+
+  // Hemat baterai: Matikan hardware kamera saat aplikasi diminimalkan / layar mati
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden) {
+        stopScanner();
+      } else if (activeMode === 'qr') {
+        startScanner();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [activeMode]);
 
   // Clean up scanner on unmount
@@ -450,7 +498,7 @@ export default function MobilePresensi() {
       }}>
         {/* Tab 1: Scan QR */}
         <button
-          onClick={() => setActiveMode('qr')}
+          onClick={() => handleSwitchTab('qr')}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -475,7 +523,7 @@ export default function MobilePresensi() {
 
         {/* Tab 2: Manual */}
         <button
-          onClick={() => setActiveMode('manual')}
+          onClick={() => handleSwitchTab('manual')}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -500,7 +548,7 @@ export default function MobilePresensi() {
 
         {/* Tab 3: Riwayat */}
         <button
-          onClick={() => setActiveMode('riwayat')}
+          onClick={() => handleSwitchTab('riwayat')}
           style={{
             display: 'flex',
             alignItems: 'center',
