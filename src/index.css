@@ -1459,22 +1459,22 @@ body {
   display: block;
 }
 
-/* MOBILE BOTTOM NAVIGATION (EMERALD GREEN FLOATING BAR) */
+/* MOBILE BOTTOM NAVIGATION (ELEVATED WHITE FLOATING BAR WITH CENTER FAB) */
 .mobile-bottom-nav {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 66px;
-  background: linear-gradient(135deg, #064e3b 0%, #047857 60%, #059669 100%);
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  height: 64px;
+  background: #ffffff;
+  border-top: 1px solid #f1f5f9;
   border-top-left-radius: 24px;
   border-top-right-radius: 24px;
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 4px 8px 6px;
-  box-shadow: 0 -8px 30px rgba(6, 78, 59, 0.35);
+  padding: 0 10px;
+  box-shadow: 0 -8px 25px rgba(15, 23, 42, 0.08);
   z-index: 99;
 }
 
@@ -1492,24 +1492,60 @@ body {
   gap: 3px;
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.85);
+  color: #64748b;
   font-size: 0.68rem;
   font-weight: 600;
   cursor: pointer;
   flex: 1;
-  padding: 6px 4px;
-  border-radius: 14px;
+  padding: 4px;
+  border-radius: 12px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.mobile-nav-item.active {
-  color: #047857;
-  font-weight: 800;
-  background: #ffffff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+.nav-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 28px;
+  border-radius: 14px;
+  transition: all 0.2s ease;
 }
 
-.mobile-nav-item.active svg {
-  color: #047857;
-  transform: translateY(-1px) scale(1.1);
+.nav-icon-wrapper.active {
+  background: #e0f2fe;
+  color: #0284c7;
 }
+
+.mobile-nav-item.active {
+  color: #0284c7;
+  font-weight: 800;
+}
+
+.mobile-fab-center {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transform: translateY(-16px);
+  position: relative;
+  outline: none;
+}
+
+.fab-inner-glow {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 4px solid #ffffff;
+  box-shadow: 0 8px 20px rgba(2, 132, 199, 0.45);
+  transition: transform 0.15s ease;
+}
+
+.mobile-fab-center:active .fab-inner-glow {
+  transform: scale(0.92);
+}
+

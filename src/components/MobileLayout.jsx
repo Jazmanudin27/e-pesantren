@@ -158,7 +158,7 @@ export default function MobileLayout() {
   const renderContent = () => {
     switch (mobileTab) {
       case 'home':
-        return <MobileHome onChangeTab={handleSelectTab} />;
+        return <MobileHome onChangeTab={handleSelectTab} onLogout={handleLogout} />;
       case 'dashboard':
         return <MobileDashboard />;
       case 'presensi':
@@ -384,46 +384,57 @@ export default function MobileLayout() {
           </div>
         )}
 
-        {/* Bottom Navigation Bar */}
+        {/* Elevated Floating White Bottom Navigation Bar */}
         <nav className="mobile-bottom-nav">
-          <button 
-            className={`mobile-nav-item ${mobileTab === 'tahfidz' ? 'active' : ''}`}
-            onClick={() => handleSelectTab('tahfidz')}
-          >
-            <BookOpen size={19} />
-            <span>Tahfidz</span>
-          </button>
-
-          <button 
-            className={`mobile-nav-item ${mobileTab === 'presensi' ? 'active' : ''}`}
-            onClick={() => handleSelectTab('presensi')}
-          >
-            <Fingerprint size={19} />
-            <span>Absensi</span>
-          </button>
-
           <button 
             className={`mobile-nav-item ${mobileTab === 'home' ? 'active' : ''}`}
             onClick={() => handleSelectTab('home')}
           >
-            <Home size={19} />
-            <span>Home</span>
+            <div className={`nav-icon-wrapper ${mobileTab === 'home' ? 'active' : ''}`}>
+              <Home size={20} />
+            </div>
+            <span>Beranda</span>
           </button>
 
           <button 
             className={`mobile-nav-item ${(mobileTab === 'perizinan' || mobileTab === 'izin') ? 'active' : ''}`}
             onClick={() => handleSelectTab('perizinan')}
           >
-            <DoorOpen size={19} />
-            <span>Perizinan</span>
+            <div className={`nav-icon-wrapper ${(mobileTab === 'perizinan' || mobileTab === 'izin') ? 'active' : ''}`}>
+              <DoorOpen size={20} />
+            </div>
+            <span>Izin</span>
+          </button>
+
+          {/* Prominent Center Floating Fingerprint Action Button */}
+          <button 
+            className="mobile-fab-center"
+            onClick={() => handleSelectTab('presensi')}
+            title="Scan Presensi Fingerprint"
+          >
+            <div className="fab-inner-glow">
+              <Fingerprint size={28} color="#ffffff" strokeWidth={2.4} />
+            </div>
+          </button>
+
+          <button 
+            className={`mobile-nav-item ${mobileTab === 'tahfidz' ? 'active' : ''}`}
+            onClick={() => handleSelectTab('tahfidz')}
+          >
+            <div className={`nav-icon-wrapper ${mobileTab === 'tahfidz' ? 'active' : ''}`}>
+              <BookOpen size={20} />
+            </div>
+            <span>Tahfidz</span>
           </button>
 
           <button 
             className={`mobile-nav-item ${mobileTab === 'profil' ? 'active' : ''}`}
             onClick={() => handleSelectTab('profil')}
           >
-            <User size={19} />
-            <span>Profil</span>
+            <div className={`nav-icon-wrapper ${mobileTab === 'profil' ? 'active' : ''}`}>
+              <User size={20} />
+            </div>
+            <span>Profile</span>
           </button>
         </nav>
       </div>
