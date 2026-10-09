@@ -370,27 +370,27 @@ export default function FingerprintDeviceView() {
                     </span>
                   </td>
                   <td className="td-center">
-                    <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
+                    <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
                       <button 
-                        className="btn btn-success btn-sm"
+                        className="btn-action btn-action-view"
                         onClick={() => openDetail(d)}
                         title="Lihat Detail Konfigurasi Mesin"
                       >
-                        <Eye size={12} />
+                        <Eye size={15} />
                       </button>
                       <button 
-                        className="btn btn-warning btn-sm"
+                        className="btn-action btn-action-edit"
                         onClick={() => openEditForm(d)}
                         title="Edit Mesin"
                       >
-                        <Edit3 size={12} />
+                        <Edit3 size={15} />
                       </button>
                       <button 
-                        className="btn btn-danger btn-sm"
+                        className="btn-action btn-action-delete"
                         onClick={() => handleDeleteDevice(d.id, d.nama_device)}
                         title="Hapus Mesin"
                       >
-                        <Trash2 size={12} />
+                        <Trash2 size={15} />
                       </button>
                     </div>
                   </td>

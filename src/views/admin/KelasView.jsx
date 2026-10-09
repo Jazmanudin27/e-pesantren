@@ -372,27 +372,27 @@ export default function KelasView() {
                     </span>
                   </td>
                   <td className="td-center">
-                    <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
+                    <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
                       <button 
-                        className="btn btn-success btn-sm"
+                        className="btn-action btn-action-view"
                         onClick={() => openDetail(h)}
                         title="Lihat Detail Halaqah"
                       >
-                        <Eye size={12} />
+                        <Eye size={15} />
                       </button>
                       <button 
-                        className="btn btn-warning btn-sm"
+                        className="btn-action btn-action-edit"
                         onClick={() => openEditForm(h)}
                         title="Edit Halaqah"
                       >
-                        <Edit3 size={12} />
+                        <Edit3 size={15} />
                       </button>
                       <button 
-                        className="btn btn-danger btn-sm"
+                        className="btn-action btn-action-delete"
                         onClick={() => handleDeleteHalaqah(h.id, h.nama_halaqah)}
                         title="Hapus Halaqah"
                       >
-                        <Trash2 size={12} />
+                        <Trash2 size={15} />
                       </button>
                     </div>
                   </td>
