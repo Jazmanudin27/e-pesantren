@@ -62,7 +62,6 @@ export default function MobilePresensi() {
   const [lastScannedSantri, setLastScannedSantri] = useState(null);
   const [scanCooldown, setScanCooldown] = useState(false);
   const qrInstanceRef = useRef(null);
-  const fileInputRef = useRef(null);
 
   // Sound Beep Generator (Web Audio API)
   const playBeep = () => {
@@ -246,20 +245,7 @@ export default function MobilePresensi() {
     }
   };
 
-  // Handle Scan from Image File
-  const handleFileUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
 
-    try {
-      const Html5QrcodeClass = await loadHtml5QrcodeScript();
-      const html5QrCode = new Html5QrcodeClass('mobile-qr-reader-temp');
-      const result = await html5QrCode.scanFile(file, true);
-      handleQrDecoded(result);
-    } catch (err) {
-      showError('Gagal Baca QR', 'Gambar tidak memuat QR Code yang jelas.');
-    }
-  };
 
   // Simpan record presensi ke backend & localStorage
   const recordAttendance = async (santri, status = 'Hadir Tepat Waktu', metode = 'QR Code', ket = '') => {
@@ -356,8 +342,7 @@ export default function MobilePresensi() {
       padding: '14px 14px 40px',
       fontFamily: "'Inter', sans-serif"
     }}>
-      {/* Hidden container for temp file scan */}
-      <div id="mobile-qr-reader-temp" style={{ display: 'none' }} />
+
 
       {/* HEADER: Pemilih Kegiatan Pesantren */}
       <div style={{
@@ -614,67 +599,23 @@ export default function MobilePresensi() {
               </div>
             )}
 
-            {/* Actions under camera */}
-            <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                accept="image/*" 
-                onChange={handleFileUpload} 
-                style={{ display: 'none' }} 
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                style={{
-                  flex: 1,
-                  background: '#f8fafc',
-                  border: '1.5px solid #cbd5e1',
-                  borderRadius: '12px',
-                  padding: '10px',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  color: '#334155',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  cursor: 'pointer'
-                }}
-              >
-                <UploadCloud size={16} />
-                <span>Upload QR / Foto</span>
-              </button>
-
-              {/* Simulator Test Scan button */}
-              <button
-                onClick={() => {
-                  if (santriList.length > 0) {
-                    const random = santriList[Math.floor(Math.random() * santriList.length)];
-                    handleQrDecoded(random.nis || String(random.id));
-                  } else {
-                    handleQrDecoded('2024001');
-                  }
-                }}
-                style={{
-                  flex: 1,
-                  background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-                  border: 'none',
-                  borderRadius: '12px',
-                  padding: '10px',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 10px rgba(5, 150, 105, 0.3)'
-                }}
-              >
-                <Sparkles size={16} />
-                <span>Test Scan Santri</span>
-              </button>
+            {/* Live Camera Status */}
+            <div style={{
+              marginTop: '14px',
+              padding: '10px 14px',
+              borderRadius: '12px',
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              fontSize: '0.78rem',
+              color: '#166534',
+              fontWeight: 700
+            }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 6px #22c55e' }} />
+              <span>Pemindai Otomatis Aktif • Membaca QR langsung mencatat kehadiran</span>
             </div>
           </div>
 
