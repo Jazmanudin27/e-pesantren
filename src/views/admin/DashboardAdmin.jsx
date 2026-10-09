@@ -58,17 +58,7 @@ export default function DashboardAdmin() {
   return (
     <div>
       {/* 1. BANNER SAMBUTAN ISLAMI */}
-      <div style={{
-        background: 'linear-gradient(135deg, #064e3b 0%, #047857 50%, #059669 100%)',
-        borderRadius: '8px',
-        padding: '12px 16px',
-        color: '#ffffff',
-        marginBottom: '14px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        boxShadow: '0 2px 8px rgba(6, 78, 59, 0.15)'
-      }}>
+      <div className="dashboard-welcome-banner">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
             <span className="font-arabic" style={{ fontSize: '1rem', color: '#fef08a' }}>بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span>
@@ -126,7 +116,7 @@ export default function DashboardAdmin() {
       </div>
 
       {/* 3. 2 COLUMNS GRID */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '14px' }}>
+      <div className="dashboard-content-grid">
         
         {/* Setoran Tahfidz Card */}
         <div className="card">

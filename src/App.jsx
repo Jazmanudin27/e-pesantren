@@ -4,9 +4,17 @@ import MobileLayout from './components/MobileLayout';
 
 export default function App() {
   const getMode = () => {
+    const hostname = window.location.hostname.toLowerCase();
     const hash = window.location.hash;
     const pathname = window.location.pathname;
-    if (hash.startsWith('#mobile') || pathname.startsWith('/mobile')) {
+
+    // Domain khusus Mobile: mpesantren.aspartech.com
+    const isMobileDomain = 
+      hostname === 'mpesantren.aspartech.com' ||
+      hostname.startsWith('mpesantren.') ||
+      hostname.includes('mpesantren');
+
+    if (isMobileDomain || hash.startsWith('#mobile') || pathname.startsWith('/mobile')) {
       return 'mobile';
     }
     return 'admin';

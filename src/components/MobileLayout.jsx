@@ -48,11 +48,20 @@ export default function MobileLayout() {
     }
   });
 
+  const isMobileDomain = typeof window !== 'undefined' && (
+    window.location.hostname === 'mpesantren.aspartech.com' ||
+    window.location.hostname.startsWith('mpesantren.') ||
+    window.location.hostname.includes('mpesantren')
+  );
+
   const getInitialTab = () => {
-    const hash = window.location.hash;
+    const hash = window.location.hash.replace('#', '');
     if (hash.includes('/')) {
       const sub = hash.split('/')[1];
       if (sub) return sub;
+    }
+    if (hash && hash !== 'mobile') {
+      return hash;
     }
     return localStorage.getItem('mobileTab') || 'home';
   };
@@ -62,14 +71,17 @@ export default function MobileLayout() {
 
   useEffect(() => {
     const syncTabFromHash = () => {
-      const hash = window.location.hash;
+      const hash = window.location.hash.replace('#', '');
       if (hash.includes('/')) {
         const sub = hash.split('/')[1];
         if (sub) {
           setMobileTab(sub);
           localStorage.setItem('mobileTab', sub);
         }
-      } else if (hash === '#mobile') {
+      } else if (hash && hash !== 'mobile') {
+        setMobileTab(hash);
+        localStorage.setItem('mobileTab', hash);
+      } else if (hash === 'mobile' || (!hash && isMobileDomain)) {
         const saved = localStorage.getItem('mobileTab');
         if (saved) {
           setMobileTab(saved);
@@ -82,12 +94,16 @@ export default function MobileLayout() {
     syncTabFromHash();
     window.addEventListener('hashchange', syncTabFromHash);
     return () => window.removeEventListener('hashchange', syncTabFromHash);
-  }, []);
+  }, [isMobileDomain]);
 
   const handleSelectTab = (tab) => {
     setMobileTab(tab);
     localStorage.setItem('mobileTab', tab);
-    window.location.hash = tab === 'home' ? 'mobile' : `mobile/${tab}`;
+    if (isMobileDomain) {
+      window.location.hash = tab === 'home' ? '' : tab;
+    } else {
+      window.location.hash = tab === 'home' ? 'mobile' : `mobile/${tab}`;
+    }
     setIsMenuDrawerOpen(false);
   };
 
@@ -334,6 +350,30 @@ export default function MobileLayout() {
                       <Wallet size={16} color="#d97706" /> Syahriah
                     </button>
                   </div>
+                </div>
+
+                <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #e2e8f0' }}>
+                  <a 
+                    href={typeof window !== 'undefined' && window.location.hostname.includes('aspartech.com') ? 'https://pesantren.aspartech.com' : '#dashboard'}
+                    target={typeof window !== 'undefined' && window.location.hostname.includes('aspartech.com') ? '_blank' : '_self'}
+                    rel="noreferrer"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      padding: '10px 14px',
+                      background: 'linear-gradient(135deg, #0f172a, #1e293b)',
+                      color: '#ffffff',
+                      borderRadius: '10px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                      boxShadow: '0 2px 6px rgba(15, 23, 42, 0.2)'
+                    }}
+                  >
+                    🖥️ Buka Portal Desktop (Admin)
+                  </a>
                 </div>
               </div>
             </div>
