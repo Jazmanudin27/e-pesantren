@@ -36,6 +36,7 @@ import TahfidzView from '../views/admin/TahfidzView';
 import PerizinanView from '../views/admin/PerizinanView';
 import TataTertibView from '../views/admin/TataTertibView';
 import AbsensiFingerprintView from '../views/admin/AbsensiFingerprintView';
+import LoginAdmin from '../views/admin/LoginAdmin';
 
 export default function AdminLayout() {
   const isMasterTab = (tab) => ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-device'].includes(tab);
@@ -81,10 +82,10 @@ export default function AdminLayout() {
     return () => document.removeEventListener('fullscreenchange', handleFsChange);
   }, []);
   
-  // User Session & Modal States
+  // User Session & Modal States (Desktop Strict Login)
   const [currentUser, setCurrentUser] = useState(() => {
     try {
-      const saved = localStorage.getItem('desktop_session') || localStorage.getItem('mobile_session');
+      const saved = localStorage.getItem('desktop_session') || sessionStorage.getItem('desktop_session');
       return saved ? JSON.parse(saved) : null;
     } catch (e) {
       return null;
@@ -130,12 +131,11 @@ export default function AdminLayout() {
     setIsUserDropdownOpen(false);
     if (window.confirm('Apakah Anda yakin ingin keluar dari sistem Admin E-Pesantren?')) {
       localStorage.removeItem('token');
-      localStorage.removeItem('mobile_session');
       localStorage.removeItem('desktop_session');
+      sessionStorage.removeItem('desktop_session');
       localStorage.removeItem('epesantren_tab');
       setCurrentUser(null);
       window.location.hash = '';
-      window.location.reload();
     }
   };
 
@@ -438,6 +438,17 @@ export default function AdminLayout() {
       </nav>
     );
   };
+
+  // Jika belum login di desktop, wajib login terlebih dahulu
+  if (!currentUser) {
+    return (
+      <LoginAdmin 
+        onLoginSuccess={(session) => {
+          setCurrentUser(session);
+        }} 
+      />
+    );
+  }
 
   return (
     <div className="admin-layout">
