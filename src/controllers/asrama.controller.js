@@ -4,7 +4,8 @@ import { sendSuccess, sendError } from '../utils/response.util.js';
 export const getAsramaAndKamar = async (req, res) => {
   try {
     const [asramaRows] = await pool.query(`
-      SELECT a.*, ast.nama_asatidz as pembina,
+      SELECT a.id, a.kode_asrama, a.nama_asrama, a.gender, a.lokasi_gedung, a.pembina_asatidz_id, a.created_at,
+             ast.nama_asatidz as pembina,
              (SELECT COUNT(*) FROM santri s WHERE s.asrama_id = a.id) as total_santri,
              (SELECT COUNT(*) FROM kamar_kobong k WHERE k.asrama_id = a.id) as total_kamar
       FROM asrama a
@@ -28,18 +29,16 @@ export const getAsramaAndKamar = async (req, res) => {
 
 export const createAsrama = async (req, res) => {
   try {
-    const { nama_asrama, kode_asrama, gender, lokasi_gedung, pembina_asatidz_id, username, password } = req.body;
+    const { nama_asrama, kode_asrama, gender, lokasi_gedung, pembina_asatidz_id } = req.body;
     const [result] = await pool.query(`
-      INSERT INTO asrama (nama_asrama, kode_asrama, gender, lokasi_gedung, pembina_asatidz_id, username, password)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO asrama (nama_asrama, kode_asrama, gender, lokasi_gedung, pembina_asatidz_id)
+      VALUES (?, ?, ?, ?, ?)
     `, [
       nama_asrama, 
       kode_asrama || `ASR-${Date.now().toString().slice(-3)}`, 
       gender || 'L', 
       lokasi_gedung || '', 
-      pembina_asatidz_id || null,
-      username || `asrama_${Date.now().toString().slice(-3)}`,
-      password || '123456'
+      pembina_asatidz_id || null
     ]);
     return sendSuccess(res, 'Data asrama berhasil ditambahkan', { id: result.insertId }, 201);
   } catch (err) {
