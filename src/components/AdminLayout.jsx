@@ -22,7 +22,9 @@ import {
   LogOut,
   Key,
   ExternalLink,
-  Lock
+  Lock,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import DashboardAdmin from '../views/admin/DashboardAdmin';
 import SantriView from '../views/admin/SantriView';
@@ -51,7 +53,33 @@ export default function AdminLayout() {
   const [isMasterOpen, setIsMasterOpen] = useState(() => isMasterTab(initialTab));
   const [isLaporanOpen, setIsLaporanOpen] = useState(() => isLaporanTab(initialTab));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentTime, setCurrentTime] = useState('');
+
+  const toggleSidebar = () => {
+    if (window.innerWidth <= 768) {
+      setIsMobileMenuOpen(!isMobileMenuOpen);
+    } else {
+      setIsSidebarCollapsed(!isSidebarCollapsed);
+    }
+  };
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+    } else {
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+    }
+  };
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
   
   // User Session & Modal States
   const [currentUser, setCurrentUser] = useState(() => {
@@ -414,7 +442,7 @@ export default function AdminLayout() {
   return (
     <div className="admin-layout">
       {/* Sidebar Desktop (Dark Navy Aspartech Style) */}
-      <aside className="admin-sidebar">
+      <aside className={`admin-sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-brand">
           <div className="brand-icon-box">P</div>
           <div className="brand-title">
@@ -474,16 +502,24 @@ export default function AdminLayout() {
       )}
 
       {/* Main Container */}
-      <div className="admin-main">
+      <div className={`admin-main ${isSidebarCollapsed ? 'expanded' : ''}`}>
         {/* Top Header */}
         <header className="admin-header">
           <div className="header-left">
             <button 
               className="btn-hamburger"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              title="Menu Sistem"
+              onClick={toggleSidebar}
+              title={isSidebarCollapsed ? "Tampilkan Menu Sistem" : "Sembunyikan Menu Sistem"}
             >
               <Menu size={18} />
+            </button>
+            <button
+              type="button"
+              className="btn-fullscreen-toggle"
+              onClick={toggleFullscreen}
+              title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh (Full Screen)"}
+            >
+              {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
             </button>
             <div className="header-mobile-brand">
               <span className="brand-logo-mini">P</span>
