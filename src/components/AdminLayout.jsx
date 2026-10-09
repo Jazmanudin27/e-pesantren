@@ -528,13 +528,13 @@ export default function AdminLayout() {
           </div>
 
           <div className="header-right">
-            {/* Direct Link to Mobile Santri App (mpesantren.aspartech.com) */}
+            {/* Direct Link to Mobile Santri App (mnurulwafa.ruangtech.com) */}
             <a 
-              href={typeof window !== 'undefined' && window.location.hostname.includes('aspartech.com') ? 'https://mpesantren.aspartech.com' : '#mobile'} 
-              target={typeof window !== 'undefined' && window.location.hostname.includes('aspartech.com') ? '_blank' : '_self'}
+              href={typeof window !== 'undefined' && window.location.hostname.includes('ruangtech.com') ? 'https://mnurulwafa.ruangtech.com' : (typeof window !== 'undefined' && window.location.hostname.includes('aspartech.com') ? 'https://mpesantren.aspartech.com' : '#mobile')} 
+              target={typeof window !== 'undefined' && (window.location.hostname.includes('ruangtech.com') || window.location.hostname.includes('aspartech.com')) ? '_blank' : '_self'}
               rel="noreferrer"
               className="header-app-link"
-              title="Buka Tampilan Mobile Santri (mpesantren.aspartech.com)"
+              title="Buka Tampilan Mobile Santri (mnurulwafa.ruangtech.com)"
             >
               📱 <span className="header-app-link-text">App Santri Mobile</span>
             </a>
@@ -615,14 +615,14 @@ export default function AdminLayout() {
                   </button>
 
                   <a 
-                    href={typeof window !== 'undefined' && window.location.hostname.includes('aspartech.com') ? 'https://mpesantren.aspartech.com' : '#mobile'}
-                    target={typeof window !== 'undefined' && window.location.hostname.includes('aspartech.com') ? '_blank' : '_self'}
+                    href={typeof window !== 'undefined' && window.location.hostname.includes('ruangtech.com') ? 'https://mnurulwafa.ruangtech.com' : (typeof window !== 'undefined' && window.location.hostname.includes('aspartech.com') ? 'https://mpesantren.aspartech.com' : '#mobile')}
+                    target={typeof window !== 'undefined' && (window.location.hostname.includes('ruangtech.com') || window.location.hostname.includes('aspartech.com')) ? '_blank' : '_self'}
                     rel="noreferrer"
                     className="user-dropdown-item"
                     onClick={() => setIsUserDropdownOpen(false)}
                   >
                     <ExternalLink size={15} color="#d97706" />
-                    <span>Portal Santri (mpesantren)</span>
+                    <span>Portal Santri (Mobile)</span>
                   </a>
 
                   <div className="user-dropdown-divider" />
@@ -708,11 +708,11 @@ export default function AdminLayout() {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #f1f5f9' }}>
                   <span style={{ color: '#64748b' }}>Domain Desktop:</span>
-                  <strong>pesantren.aspartech.com</strong>
+                  <strong>nurulwafa.ruangtech.com</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #f1f5f9' }}>
                   <span style={{ color: '#64748b' }}>Domain Mobile:</span>
-                  <strong style={{ color: '#059669' }}>mpesantren.aspartech.com</strong>
+                  <strong style={{ color: '#059669' }}>mnurulwafa.ruangtech.com</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
                   <span style={{ color: '#64748b' }}>Status Sistem:</span>

@@ -49,6 +49,10 @@ export default function MobileLayout() {
   });
 
   const isMobileDomain = typeof window !== 'undefined' && (
+    window.location.hostname === 'mnurulwafa.ruangtech.com' ||
+    window.location.hostname === 'm.nurulwafa.ruangtech.com' ||
+    window.location.hostname.startsWith('mnurulwafa.') ||
+    window.location.hostname.startsWith('m.') ||
     window.location.hostname === 'mpesantren.aspartech.com' ||
     window.location.hostname.startsWith('mpesantren.') ||
     window.location.hostname.includes('mpesantren')
@@ -354,8 +358,8 @@ export default function MobileLayout() {
 
                 <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #e2e8f0' }}>
                   <a 
-                    href={typeof window !== 'undefined' && window.location.hostname.includes('aspartech.com') ? 'https://pesantren.aspartech.com' : '#dashboard'}
-                    target={typeof window !== 'undefined' && window.location.hostname.includes('aspartech.com') ? '_blank' : '_self'}
+                    href={typeof window !== 'undefined' && window.location.hostname.includes('ruangtech.com') ? 'https://nurulwafa.ruangtech.com' : (typeof window !== 'undefined' && window.location.hostname.includes('aspartech.com') ? 'https://pesantren.aspartech.com' : '#dashboard')}
+                    target={typeof window !== 'undefined' && (window.location.hostname.includes('ruangtech.com') || window.location.hostname.includes('aspartech.com')) ? '_blank' : '_self'}
                     rel="noreferrer"
                     style={{
                       display: 'flex',

@@ -8,8 +8,12 @@ export default function App() {
     const hash = window.location.hash;
     const pathname = window.location.pathname;
 
-    // Domain khusus Mobile: mpesantren.aspartech.com
+    // Domain khusus Mobile: mnurulwafa.ruangtech.com / mpesantren
     const isMobileDomain = 
+      hostname === 'mnurulwafa.ruangtech.com' ||
+      hostname === 'm.nurulwafa.ruangtech.com' ||
+      hostname.startsWith('mnurulwafa.') ||
+      hostname.startsWith('m.') ||
       hostname === 'mpesantren.aspartech.com' ||
       hostname.startsWith('mpesantren.') ||
       hostname.includes('mpesantren');
