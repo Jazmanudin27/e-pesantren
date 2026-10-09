@@ -378,21 +378,21 @@ export default function KelasView() {
                         onClick={() => openDetail(h)}
                         title="Lihat Detail Halaqah"
                       >
-                        <Eye size={15} />
+                        <Eye size={13} />
                       </button>
                       <button 
                         className="btn-action btn-action-edit"
                         onClick={() => openEditForm(h)}
                         title="Edit Halaqah"
                       >
-                        <Edit3 size={15} />
+                        <Edit3 size={13} />
                       </button>
                       <button 
                         className="btn-action btn-action-delete"
                         onClick={() => handleDeleteHalaqah(h.id, h.nama_halaqah)}
                         title="Hapus Halaqah"
                       >
-                        <Trash2 size={15} />
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </td>

@@ -451,7 +451,7 @@ export default function TataTertibView() {
                         onClick={() => openDetail(row)}
                         title="Lihat Detail"
                       >
-                        <Eye size={15} />
+                        <Eye size={13} />
                       </button>
 
                       {row.status_tazir !== "Selesai Ta'zir" && (
@@ -461,7 +461,7 @@ export default function TataTertibView() {
                           onClick={() => handleTazirSelesai(row.id)}
                           title="Tandai Selesai Ta'zir"
                         >
-                          <CheckCircle2 size={15} />
+                          <CheckCircle2 size={13} />
                         </button>
                       )}
 
@@ -470,14 +470,14 @@ export default function TataTertibView() {
                         onClick={() => openEditForm(row)}
                         title="Edit Pelanggaran"
                       >
-                        <Edit3 size={15} />
+                        <Edit3 size={13} />
                       </button>
                       <button 
                         className="btn-action btn-action-delete"
                         onClick={() => handleDelete(row.id, row.jenis_pelanggaran)}
                         title="Hapus Catatan"
                       >
-                        <Trash2 size={15} />
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </td>

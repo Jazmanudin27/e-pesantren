@@ -521,21 +521,21 @@ export default function PerizinanView() {
                         onClick={() => openDetail(row)}
                         title="Lihat Pass & Detail"
                       >
-                        <Eye size={15} />
+                        <Eye size={13} />
                       </button>
                       <button 
                         className="btn-action btn-action-edit"
                         onClick={() => openEditForm(row)}
                         title="Edit Izin"
                       >
-                        <Edit3 size={15} />
+                        <Edit3 size={13} />
                       </button>
                       <button 
                         className="btn-action btn-action-delete"
                         onClick={() => handleDelete(row.id, row.barcode || row.kode_izin)}
                         title="Hapus Izin"
                       >
-                        <Trash2 size={15} />
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </td>

@@ -486,21 +486,21 @@ export default function SantriView() {
                         onClick={() => openDetail(row)}
                         title="Lihat Detail Santri"
                       >
-                        <Eye size={15} />
+                        <Eye size={13} />
                       </button>
                       <button 
                         className="btn-action btn-action-edit"
                         onClick={() => openEditForm(row)}
                         title="Edit Data Santri"
                       >
-                        <Edit3 size={15} />
+                        <Edit3 size={13} />
                       </button>
                       <button 
                         className="btn-action btn-action-delete"
                         onClick={() => handleDelete(row.id, row.nama_santri)}
                         title="Hapus Santri"
                       >
-                        <Trash2 size={15} />
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </td>

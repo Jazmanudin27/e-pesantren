@@ -512,21 +512,21 @@ export default function TahfidzView() {
                         onClick={() => openDetail(row)}
                         title="Lihat Detail Setoran"
                       >
-                        <Eye size={15} />
+                        <Eye size={13} />
                       </button>
                       <button 
                         className="btn-action btn-action-edit"
                         onClick={() => openEditForm(row)}
                         title="Edit Setoran"
                       >
-                        <Edit3 size={15} />
+                        <Edit3 size={13} />
                       </button>
                       <button 
                         className="btn-action btn-action-delete"
                         onClick={() => handleDelete(row.id, `${row.nama_santri} - Juz ${row.juz}`)}
                         title="Hapus Setoran"
                       >
-                        <Trash2 size={15} />
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </td>

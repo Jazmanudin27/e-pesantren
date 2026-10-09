@@ -690,33 +690,33 @@ body {
 }
 
 .btn-sm {
-  min-width: 32px;
-  min-height: 32px;
-  height: 32px;
-  padding: 0 8px;
-  font-size: 0.75rem;
-  border-radius: 6px;
+  min-width: 28px;
+  min-height: 28px;
+  height: 28px;
+  padding: 0 6px;
+  font-size: 0.72rem;
+  border-radius: 5px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 3px;
 }
 
-/* BOOTSTRAP 5 STYLE ACTION ICON BUTTONS (AKSI TABEL) */
+/* BOOTSTRAP 5 STYLE COMPACT ACTION ICON BUTTONS (AKSI TABEL) */
 .btn-action {
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
-  min-height: 32px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border-radius: 5px;
   border: none;
   cursor: pointer;
   transition: all 0.15s ease-in-out;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .btn-action:hover {

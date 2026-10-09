@@ -422,21 +422,21 @@ export default function AsramaView() {
                           onClick={() => openDetail(k)}
                           title="Lihat Detail Kamar Kobong"
                         >
-                          <Eye size={15} />
+                          <Eye size={13} />
                         </button>
                         <button 
                           className="btn-action btn-action-edit"
                           onClick={() => openEditForm(k)}
                           title="Edit Kamar"
                         >
-                          <Edit3 size={15} />
+                          <Edit3 size={13} />
                         </button>
                         <button 
                           className="btn-action btn-action-delete"
                           onClick={() => handleDeleteKamar(k.id, k.nama_kamar)}
                           title="Hapus Kamar"
                         >
-                          <Trash2 size={15} />
+                          <Trash2 size={13} />
                         </button>
                       </div>
                     </td>

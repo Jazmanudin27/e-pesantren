@@ -381,21 +381,21 @@ export default function AsatidzView() {
                         onClick={() => openDetail(ast)}
                         title="Lihat Detail Profil Asatidz"
                       >
-                        <Eye size={15} />
+                        <Eye size={13} />
                       </button>
                       <button 
                         className="btn-action btn-action-edit"
                         onClick={() => openEditForm(ast)}
                         title="Edit Asatidz"
                       >
-                        <Edit3 size={15} />
+                        <Edit3 size={13} />
                       </button>
                       <button 
                         className="btn-action btn-action-delete"
                         onClick={() => handleDeleteAsatidz(ast.id, ast.nama_asatidz)}
                         title="Hapus Asatidz"
                       >
-                        <Trash2 size={15} />
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </td>
