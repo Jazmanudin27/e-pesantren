@@ -17,6 +17,7 @@ import {
   Radio, 
   Save 
 } from 'lucide-react';
+import { showConfirm, toastSuccess } from '../../utils/alert.util';
 
 export default function FingerprintDeviceView() {
   const [devices, setDevices] = useState([]);
@@ -154,14 +155,16 @@ export default function FingerprintDeviceView() {
   };
 
   const handleDeleteDevice = async (id, nama) => {
-    if (window.confirm(`Yakin ingin menghapus perangkat mesin "${nama}"?`)) {
-      try {
-        await axios.delete(`/api/fingerprint/devices/${id}`);
-        fetchDevices();
-      } catch (err) {
-        console.error('Gagal hapus mesin:', err);
-        setDevices(devices.filter(d => d.id !== id));
-      }
+    const confirmed = await showConfirm('Konfirmasi Hapus', `Yakin ingin menghapus perangkat mesin "${nama}"?`);
+    if (!confirmed) return;
+    try {
+      await axios.delete(`/api/fingerprint/devices/${id}`);
+      fetchDevices();
+      toastSuccess(`Perangkat mesin "${nama}" berhasil dihapus`);
+    } catch (err) {
+      console.error('Gagal hapus mesin:', err);
+      setDevices(devices.filter(d => d.id !== id));
+      toastSuccess(`Perangkat mesin "${nama}" berhasil dihapus`);
     }
   };
 

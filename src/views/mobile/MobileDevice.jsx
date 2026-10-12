@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { HardDrive, Wifi, Plus, Edit3, Trash2, X, Save, Loader2, Search, CheckCircle2, AlertCircle } from 'lucide-react';
+import { showConfirm, toastSuccess } from '../../utils/alert.util';
 
 export default function MobileDevice() {
   const [devices, setDevices] = useState([]);
@@ -122,7 +123,8 @@ export default function MobileDevice() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus mesin fingerprint ini?')) return;
+    const confirmed = await showConfirm('Konfirmasi Hapus', 'Apakah Anda yakin ingin menghapus mesin fingerprint ini?');
+    if (!confirmed) return;
     try {
       await axios.delete(`/api/fingerprint/devices/${id}`);
       setDevices(prev => {
@@ -131,6 +133,7 @@ export default function MobileDevice() {
         return next;
       });
       fetchDevices();
+      toastSuccess('Mesin fingerprint dihapus');
     } catch (err) {
       console.warn('API error during delete, fallback local:', err);
       setDevices(prev => {
@@ -138,6 +141,7 @@ export default function MobileDevice() {
         localStorage.setItem('master_device_list', JSON.stringify(next));
         return next;
       });
+      toastSuccess('Mesin fingerprint dihapus');
     }
   };
 

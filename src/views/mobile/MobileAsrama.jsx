@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Building, Users, Home, Plus, Edit3, Trash2, X, Save, Loader2, Key } from 'lucide-react';
+import { showConfirm, toastSuccess } from '../../utils/alert.util';
 
 export default function MobileAsrama() {
   const [asramaList, setAsramaList] = useState([]);
@@ -115,14 +116,15 @@ export default function MobileAsrama() {
     }
   };
 
-  const handleDelete = (id, nama) => {
-    if (window.confirm(`Yakin ingin menghapus data asrama "${nama}"?`)) {
-      setAsramaList(prev => {
-        const next = prev.filter(a => a.id !== id);
-        localStorage.setItem('master_asrama_list', JSON.stringify(next));
-        return next;
-      });
-    }
+  const handleDelete = async (id, nama) => {
+    const confirmed = await showConfirm('Konfirmasi Hapus', `Yakin ingin menghapus data asrama "${nama}"?`);
+    if (!confirmed) return;
+    setAsramaList(prev => {
+      const next = prev.filter(a => a.id !== id);
+      localStorage.setItem('master_asrama_list', JSON.stringify(next));
+      return next;
+    });
+    toastSuccess(`Data asrama "${nama}" dihapus`);
   };
 
   return (

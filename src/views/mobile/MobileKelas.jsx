@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { GraduationCap, Users, Clock, Plus, Edit3, Trash2, X, Save, Loader2, BookOpen } from 'lucide-react';
+import { showConfirm, toastSuccess } from '../../utils/alert.util';
 
 export default function MobileKelas() {
   const [halaqahList, setHalaqahList] = useState([]);
@@ -108,13 +109,15 @@ export default function MobileKelas() {
   };
 
   const handleDelete = async (id, nama) => {
-    if (window.confirm(`Yakin ingin menghapus halaqah/kelas "${nama}"?`)) {
-      try {
-        await axios.delete(`/api/tahfidz/halaqah/${id}`);
-        fetchHalaqah();
-      } catch (err) {
-        setHalaqahList(prev => prev.filter(h => h.id !== id));
-      }
+    const confirmed = await showConfirm('Konfirmasi Hapus', `Yakin ingin menghapus halaqah/kelas "${nama}"?`);
+    if (!confirmed) return;
+    try {
+      await axios.delete(`/api/tahfidz/halaqah/${id}`);
+      fetchHalaqah();
+      toastSuccess(`Halaqah "${nama}" dihapus`);
+    } catch (err) {
+      setHalaqahList(prev => prev.filter(h => h.id !== id));
+      toastSuccess(`Halaqah "${nama}" dihapus`);
     }
   };
 

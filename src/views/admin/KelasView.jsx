@@ -16,6 +16,7 @@ import {
   Sparkles, 
   Save 
 } from 'lucide-react';
+import { showConfirm, toastSuccess } from '../../utils/alert.util';
 
 export default function KelasView() {
   const [halaqahList, setHalaqahList] = useState([]);
@@ -152,14 +153,16 @@ export default function KelasView() {
   };
 
   const handleDeleteHalaqah = async (id, nama) => {
-    if (window.confirm(`Yakin ingin menghapus kelompok halaqah "${nama}"?`)) {
-      try {
-        await axios.delete(`/api/tahfidz/halaqah/${id}`);
-        fetchHalaqah();
-      } catch (err) {
-        console.error('Gagal hapus halaqah:', err);
-        setHalaqahList(halaqahList.filter(h => h.id !== id));
-      }
+    const confirmed = await showConfirm('Konfirmasi Hapus', `Yakin ingin menghapus kelompok halaqah "${nama}"?`);
+    if (!confirmed) return;
+    try {
+      await axios.delete(`/api/tahfidz/halaqah/${id}`);
+      fetchHalaqah();
+      toastSuccess(`Halaqah "${nama}" berhasil dihapus`);
+    } catch (err) {
+      console.error('Gagal hapus halaqah:', err);
+      setHalaqahList(halaqahList.filter(h => h.id !== id));
+      toastSuccess(`Halaqah "${nama}" berhasil dihapus`);
     }
   };
 

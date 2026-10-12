@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Users, Phone, Mail, Award, GraduationCap, Plus, Edit3, Trash2, X, Save, Loader2 } from 'lucide-react';
+import { showConfirm, toastSuccess } from '../../utils/alert.util';
 
 export default function MobileAsatidz() {
   const [asatidzList, setAsatidzList] = useState([]);
@@ -109,13 +110,15 @@ export default function MobileAsatidz() {
   };
 
   const handleDelete = async (id, nama) => {
-    if (window.confirm(`Yakin ingin menghapus data ustadz/musyrif "${nama}"?`)) {
-      try {
-        await axios.delete(`/api/asatidz/${id}`);
-        fetchAsatidz();
-      } catch (err) {
-        setAsatidzList(prev => prev.filter(a => a.id !== id));
-      }
+    const confirmed = await showConfirm('Konfirmasi Hapus', `Yakin ingin menghapus data ustadz/musyrif "${nama}"?`);
+    if (!confirmed) return;
+    try {
+      await axios.delete(`/api/asatidz/${id}`);
+      fetchAsatidz();
+      toastSuccess(`Data ustadz "${nama}" dihapus`);
+    } catch (err) {
+      setAsatidzList(prev => prev.filter(a => a.id !== id));
+      toastSuccess(`Data ustadz "${nama}" dihapus`);
     }
   };
 

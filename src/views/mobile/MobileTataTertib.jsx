@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { ShieldAlert, Plus, Edit3, Trash2, X, Save, Loader2, Search, CheckCircle2, ShieldCheck, AlertCircle } from 'lucide-react';
+import { showConfirm, toastSuccess } from '../../utils/alert.util';
 
 export default function MobileTataTertib() {
   const [pelanggaranList, setPelanggaranList] = useState([]);
@@ -127,10 +128,12 @@ export default function MobileTataTertib() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus catatan pelanggaran ini?')) return;
+    const confirmed = await showConfirm('Konfirmasi Hapus', 'Apakah Anda yakin ingin menghapus catatan pelanggaran ini?');
+    if (!confirmed) return;
     try {
       await axios.delete(`/api/pelanggaran/${id}`);
       fetchData();
+      toastSuccess('Catatan pelanggaran dihapus');
     } catch (err) {
       console.warn('API delete fallback local:', err);
       setPelanggaranList(prev => {
@@ -138,6 +141,7 @@ export default function MobileTataTertib() {
         localStorage.setItem('mobile_pelanggaran_list', JSON.stringify(next));
         return next;
       });
+      toastSuccess('Catatan pelanggaran dihapus');
     }
   };
 

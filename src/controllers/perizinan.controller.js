@@ -2,6 +2,53 @@ import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
 import { sendWANotification } from '../utils/whatsapp.util.js';
 
+const VALID_STATUSES = [
+  'Menunggu Persetujuan',
+  'Disetujui Pengasuh',
+  'Aktif Keluar',
+  'Kembali Tepat Waktu',
+  'Terlambat Kembali',
+  'Ditolak'
+];
+
+const VALID_JENIS = [
+  'Izin Pulang',
+  'Izin Berobat',
+  'Izin Keluar Komplek',
+  'Izin Khusus'
+];
+
+const normalizeStatus = (st) => {
+  if (!st) return 'Aktif Keluar';
+  if (VALID_STATUSES.includes(st)) return st;
+  const s = String(st).toLowerCase();
+  if (s.includes('terlambat')) return 'Terlambat Kembali';
+  if (s.includes('kembali') || s.includes('tepat')) return 'Kembali Tepat Waktu';
+  if (s.includes('tolak')) return 'Ditolak';
+  if (s.includes('tunggu')) return 'Menunggu Persetujuan';
+  if (s.includes('keluar') || s.includes('luar') || s.includes('setuju')) return 'Aktif Keluar';
+  return 'Aktif Keluar';
+};
+
+const normalizeJenis = (j) => {
+  if (!j) return 'Izin Pulang';
+  if (VALID_JENIS.includes(j)) return j;
+  if (j === 'Izin Mendesak') return 'Izin Khusus';
+  return 'Izin Pulang';
+};
+
+const formatSqlDate = (d) => {
+  if (!d) return null;
+  if (typeof d === 'string') {
+    const clean = d.replace('T', ' ');
+    return clean.length === 16 ? clean + ':00' : clean;
+  }
+  const date = new Date(d);
+  if (isNaN(date.getTime())) return null;
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+};
+
 export const getPerizinan = async (req, res) => {
   try {
     const [rows] = await pool.query(`
@@ -29,23 +76,30 @@ export const createPerizinan = async (req, res) => {
     const kode_izin = `IZN-${Date.now().toString().slice(-4)}-${randomSuffix}`;
     const barcode = `PSN-IZN-${Date.now().toString().slice(-6)}`;
 
+    const cleanJenis = normalizeJenis(jenis_izin);
+    const cleanStatus = normalizeStatus(status);
+    const sqlKeluarRencana = formatSqlDate(tgl_keluar_rencana) || formatSqlDate(new Date());
+    const sqlKembaliRencana = formatSqlDate(tgl_kembali_rencana) || formatSqlDate(new Date());
+    const sqlKeluarAktual = (cleanStatus === 'Aktif Keluar') ? formatSqlDate(new Date()) : null;
+
     const [result] = await pool.query(`
       INSERT INTO santri_perizinan (
-        kode_izin, barcode, santri_id, jenis_izin, tgl_keluar_rencana, tgl_kembali_rencana,
+        kode_izin, barcode, santri_id, jenis_izin, tgl_keluar_rencana, tgl_kembali_rencana, tgl_keluar_aktual,
         nama_penjemput_mahrom, no_hp_penjemput, hubungan_mahrom, keperluan, status, disetujui_oleh
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       kode_izin,
       barcode,
       santri_id,
-      jenis_izin || 'Izin Pulang',
-      tgl_keluar_rencana || new Date(),
-      tgl_kembali_rencana || new Date(),
+      cleanJenis,
+      sqlKeluarRencana,
+      sqlKembaliRencana,
+      sqlKeluarAktual,
       nama_penjemput_mahrom || '',
       no_hp_penjemput || '',
       hubungan_mahrom || 'Orang Tua',
       keperluan || '',
-      status || 'Disetujui Pengasuh',
+      cleanStatus,
       disetujui_oleh || 'Dewan Pengasuh'
     ]);
 
@@ -53,14 +107,14 @@ export const createPerizinan = async (req, res) => {
     try {
       const [[santri]] = await pool.query('SELECT nama_santri, no_wa_wali FROM santri WHERE id = ?', [santri_id]);
       if (santri && santri.no_wa_wali) {
-        const msg = `[RUANG SANTRI NOTIFIKASI IZIN]\n\nYth. Wali Santri ${santri.nama_santri},\nPermohonan ${jenis_izin || 'Izin'} telah *${status || 'Disetujui'}*.\n\nKode Izin: ${kode_izin}\nPenjemput: ${nama_penjemput_mahrom || '-'}\nRencana Pulang: ${tgl_keluar_rencana}\nRencana Kembali: ${tgl_kembali_rencana}\n\nTerima kasih.`;
+        const msg = `[RUANG SANTRI NOTIFIKASI IZIN]\n\nYth. Wali Santri ${santri.nama_santri},\nPermohonan ${cleanJenis} telah *${cleanStatus}*.\n\nKode Izin: ${kode_izin}\nPenjemput: ${nama_penjemput_mahrom || '-'}\nRencana Pulang: ${tgl_keluar_rencana}\nRencana Kembali: ${tgl_kembali_rencana}\n\nTerima kasih.`;
         sendWANotification(santri.no_wa_wali, msg);
       }
     } catch (e) {
       console.warn('Gagal kirim WA perizinan:', e.message);
     }
 
-    return sendSuccess(res, 'Izin santri berhasil dibuat', { id: result.insertId, barcode, kode_izin }, 201);
+    return sendSuccess(res, 'Izin santri berhasil dibuat', { id: result.insertId, barcode, kode_izin, status: cleanStatus }, 201);
   } catch (err) {
     return sendError(res, err.message, 500);
   }
@@ -75,6 +129,11 @@ export const updatePerizinan = async (req, res) => {
       satpam_keluar, satpam_kembali
     } = req.body;
 
+    const cleanJenis = normalizeJenis(jenis_izin);
+    const cleanStatus = normalizeStatus(status);
+    const sqlKeluarRencana = formatSqlDate(tgl_keluar_rencana);
+    const sqlKembaliRencana = formatSqlDate(tgl_kembali_rencana);
+
     await pool.query(`
       UPDATE santri_perizinan SET
         santri_id = ?, jenis_izin = ?, tgl_keluar_rencana = ?, tgl_kembali_rencana = ?,
@@ -82,9 +141,9 @@ export const updatePerizinan = async (req, res) => {
         status = ?, disetujui_oleh = ?, satpam_keluar = ?, satpam_kembali = ?
       WHERE id = ?
     `, [
-      santri_id, jenis_izin || 'Izin Pulang', tgl_keluar_rencana, tgl_kembali_rencana,
+      santri_id, cleanJenis, sqlKeluarRencana, sqlKembaliRencana,
       nama_penjemput_mahrom || '', no_hp_penjemput || '', hubungan_mahrom || 'Orang Tua',
-      keperluan || '', status || 'Menunggu Persetujuan', disetujui_oleh || 'Dewan Pengasuh',
+      keperluan || '', cleanStatus, disetujui_oleh || 'Dewan Pengasuh',
       satpam_keluar || null, satpam_kembali || null, id
     ]);
 
@@ -133,11 +192,13 @@ export const checkinPerizinan = async (req, res) => {
       }
     }
 
+    const sqlKembaliAktual = formatSqlDate(waktuKembali) || formatSqlDate(new Date());
+
     await pool.query(`
       UPDATE santri_perizinan 
       SET status = ?, tgl_kembali_aktual = ?, satpam_kembali = ?
       WHERE id = ?
-    `, [statusKembali, waktuKembali, satpam || 'Pengurus Pesantren', id]);
+    `, [statusKembali, sqlKembaliAktual, satpam || 'Pengurus Pesantren', id]);
 
     return sendSuccess(res, `Santri tercatat kembali ke pesantren (${statusKembali})`, { status: statusKembali });
   } catch (err) {

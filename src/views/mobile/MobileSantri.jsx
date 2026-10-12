@@ -15,6 +15,7 @@ import {
   GraduationCap,
   BookOpen
 } from 'lucide-react';
+import { showConfirm, toastSuccess } from '../../utils/alert.util';
 
 export default function MobileSantri() {
   const [santriList, setSantriList] = useState([]);
@@ -140,13 +141,15 @@ export default function MobileSantri() {
   };
 
   const handleDelete = async (id, nama) => {
-    if (window.confirm(`Yakin ingin menghapus data santri "${nama}"?`)) {
-      try {
-        await axios.delete(`/api/santri/${id}`);
-        fetchSantri();
-      } catch (err) {
-        setSantriList(prev => prev.filter(s => s.id !== id));
-      }
+    const confirmed = await showConfirm('Konfirmasi Hapus', `Yakin ingin menghapus data santri "${nama}"?`);
+    if (!confirmed) return;
+    try {
+      await axios.delete(`/api/santri/${id}`);
+      fetchSantri();
+      toastSuccess(`Data santri "${nama}" dihapus`);
+    } catch (err) {
+      setSantriList(prev => prev.filter(s => s.id !== id));
+      toastSuccess(`Data santri "${nama}" dihapus`);
     }
   };
 

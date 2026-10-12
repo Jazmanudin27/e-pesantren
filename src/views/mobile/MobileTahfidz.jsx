@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BookOpen, Plus, Edit3, Trash2, X, Save, Loader2, Search, CheckCircle, Award } from 'lucide-react';
 import { SURAH_LIST } from '../../utils/quranSurah.util';
+import { showConfirm, toastSuccess } from '../../utils/alert.util';
 
 export default function MobileTahfidz() {
   const [setoranList, setSetoranList] = useState([]);
@@ -150,7 +151,8 @@ export default function MobileTahfidz() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus data setoran ini?')) return;
+    const confirmed = await showConfirm('Konfirmasi Hapus', 'Apakah Anda yakin ingin menghapus data setoran ini?');
+    if (!confirmed) return;
     try {
       await axios.delete(`/api/tahfidz/setoran/${id}`);
       setSetoranList(prev => {
@@ -158,6 +160,7 @@ export default function MobileTahfidz() {
         localStorage.setItem('mobile_tahfidz_list', JSON.stringify(next));
         return next;
       });
+      toastSuccess('Data setoran dihapus');
     } catch (err) {
       console.warn('API delete fallback local:', err);
       setSetoranList(prev => {
@@ -165,6 +168,7 @@ export default function MobileTahfidz() {
         localStorage.setItem('mobile_tahfidz_list', JSON.stringify(next));
         return next;
       });
+      toastSuccess('Data setoran dihapus');
     }
   };
 

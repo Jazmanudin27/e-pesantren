@@ -28,7 +28,7 @@ import {
   ClipboardList,
   Filter
 } from 'lucide-react';
-import { showSuccess, showError, toastSuccess } from '../../utils/alert.util';
+import { showSuccess, showError, toastSuccess, showConfirm } from '../../utils/alert.util';
 
 const DAFTAR_KEGIATAN = [
   { id: 1, nama: 'Shalat Shubuh Berjamaah', kategori: 'shalat', waktu: '04:30 - 05:30', tempat: 'Masjid Jami Utama' },
@@ -433,14 +433,16 @@ export default function MobilePresensi() {
   };
 
   // Hapus log presensi
-  const handleDeleteLog = (id) => {
-    if (!window.confirm('Hapus riwayat presensi ini?')) return;
+  const handleDeleteLog = async (id) => {
+    const confirmed = await showConfirm('Konfirmasi Hapus', 'Hapus riwayat presensi ini?');
+    if (!confirmed) return;
     setPresensiLogs(prev => {
       const updated = prev.filter(i => i.id !== id);
       localStorage.setItem('mobile_presensi_logs', JSON.stringify(updated));
       return updated;
     });
     axios.delete(`/api/absensi/fingerprint/${id}`).catch(() => {});
+    toastSuccess('Riwayat presensi dihapus');
   };
 
   const getInitials = (name) => {

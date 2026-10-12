@@ -18,7 +18,7 @@ import {
   Check, 
   AlertCircle 
 } from 'lucide-react';
-import { showSuccess, showError, toastSuccess } from '../../utils/alert.util';
+import { showSuccess, showError, toastSuccess, showConfirm } from '../../utils/alert.util';
 
 export default function MobileIzin() {
   const [izinList, setIzinList] = useState([]);
@@ -59,7 +59,7 @@ export default function MobileIzin() {
     hubungan_mahrom: 'Orang Tua (Ayah)',
     tgl_keluar_rencana: getNowLocalString(),
     tgl_kembali_rencana: getFutureLocalString(3),
-    status: 'Disetujui (Sedang di Luar)'
+    status: 'Aktif Keluar'
   };
 
   const [formData, setFormData] = useState(initialForm);
@@ -71,7 +71,7 @@ export default function MobileIzin() {
       nama_santri: 'Muhammad Al-Fatih', 
       nis: '2601001',
       jenis_izin: 'Izin Pulang', 
-      status: 'Disetujui (Sedang di Luar)', 
+      status: 'Aktif Keluar', 
       keperluan: 'Acara Keluarga & Walimah', 
       nama_penjemput_mahrom: 'H. Rahman (Ayah)', 
       no_hp_penjemput: '081234567890',
@@ -98,7 +98,7 @@ export default function MobileIzin() {
       santri_id: 3, 
       nama_santri: 'Zaidan Muhammad', 
       nis: '2601003',
-      jenis_izin: 'Izin Mendesak', 
+      jenis_izin: 'Izin Khusus', 
       status: 'Kembali Tepat Waktu', 
       keperluan: 'Urusan Dokumen Kependudukan', 
       nama_penjemput_mahrom: 'Umar (Paman)', 
@@ -216,7 +216,7 @@ export default function MobileIzin() {
       santri_id: santriOptions[0]?.id || 1,
       tgl_keluar_rencana: getNowLocalString(),
       tgl_kembali_rencana: getFutureLocalString(3),
-      status: 'Disetujui (Sedang di Luar)'
+      status: 'Aktif Keluar'
     });
     setIsModalOpen(true);
   };
@@ -233,7 +233,7 @@ export default function MobileIzin() {
       hubungan_mahrom: item.hubungan_mahrom || 'Orang Tua (Ayah)',
       tgl_keluar_rencana: item.tgl_keluar_rencana ? String(item.tgl_keluar_rencana).replace(' ', 'T').slice(0, 16) : getNowLocalString(),
       tgl_kembali_rencana: item.tgl_kembali_rencana ? String(item.tgl_kembali_rencana).replace(' ', 'T').slice(0, 16) : getFutureLocalString(3),
-      status: item.status || 'Disetujui (Sedang di Luar)'
+      status: item.status || 'Aktif Keluar'
     });
     setIsModalOpen(true);
   };
@@ -242,10 +242,9 @@ export default function MobileIzin() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      // Pastikan status langsung Disetujui (Sedang di Luar)
       const payload = {
         ...formData,
-        status: formData.status || 'Disetujui (Sedang di Luar)'
+        status: formData.status || 'Aktif Keluar'
       };
 
       if (formMode === 'add') {
@@ -285,7 +284,8 @@ export default function MobileIzin() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Hapus catatan perizinan ini?')) return;
+    const confirmed = await showConfirm('Konfirmasi Hapus', 'Hapus catatan perizinan ini?');
+    if (!confirmed) return;
     try {
       await axios.delete(`/api/perizinan/${id}`);
       fetchData();
@@ -860,7 +860,7 @@ export default function MobileIzin() {
                   <option value="Izin Pulang">Izin Pulang (Keluarga / Liburan)</option>
                   <option value="Izin Berobat">Izin Berobat (Klinik / RS)</option>
                   <option value="Izin Keluar Komplek">Izin Keluar Komplek (Singkat)</option>
-                  <option value="Izin Mendesak">Izin Mendesak (Takziyah dll)</option>
+                  <option value="Izin Khusus">Izin Khusus (Mendesak / Takziyah)</option>
                 </select>
               </div>
 
