@@ -345,8 +345,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
         <div style={{
           background: '#ffffff',
           borderRadius: '24px',
+          border: '2px solid #0284c7',
           padding: '16px 14px',
-          boxShadow: '0 12px 28px -6px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.04)',
+          boxShadow: '0 12px 28px -6px rgba(2, 132, 199, 0.22), 0 2px 8px rgba(0, 0, 0, 0.04)',
           position: 'relative',
           zIndex: 10
         }}>
