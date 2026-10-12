@@ -265,7 +265,7 @@ export default function MobileTahfidz() {
       {isModalOpen && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.65)', zIndex: 9999,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)', zIndex: 10000,
           display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
           backdropFilter: 'blur(3px)'
         }}>
@@ -432,7 +432,7 @@ export default function MobileTahfidz() {
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
-          zIndex: 9999
+          zIndex: 90
         }}
       >
         <Plus size={28} />

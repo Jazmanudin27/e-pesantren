@@ -165,7 +165,7 @@ export default function MobileProfil({ onChangeTab, onLogout }) {
         <button style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Info size={18} color="#64748b" />
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1e293b' }}>Tentang E-Pesantren v2.4</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1e293b' }}>Tentang Ruang Santri v2.4</span>
           </div>
           <ChevronRight size={16} color="#94a3b8" />
         </button>

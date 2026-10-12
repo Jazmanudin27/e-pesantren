@@ -51,6 +51,7 @@ export default function MobilePresensi() {
   const [presensiLogs, setPresensiLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchManual, setSearchManual] = useState('');
+  const [filterManualStatus, setFilterManualStatus] = useState('Semua');
 
   // Riwayat State
   const [searchRiwayat, setSearchRiwayat] = useState('');
@@ -383,12 +384,52 @@ export default function MobilePresensi() {
     axios.delete(`/api/absensi/fingerprint/${id}`).catch(() => {});
   };
 
+  const getInitials = (name) => {
+    if (!name) return 'S';
+    const parts = name.trim().split(' ');
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  };
+
+  const getActivityIcon = (kategori) => {
+    if (kategori === 'shalat') return '🕌';
+    if (kategori === 'mengaji') return '📖';
+    return '📚';
+  };
+
+  const getSantriCurrentLog = (santri) => {
+    return presensiLogs.find(l => 
+      (l.santri_id === santri.id || (l.nama_santri && l.nama_santri.toLowerCase() === santri.nama_santri.toLowerCase())) &&
+      (l.sesi_id === selectedKegiatan.id || l.kegiatan === selectedKegiatan.nama)
+    );
+  };
+
+  const handleMarkAllRemainingHadir = () => {
+    const unrecorded = santriList.filter(s => !getSantriCurrentLog(s));
+    if (unrecorded.length === 0) {
+      toastSuccess('Semua santri sudah diabsen');
+      return;
+    }
+    unrecorded.forEach(s => {
+      recordAttendance(s, 'Hadir Tepat Waktu', 'Manual');
+    });
+    toastSuccess(`${unrecorded.length} santri ditandai Hadir`);
+  };
+
   // Filter santri untuk tab manual
   const filteredSantri = santriList.filter(s => {
     const q = searchManual.toLowerCase();
-    return s.nama_santri?.toLowerCase().includes(q) ||
+    const matchSearch = s.nama_santri?.toLowerCase().includes(q) ||
       s.nis?.toLowerCase().includes(q) ||
       s.nama_asrama?.toLowerCase().includes(q);
+
+    if (!matchSearch) return false;
+    if (filterManualStatus === 'Semua') return true;
+    const log = getSantriCurrentLog(s);
+    if (filterManualStatus === 'Belum') return !log;
+    if (!log) return false;
+    const st = String(log.status_kehadiran || log.status || '').toLowerCase();
+    return st.includes(filterManualStatus.toLowerCase());
   });
 
   // Filter riwayat untuk tab riwayat
@@ -406,7 +447,12 @@ export default function MobilePresensi() {
     return matchSearch && matchStatus;
   });
 
-  // Perhitungan statistik
+  // Perhitungan statistik sesi kegiatan aktif
+  const sessionSudahCount = santriList.filter(s => getSantriCurrentLog(s)).length;
+  const sessionTotal = santriList.length;
+  const sessionPercent = sessionTotal > 0 ? Math.round((sessionSudahCount / sessionTotal) * 100) : 0;
+
+  // Perhitungan statistik keseluruhan
   const countHadir = presensiLogs.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('hadir')).length;
   const countSakit = presensiLogs.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('sakit')).length;
   const countIzin = presensiLogs.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('izin')).length;
@@ -421,34 +467,56 @@ export default function MobilePresensi() {
     }}>
 
 
-      {/* HEADER: Pemilih Kegiatan Pesantren */}
+      {/* HEADER: Sesi Kegiatan Pesantren Modern Card */}
       <div style={{
-        background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 50%, #1e40af 100%)',
-        borderRadius: '20px',
-        padding: '16px',
+        background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 40%, #1e40af 100%)',
+        borderRadius: '24px',
+        padding: '16px 18px',
         color: '#ffffff',
         marginBottom: '14px',
-        boxShadow: '0 8px 22px -4px rgba(2, 132, 199, 0.4)',
+        boxShadow: '0 10px 25px -4px rgba(2, 132, 199, 0.38)',
         position: 'relative'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <span style={{
-            background: 'rgba(255,255,255,0.2)',
-            fontSize: '0.68rem',
-            fontWeight: 800,
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: '#22c55e',
+              boxShadow: '0 0 8px #22c55e',
+              display: 'inline-block'
+            }} />
+            <span style={{
+              background: 'rgba(255,255,255,0.18)',
+              fontSize: '0.68rem',
+              fontWeight: 800,
+              padding: '3px 9px',
+              borderRadius: '999px',
+              letterSpacing: '0.04em'
+            }}>
+              SESI KEGIATAN AKTIF
+            </span>
+          </div>
+
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            background: 'rgba(15, 23, 42, 0.35)',
             padding: '3px 10px',
             borderRadius: '999px',
-            letterSpacing: '0.04em'
+            fontSize: '0.72rem',
+            color: '#e0f2fe',
+            fontWeight: 700
           }}>
-            SESI KEGIATAN AKTIF
-          </span>
-          <span style={{ fontSize: '0.72rem', color: '#bae6fd', fontWeight: 600 }}>
-            {selectedKegiatan.waktu}
-          </span>
+            <Clock size={12} />
+            <span>{selectedKegiatan.waktu}</span>
+          </div>
         </div>
 
-        {/* Dropdown Kegiatan */}
-        <div style={{ position: 'relative' }}>
+        {/* Dropdown Kegiatan Stylized */}
+        <div style={{ position: 'relative', marginBottom: '12px' }}>
           <select
             value={selectedKegiatan.id}
             onChange={(e) => {
@@ -457,13 +525,13 @@ export default function MobilePresensi() {
             }}
             style={{
               width: '100%',
-              padding: '10px 36px 10px 12px',
-              borderRadius: '12px',
+              padding: '12px 38px 12px 14px',
+              borderRadius: '14px',
               border: '1.5px solid rgba(255, 255, 255, 0.35)',
-              background: 'rgba(255, 255, 255, 0.15)',
+              background: 'rgba(255, 255, 255, 0.18)',
               backdropFilter: 'blur(10px)',
               color: '#ffffff',
-              fontSize: '0.92rem',
+              fontSize: '0.94rem',
               fontWeight: 800,
               outline: 'none',
               appearance: 'none',
@@ -472,17 +540,44 @@ export default function MobilePresensi() {
           >
             {DAFTAR_KEGIATAN.map(k => (
               <option key={k.id} value={k.id} style={{ color: '#0f172a', fontWeight: 700 }}>
-                {k.nama} ({k.waktu})
+                {getActivityIcon(k.kategori)} {k.nama} ({k.waktu})
               </option>
             ))}
           </select>
-          <ChevronDown size={18} color="#ffffff" style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+          <ChevronDown size={18} color="#ffffff" style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', color: '#e0f2fe', marginTop: '8px' }}>
-          <span>📍 {selectedKegiatan.tempat}</span>
-          <span>•</span>
-          <span>Santri: {santriList.length} Terdaftar</span>
+        {/* Location & Progress Bar */}
+        <div style={{
+          background: 'rgba(0, 0, 0, 0.22)',
+          borderRadius: '12px',
+          padding: '8px 12px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '6px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: '#e0f2fe' }}>
+            <span>📍 {selectedKegiatan.tempat}</span>
+            <span style={{ fontWeight: 800, color: '#fef08a' }}>
+              {sessionSudahCount} / {sessionTotal} Santri ({sessionPercent}%)
+            </span>
+          </div>
+          {/* Progress bar track */}
+          <div style={{
+            width: '100%',
+            height: '5px',
+            borderRadius: '999px',
+            background: 'rgba(255, 255, 255, 0.25)',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              width: `${sessionPercent}%`,
+              height: '100%',
+              borderRadius: '999px',
+              background: '#22c55e',
+              transition: 'width 0.3s ease'
+            }} />
+          </div>
         </div>
       </div>
 
@@ -732,22 +827,23 @@ export default function MobilePresensi() {
       )}
 
       {/* =========================================================================
-          TAB 2: PRESENSI MANUAL SANTRI (CEPAT & CHECKLIST)
+          TAB 2: PRESENSI MANUAL SANTRI (CEPAT & CHECKLIST MODERN)
       ========================================================================= */}
       {activeMode === 'manual' && (
         <div>
-          {/* Search Bar Santri */}
+          {/* Search Bar Santri Modern */}
           <div style={{
             background: '#ffffff',
-            borderRadius: '14px',
-            padding: '2px 12px',
+            borderRadius: '16px',
+            padding: '4px 14px',
             border: '1.5px solid #e2e8f0',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            marginBottom: '12px'
+            gap: '10px',
+            marginBottom: '10px',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
           }}>
-            <Search size={18} color="#94a3b8" />
+            <Search size={18} color="#0284c7" />
             <input
               type="text"
               placeholder="Cari nama santri, NIS, atau asrama..."
@@ -758,7 +854,9 @@ export default function MobilePresensi() {
                 padding: '10px 0',
                 border: 'none',
                 outline: 'none',
-                fontSize: '0.85rem'
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                color: '#1e293b'
               }}
             />
             {searchManual && (
@@ -766,115 +864,290 @@ export default function MobilePresensi() {
             )}
           </div>
 
-          {/* List Santri dengan Quick Button Hadir, Sakit, Izin, Alfa */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+          {/* Quick Filter Status Pills + Quick Action */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
+            marginBottom: '12px',
+            overflowX: 'auto',
+            paddingBottom: '2px'
+          }}>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {[
+                { key: 'Semua', label: `Semua (${santriList.length})` },
+                { key: 'Belum', label: `Belum (${sessionTotal - sessionSudahCount})` },
+                { key: 'Hadir', label: 'Hadir' }
+              ].map(f => (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => setFilterManualStatus(f.key)}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: '999px',
+                    border: filterManualStatus === f.key ? '1.5px solid #0284c7' : '1px solid #e2e8f0',
+                    background: filterManualStatus === f.key ? '#0284c7' : '#ffffff',
+                    color: filterManualStatus === f.key ? '#ffffff' : '#64748b',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    boxShadow: filterManualStatus === f.key ? '0 3px 8px rgba(2, 132, 199, 0.3)' : 'none',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Quick Hadirkan Semua Yang Belum Button */}
+            {sessionTotal - sessionSudahCount > 0 && (
+              <button
+                type="button"
+                onClick={handleMarkAllRemainingHadir}
+                style={{
+                  padding: '5px 11px',
+                  borderRadius: '999px',
+                  border: '1px solid #bbf7d0',
+                  background: '#ecfdf5',
+                  color: '#059669',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 2px 6px rgba(16, 185, 129, 0.15)',
+                  flexShrink: 0
+                }}
+              >
+                <CheckCircle2 size={13} />
+                <span>Hadirkan Sisa</span>
+              </button>
+            )}
+          </div>
+
+          {/* List Santri dengan Modern Card & Interactive Segmented Buttons */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
             {filteredSantri.map((santri) => {
-              // Cek apakah santri ini sudah absen pada kegiatan ini hari ini
-              const existingLog = presensiLogs.find(l => 
-                (l.santri_id === santri.id || l.nama_santri === santri.nama_santri) &&
-                (l.sesi_id === selectedKegiatan.id || l.kegiatan === selectedKegiatan.nama)
-              );
+              const currentLog = getSantriCurrentLog(santri);
+              const currentStatus = currentLog ? String(currentLog.status_kehadiran || currentLog.status || '') : '';
+              const isHadir = currentStatus.toLowerCase().includes('hadir');
+              const isSakit = currentStatus.toLowerCase().includes('sakit');
+              const isIzin = currentStatus.toLowerCase().includes('izin');
+              const isAlpa = currentStatus.toLowerCase().includes('alpa') || currentStatus.toLowerCase().includes('alpha');
+
+              // Color accents
+              let cardBorder = '#e2e8f0';
+              let avatarBg = '#f1f5f9';
+              let avatarColor = '#475569';
+              if (isHadir) {
+                cardBorder = '#10b981';
+                avatarBg = '#d1fae5';
+                avatarColor = '#065f46';
+              } else if (isSakit) {
+                cardBorder = '#8b5cf6';
+                avatarBg = '#ede9fe';
+                avatarColor = '#5b21b6';
+              } else if (isIzin) {
+                cardBorder = '#f59e0b';
+                avatarBg = '#fef3c7';
+                avatarColor = '#92400e';
+              } else if (isAlpa) {
+                cardBorder = '#ef4444';
+                avatarBg = '#fee2e2';
+                avatarColor = '#991b1b';
+              }
 
               return (
                 <div
                   key={santri.id}
                   style={{
                     background: '#ffffff',
-                    borderRadius: '16px',
-                    padding: '12px 14px',
-                    border: '1.5px solid #f1f5f9',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                    borderRadius: '18px',
+                    padding: '14px',
+                    border: `1.5px solid ${cardBorder}`,
+                    boxShadow: currentLog ? '0 4px 14px -3px rgba(0,0,0,0.06)' : '0 2px 6px rgba(0,0,0,0.02)',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '8px'
+                    gap: '12px',
+                    transition: 'all 0.2s ease'
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>
-                        {santri.nama_santri}
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                        NIS: {santri.nis || '-'} • {santri.nama_asrama || 'Mukim'} • {santri.kelas_halaqah || 'Diniyah'}
-                      </div>
+                  {/* Top Row: Avatar, Info, Status Badge */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '14px',
+                      background: avatarBg,
+                      color: avatarColor,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 800,
+                      fontSize: '0.86rem',
+                      flexShrink: 0
+                    }}>
+                      {getInitials(santri.nama_santri)}
                     </div>
 
-                    {existingLog && (
-                      <span style={{
-                        background: '#ecfdf5',
-                        color: '#059669',
-                        fontSize: '0.68rem',
-                        fontWeight: 800,
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        border: '1px solid #a7f3d0'
-                      }}>
-                        {existingLog.status_kehadiran || existingLog.status || 'Hadir'}
-                      </span>
-                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                        <div style={{
+                          fontWeight: 800,
+                          fontSize: '0.92rem',
+                          color: '#0f172a',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}>
+                          {santri.nama_santri}
+                        </div>
+
+                        {currentLog && (
+                          <span style={{
+                            background: isHadir ? '#ecfdf5' : isSakit ? '#faf5ff' : isIzin ? '#fffbeb' : '#fff1f2',
+                            color: isHadir ? '#059669' : isSakit ? '#7c3aed' : isIzin ? '#d97706' : '#dc2626',
+                            border: `1px solid ${cardBorder}`,
+                            fontSize: '0.64rem',
+                            fontWeight: 800,
+                            padding: '2px 8px',
+                            borderRadius: '999px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: isHadir ? '#10b981' : isSakit ? '#8b5cf6' : isIzin ? '#f59e0b' : '#ef4444' }} />
+                            {currentLog.waktu_scan ? `${currentLog.waktu_scan.substring(0, 5)} WIB` : 'Tercatat'}
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
+                        <span style={{ background: '#f1f5f9', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                          NIS: {santri.nis || '-'}
+                        </span>
+                        <span>•</span>
+                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {santri.nama_asrama || 'Mukim'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* 4 Quick Action Buttons */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                  {/* 4 Interactive Segmented Status Buttons */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(4, 1fr)',
+                    gap: '6px',
+                    background: '#f8fafc',
+                    padding: '4px',
+                    borderRadius: '12px'
+                  }}>
+                    {/* HADIR */}
                     <button
+                      type="button"
                       onClick={() => handleQuickManualAction(santri, 'Hadir Tepat Waktu')}
                       style={{
-                        padding: '7px 4px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        background: '#10b981',
-                        color: '#ffffff',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        cursor: 'pointer'
+                        padding: '8px 2px',
+                        borderRadius: '9px',
+                        border: isHadir ? 'none' : '1px solid #d1fae5',
+                        background: isHadir ? '#10b981' : '#ffffff',
+                        color: isHadir ? '#ffffff' : '#047857',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '3px',
+                        boxShadow: isHadir ? '0 4px 10px rgba(16, 185, 129, 0.35)' : 'none',
+                        transition: 'all 0.15s ease'
                       }}
                     >
-                      Hadir
+                      {isHadir && <Check size={12} strokeWidth={3} />}
+                      <span>Hadir</span>
                     </button>
+
+                    {/* SAKIT */}
                     <button
+                      type="button"
                       onClick={() => handleQuickManualAction(santri, 'Sakit')}
                       style={{
-                        padding: '7px 4px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        background: '#8b5cf6',
-                        color: '#ffffff',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        cursor: 'pointer'
+                        padding: '8px 2px',
+                        borderRadius: '9px',
+                        border: isSakit ? 'none' : '1px solid #ede9fe',
+                        background: isSakit ? '#8b5cf6' : '#ffffff',
+                        color: isSakit ? '#ffffff' : '#6d28d9',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '3px',
+                        boxShadow: isSakit ? '0 4px 10px rgba(139, 92, 246, 0.35)' : 'none',
+                        transition: 'all 0.15s ease'
                       }}
                     >
-                      Sakit
+                      {isSakit && <Check size={12} strokeWidth={3} />}
+                      <span>Sakit</span>
                     </button>
+
+                    {/* IZIN */}
                     <button
+                      type="button"
                       onClick={() => handleQuickManualAction(santri, 'Izin')}
                       style={{
-                        padding: '7px 4px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        background: '#f59e0b',
-                        color: '#ffffff',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        cursor: 'pointer'
+                        padding: '8px 2px',
+                        borderRadius: '9px',
+                        border: isIzin ? 'none' : '1px solid #fef3c7',
+                        background: isIzin ? '#f59e0b' : '#ffffff',
+                        color: isIzin ? '#ffffff' : '#b45309',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '3px',
+                        boxShadow: isIzin ? '0 4px 10px rgba(245, 158, 11, 0.35)' : 'none',
+                        transition: 'all 0.15s ease'
                       }}
                     >
-                      Izin
+                      {isIzin && <Check size={12} strokeWidth={3} />}
+                      <span>Izin</span>
                     </button>
+
+                    {/* ALFA */}
                     <button
+                      type="button"
                       onClick={() => handleQuickManualAction(santri, 'Alpa / Tanpa Keterangan')}
                       style={{
-                        padding: '7px 4px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        background: '#ef4444',
-                        color: '#ffffff',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        cursor: 'pointer'
+                        padding: '8px 2px',
+                        borderRadius: '9px',
+                        border: isAlpa ? 'none' : '1px solid #fee2e2',
+                        background: isAlpa ? '#ef4444' : '#ffffff',
+                        color: isAlpa ? '#ffffff' : '#b91c1c',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '3px',
+                        boxShadow: isAlpa ? '0 4px 10px rgba(239, 68, 68, 0.35)' : 'none',
+                        transition: 'all 0.15s ease'
                       }}
                     >
-                      Alpa
+                      {isAlpa && <Check size={12} strokeWidth={3} />}
+                      <span>Alfa</span>
                     </button>
                   </div>
                 </div>

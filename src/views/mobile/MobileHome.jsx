@@ -166,7 +166,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               <GraduationCap size={16} color="#ffffff" />
             </div>
             <span style={{ fontWeight: 800, fontSize: '0.98rem', letterSpacing: '-0.3px' }}>
-              E-Pesantren
+              Ruang Santri
             </span>
             <span style={{
               background: '#f59e0b',
@@ -498,7 +498,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       </div>
 
       {/* =========================================================================
-          SQUIRCLE GRID MENU: FITUR RESMI E-PESANTREN
+          SQUIRCLE GRID MENU: FITUR RESMI RUANG SANTRI
           (Santri, Asrama, Kelas, Kitab, Guru, Perizinan, Pelanggaran, Absensi Kegiatan, Hafalan)
           4 Kolom responsif, tema pesantren elegan & dinamis
       ========================================================================= */}

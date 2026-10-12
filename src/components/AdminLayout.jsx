@@ -132,7 +132,7 @@ export default function AdminLayout() {
     setIsUserDropdownOpen(false);
     const confirmed = await showConfirm(
       'Konfirmasi Keluar',
-      'Apakah Anda yakin ingin keluar dari sistem E-Pesantren Nurul Wafa?',
+      'Apakah Anda yakin ingin keluar dari sistem Ruang Santri?',
       'Ya, Keluar',
       'Batal'
     );
@@ -542,7 +542,7 @@ export default function AdminLayout() {
             </button>
             <div className="header-mobile-brand">
               <span className="brand-logo-mini">P</span>
-              <span className="brand-title-mini">E-PESANTREN</span>
+              <span className="brand-title-mini">RUANG SANTRI</span>
             </div>
           </div>
 

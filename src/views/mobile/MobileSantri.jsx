@@ -418,7 +418,7 @@ export default function MobileSantri() {
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
-          zIndex: 9999
+          zIndex: 90
         }}
       >
         <Plus size={28} />

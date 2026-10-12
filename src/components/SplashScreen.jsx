@@ -121,7 +121,7 @@ export default function SplashScreen({ onFinish }) {
             color: '#ffffff',
             textShadow: '0 2px 10px rgba(0,0,0,0.3)'
           }}>
-            E-Pesantren
+            Ruang Santri
           </h1>
           <span style={{
             background: '#f59e0b',

@@ -47,7 +47,7 @@ export const createPelanggaran = async (req, res) => {
       try {
         const [[santri]] = await pool.query('SELECT nama_santri, no_wa_wali FROM santri WHERE id = ?', [santri_id]);
         if (santri && santri.no_wa_wali) {
-          const msg = `[E-PESANTREN DISIPLIN]\n\nYth. Wali Santri ${santri.nama_santri},\nDiberitahukan bahwa santri tercatat melakukan pelanggaran:\n- Kategori: ${kategori || 'Ringan'}\n- Pelanggaran: ${jenis_pelanggaran}\n- Poin: +${poin_pelanggaran || 5}\n- Ta'zir: ${bentuk_tazir}\n\nMohon bimbingan dan kerja samanya. Terima kasih.`;
+          const msg = `[RUANG SANTRI DISIPLIN]\n\nYth. Wali Santri ${santri.nama_santri},\nDiberitahukan bahwa santri tercatat melakukan pelanggaran:\n- Kategori: ${kategori || 'Ringan'}\n- Pelanggaran: ${jenis_pelanggaran}\n- Poin: +${poin_pelanggaran || 5}\n- Ta'zir: ${bentuk_tazir}\n\nMohon bimbingan dan kerja samanya. Terima kasih.`;
           sendWANotification(santri.no_wa_wali, msg);
         }
       } catch (e) {
