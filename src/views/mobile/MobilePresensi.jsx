@@ -404,6 +404,30 @@ export default function MobilePresensi() {
     );
   };
 
+  const simplifyStatus = (statusStr) => {
+    if (!statusStr) return 'Hadir';
+    const s = String(statusStr).toLowerCase();
+    if (s.includes('hadir')) return 'Hadir';
+    if (s.includes('sakit')) return 'Sakit';
+    if (s.includes('izin')) return 'Izin';
+    if (s.includes('alpa') || s.includes('alpha')) return 'Alfa';
+    return statusStr;
+  };
+
+  const formatCompactTime = (timeStr, dateStr) => {
+    if (!timeStr && !dateStr) return 'Barusan';
+    const t = timeStr ? String(timeStr).substring(0, 5) : '';
+    return t ? `${t} WIB` : 'Hari ini';
+  };
+
+  const formatCompactActivity = (act) => {
+    if (!act) return 'Kegiatan';
+    return String(act)
+      .replace(' Berjamaah', '')
+      .replace(" / Halaqah Pagi", '')
+      .replace(' Malam', '');
+  };
+
   const handleMarkAllRemainingHadir = () => {
     const unrecorded = santriList.filter(s => !getSantriCurrentLog(s));
     if (unrecorded.length === 0) {
@@ -411,7 +435,7 @@ export default function MobilePresensi() {
       return;
     }
     unrecorded.forEach(s => {
-      recordAttendance(s, 'Hadir Tepat Waktu', 'Manual');
+      recordAttendance(s, 'Hadir', 'Manual');
     });
     toastSuccess(`${unrecorded.length} santri ditandai Hadir`);
   };
@@ -428,7 +452,7 @@ export default function MobilePresensi() {
     const log = getSantriCurrentLog(s);
     if (filterManualStatus === 'Belum') return !log;
     if (!log) return false;
-    const st = String(log.status_kehadiran || log.status || '').toLowerCase();
+    const st = simplifyStatus(log.status_kehadiran || log.status).toLowerCase();
     return st.includes(filterManualStatus.toLowerCase());
   });
 
@@ -439,10 +463,10 @@ export default function MobilePresensi() {
       (log.kegiatan || '').toLowerCase().includes(q) ||
       (log.nis || '').toLowerCase().includes(q);
 
-    const statusStr = String(log.status_kehadiran || log.status || 'Hadir');
+    const cleanStatus = simplifyStatus(log.status_kehadiran || log.status);
     const matchStatus = 
       filterStatusRiwayat === 'Semua' ? true :
-      statusStr.toLowerCase().includes(filterStatusRiwayat.toLowerCase());
+      cleanStatus.toLowerCase() === filterStatusRiwayat.toLowerCase();
 
     return matchSearch && matchStatus;
   });
@@ -1053,7 +1077,7 @@ export default function MobilePresensi() {
                     {/* HADIR */}
                     <button
                       type="button"
-                      onClick={() => handleQuickManualAction(santri, 'Hadir Tepat Waktu')}
+                      onClick={() => handleQuickManualAction(santri, 'Hadir')}
                       style={{
                         padding: '8px 2px',
                         borderRadius: '9px',
@@ -1128,7 +1152,7 @@ export default function MobilePresensi() {
                     {/* ALFA */}
                     <button
                       type="button"
-                      onClick={() => handleQuickManualAction(santri, 'Alpa / Tanpa Keterangan')}
+                      onClick={() => handleQuickManualAction(santri, 'Alfa')}
                       style={{
                         padding: '8px 2px',
                         borderRadius: '9px',
@@ -1175,36 +1199,37 @@ export default function MobilePresensi() {
             gap: '8px',
             marginBottom: '14px'
           }}>
-            <div style={{ background: '#ffffff', padding: '10px 6px', borderRadius: '14px', textAlign: 'center', border: '1px solid #e2e8f0' }}>
+            <div style={{ background: '#ffffff', padding: '10px 4px', borderRadius: '14px', textAlign: 'center', border: '1px solid #e2e8f0', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' }}>
               <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0284c7' }}>{presensiLogs.length}</div>
-              <div style={{ fontSize: '0.64rem', color: '#64748b', fontWeight: 700 }}>Total</div>
+              <div style={{ fontSize: '0.66rem', color: '#64748b', fontWeight: 700 }}>Total</div>
             </div>
-            <div style={{ background: '#ecfdf5', padding: '10px 6px', borderRadius: '14px', textAlign: 'center', border: '1px solid #a7f3d0' }}>
+            <div style={{ background: '#ecfdf5', padding: '10px 4px', borderRadius: '14px', textAlign: 'center', border: '1px solid #a7f3d0' }}>
               <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#059669' }}>{countHadir}</div>
-              <div style={{ fontSize: '0.64rem', color: '#047857', fontWeight: 700 }}>Hadir</div>
+              <div style={{ fontSize: '0.66rem', color: '#047857', fontWeight: 700 }}>Hadir</div>
             </div>
-            <div style={{ background: '#f5f3ff', padding: '10px 6px', borderRadius: '14px', textAlign: 'center', border: '1px solid #ddd6fe' }}>
+            <div style={{ background: '#f5f3ff', padding: '10px 4px', borderRadius: '14px', textAlign: 'center', border: '1px solid #ddd6fe' }}>
               <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#7c3aed' }}>{countSakit}</div>
-              <div style={{ fontSize: '0.64rem', color: '#6d28d9', fontWeight: 700 }}>Sakit</div>
+              <div style={{ fontSize: '0.66rem', color: '#6d28d9', fontWeight: 700 }}>Sakit</div>
             </div>
-            <div style={{ background: '#fef2f2', padding: '10px 6px', borderRadius: '14px', textAlign: 'center', border: '1px solid #fecdd3' }}>
+            <div style={{ background: '#fef2f2', padding: '10px 4px', borderRadius: '14px', textAlign: 'center', border: '1px solid #fecdd3' }}>
               <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#dc2626' }}>{countIzin + countAlpa}</div>
-              <div style={{ fontSize: '0.64rem', color: '#b91c1c', fontWeight: 700 }}>Izin/Alpa</div>
+              <div style={{ fontSize: '0.66rem', color: '#b91c1c', fontWeight: 700 }}>Izin/Alfa</div>
             </div>
           </div>
 
           {/* Search Box Riwayat */}
           <div style={{
             background: '#ffffff',
-            borderRadius: '14px',
-            padding: '2px 12px',
+            borderRadius: '16px',
+            padding: '4px 14px',
             border: '1.5px solid #e2e8f0',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            marginBottom: '10px'
+            gap: '10px',
+            marginBottom: '10px',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
           }}>
-            <Search size={18} color="#94a3b8" />
+            <Search size={18} color="#7c3aed" />
             <input
               type="text"
               placeholder="Cari di riwayat presensi..."
@@ -1215,7 +1240,9 @@ export default function MobilePresensi() {
                 padding: '10px 0',
                 border: 'none',
                 outline: 'none',
-                fontSize: '0.85rem'
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                color: '#1e293b'
               }}
             />
             {searchRiwayat && (
@@ -1224,24 +1251,26 @@ export default function MobilePresensi() {
           </div>
 
           {/* Filter Pills Status */}
-          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '8px', marginBottom: '12px' }}>
-            {['Semua', 'Hadir', 'Sakit', 'Izin', 'Alpa'].map(st => {
+          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px', marginBottom: '14px' }}>
+            {['Semua', 'Hadir', 'Sakit', 'Izin', 'Alfa'].map(st => {
               const active = filterStatusRiwayat === st;
               return (
                 <button
                   key={st}
+                  type="button"
                   onClick={() => setFilterStatusRiwayat(st)}
                   style={{
                     padding: '5px 12px',
                     borderRadius: '999px',
                     fontSize: '0.72rem',
                     fontWeight: 800,
-                    border: 'none',
+                    border: active ? '1.5px solid #7c3aed' : '1px solid #e2e8f0',
                     background: active ? '#7c3aed' : '#ffffff',
                     color: active ? '#ffffff' : '#64748b',
                     cursor: 'pointer',
-                    boxShadow: active ? '0 3px 8px rgba(124, 58, 237, 0.25)' : '0 1px 3px rgba(0,0,0,0.04)',
-                    whiteSpace: 'nowrap'
+                    boxShadow: active ? '0 3px 8px rgba(124, 58, 237, 0.25)' : 'none',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.15s ease'
                   }}
                 >
                   {st}
@@ -1250,17 +1279,21 @@ export default function MobilePresensi() {
             })}
           </div>
 
-          {/* List Kartu Riwayat */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {/* List Kartu Riwayat Lebih Menarik, Luas & Rapi (Satu Baris Info) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
             {filteredRiwayat.map((log) => {
               const isQr = String(log.metode_scan || log.metode_presensi || '').toLowerCase().includes('qr');
-              const statusStr = String(log.status_kehadiran || log.status || 'Hadir');
-              const isHadir = statusStr.toLowerCase().includes('hadir');
-              const isSakit = statusStr.toLowerCase().includes('sakit');
-              const isIzin = statusStr.toLowerCase().includes('izin');
+              const cleanStatus = simplifyStatus(log.status_kehadiran || log.status);
+              const isHadir = cleanStatus === 'Hadir';
+              const isSakit = cleanStatus === 'Sakit';
+              const isIzin = cleanStatus === 'Izin';
 
               const statusColor = isHadir ? '#059669' : (isSakit ? '#7c3aed' : (isIzin ? '#d97706' : '#dc2626'));
               const statusBg = isHadir ? '#ecfdf5' : (isSakit ? '#f5f3ff' : (isIzin ? '#fffbeb' : '#fef2f2'));
+              const statusBorder = isHadir ? '#a7f3d0' : (isSakit ? '#ddd6fe' : (isIzin ? '#fde68a' : '#fecdd3'));
+
+              const avatarBg = isHadir ? '#d1fae5' : (isSakit ? '#ede9fe' : (isIzin ? '#fef3c7' : '#fee2e2'));
+              const avatarColor = isHadir ? '#065f46' : (isSakit ? '#5b21b6' : (isIzin ? '#92400e' : '#991b1b'));
 
               return (
                 <div
@@ -1269,65 +1302,110 @@ export default function MobilePresensi() {
                     background: '#ffffff',
                     borderRadius: '16px',
                     padding: '12px 14px',
-                    border: '1.5px solid #f1f5f9',
+                    border: `1.5px solid ${statusBorder}`,
                     display: 'flex',
-                    justifyContent: 'space-between',
                     alignItems: 'center',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+                    gap: '12px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+                    transition: 'all 0.15s ease'
                   }}
                 >
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>
+                  {/* Left: Avatar Initials */}
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '12px',
+                    background: avatarBg,
+                    color: avatarColor,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 800,
+                    fontSize: '0.84rem',
+                    flexShrink: 0
+                  }}>
+                    {getInitials(log.nama_santri)}
+                  </div>
+
+                  {/* Middle: Name + Status & Single Clean Info Row */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {/* Row 1: Name + Status Badge (Horizontal, not wrapped!) */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                      <span style={{
+                        fontWeight: 800,
+                        fontSize: '0.9rem',
+                        color: '#0f172a',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
                         {log.nama_santri || 'Santri'}
                       </span>
+
                       <span style={{
-                        background: isQr ? '#dbeafe' : '#f1f5f9',
-                        color: isQr ? '#1d4ed8' : '#475569',
-                        fontSize: '0.62rem',
+                        fontSize: '0.68rem',
                         fontWeight: 800,
-                        padding: '2px 6px',
-                        borderRadius: '6px'
+                        color: statusColor,
+                        background: statusBg,
+                        border: `1px solid ${statusBorder}`,
+                        padding: '2px 8px',
+                        borderRadius: '999px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        flexShrink: 0
                       }}>
-                        {isQr ? '📷 QR Code' : '📝 Manual'}
+                        <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: statusColor }} />
+                        {cleanStatus}
                       </span>
                     </div>
 
-                    <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
-                      {log.kegiatan || selectedKegiatan.nama}
-                    </div>
-
-                    <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '1px' }}>
-                      📅 {log.tanggal ? String(log.tanggal).split('T')[0] : 'Hari ini'} • ⏰ {log.waktu_scan || 'Barusan'}
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{
-                      fontSize: '0.74rem',
-                      fontWeight: 800,
-                      color: statusColor,
-                      background: statusBg,
-                      padding: '4px 10px',
-                      borderRadius: '8px'
+                    {/* Row 2: Clean single line (No awkward wrapping, generous breathing room) */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '0.72rem',
+                      color: '#64748b',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
                     }}>
-                      {statusStr}
-                    </span>
-                    <button
-                      onClick={() => handleDeleteLog(log.id)}
-                      style={{
-                        background: '#fee2e2',
-                        border: 'none',
-                        borderRadius: '8px',
-                        padding: '7px',
-                        color: '#b91c1c',
-                        cursor: 'pointer'
-                      }}
-                      title="Hapus Record"
-                    >
-                      <Trash2 size={13} />
-                    </button>
+                      <span>{formatCompactActivity(log.kegiatan || selectedKegiatan.nama)}</span>
+                      <span style={{ color: '#cbd5e1' }}>•</span>
+                      <span>{formatCompactTime(log.waktu_scan, log.tanggal)}</span>
+                      <span style={{ color: '#cbd5e1' }}>•</span>
+                      <span style={{
+                        color: isQr ? '#0284c7' : '#64748b',
+                        fontWeight: 600,
+                        fontSize: '0.68rem'
+                      }}>
+                        {isQr ? 'QR' : 'Manual'}
+                      </span>
+                    </div>
                   </div>
+
+                  {/* Right: Trash Button with comfortable padding */}
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteLog(log.id)}
+                    style={{
+                      background: '#fff1f2',
+                      border: '1px solid #fecdd3',
+                      borderRadius: '10px',
+                      width: '32px',
+                      height: '32px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#e11d48',
+                      cursor: 'pointer',
+                      flexShrink: 0
+                    }}
+                    title="Hapus Record"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               );
             })}
