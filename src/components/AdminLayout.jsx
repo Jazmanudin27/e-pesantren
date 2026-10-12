@@ -340,7 +340,7 @@ export default function AdminLayout() {
         >
           <div className="nav-link-left">
             <DoorOpen size={15} />
-            <span>Perizinan & Gerbang</span>
+            <span>Perizinan</span>
           </div>
         </button>
 

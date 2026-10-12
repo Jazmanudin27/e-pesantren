@@ -120,13 +120,26 @@ export const checkoutPerizinan = async (req, res) => {
 
 export const checkinPerizinan = async (req, res) => {
   try {
-    const { id, satpam } = req.body;
+    const { id, satpam, tgl_kembali_aktual } = req.body;
+    const [[izin]] = await pool.query('SELECT tgl_kembali_rencana FROM santri_perizinan WHERE id = ?', [id]);
+    
+    const waktuKembali = tgl_kembali_aktual ? new Date(tgl_kembali_aktual) : new Date();
+    let statusKembali = 'Kembali Tepat Waktu';
+    
+    if (izin && izin.tgl_kembali_rencana) {
+      const rencana = new Date(izin.tgl_kembali_rencana);
+      if (waktuKembali > rencana) {
+        statusKembali = 'Terlambat Kembali';
+      }
+    }
+
     await pool.query(`
       UPDATE santri_perizinan 
-      SET status = 'Kembali Tepat Waktu', tgl_kembali_aktual = NOW(), satpam_kembali = ?
+      SET status = ?, tgl_kembali_aktual = ?, satpam_kembali = ?
       WHERE id = ?
-    `, [satpam || 'Petugas Pos Gerbang', id]);
-    return sendSuccess(res, 'Santri berhasil check-in kembali ke pesantren');
+    `, [statusKembali, waktuKembali, satpam || 'Pengurus Pesantren', id]);
+
+    return sendSuccess(res, `Santri tercatat kembali ke pesantren (${statusKembali})`, { status: statusKembali });
   } catch (err) {
     return sendError(res, err.message, 500);
   }

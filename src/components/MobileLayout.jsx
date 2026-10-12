@@ -135,7 +135,7 @@ export default function MobileLayout() {
       case 'presensi': return 'Presensi & Absensi';
       case 'tahfidz': return 'Tahfidz & Muroja\'ah';
       case 'perizinan':
-      case 'izin': return 'Perizinan & Gerbang';
+      case 'izin': return 'Perizinan';
       case 'master-santri': return 'Data Santri';
       case 'master-asrama': return 'Data Asrama & Kobong';
       case 'master-kelas': return 'Data Kelas & Halaqah';
