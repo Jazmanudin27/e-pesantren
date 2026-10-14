@@ -39,7 +39,7 @@ import MobileLaporanTahfidz from '../views/mobile/MobileLaporanTahfidz';
 import MobileKitab from '../views/mobile/MobileKitab';
 import MobileProfil from '../views/mobile/MobileProfil';
 import MobileLogin from '../views/mobile/MobileLogin';
-import PraktekIbadahView from '../views/admin/PraktekIbadahView';
+import MobilePraktek from '../views/mobile/MobilePraktek';
 
 export default function MobileLayout() {
   const [session, setSession] = useState(() => {
@@ -173,7 +173,7 @@ export default function MobileLayout() {
         return <MobileTahfidz />;
       case 'praktek-ibadah':
       case 'praktek':
-        return <PraktekIbadahView />;
+        return <MobilePraktek />;
       case 'perizinan':
       case 'izin':
         return <MobileIzin />;
