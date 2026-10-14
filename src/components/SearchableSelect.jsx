@@ -9,7 +9,8 @@ export default function SearchableSelect({
   searchPlaceholder = 'Cari opsi...',
   required = false,
   disabled = false,
-  style = {}
+  style = {},
+  triggerStyle = {}
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -126,7 +127,8 @@ export default function SearchableSelect({
           justifyContent: 'space-between',
           cursor: disabled ? 'not-allowed' : 'pointer',
           boxShadow: isOpen ? '0 0 0 2px rgba(2, 132, 199, 0.15)' : 'none',
-          transition: 'all 0.15s ease'
+          transition: 'all 0.15s ease',
+          ...triggerStyle
         }}
       >
         <div style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: '6px' }}>

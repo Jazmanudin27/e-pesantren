@@ -21,6 +21,7 @@ import {
   Tag
 } from 'lucide-react';
 import { showConfirm, toastSuccess, showError } from '../../utils/alert.util';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const DEFAULT_KATEGORI = [
   'Sholat Fardhu',
@@ -965,35 +966,30 @@ export default function MobilePraktek() {
             </div>
 
             <form onSubmit={handleSave}>
-              {/* Santri Selector */}
+              {/* Santri Selector dengan Search Realtime */}
               <div style={{ marginBottom: '14px' }}>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
                   Nama Santri Diuji *
                 </label>
-                <select
+                <SearchableSelect
+                  options={santriList.map((s) => ({
+                    value: s.id,
+                    label: s.nama_santri || s.nama || 'Santri',
+                    sublabel: `NIS: ${s.nis || '-'} • ${s.nama_asrama || 'Asrama'}`
+                  }))}
                   value={formData.santri_id}
-                  onChange={(e) => setFormData({ ...formData, santri_id: e.target.value })}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '11px 12px',
+                  onChange={(val) => setFormData({ ...formData, santri_id: val })}
+                  placeholder="-- Pilih atau cari nama santri --"
+                  searchPlaceholder="Ketik nama atau NIS santri..."
+                  triggerStyle={{
+                    padding: '10px 12px',
                     borderRadius: '12px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.84rem',
-                    background: '#ffffff',
-                    color: '#0f172a'
+                    fontSize: '0.84rem'
                   }}
-                >
-                  <option value="">-- Pilih Santri --</option>
-                  {santriList.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.nama_santri || s.nama} (NIS: {s.nis || '-'}) - {s.nama_asrama || 'Asrama'}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
-              {/* Kategori Praktek (Bisa pilih dari database atau buka modal tambah kategori) */}
+              {/* Kategori Praktek dengan Search Realtime */}
               <div style={{ marginBottom: '14px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                   <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
@@ -1015,26 +1011,25 @@ export default function MobilePraktek() {
                     + Kategori Baru
                   </button>
                 </div>
-                <select
-                  value={formData.kategori}
-                  onChange={(e) => setFormData({ ...formData, kategori: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '11px 12px',
-                    borderRadius: '12px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.84rem',
-                    background: '#ffffff',
-                    color: '#0f172a'
-                  }}
-                >
-                  {kategoriList.map(k => {
+                <SearchableSelect
+                  options={kategoriList.map(k => {
                     const kName = k.nama_kategori || k;
-                    return (
-                      <option key={k.id || kName} value={kName}>{kName}</option>
-                    );
+                    return {
+                      value: kName,
+                      label: kName,
+                      sublabel: k.deskripsi || null
+                    };
                   })}
-                </select>
+                  value={formData.kategori}
+                  onChange={(val) => setFormData({ ...formData, kategori: val })}
+                  placeholder="-- Pilih atau cari kategori praktek --"
+                  searchPlaceholder="Ketik kategori (sholat, wudhu, dll)..."
+                  triggerStyle={{
+                    padding: '10px 12px',
+                    borderRadius: '12px',
+                    fontSize: '0.84rem'
+                  }}
+                />
               </div>
 
               {/* PILIHAN NILAI: HANYA LULUS & MENGULANG */}

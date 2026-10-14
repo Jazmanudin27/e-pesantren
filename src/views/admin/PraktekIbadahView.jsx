@@ -687,30 +687,23 @@ export default function PraktekIbadahView() {
 
         {/* Filter Dropdowns */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Kategori:</span>
-            <select
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '210px' }}>
+            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, flexShrink: 0 }}>Kategori:</span>
+            <SearchableSelect
+              options={[
+                { value: 'Semua Kategori', label: 'Semua Kategori' },
+                ...kategoriList.map(k => ({ value: k.nama_kategori || k, label: k.nama_kategori || k }))
+              ]}
               value={filterKategori}
-              onChange={(e) => setFilterKategori(e.target.value)}
-              style={{
-                fontSize: '0.82rem',
+              onChange={(val) => setFilterKategori(val || 'Semua Kategori')}
+              placeholder="Semua Kategori"
+              searchPlaceholder="Cari kategori..."
+              triggerStyle={{
                 padding: '6px 10px',
                 borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                background: '#ffffff',
-                color: '#334155',
-                outline: 'none',
-                cursor: 'pointer'
+                fontSize: '0.82rem'
               }}
-            >
-              <option value="Semua Kategori">Semua Kategori</option>
-              {kategoriList.map((k) => {
-                const kName = k.nama_kategori || k;
-                return (
-                  <option key={k.id || kName} value={kName}>{kName}</option>
-                );
-              })}
-            </select>
+            />
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1011,26 +1004,25 @@ export default function PraktekIbadahView() {
                     + Kelola / Tambah Kategori
                   </button>
                 </div>
-                <select
-                  value={formData.kategori}
-                  onChange={(e) => setFormData({ ...formData, kategori: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.84rem',
-                    outline: 'none',
-                    background: '#ffffff'
-                  }}
-                >
-                  {kategoriList.map((k) => {
+                <SearchableSelect
+                  options={kategoriList.map((k) => {
                     const kName = k.nama_kategori || k;
-                    return (
-                      <option key={k.id || kName} value={kName}>{kName}</option>
-                    );
+                    return {
+                      value: kName,
+                      label: kName,
+                      sublabel: k.deskripsi || null
+                    };
                   })}
-                </select>
+                  value={formData.kategori}
+                  onChange={(val) => setFormData({ ...formData, kategori: val })}
+                  placeholder="-- Pilih atau cari kategori praktek --"
+                  searchPlaceholder="Ketik kategori (sholat, wudhu, dll)..."
+                  triggerStyle={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.84rem'
+                  }}
+                />
               </div>
 
               {/* NILAI: HANYA LULUS & MENGULANG */}
