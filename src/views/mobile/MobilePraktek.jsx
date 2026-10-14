@@ -146,7 +146,6 @@ export default function MobilePraktek() {
     id: null,
     santri_id: '',
     kategori: 'Sholat Fardhu',
-    nama_praktek: '',
     deskripsi: '',
     status: 'Lulus',
     nama_penguji: currentPenguji,
@@ -228,7 +227,6 @@ export default function MobilePraktek() {
       id: item.id,
       santri_id: item.santri_id,
       kategori: item.kategori || 'Sholat Fardhu',
-      nama_praktek: item.nama_praktek || '',
       deskripsi: item.deskripsi || item.catatan_perbaikan || '',
       status: (item.status === 'Remedial' || item.status === 'Mengulang') ? 'Mengulang' : 'Lulus',
       nama_penguji: item.nama_penguji || currentPenguji,
@@ -240,7 +238,7 @@ export default function MobilePraktek() {
   const handleDelete = (item) => {
     showConfirm(
       'Hapus Nilai Ujian?',
-      `Hapus penilaian ${item.nama_praktek} untuk santri ${item.nama_santri}?`,
+      `Hapus penilaian ${item.kategori} untuk santri ${item.nama_santri}?`,
       async () => {
         try {
           await axios.delete(`/api/praktek/${item.id}`).catch(() => null);
@@ -261,16 +259,13 @@ export default function MobilePraktek() {
       showError('Pilih santri terlebih dahulu');
       return;
     }
-    if (!formData.nama_praktek.trim()) {
-      showError('Materi ujian praktek wajib diisi');
-      return;
-    }
 
     setSubmitting(true);
     const selectedSantri = santriList.find(s => String(s.id) === String(formData.santri_id));
 
     const payload = {
       ...formData,
+      nama_praktek: formData.kategori,
       santri_id: Number(formData.santri_id),
       nama_santri: selectedSantri?.nama_santri || selectedSantri?.nama || 'Santri',
       nis: selectedSantri?.nis || '-',
@@ -778,20 +773,21 @@ export default function MobilePraktek() {
                   </div>
                 </div>
 
-                {/* Materi Praktek Box */}
+                {/* Kategori Ujian Praktek Banner */}
                 <div style={{
                   background: '#f8fafc',
                   borderRadius: '12px',
-                  padding: '10px 12px',
+                  padding: '8px 12px',
                   marginBottom: '10px',
-                  border: '1px solid #e2e8f0'
+                  border: '1px solid #e2e8f0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Sparkles size={14} color="#059669" />
-                    <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#1e293b' }}>
-                      {item.nama_praktek}
-                    </span>
-                  </div>
+                  <Sparkles size={14} color="#059669" />
+                  <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>
+                    {item.kategori}
+                  </span>
                 </div>
 
                 {/* Deskripsi & Keterangan Ujian */}
@@ -1039,28 +1035,6 @@ export default function MobilePraktek() {
                     );
                   })}
                 </select>
-              </div>
-
-              {/* Materi Praktek */}
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  Materi Ujian Praktek *
-                </label>
-                <input
-                  type="text"
-                  value={formData.nama_praktek}
-                  onChange={(e) => setFormData({ ...formData, nama_praktek: e.target.value })}
-                  placeholder="Contoh: Praktek Sholat Shubuh + Qunut"
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '11px 12px',
-                    borderRadius: '12px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.84rem',
-                    boxSizing: 'border-box'
-                  }}
-                />
               </div>
 
               {/* PILIHAN NILAI: HANYA LULUS & MENGULANG */}

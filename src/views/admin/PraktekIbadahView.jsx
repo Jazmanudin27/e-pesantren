@@ -129,7 +129,6 @@ export default function PraktekIbadahView() {
     id: null,
     santri_id: '',
     kategori: 'Sholat Fardhu',
-    nama_praktek: '',
     deskripsi: '',
     status: 'Lulus',
     nama_penguji: 'Ust. Hamdan S.Pd.I',
@@ -246,7 +245,6 @@ export default function PraktekIbadahView() {
       id: null,
       santri_id: santriList[0]?.id || 1,
       kategori: defaultKat,
-      nama_praktek: '',
       deskripsi: '',
       status: 'Lulus',
       nama_penguji: 'Ust. Hamdan S.Pd.I',
@@ -262,7 +260,6 @@ export default function PraktekIbadahView() {
       id: item.id,
       santri_id: item.santri_id,
       kategori: item.kategori || 'Sholat Fardhu',
-      nama_praktek: item.nama_praktek || '',
       deskripsi: item.deskripsi || item.catatan_perbaikan || '',
       status: (item.status === 'Remedial' || item.status === 'Mengulang') ? 'Mengulang' : 'Lulus',
       nama_penguji: item.nama_penguji || 'Ust. Hamdan S.Pd.I',
@@ -274,24 +271,28 @@ export default function PraktekIbadahView() {
   // Handle Form Submit
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.santri_id || !formData.nama_praktek.trim()) {
-      showError('Validasi Gagal', 'Silakan pilih santri dan isi materi praktek ibadah.');
+    if (!formData.santri_id) {
+      showError('Validasi Gagal', 'Silakan pilih santri yang diuji.');
       return;
     }
 
     try {
       setSubmitting(true);
       const selectedSantriObj = santriList.find((s) => s.id === Number(formData.santri_id));
+      const payload = {
+        ...formData,
+        nama_praktek: formData.kategori
+      };
 
       if (formMode === 'add') {
         let newId = Date.now();
         try {
-          const res = await axios.post('/api/praktek', formData);
+          const res = await axios.post('/api/praktek', payload);
           if (res.data?.data?.id) newId = res.data.data.id;
         } catch (apiErr) {}
 
         const newItem = {
-          ...formData,
+          ...payload,
           id: newId,
           nama_santri: selectedSantriObj?.nama_santri || 'Santri',
           nis: selectedSantriObj?.nis || '-',
@@ -750,7 +751,7 @@ export default function PraktekIbadahView() {
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
                 <th style={{ padding: '12px 14px', fontWeight: 700, width: '40px' }}>No</th>
                 <th style={{ padding: '12px 14px', fontWeight: 700 }}>Santri</th>
-                <th style={{ padding: '12px 14px', fontWeight: 700 }}>Materi Praktek Ibadah</th>
+                <th style={{ padding: '12px 14px', fontWeight: 700 }}>Kategori Praktek</th>
                 <th style={{ padding: '12px 14px', fontWeight: 700 }}>Deskripsi & Evaluasi</th>
                 <th style={{ padding: '12px 14px', fontWeight: 700 }}>Penguji & Tanggal</th>
                 <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>Nilai / Status</th>
@@ -807,23 +808,20 @@ export default function PraktekIbadahView() {
                         </div>
                       </td>
 
-                      {/* Materi */}
+                      {/* Kategori Praktek */}
                       <td style={{ padding: '12px 14px' }}>
                         <span style={{
-                          fontSize: '0.68rem',
-                          background: '#f1f5f9',
-                          color: '#475569',
-                          padding: '1px 6px',
-                          borderRadius: '4px',
-                          fontWeight: 700,
-                          display: 'inline-block',
-                          marginBottom: '3px'
+                          fontSize: '0.84rem',
+                          fontWeight: 800,
+                          color: '#065f46',
+                          background: '#ecfdf5',
+                          border: '1px solid #a7f3d0',
+                          padding: '4px 10px',
+                          borderRadius: '8px',
+                          display: 'inline-block'
                         }}>
                           {item.kategori}
                         </span>
-                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.84rem' }}>
-                          {item.nama_praktek}
-                        </div>
                       </td>
 
                       {/* Deskripsi */}
@@ -1033,28 +1031,6 @@ export default function PraktekIbadahView() {
                     );
                   })}
                 </select>
-              </div>
-
-              {/* Materi Praktek */}
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  Materi Ujian Praktek *
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Praktek Sholat Shubuh + Qunut, Tata Cara Wudhu, dll"
-                  value={formData.nama_praktek}
-                  onChange={(e) => setFormData({ ...formData, nama_praktek: e.target.value })}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.84rem',
-                    boxSizing: 'border-box'
-                  }}
-                />
               </div>
 
               {/* NILAI: HANYA LULUS & MENGULANG */}

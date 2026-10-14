@@ -145,9 +145,11 @@ export const createPraktek = async (req, res) => {
       tanggal_ujian
     } = req.body;
 
-    if (!santri_id || !nama_praktek) {
-      return sendError(res, 'Santri dan Nama Praktek wajib diisi', 400);
+    if (!santri_id) {
+      return sendError(res, 'Santri wajib dipilih', 400);
     }
+
+    const finalNamaPraktek = (nama_praktek && nama_praktek.trim()) ? nama_praktek.trim() : (kategori || 'Praktek Ibadah');
 
     // Status disederhanakan: 'Lulus' atau 'Mengulang'
     const finalStatus = (status === 'Mengulang' || status === 'Remedial') ? 'Mengulang' : 'Lulus';
@@ -174,7 +176,7 @@ export const createPraktek = async (req, res) => {
     `, [
       santri_id,
       kategori || 'Sholat Fardhu',
-      nama_praktek,
+      finalNamaPraktek,
       deskripsi || catatan_perbaikan || '',
       nAkhir,
       nAkhir,
@@ -214,6 +216,7 @@ export const updatePraktek = async (req, res) => {
     const finalStatus = (status === 'Mengulang' || status === 'Remedial') ? 'Mengulang' : 'Lulus';
     const nAkhir = finalStatus === 'Lulus' ? 85 : 55;
     const predikat = finalStatus === 'Lulus' ? 'Lulus' : 'Mengulang';
+    const finalNamaPraktek = (nama_praktek && nama_praktek.trim()) ? nama_praktek.trim() : (kategori || 'Praktek Ibadah');
 
     await pool.query(`
       UPDATE praktek_ibadah SET
@@ -234,7 +237,7 @@ export const updatePraktek = async (req, res) => {
     `, [
       santri_id,
       kategori || 'Sholat Fardhu',
-      nama_praktek,
+      finalNamaPraktek,
       deskripsi || catatan_perbaikan || '',
       nAkhir,
       nAkhir,
