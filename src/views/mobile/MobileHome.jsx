@@ -155,18 +155,19 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             border: '1px solid rgba(255, 255, 255, 0.25)'
           }}>
             <div style={{
-              width: '26px',
-              height: '26px',
+              width: '28px',
+              height: '28px',
               borderRadius: '8px',
-              background: 'rgba(255, 255, 255, 0.25)',
+              background: '#ffffff',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              padding: '2px'
             }}>
-              <GraduationCap size={16} color="#ffffff" />
+              <img src="/logo.png" alt="Logo" style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
             </div>
             <span style={{ fontWeight: 800, fontSize: '0.98rem', letterSpacing: '-0.3px' }}>
-              Ruang Santri
+              Ruang Ponpes
             </span>
             <span style={{
               background: '#f59e0b',

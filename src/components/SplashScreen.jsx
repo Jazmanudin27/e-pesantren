@@ -92,17 +92,17 @@ export default function SplashScreen({ onFinish }) {
           animation: 'splashPulse 2s ease-in-out infinite'
         }}>
           <div style={{
-            width: '64px',
-            height: '64px',
-            borderRadius: '20px',
-            background: 'linear-gradient(135deg, #0284c7 0%, #10b981 100%)',
+            width: '74px',
+            height: '74px',
+            borderRadius: '22px',
+            background: '#ffffff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#ffffff',
-            boxShadow: '0 8px 18px rgba(0,0,0,0.2)'
+            boxShadow: '0 8px 18px rgba(0,0,0,0.2)',
+            padding: '6px'
           }}>
-            <GraduationCap size={36} strokeWidth={2.4} />
+            <img src="/logo.png" alt="Logo" style={{ width: '60px', height: '60px', objectFit: 'contain' }} />
           </div>
         </div>
 
@@ -121,7 +121,7 @@ export default function SplashScreen({ onFinish }) {
             color: '#ffffff',
             textShadow: '0 2px 10px rgba(0,0,0,0.3)'
           }}>
-            Ruang Santri
+            Ruang Ponpes
           </h1>
           <span style={{
             background: '#f59e0b',

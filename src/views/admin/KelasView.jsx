@@ -49,18 +49,40 @@ export default function KelasView() {
   const fetchHalaqah = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('/api/tahfidz/halaqah');
-      if (res.data && res.data.success && res.data.data && res.data.data.length > 0) {
-        setHalaqahList(res.data.data);
+      let fetched = [];
+      try {
+        const resKelas = await axios.get('/api/kelas');
+        if (resKelas.data && resKelas.data.success && resKelas.data.data && resKelas.data.data.length > 0) {
+          fetched = resKelas.data.data.map(k => ({
+            id: k.id,
+            nama_halaqah: k.nama_kelas,
+            kode_kelas: k.kode_kelas,
+            tingkat: k.tingkat || (k.nama_kelas?.startsWith('1') ? 'Kelas 1' : k.nama_kelas?.startsWith('2') ? 'Kelas 2' : k.nama_kelas?.startsWith('3') ? 'Kelas 3' : 'Kelas 4'),
+            gender: k.gender || (k.nama_kelas?.includes('GIRL') ? 'P' : 'L'),
+            nama_asatidz: k.wali_kelas || (k.gender === 'P' || k.nama_kelas?.includes('GIRL') ? 'Usth. Pembina Akhwat' : 'Ust. Pembina Ikhwan'),
+            target_program: `Kurikulum Pesantren ${k.tingkat || ''}`,
+            total_santri: k.total_santri || 0,
+            lokasi_halaqah: k.nama_kelas?.includes('GIRL') ? 'Gedung Kelas Putri' : 'Gedung Kelas Putra'
+          }));
+        }
+      } catch {}
+
+      if (fetched.length > 0) {
+        setHalaqahList(fetched);
       } else {
-        setHalaqahList([
-          { id: 1, nama_halaqah: 'Halaqah Imam Nafi (Ikhwan A)', nama_asatidz: 'Ust. Abdullah Al-Hafidz', gender: 'L', target_program: 'Tahfidz 30 Juz & Mutqin', waktu_halaqah: 'Ba\'da Subuh & Ba\'da Maghrib', total_santri: 12, lokasi_halaqah: 'Masjid Utama Lantai 1', tingkat: 'Ulya' },
-          { id: 2, nama_halaqah: 'Halaqah Imam Ashim (Ikhwan B)', nama_asatidz: 'Ust. Muhammad Zaki, Lc.', gender: 'L', target_program: 'Tahsin & Ziyadah 15 Juz', waktu_halaqah: 'Ba\'da Ashar & Ba\'da Isya', total_santri: 15, lokasi_halaqah: 'Gazebo Tahfidz Timur', tingkat: 'Wustho' },
-          { id: 3, nama_halaqah: 'Halaqah Imam Hamzah (Ikhwan C)', nama_asatidz: 'Ust. Bilal Mansur, S.Pd.I', gender: 'L', target_program: 'Tahfidz Juz 30 & Diniyah Dasar', waktu_halaqah: 'Ba\'da Subuh & Ashar', total_santri: 14, lokasi_halaqah: 'Ruang Kelas Diniyah 01', tingkat: 'Ula' },
-          { id: 4, nama_halaqah: 'Halaqah Hafshah binti Umar (Akhwat A)', nama_asatidz: 'Usth. Sarah Humaira, Al-Hafidzah', gender: 'P', target_program: 'Tahfidz 30 Juz & Sanad Jazariyah', waktu_halaqah: 'Ba\'da Subuh & Ba\'da Maghrib', total_santri: 12, lokasi_halaqah: 'Musholla Putri Lt. 2', tingkat: 'Ulya' },
-          { id: 5, nama_halaqah: 'Halaqah Maryam Al-Adzra (Akhwat B)', nama_asatidz: 'Usth. Salma Fauziyah, M.Ag.', gender: 'P', target_program: 'Ziyadah 10 Juz & Tartil', waktu_halaqah: 'Ba\'da Ashar & Ba\'da Isya', total_santri: 16, lokasi_halaqah: 'Aula Asrama Putri', tingkat: 'Wustho' },
-          { id: 6, nama_halaqah: 'Halaqah Asma binti Abi Bakar (Akhwat C)', nama_asatidz: 'Usth. Siti Rahmawati, S.Pd.', gender: 'P', target_program: 'Tahsin Al-Jazari & Juz Amma', waktu_halaqah: 'Ba\'da Subuh & Ashar', total_santri: 14, lokasi_halaqah: 'Ruang Belajar Putri 02', tingkat: 'Ula' }
-        ]);
+        const res = await axios.get('/api/tahfidz/halaqah');
+        if (res.data && res.data.success && res.data.data && res.data.data.length > 0) {
+          setHalaqahList(res.data.data);
+        } else {
+          setHalaqahList([
+            { id: 1, nama_halaqah: 'Halaqah Imam Nafi (Ikhwan A)', nama_asatidz: 'Ust. Abdullah Al-Hafidz', gender: 'L', target_program: 'Tahfidz 30 Juz & Mutqin', waktu_halaqah: 'Ba\'da Subuh & Ba\'da Maghrib', total_santri: 12, lokasi_halaqah: 'Masjid Utama Lantai 1', tingkat: 'Ulya' },
+            { id: 2, nama_halaqah: 'Halaqah Imam Ashim (Ikhwan B)', nama_asatidz: 'Ust. Muhammad Zaki, Lc.', gender: 'L', target_program: 'Tahsin & Ziyadah 15 Juz', waktu_halaqah: 'Ba\'da Ashar & Ba\'da Isya', total_santri: 15, lokasi_halaqah: 'Gazebo Tahfidz Timur', tingkat: 'Wustho' },
+            { id: 3, nama_halaqah: 'Halaqah Imam Hamzah (Ikhwan C)', nama_asatidz: 'Ust. Bilal Mansur, S.Pd.I', gender: 'L', target_program: 'Tahfidz Juz 30 & Diniyah Dasar', waktu_halaqah: 'Ba\'da Subuh & Ashar', total_santri: 14, lokasi_halaqah: 'Ruang Kelas Diniyah 01', tingkat: 'Ula' },
+            { id: 4, nama_halaqah: 'Halaqah Hafshah binti Umar (Akhwat A)', nama_asatidz: 'Usth. Sarah Humaira, Al-Hafidzah', gender: 'P', target_program: 'Tahfidz 30 Juz & Sanad Jazariyah', waktu_halaqah: 'Ba\'da Subuh & Ba\'da Maghrib', total_santri: 12, lokasi_halaqah: 'Musholla Putri Lt. 2', tingkat: 'Ulya' },
+            { id: 5, nama_halaqah: 'Halaqah Maryam Al-Adzra (Akhwat B)', nama_asatidz: 'Usth. Salma Fauziyah, M.Ag.', gender: 'P', target_program: 'Ziyadah 10 Juz & Tartil', waktu_halaqah: 'Ba\'da Ashar & Ba\'da Isya', total_santri: 16, lokasi_halaqah: 'Aula Asrama Putri', tingkat: 'Wustho' },
+            { id: 6, nama_halaqah: 'Halaqah Asma binti Abi Bakar (Akhwat C)', nama_asatidz: 'Usth. Siti Rahmawati, S.Pd.', gender: 'P', target_program: 'Tahsin Al-Jazari & Juz Amma', waktu_halaqah: 'Ba\'da Subuh & Ashar', total_santri: 14, lokasi_halaqah: 'Ruang Belajar Putri 02', tingkat: 'Ula' }
+          ]);
+        }
       }
     } catch (err) {
       console.error('Gagal mengambil data halaqah/kelas:', err);

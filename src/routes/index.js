@@ -9,6 +9,7 @@ import pelanggaranRoutes from './pelanggaran.routes.js';
 import absensiRoutes from './absensi.routes.js';
 import asatidzRoutes from './asatidz.routes.js';
 import pesantrenRoutes from './pesantren.routes.js';
+import kelasRoutes from './kelas.routes.js';
 
 const router = express.Router();
 
@@ -16,6 +17,7 @@ router.use('/', authRoutes); // /api/login, /api/profile
 router.use('/dashboard', dashboardRoutes); // /api/dashboard/stats
 router.use('/santri', santriRoutes); // /api/santri
 router.use('/', asramaRoutes); // /api/asrama, /api/kamar
+router.use('/kelas', kelasRoutes); // /api/kelas
 router.use('/tahfidz', tahfidzRoutes); // /api/tahfidz/halaqah, /api/tahfidz/setoran
 router.use('/perizinan', perizinanRoutes); // /api/perizinan
 router.use('/pelanggaran', pelanggaranRoutes); // /api/pelanggaran

@@ -107,7 +107,7 @@ export const createPerizinan = async (req, res) => {
     try {
       const [[santri]] = await pool.query('SELECT nama_santri, no_wa_wali FROM santri WHERE id = ?', [santri_id]);
       if (santri && santri.no_wa_wali) {
-        const msg = `[RUANG SANTRI NOTIFIKASI IZIN]\n\nYth. Wali Santri ${santri.nama_santri},\nPermohonan ${cleanJenis} telah *${cleanStatus}*.\n\nKode Izin: ${kode_izin}\nPenjemput: ${nama_penjemput_mahrom || '-'}\nRencana Pulang: ${tgl_keluar_rencana}\nRencana Kembali: ${tgl_kembali_rencana}\n\nTerima kasih.`;
+        const msg = `[RUANG PONPES NOTIFIKASI IZIN]\n\nYth. Wali Santri ${santri.nama_santri},\nPermohonan ${cleanJenis} telah *${cleanStatus}*.\n\nKode Izin: ${kode_izin}\nPenjemput: ${nama_penjemput_mahrom || '-'}\nRencana Pulang: ${tgl_keluar_rencana}\nRencana Kembali: ${tgl_kembali_rencana}\n\nTerima kasih.`;
         sendWANotification(santri.no_wa_wali, msg);
       }
     } catch (e) {

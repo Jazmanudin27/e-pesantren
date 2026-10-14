@@ -76,6 +76,25 @@ async function autoMigrateDatabase() {
       WHERE \`id\` = 3 AND (\`username\` IS NULL OR \`username\` = '')
     `, [defaultHash]).catch(() => {});
 
+    // Auto-migrate kegiatan_sesi columns
+    try {
+      const [sesiCols] = await pool.query("SHOW COLUMNS FROM `kegiatan_sesi` LIKE 'tipe_peserta'");
+      if (!sesiCols || sesiCols.length === 0) {
+        console.log('[E-PESANTREN] Migrasi database: menambah kolom tipe_peserta & peserta_santri_ids ke kegiatan_sesi...');
+        await pool.query(`
+          ALTER TABLE \`kegiatan_sesi\`
+          ADD COLUMN \`tipe_peserta\` VARCHAR(50) DEFAULT 'Wajib Semua Santri' AFTER \`hari_aktif\`,
+          ADD COLUMN \`target_gender\` VARCHAR(20) DEFAULT 'Semua' AFTER \`tipe_peserta\`,
+          ADD COLUMN \`target_tipe_santri\` VARCHAR(20) DEFAULT 'Semua' AFTER \`target_gender\`,
+          ADD COLUMN \`peserta_santri_ids\` LONGTEXT NULL AFTER \`target_tipe_santri\`,
+          ADD COLUMN \`keterangan\` TEXT NULL AFTER \`peserta_santri_ids\`
+        `);
+        console.log('[E-PESANTREN] Sukses migrasi kolom kegiatan_sesi!');
+      }
+    } catch (migErr) {
+      console.warn('[E-PESANTREN SESI MIGRATE NOTICE]', migErr.message);
+    }
+
   } catch (err) {
     console.warn('[E-PESANTREN AUTO-MIGRATE NOTICE]', err.message);
   }

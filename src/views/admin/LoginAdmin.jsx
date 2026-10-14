@@ -143,37 +143,39 @@ export default function LoginAdmin({ onLoginSuccess }) {
           color: '#ffffff'
         }}>
           <div style={{
-            width: '64px',
-            height: '64px',
-            background: 'rgba(255, 255, 255, 0.15)',
-            backdropFilter: 'blur(8px)',
-            borderRadius: '20px',
+            width: '72px',
+            height: '72px',
+            background: '#ffffff',
+            borderRadius: '22px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto 16px',
-            border: '2px solid rgba(255, 255, 255, 0.25)',
-            boxShadow: '0 10px 20px -5px rgba(0, 0, 0, 0.2)'
+            boxShadow: '0 10px 20px -5px rgba(0, 0, 0, 0.25)',
+            padding: '6px'
           }}>
-            <Building size={32} color="#ffffff" strokeWidth={2.2} />
+            <img src="/logo.png" alt="Logo" style={{ width: '56px', height: '56px', objectFit: 'contain' }} />
           </div>
 
           <h1 style={{
             fontSize: '22px',
             fontWeight: 800,
-            margin: '0 0 6px',
+            margin: '0 0 4px',
             letterSpacing: '-0.3px',
             color: '#ffffff'
           }}>
-            Pondok Pesantren Nurul Wafa
+            Ruang Ponpes
           </h1>
           <p style={{
             fontSize: '13px',
             color: '#d1fae5',
-            margin: 0,
-            fontWeight: 500
+            margin: '0 0 4px',
+            fontWeight: 600
           }}>
-            Sistem Informasi Manajemen & Administrasi Terpadu
+            PP. Nurul Wafa Sukarame
+          </p>
+          <p style={{ fontSize: '11px', color: '#a7f3d0', margin: 0 }}>
+            Sistem Informasi Manajemen &amp; Administrasi Terpadu
           </p>
         </div>
 

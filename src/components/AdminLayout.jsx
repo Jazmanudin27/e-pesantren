@@ -24,7 +24,8 @@ import {
   ExternalLink,
   Lock,
   Maximize2,
-  Minimize2
+  Minimize2,
+  CalendarCheck
 } from 'lucide-react';
 import DashboardAdmin from '../views/admin/DashboardAdmin';
 import SantriView from '../views/admin/SantriView';
@@ -32,6 +33,7 @@ import AsramaView from '../views/admin/AsramaView';
 import KelasView from '../views/admin/KelasView';
 import AsatidzView from '../views/admin/AsatidzView';
 import FingerprintDeviceView from '../views/admin/FingerprintDeviceView';
+import SettingKegiatanView from '../views/admin/SettingKegiatanView';
 import TahfidzView from '../views/admin/TahfidzView';
 import PerizinanView from '../views/admin/PerizinanView';
 import TataTertibView from '../views/admin/TataTertibView';
@@ -40,7 +42,7 @@ import LoginAdmin from '../views/admin/LoginAdmin';
 import { showConfirm, toastSuccess } from '../utils/alert.util';
 
 export default function AdminLayout() {
-  const isMasterTab = (tab) => ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-device'].includes(tab);
+  const isMasterTab = (tab) => ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-device', 'setting-kegiatan', 'master-kegiatan'].includes(tab);
   const isLaporanTab = (tab) => ['laporan-presensi', 'laporan-tahfidz'].includes(tab);
 
   // Get initial tab from URL hash
@@ -132,7 +134,7 @@ export default function AdminLayout() {
     setIsUserDropdownOpen(false);
     const confirmed = await showConfirm(
       'Konfirmasi Keluar',
-      'Apakah Anda yakin ingin keluar dari sistem Ruang Santri?',
+      'Apakah Anda yakin ingin keluar dari sistem Ruang Ponpes?',
       'Ya, Keluar',
       'Batal'
     );
@@ -287,12 +289,15 @@ export default function AdminLayout() {
         return <AsatidzView />;
       case 'master-device':
         return <FingerprintDeviceView />;
+      case 'setting-kegiatan':
+      case 'master-kegiatan':
+        return <SettingKegiatanView />;
       default:
         return <DashboardAdmin />;
     }
   };
 
-  const isMasterActive = ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-device'].includes(activeTab);
+  const isMasterActive = ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-device', 'setting-kegiatan', 'master-kegiatan'].includes(activeTab);
   const isLaporanActive = ['laporan-presensi', 'laporan-tahfidz'].includes(activeTab);
 
   const renderNavMenu = (isMobile = false) => {
@@ -398,6 +403,14 @@ export default function AdminLayout() {
               <HardDrive size={13} style={{ marginRight: '6px' }} />
               <span>Data Mesin Fingerprint</span>
             </button>
+
+            <button 
+              className={`nav-sublink ${activeTab === 'setting-kegiatan' ? 'active' : ''}`}
+              onClick={() => handleTabClick('setting-kegiatan')}
+            >
+              <CalendarCheck size={13} style={{ marginRight: '6px' }} />
+              <span>Setting Kegiatan</span>
+            </button>
           </div>
         )}
 
@@ -463,15 +476,17 @@ export default function AdminLayout() {
       {/* Sidebar Desktop (Dark Navy Aspartech Style) */}
       <aside className={`admin-sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-brand">
-          <div className="brand-icon-box">P</div>
+          <img src="/logo.png" alt="Logo" style={{ width: '34px', height: '34px', objectFit: 'contain' }} />
           <div className="brand-title">
-            <h2>PORTAL</h2>
-            <p>PESANTREN SYSTEM</p>
+            <h2>RUANG PONPES</h2>
+            <p>SISTEM PESANTREN</p>
           </div>
         </div>
 
         <div className="tenant-card">
-          <div className="tenant-logo">🕌</div>
+          <div className="tenant-logo" style={{ background: '#ffffff', padding: '2px', border: 'none' }}>
+            <img src="/logo.png" alt="Logo" style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
+          </div>
           <div className="tenant-info">
             <div className="tenant-name">PP. NURUL WAFA</div>
             <span className="tenant-badge">ADMIN</span>
@@ -493,10 +508,10 @@ export default function AdminLayout() {
           >
             <div className="sidebar-brand" style={{ justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div className="brand-icon-box">P</div>
+                <img src="/logo.png" alt="Logo" style={{ width: '34px', height: '34px', objectFit: 'contain' }} />
                 <div className="brand-title">
-                  <h2>PORTAL</h2>
-                  <p>PESANTREN SYSTEM</p>
+                  <h2>RUANG PONPES</h2>
+                  <p>SISTEM PESANTREN</p>
                 </div>
               </div>
               <button 
@@ -508,7 +523,9 @@ export default function AdminLayout() {
             </div>
 
             <div className="tenant-card">
-              <div className="tenant-logo">🕌</div>
+              <div className="tenant-logo" style={{ background: '#ffffff', padding: '2px', border: 'none' }}>
+                <img src="/logo.png" alt="Logo" style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
+              </div>
               <div className="tenant-info">
                 <div className="tenant-name">PP. NURUL WAFA</div>
                 <span className="tenant-badge">ADMIN</span>
@@ -541,8 +558,8 @@ export default function AdminLayout() {
               {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
             </button>
             <div className="header-mobile-brand">
-              <span className="brand-logo-mini">P</span>
-              <span className="brand-title-mini">RUANG SANTRI</span>
+              <img src="/logo.png" alt="Logo" style={{ width: '22px', height: '22px', objectFit: 'contain', marginRight: '6px' }} />
+              <span className="brand-title-mini">RUANG PONPES</span>
             </div>
           </div>
 
@@ -579,7 +596,9 @@ export default function AdminLayout() {
                 aria-expanded={isUserDropdownOpen}
                 title="Klik untuk menu akun pengguna"
               >
-                <div className="header-tenant-logo">🕌</div>
+                <div className="header-tenant-logo" style={{ background: '#ffffff', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1px' }}>
+                  <img src="/logo.png" alt="Logo" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+                </div>
                 <div className="header-user-info-text">
                   <span className="header-user-name">{currentUser?.nama || 'PP. NURUL WAFA'}</span>
                   <span className="header-user-role">{currentUser?.userType || 'ADMINISTRATOR'}</span>
@@ -591,7 +610,9 @@ export default function AdminLayout() {
               {isUserDropdownOpen && (
                 <div className="user-dropdown-menu">
                   <div className="user-dropdown-header">
-                    <div className="user-dropdown-avatar">🕌</div>
+                    <div className="user-dropdown-avatar" style={{ background: '#ffffff', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0', padding: '2px' }}>
+                      <img src="/logo.png" alt="Logo" style={{ width: '30px', height: '30px', objectFit: 'contain' }} />
+                    </div>
                     <div className="user-dropdown-meta">
                       <div className="user-dropdown-meta-name">{currentUser?.nama || 'Pondok Pesantren Nurul Wafa'}</div>
                       <div className="user-dropdown-meta-email">{currentUser?.userType || 'Administrator Portal'}</div>

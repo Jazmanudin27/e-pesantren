@@ -176,25 +176,25 @@ export default function MobileLogin({ onLoginSuccess }) {
         {/* Branding Header */}
         <div style={{ textAlign: 'center', marginBottom: '22px' }}>
           <div style={{
-            width: '68px',
-            height: '68px',
+            width: '74px',
+            height: '74px',
             borderRadius: '22px',
-            background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-            color: '#ffffff',
+            background: '#ffffff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto 12px',
-            boxShadow: '0 12px 24px -6px rgba(5, 150, 105, 0.45)',
-            border: '2px solid rgba(255, 255, 255, 0.8)'
+            boxShadow: '0 10px 20px -5px rgba(5, 150, 105, 0.25)',
+            border: '2px solid #e2e8f0',
+            padding: '6px'
           }}>
-            <Building size={34} strokeWidth={2.2} />
+            <img src="/logo.png" alt="Logo" style={{ width: '58px', height: '58px', objectFit: 'contain' }} />
           </div>
-          <h2 style={{ margin: '0 0 4px', fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.3px' }}>
-            Pondok Pesantren Nurul Wafa
+          <h2 style={{ margin: '0 0 4px', fontSize: '1.28rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.3px' }}>
+            Ruang Ponpes
           </h2>
-          <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>
-            Masuk ke akun Ustadz, Musyrif, atau Admin
+          <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
+            PP. Nurul Wafa Sukarame
           </p>
         </div>
 
