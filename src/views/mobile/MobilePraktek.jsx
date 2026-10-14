@@ -155,6 +155,44 @@ export default function MobilePraktek() {
 
   const [formData, setFormData] = useState(initialForm);
 
+  // Cek apakah santri yang dipilih sudah LULUS untuk kategori ini
+  const isAlreadyPassed = Boolean(
+    formData.santri_id &&
+    formData.kategori &&
+    praktekList.some(p => 
+      String(p.santri_id) === String(formData.santri_id) &&
+      p.kategori === formData.kategori &&
+      p.status === 'Lulus' &&
+      (formMode === 'add' || p.id !== formData.id)
+    )
+  );
+
+  // Cek apakah santri memiliki riwayat mengulang untuk kategori ini
+  const isRemedial = Boolean(
+    formData.santri_id &&
+    formData.kategori &&
+    !isAlreadyPassed &&
+    praktekList.some(p => 
+      String(p.santri_id) === String(formData.santri_id) &&
+      p.kategori === formData.kategori &&
+      (p.status === 'Mengulang' || p.status === 'Remedial')
+    )
+  );
+
+  const getKategoriSublabel = (katName) => {
+    if (!formData.santri_id) return null;
+    const history = praktekList.filter(
+      p => String(p.santri_id) === String(formData.santri_id) && p.kategori === katName
+    );
+    if (history.some(h => h.status === 'Lulus')) {
+      return '✔ Sudah Lulus (Tuntas)';
+    }
+    if (history.some(h => h.status === 'Mengulang' || h.status === 'Remedial')) {
+      return '↺ Mengulang (Perlu Ujian Ulang)';
+    }
+    return 'Belum Diuji';
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -258,6 +296,14 @@ export default function MobilePraktek() {
     e.preventDefault();
     if (!formData.santri_id) {
       showError('Pilih santri terlebih dahulu');
+      return;
+    }
+
+    if (formMode === 'add' && isAlreadyPassed) {
+      showError(
+        'Tidak Dapat Menginput',
+        `Santri ini sudah dinyatakan LULUS pada kategori "${formData.kategori}". Hanya santri yang Mengulang yang dapat diuji ulang.`
+      );
       return;
     }
 
@@ -1014,10 +1060,11 @@ export default function MobilePraktek() {
                 <SearchableSelect
                   options={kategoriList.map(k => {
                     const kName = k.nama_kategori || k;
+                    const statusLabel = getKategoriSublabel(kName);
                     return {
                       value: kName,
                       label: kName,
-                      sublabel: k.deskripsi || null
+                      sublabel: statusLabel || k.deskripsi || null
                     };
                   })}
                   value={formData.kategori}
@@ -1031,6 +1078,48 @@ export default function MobilePraktek() {
                   }}
                 />
               </div>
+
+              {/* Status Alert: Jika Santri Sudah Lulus atau Mengulang */}
+              {isAlreadyPassed && (
+                <div style={{
+                  background: '#fef2f2',
+                  border: '1.5px solid #fecaca',
+                  borderRadius: '14px',
+                  padding: '12px 14px',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '10px'
+                }}>
+                  <AlertCircle size={20} color="#dc2626" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#991b1b', marginBottom: '2px' }}>
+                      Santri Sudah Dinyatakan Lulus
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: '#b91c1c', lineHeight: 1.4 }}>
+                      Santri ini sudah <strong>Lulus</strong> pada ujian praktek <strong>{formData.kategori}</strong>. Tidak dapat menginput ujian baru kecuali status sebelumnya Mengulang.
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {isRemedial && (
+                <div style={{
+                  background: '#eff6ff',
+                  border: '1.5px solid #bfdbfe',
+                  borderRadius: '14px',
+                  padding: '10px 14px',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <RotateCw size={16} color="#2563eb" style={{ flexShrink: 0 }} />
+                  <div style={{ fontSize: '0.75rem', color: '#1e40af', fontWeight: 600 }}>
+                    Status sebelumnya: <strong>Mengulang</strong>. Diizinkan input penilaian ujian ulang / remedial.
+                  </div>
+                </div>
+              )}
 
               {/* PILIHAN NILAI: HANYA LULUS & MENGULANG */}
               <div style={{ marginBottom: '16px' }}>
@@ -1172,13 +1261,13 @@ export default function MobilePraktek() {
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || (formMode === 'add' && isAlreadyPassed)}
                   style={{
                     flex: 2,
                     padding: '12px',
                     borderRadius: '12px',
                     border: 'none',
-                    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                    background: (formMode === 'add' && isAlreadyPassed) ? '#cbd5e1' : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
                     color: '#ffffff',
                     fontWeight: 800,
                     fontSize: '0.86rem',
@@ -1186,14 +1275,19 @@ export default function MobilePraktek() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '6px',
-                    boxShadow: '0 4px 12px rgba(5, 150, 105, 0.3)',
-                    cursor: 'pointer'
+                    boxShadow: (formMode === 'add' && isAlreadyPassed) ? 'none' : '0 4px 12px rgba(5, 150, 105, 0.3)',
+                    cursor: (formMode === 'add' && isAlreadyPassed) ? 'not-allowed' : 'pointer'
                   }}
                 >
                   {submitting ? (
                     <>
                       <Loader2 size={16} className="animate-spin" />
                       Menyimpan...
+                    </>
+                  ) : (formMode === 'add' && isAlreadyPassed) ? (
+                    <>
+                      <CheckCircle2 size={16} />
+                      Sudah Lulus (Terkunci)
                     </>
                   ) : (
                     <>

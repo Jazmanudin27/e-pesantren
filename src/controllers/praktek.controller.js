@@ -149,7 +149,22 @@ export const createPraktek = async (req, res) => {
       return sendError(res, 'Santri wajib dipilih', 400);
     }
 
-    const finalNamaPraktek = (nama_praktek && nama_praktek.trim()) ? nama_praktek.trim() : (kategori || 'Praktek Ibadah');
+    const finalKategori = kategori || 'Sholat Fardhu';
+    const finalNamaPraktek = (nama_praktek && nama_praktek.trim()) ? nama_praktek.trim() : finalKategori;
+
+    // Cek apakah santri sudah pernah LULUS untuk kategori ini
+    const [existingPassed] = await pool.query(
+      "SELECT id, status, tanggal_ujian FROM praktek_ibadah WHERE santri_id = ? AND kategori = ? AND status = 'Lulus' LIMIT 1",
+      [santri_id, finalKategori]
+    );
+
+    if (existingPassed && existingPassed.length > 0) {
+      return sendError(
+        res,
+        `Santri ini sudah dinyatakan LULUS pada kategori "${finalKategori}". Tidak dapat menginput ujian baru kecuali status sebelumnya Mengulang.`,
+        400
+      );
+    }
 
     // Status disederhanakan: 'Lulus' atau 'Mengulang'
     const finalStatus = (status === 'Mengulang' || status === 'Remedial') ? 'Mengulang' : 'Lulus';
@@ -175,7 +190,7 @@ export const createPraktek = async (req, res) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       santri_id,
-      kategori || 'Sholat Fardhu',
+      finalKategori,
       finalNamaPraktek,
       deskripsi || catatan_perbaikan || '',
       nAkhir,
@@ -217,6 +232,20 @@ export const updatePraktek = async (req, res) => {
     const nAkhir = finalStatus === 'Lulus' ? 85 : 55;
     const predikat = finalStatus === 'Lulus' ? 'Lulus' : 'Mengulang';
     const finalNamaPraktek = (nama_praktek && nama_praktek.trim()) ? nama_praktek.trim() : (kategori || 'Praktek Ibadah');
+
+    if (finalStatus === 'Lulus') {
+      const [duplicatePassed] = await pool.query(
+        "SELECT id FROM praktek_ibadah WHERE santri_id = ? AND kategori = ? AND status = 'Lulus' AND id != ? LIMIT 1",
+        [santri_id, kategori || 'Sholat Fardhu', id]
+      );
+      if (duplicatePassed && duplicatePassed.length > 0) {
+        return sendError(
+          res,
+          `Santri ini sudah memiliki penilaian LULUS lain pada kategori "${kategori || 'Sholat Fardhu'}".`,
+          400
+        );
+      }
+    }
 
     await pool.query(`
       UPDATE praktek_ibadah SET
