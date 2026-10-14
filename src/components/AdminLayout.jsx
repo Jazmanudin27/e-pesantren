@@ -25,7 +25,8 @@ import {
   Lock,
   Maximize2,
   Minimize2,
-  CalendarCheck
+  CalendarCheck,
+  Settings
 } from 'lucide-react';
 import DashboardAdmin from '../views/admin/DashboardAdmin';
 import SantriView from '../views/admin/SantriView';
@@ -42,7 +43,8 @@ import LoginAdmin from '../views/admin/LoginAdmin';
 import { showConfirm, toastSuccess } from '../utils/alert.util';
 
 export default function AdminLayout() {
-  const isMasterTab = (tab) => ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-device', 'setting-kegiatan', 'master-kegiatan'].includes(tab);
+  const isMasterTab = (tab) => ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz'].includes(tab);
+  const isSettingsTab = (tab) => ['master-device', 'setting-kegiatan', 'master-kegiatan'].includes(tab);
   const isLaporanTab = (tab) => ['laporan-presensi', 'laporan-tahfidz'].includes(tab);
 
   // Get initial tab from URL hash
@@ -55,6 +57,7 @@ export default function AdminLayout() {
   const initialTab = getInitialTab();
   const [activeTab, setActiveTab] = useState(initialTab);
   const [isMasterOpen, setIsMasterOpen] = useState(() => isMasterTab(initialTab));
+  const [isSettingsOpen, setIsSettingsOpen] = useState(() => isSettingsTab(initialTab));
   const [isLaporanOpen, setIsLaporanOpen] = useState(() => isLaporanTab(initialTab));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -228,6 +231,7 @@ export default function AdminLayout() {
     
     // Auto open/close dropdown based on active tab
     setIsMasterOpen(isMasterTab(tab));
+    setIsSettingsOpen(isSettingsTab(tab));
     setIsLaporanOpen(isLaporanTab(tab));
   };
 
@@ -239,6 +243,7 @@ export default function AdminLayout() {
       setActiveTab(current);
       localStorage.setItem('epesantren_tab', current);
       setIsMasterOpen(isMasterTab(current));
+      setIsSettingsOpen(isSettingsTab(current));
       setIsLaporanOpen(isLaporanTab(current));
     };
 
@@ -297,7 +302,8 @@ export default function AdminLayout() {
     }
   };
 
-  const isMasterActive = ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-device', 'setting-kegiatan', 'master-kegiatan'].includes(activeTab);
+  const isMasterActive = ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz'].includes(activeTab);
+  const isSettingsActive = ['master-device', 'setting-kegiatan', 'master-kegiatan'].includes(activeTab);
   const isLaporanActive = ['laporan-presensi', 'laporan-tahfidz'].includes(activeTab);
 
   const renderNavMenu = (isMobile = false) => {
@@ -395,22 +401,6 @@ export default function AdminLayout() {
               <Users size={13} style={{ marginRight: '6px' }} />
               <span>Data Asatidz & Musyrif</span>
             </button>
-
-            <button 
-              className={`nav-sublink ${activeTab === 'master-device' ? 'active' : ''}`}
-              onClick={() => handleTabClick('master-device')}
-            >
-              <HardDrive size={13} style={{ marginRight: '6px' }} />
-              <span>Data Mesin Fingerprint</span>
-            </button>
-
-            <button 
-              className={`nav-sublink ${activeTab === 'setting-kegiatan' ? 'active' : ''}`}
-              onClick={() => handleTabClick('setting-kegiatan')}
-            >
-              <CalendarCheck size={13} style={{ marginRight: '6px' }} />
-              <span>Setting Kegiatan</span>
-            </button>
           </div>
         )}
 
@@ -453,6 +443,39 @@ export default function AdminLayout() {
             >
               <FileText size={13} style={{ marginRight: '6px' }} />
               <span>Laporan Tahfidz & Tasmi'</span>
+            </button>
+          </div>
+        )}
+
+        {/* SETTINGS / PENGATURAN DROPDOWN */}
+        <div className="menu-category">SETTINGS</div>
+        <button 
+          className={`nav-link has-dropdown ${isSettingsActive ? 'active' : ''}`}
+          onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+        >
+          <div className="nav-link-left">
+            <Settings size={15} />
+            <span>Settings</span>
+          </div>
+          <ChevronDown size={13} className={`nav-chevron ${isSettingsOpen ? 'open' : ''}`} />
+        </button>
+
+        {isSettingsOpen && (
+          <div className="nav-submenu">
+            <button 
+              className={`nav-sublink ${activeTab === 'master-device' ? 'active' : ''}`}
+              onClick={() => handleTabClick('master-device')}
+            >
+              <HardDrive size={13} style={{ marginRight: '6px' }} />
+              <span>Data Mesin Fingerprint</span>
+            </button>
+
+            <button 
+              className={`nav-sublink ${activeTab === 'setting-kegiatan' || activeTab === 'master-kegiatan' ? 'active' : ''}`}
+              onClick={() => handleTabClick('setting-kegiatan')}
+            >
+              <CalendarCheck size={13} style={{ marginRight: '6px' }} />
+              <span>Setting Kegiatan</span>
             </button>
           </div>
         )}
