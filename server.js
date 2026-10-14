@@ -128,8 +128,112 @@ async function autoMigrateDatabase() {
           ON DUPLICATE KEY UPDATE \`nama_sesi\` = VALUES(\`nama_sesi\`);
         `);
       }
-    } catch (migErr) {
-      console.warn('[E-PESANTREN SESI MIGRATE NOTICE]', migErr.message);
+    } catch (sesiErr) {
+      console.warn('[E-PESANTREN SESI MIGRATE NOTICE]', sesiErr.message);
+    }
+
+    // Auto-migrate users table & default admin
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS \`users\` (
+          \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+          \`name\` VARCHAR(150) NOT NULL,
+          \`username\` VARCHAR(100) NOT NULL UNIQUE,
+          \`email\` VARCHAR(150) NOT NULL,
+          \`password\` VARCHAR(255) NOT NULL,
+          \`role\` ENUM('Super Admin', 'Pengasuh', 'Ustadz', 'Musyrif', 'Keamanan', 'Wali Santri') NOT NULL DEFAULT 'Super Admin',
+          \`status\` ENUM('Active', 'Inactive', 'Suspended') NOT NULL DEFAULT 'Active',
+          \`phone\` VARCHAR(30) NULL DEFAULT '-',
+          \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX \`idx_users_role\` (\`role\`),
+          INDEX \`idx_users_status\` (\`status\`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `).catch(() => {});
+
+      const [userPhoneCol] = await pool.query("SHOW COLUMNS FROM `users` LIKE 'phone'");
+      if (!userPhoneCol || userPhoneCol.length === 0) {
+        await pool.query("ALTER TABLE `users` ADD COLUMN `phone` VARCHAR(30) NULL DEFAULT '-' AFTER `status`").catch(() => {});
+      }
+
+      const [existingUsers] = await pool.query("SELECT COUNT(*) AS total FROM `users`");
+      if (existingUsers[0]?.total === 0) {
+        console.log('[E-PESANTREN] Inisialisasi akun pengguna default di tabel users...');
+        const adminPassHash = '$2a$10$tZlhQYwY8.G9lqO4hU47h.18uRfZL/L7jYwXG3rZ7O6E09lZ9jS4G'; // 12345
+        await pool.query(`
+          INSERT INTO \`users\` (\`id\`, \`name\`, \`username\`, \`email\`, \`password\`, \`role\`, \`status\`, \`phone\`) VALUES
+          (1, 'Administrator Ponpes', 'admin', 'admin@nurulwafa.sch.id', ?, 'Super Admin', 'Active', '081288881111'),
+          (2, 'KH. M. Syukron Ma\\'mun', 'pengasuh', 'pengasuh@nurulwafa.sch.id', ?, 'Pengasuh', 'Active', '081288882222'),
+          (3, 'Ust. Hamdan S.Pd.I', 'hamdan', 'hamdan@nurulwafa.sch.id', ?, 'Ustadz', 'Active', '081399993333'),
+          (4, 'Ust. M. Huda Al-Hafidz', 'huda', 'huda@nurulwafa.sch.id', ?, 'Musyrif', 'Active', '085788884444')
+          ON DUPLICATE KEY UPDATE \`name\` = VALUES(\`name\`);
+        `, [adminPassHash, adminPassHash, adminPassHash, adminPassHash]).catch(() => {});
+        console.log('[E-PESANTREN] Sukses membuat akun pengguna default (admin / 12345)!');
+      }
+    } catch (userMigErr) {
+      console.warn('[E-PESANTREN USERS MIGRATE NOTICE]', userMigErr.message);
+    }
+
+    // Auto-migrate praktek_ibadah table & seed
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS \`praktek_ibadah\` (
+          \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+          \`santri_id\` INT NOT NULL,
+          \`kategori\` VARCHAR(100) NOT NULL DEFAULT 'Sholat Fardhu',
+          \`nama_praktek\` VARCHAR(150) NOT NULL,
+          \`nilai_gerakan\` INT DEFAULT 85,
+          \`nilai_bacaan\` INT DEFAULT 85,
+          \`nilai_adab\` INT DEFAULT 85,
+          \`nilai_akhir\` INT DEFAULT 85,
+          \`predikat\` VARCHAR(50) NOT NULL DEFAULT 'Mumtaz (A)',
+          \`status\` VARCHAR(50) NOT NULL DEFAULT 'Lulus',
+          \`penguji_asatidz_id\` INT NULL,
+          \`nama_penguji\` VARCHAR(150) DEFAULT 'Ust. Hamdan S.Pd.I',
+          \`catatan_perbaikan\` TEXT NULL,
+          \`tanggal_ujian\` DATE NOT NULL,
+          \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX \`idx_praktek_santri\` (\`santri_id\`),
+          INDEX \`idx_praktek_kategori\` (\`kategori\`),
+          INDEX \`idx_praktek_status\` (\`status\`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `).catch(() => {});
+
+      const [existingPraktek] = await pool.query("SELECT COUNT(*) AS total FROM \`praktek_ibadah\`");
+      if (existingPraktek[0]?.total === 0) {
+        console.log('[E-PESANTREN] Inisialisasi data master praktek ibadah santri...');
+        await pool.query(`
+          INSERT INTO \`praktek_ibadah\` (
+            \`id\`, \`santri_id\`, \`kategori\`, \`nama_praktek\`, \`nilai_gerakan\`, \`nilai_bacaan\`, \`nilai_adab\`, \`nilai_akhir\`, \`predikat\`, \`status\`, \`nama_penguji\`, \`catatan_perbaikan\`, \`tanggal_ujian\`
+          ) VALUES
+          (1, 1, 'Sholat Fardhu', 'Praktek Sholat Shubuh + Qunut', 95, 96, 92, 94, 'Mumtaz (A)', 'Lulus', 'Ust. Hamdan S.Pd.I', 'Makhraj huruf fashih, gerakan ruku dan sujud sempurna sesuai sunnah.', CURDATE()),
+          (2, 1, 'Wudhu & Tayammum', 'Praktek Wudhu Sempurna & Doa', 90, 92, 90, 91, 'Mumtaz (A)', 'Lulus', 'Ust. Hamdan S.Pd.I', 'Rukun dan sunnah wudhu terlaksana tertib.', CURDATE()),
+          (3, 2, 'Sholat Fardhu', 'Praktek Sholat Maghrib & Dzikir Ba\\'da Sholat', 88, 85, 87, 87, 'Jayyid Jiddan (B+)', 'Lulus', 'Ust. M. Huda Al-Hafidz', 'Tuma\\'ninah ruku perlu sedikit diperpanjang.', CURDATE()),
+          (4, 3, 'Sholat Jenazah', 'Praktek Sholat Jenazah (4 Takbir)', 92, 90, 94, 92, 'Mumtaz (A)', 'Lulus', 'Usth. Salma M.Pd', 'Hafalan doa takbir ke-3 dan ke-4 sangat lancar.', CURDATE()),
+          (5, 4, 'Wudhu & Tayammum', 'Praktek Wudhu & Thaharah', 65, 60, 62, 62, 'Maqbul (C)', 'Remedial', 'Ust. Hamdan S.Pd.I', 'Basuhan kedua telinga dan tertib rukun belum sempurna, remedial pekan depan.', CURDATE()),
+          (6, 5, 'Adzan & Iqomah', 'Praktek Adzan Shubuh & Tarhim', 86, 88, 85, 86, 'Jayyid Jiddan (B+)', 'Lulus', 'Ust. M. Huda Al-Hafidz', 'Vokal lantang, tajwid lafadz adzan benar.', CURDATE())
+          ON DUPLICATE KEY UPDATE \`nama_praktek\` = VALUES(\`nama_praktek\`);
+        `).catch(() => {});
+      }
+    } catch (praktekMigErr) {
+      console.warn('[E-PESANTREN PRAKTEK MIGRATE NOTICE]', praktekMigErr.message);
+    }
+
+    // Auto-migrate tahfidz_setoran kolom materi & capaian hafalan (Al-Qur'an, Jurumiah, dll)
+    try {
+      const [hafalanCols] = await pool.query("SHOW COLUMNS FROM `tahfidz_setoran` LIKE 'materi_hafalan'").catch(() => [[]]);
+      if (!hafalanCols || hafalanCols.length === 0) {
+        console.log('[E-PESANTREN] Migrasi database: menambah kolom materi_hafalan, capaian_hafalan, nilai_kelancaran ke tahfidz_setoran...');
+        await pool.query(`
+          ALTER TABLE \`tahfidz_setoran\`
+          ADD COLUMN \`materi_hafalan\` VARCHAR(150) DEFAULT 'Al-Qur\\'an' AFTER \`tanggal\`,
+          ADD COLUMN \`capaian_hafalan\` VARCHAR(255) NULL AFTER \`materi_hafalan\`,
+          ADD COLUMN \`nilai_kelancaran\` VARCHAR(50) DEFAULT 'Mumtaz (A)' AFTER \`capaian_hafalan\`
+        `).catch(() => {});
+      }
+    } catch (hafalanErr) {
+      console.warn('[E-PESANTREN HAFALAN MIGRATE NOTICE]', hafalanErr.message);
     }
 
   } catch (err) {

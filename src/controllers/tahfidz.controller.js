@@ -75,40 +75,74 @@ export const getSetoran = async (req, res) => {
 export const createSetoran = async (req, res) => {
   try {
     const {
-      santri_id, halaqah_id, asatidz_id, tanggal, jenis_setoran, juz,
-      surat_mulai, ayat_mulai, surat_selesai, ayat_selesai, kualitas_tajwid,
+      santri_id, halaqah_id, asatidz_id, tanggal,
+      materi_hafalan, capaian_hafalan, nilai_kelancaran,
+      jenis_setoran, juz, surat_mulai, ayat_mulai, surat_selesai, ayat_selesai, kualitas_tajwid,
       status, catatan
     } = req.body;
 
-    const [result] = await pool.query(`
-      INSERT INTO tahfidz_setoran (
-        santri_id, halaqah_id, asatidz_id, tanggal, jenis_setoran, juz,
-        surat_mulai, ayat_mulai, surat_selesai, ayat_selesai, kualitas_tajwid,
-        status, catatan
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      santri_id,
-      halaqah_id || null,
-      asatidz_id || 1,
-      tanggal || new Date().toISOString().split('T')[0],
-      jenis_setoran || 'Ziyadah',
-      juz || 1,
-      surat_mulai || 'Al-Baqarah',
-      ayat_mulai || 1,
-      surat_selesai || 'Al-Baqarah',
-      ayat_selesai || 10,
-      kualitas_tajwid || 'Mumtaz (A)',
-      status || 'Lulus',
-      catatan || ''
-    ]);
+    const finalMateri = materi_hafalan || req.body.materi || 'Al-Qur\'an';
+    const finalCapaian = capaian_hafalan || (surat_mulai ? `QS. ${surat_mulai} (${ayat_mulai || 1}) - QS. ${surat_selesai || surat_mulai} (${ayat_selesai || 10})` : 'Hafalan');
+    const finalKelancaran = nilai_kelancaran || kualitas_tajwid || 'Lancar (Mumtaz)';
+
+    let result;
+    try {
+      [result] = await pool.query(`
+        INSERT INTO tahfidz_setoran (
+          santri_id, halaqah_id, asatidz_id, tanggal, materi_hafalan, capaian_hafalan, nilai_kelancaran,
+          jenis_setoran, juz, surat_mulai, ayat_mulai, surat_selesai, ayat_selesai, kualitas_tajwid,
+          status, catatan
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        santri_id,
+        halaqah_id || null,
+        asatidz_id || 1,
+        tanggal || new Date().toISOString().split('T')[0],
+        finalMateri,
+        finalCapaian,
+        finalKelancaran,
+        jenis_setoran || 'Hafalan Baru',
+        juz || 1,
+        surat_mulai || finalMateri,
+        ayat_mulai || 1,
+        surat_selesai || finalMateri,
+        ayat_selesai || 1,
+        kualitas_tajwid || finalKelancaran,
+        status || 'Lulus',
+        catatan || ''
+      ]);
+    } catch (colErr) {
+      // Fallback if legacy columns only
+      [result] = await pool.query(`
+        INSERT INTO tahfidz_setoran (
+          santri_id, halaqah_id, asatidz_id, tanggal, jenis_setoran, juz,
+          surat_mulai, ayat_mulai, surat_selesai, ayat_selesai, kualitas_tajwid,
+          status, catatan
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        santri_id,
+        halaqah_id || null,
+        asatidz_id || 1,
+        tanggal || new Date().toISOString().split('T')[0],
+        finalMateri,
+        juz || 1,
+        surat_mulai || finalMateri,
+        ayat_mulai || 1,
+        surat_selesai || finalCapaian,
+        ayat_selesai || 1,
+        finalKelancaran,
+        status || 'Lulus',
+        catatan || ''
+      ]);
+    }
 
     if (santri_id && juz && status === 'Lulus') {
       await pool.query(`
         UPDATE santri SET capaian_hafalan_juz = GREATEST(capaian_hafalan_juz, ?) WHERE id = ?
-      `, [juz, santri_id]);
+      `, [juz, santri_id]).catch(() => {});
     }
 
-    return sendSuccess(res, 'Setoran tahfidz berhasil dicatat', { id: result.insertId }, 201);
+    return sendSuccess(res, 'Setoran hafalan berhasil dicatat', { id: result.insertId }, 201);
   } catch (err) {
     return sendError(res, err.message, 500);
   }
@@ -118,24 +152,49 @@ export const updateSetoran = async (req, res) => {
   try {
     const { id } = req.params;
     const {
-      santri_id, halaqah_id, asatidz_id, tanggal, jenis_setoran, juz,
-      surat_mulai, ayat_mulai, surat_selesai, ayat_selesai, kualitas_tajwid,
+      santri_id, halaqah_id, asatidz_id, tanggal,
+      materi_hafalan, capaian_hafalan, nilai_kelancaran,
+      jenis_setoran, juz, surat_mulai, ayat_mulai, surat_selesai, ayat_selesai, kualitas_tajwid,
       status, catatan
     } = req.body;
 
-    await pool.query(`
-      UPDATE tahfidz_setoran SET
-        santri_id = ?, halaqah_id = ?, asatidz_id = ?, tanggal = ?, jenis_setoran = ?,
-        juz = ?, surat_mulai = ?, ayat_mulai = ?, surat_selesai = ?, ayat_selesai = ?,
-        kualitas_tajwid = ?, status = ?, catatan = ?
-      WHERE id = ?
-    `, [
-      santri_id, halaqah_id || null, asatidz_id || 1, tanggal, jenis_setoran || 'Ziyadah',
-      juz || 1, surat_mulai || '', ayat_mulai || 1, surat_selesai || '', ayat_selesai || 1,
-      kualitas_tajwid || 'Mumtaz (A)', status || 'Lulus', catatan || '', id
-    ]);
+    const finalMateri = materi_hafalan || req.body.materi || 'Al-Qur\'an';
+    const finalCapaian = capaian_hafalan || (surat_mulai ? `QS. ${surat_mulai} - QS. ${surat_selesai}` : 'Hafalan');
+    const finalKelancaran = nilai_kelancaran || kualitas_tajwid || 'Lancar (Mumtaz)';
 
-    return sendSuccess(res, 'Data setoran tahfidz berhasil diperbarui');
+    try {
+      await pool.query(`
+        UPDATE tahfidz_setoran SET
+          santri_id = ?, halaqah_id = ?, asatidz_id = ?, tanggal = ?,
+          materi_hafalan = ?, capaian_hafalan = ?, nilai_kelancaran = ?,
+          jenis_setoran = ?, juz = ?, surat_mulai = ?, ayat_mulai = ?,
+          surat_selesai = ?, ayat_selesai = ?, kualitas_tajwid = ?,
+          status = ?, catatan = ?
+        WHERE id = ?
+      `, [
+        santri_id, halaqah_id || null, asatidz_id || 1, tanggal,
+        finalMateri, finalCapaian, finalKelancaran,
+        jenis_setoran || 'Hafalan Baru', juz || 1, surat_mulai || finalMateri, ayat_mulai || 1,
+        surat_selesai || finalMateri, ayat_selesai || 1, kualitas_tajwid || finalKelancaran,
+        status || 'Lulus', catatan || '', id
+      ]);
+    } catch (colErr) {
+      await pool.query(`
+        UPDATE tahfidz_setoran SET
+          santri_id = ?, halaqah_id = ?, asatidz_id = ?, tanggal = ?,
+          jenis_setoran = ?, juz = ?, surat_mulai = ?, ayat_mulai = ?,
+          surat_selesai = ?, ayat_selesai = ?, kualitas_tajwid = ?,
+          status = ?, catatan = ?
+        WHERE id = ?
+      `, [
+        santri_id, halaqah_id || null, asatidz_id || 1, tanggal,
+        finalMateri, juz || 1, surat_mulai || finalMateri, ayat_mulai || 1,
+        surat_selesai || finalCapaian, ayat_selesai || 1, finalKelancaran,
+        status || 'Lulus', catatan || '', id
+      ]);
+    }
+
+    return sendSuccess(res, 'Data setoran hafalan berhasil diperbarui');
   } catch (err) {
     return sendError(res, err.message, 500);
   }

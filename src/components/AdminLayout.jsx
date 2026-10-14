@@ -26,7 +26,10 @@ import {
   Maximize2,
   Minimize2,
   CalendarCheck,
-  Settings
+  Settings,
+  UserCog,
+  QrCode,
+  HeartHandshake
 } from 'lucide-react';
 import DashboardAdmin from '../views/admin/DashboardAdmin';
 import SantriView from '../views/admin/SantriView';
@@ -35,6 +38,9 @@ import KelasView from '../views/admin/KelasView';
 import AsatidzView from '../views/admin/AsatidzView';
 import FingerprintDeviceView from '../views/admin/FingerprintDeviceView';
 import SettingKegiatanView from '../views/admin/SettingKegiatanView';
+import UserManagementView from '../views/admin/UserManagementView';
+import ScanBarcodeView from '../views/admin/ScanBarcodeView';
+import PraktekIbadahView from '../views/admin/PraktekIbadahView';
 import TahfidzView from '../views/admin/TahfidzView';
 import PerizinanView from '../views/admin/PerizinanView';
 import TataTertibView from '../views/admin/TataTertibView';
@@ -44,7 +50,7 @@ import { showConfirm, toastSuccess } from '../utils/alert.util';
 
 export default function AdminLayout() {
   const isMasterTab = (tab) => ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz'].includes(tab);
-  const isSettingsTab = (tab) => ['master-device', 'setting-kegiatan', 'master-kegiatan'].includes(tab);
+  const isSettingsTab = (tab) => ['master-device', 'setting-kegiatan', 'master-kegiatan', 'manajemen-user', 'users'].includes(tab);
   const isLaporanTab = (tab) => ['laporan-presensi', 'laporan-tahfidz'].includes(tab);
 
   // Get initial tab from URL hash
@@ -297,13 +303,22 @@ export default function AdminLayout() {
       case 'setting-kegiatan':
       case 'master-kegiatan':
         return <SettingKegiatanView />;
+      case 'manajemen-user':
+      case 'users':
+        return <UserManagementView />;
+      case 'scan-barcode':
+      case 'scan':
+        return <ScanBarcodeView />;
+      case 'praktek-ibadah':
+      case 'praktek':
+        return <PraktekIbadahView />;
       default:
         return <DashboardAdmin />;
     }
   };
 
   const isMasterActive = ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz'].includes(activeTab);
-  const isSettingsActive = ['master-device', 'setting-kegiatan', 'master-kegiatan'].includes(activeTab);
+  const isSettingsActive = ['master-device', 'setting-kegiatan', 'master-kegiatan', 'manajemen-user', 'users'].includes(activeTab);
   const isLaporanActive = ['laporan-presensi', 'laporan-tahfidz'].includes(activeTab);
 
   const renderNavMenu = (isMobile = false) => {
@@ -323,6 +338,17 @@ export default function AdminLayout() {
             <LayoutDashboard size={15} />
             <span>Dashboard</span>
           </div>
+        </button>
+
+        <button 
+          className={`nav-link ${activeTab === 'scan-barcode' ? 'active' : ''}`}
+          onClick={() => handleTabClick('scan-barcode')}
+        >
+          <div className="nav-link-left">
+            <QrCode size={15} style={{ color: '#10b981' }} />
+            <span>Scan Barcode Santri</span>
+          </div>
+          <span style={{ fontSize: '0.62rem', background: '#059669', color: '#fff', padding: '1px 6px', borderRadius: '10px', fontWeight: 800 }}>LIVE</span>
         </button>
 
         <button 
@@ -406,6 +432,16 @@ export default function AdminLayout() {
 
         <div className="menu-category">KEPESANTRENAN</div>
         <button 
+          className={`nav-link ${activeTab === 'praktek-ibadah' || activeTab === 'praktek' ? 'active' : ''}`}
+          onClick={() => handleTabClick('praktek-ibadah')}
+        >
+          <div className="nav-link-left">
+            <HeartHandshake size={15} style={{ color: '#059669' }} />
+            <span>Praktek Ibadah (Sholat/Wudhu)</span>
+          </div>
+        </button>
+
+        <button 
           className={`nav-link ${activeTab === 'tata-tertib' ? 'active' : ''}`}
           onClick={() => handleTabClick('tata-tertib')}
         >
@@ -476,6 +512,14 @@ export default function AdminLayout() {
             >
               <CalendarCheck size={13} style={{ marginRight: '6px' }} />
               <span>Setting Kegiatan</span>
+            </button>
+
+            <button 
+              className={`nav-sublink ${activeTab === 'manajemen-user' || activeTab === 'users' ? 'active' : ''}`}
+              onClick={() => handleTabClick('manajemen-user')}
+            >
+              <UserCog size={13} style={{ marginRight: '6px' }} />
+              <span>Kelola Pengguna (Users)</span>
             </button>
           </div>
         )}
@@ -689,6 +733,17 @@ export default function AdminLayout() {
                   </a>
 
                   <div className="user-dropdown-divider" />
+
+                  <button 
+                    className="user-dropdown-item"
+                    onClick={() => {
+                      changeTab('manajemen-user');
+                      setIsUserDropdownOpen(false);
+                    }}
+                  >
+                    <UserCog size={15} color="#059669" />
+                    <span>Kelola Pengguna (Users)</span>
+                  </button>
 
                   <button 
                     className="user-dropdown-item"

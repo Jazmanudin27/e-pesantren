@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import JsBarcode from 'jsbarcode';
+import QRCode from 'qrcode';
 import { 
   Users, 
   Plus, 
@@ -22,10 +24,54 @@ import {
   MapPin,
   User,
   Save,
-  CheckCircle2
+  CheckCircle2,
+  Printer,
+  QrCode,
+  Download,
+  Check
 } from 'lucide-react';
 import { showConfirm, toastSuccess, showError } from '../../utils/alert.util';
 import SearchableSelect from '../../components/SearchableSelect';
+
+// Helper Barcode 1D SVG Renderer
+function BarcodeCardItem({ value, width = 1.3, height = 36, fontSize = 10 }) {
+  const svgRef = useRef(null);
+  useEffect(() => {
+    if (svgRef.current && value) {
+      try {
+        JsBarcode(svgRef.current, String(value), {
+          format: 'CODE128',
+          width,
+          height,
+          displayValue: true,
+          fontSize,
+          margin: 0,
+          background: 'transparent',
+          lineColor: '#0f172a'
+        });
+      } catch (e) {}
+    }
+  }, [value, width, height, fontSize]);
+
+  return <svg ref={svgRef} style={{ maxWidth: '100%', height: 'auto', display: 'block', margin: '0 auto' }} />;
+}
+
+// Helper QR Code 2D Canvas Renderer
+function QrCodeCardItem({ value, size = 56 }) {
+  const [src, setSrc] = useState('');
+  useEffect(() => {
+    if (value) {
+      QRCode.toDataURL(String(value), {
+        width: size,
+        margin: 1,
+        color: { dark: '#064e3b', light: '#ffffff' }
+      }).then(setSrc).catch(() => {});
+    }
+  }, [value, size]);
+
+  if (!src) return <div style={{ width: size, height: size, background: '#f1f5f9' }} />;
+  return <img src={src} alt="QR" style={{ width: size, height: size, display: 'block', borderRadius: '4px' }} />;
+}
 
 export default function SantriView() {
   const [santriList, setSantriList] = useState([]);
@@ -41,6 +87,24 @@ export default function SantriView() {
   // Modal Detail State
   const [selectedSantri, setSelectedSantri] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Modal Cetak Barcode & Kartu Santri State
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [printSantriList, setPrintSantriList] = useState([]);
+  const [printFormat, setPrintFormat] = useState('card'); // 'card' (ID Card) | 'sticker' (Stiker Barcode Saja)
+
+  const handleOpenPrintModal = (list) => {
+    if (!list || list.length === 0) {
+      showError('Tidak Ada Data', 'Tidak ada data santri yang dipilih untuk dicetak.');
+      return;
+    }
+    setPrintSantriList(list);
+    setIsPrintModalOpen(true);
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   // Modal Form (Add & Edit)
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -340,11 +404,40 @@ export default function SantriView() {
             <p>Kelola biodata santri, NIS, penempatan asrama/kamar kobong, data mahrom wali, dan capaian hafalan</p>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="btn btn-outline" onClick={fetchSantri}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button 
+            type="button"
+            className="btn btn-outline" 
+            onClick={fetchSantri}
+          >
             <RotateCw size={13} /> Refresh
           </button>
-          <button className="btn btn-primary" onClick={openAddForm}>
+          <button 
+            type="button"
+            className="btn" 
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px', 
+              background: '#059669', 
+              color: '#ffffff', 
+              border: 'none', 
+              padding: '6px 14px', 
+              borderRadius: '6px', 
+              fontSize: '0.8rem', 
+              fontWeight: 700, 
+              cursor: 'pointer' 
+            }}
+            onClick={() => handleOpenPrintModal(filteredList)}
+            title="Cetak Barcode & Kartu Santri Massal Sesuai Filter"
+          >
+            <Printer size={14} /> Cetak Barcode & Kartu ({filteredList.length})
+          </button>
+          <button 
+            type="button"
+            className="btn btn-primary" 
+            onClick={openAddForm}
+          >
             <Plus size={14} /> Tambah Santri Baru
           </button>
         </div>
@@ -487,6 +580,14 @@ export default function SantriView() {
                   </td>
                   <td className="td-center">
                     <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
+                      <button 
+                        className="btn-action"
+                        style={{ color: '#059669', background: '#ecfdf5', borderColor: '#a7f3d0' }}
+                        onClick={() => handleOpenPrintModal([row])}
+                        title="Cetak Barcode / Kartu Santri Ini"
+                      >
+                        <QrCode size={13} />
+                      </button>
                       <button 
                         className="btn-action btn-action-view"
                         onClick={() => openDetail(row)}
@@ -945,6 +1046,358 @@ export default function SantriView() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================== */}
+      {/* MODAL CETAK BARCODE & KARTU SANTRI (ID CARD RESMI)  */}
+      {/* ==================================================== */}
+      {isPrintModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.8)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          {/* Print Stylesheet injection */}
+          <style>{`
+            @media print {
+              body * {
+                visibility: hidden !important;
+              }
+              #print-santri-card-zone, #print-santri-card-zone * {
+                visibility: visible !important;
+              }
+              #print-santri-card-zone {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 10mm !important;
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 8mm !important;
+                background: #ffffff !important;
+              }
+              .no-print-area {
+                display: none !important;
+              }
+              .printable-single-card {
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+                box-shadow: none !important;
+                border: 1px solid #94a3b8 !important;
+              }
+            }
+          `}</style>
+
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '14px',
+            maxWidth: '850px',
+            width: '100%',
+            maxHeight: '92vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)'
+          }}>
+            {/* Modal Header (No Print) */}
+            <div className="no-print-area" style={{
+              padding: '14px 20px',
+              borderBottom: '1px solid #e2e8f0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'linear-gradient(135deg, #064e3b 0%, #047857 100%)',
+              color: '#ffffff'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Printer size={18} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '0.96rem', fontWeight: 800, margin: 0, color: '#ffffff' }}>
+                    Cetak Barcode & Kartu Santri ({printSantriList.length} Santri)
+                  </h3>
+                  <p style={{ fontSize: '0.72rem', margin: 0, color: 'rgba(255, 255, 255, 0.85)' }}>
+                    Pilih format kartu identitas atau stiker barcode, lalu klik tombol Cetak / PDF.
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {/* Format Toggle */}
+                <div style={{ display: 'flex', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', padding: '2px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setPrintFormat('card')}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: printFormat === 'card' ? '#ffffff' : 'transparent',
+                      color: printFormat === 'card' ? '#064e3b' : '#ffffff',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Format ID Card
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPrintFormat('sticker')}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: printFormat === 'sticker' ? '#ffffff' : 'transparent',
+                      color: printFormat === 'sticker' ? '#064e3b' : '#ffffff',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Stiker Barcode
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsPrintModalOpen(false)}
+                  style={{ background: 'transparent', border: 'none', color: '#ffffff', cursor: 'pointer', padding: '4px' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Preview Area */}
+            <div style={{ padding: '20px', overflowY: 'auto', flex: 1, background: '#f1f5f9' }}>
+              <div 
+                id="print-santri-card-zone"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: printFormat === 'card' ? 'repeat(auto-fit, minmax(320px, 1fr))' : 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gap: '16px'
+                }}
+              >
+                {printSantriList.map((santri) => {
+                  const initials = (santri.nama_santri || 'S').slice(0, 2).toUpperCase();
+
+                  if (printFormat === 'sticker') {
+                    // STICKER BARCODE MODE (Compact label for books/lockers)
+                    return (
+                      <div 
+                        key={santri.id}
+                        className="printable-single-card"
+                        style={{
+                          background: '#ffffff',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          padding: '10px 12px',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
+                          textAlign: 'center'
+                        }}
+                      >
+                        <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#064e3b', marginBottom: '2px' }}>
+                          PP. NURUL WAFA
+                        </div>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {santri.nama_santri}
+                        </div>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b', marginBottom: '6px' }}>
+                          NIS: {santri.nis} • {santri.nama_asrama || 'Asrama'}
+                        </div>
+                        <div style={{ background: '#ffffff', padding: '4px', borderRadius: '4px' }}>
+                          <BarcodeCardItem value={santri.nis} width={1.2} height={32} fontSize={9} />
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // ID CARD MODE (Standard ID Card Pesantren)
+                  return (
+                    <div 
+                      key={santri.id}
+                      className="printable-single-card"
+                      style={{
+                        background: '#ffffff',
+                        borderRadius: '12px',
+                        border: '1px solid #cbd5e1',
+                        overflow: 'hidden',
+                        boxShadow: '0 4px 10px rgba(0,0,0,0.06)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        minHeight: '215px'
+                      }}
+                    >
+                      {/* Card Header */}
+                      <div style={{
+                        background: 'linear-gradient(135deg, #064e3b 0%, #047857 100%)',
+                        color: '#ffffff',
+                        padding: '10px 14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        borderBottom: '2px solid #d97706'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <img 
+                            src="/logo.png" 
+                            alt="Logo" 
+                            style={{ width: '26px', height: '26px', objectFit: 'contain', background: '#fff', borderRadius: '50%', padding: '2px' }} 
+                            onError={(e) => (e.target.style.display = 'none')}
+                          />
+                          <div>
+                            <div style={{ fontSize: '0.74rem', fontWeight: 800, letterSpacing: '0.02em', lineHeight: 1.1 }}>
+                              PONDOK PESANTREN NURUL WAFA
+                            </div>
+                            <div style={{ fontSize: '0.62rem', color: '#fef08a', fontWeight: 700 }}>
+                              KARTU IDENTITAS & PRESENSI SANTRI
+                            </div>
+                          </div>
+                        </div>
+                        <span style={{ fontSize: '0.6rem', background: '#d97706', color: '#fff', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>
+                          {santri.status_santri || 'MUKIM'}
+                        </span>
+                      </div>
+
+                      {/* Card Middle: Profile & Details */}
+                      <div style={{ padding: '12px 14px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        {/* Avatar / Photo */}
+                        <div style={{
+                          width: '54px',
+                          height: '54px',
+                          borderRadius: '8px',
+                          background: 'linear-gradient(135deg, #059669, #0d9488)',
+                          color: '#ffffff',
+                          fontSize: '1.1rem',
+                          fontWeight: 800,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: '2px solid #064e3b',
+                          flexShrink: 0
+                        }}>
+                          {initials}
+                        </div>
+
+                        {/* Text Details */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {santri.nama_santri}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#047857', background: '#ecfdf5', padding: '1px 6px', borderRadius: '4px' }}>
+                              NIS: {santri.nis}
+                            </span>
+                            {santri.nisn && (
+                              <span style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                                NISN: {santri.nisn}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '3px' }}>
+                            Asrama: <strong>{santri.nama_asrama || 'Asrama Pusat'}</strong>
+                          </div>
+                          <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                            Kobong: {santri.nama_kamar || 'Kamar 01'} • Kelas: {santri.tingkat_diniyah || 'Wustho'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Card Bottom: Barcode 1D & QR Code */}
+                      <div style={{
+                        marginTop: 'auto',
+                        padding: '8px 12px',
+                        background: '#f8fafc',
+                        borderTop: '1px solid #e2e8f0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '8px'
+                      }}>
+                        {/* Barcode 1D */}
+                        <div style={{ flex: 1 }}>
+                          <BarcodeCardItem value={santri.nis} width={1.2} height={28} fontSize={9} />
+                        </div>
+
+                        {/* QR Code */}
+                        <div style={{ flexShrink: 0, paddingLeft: '6px', borderLeft: '1px dashed #cbd5e1' }}>
+                          <QrCodeCardItem value={santri.nis} size={48} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Modal Footer Controls (No Print) */}
+            <div className="no-print-area" style={{
+              padding: '12px 20px',
+              borderTop: '1px solid #e2e8f0',
+              background: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                Siap cetak {printSantriList.length} kartu santri ke printer atau simpan sebagai PDF.
+              </span>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsPrintModalOpen(false)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
+                    color: '#64748b',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Tutup
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 20px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: '#047857',
+                    color: '#ffffff',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(4, 120, 87, 0.3)'
+                  }}
+                >
+                  <Printer size={16} />
+                  <span>Cetak / Print PDF Sekarang</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

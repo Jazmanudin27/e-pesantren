@@ -10,6 +10,8 @@ import absensiRoutes from './absensi.routes.js';
 import asatidzRoutes from './asatidz.routes.js';
 import pesantrenRoutes from './pesantren.routes.js';
 import kelasRoutes from './kelas.routes.js';
+import userRoutes from './user.routes.js';
+import praktekRoutes from './praktek.routes.js';
 
 const router = express.Router();
 
@@ -25,5 +27,7 @@ router.use('/absensi', absensiRoutes); // /api/absensi/fingerprint
 router.use('/fingerprint', absensiRoutes); // /api/fingerprint/devices, /api/fingerprint/sesi
 router.use('/asatidz', asatidzRoutes); // /api/asatidz
 router.use('/pesantren', pesantrenRoutes); // /api/pesantren/profil
+router.use('/users', userRoutes); // /api/users
+router.use('/praktek', praktekRoutes); // /api/praktek
 
 export default router;

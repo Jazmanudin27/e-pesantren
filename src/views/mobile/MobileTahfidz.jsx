@@ -16,13 +16,9 @@ export default function MobileTahfidz() {
   const initialForm = {
     id: null,
     santri_id: 1,
-    jenis_setoran: 'Ziyadah',
-    juz: 1,
-    surat_mulai: '1. Al-Fatihah',
-    ayat_mulai: 1,
-    surat_selesai: 'Al-Isra\'',
-    ayat_selesai: 25,
-    kualitas_tajwid: 'Mumtaz (A)',
+    materi_hafalan: "Al-Qur'an",
+    capaian_hafalan: '',
+    nilai_kelancaran: 'Mumtaz (A)',
     status: 'Lulus',
     catatan: '',
     tanggal: new Date().toISOString().split('T')[0]
@@ -31,9 +27,9 @@ export default function MobileTahfidz() {
   const [formData, setFormData] = useState(initialForm);
 
   const defaultSetoran = [
-    { id: 1, santri_id: 1, nama_santri: 'Muhammad Al-Fatih', jenis_setoran: 'Ziyadah', juz: 15, surat_mulai: 'Al-Isra\'', ayat_mulai: 1, surat_selesai: 'Al-Isra\'', ayat_selesai: 25, kualitas_tajwid: 'Mumtaz (A)', status: 'Lulus', tanggal: '2026-10-07' },
-    { id: 2, santri_id: 2, nama_santri: 'Ahmad Dahlan', jenis_setoran: 'Muroja\'ah', juz: 14, surat_mulai: 'An-Nahl', ayat_mulai: 1, surat_selesai: 'An-Nahl', ayat_selesai: 60, kualitas_tajwid: 'Jayyid Jiddan (B+)', status: 'Lulus', tanggal: '2026-10-06' },
-    { id: 3, santri_id: 3, nama_santri: 'Khadijah Az-Zahra', jenis_setoran: 'Sabqi', juz: 14, surat_mulai: 'Juz 14', ayat_mulai: 1, surat_selesai: 'Juz 14 Full', ayat_selesai: 99, kualitas_tajwid: 'Mumtaz (A)', status: 'Lulus', tanggal: '2026-10-05' }
+    { id: 1, santri_id: 1, nama_santri: 'Muhammad Al-Fatih', materi_hafalan: "Al-Qur'an", capaian_hafalan: 'Juz 15 (Al-Isra 1-25)', nilai_kelancaran: 'Mumtaz (A)', status: 'Lulus', tanggal: '2026-10-07' },
+    { id: 2, santri_id: 2, nama_santri: 'Ahmad Dahlan', materi_hafalan: 'Nadzom Al-Jurumiyah', capaian_hafalan: 'Bait 1 - 35 (Bab Kalam & I\'rab)', nilai_kelancaran: 'Jayyid Jiddan (B+)', status: 'Lulus', tanggal: '2026-10-06' },
+    { id: 3, santri_id: 3, nama_santri: 'Khadijah Az-Zahra', materi_hafalan: 'Nadzom Al-Imrithi', capaian_hafalan: 'Bait 1 - 50', nilai_kelancaran: 'Mumtaz (A)', status: 'Lulus', tanggal: '2026-10-05' }
   ];
 
   const fetchData = async () => {
@@ -82,13 +78,9 @@ export default function MobileTahfidz() {
     setFormData({
       id: item.id,
       santri_id: item.santri_id || 1,
-      jenis_setoran: item.jenis_setoran || 'Ziyadah',
-      juz: item.juz || 1,
-      surat_mulai: item.surat_mulai || '',
-      ayat_mulai: item.ayat_mulai || 1,
-      surat_selesai: item.surat_selesai || '',
-      ayat_selesai: item.ayat_selesai || 1,
-      kualitas_tajwid: item.kualitas_tajwid || 'Mumtaz (A)',
+      materi_hafalan: item.materi_hafalan || (item.surat_mulai ? "Al-Qur'an" : 'Nadzom Al-Jurumiyah'),
+      capaian_hafalan: item.capaian_hafalan || (item.surat_mulai ? `QS. ${item.surat_mulai} (${item.ayat_mulai || 1}) - QS. ${item.surat_selesai || item.surat_mulai} (${item.ayat_selesai || 10})` : ''),
+      nilai_kelancaran: item.nilai_kelancaran || item.kualitas_tajwid || 'Mumtaz (A)',
       status: item.status || 'Lulus',
       catatan: item.catatan || '',
       tanggal: item.tanggal ? String(item.tanggal).split('T')[0] : new Date().toISOString().split('T')[0]
@@ -99,18 +91,29 @@ export default function MobileTahfidz() {
   const handleSave = async (e) => {
     e.preventDefault();
     setSubmitting(true);
+    const payload = {
+      ...formData,
+      jenis_setoran: formData.materi_hafalan,
+      juz: 1,
+      surat_mulai: formData.materi_hafalan,
+      ayat_mulai: 1,
+      surat_selesai: formData.capaian_hafalan,
+      ayat_selesai: 1,
+      kualitas_tajwid: formData.nilai_kelancaran
+    };
+
     try {
       if (formMode === 'add') {
-        await axios.post('/api/tahfidz/setoran', formData);
+        await axios.post('/api/tahfidz/setoran', payload);
       } else {
-        await axios.put(`/api/tahfidz/setoran/${formData.id}`, formData);
+        await axios.put(`/api/tahfidz/setoran/${formData.id}`, payload);
       }
 
       setSetoranList(prev => {
         let next;
         const selectedSantri = santriOptions.find(s => s.id === parseInt(formData.santri_id));
         const itemObj = {
-          ...formData,
+          ...payload,
           nama_santri: selectedSantri ? selectedSantri.nama_santri : 'Santri'
         };
 
@@ -125,13 +128,14 @@ export default function MobileTahfidz() {
 
       fetchData();
       setIsModalOpen(false);
+      toastSuccess(formMode === 'add' ? 'Setoran hafalan santri berhasil dicatat' : 'Data setoran berhasil diperbarui');
     } catch (err) {
       console.warn('API save fallback local:', err);
       setSetoranList(prev => {
         let next;
         const selectedSantri = santriOptions.find(s => s.id === parseInt(formData.santri_id));
         const itemObj = {
-          ...formData,
+          ...payload,
           nama_santri: selectedSantri ? selectedSantri.nama_santri : 'Santri',
           id: Date.now()
         };
@@ -145,6 +149,7 @@ export default function MobileTahfidz() {
         return next;
       });
       setIsModalOpen(false);
+      toastSuccess('Tersimpan di perangkat lokal');
     } finally {
       setSubmitting(false);
     }
@@ -175,10 +180,22 @@ export default function MobileTahfidz() {
   const filteredList = setoranList.filter(s => {
     const q = searchQuery.toLowerCase();
     const nama = (s.nama_santri || '').toLowerCase();
-    const surat = (s.surat_mulai || '').toLowerCase();
-    const jenis = (s.jenis_setoran || '').toLowerCase();
-    return nama.includes(q) || surat.includes(q) || jenis.includes(q);
+    const mat = (s.materi_hafalan || s.surat_mulai || '').toLowerCase();
+    const cap = (s.capaian_hafalan || s.surat_selesai || '').toLowerCase();
+    return nama.includes(q) || mat.includes(q) || cap.includes(q);
   });
+
+  const MATERI_PRESETS = [
+    "Al-Qur'an",
+    "Nadzom Al-Jurumiyah",
+    "Nadzom Al-Imrithi",
+    "Nadzom Alfiyah Ibnu Malik",
+    "Matan Al-Ghoyah wat Taqrib",
+    "Aqidatul Awam",
+    "Hadits Al-Arba'in An-Nawawiyyah",
+    "Taisirul Khalaq",
+    "Kitab / Nadzom Lainnya"
+  ];
 
   return (
     <div style={{ padding: '16px', paddingBottom: '80px' }}>
@@ -187,7 +204,7 @@ export default function MobileTahfidz() {
         <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
         <input
           type="text"
-          placeholder="Cari santri, surat, jenis setoran..."
+          placeholder="Cari santri, kitab, nadzom, capaian..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{
@@ -228,8 +245,8 @@ export default function MobileTahfidz() {
                 <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
                   {r.tanggal ? String(r.tanggal).split('T')[0] : '-'}
                 </span>
-                <span className={`badge ${r.jenis_setoran === 'Ziyadah' ? 'badge-success' : 'badge-info'}`}>
-                  {r.jenis_setoran || 'Ziyadah'}
+                <span className="badge badge-purple" style={{ fontWeight: 700 }}>
+                  {r.materi_hafalan || (r.surat_mulai ? "Al-Qur'an" : 'Hafalan')}
                 </span>
               </div>
 
@@ -237,11 +254,11 @@ export default function MobileTahfidz() {
                 👤 {r.nama_santri || 'Santri'}
               </div>
               <div style={{ fontSize: '0.82rem', color: '#047857', fontWeight: 700, marginBottom: '6px' }}>
-                📖 Juz {r.juz || 1} • {r.surat_mulai} ({r.ayat_mulai}) s/d {r.surat_selesai} ({r.ayat_selesai})
+                📖 {r.capaian_hafalan || (r.surat_mulai ? `QS. ${r.surat_mulai} (${r.ayat_mulai || 1}) s/d ${r.surat_selesai || r.surat_mulai} (${r.ayat_selesai || 10})` : '-')}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', background: '#f8fafc', padding: '8px 10px', borderRadius: '8px', marginBottom: '10px' }}>
-                <span style={{ color: '#059669', fontWeight: 700 }}>Nilai: {r.kualitas_tajwid || 'Mumtaz (A)'}</span>
+                <span style={{ color: '#059669', fontWeight: 700 }}>Nilai: {r.nilai_kelancaran || r.kualitas_tajwid || 'Mumtaz (A)'}</span>
                 <span style={{ color: '#0369a1', fontWeight: 600 }}>Status: {r.status || 'Lulus'}</span>
               </div>
 
@@ -303,107 +320,111 @@ export default function MobileTahfidz() {
                 </select>
               </div>
 
+              {/* Materi Hafalan */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Materi Hafalan / Kitab *</label>
+                <input
+                  type="text"
+                  required
+                  list="materi-mobile-list"
+                  value={formData.materi_hafalan}
+                  onChange={(e) => setFormData({ ...formData, materi_hafalan: e.target.value })}
+                  placeholder="Pilih atau ketik (Al-Qur'an, Nadzom Jurumiyah, dll)"
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                />
+                <datalist id="materi-mobile-list">
+                  {MATERI_PRESETS.map((m, idx) => (
+                    <option key={idx} value={m} />
+                  ))}
+                </datalist>
+                
+                {/* Chip Pilihan Cepat */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                  {["Al-Qur'an", "Nadzom Al-Jurumiyah", "Nadzom Al-Imrithi", "Alfiyah", "Matan Taqrib"].map(chip => (
+                    <button
+                      key={chip}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, materi_hafalan: chip })}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: '12px',
+                        border: formData.materi_hafalan === chip ? '1px solid #059669' : '1px solid #cbd5e1',
+                        background: formData.materi_hafalan === chip ? '#ecfdf5' : '#f8fafc',
+                        color: formData.materi_hafalan === chip ? '#065f46' : '#64748b',
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Capaian Bagian Hafalan */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Capaian / Bagian Hafalan *</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.capaian_hafalan}
+                  onChange={(e) => setFormData({ ...formData, capaian_hafalan: e.target.value })}
+                  placeholder="Contoh: Bait 1 - 25 (Bab Kalam) / Juz 30 (An-Naba s/d An-Nas)..."
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              {/* Nilai Kelancaran & Status */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Jenis Setoran</label>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Kelancaran / Nilai</label>
                   <select
-                    value={formData.jenis_setoran}
-                    onChange={(e) => setFormData({ ...formData, jenis_setoran: e.target.value })}
+                    value={formData.nilai_kelancaran}
+                    onChange={(e) => setFormData({ ...formData, nilai_kelancaran: e.target.value })}
                     style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#ffffff' }}
                   >
-                    <option value="Ziyadah">Ziyadah (Hafalan Baru)</option>
-                    <option value="Muroja'ah">Muroja'ah (Mengulang)</option>
-                    <option value="Sabqi">Sabqi (Setoran Terdekat)</option>
-                    <option value="Tasmi' Bil-Ghoib">Tasmi' Bil-Ghoib</option>
+                    <option value="Mumtaz (A)">Mumtaz (A - Sangat Lancar)</option>
+                    <option value="Jayyid Jiddan (B+)">Jayyid Jiddan (B+ - Lancar Sekali)</option>
+                    <option value="Jayyid (B)">Jayyid (B - Lancar)</option>
+                    <option value="Maqbul (C)">Maqbul (C - Cukup)</option>
+                    <option value="Dho'if (D)">Dho'if (D - Mengulang)</option>
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Juz *</label>
-                  <input
-                    type="number" required min={1} max={30}
-                    value={formData.juz}
-                    onChange={(e) => setFormData({ ...formData, juz: parseInt(e.target.value) || 1 })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
-                  />
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Status</label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#ffffff' }}
+                  >
+                    <option value="Lulus">Lulus</option>
+                    <option value="Perlu Pengulangan">Perlu Pengulangan</option>
+                    <option value="Mengulang">Mengulang</option>
+                  </select>
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Surat Mulai *</label>
-                  <select
-                    required
-                    value={formData.surat_mulai}
-                    onChange={(e) => setFormData({ ...formData, surat_mulai: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#ffffff' }}
-                  >
-                    <option value="">-- Pilih Surah --</option>
-                    {SURAH_LIST.map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Ayat Mulai</label>
-                  <input
-                    type="number" required min={1}
-                    value={formData.ayat_mulai}
-                    onChange={(e) => setFormData({ ...formData, ayat_mulai: parseInt(e.target.value) || 1 })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
-                  />
-                </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Tanggal Setoran</label>
+                <input
+                  type="date"
+                  required
+                  value={formData.tanggal}
+                  onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Surat Selesai *</label>
-                  <select
-                    required
-                    value={formData.surat_selesai}
-                    onChange={(e) => setFormData({ ...formData, surat_selesai: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#ffffff' }}
-                  >
-                    <option value="">-- Pilih Surah --</option>
-                    {SURAH_LIST.map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Ayat Selesai</label>
-                  <input
-                    type="number" required min={1}
-                    value={formData.ayat_selesai}
-                    onChange={(e) => setFormData({ ...formData, ayat_selesai: parseInt(e.target.value) || 1 })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Kualitas Tajwid</label>
-                  <select
-                    value={formData.kualitas_tajwid}
-                    onChange={(e) => setFormData({ ...formData, kualitas_tajwid: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#ffffff' }}
-                  >
-                    <option value="Mumtaz (A)">Mumtaz (A)</option>
-                    <option value="Jayyid Jiddan (B+)">Jayyid Jiddan (B+)</option>
-                    <option value="Jayyid (B)">Jayyid (B)</option>
-                    <option value="Maqbul (C)">Maqbul (C)</option>
-                    <option value="Rombak/Ulang">Rombak/Ulang</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Tanggal Setoran</label>
-                  <input
-                    type="date"
-                    value={formData.tanggal}
-                    onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
-                  />
-                </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Catatan Bimbingan</label>
+                <textarea
+                  rows="2"
+                  value={formData.catatan}
+                  onChange={(e) => setFormData({ ...formData, catatan: e.target.value })}
+                  placeholder="Catatan makhraj, kelebihan, atau perbaikan hafalan..."
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                />
               </div>
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>

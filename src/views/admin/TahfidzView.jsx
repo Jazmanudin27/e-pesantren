@@ -32,7 +32,7 @@ export default function TahfidzView() {
   const [loading, setLoading] = useState(true);
   const [activeFilterTab, setActiveFilterTab] = useState('semua');
   const [search, setSearch] = useState('');
-  const [filterTajwid, setFilterTajwid] = useState('Semua Tajwid');
+  const [filterKelancaran, setFilterKelancaran] = useState('Semua Kelancaran');
   const [filterStatus, setFilterStatus] = useState('Semua Status');
 
   // Modal Detail State
@@ -46,18 +46,13 @@ export default function TahfidzView() {
   const [formData, setFormData] = useState({
     id: null,
     santri_id: '',
-    halaqah_id: '',
     asatidz_id: '',
     tanggal: new Date().toISOString().split('T')[0],
-    jenis_setoran: 'Ziyadah',
-    juz: 1,
-    surat_mulai: 'Al-Baqarah',
-    ayat_mulai: 1,
-    surat_selesai: 'Al-Baqarah',
-    ayat_selesai: 20,
-    kualitas_tajwid: 'Mumtaz (A)',
+    materi_hafalan: "Al-Qur'an",
+    capaian_hafalan: '',
+    nilai_kelancaran: 'Mumtaz (A)',
     status: 'Lulus',
-    catatan: 'Bacaan tartil, makharijul huruf fasih, dengung tajwid tepat.'
+    catatan: 'Hafalan lancar dan mutqin.'
   });
 
   const DEFAULT_SANTRI = [
@@ -138,22 +133,16 @@ export default function TahfidzView() {
     setFormMode('add');
     const firstSantri = santriList[0];
     const firstAsatidz = asatidzList[0];
-    const firstHalaqah = halaqahList[0];
     setFormData({
       id: null,
       santri_id: firstSantri?.id || '',
-      halaqah_id: firstHalaqah?.id || '',
       asatidz_id: firstAsatidz?.id || '',
       tanggal: new Date().toISOString().split('T')[0],
-      jenis_setoran: 'Ziyadah',
-      juz: 1,
-      surat_mulai: 'Al-Baqarah',
-      ayat_mulai: 1,
-      surat_selesai: 'Al-Baqarah',
-      ayat_selesai: 20,
-      kualitas_tajwid: 'Mumtaz (A)',
+      materi_hafalan: "Al-Qur'an",
+      capaian_hafalan: '',
+      nilai_kelancaran: 'Mumtaz (A)',
       status: 'Lulus',
-      catatan: 'Bacaan tartil, makharijul huruf fasih, dengung tajwid tepat.'
+      catatan: 'Hafalan lancar dan mutqin.'
     });
     setIsFormOpen(true);
   };
@@ -163,16 +152,11 @@ export default function TahfidzView() {
     setFormData({
       id: item.id,
       santri_id: item.santri_id || '',
-      halaqah_id: item.halaqah_id || '',
       asatidz_id: item.asatidz_id || '',
       tanggal: item.tanggal ? item.tanggal.split('T')[0] : new Date().toISOString().split('T')[0],
-      jenis_setoran: item.jenis_setoran || 'Ziyadah',
-      juz: item.juz || 1,
-      surat_mulai: item.surat_mulai || '',
-      ayat_mulai: item.ayat_mulai || 1,
-      surat_selesai: item.surat_selesai || '',
-      ayat_selesai: item.ayat_selesai || 1,
-      kualitas_tajwid: item.kualitas_tajwid || 'Mumtaz (A)',
+      materi_hafalan: item.materi_hafalan || (item.surat_mulai ? "Al-Qur'an" : 'Nadzom Al-Jurumiyah'),
+      capaian_hafalan: item.capaian_hafalan || (item.surat_mulai ? `QS. ${item.surat_mulai} (${item.ayat_mulai || 1}) - QS. ${item.surat_selesai || item.surat_mulai} (${item.ayat_selesai || 10})` : ''),
+      nilai_kelancaran: item.nilai_kelancaran || item.kualitas_tajwid || 'Mumtaz (A)',
       status: item.status || 'Lulus',
       catatan: item.catatan || ''
     });
@@ -189,21 +173,41 @@ export default function TahfidzView() {
       showError('Validasi Gagal', 'Pilih santri terlebih dahulu!');
       return;
     }
+    if (!formData.materi_hafalan) {
+      showError('Validasi Gagal', 'Isi atau pilih materi hafalan / kitab!');
+      return;
+    }
+    if (!formData.capaian_hafalan) {
+      showError('Validasi Gagal', 'Isi capaian / bagian hafalan yang disetorkan!');
+      return;
+    }
+
+    const payload = {
+      ...formData,
+      jenis_setoran: formData.materi_hafalan,
+      juz: 1,
+      surat_mulai: formData.materi_hafalan,
+      ayat_mulai: 1,
+      surat_selesai: formData.capaian_hafalan,
+      ayat_selesai: 1,
+      kualitas_tajwid: formData.nilai_kelancaran
+    };
+
     try {
       setSubmitting(true);
       if (formMode === 'add') {
-        const res = await axios.post('/api/tahfidz/setoran', formData);
+        const res = await axios.post('/api/tahfidz/setoran', payload);
         if (res.data && res.data.success) {
           fetchData();
         }
       } else {
-        const res = await axios.put(`/api/tahfidz/setoran/${formData.id}`, formData);
+        const res = await axios.put(`/api/tahfidz/setoran/${formData.id}`, payload);
         if (res.data && res.data.success) {
           fetchData();
         }
       }
       setIsFormOpen(false);
-      toastSuccess(formMode === 'add' ? 'Setoran tahfidz berhasil dicatat' : 'Data setoran berhasil diperbarui');
+      toastSuccess(formMode === 'add' ? 'Setoran hafalan santri berhasil dicatat' : 'Data setoran hafalan berhasil diperbarui');
     } catch (err) {
       showError('Gagal Menyimpan', err.response?.data?.error || err.message);
     } finally {
@@ -226,32 +230,41 @@ export default function TahfidzView() {
 
   // Stats calculation
   const totalSetoran = setoranList.length;
-  const countZiyadah = setoranList.filter(s => s.jenis_setoran === 'Ziyadah').length;
-  const countMurojaah = setoranList.filter(s => s.jenis_setoran === "Muroja'ah").length;
-  const countMumtaz = setoranList.filter(s => s.kualitas_tajwid?.includes('Mumtaz')).length;
+  const countQuran = setoranList.filter(s => {
+    const mat = (s.materi_hafalan || s.surat_mulai || '').toLowerCase();
+    return mat.includes('qur') || mat.includes('al-') || !!s.juz;
+  }).length;
+  const countKitab = setoranList.filter(s => {
+    const mat = (s.materi_hafalan || '').toLowerCase();
+    return mat && !mat.includes('qur');
+  }).length;
+  const countMumtaz = setoranList.filter(s => (s.nilai_kelancaran || s.kualitas_tajwid || '').includes('Mumtaz')).length;
 
   const filteredList = setoranList.filter((st) => {
     const q = search.toLowerCase();
+    const mat = (st.materi_hafalan || st.surat_mulai || '').toLowerCase();
+    const cap = (st.capaian_hafalan || st.surat_selesai || '').toLowerCase();
     const matchSearch = (
       st.nama_santri?.toLowerCase().includes(q) ||
       st.nis?.toLowerCase().includes(q) ||
-      st.surat_mulai?.toLowerCase().includes(q) ||
-      st.surat_selesai?.toLowerCase().includes(q) ||
+      mat.includes(q) ||
+      cap.includes(q) ||
       st.nama_asatidz?.toLowerCase().includes(q) ||
       st.nama_asrama?.toLowerCase().includes(q)
     );
 
     const matchTab = 
       activeFilterTab === 'semua' ? true :
-      activeFilterTab === 'ziyadah' ? st.jenis_setoran === 'Ziyadah' :
-      activeFilterTab === 'murojaah' ? st.jenis_setoran === "Muroja'ah" :
-      activeFilterTab === 'sabqi' ? st.jenis_setoran === 'Sabqi' :
-      activeFilterTab === 'tasmi' ? st.jenis_setoran?.includes('Tasmi') : true;
+      activeFilterTab === 'quran' ? (mat.includes('qur') || !!st.juz) :
+      activeFilterTab === 'jurumiyah' ? mat.includes('jurumi') :
+      activeFilterTab === 'imrithi' ? (mat.includes('imrithi') || mat.includes('alfi')) :
+      activeFilterTab === 'kitab' ? (!mat.includes('qur') && !mat.includes('jurumi') && !mat.includes('imrithi') && !mat.includes('alfi')) : true;
 
-    const matchTajwid = filterTajwid === 'Semua Tajwid' ? true : st.kualitas_tajwid === filterTajwid;
+    const kelancaran = st.nilai_kelancaran || st.kualitas_tajwid || '';
+    const matchKelancaran = filterKelancaran === 'Semua Kelancaran' ? true : kelancaran.includes(filterKelancaran.split(' ')[0]);
     const matchStatus = filterStatus === 'Semua Status' ? true : st.status === filterStatus;
 
-    return matchSearch && matchTab && matchTajwid && matchStatus;
+    return matchSearch && matchTab && matchKelancaran && matchStatus;
   });
 
   const santriOptions = santriList.map((s) => ({
@@ -266,28 +279,25 @@ export default function TahfidzView() {
     sublabel: a.tugas_utama || 'Asatidz Penguji'
   }));
 
-  const halaqahOptions = [
-    { value: '', label: '-- Tanpa Kelompok Khusus --', sublabel: null },
-    ...halaqahList.map((h) => ({
-      value: h.id,
-      label: h.nama_halaqah,
-      sublabel: h.gender === 'L' ? 'Ikhwan' : 'Akhwat'
-    }))
+  const MATERI_HAFALAN_PRESETS = [
+    "Al-Qur'an",
+    "Nadzom Al-Jurumiyah",
+    "Nadzom Al-Imrithi",
+    "Nadzom Alfiyah Ibnu Malik",
+    "Matan Al-Ghoyah wat Taqrib",
+    "Aqidatul Awam",
+    "Hadits Al-Arba'in An-Nawawiyyah",
+    "Taisirul Khalaq",
+    "Nadzom Maqsud",
+    "Kajian Kitab Kuning Lainnya"
   ];
 
-  const jenisSetoranOptions = [
-    { value: 'Ziyadah', label: 'Ziyadah (Hafalan Baru)' },
-    { value: "Muroja'ah", label: "Muroja'ah (Pengulangan Mutqin)" },
-    { value: 'Sabqi', label: 'Sabqi (Sambung Hafalan)' },
-    { value: "Tasmi' Bil-Ghoib", label: "Tasmi' Bil-Ghoib (Ujian Sekali Duduk)" }
-  ];
-
-  const tajwidOptions = [
-    { value: 'Mumtaz (A)', label: 'Mumtaz (A - Sangat Baik)' },
-    { value: 'Jayyid Jiddan (B+)', label: 'Jayyid Jiddan (B+ - Baik Sekali)' },
-    { value: 'Jayyid (B)', label: 'Jayyid (B - Baik)' },
-    { value: 'Maqbul (C)', label: 'Maqbul (C - Cukup)' },
-    { value: 'Rombak/Ulang', label: 'Rombak/Ulang (Mengulang Tajwid)' }
+  const KELANCARAN_OPTIONS = [
+    { value: 'Mumtaz (A)', label: 'Mumtaz (A - Sangat Lancar / Mumtaz)' },
+    { value: 'Jayyid Jiddan (B+)', label: 'Jayyid Jiddan (B+ - Lancar Sekali)' },
+    { value: 'Jayyid (B)', label: 'Jayyid (B - Cukup Lancar)' },
+    { value: 'Maqbul (C)', label: 'Maqbul (C - Kurang Lancar)' },
+    { value: "Dho'if (D)", label: "Dho'if (D - Perlu Mengulang)" }
   ];
 
   const statusOptions = [
@@ -296,15 +306,13 @@ export default function TahfidzView() {
     { value: 'Mengulang', label: 'Mengulang Penuh' }
   ];
 
-  const surahOptions = SURAH_LIST.map(s => ({ value: s, label: s }));
-
   return (
     <div>
       {/* 1. TOP 4 COLORED STATS CARDS */}
       <div className="top-stats-grid">
         <div className="stat-card-colored stat-card-blue">
           <div>
-            <div className="stat-colored-title">TOTAL MUTABA'AH SETORAN</div>
+            <div className="stat-colored-title">TOTAL SETORAN HAFALAN</div>
             <div className="stat-colored-number">{totalSetoran}</div>
           </div>
           <div className="stat-colored-icon-box">
@@ -314,8 +322,8 @@ export default function TahfidzView() {
 
         <div className="stat-card-colored stat-card-green">
           <div>
-            <div className="stat-colored-title">SETORAN ZIYADAH</div>
-            <div className="stat-colored-number">{countZiyadah}</div>
+            <div className="stat-colored-title">HAFALAN AL-QUR'AN</div>
+            <div className="stat-colored-number">{countQuran}</div>
           </div>
           <div className="stat-colored-icon-box">
             <Sparkles size={22} />
@@ -324,8 +332,8 @@ export default function TahfidzView() {
 
         <div className="stat-card-colored stat-card-amber">
           <div>
-            <div className="stat-colored-title">SETORAN MUROJA'AH</div>
-            <div className="stat-colored-number">{countMurojaah}</div>
+            <div className="stat-colored-title">KITAB & NADZOM</div>
+            <div className="stat-colored-number">{countKitab}</div>
           </div>
           <div className="stat-colored-icon-box">
             <Layers size={22} />
@@ -348,8 +356,8 @@ export default function TahfidzView() {
         <div className="page-title-left">
           <BookOpen size={22} className="page-title-icon" style={{ color: '#059669' }} />
           <div>
-            <h2>Tahfidz & Muroja'ah Al-Qur'an</h2>
-            <p>Pencatatan mutaba'ah setoran harian santri, penilaian tajwid, juz, dan riwayat bimbingan asatidz</p>
+            <h2>Hafalan Santri (Tahfidz Qur'an & Kitab/Nadzom)</h2>
+            <p>Pencatatan mutaba'ah setoran hafalan santri: Al-Qur'an, Nadzom Jurumiyah, Imrithi, Alfiyah, Hadits Arbain, dll.</p>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -368,31 +376,31 @@ export default function TahfidzView() {
           className={`tab-btn ${activeFilterTab === 'semua' ? 'active' : ''}`}
           onClick={() => setActiveFilterTab('semua')}
         >
-          <BookOpen size={14} /> Semua Setoran ({setoranList.length})
+          <BookOpen size={14} /> Semua Hafalan ({setoranList.length})
         </button>
         <button 
-          className={`tab-btn ${activeFilterTab === 'ziyadah' ? 'active' : ''}`}
-          onClick={() => setActiveFilterTab('ziyadah')}
+          className={`tab-btn ${activeFilterTab === 'quran' ? 'active' : ''}`}
+          onClick={() => setActiveFilterTab('quran')}
         >
-          <Sparkles size={14} /> Ziyadah ({countZiyadah})
+          <Sparkles size={14} /> Al-Qur'an ({countQuran})
         </button>
         <button 
-          className={`tab-btn ${activeFilterTab === 'murojaah' ? 'active' : ''}`}
-          onClick={() => setActiveFilterTab('murojaah')}
+          className={`tab-btn ${activeFilterTab === 'jurumiyah' ? 'active' : ''}`}
+          onClick={() => setActiveFilterTab('jurumiyah')}
         >
-          <Layers size={14} /> Muroja'ah ({countMurojaah})
+          <Layers size={14} /> Nadzom Jurumiyah
         </button>
         <button 
-          className={`tab-btn ${activeFilterTab === 'sabqi' ? 'active' : ''}`}
-          onClick={() => setActiveFilterTab('sabqi')}
+          className={`tab-btn ${activeFilterTab === 'imrithi' ? 'active' : ''}`}
+          onClick={() => setActiveFilterTab('imrithi')}
         >
-          <Award size={14} /> Sabqi ({setoranList.filter(s => s.jenis_setoran === 'Sabqi').length})
+          <Award size={14} /> Imrithi & Alfiyah
         </button>
         <button 
-          className={`tab-btn ${activeFilterTab === 'tasmi' ? 'active' : ''}`}
-          onClick={() => setActiveFilterTab('tasmi')}
+          className={`tab-btn ${activeFilterTab === 'kitab' ? 'active' : ''}`}
+          onClick={() => setActiveFilterTab('kitab')}
         >
-          <CheckCircle2 size={14} /> Tasmi' Bil-Ghoib
+          <CheckCircle2 size={14} /> Kitab Lainnya
         </button>
       </div>
 
@@ -402,17 +410,17 @@ export default function TahfidzView() {
           <Search size={15} color="#94a3b8" />
           <input 
             type="text" 
-            placeholder="Cari nama santri, NIS, surat, atau nama asatidz..." 
+            placeholder="Cari santri, kitab, nadzom, capaian, atau ustadz..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div style={{ minWidth: '160px' }}>
+        <div style={{ minWidth: '170px' }}>
           <SearchableSelect
-            options={['Semua Tajwid', 'Mumtaz (A)', 'Jayyid Jiddan (B+)', 'Jayyid (B)', 'Maqbul (C)', 'Rombak/Ulang']}
-            value={filterTajwid}
-            onChange={(val) => setFilterTajwid(val || 'Semua Tajwid')}
-            placeholder="Semua Tajwid"
+            options={['Semua Kelancaran', 'Mumtaz (A)', 'Jayyid Jiddan (B+)', 'Jayyid (B)', 'Maqbul (C)', "Dho'if (D)"]}
+            value={filterKelancaran}
+            onChange={(val) => setFilterKelancaran(val || 'Semua Kelancaran')}
+            placeholder="Semua Kelancaran"
           />
         </div>
         <div style={{ minWidth: '150px' }}>
@@ -442,100 +450,91 @@ export default function TahfidzView() {
                 <th className="td-center" style={{ width: '40px' }}>NO</th>
                 <th className="td-center" style={{ width: '90px' }}>TANGGAL</th>
                 <th>NAMA SANTRI & ASRAMA</th>
-                <th className="td-center">JENIS SETORAN</th>
-                <th>CAPAIAN AYAT & SURAT</th>
-                <th className="td-center" style={{ width: '65px' }}>JUZ</th>
-                <th className="td-center">KUALITAS TAJWID</th>
-                <th className="td-center">STATUS</th>
+                <th className="td-center" style={{ width: '160px' }}>MATERI HAFALAN / KITAB</th>
+                <th>CAPAIAN / BAGIAN HAFALAN</th>
+                <th className="td-center" style={{ width: '120px' }}>KELANCARAN</th>
+                <th className="td-center" style={{ width: '85px' }}>STATUS</th>
                 <th>ASATIDZ PENGUJI</th>
-                <th className="td-center" style={{ width: '130px' }}>AKSI</th>
+                <th className="td-center" style={{ width: '110px' }}>AKSI</th>
               </tr>
             </thead>
             <tbody>
-              {filteredList.map((row, idx) => (
-                <tr key={row.id || idx}>
-                  <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
-                    {idx + 1}
-                  </td>
-                  <td className="td-center" style={{ fontSize: '0.74rem', fontWeight: 600 }}>
-                    {row.tanggal ? new Date(row.tanggal).toLocaleDateString('id-ID') : '-'}
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{row.nama_santri}</div>
-                    <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>
-                      NIS: {row.nis || '-'} • {row.nama_asrama || 'Asrama'} ({row.nama_kamar || '-'})
-                    </div>
-                  </td>
-                  <td className="td-center">
-                    <span className={`badge ${
-                      row.jenis_setoran === 'Ziyadah' ? 'badge-success' :
-                      row.jenis_setoran === "Muroja'ah" ? 'badge-info' :
-                      row.jenis_setoran === 'Sabqi' ? 'badge-warning' : 'badge-purple'
-                    }`}>
-                      {row.jenis_setoran}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.78rem' }}>
-                      QS. {row.surat_mulai} ({row.ayat_mulai}) - QS. {row.surat_selesai} ({row.ayat_selesai})
-                    </div>
-                  </td>
-                  <td className="td-center">
-                    <span className="badge badge-info" style={{ fontWeight: 800 }}>
-                      Juz {row.juz}
-                    </span>
-                  </td>
-                  <td className="td-center">
-                    <span className={`badge ${
-                      row.kualitas_tajwid?.includes('Mumtaz') ? 'badge-success' :
-                      row.kualitas_tajwid?.includes('Jayyid Jiddan') ? 'badge-info' :
-                      row.kualitas_tajwid?.includes('Jayyid') ? 'badge-warning' : 'badge-danger'
-                    }`}>
-                      {row.kualitas_tajwid}
-                    </span>
-                  </td>
-                  <td className="td-center">
-                    <span className={`badge ${row.status === 'Lulus' ? 'badge-success' : 'badge-danger'}`}>
-                      {row.status}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#0f172a' }}>
-                      {row.nama_asatidz || 'Musyrif'}
-                    </div>
-                    {row.nama_halaqah && (
-                      <div style={{ fontSize: '0.68rem', color: '#059669' }}>
-                        {row.nama_halaqah}
+              {filteredList.map((row, idx) => {
+                const materi = row.materi_hafalan || (row.surat_mulai ? "Al-Qur'an" : 'Hafalan');
+                const capaian = row.capaian_hafalan || (row.surat_mulai ? `QS. ${row.surat_mulai} (${row.ayat_mulai || 1}) - QS. ${row.surat_selesai || row.surat_mulai} (${row.ayat_selesai || 10})` : '-');
+                const kelancaran = row.nilai_kelancaran || row.kualitas_tajwid || 'Mumtaz (A)';
+
+                return (
+                  <tr key={row.id || idx}>
+                    <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
+                      {idx + 1}
+                    </td>
+                    <td className="td-center" style={{ fontSize: '0.74rem', fontWeight: 600 }}>
+                      {row.tanggal ? new Date(row.tanggal).toLocaleDateString('id-ID') : '-'}
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 700, color: '#0f172a' }}>{row.nama_santri}</div>
+                      <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>
+                        NIS: {row.nis || '-'} • {row.nama_asrama || 'Asrama'} ({row.nama_kamar || '-'})
                       </div>
-                    )}
-                  </td>
-                  <td className="td-center">
-                    <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
-                      <button 
-                        className="btn-action btn-action-view"
-                        onClick={() => openDetail(row)}
-                        title="Lihat Detail Setoran"
-                      >
-                        <Eye size={13} />
-                      </button>
-                      <button 
-                        className="btn-action btn-action-edit"
-                        onClick={() => openEditForm(row)}
-                        title="Edit Setoran"
-                      >
-                        <Edit3 size={13} />
-                      </button>
-                      <button 
-                        className="btn-action btn-action-delete"
-                        onClick={() => handleDelete(row.id, `${row.nama_santri} - Juz ${row.juz}`)}
-                        title="Hapus Setoran"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="td-center">
+                      <span className="badge badge-purple" style={{ fontWeight: 700, fontSize: '0.72rem' }}>
+                        {materi}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.78rem' }}>
+                        {capaian}
+                      </div>
+                    </td>
+                    <td className="td-center">
+                      <span className={`badge ${
+                        kelancaran.includes('Mumtaz') ? 'badge-success' :
+                        kelancaran.includes('Jayyid Jiddan') ? 'badge-info' :
+                        kelancaran.includes('Jayyid') ? 'badge-warning' : 'badge-danger'
+                      }`}>
+                        {kelancaran}
+                      </span>
+                    </td>
+                    <td className="td-center">
+                      <span className={`badge ${row.status === 'Lulus' ? 'badge-success' : 'badge-danger'}`}>
+                        {row.status}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#0f172a' }}>
+                        {row.nama_asatidz || 'Musyrif'}
+                      </div>
+                    </td>
+                    <td className="td-center">
+                      <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
+                        <button 
+                          className="btn-action btn-action-view"
+                          onClick={() => openDetail(row)}
+                          title="Lihat Detail Setoran"
+                        >
+                          <Eye size={13} />
+                        </button>
+                        <button 
+                          className="btn-action btn-action-edit"
+                          onClick={() => openEditForm(row)}
+                          title="Edit Setoran"
+                        >
+                          <Edit3 size={13} />
+                        </button>
+                        <button 
+                          className="btn-action btn-action-delete"
+                          onClick={() => handleDelete(row.id, `${row.nama_santri} - ${materi}`)}
+                          title="Hapus Setoran"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -632,26 +631,34 @@ export default function TahfidzView() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
                 <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff' }}>
                   <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px' }}>
-                    Posisi Juz & Jenis Setoran
+                    Materi Hafalan / Kitab
                   </div>
-                  <div style={{ fontWeight: 800, fontSize: '0.98rem', color: '#059669' }}>Juz {selectedItem.juz}</div>
-                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>Jenis: {selectedItem.jenis_setoran}</div>
+                  <div style={{ fontWeight: 800, fontSize: '0.98rem', color: '#059669' }}>
+                    {selectedItem.materi_hafalan || (selectedItem.surat_mulai ? "Al-Qur'an" : 'Hafalan')}
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                    Tanggal: {selectedItem.tanggal ? new Date(selectedItem.tanggal).toLocaleDateString('id-ID') : '-'}
+                  </div>
                 </div>
 
                 <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff' }}>
                   <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px' }}>
-                    Kualitas Tajwid & Fashohah
+                    Kelancaran & Penguji
                   </div>
-                  <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#0f172a' }}>{selectedItem.kualitas_tajwid}</div>
-                  <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 600 }}>Penguji: {selectedItem.nama_asatidz || 'Musyrif'}</div>
+                  <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#0f172a' }}>
+                    {selectedItem.nilai_kelancaran || selectedItem.kualitas_tajwid || 'Mumtaz (A)'}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 600 }}>
+                    Penguji: {selectedItem.nama_asatidz || 'Musyrif'}
+                  </div>
                 </div>
 
                 <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff', gridColumn: 'span 2' }}>
                   <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px' }}>
-                    Rincian Surat & Ayat Yang Disetorkan
+                    Capaian / Bagian Hafalan Yang Disetorkan
                   </div>
-                  <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#0f172a' }}>
-                    QS. {selectedItem.surat_mulai} (Ayat {selectedItem.ayat_mulai}) s/d QS. {selectedItem.surat_selesai} (Ayat {selectedItem.ayat_selesai})
+                  <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>
+                    {selectedItem.capaian_hafalan || (selectedItem.surat_mulai ? `QS. ${selectedItem.surat_mulai} (${selectedItem.ayat_mulai || 1}) s/d QS. ${selectedItem.surat_selesai || selectedItem.surat_mulai} (${selectedItem.ayat_selesai || 10})` : '-')}
                   </div>
                 </div>
               </div>
@@ -728,10 +735,10 @@ export default function TahfidzView() {
                 </div>
                 <div>
                   <h3 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
-                    {formMode === 'add' ? 'Input Setoran Tahfidz Santri' : 'Edit Riwayat Setoran Tahfidz'}
+                    {formMode === 'add' ? 'Input Mutaba\'ah Hafalan Santri' : 'Edit Mutaba\'ah Hafalan Santri'}
                   </h3>
                   <p style={{ fontSize: '0.7rem', color: '#94a3b8', margin: 0 }}>
-                    Catat capaian hafalan Al-Qur'an secara teliti dan akurat.
+                    Catat capaian hafalan santri: Al-Qur'an, Nadzom Al-Jurumiyah, Imrithi, Alfiyah, dll.
                   </p>
                 </div>
               </div>
@@ -778,110 +785,87 @@ export default function TahfidzView() {
                     </div>
 
                     <div>
-                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Kelompok Halaqah</label>
-                      <SearchableSelect
-                        options={halaqahOptions}
-                        value={formData.halaqah_id}
-                        onChange={(val) => setFormData({ ...formData, halaqah_id: val })}
-                        placeholder="-- Pilih Halaqah (Opsional) --"
-                        searchPlaceholder="Ketik nama halaqah..."
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Mutaba'ah Rincian Card */}
-                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px', background: '#ffffff', marginBottom: '12px' }}>
-                  <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <BookOpen size={14} color="#059669" /> MUTABA'AH AYAT & JUZ
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div>
                       <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Tanggal Setoran *</label>
                       <input 
                         type="date"
-                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.tanggal}
                         onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
                         required
                       />
                     </div>
+                  </div>
+                </div>
 
-                    <div>
-                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Jenis Setoran *</label>
-                      <SearchableSelect
-                        options={jenisSetoranOptions}
-                        value={formData.jenis_setoran}
-                        onChange={(val) => setFormData({ ...formData, jenis_setoran: val })}
-                        placeholder="-- Pilih Jenis Setoran --"
-                      />
+                {/* Materi & Capaian Hafalan Card */}
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px', background: '#ffffff', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <BookOpen size={14} color="#059669" /> MATERI & CAPAIAN HAFALAN (AL-QUR'AN / KITAB / NADZOM)
+                  </div>
+
+                  {/* Preset Quick Chips */}
+                  <div style={{ marginBottom: '10px' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, marginBottom: '6px' }}>Pilihan Cepat Materi:</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {["Al-Qur'an", "Nadzom Al-Jurumiyah", "Nadzom Al-Imrithi", "Nadzom Alfiyah", "Matan Taqrib", "Aqidatul Awam", "Hadits Arbain"].map(item => (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, materi_hafalan: item })}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: '16px',
+                            border: formData.materi_hafalan === item ? '1px solid #059669' : '1px solid #cbd5e1',
+                            background: formData.materi_hafalan === item ? '#ecfdf5' : '#f8fafc',
+                            color: formData.materi_hafalan === item ? '#065f46' : '#475569',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {item}
+                        </button>
+                      ))}
                     </div>
+                  </div>
 
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div>
-                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Juz Ke- *</label>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Materi Hafalan / Nama Kitab *</label>
                       <input 
-                        type="number"
-                        min="1"
-                        max="30"
-                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
-                        value={formData.juz}
-                        onChange={(e) => setFormData({ ...formData, juz: parseInt(e.target.value) || 1 })}
+                        type="text"
+                        list="materi-preset-list"
+                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                        value={formData.materi_hafalan}
+                        onChange={(e) => setFormData({ ...formData, materi_hafalan: e.target.value })}
+                        placeholder="Contoh: Nadzom Al-Jurumiyah, Al-Qur'an..."
                         required
                       />
+                      <datalist id="materi-preset-list">
+                        {MATERI_HAFALAN_PRESETS.map((m, idx) => (
+                          <option key={idx} value={m} />
+                        ))}
+                      </datalist>
                     </div>
 
                     <div>
-                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Kualitas Tajwid *</label>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Tingkat Kelancaran / Nilai *</label>
                       <SearchableSelect
-                        options={tajwidOptions}
-                        value={formData.kualitas_tajwid}
-                        onChange={(val) => setFormData({ ...formData, kualitas_tajwid: val })}
-                        placeholder="-- Kualitas Tajwid --"
+                        options={KELANCARAN_OPTIONS}
+                        value={formData.nilai_kelancaran}
+                        onChange={(val) => setFormData({ ...formData, nilai_kelancaran: val })}
+                        placeholder="-- Tingkat Kelancaran --"
                       />
                     </div>
 
-                    <div>
-                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Surat Mulai *</label>
-                      <SearchableSelect
-                        options={surahOptions}
-                        value={formData.surat_mulai}
-                        onChange={(val) => setFormData({ ...formData, surat_mulai: val })}
-                        placeholder="-- Pilih Surat Mulai --"
-                        searchPlaceholder="Cari Surah (1 - 114)..."
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Ayat Mulai *</label>
+                    <div style={{ gridColumn: 'span 2' }}>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Capaian / Bagian Hafalan Yang Disetorkan *</label>
                       <input 
-                        type="number"
-                        min="1"
-                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
-                        value={formData.ayat_mulai}
-                        onChange={(e) => setFormData({ ...formData, ayat_mulai: parseInt(e.target.value) || 1 })}
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Surat Selesai *</label>
-                      <SearchableSelect
-                        options={surahOptions}
-                        value={formData.surat_selesai}
-                        onChange={(val) => setFormData({ ...formData, surat_selesai: val })}
-                        placeholder="-- Pilih Surat Selesai --"
-                        searchPlaceholder="Cari Surah (1 - 114)..."
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Ayat Selesai *</label>
-                      <input 
-                        type="number"
-                        min="1"
-                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
-                        value={formData.ayat_selesai}
-                        onChange={(e) => setFormData({ ...formData, ayat_selesai: parseInt(e.target.value) || 1 })}
+                        type="text"
+                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                        value={formData.capaian_hafalan}
+                        onChange={(e) => setFormData({ ...formData, capaian_hafalan: e.target.value })}
+                        placeholder="Contoh: Bait 1 - 25 (Bab Kalam & I'rab) / Juz 30 (An-Naba s/d An-Nas) / Bab Thaharah..."
                         required
                       />
                     </div>
@@ -910,6 +894,7 @@ export default function TahfidzView() {
                       rows="2"
                       value={formData.catatan}
                       onChange={(e) => setFormData({ ...formData, catatan: e.target.value })}
+                      placeholder="Catatan kelebihan, makhraj, kelancaran, atau perbaikan hafalan..."
                     />
                   </div>
                 </div>
