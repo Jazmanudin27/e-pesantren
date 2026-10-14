@@ -3,10 +3,12 @@ import axios from 'axios';
 import { BookOpen, Plus, Edit3, Trash2, X, Save, Loader2, Search, CheckCircle, Award } from 'lucide-react';
 import { SURAH_LIST } from '../../utils/quranSurah.util';
 import { showConfirm, toastSuccess } from '../../utils/alert.util';
+import SearchableSelect from '../../components/SearchableSelect';
 
 export default function MobileTahfidz() {
   const [setoranList, setSetoranList] = useState([]);
   const [santriOptions, setSantriOptions] = useState([]);
+  const [materiOptions, setMateriOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,13 +37,18 @@ export default function MobileTahfidz() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [resSetoran, resSantri] = await Promise.all([
+      const [resSetoran, resSantri, resMateri] = await Promise.all([
         axios.get('/api/dashboard/stats'),
-        axios.get('/api/santri')
+        axios.get('/api/santri'),
+        axios.get('/api/materi-hafalan').catch(() => ({ data: { success: false } }))
       ]);
 
       if (resSantri.data && resSantri.data.data) {
         setSantriOptions(resSantri.data.data);
+      }
+
+      if (resMateri.data && resMateri.data.success && resMateri.data.data) {
+        setMateriOptions(resMateri.data.data);
       }
 
       if (resSetoran.data && resSetoran.data.recentSetoran && resSetoran.data.recentSetoran.length > 0) {
@@ -307,40 +314,39 @@ export default function MobileTahfidz() {
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Pilih Santri *</label>
-                <select
+                <SearchableSelect
+                  options={santriOptions.map(s => ({
+                    value: s.id,
+                    label: s.nama_santri,
+                    sublabel: s.nis ? `NIS: ${s.nis}` : null
+                  }))}
                   value={formData.santri_id}
-                  onChange={(e) => setFormData({ ...formData, santri_id: parseInt(e.target.value) })}
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#ffffff' }}
-                >
-                  {santriOptions.length > 0 ? (
-                    santriOptions.map(s => <option key={s.id} value={s.id}>{s.nama_santri} (NIS: {s.nis})</option>)
-                  ) : (
-                    <option value={1}>Muhammad Al-Fatih</option>
-                  )}
-                </select>
+                  onChange={(val) => setFormData({ ...formData, santri_id: parseInt(val) })}
+                  placeholder="-- Pilih Santri --"
+                  searchPlaceholder="Cari nama atau NIS santri..."
+                  required
+                />
               </div>
 
               {/* Materi Hafalan */}
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Materi Hafalan / Kitab *</label>
-                <input
-                  type="text"
-                  required
-                  list="materi-mobile-list"
+                <SearchableSelect
+                  options={(materiOptions.length > 0 ? materiOptions : MATERI_PRESETS.map((m, idx) => ({ id: idx, nama_materi: m, kategori: 'Hafalan' }))).map(m => ({
+                    value: m.nama_materi,
+                    label: m.nama_materi,
+                    sublabel: m.kategori ? `${m.kategori}${m.target_hafalan ? ` • ${m.target_hafalan}` : ''}` : null
+                  }))}
                   value={formData.materi_hafalan}
-                  onChange={(e) => setFormData({ ...formData, materi_hafalan: e.target.value })}
-                  placeholder="Pilih atau ketik (Al-Qur'an, Nadzom Jurumiyah, dll)"
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  onChange={(val) => setFormData({ ...formData, materi_hafalan: val })}
+                  placeholder="-- Pilih Materi / Kitab dari Database --"
+                  searchPlaceholder="Cari Al-Qur'an, Jurumiyah, Taqrib..."
+                  required
                 />
-                <datalist id="materi-mobile-list">
-                  {MATERI_PRESETS.map((m, idx) => (
-                    <option key={idx} value={m} />
-                  ))}
-                </datalist>
                 
                 {/* Chip Pilihan Cepat */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
-                  {["Al-Qur'an", "Nadzom Al-Jurumiyah", "Nadzom Al-Imrithi", "Alfiyah", "Matan Taqrib"].map(chip => (
+                  {(materiOptions.length > 0 ? materiOptions.slice(0, 6).map(m => m.nama_materi) : ["Al-Qur'an", "Nadzom Al-Jurumiyah", "Nadzom Al-Imrithi", "Alfiyah", "Matan Taqrib"]).map(chip => (
                     <button
                       key={chip}
                       type="button"

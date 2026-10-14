@@ -29,6 +29,7 @@ export default function TahfidzView() {
   const [santriList, setSantriList] = useState([]);
   const [asatidzList, setAsatidzList] = useState([]);
   const [halaqahList, setHalaqahList] = useState([]);
+  const [materiMasterList, setMateriMasterList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeFilterTab, setActiveFilterTab] = useState('semua');
   const [search, setSearch] = useState('');
@@ -80,12 +81,17 @@ export default function TahfidzView() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [resSetoran, resSantri, resAsatidz, resHalaqah] = await Promise.all([
+      const [resSetoran, resSantri, resAsatidz, resHalaqah, resMateri] = await Promise.all([
         axios.get('/api/tahfidz/setoran'),
         axios.get('/api/santri'),
         axios.get('/api/asatidz'),
-        axios.get('/api/tahfidz/halaqah')
+        axios.get('/api/tahfidz/halaqah'),
+        axios.get('/api/materi-hafalan').catch(() => ({ data: { success: false } }))
       ]);
+
+      if (resMateri.data && resMateri.data.success && resMateri.data.data) {
+        setMateriMasterList(resMateri.data.data);
+      }
 
       if (resSetoran.data && resSetoran.data.success) {
         setSetoranList(resSetoran.data.data || []);
@@ -807,7 +813,7 @@ export default function TahfidzView() {
                   <div style={{ marginBottom: '10px' }}>
                     <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, marginBottom: '6px' }}>Pilihan Cepat Materi:</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                      {["Al-Qur'an", "Nadzom Al-Jurumiyah", "Nadzom Al-Imrithi", "Nadzom Alfiyah", "Matan Taqrib", "Aqidatul Awam", "Hadits Arbain"].map(item => (
+                      {(materiMasterList.length > 0 ? materiMasterList.slice(0, 8).map(m => m.nama_materi) : ["Al-Qur'an", "Nadzom Al-Jurumiyah", "Nadzom Al-Imrithi", "Nadzom Alfiyah", "Matan Taqrib", "Aqidatul Awam", "Hadits Arbain"]).map(item => (
                         <button
                           key={item}
                           type="button"
@@ -832,20 +838,18 @@ export default function TahfidzView() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div>
                       <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Materi Hafalan / Nama Kitab *</label>
-                      <input 
-                        type="text"
-                        list="materi-preset-list"
-                        style={{ width: '100%', padding: '7px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                      <SearchableSelect
+                        options={(materiMasterList.length > 0 ? materiMasterList : MATERI_HAFALAN_PRESETS.map((m, idx) => ({ id: idx, nama_materi: m, kategori: 'Kitab' }))).map(m => ({
+                          value: m.nama_materi,
+                          label: m.nama_materi,
+                          sublabel: m.kategori ? `${m.kategori}${m.target_hafalan ? ` • ${m.target_hafalan}` : ''}` : null
+                        }))}
                         value={formData.materi_hafalan}
-                        onChange={(e) => setFormData({ ...formData, materi_hafalan: e.target.value })}
-                        placeholder="Contoh: Nadzom Al-Jurumiyah, Al-Qur'an..."
+                        onChange={(val) => setFormData({ ...formData, materi_hafalan: val })}
+                        placeholder="-- Cari & Pilih Materi / Kitab --"
+                        searchPlaceholder="Ketik nama kitab, nadzom, surat..."
                         required
                       />
-                      <datalist id="materi-preset-list">
-                        {MATERI_HAFALAN_PRESETS.map((m, idx) => (
-                          <option key={idx} value={m} />
-                        ))}
-                      </datalist>
                     </div>
 
                     <div>

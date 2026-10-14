@@ -203,6 +203,40 @@ async function autoMigrateDatabase() {
       console.warn('[E-PESANTREN KATEGORI PRAKTEK MIGRATE NOTICE]', katErr.message);
     }
 
+    // Auto-migrate materi_hafalan table & seed
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS \`materi_hafalan\` (
+          \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+          \`nama_materi\` VARCHAR(150) NOT NULL UNIQUE,
+          \`kategori\` VARCHAR(100) NOT NULL DEFAULT 'Kitab Kuning',
+          \`target_hafalan\` VARCHAR(150) NULL,
+          \`deskripsi\` VARCHAR(255) NULL,
+          \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `).catch(() => {});
+
+      const [existingMateri] = await pool.query("SELECT COUNT(*) AS total FROM \`materi_hafalan\`").catch(() => [[{ total: 0 }]]);
+      if (existingMateri[0]?.total === 0) {
+        await pool.query(`
+          INSERT INTO \`materi_hafalan\` (\`nama_materi\`, \`kategori\`, \`target_hafalan\`, \`deskripsi\`) VALUES
+          ('Al-Qur\\'an 30 Juz', 'Al-Qur\\'an', '30 Juz (114 Surat)', 'Hafalan ayat-ayat suci Al-Qur\\'an Al-Karim'),
+          ('Juz \\'Amma (Juz 30)', 'Al-Qur\\'an', '37 Surat Pendek', 'Hafalan surat-surat juz ke-30 an-Naba s/d an-Naas'),
+          ('Nadzom Al-Jurumiyah', 'Nahwu & Shorof', '60 Bait', 'Kaidah dasar ilmu nahwu tata bahasa Arab'),
+          ('Nadzom Al-Imrithi', 'Nahwu & Shorof', '254 Bait', 'Sya\\'ir pendalaman kaidah nahwu tingkat menengah'),
+          ('Nadzom Alfiyah Ibnu Malik', 'Nahwu & Shorof', '1002 Bait', 'Master gramatika bahasa Arab dan nahwu shorof'),
+          ('Matan Taqrib (Ghayah wat Taqrib)', 'Fiqih Syafi\\'i', 'Seluruh Bab Fiqih', 'Matan fiqih pokok madzhab Imam Asy-Syafi\\'i'),
+          ('Hadits Al-Arba\\'in An-Nawawiyah', 'Hadits Nabawi', '42 Hadits Pokok', 'Kumpulan hadits-hadits pokok ajaran Islam pilihan Imam Nawawi'),
+          ('Aqidatul Awam', 'Aqidah & Tauhid', '57 Bait', 'Hafalan pokok-pokok aqidah tauhid ahlussunnah wal jama\\'ah'),
+          ('Hidayatus Shibyan', 'Tajwid', '40 Bait', 'Nadzom kaidah ilmu tajwid bacaan Al-Qur\\'an'),
+          ('Taisirul Khalaq', 'Akhlak & Adab', 'Seluruh Fasal', 'Kitab akhlak budi pekerti dan adab santri mukim')
+          ON DUPLICATE KEY UPDATE \`nama_materi\` = VALUES(\`nama_materi\`);
+        `).catch(() => {});
+      }
+    } catch (materiErr) {
+      console.warn('[E-PESANTREN MATERI HAFALAN MIGRATE NOTICE]', materiErr.message);
+    }
+
     // Auto-migrate praktek_ibadah table & seed
     try {
       await pool.query(`

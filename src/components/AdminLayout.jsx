@@ -36,6 +36,7 @@ import SantriView from '../views/admin/SantriView';
 import AsramaView from '../views/admin/AsramaView';
 import KelasView from '../views/admin/KelasView';
 import AsatidzView from '../views/admin/AsatidzView';
+import MasterMateriView from '../views/admin/MasterMateriView';
 import FingerprintDeviceView from '../views/admin/FingerprintDeviceView';
 import SettingKegiatanView from '../views/admin/SettingKegiatanView';
 import UserManagementView from '../views/admin/UserManagementView';
@@ -49,7 +50,7 @@ import LoginAdmin from '../views/admin/LoginAdmin';
 import { showConfirm, toastSuccess } from '../utils/alert.util';
 
 export default function AdminLayout() {
-  const isMasterTab = (tab) => ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz'].includes(tab);
+  const isMasterTab = (tab) => ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-materi'].includes(tab);
   const isSettingsTab = (tab) => ['master-device', 'setting-kegiatan', 'master-kegiatan', 'manajemen-user', 'users'].includes(tab);
   const isLaporanTab = (tab) => ['laporan-presensi', 'laporan-tahfidz'].includes(tab);
 
@@ -298,6 +299,8 @@ export default function AdminLayout() {
         return <KelasView />;
       case 'master-asatidz':
         return <AsatidzView />;
+      case 'master-materi':
+        return <MasterMateriView />;
       case 'master-device':
         return <FingerprintDeviceView />;
       case 'setting-kegiatan':
@@ -317,7 +320,7 @@ export default function AdminLayout() {
     }
   };
 
-  const isMasterActive = ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz'].includes(activeTab);
+  const isMasterActive = ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-materi'].includes(activeTab);
   const isSettingsActive = ['master-device', 'setting-kegiatan', 'master-kegiatan', 'manajemen-user', 'users'].includes(activeTab);
   const isLaporanActive = ['laporan-presensi', 'laporan-tahfidz'].includes(activeTab);
 
@@ -426,6 +429,14 @@ export default function AdminLayout() {
             >
               <Users size={13} style={{ marginRight: '6px' }} />
               <span>Data Asatidz & Musyrif</span>
+            </button>
+
+            <button 
+              className={`nav-sublink ${activeTab === 'master-materi' ? 'active' : ''}`}
+              onClick={() => handleTabClick('master-materi')}
+            >
+              <BookOpen size={13} style={{ marginRight: '6px', color: '#059669' }} />
+              <span>Materi Hafalan & Kitab</span>
             </button>
           </div>
         )}

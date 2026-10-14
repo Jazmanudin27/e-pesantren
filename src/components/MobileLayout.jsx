@@ -40,6 +40,7 @@ import MobileKitab from '../views/mobile/MobileKitab';
 import MobileProfil from '../views/mobile/MobileProfil';
 import MobileLogin from '../views/mobile/MobileLogin';
 import MobilePraktek from '../views/mobile/MobilePraktek';
+import MobileMateriHafalan from '../views/mobile/MobileMateriHafalan';
 
 export default function MobileLayout() {
   const [session, setSession] = useState(() => {
@@ -144,6 +145,7 @@ export default function MobileLayout() {
       case 'master-asrama': return 'Data Asrama & Kobong';
       case 'master-kelas': return 'Data Kelas & Halaqah';
       case 'master-asatidz': return 'Data Asatidz & Musyrif';
+      case 'master-materi': return 'Master Materi & Kitab';
       case 'kitab': return 'Kajian Kitab Kuning';
       case 'master-device': return 'Data Mesin Fingerprint';
       case 'tata-tertib': return 'Tata Tertib & Ta\'zir';
@@ -157,7 +159,7 @@ export default function MobileLayout() {
 
   const isOtherMenuActive = [
     'dashboard', 'master-santri', 'master-asrama', 'master-kelas', 
-    'master-asatidz', 'kitab', 'master-device', 'tata-tertib', 
+    'master-asatidz', 'master-materi', 'kitab', 'master-device', 'tata-tertib', 
     'laporan-presensi', 'laporan-tahfidz', 'syahriah', 'praktek-ibadah', 'praktek'
   ].includes(mobileTab);
 
@@ -185,6 +187,8 @@ export default function MobileLayout() {
         return <MobileKelas />;
       case 'master-asatidz':
         return <MobileAsatidz />;
+      case 'master-materi':
+        return <MobileMateriHafalan />;
       case 'kitab':
         return <MobileKitab />;
       case 'master-device':
@@ -343,6 +347,9 @@ export default function MobileLayout() {
                     </button>
                     <button onClick={() => handleSelectTab('master-asatidz')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-asatidz' ? '#f3e8ff' : '#f8fafc', border: mobileTab === 'master-asatidz' ? '1px solid #9333ea' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                       <Users size={16} color="#9333ea" /> Data Asatidz
+                    </button>
+                    <button onClick={() => handleSelectTab('master-materi')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-materi' ? '#ecfdf5' : '#f8fafc', border: mobileTab === 'master-materi' ? '1px solid #059669' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                      <BookOpen size={16} color="#059669" /> Materi & Kitab
                     </button>
                     <button onClick={() => handleSelectTab('master-device')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-device' ? '#e2e8f0' : '#f8fafc', border: mobileTab === 'master-device' ? '1px solid #475569' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                       <HardDrive size={16} color="#475569" /> Fingerprint
