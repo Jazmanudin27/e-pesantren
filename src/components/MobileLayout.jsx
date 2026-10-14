@@ -19,7 +19,8 @@ import {
   Battery,
   Signal,
   ArrowLeft,
-  User
+  User,
+  HeartHandshake
 } from 'lucide-react';
 import MobileHome from '../views/mobile/MobileHome';
 import MobileTahfidz from '../views/mobile/MobileTahfidz';
@@ -38,6 +39,7 @@ import MobileLaporanTahfidz from '../views/mobile/MobileLaporanTahfidz';
 import MobileKitab from '../views/mobile/MobileKitab';
 import MobileProfil from '../views/mobile/MobileProfil';
 import MobileLogin from '../views/mobile/MobileLogin';
+import PraktekIbadahView from '../views/admin/PraktekIbadahView';
 
 export default function MobileLayout() {
   const [session, setSession] = useState(() => {
@@ -134,6 +136,8 @@ export default function MobileLayout() {
       case 'dashboard': return 'Dashboard System';
       case 'presensi': return 'Presensi & Absensi';
       case 'tahfidz': return 'Tahfidz & Muroja\'ah';
+      case 'praktek-ibadah':
+      case 'praktek': return 'Ujian Praktek Ibadah';
       case 'perizinan':
       case 'izin': return 'Perizinan';
       case 'master-santri': return 'Data Santri';
@@ -154,7 +158,7 @@ export default function MobileLayout() {
   const isOtherMenuActive = [
     'dashboard', 'master-santri', 'master-asrama', 'master-kelas', 
     'master-asatidz', 'kitab', 'master-device', 'tata-tertib', 
-    'laporan-presensi', 'laporan-tahfidz', 'syahriah'
+    'laporan-presensi', 'laporan-tahfidz', 'syahriah', 'praktek-ibadah', 'praktek'
   ].includes(mobileTab);
 
   const renderContent = () => {
@@ -167,6 +171,9 @@ export default function MobileLayout() {
         return <MobilePresensi />;
       case 'tahfidz':
         return <MobileTahfidz />;
+      case 'praktek-ibadah':
+      case 'praktek':
+        return <PraktekIbadahView />;
       case 'perizinan':
       case 'izin':
         return <MobileIzin />;
@@ -309,10 +316,13 @@ export default function MobileLayout() {
                       <Fingerprint size={16} color="#7c3aed" /> Presensi
                     </button>
                     <button onClick={() => handleSelectTab('tahfidz')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'tahfidz' ? '#dcfce7' : '#f8fafc', border: mobileTab === 'tahfidz' ? '1px solid #059669' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
-                      <BookOpen size={16} color="#059669" /> Tahfidz
+                      <BookOpen size={16} color="#059669" /> Tahfidz & Kitab
                     </button>
                     <button onClick={() => handleSelectTab('perizinan')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: (mobileTab === 'perizinan' || mobileTab === 'izin') ? '#dbeafe' : '#f8fafc', border: (mobileTab === 'perizinan' || mobileTab === 'izin') ? '1px solid #2563eb' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                       <DoorOpen size={16} color="#2563eb" /> Perizinan
+                    </button>
+                    <button onClick={() => handleSelectTab('praktek-ibadah')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: (mobileTab === 'praktek-ibadah' || mobileTab === 'praktek') ? '#d1fae5' : '#f8fafc', border: (mobileTab === 'praktek-ibadah' || mobileTab === 'praktek') ? '1px solid #059669' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer', gridColumn: 'span 2' }}>
+                      <HeartHandshake size={16} color="#059669" /> Praktek Ibadah (Sholat, Wudhu, dll)
                     </button>
                   </div>
                 </div>
