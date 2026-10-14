@@ -4,11 +4,20 @@ import {
   getPraktekById,
   createPraktek,
   updatePraktek,
-  deletePraktek
+  deletePraktek,
+  getKategoriPraktek,
+  createKategoriPraktek,
+  deleteKategoriPraktek
 } from '../controllers/praktek.controller.js';
 
 const router = express.Router();
 
+// Master Kategori Praktek
+router.get('/kategori', getKategoriPraktek);
+router.post('/kategori', createKategoriPraktek);
+router.delete('/kategori/:id', deleteKategoriPraktek);
+
+// Penilaian Praktek Ibadah
 router.get('/', getPraktek);
 router.get('/:id', getPraktekById);
 router.post('/', createPraktek);

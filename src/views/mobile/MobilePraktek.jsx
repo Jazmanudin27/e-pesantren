@@ -10,18 +10,27 @@ import {
   Loader2, 
   Search, 
   CheckCircle2, 
-  AlertCircle, 
+  RotateCw, 
   Award, 
   Sparkles, 
   Calendar, 
   UserCheck, 
   Building,
-  RotateCw,
-  Sliders,
-  ChevronRight,
-  Filter
+  Filter,
+  FolderPlus,
+  Tag
 } from 'lucide-react';
 import { showConfirm, toastSuccess, showError } from '../../utils/alert.util';
+
+const DEFAULT_KATEGORI = [
+  'Sholat Fardhu',
+  'Wudhu & Tayammum',
+  'Sholat Jenazah',
+  'Adzan & Iqomah',
+  'Dzikir & Doa',
+  'Mandi Wajib',
+  'Khutbah & Ceramah'
+];
 
 const DEFAULT_PRAKTEK_DATA = [
   {
@@ -33,14 +42,9 @@ const DEFAULT_PRAKTEK_DATA = [
     nama_kamar: 'Kamar 01',
     kategori: 'Sholat Fardhu',
     nama_praktek: 'Praktek Sholat Shubuh + Qunut',
-    nilai_gerakan: 95,
-    nilai_bacaan: 96,
-    nilai_adab: 92,
-    nilai_akhir: 95,
-    predikat: 'Mumtaz (A)',
+    deskripsi: 'Makhraj huruf fashih, gerakan ruku dan sujud sempurna sesuai sunnah, qunut lancar.',
     status: 'Lulus',
     nama_penguji: 'Ust. Hamdan S.Pd.I',
-    catatan_perbaikan: 'Makhraj huruf fashih, gerakan ruku dan sujud sempurna sesuai sunnah.',
     tanggal_ujian: '2026-10-12'
   },
   {
@@ -52,14 +56,9 @@ const DEFAULT_PRAKTEK_DATA = [
     nama_kamar: 'Kamar 01',
     kategori: 'Wudhu & Tayammum',
     nama_praktek: 'Praktek Wudhu Sempurna & Doa',
-    nilai_gerakan: 90,
-    nilai_bacaan: 92,
-    nilai_adab: 90,
-    nilai_akhir: 91,
-    predikat: 'Mumtaz (A)',
+    deskripsi: 'Rukun dan sunnah wudhu terlaksana tertib serta doa setelah wudhu lancar.',
     status: 'Lulus',
     nama_penguji: 'Ust. Hamdan S.Pd.I',
-    catatan_perbaikan: 'Rukun dan sunnah wudhu terlaksana tertib.',
     tanggal_ujian: '2026-10-10'
   },
   {
@@ -71,14 +70,9 @@ const DEFAULT_PRAKTEK_DATA = [
     nama_kamar: 'Kamar 01',
     kategori: 'Sholat Fardhu',
     nama_praktek: 'Praktek Sholat Maghrib & Dzikir Ba\'da Sholat',
-    nilai_gerakan: 88,
-    nilai_bacaan: 85,
-    nilai_adab: 87,
-    nilai_akhir: 87,
-    predikat: 'Jayyid Jiddan (B+)',
+    deskripsi: 'Bacaan surat dan rukun sah, tuma\'ninah ruku perlu sedikit diperpanjang.',
     status: 'Lulus',
     nama_penguji: 'Ust. M. Huda Al-Hafidz',
-    catatan_perbaikan: 'Tuma\'ninah ruku perlu sedikit diperpanjang.',
     tanggal_ujian: '2026-10-11'
   },
   {
@@ -90,14 +84,9 @@ const DEFAULT_PRAKTEK_DATA = [
     nama_kamar: 'Kamar 01',
     kategori: 'Sholat Jenazah',
     nama_praktek: 'Praktek Sholat Jenazah (4 Takbir)',
-    nilai_gerakan: 92,
-    nilai_bacaan: 90,
-    nilai_adab: 94,
-    nilai_akhir: 92,
-    predikat: 'Mumtaz (A)',
+    deskripsi: 'Hafalan doa takbir ke-3 dan ke-4 sangat lancar dan tartil.',
     status: 'Lulus',
     nama_penguji: 'Usth. Salma M.Pd',
-    catatan_perbaikan: 'Hafalan doa takbir ke-3 dan ke-4 sangat lancar.',
     tanggal_ujian: '2026-10-09'
   },
   {
@@ -109,14 +98,9 @@ const DEFAULT_PRAKTEK_DATA = [
     nama_kamar: 'Kamar 02',
     kategori: 'Wudhu & Tayammum',
     nama_praktek: 'Praktek Wudhu & Thaharah',
-    nilai_gerakan: 65,
-    nilai_bacaan: 60,
-    nilai_adab: 62,
-    nilai_akhir: 62,
-    predikat: 'Maqbul (C)',
-    status: 'Remedial',
+    deskripsi: 'Basuhan kedua telinga dan tertib rukun belum sempurna, mengulang pekan depan.',
+    status: 'Mengulang',
     nama_penguji: 'Ust. Hamdan S.Pd.I',
-    catatan_perbaikan: 'Basuhan kedua telinga dan tertib rukun belum sempurna, remedial pekan depan.',
     tanggal_ujian: '2026-10-08'
   },
   {
@@ -128,78 +112,32 @@ const DEFAULT_PRAKTEK_DATA = [
     nama_kamar: 'Kamar 02',
     kategori: 'Adzan & Iqomah',
     nama_praktek: 'Praktek Adzan Shubuh & Tarhim',
-    nilai_gerakan: 86,
-    nilai_bacaan: 88,
-    nilai_adab: 85,
-    nilai_akhir: 87,
-    predikat: 'Jayyid Jiddan (B+)',
+    deskripsi: 'Vokal lantang, tajwid lafadz adzan benar dan intonasi indah.',
     status: 'Lulus',
     nama_penguji: 'Ust. M. Huda Al-Hafidz',
-    catatan_perbaikan: 'Vokal lantang, tajwid lafadz adzan benar.',
     tanggal_ujian: '2026-10-07'
   }
 ];
 
-const KATEGORI_OPTIONS = [
-  'Semua',
-  'Sholat Fardhu',
-  'Wudhu & Tayammum',
-  'Sholat Jenazah',
-  'Adzan & Iqomah',
-  'Dzikir & Doa',
-  'Mandi Wajib',
-  'Khutbah & Ceramah'
-];
-
-const PRESET_MATERI = {
-  'Sholat Fardhu': [
-    'Praktek Sholat Shubuh + Qunut',
-    'Praktek Sholat Dzuhur 4 Rakaat',
-    'Praktek Sholat Ashar 4 Rakaat',
-    'Praktek Sholat Maghrib 3 Rakaat',
-    'Praktek Sholat Isya & Witir',
-    'Praktek Sholat Berjamaah & Masbuq'
-  ],
-  'Wudhu & Tayammum': [
-    'Praktek Wudhu Sempurna & Doa',
-    'Praktek Tayammum Sesuai Sunnah',
-    'Praktek Rukun & Pembatal Wudhu'
-  ],
-  'Sholat Jenazah': [
-    'Praktek Sholat Jenazah (4 Takbir)',
-    'Praktek Doa Jenazah Laki-laki & Perempuan'
-  ],
-  'Adzan & Iqomah': [
-    'Praktek Adzan Shubuh & Tarhim',
-    'Praktek Adzan Fardhu & Iqomah'
-  ],
-  'Dzikir & Doa': [
-    'Praktek Dzikir Ba\'da Sholat Fardhu',
-    'Praktek Doa Harian & Ayat Kursi',
-    'Praktek Wirid Rotib Al-Haddad'
-  ],
-  'Mandi Wajib': [
-    'Praktek Rukun Mandi Janabat & Niat',
-    'Praktek Thaharah dari Hadats Besar'
-  ],
-  'Khutbah & Ceramah': [
-    'Praktek Rukun Khutbah Jum\'at',
-    'Praktek Kultum Ba\'da Shubuh'
-  ]
-};
-
 export default function MobilePraktek() {
   const [praktekList, setPraktekList] = useState([]);
   const [santriList, setSantriList] = useState([]);
+  const [kategoriList, setKategoriList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedKategori, setSelectedKategori] = useState('Semua');
   const [selectedStatus, setSelectedStatus] = useState('Semua');
 
-  // Modal Sheet State
+  // Modal Form Input/Edit Penilaian
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formMode, setFormMode] = useState('add');
   const [submitting, setSubmitting] = useState(false);
+
+  // Modal Kelola Kategori (Custom Master)
+  const [isKategoriModalOpen, setIsKategoriModalOpen] = useState(false);
+  const [newKategoriName, setNewKategoriName] = useState('');
+  const [newKategoriDesc, setNewKategoriDesc] = useState('');
+  const [savingKategori, setSavingKategori] = useState(false);
 
   const session = JSON.parse(localStorage.getItem('mobile_session') || '{}');
   const currentPenguji = session?.nama || session?.nama_lengkap || 'Ust. Pembina Ibadah';
@@ -208,57 +146,25 @@ export default function MobilePraktek() {
     id: null,
     santri_id: '',
     kategori: 'Sholat Fardhu',
-    nama_praktek: 'Praktek Sholat Shubuh + Qunut',
-    nilai_gerakan: 85,
-    nilai_bacaan: 85,
-    nilai_adab: 85,
+    nama_praktek: '',
+    deskripsi: '',
+    status: 'Lulus',
     nama_penguji: currentPenguji,
-    catatan_perbaikan: '',
     tanggal_ujian: new Date().toISOString().split('T')[0]
   };
 
   const [formData, setFormData] = useState(initialForm);
 
-  const calculateScore = (g, b, a) => {
-    const numG = Number(g) || 0;
-    const numB = Number(b) || 0;
-    const numA = Number(a) || 0;
-    const total = Math.round((numG * 0.4) + (numB * 0.4) + (numA * 0.2));
-    
-    let predikat = 'Maqbul (C)';
-    let status = 'Remedial';
-
-    if (total >= 90) {
-      predikat = 'Mumtaz (A)';
-      status = 'Lulus';
-    } else if (total >= 80) {
-      predikat = 'Jayyid Jiddan (B+)';
-      status = 'Lulus';
-    } else if (total >= 75) {
-      predikat = 'Jayyid (B)';
-      status = 'Lulus';
-    } else {
-      predikat = 'Maqbul (C)';
-      status = 'Remedial';
-    }
-
-    return { total, predikat, status };
-  };
-
-  const liveResult = calculateScore(
-    formData.nilai_gerakan,
-    formData.nilai_bacaan,
-    formData.nilai_adab
-  );
-
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [resPraktek, resSantri] = await Promise.all([
+      const [resPraktek, resSantri, resKat] = await Promise.all([
         axios.get('/api/praktek').catch(() => ({ data: { data: [] } })),
-        axios.get('/api/santri').catch(() => ({ data: { data: [] } }))
+        axios.get('/api/santri').catch(() => ({ data: { data: [] } })),
+        axios.get('/api/praktek/kategori').catch(() => ({ data: { data: [] } }))
       ]);
 
+      // 1. Data Praktek
       if (resPraktek.data && resPraktek.data.success && Array.isArray(resPraktek.data.data) && resPraktek.data.data.length > 0) {
         setPraktekList(resPraktek.data.data);
       } else {
@@ -266,6 +172,7 @@ export default function MobilePraktek() {
         setPraktekList(saved || DEFAULT_PRAKTEK_DATA);
       }
 
+      // 2. Data Santri
       if (resSantri.data && resSantri.data.success && Array.isArray(resSantri.data.data)) {
         setSantriList(resSantri.data.data);
       } else {
@@ -277,6 +184,17 @@ export default function MobilePraktek() {
           { id: 5, nama_santri: 'Aisyah Humaira', nis: '2602002', nama_asrama: 'Asrama Fathimah Az-Zahra' }
         ];
         setSantriList(fallbackSantri);
+      }
+
+      // 3. Data Master Kategori
+      if (resKat.data && resKat.data.success && Array.isArray(resKat.data.data) && resKat.data.data.length > 0) {
+        setKategoriList(resKat.data.data);
+      } else {
+        const savedKat = JSON.parse(localStorage.getItem('mobile_kategori_cache') || 'null');
+        const defaultObjs = (savedKat || DEFAULT_KATEGORI).map((k, idx) => 
+          typeof k === 'string' ? { id: idx + 1, nama_kategori: k, deskripsi: '' } : k
+        );
+        setKategoriList(defaultObjs);
       }
     } catch (err) {
       const saved = JSON.parse(localStorage.getItem('mobile_praktek_cache') || 'null');
@@ -293,9 +211,11 @@ export default function MobilePraktek() {
   const handleOpenAdd = () => {
     setFormMode('add');
     const defaultSantriId = santriList[0]?.id || 1;
+    const defaultKategori = kategoriList[0]?.nama_kategori || 'Sholat Fardhu';
     setFormData({
       ...initialForm,
       santri_id: defaultSantriId,
+      kategori: defaultKategori,
       nama_penguji: currentPenguji,
       tanggal_ujian: new Date().toISOString().split('T')[0]
     });
@@ -309,11 +229,9 @@ export default function MobilePraktek() {
       santri_id: item.santri_id,
       kategori: item.kategori || 'Sholat Fardhu',
       nama_praktek: item.nama_praktek || '',
-      nilai_gerakan: item.nilai_gerakan ?? 80,
-      nilai_bacaan: item.nilai_bacaan ?? 80,
-      nilai_adab: item.nilai_adab ?? 80,
+      deskripsi: item.deskripsi || item.catatan_perbaikan || '',
+      status: (item.status === 'Remedial' || item.status === 'Mengulang') ? 'Mengulang' : 'Lulus',
       nama_penguji: item.nama_penguji || currentPenguji,
-      catatan_perbaikan: item.catatan_perbaikan || '',
       tanggal_ujian: item.tanggal_ujian ? String(item.tanggal_ujian).split('T')[0] : new Date().toISOString().split('T')[0]
     });
     setIsModalOpen(true);
@@ -322,7 +240,7 @@ export default function MobilePraktek() {
   const handleDelete = (item) => {
     showConfirm(
       'Hapus Nilai Ujian?',
-      `Hapus ujian ${item.nama_praktek} untuk santri ${item.nama_santri}?`,
+      `Hapus penilaian ${item.nama_praktek} untuk santri ${item.nama_santri}?`,
       async () => {
         try {
           await axios.delete(`/api/praktek/${item.id}`).catch(() => null);
@@ -344,23 +262,16 @@ export default function MobilePraktek() {
       return;
     }
     if (!formData.nama_praktek.trim()) {
-      showError('Nama materi praktek wajib diisi');
+      showError('Materi ujian praktek wajib diisi');
       return;
     }
 
     setSubmitting(true);
     const selectedSantri = santriList.find(s => String(s.id) === String(formData.santri_id));
-    const { total, predikat, status } = liveResult;
 
     const payload = {
       ...formData,
       santri_id: Number(formData.santri_id),
-      nilai_gerakan: Number(formData.nilai_gerakan),
-      nilai_bacaan: Number(formData.nilai_bacaan),
-      nilai_adab: Number(formData.nilai_adab),
-      nilai_akhir: total,
-      predikat,
-      status,
       nama_santri: selectedSantri?.nama_santri || selectedSantri?.nama || 'Santri',
       nis: selectedSantri?.nis || '-',
       nama_asrama: selectedSantri?.nama_asrama || '-'
@@ -373,13 +284,13 @@ export default function MobilePraktek() {
         const updated = [newItem, ...praktekList];
         setPraktekList(updated);
         localStorage.setItem('mobile_praktek_cache', JSON.stringify(updated));
-        toastSuccess('Nilai ujian praktek berhasil disimpan');
+        toastSuccess('Penilaian ujian berhasil disimpan');
       } else {
         await axios.put(`/api/praktek/${formData.id}`, payload).catch(() => null);
         const updated = praktekList.map(p => p.id === formData.id ? { ...p, ...payload } : p);
         setPraktekList(updated);
         localStorage.setItem('mobile_praktek_cache', JSON.stringify(updated));
-        toastSuccess('Nilai ujian praktek berhasil diperbarui');
+        toastSuccess('Penilaian ujian berhasil diperbarui');
       }
       setIsModalOpen(false);
     } catch (err) {
@@ -389,6 +300,61 @@ export default function MobilePraktek() {
     }
   };
 
+  // Custom Kategori Management
+  const handleAddKategori = async (e) => {
+    e.preventDefault();
+    if (!newKategoriName.trim()) {
+      showError('Nama kategori wajib diisi');
+      return;
+    }
+
+    setSavingKategori(true);
+    try {
+      const res = await axios.post('/api/praktek/kategori', {
+        nama_kategori: newKategoriName.trim(),
+        deskripsi: newKategoriDesc.trim()
+      }).catch(() => null);
+
+      const created = res?.data?.data || {
+        id: Date.now(),
+        nama_kategori: newKategoriName.trim(),
+        deskripsi: newKategoriDesc.trim()
+      };
+
+      const updated = [...kategoriList, created];
+      setKategoriList(updated);
+      localStorage.setItem('mobile_kategori_cache', JSON.stringify(updated));
+      setNewKategoriName('');
+      setNewKategoriDesc('');
+      toastSuccess('Kategori praktek baru berhasil ditambahkan');
+    } catch (err) {
+      showError('Gagal menambah kategori');
+    } finally {
+      setSavingKategori(false);
+    }
+  };
+
+  const handleDeleteKategori = async (katItem) => {
+    showConfirm(
+      'Hapus Kategori?',
+      `Hapus kategori "${katItem.nama_kategori}"?`,
+      async () => {
+        try {
+          await axios.delete(`/api/praktek/kategori/${katItem.id}`).catch(() => null);
+          const updated = kategoriList.filter(k => k.id !== katItem.id);
+          setKategoriList(updated);
+          localStorage.setItem('mobile_kategori_cache', JSON.stringify(updated));
+          if (selectedKategori === katItem.nama_kategori) {
+            setSelectedKategori('Semua');
+          }
+          toastSuccess('Kategori berhasil dihapus');
+        } catch (err) {
+          showError('Gagal menghapus kategori');
+        }
+      }
+    );
+  };
+
   // Filtered List
   const filteredList = praktekList.filter(item => {
     const matchSearch = (
@@ -396,11 +362,13 @@ export default function MobilePraktek() {
       (item.nis && item.nis.toLowerCase().includes(search.toLowerCase())) ||
       (item.nama_praktek && item.nama_praktek.toLowerCase().includes(search.toLowerCase())) ||
       (item.kategori && item.kategori.toLowerCase().includes(search.toLowerCase())) ||
+      (item.deskripsi && item.deskripsi.toLowerCase().includes(search.toLowerCase())) ||
       (item.nama_penguji && item.nama_penguji.toLowerCase().includes(search.toLowerCase()))
     );
 
     const matchKategori = selectedKategori === 'Semua' || item.kategori === selectedKategori;
-    const matchStatus = selectedStatus === 'Semua' || item.status === selectedStatus;
+    const itemStatus = (item.status === 'Remedial' || item.status === 'Mengulang') ? 'Mengulang' : 'Lulus';
+    const matchStatus = selectedStatus === 'Semua' || itemStatus === selectedStatus;
 
     return matchSearch && matchKategori && matchStatus;
   });
@@ -408,10 +376,8 @@ export default function MobilePraktek() {
   // Calculate Summary
   const totalDiuji = praktekList.length;
   const totalLulus = praktekList.filter(p => p.status === 'Lulus').length;
-  const totalRemedial = praktekList.filter(p => p.status === 'Remedial').length;
-  const avgScore = totalDiuji > 0 
-    ? Math.round(praktekList.reduce((acc, curr) => acc + (Number(curr.nilai_akhir) || 0), 0) / totalDiuji) 
-    : 0;
+  const totalMengulang = praktekList.filter(p => p.status === 'Mengulang' || p.status === 'Remedial').length;
+  const totalKategoriCount = kategoriList.length;
 
   return (
     <div style={{ padding: '16px 14px 100px 14px', background: '#f8fafc', minHeight: '100vh', fontFamily: 'inherit' }}>
@@ -451,7 +417,7 @@ export default function MobilePraktek() {
               <Award size={18} color="#34d399" />
             </span>
             <span style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, color: '#a7f3d0' }}>
-              Rubrik Penilaian Ibadah
+              Uji Kompetensi Ibadah
             </span>
           </div>
           <button 
@@ -478,7 +444,7 @@ export default function MobilePraktek() {
           Ujian Praktek Ibadah
         </h2>
         <p style={{ margin: 0, fontSize: '0.78rem', color: '#d1fae5', lineHeight: 1.4 }}>
-          Perekaman uji kompetensi ibadah amaliyah, sholat, wudhu, & thaharah santri.
+          Perekaman uji kelulusan ibadah amaliyah, sholat, wudhu, & thaharah santri.
         </p>
 
         {/* 4 Mini Stat Boxes */}
@@ -499,12 +465,12 @@ export default function MobilePraktek() {
             <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#34d399' }}>{totalLulus}</div>
           </div>
           <div style={{ background: 'rgba(255, 255, 255, 0.12)', borderRadius: '12px', padding: '8px 4px', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.66rem', color: '#fca5a5', fontWeight: 600 }}>Remedi</div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#f87171' }}>{totalRemedial}</div>
+            <div style={{ fontSize: '0.66rem', color: '#fca5a5', fontWeight: 600 }}>Mengulang</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#f87171' }}>{totalMengulang}</div>
           </div>
           <div style={{ background: 'rgba(255, 255, 255, 0.12)', borderRadius: '12px', padding: '8px 4px', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.66rem', color: '#fde68a', fontWeight: 600 }}>Rata-rata</div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fbbf24' }}>{avgScore}</div>
+            <div style={{ fontSize: '0.66rem', color: '#fde68a', fontWeight: 600 }}>Kategori</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fbbf24' }}>{totalKategoriCount}</div>
           </div>
         </div>
       </div>
@@ -520,7 +486,7 @@ export default function MobilePraktek() {
         />
         <input 
           type="text"
-          placeholder="Cari santri, materi praktek, penguji..."
+          placeholder="Cari santri, materi praktek, deskripsi..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           style={{
@@ -560,6 +526,32 @@ export default function MobilePraktek() {
         )}
       </div>
 
+      {/* Header Bar Kategori + Tombol Kelola Kategori */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+        <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <Tag size={13} color="#059669" /> Kategori Praktek
+        </span>
+        <button
+          onClick={() => setIsKategoriModalOpen(true)}
+          style={{
+            background: '#ecfdf5',
+            color: '#065f46',
+            border: '1px solid #a7f3d0',
+            borderRadius: '8px',
+            padding: '4px 10px',
+            fontSize: '0.72rem',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          <FolderPlus size={13} />
+          + Kelola Kategori
+        </button>
+      </div>
+
       {/* Horizontal Scrollable Kategori Chips */}
       <div style={{
         display: 'flex',
@@ -571,12 +563,30 @@ export default function MobilePraktek() {
         scrollbarWidth: 'none',
         msOverflowStyle: 'none'
       }}>
-        {KATEGORI_OPTIONS.map((kat) => {
-          const isActive = selectedKategori === kat;
+        <button
+          onClick={() => setSelectedKategori('Semua')}
+          style={{
+            flexShrink: 0,
+            padding: '7px 14px',
+            borderRadius: '20px',
+            fontSize: '0.78rem',
+            fontWeight: selectedKategori === 'Semua' ? 700 : 500,
+            border: selectedKategori === 'Semua' ? '1.5px solid #059669' : '1px solid #e2e8f0',
+            background: selectedKategori === 'Semua' ? '#ecfdf5' : '#ffffff',
+            color: selectedKategori === 'Semua' ? '#065f46' : '#64748b',
+            boxShadow: selectedKategori === 'Semua' ? '0 2px 6px rgba(5, 150, 105, 0.15)' : 'none',
+            cursor: 'pointer'
+          }}
+        >
+          Semua
+        </button>
+        {kategoriList.map((kat) => {
+          const katName = kat.nama_kategori || kat;
+          const isActive = selectedKategori === katName;
           return (
             <button
-              key={kat}
-              onClick={() => setSelectedKategori(kat)}
+              key={kat.id || katName}
+              onClick={() => setSelectedKategori(katName)}
               style={{
                 flexShrink: 0,
                 padding: '7px 14px',
@@ -591,34 +601,34 @@ export default function MobilePraktek() {
                 transition: 'all 0.15s ease'
               }}
             >
-              {kat}
+              {katName}
             </button>
           );
         })}
       </div>
 
-      {/* Filter Status Pills */}
+      {/* Filter Status Pills: Semua, Lulus, Mengulang */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
         <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
           <Filter size={12} /> Status:
         </span>
-        {['Semua', 'Lulus', 'Remedial'].map(st => {
+        {['Semua', 'Lulus', 'Mengulang'].map(st => {
           const isStActive = selectedStatus === st;
           return (
             <button
               key={st}
               onClick={() => setSelectedStatus(st)}
               style={{
-                padding: '4px 10px',
+                padding: '5px 12px',
                 borderRadius: '8px',
-                fontSize: '0.72rem',
+                fontSize: '0.74rem',
                 fontWeight: isStActive ? 700 : 500,
                 border: 'none',
                 background: isStActive 
-                  ? (st === 'Lulus' ? '#dcfce7' : st === 'Remedial' ? '#fee2e2' : '#e0f2fe')
+                  ? (st === 'Lulus' ? '#dcfce7' : st === 'Mengulang' ? '#fee2e2' : '#e0f2fe')
                   : '#f1f5f9',
                 color: isStActive
-                  ? (st === 'Lulus' ? '#166534' : st === 'Remedial' ? '#991b1b' : '#0369a1')
+                  ? (st === 'Lulus' ? '#166534' : st === 'Mengulang' ? '#991b1b' : '#0369a1')
                   : '#64748b',
                 cursor: 'pointer'
               }}
@@ -635,7 +645,7 @@ export default function MobilePraktek() {
           Daftar Penilaian ({filteredList.length})
         </span>
         <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-          Pilar: Gerakan 40% • Bacaan 40% • Adab 20%
+          Nilai: Lulus & Mengulang
         </span>
       </div>
 
@@ -676,7 +686,7 @@ export default function MobilePraktek() {
             }}
           >
             <Plus size={16} />
-            Input Nilai Ujian Baru
+            Input Nilai Ujian
           </button>
         </div>
       ) : (
@@ -684,15 +694,6 @@ export default function MobilePraktek() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {filteredList.map((item) => {
             const isLulus = item.status === 'Lulus';
-            const nilaiAkhir = Number(item.nilai_akhir) || 0;
-            
-            // Predikat color styling
-            let badgeColor = { bg: '#dcfce7', text: '#15803d', border: '#bbf7d0' };
-            if (!isLulus) {
-              badgeColor = { bg: '#fee2e2', text: '#b91c1c', border: '#fecaca' };
-            } else if (nilaiAkhir >= 90) {
-              badgeColor = { bg: '#ecfdf5', text: '#047857', border: '#a7f3d0' };
-            }
 
             return (
               <div 
@@ -717,8 +718,8 @@ export default function MobilePraktek() {
                   background: isLulus ? '#10b981' : '#ef4444'
                 }} />
 
-                {/* Top Row: Santri Name, Kategori & Status */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                {/* Top Row: Santri Name, Kategori & Status Badge */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                   <div style={{ flex: 1, paddingRight: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
                       <span style={{
@@ -752,21 +753,28 @@ export default function MobilePraktek() {
                     </div>
                   </div>
 
-                  {/* Nilai Akhir Display Box */}
+                  {/* Nilai Status: Lulus / Mengulang Badge */}
                   <div style={{
-                    minWidth: '60px',
-                    textAlign: 'center',
-                    padding: '6px 10px',
-                    borderRadius: '14px',
-                    background: badgeColor.bg,
-                    border: `1px solid ${badgeColor.border}`
+                    padding: '6px 12px',
+                    borderRadius: '12px',
+                    background: isLulus ? '#dcfce7' : '#fee2e2',
+                    border: `1px solid ${isLulus ? '#bbf7d0' : '#fecaca'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
                   }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 900, color: badgeColor.text, lineHeight: 1 }}>
-                      {nilaiAkhir}
-                    </div>
-                    <div style={{ fontSize: '0.62rem', fontWeight: 700, color: badgeColor.text, marginTop: '2px' }}>
-                      {item.status}
-                    </div>
+                    {isLulus ? (
+                      <CheckCircle2 size={14} color="#15803d" />
+                    ) : (
+                      <RotateCw size={14} color="#b91c1c" />
+                    )}
+                    <span style={{
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      color: isLulus ? '#15803d' : '#b91c1c'
+                    }}>
+                      {isLulus ? 'LULUS' : 'MENGULANG'}
+                    </span>
                   </div>
                 </div>
 
@@ -775,89 +783,33 @@ export default function MobilePraktek() {
                   background: '#f8fafc',
                   borderRadius: '12px',
                   padding: '10px 12px',
-                  marginBottom: '12px',
+                  marginBottom: '10px',
                   border: '1px solid #e2e8f0'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                    <Sparkles size={13} color="#059669" />
-                    <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#1e293b' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Sparkles size={14} color="#059669" />
+                    <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#1e293b' }}>
                       {item.nama_praktek}
                     </span>
                   </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', color: '#64748b' }}>
-                    <Award size={12} color="#059669" />
-                    <span>Predikat: <strong style={{ color: '#047857' }}>{item.predikat || 'Jayyid'}</strong></span>
-                  </div>
                 </div>
 
-                {/* 3 Pillars Visual Progress Bars */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: '8px',
-                  marginBottom: '12px',
-                  background: '#fafafa',
-                  padding: '8px 10px',
-                  borderRadius: '12px'
-                }}>
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', marginBottom: '2px', color: '#475569' }}>
-                      <span>Gerakan</span>
-                      <strong>{item.nilai_gerakan ?? 0}</strong>
-                    </div>
-                    <div style={{ width: '100%', height: '5px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
-                      <div style={{
-                        width: `${Math.min(item.nilai_gerakan ?? 0, 100)}%`,
-                        height: '100%',
-                        background: (item.nilai_gerakan ?? 0) >= 75 ? '#10b981' : '#f87171'
-                      }} />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', marginBottom: '2px', color: '#475569' }}>
-                      <span>Bacaan</span>
-                      <strong>{item.nilai_bacaan ?? 0}</strong>
-                    </div>
-                    <div style={{ width: '100%', height: '5px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
-                      <div style={{
-                        width: `${Math.min(item.nilai_bacaan ?? 0, 100)}%`,
-                        height: '100%',
-                        background: (item.nilai_bacaan ?? 0) >= 75 ? '#3b82f6' : '#f87171'
-                      }} />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', marginBottom: '2px', color: '#475569' }}>
-                      <span>Adab</span>
-                      <strong>{item.nilai_adab ?? 0}</strong>
-                    </div>
-                    <div style={{ width: '100%', height: '5px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
-                      <div style={{
-                        width: `${Math.min(item.nilai_adab ?? 0, 100)}%`,
-                        height: '100%',
-                        background: (item.nilai_adab ?? 0) >= 75 ? '#8b5cf6' : '#f87171'
-                      }} />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Catatan Perbaikan if any */}
-                {item.catatan_perbaikan && (
+                {/* Deskripsi & Keterangan Ujian */}
+                {(item.deskripsi || item.catatan_perbaikan) && (
                   <div style={{
-                    fontSize: '0.74rem',
-                    color: '#475569',
-                    fontStyle: 'italic',
-                    background: '#fffbeb',
-                    padding: '8px 10px',
-                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    color: '#334155',
+                    background: isLulus ? '#f0fdf4' : '#fffbeb',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
                     marginBottom: '12px',
-                    borderLeft: '3px solid #f59e0b',
-                    lineHeight: 1.35
+                    borderLeft: `3px solid ${isLulus ? '#10b981' : '#f59e0b'}`,
+                    lineHeight: 1.4
                   }}>
-                    "{item.catatan_perbaikan}"
+                    <strong style={{ display: 'block', fontSize: '0.72rem', color: isLulus ? '#047857' : '#b45309', marginBottom: '2px' }}>
+                      Deskripsi & Catatan Evaluasi:
+                    </strong>
+                    {item.deskripsi || item.catatan_perbaikan}
                   </div>
                 )}
 
@@ -924,34 +876,33 @@ export default function MobilePraktek() {
         </div>
       )}
 
-      {/* Floating Action Button (FAB) + Input Nilai */}
+      {/* Floating Action Button (FAB) - Hanya Icon + Bulat Saja Sesuai Permintaan */}
       <button
         onClick={handleOpenAdd}
+        title="Input Nilai Ujian"
         style={{
           position: 'fixed',
           bottom: '75px',
           right: '18px',
+          width: '56px',
+          height: '56px',
           background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
           color: '#ffffff',
           border: 'none',
-          borderRadius: '50px',
-          padding: '12px 20px',
+          borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
-          fontSize: '0.86rem',
-          fontWeight: 800,
+          justifyContent: 'center',
           boxShadow: '0 8px 24px rgba(5, 150, 105, 0.45)',
           cursor: 'pointer',
           zIndex: 40,
           transition: 'transform 0.2s ease'
         }}
       >
-        <Plus size={20} />
-        <span>+ Nilai Ujian</span>
+        <Plus size={26} strokeWidth={2.8} />
       </button>
 
-      {/* Modal / Bottom Sheet Form Input Nilai */}
+      {/* Modal / Bottom Sheet Form Input/Edit Penilaian */}
       {isModalOpen && (
         <div style={{
           position: 'fixed',
@@ -992,10 +943,10 @@ export default function MobilePraktek() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.08rem', fontWeight: 800, color: '#0f172a' }}>
-                  {formMode === 'add' ? 'Input Nilai Ujian Praktek' : 'Edit Nilai Ujian Praktek'}
+                  {formMode === 'add' ? 'Input Ujian Praktek' : 'Edit Ujian Praktek'}
                 </h3>
                 <p style={{ margin: '2px 0 0 0', fontSize: '0.74rem', color: '#64748b' }}>
-                  Form penilaian kompetensi ibadah amaliyah santri
+                  Penilaian kelulusan kompetensi ibadah santri
                 </p>
               </div>
               <button
@@ -1046,18 +997,31 @@ export default function MobilePraktek() {
                 </select>
               </div>
 
-              {/* Kategori Praktek */}
+              {/* Kategori Praktek (Bisa pilih dari database atau buka modal tambah kategori) */}
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  Kategori Ujian Ibadah *
-                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
+                    Kategori Ujian Ibadah *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsKategoriModalOpen(true)}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#059669',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      padding: 0
+                    }}
+                  >
+                    + Kategori Baru
+                  </button>
+                </div>
                 <select
                   value={formData.kategori}
-                  onChange={(e) => {
-                    const newKat = e.target.value;
-                    const defaultMateri = PRESET_MATERI[newKat]?.[0] || '';
-                    setFormData({ ...formData, kategori: newKat, nama_praktek: defaultMateri });
-                  }}
+                  onChange={(e) => setFormData({ ...formData, kategori: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '11px 12px',
@@ -1068,13 +1032,16 @@ export default function MobilePraktek() {
                     color: '#0f172a'
                   }}
                 >
-                  {KATEGORI_OPTIONS.filter(k => k !== 'Semua').map(k => (
-                    <option key={k} value={k}>{k}</option>
-                  ))}
+                  {kategoriList.map(k => {
+                    const kName = k.nama_kategori || k;
+                    return (
+                      <option key={k.id || kName} value={kName}>{kName}</option>
+                    );
+                  })}
                 </select>
               </div>
 
-              {/* Materi Praktek + Preset Quick Pills */}
+              {/* Materi Praktek */}
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
                   Materi Ujian Praktek *
@@ -1091,250 +1058,90 @@ export default function MobilePraktek() {
                     borderRadius: '12px',
                     border: '1px solid #cbd5e1',
                     fontSize: '0.84rem',
-                    boxSizing: 'border-box',
-                    marginBottom: '8px'
+                    boxSizing: 'border-box'
                   }}
                 />
-
-                {/* Preset Chips for Current Category */}
-                {PRESET_MATERI[formData.kategori] && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {PRESET_MATERI[formData.kategori].map(preset => (
-                      <button
-                        type="button"
-                        key={preset}
-                        onClick={() => setFormData({ ...formData, nama_praktek: preset })}
-                        style={{
-                          background: formData.nama_praktek === preset ? '#dcfce7' : '#f1f5f9',
-                          color: formData.nama_praktek === preset ? '#15803d' : '#475569',
-                          border: formData.nama_praktek === preset ? '1px solid #86efac' : '1px solid #e2e8f0',
-                          padding: '4px 8px',
-                          borderRadius: '8px',
-                          fontSize: '0.7rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        + {preset}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
 
-              {/* Interactive Scoring Controls (3 Pillars) */}
-              <div style={{
-                background: '#f8fafc',
-                border: '1.5px solid #e2e8f0',
-                borderRadius: '16px',
-                padding: '14px',
-                marginBottom: '16px'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Sliders size={16} color="#059669" />
-                    Penilaian 3 Pilar (Bobot %)
-                  </span>
-                  <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                    Geser slider atau ketik skor
-                  </span>
-                </div>
+              {/* PILIHAN NILAI: HANYA LULUS & MENGULANG */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
+                  Hasil Nilai Ujian *
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, status: 'Lulus' })}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '14px',
+                      border: formData.status === 'Lulus' ? '2px solid #059669' : '1px solid #e2e8f0',
+                      background: formData.status === 'Lulus' ? '#ecfdf5' : '#ffffff',
+                      color: formData.status === 'Lulus' ? '#047857' : '#64748b',
+                      fontWeight: 800,
+                      fontSize: '0.88rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      cursor: 'pointer',
+                      boxShadow: formData.status === 'Lulus' ? '0 4px 12px rgba(5, 150, 105, 0.15)' : 'none'
+                    }}
+                  >
+                    <CheckCircle2 size={18} color={formData.status === 'Lulus' ? '#059669' : '#94a3b8'} />
+                    Lulus
+                  </button>
 
-                {/* Pillar 1: Gerakan (40%) */}
-                <div style={{ marginBottom: '14px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155' }}>
-                      1. Gerakan, Kaifiyah & Tuma'ninah (40%)
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={formData.nilai_gerakan}
-                      onChange={(e) => setFormData({ ...formData, nilai_gerakan: Math.min(100, Math.max(0, Number(e.target.value))) })}
-                      style={{
-                        width: '54px',
-                        textAlign: 'center',
-                        fontWeight: 800,
-                        fontSize: '0.88rem',
-                        padding: '4px',
-                        borderRadius: '8px',
-                        border: '1px solid #cbd5e1',
-                        color: '#059669'
-                      }}
-                    />
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={formData.nilai_gerakan}
-                    onChange={(e) => setFormData({ ...formData, nilai_gerakan: Number(e.target.value) })}
-                    style={{ width: '100%', accentColor: '#059669' }}
-                  />
-                  <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
-                    {[70, 80, 85, 90, 95, 100].map(val => (
-                      <button
-                        type="button"
-                        key={val}
-                        onClick={() => setFormData({ ...formData, nilai_gerakan: val })}
-                        style={{
-                          flex: 1,
-                          padding: '2px 0',
-                          fontSize: '0.66rem',
-                          borderRadius: '6px',
-                          border: '1px solid #e2e8f0',
-                          background: formData.nilai_gerakan === val ? '#059669' : '#ffffff',
-                          color: formData.nilai_gerakan === val ? '#ffffff' : '#64748b',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {val}
-                      </button>
-                    ))}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, status: 'Mengulang' })}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '14px',
+                      border: formData.status === 'Mengulang' ? '2px solid #dc2626' : '1px solid #e2e8f0',
+                      background: formData.status === 'Mengulang' ? '#fef2f2' : '#ffffff',
+                      color: formData.status === 'Mengulang' ? '#b91c1c' : '#64748b',
+                      fontWeight: 800,
+                      fontSize: '0.88rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      cursor: 'pointer',
+                      boxShadow: formData.status === 'Mengulang' ? '0 4px 12px rgba(220, 38, 38, 0.15)' : 'none'
+                    }}
+                  >
+                    <RotateCw size={18} color={formData.status === 'Mengulang' ? '#dc2626' : '#94a3b8'} />
+                    Mengulang
+                  </button>
                 </div>
+              </div>
 
-                {/* Pillar 2: Bacaan (40%) */}
-                <div style={{ marginBottom: '14px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155' }}>
-                      2. Fashahah & Tajwid Bacaan (40%)
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={formData.nilai_bacaan}
-                      onChange={(e) => setFormData({ ...formData, nilai_bacaan: Math.min(100, Math.max(0, Number(e.target.value))) })}
-                      style={{
-                        width: '54px',
-                        textAlign: 'center',
-                        fontWeight: 800,
-                        fontSize: '0.88rem',
-                        padding: '4px',
-                        borderRadius: '8px',
-                        border: '1px solid #cbd5e1',
-                        color: '#2563eb'
-                      }}
-                    />
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={formData.nilai_bacaan}
-                    onChange={(e) => setFormData({ ...formData, nilai_bacaan: Number(e.target.value) })}
-                    style={{ width: '100%', accentColor: '#2563eb' }}
-                  />
-                  <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
-                    {[70, 80, 85, 90, 95, 100].map(val => (
-                      <button
-                        type="button"
-                        key={val}
-                        onClick={() => setFormData({ ...formData, nilai_bacaan: val })}
-                        style={{
-                          flex: 1,
-                          padding: '2px 0',
-                          fontSize: '0.66rem',
-                          borderRadius: '6px',
-                          border: '1px solid #e2e8f0',
-                          background: formData.nilai_bacaan === val ? '#2563eb' : '#ffffff',
-                          color: formData.nilai_bacaan === val ? '#ffffff' : '#64748b',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {val}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Pillar 3: Adab (20%) */}
-                <div style={{ marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155' }}>
-                      3. Adab, Khusyu' & Kerapian (20%)
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={formData.nilai_adab}
-                      onChange={(e) => setFormData({ ...formData, nilai_adab: Math.min(100, Math.max(0, Number(e.target.value))) })}
-                      style={{
-                        width: '54px',
-                        textAlign: 'center',
-                        fontWeight: 800,
-                        fontSize: '0.88rem',
-                        padding: '4px',
-                        borderRadius: '8px',
-                        border: '1px solid #cbd5e1',
-                        color: '#7c3aed'
-                      }}
-                    />
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={formData.nilai_adab}
-                    onChange={(e) => setFormData({ ...formData, nilai_adab: Number(e.target.value) })}
-                    style={{ width: '100%', accentColor: '#7c3aed' }}
-                  />
-                  <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
-                    {[70, 80, 85, 90, 95, 100].map(val => (
-                      <button
-                        type="button"
-                        key={val}
-                        onClick={() => setFormData({ ...formData, nilai_adab: val })}
-                        style={{
-                          flex: 1,
-                          padding: '2px 0',
-                          fontSize: '0.66rem',
-                          borderRadius: '6px',
-                          border: '1px solid #e2e8f0',
-                          background: formData.nilai_adab === val ? '#7c3aed' : '#ffffff',
-                          color: formData.nilai_adab === val ? '#ffffff' : '#64748b',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {val}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Realtime Result Summary Banner */}
-                <div style={{
-                  background: liveResult.status === 'Lulus' ? 'linear-gradient(135deg, #064e3b 0%, #047857 100%)' : '#b91c1c',
-                  color: '#ffffff',
-                  borderRadius: '12px',
-                  padding: '10px 14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginTop: '10px'
-                }}>
-                  <div>
-                    <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.8)' }}>Kalkulasi Skor Otomatis</div>
-                    <div style={{ fontSize: '0.86rem', fontWeight: 800 }}>
-                      Predikat: {liveResult.predikat}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 900, lineHeight: 1 }}>
-                      {liveResult.total}
-                    </div>
-                    <div style={{ fontSize: '0.68rem', fontWeight: 700, color: liveResult.status === 'Lulus' ? '#6ee7b7' : '#fca5a5' }}>
-                      Status: {liveResult.status}
-                    </div>
-                  </div>
-                </div>
-
+              {/* DESKRIPSI & EVALUASI */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  Deskripsi & Catatan Ujian
+                </label>
+                <textarea
+                  rows="3"
+                  value={formData.deskripsi}
+                  onChange={(e) => setFormData({ ...formData, deskripsi: e.target.value })}
+                  placeholder="Tuliskan deskripsi ujian, evaluasi gerakan, bacaan, atau hal yang perlu diperbaiki..."
+                  style={{
+                    width: '100%',
+                    padding: '11px 12px',
+                    borderRadius: '12px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.82rem',
+                    boxSizing: 'border-box',
+                    fontFamily: 'inherit',
+                    lineHeight: 1.4
+                  }}
+                />
               </div>
 
               {/* Penguji & Tanggal Ujian */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '18px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
                     Nama Penguji
@@ -1373,28 +1180,6 @@ export default function MobilePraktek() {
                     }}
                   />
                 </div>
-              </div>
-
-              {/* Catatan / Evaluasi */}
-              <div style={{ marginBottom: '18px' }}>
-                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  Catatan Evaluasi / Rekomendasi Perbaikan
-                </label>
-                <textarea
-                  rows="2"
-                  value={formData.catatan_perbaikan}
-                  onChange={(e) => setFormData({ ...formData, catatan_perbaikan: e.target.value })}
-                  placeholder="Contoh: Makhraj huruf fashih, gerakan ruku dan sujud sempurna..."
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: '10px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.8rem',
-                    boxSizing: 'border-box',
-                    fontFamily: 'inherit'
-                  }}
-                />
               </div>
 
               {/* Action Buttons */}
@@ -1444,13 +1229,209 @@ export default function MobilePraktek() {
                   ) : (
                     <>
                       <Save size={16} />
-                      Simpan Nilai Ujian
+                      Simpan Penilaian
                     </>
                   )}
                 </button>
               </div>
 
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Kelola Master Kategori Praktek (Custom Praktek) */}
+      {isKategoriModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.55)',
+          backdropFilter: 'blur(3px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px',
+          zIndex: 110
+        }}>
+          <div style={{
+            background: '#ffffff',
+            width: '100%',
+            maxWidth: '480px',
+            borderRadius: '20px',
+            padding: '20px',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.25)',
+            maxHeight: '85vh',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
+                  Kelola Kategori Praktek
+                </h3>
+                <p style={{ margin: '2px 0 0 0', fontSize: '0.74rem', color: '#64748b' }}>
+                  Atur atau tambahkan kategori praktek custom pondok
+                </p>
+              </div>
+              <button
+                onClick={() => setIsKategoriModalOpen(false)}
+                style={{
+                  background: '#f1f5f9',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '30px',
+                  height: '30px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#64748b'
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Form Tambah Kategori Baru */}
+            <form onSubmit={handleAddKategori} style={{ background: '#f8fafc', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '14px' }}>
+              <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
+                + Tambah Kategori Custom Baru
+              </div>
+              <input
+                type="text"
+                placeholder="Nama Kategori (contoh: Manasik Haji, Khutbah Jum'at)"
+                value={newKategoriName}
+                onChange={(e) => setNewKategoriName(e.target.value)}
+                required
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.8rem',
+                  boxSizing: 'border-box',
+                  marginBottom: '6px'
+                }}
+              />
+              <input
+                type="text"
+                placeholder="Deskripsi singkat (opsional)"
+                value={newKategoriDesc}
+                onChange={(e) => setNewKategoriDesc(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.8rem',
+                  boxSizing: 'border-box',
+                  marginBottom: '8px'
+                }}
+              />
+              <button
+                type="submit"
+                disabled={savingKategori}
+                style={{
+                  width: '100%',
+                  padding: '9px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: '#059669',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                {savingKategori ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                Simpan Kategori Baru
+              </button>
+            </form>
+
+            {/* List Tabel Kategori yang Ada */}
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
+                Daftar Kategori Tersedia ({kategoriList.length})
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {kategoriList.map((kat, idx) => {
+                  const katName = kat.nama_kategori || kat;
+                  const katDesc = kat.deskripsi || '';
+                  return (
+                    <div
+                      key={kat.id || idx}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '9px 12px',
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '10px'
+                      }}
+                    >
+                      <div style={{ flex: 1, paddingRight: '8px' }}>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a' }}>
+                          {katName}
+                        </div>
+                        {katDesc && (
+                          <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                            {katDesc}
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteKategori(kat)}
+                        title="Hapus Kategori"
+                        style={{
+                          background: '#fee2e2',
+                          border: 'none',
+                          borderRadius: '8px',
+                          color: '#dc2626',
+                          padding: '6px 8px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{ marginTop: '14px', paddingTop: '10px', borderTop: '1px solid #f1f5f9', textAlign: 'right' }}>
+              <button
+                type="button"
+                onClick={() => setIsKategoriModalOpen(false)}
+                style={{
+                  padding: '9px 16px',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  background: '#f8fafc',
+                  color: '#334155',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Selesai
+              </button>
+            </div>
+
           </div>
         </div>
       )}

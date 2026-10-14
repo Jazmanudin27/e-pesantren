@@ -174,6 +174,35 @@ async function autoMigrateDatabase() {
       console.warn('[E-PESANTREN USERS MIGRATE NOTICE]', userMigErr.message);
     }
 
+    // Auto-migrate kategori_praktek table & seed
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS \`kategori_praktek\` (
+          \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+          \`nama_kategori\` VARCHAR(100) NOT NULL UNIQUE,
+          \`deskripsi\` VARCHAR(255) NULL,
+          \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `).catch(() => {});
+
+      const [existingKat] = await pool.query("SELECT COUNT(*) AS total FROM \`kategori_praktek\`").catch(() => [[{ total: 0 }]]);
+      if (existingKat[0]?.total === 0) {
+        await pool.query(`
+          INSERT INTO \`kategori_praktek\` (\`nama_kategori\`, \`deskripsi\`) VALUES
+          ('Sholat Fardhu', 'Praktek kaifiyah dan bacaan sholat lima waktu'),
+          ('Wudhu & Tayammum', 'Tata cara bersuci wudhu dan tayammum sunnah'),
+          ('Sholat Jenazah', 'Praktek tata cara sholat jenazah 4 takbir'),
+          ('Adzan & Iqomah', 'Keterampilan adzan, tarhim dan iqomah'),
+          ('Dzikir & Doa', 'Wirid ba\\'da sholat fardhu dan doa harian'),
+          ('Mandi Wajib', 'Rukun dan niat thaharah mandi junub'),
+          ('Khutbah & Ceramah', 'Kultum, ceramah dan rukun khutbah Jum\\'at')
+          ON DUPLICATE KEY UPDATE \`nama_kategori\` = VALUES(\`nama_kategori\`);
+        `).catch(() => {});
+      }
+    } catch (katErr) {
+      console.warn('[E-PESANTREN KATEGORI PRAKTEK MIGRATE NOTICE]', katErr.message);
+    }
+
     // Auto-migrate praktek_ibadah table & seed
     try {
       await pool.query(`
@@ -182,6 +211,7 @@ async function autoMigrateDatabase() {
           \`santri_id\` INT NOT NULL,
           \`kategori\` VARCHAR(100) NOT NULL DEFAULT 'Sholat Fardhu',
           \`nama_praktek\` VARCHAR(150) NOT NULL,
+          \`deskripsi\` TEXT NULL,
           \`nilai_gerakan\` INT DEFAULT 85,
           \`nilai_bacaan\` INT DEFAULT 85,
           \`nilai_adab\` INT DEFAULT 85,
@@ -200,25 +230,32 @@ async function autoMigrateDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
       `).catch(() => {});
 
+      // Pastikan kolom deskripsi ada jika tabel sudah terlanjur dibuat sebelumnya
+      const [colDeskripsi] = await pool.query("SHOW COLUMNS FROM `praktek_ibadah` LIKE 'deskripsi'").catch(() => [[]]);
+      if (!colDeskripsi || colDeskripsi.length === 0) {
+        await pool.query("ALTER TABLE `praktek_ibadah` ADD COLUMN `deskripsi` TEXT NULL AFTER `nama_praktek`").catch(() => {});
+      }
+
       const [existingPraktek] = await pool.query("SELECT COUNT(*) AS total FROM \`praktek_ibadah\`");
       if (existingPraktek[0]?.total === 0) {
         console.log('[E-PESANTREN] Inisialisasi data master praktek ibadah santri...');
         await pool.query(`
           INSERT INTO \`praktek_ibadah\` (
-            \`id\`, \`santri_id\`, \`kategori\`, \`nama_praktek\`, \`nilai_gerakan\`, \`nilai_bacaan\`, \`nilai_adab\`, \`nilai_akhir\`, \`predikat\`, \`status\`, \`nama_penguji\`, \`catatan_perbaikan\`, \`tanggal_ujian\`
+            \`id\`, \`santri_id\`, \`kategori\`, \`nama_praktek\`, \`deskripsi\`, \`nilai_gerakan\`, \`nilai_bacaan\`, \`nilai_adab\`, \`nilai_akhir\`, \`predikat\`, \`status\`, \`nama_penguji\`, \`catatan_perbaikan\`, \`tanggal_ujian\`
           ) VALUES
-          (1, 1, 'Sholat Fardhu', 'Praktek Sholat Shubuh + Qunut', 95, 96, 92, 94, 'Mumtaz (A)', 'Lulus', 'Ust. Hamdan S.Pd.I', 'Makhraj huruf fashih, gerakan ruku dan sujud sempurna sesuai sunnah.', CURDATE()),
-          (2, 1, 'Wudhu & Tayammum', 'Praktek Wudhu Sempurna & Doa', 90, 92, 90, 91, 'Mumtaz (A)', 'Lulus', 'Ust. Hamdan S.Pd.I', 'Rukun dan sunnah wudhu terlaksana tertib.', CURDATE()),
-          (3, 2, 'Sholat Fardhu', 'Praktek Sholat Maghrib & Dzikir Ba\\'da Sholat', 88, 85, 87, 87, 'Jayyid Jiddan (B+)', 'Lulus', 'Ust. M. Huda Al-Hafidz', 'Tuma\\'ninah ruku perlu sedikit diperpanjang.', CURDATE()),
-          (4, 3, 'Sholat Jenazah', 'Praktek Sholat Jenazah (4 Takbir)', 92, 90, 94, 92, 'Mumtaz (A)', 'Lulus', 'Usth. Salma M.Pd', 'Hafalan doa takbir ke-3 dan ke-4 sangat lancar.', CURDATE()),
-          (5, 4, 'Wudhu & Tayammum', 'Praktek Wudhu & Thaharah', 65, 60, 62, 62, 'Maqbul (C)', 'Remedial', 'Ust. Hamdan S.Pd.I', 'Basuhan kedua telinga dan tertib rukun belum sempurna, remedial pekan depan.', CURDATE()),
-          (6, 5, 'Adzan & Iqomah', 'Praktek Adzan Shubuh & Tarhim', 86, 88, 85, 86, 'Jayyid Jiddan (B+)', 'Lulus', 'Ust. M. Huda Al-Hafidz', 'Vokal lantang, tajwid lafadz adzan benar.', CURDATE())
+          (1, 1, 'Sholat Fardhu', 'Praktek Sholat Shubuh + Qunut', 'Ujian kesempurnaan rukun dan bacaan sholat shubuh beserta qunut subuh.', 95, 96, 92, 94, 'Mumtaz (A)', 'Lulus', 'Ust. Hamdan S.Pd.I', 'Makhraj huruf fashih, gerakan ruku dan sujud sempurna sesuai sunnah.', CURDATE()),
+          (2, 1, 'Wudhu & Tayammum', 'Praktek Wudhu Sempurna & Doa', 'Ujian rukun wudhu, doa sebelum dan sesudah wudhu.', 90, 92, 90, 91, 'Mumtaz (A)', 'Lulus', 'Ust. Hamdan S.Pd.I', 'Rukun dan sunnah wudhu terlaksana tertib.', CURDATE()),
+          (3, 2, 'Sholat Fardhu', 'Praktek Sholat Maghrib & Dzikir Ba\\'da Sholat', 'Ujian praktek sholat maghrib dan wirid dzikir lisan.', 88, 85, 87, 87, 'Jayyid Jiddan (B+)', 'Lulus', 'Ust. M. Huda Al-Hafidz', 'Tuma\\'ninah ruku perlu sedikit diperpanjang.', CURDATE()),
+          (4, 3, 'Sholat Jenazah', 'Praktek Sholat Jenazah (4 Takbir)', 'Praktek lengkap sholat jenazah takbir 1 s.d 4.', 92, 90, 94, 92, 'Mumtaz (A)', 'Lulus', 'Usth. Salma M.Pd', 'Hafalan doa takbir ke-3 dan ke-4 sangat lancar.', CURDATE()),
+          (5, 4, 'Wudhu & Tayammum', 'Praktek Wudhu & Thaharah', 'Praktek basuhan tertib wudhu sesuai fiqih.', 65, 60, 62, 62, 'Maqbul (C)', 'Mengulang', 'Ust. Hamdan S.Pd.I', 'Basuhan kedua telinga dan tertib rukun belum sempurna, mengulang pekan depan.', CURDATE()),
+          (6, 5, 'Adzan & Iqomah', 'Praktek Adzan Shubuh & Tarhim', 'Praktek lafadz tartil adzan shubuh.', 86, 88, 85, 86, 'Jayyid Jiddan (B+)', 'Lulus', 'Ust. M. Huda Al-Hafidz', 'Vokal lantang, tajwid lafadz adzan benar.', CURDATE())
           ON DUPLICATE KEY UPDATE \`nama_praktek\` = VALUES(\`nama_praktek\`);
         `).catch(() => {});
       }
     } catch (praktekMigErr) {
       console.warn('[E-PESANTREN PRAKTEK MIGRATE NOTICE]', praktekMigErr.message);
     }
+
 
     // Auto-migrate tahfidz_setoran kolom materi & capaian hafalan (Al-Qur'an, Jurumiah, dll)
     try {
