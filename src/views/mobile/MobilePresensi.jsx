@@ -63,10 +63,63 @@ const normalizeDateStr = (rawDate) => {
   return String(rawDate).split('T')[0].trim();
 };
 
+const parseTimeToMinutes = (timeStr) => {
+  if (!timeStr) return 0;
+  const parts = timeStr.trim().split(':');
+  const h = parseInt(parts[0], 10) || 0;
+  const m = parseInt(parts[1], 10) || 0;
+  return h * 60 + m;
+};
+
+const getActiveKegiatanByTime = (list = DAFTAR_KEGIATAN) => {
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const currentHour = now.getHours();
+
+  // 1. Cek kegiatan yang mulai pada jam yang sama (misal jam 18 -> Shalat Maghrib 18:00)
+  const exactHourMatch = list.find(item => {
+    if (item.waktu && item.waktu.includes('-')) {
+      const startH = parseInt(item.waktu.split('-')[0].split(':')[0], 10);
+      return startH === currentHour;
+    }
+    return false;
+  });
+  if (exactHourMatch) return exactHourMatch;
+
+  // 2. Cari kegiatan yang sedang aktif (rentang waktu: 30 menit sebelum sesi s/d 30 menit setelah sesi)
+  for (const item of list) {
+    if (item.waktu && item.waktu.includes('-')) {
+      const [startStr, endStr] = item.waktu.split('-');
+      const startMin = parseTimeToMinutes(startStr);
+      const endMin = parseTimeToMinutes(endStr);
+      if (currentMinutes >= startMin - 30 && currentMinutes <= endMin + 30) {
+        return item;
+      }
+    }
+  }
+
+  // 3. Jika jeda antar sesi, pilih kegiatan terdekat berdasarkan waktu mulai
+  let closest = list[0];
+  let minDiff = Infinity;
+  for (const item of list) {
+    if (item.waktu && item.waktu.includes('-')) {
+      const [startStr] = item.waktu.split('-');
+      const startMin = parseTimeToMinutes(startStr);
+      const diff = Math.abs(currentMinutes - startMin);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = item;
+      }
+    }
+  }
+  return closest;
+};
+
 export default function MobilePresensi() {
   // Mode Utama: 'qr', 'manual', atau 'riwayat'
   const [activeMode, setActiveMode] = useState('qr');
-  const [selectedKegiatan, setSelectedKegiatan] = useState(DAFTAR_KEGIATAN[0]);
+  // Otomatis pilih sesi kegiatan sesuai jam saat ini
+  const [selectedKegiatan, setSelectedKegiatan] = useState(() => getActiveKegiatanByTime(DAFTAR_KEGIATAN));
   
   // Data State
   const [santriList, setSantriList] = useState([]);
