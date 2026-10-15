@@ -19,7 +19,8 @@ import {
   Filter,
   FolderPlus,
   Tag,
-  AlertCircle
+  AlertCircle,
+  ChevronDown
 } from 'lucide-react';
 import { showConfirm, toastSuccess, showError } from '../../utils/alert.util';
 import SearchableSelect from '../../components/SearchableSelect';
@@ -569,85 +570,83 @@ export default function MobilePraktek() {
         )}
       </div>
 
-      {/* Header Bar Kategori + Tombol Kelola Kategori */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-        <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <Tag size={13} color="#059669" /> Kategori Praktek
-        </span>
+      {/* Filter Kategori Praktek: Select Option + Tombol Kelola Kategori */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        marginBottom: '10px'
+      }}>
+        <div style={{
+          flex: 1,
+          position: 'relative',
+          background: '#ffffff',
+          borderRadius: '12px',
+          border: selectedKategori === 'Semua' ? '1.5px solid #cbd5e1' : '1.5px solid #059669',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+        }}>
+          <select
+            value={selectedKategori}
+            onChange={(e) => setSelectedKategori(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px 34px 10px 12px',
+              border: 'none',
+              background: 'transparent',
+              fontSize: '0.84rem',
+              fontWeight: 700,
+              color: selectedKategori === 'Semua' ? '#334155' : '#047857',
+              outline: 'none',
+              appearance: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="Semua">🏷️ Semua Kategori Praktek</option>
+            {kategoriList.map((kat) => {
+              const katName = kat.nama_kategori || kat;
+              return (
+                <option key={kat.id || katName} value={katName}>
+                  {katName}
+                </option>
+              );
+            })}
+          </select>
+          <ChevronDown
+            size={16}
+            color="#64748b"
+            style={{
+              position: 'absolute',
+              right: '10px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              pointerEvents: 'none'
+            }}
+          />
+        </div>
+
         <button
           onClick={() => setIsKategoriModalOpen(true)}
           style={{
             background: '#ecfdf5',
             color: '#065f46',
-            border: '1px solid #a7f3d0',
-            borderRadius: '8px',
-            padding: '4px 10px',
-            fontSize: '0.72rem',
-            fontWeight: 700,
+            border: '1.5px solid #a7f3d0',
+            borderRadius: '12px',
+            padding: '10px 12px',
+            fontSize: '0.74rem',
+            fontWeight: 800,
             display: 'flex',
             alignItems: 'center',
             gap: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          <FolderPlus size={13} />
-          + Kelola Kategori
-        </button>
-      </div>
-
-      {/* Horizontal Scrollable Kategori Chips */}
-      <div style={{
-        display: 'flex',
-        gap: '8px',
-        overflowX: 'auto',
-        paddingBottom: '10px',
-        marginBottom: '8px',
-        WebkitOverflowScrolling: 'touch',
-        scrollbarWidth: 'none',
-        msOverflowStyle: 'none'
-      }}>
-        <button
-          onClick={() => setSelectedKategori('Semua')}
-          style={{
+            cursor: 'pointer',
             flexShrink: 0,
-            padding: '7px 14px',
-            borderRadius: '20px',
-            fontSize: '0.78rem',
-            fontWeight: selectedKategori === 'Semua' ? 700 : 500,
-            border: selectedKategori === 'Semua' ? '1.5px solid #059669' : '1px solid #e2e8f0',
-            background: selectedKategori === 'Semua' ? '#ecfdf5' : '#ffffff',
-            color: selectedKategori === 'Semua' ? '#065f46' : '#64748b',
-            boxShadow: selectedKategori === 'Semua' ? '0 2px 6px rgba(5, 150, 105, 0.15)' : 'none',
-            cursor: 'pointer'
+            height: '42px',
+            boxSizing: 'border-box'
           }}
+          title="Kelola Kategori Praktek"
         >
-          Semua
+          <FolderPlus size={14} />
+          <span>Kelola</span>
         </button>
-        {kategoriList.map((kat) => {
-          const katName = kat.nama_kategori || kat;
-          const isActive = selectedKategori === katName;
-          return (
-            <button
-              key={kat.id || katName}
-              onClick={() => setSelectedKategori(katName)}
-              style={{
-                flexShrink: 0,
-                padding: '7px 14px',
-                borderRadius: '20px',
-                fontSize: '0.78rem',
-                fontWeight: isActive ? 700 : 500,
-                border: isActive ? '1.5px solid #059669' : '1px solid #e2e8f0',
-                background: isActive ? '#ecfdf5' : '#ffffff',
-                color: isActive ? '#065f46' : '#64748b',
-                boxShadow: isActive ? '0 2px 6px rgba(5, 150, 105, 0.15)' : 'none',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              {katName}
-            </button>
-          );
-        })}
       </div>
 
       {/* Filter Status Pills: Semua, Lulus, Mengulang */}
