@@ -30,7 +30,9 @@ import {
   HeartHandshake,
   X,
   Search,
-  ExternalLink
+  ExternalLink,
+  ChevronDown,
+  Filter
 } from 'lucide-react';
 import { showSuccess, showConfirm } from '../../utils/alert.util';
 
@@ -52,6 +54,8 @@ export default function MobileHome({ onChangeTab, onLogout }) {
   // Modal State untuk Detail Absensi Hari Ini
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedStatusTab, setSelectedStatusTab] = useState('Hadir'); // 'Hadir' | 'Sakit' | 'Izin' | 'Alfa'
+  const [selectedKegiatan, setSelectedKegiatan] = useState('Semua'); // 'Semua' | nama_sesi
+  const [sesiList, setSesiList] = useState([]);
   const [todayAbsensiList, setTodayAbsensiList] = useState([]);
   const [searchModalText, setSearchModalText] = useState('');
 
@@ -132,10 +136,15 @@ export default function MobileHome({ onChangeTab, onLogout }) {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [resStats, resAbs] = await Promise.all([
+        const [resStats, resAbs, resSesi] = await Promise.all([
           axios.get('/api/dashboard/stats').catch(() => null),
-          axios.get('/api/absensi/fingerprint').catch(() => null)
+          axios.get('/api/absensi/fingerprint').catch(() => null),
+          axios.get('/api/absensi/sesi').catch(() => null)
         ]);
+
+        if (resSesi?.data?.data && Array.isArray(resSesi.data.data)) {
+          setSesiList(resSesi.data.data);
+        }
 
         let combinedTodayLogs = [];
         const todayStr = getTodayDateStr();
@@ -205,6 +214,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
 
   const handleOpenStatusModal = (status) => {
     setSelectedStatusTab(status);
+    setSelectedKegiatan('Semua');
     setSearchModalText('');
     setIsDetailModalOpen(true);
   };
@@ -223,8 +233,25 @@ export default function MobileHome({ onChangeTab, onLogout }) {
     );
   };
 
-  // Filter daftar santri untuk modal berdasarkan status tab dan search keyword
-  const filteredModalList = todayAbsensiList.filter(item => {
+  // Daftar semua nama kegiatan yang tersedia hari ini
+  const availableKegiatanList = Array.from(new Set([
+    ...todayAbsensiList.map(item => item.nama_sesi || item.kegiatan).filter(Boolean),
+    ...sesiList.map(s => s.nama_sesi).filter(Boolean)
+  ]));
+
+  // Data terfilter berdasarkan sesi kegiatan yang dipilih di modal
+  const logsForSelectedKegiatan = selectedKegiatan === 'Semua'
+    ? todayAbsensiList
+    : todayAbsensiList.filter(item => (item.nama_sesi || item.kegiatan || '').toLowerCase() === selectedKegiatan.toLowerCase());
+
+  // Count dinamis pada tab status sesuai filter kegiatan
+  const modalHadirCount = logsForSelectedKegiatan.filter(l => simplifyStatus(l.status_kehadiran || l.status) === 'Hadir').length;
+  const modalSakitCount = logsForSelectedKegiatan.filter(l => simplifyStatus(l.status_kehadiran || l.status) === 'Sakit').length;
+  const modalIzinCount = logsForSelectedKegiatan.filter(l => simplifyStatus(l.status_kehadiran || l.status) === 'Izin').length;
+  const modalAlfaCount = logsForSelectedKegiatan.filter(l => simplifyStatus(l.status_kehadiran || l.status) === 'Alfa').length;
+
+  // Filter daftar santri untuk modal berdasarkan status tab, kegiatan, dan search keyword
+  const filteredModalList = logsForSelectedKegiatan.filter(item => {
     const itemStatus = simplifyStatus(item.status_kehadiran || item.status);
     if (itemStatus.toLowerCase() !== selectedStatusTab.toLowerCase()) return false;
 
@@ -805,10 +832,10 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               borderBottom: '1px solid #e2e8f0'
             }}>
               {[
-                { key: 'Hadir', count: rekapAbsensi.hadir, color: '#10b981', bg: '#ecfdf5', border: '#a7f3d0' },
-                { key: 'Sakit', count: rekapAbsensi.sakit, color: '#ef4444', bg: '#fef2f2', border: '#fecdd3' },
-                { key: 'Izin', count: rekapAbsensi.izin, color: '#f59e0b', bg: '#fffbeb', border: '#fde68a' },
-                { key: 'Alfa', count: rekapAbsensi.alfa, color: '#0d9488', bg: '#f0fdfa', border: '#99f6e4' }
+                { key: 'Hadir', count: modalHadirCount, color: '#10b981', bg: '#ecfdf5', border: '#a7f3d0' },
+                { key: 'Sakit', count: modalSakitCount, color: '#ef4444', bg: '#fef2f2', border: '#fecdd3' },
+                { key: 'Izin', count: modalIzinCount, color: '#f59e0b', bg: '#fffbeb', border: '#fde68a' },
+                { key: 'Alfa', count: modalAlfaCount, color: '#0d9488', bg: '#f0fdfa', border: '#99f6e4' }
               ].map(st => {
                 const isActive = selectedStatusTab === st.key;
                 return (
@@ -845,8 +872,63 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               })}
             </div>
 
-            {/* Search Filter */}
-            <div style={{ padding: '10px 16px', borderBottom: '1px solid #f1f5f9' }}>
+            {/* Filter Bar: Dropdown Filter Kegiatan & Search Input */}
+            <div style={{
+              padding: '10px 16px',
+              borderBottom: '1px solid #f1f5f9',
+              background: '#ffffff',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px'
+            }}>
+              {/* Dropdown Filter Sesi Kegiatan */}
+              <div style={{
+                position: 'relative',
+                background: selectedKegiatan === 'Semua' ? '#f8fafc' : '#eff6ff',
+                borderRadius: '12px',
+                border: selectedKegiatan === 'Semua' ? '1.5px solid #e2e8f0' : '1.5px solid #0284c7',
+                transition: 'all 0.15s ease'
+              }}>
+                <select
+                  value={selectedKegiatan}
+                  onChange={(e) => setSelectedKegiatan(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '9px 34px 9px 12px',
+                    border: 'none',
+                    background: 'transparent',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    color: selectedKegiatan === 'Semua' ? '#334155' : '#0369a1',
+                    outline: 'none',
+                    appearance: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="Semua">🕌 Semua Sesi Kegiatan ({todayAbsensiList.length} Santri)</option>
+                  {availableKegiatanList.map((kg) => {
+                    const countInKg = todayAbsensiList.filter(l => (l.nama_sesi || l.kegiatan || '').toLowerCase() === kg.toLowerCase()).length;
+                    return (
+                      <option key={kg} value={kg}>
+                        {kg} ({countInKg} santri)
+                      </option>
+                    );
+                  })}
+                </select>
+                <ChevronDown
+                  size={15}
+                  color={selectedKegiatan === 'Semua' ? '#64748b' : '#0284c7'}
+                  style={{
+                    position: 'absolute',
+                    right: '11px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    pointerEvents: 'none'
+                  }}
+                />
+              </div>
+
+              {/* Search Filter Input */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
