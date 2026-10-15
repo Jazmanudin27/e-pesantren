@@ -566,12 +566,12 @@ export default function MobileHome({ onChangeTab, onLogout }) {
           <span style={menuLabelStyle}>Pelanggaran</span>
         </div>
 
-        {/* 8. Absensi Kegiatan (Berjamaah, Mengaji, dll) */}
+        {/* 8. Absensi (Berjamaah, Mengaji, dll) */}
         <div onClick={() => onChangeTab('presensi')} style={menuCardStyle}>
           <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #0284c7, #0369a1)', boxShadow: '0 8px 16px -2px rgba(2, 132, 199, 0.35)' }}>
             <Fingerprint size={26} />
           </div>
-          <span style={menuLabelStyle}>Absensi Kegiatan</span>
+          <span style={menuLabelStyle}>Absensi</span>
         </div>
 
         {/* 9. Hafalan (Tahfidz & Muroja'ah) */}
