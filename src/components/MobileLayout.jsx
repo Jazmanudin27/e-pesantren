@@ -267,17 +267,18 @@ export default function MobileLayout() {
         {isMenuDrawerOpen && (
           <div 
             style={{
-              position: 'absolute',
+              position: 'fixed',
               top: 0,
               left: 0,
               right: 0,
               bottom: 0,
               background: 'rgba(15, 23, 42, 0.75)',
               backdropFilter: 'blur(4px)',
-              zIndex: 99,
+              zIndex: 999,
               display: 'flex',
               flexDirection: 'column',
-              justifyContent: 'flex-end'
+              justifyContent: 'flex-end',
+              alignItems: 'center'
             }}
             onClick={() => setIsMenuDrawerOpen(false)}
           >
@@ -289,7 +290,10 @@ export default function MobileLayout() {
                 padding: '20px 16px 30px',
                 maxHeight: '80vh',
                 overflowY: 'auto',
-                boxShadow: '0 -10px 25px rgba(0,0,0,0.2)'
+                boxShadow: '0 -10px 25px rgba(0,0,0,0.2)',
+                width: '100%',
+                maxWidth: '430px',
+                boxSizing: 'border-box'
               }}
               onClick={(e) => e.stopPropagation()}
             >
