@@ -485,7 +485,7 @@ export default function MobilePraktek() {
         </div>
 
         <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 4px 0', lineHeight: 1.25 }}>
-          Ujian Praktek Ibadah
+          Praktek
         </h2>
         <p style={{ margin: 0, fontSize: '0.78rem', color: '#d1fae5', lineHeight: 1.4 }}>
           Perekaman uji kelulusan ibadah amaliyah, sholat, wudhu, & thaharah santri.

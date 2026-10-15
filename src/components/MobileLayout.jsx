@@ -138,7 +138,7 @@ export default function MobileLayout() {
       case 'presensi': return 'Presensi & Absensi';
       case 'tahfidz': return 'Tahfidz & Muroja\'ah';
       case 'praktek-ibadah':
-      case 'praktek': return 'Ujian Praktek Ibadah';
+      case 'praktek': return 'Praktek';
       case 'perizinan':
       case 'izin': return 'Perizinan';
       case 'master-santri': return 'Data Santri';
@@ -330,7 +330,7 @@ export default function MobileLayout() {
                       <DoorOpen size={16} color="#2563eb" /> Perizinan
                     </button>
                     <button onClick={() => handleSelectTab('praktek-ibadah')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: (mobileTab === 'praktek-ibadah' || mobileTab === 'praktek') ? '#d1fae5' : '#f8fafc', border: (mobileTab === 'praktek-ibadah' || mobileTab === 'praktek') ? '1px solid #059669' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer', gridColumn: 'span 2' }}>
-                      <HeartHandshake size={16} color="#059669" /> Praktek Ibadah (Sholat, Wudhu, dll)
+                      <HeartHandshake size={16} color="#059669" /> Praktek
                     </button>
                   </div>
                 </div>

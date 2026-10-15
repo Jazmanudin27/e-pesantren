@@ -582,12 +582,12 @@ export default function MobileHome({ onChangeTab, onLogout }) {
           <span style={menuLabelStyle}>Hafalan</span>
         </div>
 
-        {/* 10. Praktek Ibadah (Sholat, Wudhu, Doa) */}
+        {/* 10. Praktek (Sholat, Wudhu, Doa) */}
         <div onClick={() => onChangeTab('praktek-ibadah')} style={menuCardStyle}>
           <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #10b981, #059669)', boxShadow: '0 8px 16px -2px rgba(16, 185, 129, 0.35)' }}>
             <HeartHandshake size={26} />
           </div>
-          <span style={menuLabelStyle}>Praktek Ibadah</span>
+          <span style={menuLabelStyle}>Praktek</span>
         </div>
       </div>
     </div>
