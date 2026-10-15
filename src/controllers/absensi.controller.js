@@ -5,6 +5,7 @@ export const getAbsensiFingerprint = async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT aj.*, 
+             DATE_FORMAT(aj.tanggal, '%Y-%m-%d') as tanggal,
              COALESCE(aj.status, aj.status_kehadiran, 'Hadir Tepat Waktu') as status_kehadiran,
              COALESCE(aj.metode_presensi, aj.metode_scan, 'Manual_Musyrif') as metode_scan,
              s.nama_santri, s.nis, s.fingerprint_pin, a.nama_asrama, k.nama_kamar,
@@ -16,16 +17,18 @@ export const getAbsensiFingerprint = async (req, res) => {
       LEFT JOIN kegiatan_sesi ks ON aj.sesi_id = ks.id
       LEFT JOIN fingerprint_device fd ON aj.device_id = fd.id
       ORDER BY aj.tanggal DESC, aj.waktu_scan DESC
-      LIMIT 100
+      LIMIT 500
     `);
     return sendSuccess(res, 'Data absensi fingerprint berhasil diambil', { data: rows });
   } catch (err) {
     try {
       const [rows] = await pool.query(`
-        SELECT aj.*, s.nama_santri, s.nis 
+        SELECT aj.*, 
+               DATE_FORMAT(aj.tanggal, '%Y-%m-%d') as tanggal,
+               s.nama_santri, s.nis 
         FROM absensi_jamaah_mengaji aj 
         JOIN santri s ON aj.santri_id = s.id 
-        ORDER BY aj.id DESC LIMIT 100
+        ORDER BY aj.id DESC LIMIT 500
       `);
       return sendSuccess(res, 'Data absensi berhasil diambil', { data: rows });
     } catch (e2) {
@@ -46,11 +49,14 @@ export const createAbsensiFingerprint = async (req, res) => {
       keterangan,
       waktu_scan, 
       metode_scan, 
-      metode_presensi 
+      metode_presensi,
+      tanggal
     } = req.body;
 
-    const tgl = new Date().toISOString().split('T')[0];
-    const scanTime = waktu_scan || new Date().toTimeString().split(' ')[0];
+    const now = new Date();
+    const localDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const tgl = tanggal || localDateStr;
+    const scanTime = waktu_scan || now.toTimeString().split(' ')[0];
     const finalStatus = status_kehadiran || status || 'Hadir Tepat Waktu';
     const finalMetode = metode_presensi || metode_scan || 'Manual_Musyrif';
     const finalKet = keterangan || keteledoran_keterangan || '';

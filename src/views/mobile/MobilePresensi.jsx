@@ -41,6 +41,28 @@ const DAFTAR_KEGIATAN = [
   { id: 8, nama: 'Halaqah Mengaji Malam', kategori: 'mengaji', waktu: '20:00 - 21:30', tempat: 'Kamar Asrama & Aula' }
 ];
 
+const getTodayDateStr = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const normalizeDateStr = (rawDate) => {
+  if (!rawDate) return '';
+  if (typeof rawDate === 'string') {
+    return rawDate.split('T')[0].trim();
+  }
+  if (rawDate instanceof Date) {
+    const year = rawDate.getFullYear();
+    const month = String(rawDate.getMonth() + 1).padStart(2, '0');
+    const day = String(rawDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  return String(rawDate).split('T')[0].trim();
+};
+
 export default function MobilePresensi() {
   // Mode Utama: 'qr', 'manual', atau 'riwayat'
   const [activeMode, setActiveMode] = useState('qr');
@@ -56,6 +78,7 @@ export default function MobilePresensi() {
   // Riwayat State
   const [searchRiwayat, setSearchRiwayat] = useState('');
   const [filterStatusRiwayat, setFilterStatusRiwayat] = useState('Semua');
+  const [filterTanggalRiwayat, setFilterTanggalRiwayat] = useState(getTodayDateStr);
   
   // QR Scanner State
   const [scannerActive, setScannerActive] = useState(false);
@@ -355,11 +378,11 @@ export default function MobilePresensi() {
 
 
 
-  // Simpan record presensi ke backend & localStorage
+  // Simpan record presensi ke backend & localStorage (menggunakan tanggal berjalan)
   const recordAttendance = async (santri, status = 'Hadir Tepat Waktu', metode = 'QR Code', ket = '') => {
     const now = new Date();
     const timeStr = now.toTimeString().split(' ')[0];
-    const dateStr = now.toISOString().split('T')[0];
+    const dateStr = getTodayDateStr();
 
     const payload = {
       santri_id: santri.id,
@@ -390,8 +413,8 @@ export default function MobilePresensi() {
                            (item.nama_santri && item.nama_santri.toLowerCase() === santri.nama_santri.toLowerCase());
         const sameSesi = (item.sesi_id && item.sesi_id === selectedKegiatan.id) ||
                          (item.kegiatan && item.kegiatan === selectedKegiatan.nama);
-        const itemTgl = item.tanggal ? String(item.tanggal).split('T')[0] : dateStr;
-        const sameTgl = itemTgl === dateStr;
+        const itemTgl = normalizeDateStr(item.tanggal);
+        const sameTgl = !itemTgl || itemTgl === dateStr;
 
         return sameSantri && sameSesi && sameTgl;
       });
@@ -432,19 +455,6 @@ export default function MobilePresensi() {
     toastSuccess(`${santri.nama_santri}: ${status}`);
   };
 
-  // Hapus log presensi
-  const handleDeleteLog = async (id) => {
-    const confirmed = await showConfirm('Konfirmasi Hapus', 'Hapus riwayat presensi ini?');
-    if (!confirmed) return;
-    setPresensiLogs(prev => {
-      const updated = prev.filter(i => i.id !== id);
-      localStorage.setItem('mobile_presensi_logs', JSON.stringify(updated));
-      return updated;
-    });
-    axios.delete(`/api/absensi/fingerprint/${id}`).catch(() => {});
-    toastSuccess('Riwayat presensi dihapus');
-  };
-
   const getInitials = (name) => {
     if (!name) return 'S';
     const parts = name.trim().split(' ');
@@ -458,11 +468,18 @@ export default function MobilePresensi() {
     return '📚';
   };
 
+  // Mengambil status presensi santri KHUSUS tanggal berjalan (hari ini)
   const getSantriCurrentLog = (santri) => {
-    return presensiLogs.find(l => 
-      (l.santri_id === santri.id || (l.nama_santri && l.nama_santri.toLowerCase() === santri.nama_santri.toLowerCase())) &&
-      (l.sesi_id === selectedKegiatan.id || l.kegiatan === selectedKegiatan.nama)
-    );
+    const today = getTodayDateStr();
+    return presensiLogs.find(l => {
+      const itemTgl = normalizeDateStr(l.tanggal);
+      const isToday = !itemTgl || itemTgl === today;
+      const sameSantri = (l.santri_id && l.santri_id === santri.id) || 
+                         (l.nama_santri && santri.nama_santri && l.nama_santri.toLowerCase() === santri.nama_santri.toLowerCase());
+      const sameSesi = (l.sesi_id && l.sesi_id === selectedKegiatan.id) || 
+                       (l.kegiatan && l.kegiatan === selectedKegiatan.nama);
+      return isToday && sameSantri && sameSesi;
+    });
   };
 
   const simplifyStatus = (statusStr) => {
@@ -517,7 +534,7 @@ export default function MobilePresensi() {
     return st.includes(filterManualStatus.toLowerCase());
   });
 
-  // Filter riwayat untuk tab riwayat
+  // Filter riwayat untuk tab riwayat (sesuai tanggal filter, search & status)
   const filteredRiwayat = presensiLogs.filter(log => {
     const q = searchRiwayat.toLowerCase();
     const matchSearch = (log.nama_santri || '').toLowerCase().includes(q) ||
@@ -529,19 +546,24 @@ export default function MobilePresensi() {
       filterStatusRiwayat === 'Semua' ? true :
       cleanStatus.toLowerCase() === filterStatusRiwayat.toLowerCase();
 
-    return matchSearch && matchStatus;
+    const itemTgl = normalizeDateStr(log.tanggal);
+    const matchTanggal = !filterTanggalRiwayat || itemTgl === filterTanggalRiwayat;
+
+    return matchSearch && matchStatus && matchTanggal;
   });
 
-  // Perhitungan statistik sesi kegiatan aktif
+  // Perhitungan statistik sesi kegiatan aktif (tanggal berjalan)
   const sessionSudahCount = santriList.filter(s => getSantriCurrentLog(s)).length;
   const sessionTotal = santriList.length;
   const sessionPercent = sessionTotal > 0 ? Math.round((sessionSudahCount / sessionTotal) * 100) : 0;
 
-  // Perhitungan statistik keseluruhan
-  const countHadir = presensiLogs.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('hadir')).length;
-  const countSakit = presensiLogs.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('sakit')).length;
-  const countIzin = presensiLogs.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('izin')).length;
-  const countAlpa = presensiLogs.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('alpa') || (l.status_kehadiran || l.status || '').toLowerCase().includes('alpha')).length;
+  // Perhitungan statistik riwayat (sesuai tanggal filter yang dipilih)
+  const riwayatLogsForStats = presensiLogs.filter(l => !filterTanggalRiwayat || normalizeDateStr(l.tanggal) === filterTanggalRiwayat);
+  const countTotalRiwayat = riwayatLogsForStats.length;
+  const countHadir = riwayatLogsForStats.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('hadir')).length;
+  const countSakit = riwayatLogsForStats.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('sakit')).length;
+  const countIzin = riwayatLogsForStats.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('izin')).length;
+  const countAlpa = riwayatLogsForStats.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('alpa') || (l.status_kehadiran || l.status || '').toLowerCase().includes('alpha')).length;
 
   return (
     <div style={{
@@ -1261,7 +1283,7 @@ export default function MobilePresensi() {
             marginBottom: '14px'
           }}>
             <div style={{ background: '#ffffff', padding: '10px 4px', borderRadius: '14px', textAlign: 'center', border: '1px solid #e2e8f0', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' }}>
-              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0284c7' }}>{presensiLogs.length}</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0284c7' }}>{countTotalRiwayat}</div>
               <div style={{ fontSize: '0.66rem', color: '#64748b', fontWeight: 700 }}>Total</div>
             </div>
             <div style={{ background: '#ecfdf5', padding: '10px 4px', borderRadius: '14px', textAlign: 'center', border: '1px solid #a7f3d0' }}>
@@ -1275,6 +1297,84 @@ export default function MobilePresensi() {
             <div style={{ background: '#fef2f2', padding: '10px 4px', borderRadius: '14px', textAlign: 'center', border: '1px solid #fecdd3' }}>
               <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#dc2626' }}>{countIzin + countAlpa}</div>
               <div style={{ fontSize: '0.66rem', color: '#b91c1c', fontWeight: 700 }}>Izin/Alfa</div>
+            </div>
+          </div>
+
+          {/* Filter Tanggal Riwayat (Sesuai Permintaan) */}
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            padding: '10px 14px',
+            border: '1.5px solid #e2e8f0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '10px',
+            marginBottom: '10px',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+              <Calendar size={18} color="#7c3aed" />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '0.64rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
+                  Filter Tanggal Riwayat
+                </span>
+                <input
+                  type="date"
+                  value={filterTanggalRiwayat}
+                  onChange={(e) => setFilterTanggalRiwayat(e.target.value)}
+                  style={{
+                    border: 'none',
+                    outline: 'none',
+                    fontSize: '0.86rem',
+                    fontWeight: 800,
+                    color: '#1e293b',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    padding: 0
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '4px' }}>
+              {filterTanggalRiwayat !== getTodayDateStr() && (
+                <button
+                  type="button"
+                  onClick={() => setFilterTanggalRiwayat(getTodayDateStr())}
+                  style={{
+                    background: '#f5f3ff',
+                    border: '1px solid #ddd6fe',
+                    color: '#7c3aed',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    padding: '5px 10px',
+                    borderRadius: '8px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Hari Ini
+                </button>
+              )}
+              {filterTanggalRiwayat && (
+                <button
+                  type="button"
+                  onClick={() => setFilterTanggalRiwayat('')}
+                  style={{
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    color: '#64748b',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    padding: '5px 10px',
+                    borderRadius: '8px',
+                    cursor: 'pointer'
+                  }}
+                  title="Tampilkan seluruh riwayat"
+                >
+                  Semua
+                </button>
+              )}
             </div>
           </div>
 
@@ -1421,7 +1521,7 @@ export default function MobilePresensi() {
                       </span>
                     </div>
 
-                    {/* Row 2: Clean single line (No awkward wrapping, generous breathing room) */}
+                    {/* Row 2: Clean single line info */}
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -1446,27 +1546,22 @@ export default function MobilePresensi() {
                     </div>
                   </div>
 
-                  {/* Right: Trash Button with comfortable padding */}
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteLog(log.id)}
-                    style={{
-                      background: '#fff1f2',
-                      border: '1px solid #fecdd3',
-                      borderRadius: '10px',
-                      width: '32px',
-                      height: '32px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#e11d48',
-                      cursor: 'pointer',
-                      flexShrink: 0
-                    }}
-                    title="Hapus Record"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  {/* Right: Date Badge (Clean & No Delete Button) */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '4px 8px',
+                    borderRadius: '8px',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    color: '#64748b',
+                    flexShrink: 0
+                  }}>
+                    {normalizeDateStr(log.tanggal) || getTodayDateStr()}
+                  </div>
                 </div>
               );
             })}
