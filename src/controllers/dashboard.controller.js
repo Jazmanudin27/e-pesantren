@@ -37,38 +37,39 @@ export const getDashboardStats = async (req, res) => {
 
     // Rekap Absensi Santri Hari Ini (Hadir, Sakit, Izin, Alfa)
     let rekap_absensi = { hadir: 0, sakit: 0, izin: 0, alfa: 0, total: total_santri || 0 };
+    let absensi_today_list = [];
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const [absenRows] = await pool.query(`
-        SELECT status_kehadiran, COUNT(*) as jml 
-        FROM absensi_jamaah_mengaji 
-        WHERE tanggal = CURDATE() OR tanggal = ?
-        GROUP BY status_kehadiran
-      `, [today]);
-      
-      if (absenRows && absenRows.length > 0) {
-        absenRows.forEach(r => {
+      const now = new Date();
+      const localDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const [todayDetailRows] = await pool.query(`
+        SELECT aj.*, 
+               DATE_FORMAT(aj.tanggal, '%Y-%m-%d') as tanggal,
+               COALESCE(aj.status, aj.status_kehadiran, 'Hadir Tepat Waktu') as status_kehadiran,
+               COALESCE(aj.metode_presensi, aj.metode_scan, 'Manual_Musyrif') as metode_scan,
+               s.nama_santri, s.nis, a.nama_asrama, k.nama_kamar,
+               ks.nama_sesi, ks.kategori
+        FROM absensi_jamaah_mengaji aj
+        JOIN santri s ON aj.santri_id = s.id
+        LEFT JOIN asrama a ON s.asrama_id = a.id
+        LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+        LEFT JOIN kegiatan_sesi ks ON aj.sesi_id = ks.id
+        WHERE DATE_FORMAT(aj.tanggal, '%Y-%m-%d') = ? OR DATE_FORMAT(aj.tanggal, '%Y-%m-%d') = CURDATE()
+        ORDER BY aj.waktu_scan DESC, aj.id DESC
+      `, [localDateStr]);
+
+      absensi_today_list = todayDetailRows || [];
+
+      if (absensi_today_list.length > 0) {
+        absensi_today_list.forEach(r => {
           const st = (r.status_kehadiran || '').toLowerCase();
-          const jml = parseInt(r.jml) || 0;
-          if (st.includes('sakit')) rekap_absensi.sakit += jml;
-          else if (st.includes('izin')) rekap_absensi.izin += jml;
-          else if (st.includes('alfa') || st.includes('alpa') || st.includes('teledor')) rekap_absensi.alfa += jml;
-          else rekap_absensi.hadir += jml;
+          if (st.includes('sakit')) rekap_absensi.sakit += 1;
+          else if (st.includes('izin')) rekap_absensi.izin += 1;
+          else if (st.includes('alfa') || st.includes('alpa') || st.includes('teledor')) rekap_absensi.alfa += 1;
+          else rekap_absensi.hadir += 1;
         });
-      } else {
-        // Jika belum ada absensi tercatat hari ini, hitung dari total santri
-        const tot = total_santri || 28;
-        rekap_absensi = {
-          hadir: Math.max(0, tot - 3),
-          sakit: 1,
-          izin: 1,
-          alfa: 1,
-          total: tot
-        };
       }
     } catch (e) {
-      const tot = total_santri || 28;
-      rekap_absensi = { hadir: Math.max(0, tot - 2), sakit: 1, izin: 1, alfa: 0, total: tot };
+      console.warn('Dashboard absensi query fallback:', e.message);
     }
 
     return sendSuccess(res, 'Dashboard stats retrieved', {
@@ -79,6 +80,7 @@ export const getDashboardStats = async (req, res) => {
         avg_juz: parseFloat(avg_juz || 0).toFixed(1)
       },
       rekap_absensi,
+      absensi_today_list,
       recentSetoran,
       activeIzin
     });
