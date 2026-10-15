@@ -68,6 +68,65 @@ export const getDashboardStats = async (req, res) => {
           else rekap_absensi.hadir += 1;
         });
       }
+
+      // Otomatis sinkronkan santri dengan izin aktif / sakit pulang ke absensi hari ini
+      try {
+        const [activeIzinRows] = await pool.query(`
+          SELECT sp.*,
+                 DATE_FORMAT(sp.tgl_keluar_rencana, '%Y-%m-%d') as tgl_mulai,
+                 DATE_FORMAT(sp.tgl_kembali_rencana, '%Y-%m-%d') as tgl_selesai,
+                 s.nama_santri, s.nis, a.nama_asrama, k.nama_kamar
+          FROM santri_perizinan sp
+          JOIN santri s ON sp.santri_id = s.id
+          LEFT JOIN asrama a ON s.asrama_id = a.id
+          LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+          WHERE sp.status IN ('Aktif Keluar', 'Disetujui Pengasuh', 'Terlambat Kembali')
+            AND (DATE(sp.tgl_keluar_rencana) <= CURDATE() OR sp.tgl_keluar_aktual IS NOT NULL)
+            AND (sp.tgl_kembali_aktual IS NULL OR DATE(sp.tgl_kembali_aktual) >= CURDATE())
+        `);
+
+        if (activeIzinRows && activeIzinRows.length > 0) {
+          activeIzinRows.forEach(sp => {
+            const isSakit = (sp.jenis_izin || '').toLowerCase().includes('sakit') ||
+                            (sp.jenis_izin || '').toLowerCase().includes('berobat') ||
+                            (sp.keperluan || '').toLowerCase().includes('sakit');
+            const finalStatus = isSakit ? 'Sakit' : 'Izin';
+            const ket = `Perizinan ${sp.jenis_izin || 'Pulang'}${sp.keperluan ? `: ${sp.keperluan}` : ''}`;
+
+            const alreadyInList = absensi_today_list.some(r => r.santri_id === sp.santri_id);
+            if (!alreadyInList) {
+              absensi_today_list.push({
+                id: `izin-${sp.id}`,
+                santri_id: sp.santri_id,
+                sesi_id: null,
+                tanggal: localDateStr,
+                waktu_scan: '00:00:00',
+                status_kehadiran: finalStatus,
+                status: finalStatus,
+                metode_scan: 'Perizinan Otomatis',
+                metode_presensi: 'Perizinan Otomatis',
+                keterangan: ket,
+                keteledoran_keterangan: ket,
+                nama_santri: sp.nama_santri,
+                nis: sp.nis,
+                nama_asrama: sp.nama_asrama,
+                nama_kamar: sp.nama_kamar,
+                nama_sesi: 'Semua Kegiatan (Perizinan)',
+                kategori: 'Perizinan',
+                is_perizinan_auto: true
+              });
+
+              if (isSakit) {
+                rekap_absensi.sakit += 1;
+              } else {
+                rekap_absensi.izin += 1;
+              }
+            }
+          });
+        }
+      } catch (eIzin) {
+        console.warn('Dashboard sync perizinan error:', eIzin.message);
+      }
     } catch (e) {
       console.warn('Dashboard absensi query fallback:', e.message);
     }

@@ -124,6 +124,7 @@ export default function MobilePresensi() {
   // Data State
   const [santriList, setSantriList] = useState([]);
   const [presensiLogs, setPresensiLogs] = useState([]);
+  const [izinList, setIzinList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchManual, setSearchManual] = useState('');
   const [filterManualStatus, setFilterManualStatus] = useState('Semua');
@@ -174,17 +175,22 @@ export default function MobilePresensi() {
     } catch (e) {}
   };
 
-  // Fetch Santri & Presensi Logs
+  // Fetch Santri & Presensi Logs & Perizinan
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [resSantri, resAbs] = await Promise.all([
+      const [resSantri, resAbs, resIzin] = await Promise.all([
         axios.get('/api/santri'),
-        axios.get('/api/absensi/fingerprint').catch(() => ({ data: { data: [] } }))
+        axios.get('/api/absensi/fingerprint').catch(() => ({ data: { data: [] } })),
+        axios.get('/api/perizinan').catch(() => ({ data: { data: [] } }))
       ]);
 
       if (resSantri.data && resSantri.data.data) {
         setSantriList(resSantri.data.data);
+      }
+
+      if (resIzin.data && resIzin.data.data) {
+        setIzinList(resIzin.data.data);
       }
 
       if (resAbs.data && resAbs.data.data && resAbs.data.data.length > 0) {
@@ -521,18 +527,71 @@ export default function MobilePresensi() {
     return '📚';
   };
 
+  // Helper cek apakah santri memiliki izin aktif (Izin Pulang / Sakit) dari menu perizinan
+  const getSantriActiveIzin = (santri, targetDate) => {
+    if (!santri || !izinList || !izinList.length) return null;
+    const dateToCheck = targetDate || getTodayDateStr();
+
+    return izinList.find(sp => {
+      const matchSantri = (sp.santri_id && sp.santri_id === santri.id) ||
+        (sp.nama_santri && santri.nama_santri && sp.nama_santri.toLowerCase() === santri.nama_santri.toLowerCase());
+      if (!matchSantri) return false;
+
+      const statusActive = ['Aktif Keluar', 'Disetujui Pengasuh', 'Terlambat Kembali'].includes(sp.status);
+      if (!statusActive) return false;
+
+      const tglMulai = normalizeDateStr(sp.tgl_keluar_rencana || sp.tgl_keluar_aktual);
+      const tglSelesai = normalizeDateStr(sp.tgl_kembali_rencana || sp.tgl_kembali_aktual);
+
+      if (tglMulai && dateToCheck < tglMulai) return false;
+      if (tglSelesai && dateToCheck > tglSelesai && sp.status !== 'Terlambat Kembali') return false;
+
+      return true;
+    });
+  };
+
   // Mengambil status presensi santri KHUSUS tanggal berjalan (hari ini)
   const getSantriCurrentLog = (santri) => {
     const today = getTodayDateStr();
-    return presensiLogs.find(l => {
+    // 1. Cek langsung dari presensi logs (baik scan manual, fingerprint, maupun auto-sync backend)
+    const directLog = presensiLogs.find(l => {
       const itemTgl = normalizeDateStr(l.tanggal);
       const isToday = !itemTgl || itemTgl === today;
       const sameSantri = (l.santri_id && l.santri_id === santri.id) || 
                          (l.nama_santri && santri.nama_santri && l.nama_santri.toLowerCase() === santri.nama_santri.toLowerCase());
       const sameSesi = (l.sesi_id && l.sesi_id === selectedKegiatan.id) || 
-                       (l.kegiatan && l.kegiatan === selectedKegiatan.nama);
+                       (l.kegiatan && l.kegiatan === selectedKegiatan.nama) ||
+                       (l.is_perizinan_auto && (l.status_kehadiran === 'Izin' || l.status_kehadiran === 'Sakit'));
       return isToday && sameSantri && sameSesi;
     });
+
+    if (directLog) return directLog;
+
+    // 2. Jika belum tercatat di log presensi, otomatis baca dari data perizinan aktif
+    const activeIzin = getSantriActiveIzin(santri, today);
+    if (activeIzin) {
+      const isSakit = (activeIzin.jenis_izin || '').toLowerCase().includes('sakit') ||
+                      (activeIzin.jenis_izin || '').toLowerCase().includes('berobat') ||
+                      (activeIzin.keperluan || '').toLowerCase().includes('sakit');
+      const st = isSakit ? 'Sakit' : 'Izin';
+      return {
+        id: `auto-izin-${activeIzin.id}`,
+        santri_id: santri.id,
+        nama_santri: santri.nama_santri,
+        nis: santri.nis,
+        sesi_id: selectedKegiatan.id,
+        kegiatan: selectedKegiatan.nama,
+        tanggal: today,
+        waktu_scan: '00:00',
+        status: st,
+        status_kehadiran: st,
+        metode_scan: 'Perizinan',
+        keterangan: `Perizinan: ${activeIzin.jenis_izin} (${activeIzin.keperluan || 'Disetujui'})`,
+        is_perizinan_auto: true
+      };
+    }
+
+    return null;
   };
 
   const simplifyStatus = (statusStr) => {
