@@ -618,6 +618,10 @@ export default function MobilePresensi() {
   const countIzin = riwayatLogsForStats.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('izin')).length;
   const countAlpa = riwayatLogsForStats.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('alpa') || (l.status_kehadiran || l.status || '').toLowerCase().includes('alpha')).length;
 
+  // Badge notifikasi tab riwayat: sinkron dengan data tanggal aktif
+  const todayPresensiCount = presensiLogs.filter(l => normalizeDateStr(l.tanggal) === getTodayDateStr()).length;
+  const riwayatBadgeCount = activeMode === 'riwayat' ? filteredRiwayat.length : todayPresensiCount;
+
   return (
     <div style={{
       minHeight: '100%',
@@ -825,7 +829,7 @@ export default function MobilePresensi() {
         >
           <History size={16} />
           <span>Riwayat</span>
-          {presensiLogs.length > 0 && (
+          {riwayatBadgeCount > 0 && (
             <span style={{
               background: activeMode === 'riwayat' ? '#7c3aed' : '#94a3b8',
               color: '#ffffff',
@@ -835,7 +839,7 @@ export default function MobilePresensi() {
               borderRadius: '999px',
               marginLeft: '2px'
             }}>
-              {presensiLogs.length}
+              {riwayatBadgeCount}
             </span>
           )}
         </button>
