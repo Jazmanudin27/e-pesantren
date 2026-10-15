@@ -4,11 +4,40 @@ import { BookOpen, Plus, Edit3, Trash2, X, Save, Loader2, Search, CheckCircle, A
 import { SURAH_LIST } from '../../utils/quranSurah.util';
 import { showConfirm, toastSuccess } from '../../utils/alert.util';
 import SearchableSelect from '../../components/SearchableSelect';
+import { DEFAULT_KITAB_DATA } from './MobileKitab';
+
+const getMasterKitabOptions = () => {
+  let rawKitab = [];
+  try {
+    const saved = localStorage.getItem('pesantren_kitab_list');
+    rawKitab = saved ? JSON.parse(saved) : DEFAULT_KITAB_DATA;
+  } catch (e) {
+    rawKitab = DEFAULT_KITAB_DATA;
+  }
+
+  return [
+    {
+      value: "Al-Qur'an 30 Juz",
+      label: "Al-Qur'an 30 Juz",
+      sublabel: "Tahfidz Al-Qur'an (114 Surat)"
+    },
+    {
+      value: "Juz 'Amma (Juz 30)",
+      label: "Juz 'Amma (Juz 30)",
+      sublabel: "Tahfidz Surat Pendek"
+    },
+    ...rawKitab.map(k => ({
+      value: k.judul,
+      label: k.judul,
+      sublabel: `${k.fan || 'Kitab Kuning'}${k.pengarang ? ` • ${k.pengarang}` : ''}`
+    }))
+  ];
+};
 
 export default function MobileTahfidz() {
   const [setoranList, setSetoranList] = useState([]);
   const [santriOptions, setSantriOptions] = useState([]);
-  const [materiOptions, setMateriOptions] = useState([]);
+  const [materiOptions, setMateriOptions] = useState(getMasterKitabOptions);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -18,9 +47,8 @@ export default function MobileTahfidz() {
   const initialForm = {
     id: null,
     santri_id: 1,
-    materi_hafalan: "Al-Qur'an",
+    materi_hafalan: "Al-Qur'an 30 Juz",
     capaian_hafalan: '',
-    nilai_kelancaran: 'Mumtaz (A)',
     status: 'Lulus',
     catatan: '',
     tanggal: new Date().toISOString().split('T')[0]
@@ -29,26 +57,22 @@ export default function MobileTahfidz() {
   const [formData, setFormData] = useState(initialForm);
 
   const defaultSetoran = [
-    { id: 1, santri_id: 1, nama_santri: 'Muhammad Al-Fatih', materi_hafalan: "Al-Qur'an", capaian_hafalan: 'Juz 15 (Al-Isra 1-25)', nilai_kelancaran: 'Mumtaz (A)', status: 'Lulus', tanggal: '2026-10-07' },
-    { id: 2, santri_id: 2, nama_santri: 'Ahmad Dahlan', materi_hafalan: 'Nadzom Al-Jurumiyah', capaian_hafalan: 'Bait 1 - 35 (Bab Kalam & I\'rab)', nilai_kelancaran: 'Jayyid Jiddan (B+)', status: 'Lulus', tanggal: '2026-10-06' },
-    { id: 3, santri_id: 3, nama_santri: 'Khadijah Az-Zahra', materi_hafalan: 'Nadzom Al-Imrithi', capaian_hafalan: 'Bait 1 - 50', nilai_kelancaran: 'Mumtaz (A)', status: 'Lulus', tanggal: '2026-10-05' }
+    { id: 1, santri_id: 1, nama_santri: 'Muhammad Al-Fatih', materi_hafalan: "Al-Qur'an 30 Juz", capaian_hafalan: 'Juz 15 (Al-Isra 1-25)', status: 'Lulus', tanggal: '2026-10-07' },
+    { id: 2, santri_id: 2, nama_santri: 'Ahmad Dahlan', materi_hafalan: 'Matan Al-Ajurumiyyah', capaian_hafalan: 'Bait 1 - 35 (Bab Kalam & I\'rab)', status: 'Lulus', tanggal: '2026-10-06' },
+    { id: 3, santri_id: 3, nama_santri: 'Khadijah Az-Zahra', materi_hafalan: 'Nadhom Al-Imrithi', capaian_hafalan: 'Bait 1 - 50', status: 'Lulus', tanggal: '2026-10-05' }
   ];
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [resSetoran, resSantri, resMateri] = await Promise.all([
+      setMateriOptions(getMasterKitabOptions());
+      const [resSetoran, resSantri] = await Promise.all([
         axios.get('/api/dashboard/stats'),
-        axios.get('/api/santri'),
-        axios.get('/api/materi-hafalan').catch(() => ({ data: { success: false } }))
+        axios.get('/api/santri')
       ]);
 
       if (resSantri.data && resSantri.data.data) {
         setSantriOptions(resSantri.data.data);
-      }
-
-      if (resMateri.data && resMateri.data.success && resMateri.data.data) {
-        setMateriOptions(resMateri.data.data);
       }
 
       if (resSetoran.data && resSetoran.data.recentSetoran && resSetoran.data.recentSetoran.length > 0) {
@@ -75,6 +99,8 @@ export default function MobileTahfidz() {
     setFormData({
       ...initialForm,
       santri_id: santriOptions[0]?.id || 1,
+      materi_hafalan: materiOptions[0]?.value || "Al-Qur'an 30 Juz",
+      status: 'Lulus',
       tanggal: new Date().toISOString().split('T')[0]
     });
     setIsModalOpen(true);
@@ -85,10 +111,9 @@ export default function MobileTahfidz() {
     setFormData({
       id: item.id,
       santri_id: item.santri_id || 1,
-      materi_hafalan: item.materi_hafalan || (item.surat_mulai ? "Al-Qur'an" : 'Nadzom Al-Jurumiyah'),
-      capaian_hafalan: item.capaian_hafalan || (item.surat_mulai ? `QS. ${item.surat_mulai} (${item.ayat_mulai || 1}) - QS. ${item.surat_selesai || item.surat_mulai} (${item.ayat_selesai || 10})` : ''),
-      nilai_kelancaran: item.nilai_kelancaran || item.kualitas_tajwid || 'Mumtaz (A)',
-      status: item.status || 'Lulus',
+      materi_hafalan: item.materi_hafalan || (item.surat_mulai ? "Al-Qur'an 30 Juz" : (materiOptions[0]?.value || "Fathul Qorib (Al-Ghayah wat Taqrib)")),
+      capaian_hafalan: item.capaian_hafalan || (item.surat_mulai ? `QS. ${item.surat_mulai}` : ''),
+      status: item.status === 'Mengulang' ? 'Mengulang' : 'Lulus',
       catatan: item.catatan || '',
       tanggal: item.tanggal ? String(item.tanggal).split('T')[0] : new Date().toISOString().split('T')[0]
     });
@@ -106,7 +131,8 @@ export default function MobileTahfidz() {
       ayat_mulai: 1,
       surat_selesai: formData.capaian_hafalan,
       ayat_selesai: 1,
-      kualitas_tajwid: formData.nilai_kelancaran
+      nilai_kelancaran: formData.status === 'Lulus' ? 'Mumtaz (A)' : 'Mengulang',
+      kualitas_tajwid: formData.status === 'Lulus' ? 'Mumtaz (A)' : 'Mengulang'
     };
 
     try {
@@ -265,8 +291,20 @@ export default function MobileTahfidz() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', background: '#f8fafc', padding: '8px 10px', borderRadius: '8px', marginBottom: '10px' }}>
-                <span style={{ color: '#059669', fontWeight: 700 }}>Nilai: {r.nilai_kelancaran || r.kualitas_tajwid || 'Mumtaz (A)'}</span>
-                <span style={{ color: '#0369a1', fontWeight: 600 }}>Status: {r.status || 'Lulus'}</span>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontWeight: 800,
+                  fontSize: '0.74rem',
+                  color: (r.status === 'Mengulang' || r.status === 'Perlu Pengulangan') ? '#b91c1c' : '#059669',
+                  background: (r.status === 'Mengulang' || r.status === 'Perlu Pengulangan') ? '#fee2e2' : '#ecfdf5',
+                  padding: '3px 8px',
+                  borderRadius: '6px'
+                }}>
+                  {(r.status === 'Mengulang' || r.status === 'Perlu Pengulangan') ? '🔄 Mengulang' : '✅ Lulus'}
+                </span>
+                <span style={{ color: '#64748b', fontSize: '0.74rem' }}>{r.tanggal ? String(r.tanggal).split('T')[0] : 'Hari ini'}</span>
               </div>
 
               {/* Tombol Aksi */}
@@ -328,41 +366,37 @@ export default function MobileTahfidz() {
                 />
               </div>
 
-              {/* Materi Hafalan */}
+              {/* Materi Hafalan / Kitab (Diambil dari Data Master Kitab) */}
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Materi Hafalan / Kitab *</label>
                 <SearchableSelect
-                  options={(materiOptions.length > 0 ? materiOptions : MATERI_PRESETS.map((m, idx) => ({ id: idx, nama_materi: m, kategori: 'Hafalan' }))).map(m => ({
-                    value: m.nama_materi,
-                    label: m.nama_materi,
-                    sublabel: m.kategori ? `${m.kategori}${m.target_hafalan ? ` • ${m.target_hafalan}` : ''}` : null
-                  }))}
+                  options={materiOptions}
                   value={formData.materi_hafalan}
                   onChange={(val) => setFormData({ ...formData, materi_hafalan: val })}
-                  placeholder="-- Pilih Materi / Kitab dari Database --"
-                  searchPlaceholder="Cari Al-Qur'an, Jurumiyah, Taqrib..."
+                  placeholder="-- Pilih Kitab / Materi dari Data Master --"
+                  searchPlaceholder="Cari nama kitab atau fan..."
                   required
                 />
                 
-                {/* Chip Pilihan Cepat */}
+                {/* Chip Pilihan Cepat dari Data Master Kitab */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
-                  {(materiOptions.length > 0 ? materiOptions.slice(0, 6).map(m => m.nama_materi) : ["Al-Qur'an", "Nadzom Al-Jurumiyah", "Nadzom Al-Imrithi", "Alfiyah", "Matan Taqrib"]).map(chip => (
+                  {materiOptions.slice(0, 6).map(chip => (
                     <button
-                      key={chip}
+                      key={chip.value}
                       type="button"
-                      onClick={() => setFormData({ ...formData, materi_hafalan: chip })}
+                      onClick={() => setFormData({ ...formData, materi_hafalan: chip.value })}
                       style={{
-                        padding: '3px 8px',
+                        padding: '4px 10px',
                         borderRadius: '12px',
-                        border: formData.materi_hafalan === chip ? '1px solid #059669' : '1px solid #cbd5e1',
-                        background: formData.materi_hafalan === chip ? '#ecfdf5' : '#f8fafc',
-                        color: formData.materi_hafalan === chip ? '#065f46' : '#64748b',
+                        border: formData.materi_hafalan === chip.value ? '1.5px solid #059669' : '1px solid #cbd5e1',
+                        background: formData.materi_hafalan === chip.value ? '#ecfdf5' : '#f8fafc',
+                        color: formData.materi_hafalan === chip.value ? '#065f46' : '#475569',
                         fontSize: '0.72rem',
-                        fontWeight: 600,
+                        fontWeight: 700,
                         cursor: 'pointer'
                       }}
                     >
-                      {chip}
+                      {chip.label.split('(')[0].trim()}
                     </button>
                   ))}
                 </div>
@@ -381,33 +415,55 @@ export default function MobileTahfidz() {
                 />
               </div>
 
-              {/* Nilai Kelancaran & Status */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Kelancaran / Nilai</label>
-                  <select
-                    value={formData.nilai_kelancaran}
-                    onChange={(e) => setFormData({ ...formData, nilai_kelancaran: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#ffffff' }}
+              {/* Status Kelulusan (Hanya Lulus & Mengulang) */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>Status *</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, status: 'Lulus' })}
+                    style={{
+                      padding: '11px',
+                      borderRadius: '12px',
+                      border: formData.status === 'Lulus' ? '2px solid #059669' : '1px solid #cbd5e1',
+                      background: formData.status === 'Lulus' ? '#ecfdf5' : '#ffffff',
+                      color: formData.status === 'Lulus' ? '#065f46' : '#64748b',
+                      fontSize: '0.85rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s ease',
+                      boxShadow: formData.status === 'Lulus' ? '0 3px 8px rgba(5, 150, 105, 0.2)' : 'none'
+                    }}
                   >
-                    <option value="Mumtaz (A)">Mumtaz (A - Sangat Lancar)</option>
-                    <option value="Jayyid Jiddan (B+)">Jayyid Jiddan (B+ - Lancar Sekali)</option>
-                    <option value="Jayyid (B)">Jayyid (B - Lancar)</option>
-                    <option value="Maqbul (C)">Maqbul (C - Cukup)</option>
-                    <option value="Dho'if (D)">Dho'if (D - Mengulang)</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Status</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#ffffff' }}
+                    <span>✅</span> Lulus
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, status: 'Mengulang' })}
+                    style={{
+                      padding: '11px',
+                      borderRadius: '12px',
+                      border: formData.status === 'Mengulang' ? '2px solid #ea580c' : '1px solid #cbd5e1',
+                      background: formData.status === 'Mengulang' ? '#fff7ed' : '#ffffff',
+                      color: formData.status === 'Mengulang' ? '#9a3412' : '#64748b',
+                      fontSize: '0.85rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s ease',
+                      boxShadow: formData.status === 'Mengulang' ? '0 3px 8px rgba(234, 88, 12, 0.2)' : 'none'
+                    }}
                   >
-                    <option value="Lulus">Lulus</option>
-                    <option value="Perlu Pengulangan">Perlu Pengulangan</option>
-                    <option value="Mengulang">Mengulang</option>
-                  </select>
+                    <span>🔄</span> Mengulang
+                  </button>
                 </div>
               </div>
 

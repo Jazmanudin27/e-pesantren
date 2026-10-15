@@ -16,7 +16,7 @@ import {
   Layers
 } from 'lucide-react';
 
-const DEFAULT_KITAB_DATA = [
+export const DEFAULT_KITAB_DATA = [
   {
     id: 1,
     judul: 'Fathul Qorib (Al-Ghayah wat Taqrib)',
