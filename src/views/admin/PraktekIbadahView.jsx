@@ -61,6 +61,7 @@ export default function PraktekIbadahView() {
   const [newKatName, setNewKatName] = useState('');
   const [newKatDesc, setNewKatDesc] = useState('');
   const [savingKat, setSavingKat] = useState(false);
+  const [editingKatId, setEditingKatId] = useState(null);
 
   // Cek apakah santri yang dipilih sudah LULUS untuk kategori ini
   const isAlreadyPassed = Boolean(
@@ -283,7 +284,19 @@ export default function PraktekIbadahView() {
     );
   };
 
-  // Handle Add Kategori Custom
+  // Handle Add & Edit Kategori Custom
+  const handleStartEditKategori = (kat) => {
+    setEditingKatId(kat.id);
+    setNewKatName(kat.nama_kategori || kat);
+    setNewKatDesc(kat.deskripsi || '');
+  };
+
+  const handleCancelEditKategori = () => {
+    setEditingKatId(null);
+    setNewKatName('');
+    setNewKatDesc('');
+  };
+
   const handleAddKategori = async (e) => {
     e.preventDefault();
     if (!newKatName.trim()) {
@@ -292,24 +305,62 @@ export default function PraktekIbadahView() {
     }
     setSavingKat(true);
     try {
-      const res = await axios.post('/api/praktek/kategori', {
-        nama_kategori: newKatName.trim(),
-        deskripsi: newKatDesc.trim()
-      }).catch(() => null);
+      if (editingKatId) {
+        // Mode Update
+        await axios.put(`/api/praktek/kategori/${editingKatId}`, {
+          nama_kategori: newKatName.trim(),
+          deskripsi: newKatDesc.trim()
+        }).catch(() => null);
 
-      const created = res?.data?.data || {
-        id: Date.now(),
-        nama_kategori: newKatName.trim(),
-        deskripsi: newKatDesc.trim()
-      };
+        const oldItem = kategoriList.find(k => k.id === editingKatId);
+        const oldName = oldItem?.nama_kategori || '';
 
-      const updated = [...kategoriList, created];
-      setKategoriList(updated);
-      setNewKatName('');
-      setNewKatDesc('');
-      toastSuccess('Berhasil!', 'Kategori praktek baru berhasil ditambahkan.');
+        const updated = kategoriList.map(k => {
+          if (k.id === editingKatId) {
+            return {
+              ...k,
+              nama_kategori: newKatName.trim(),
+              deskripsi: newKatDesc.trim()
+            };
+          }
+          return k;
+        });
+
+        setKategoriList(updated);
+
+        // Cascade update in praktekList if category name changed
+        if (oldName && oldName !== newKatName.trim()) {
+          setPraktekList(prev => prev.map(p => p.kategori === oldName ? { ...p, kategori: newKatName.trim(), nama_praktek: newKatName.trim() } : p));
+          if (filterKategori === oldName) {
+            setFilterKategori(newKatName.trim());
+          }
+        }
+
+        setEditingKatId(null);
+        setNewKatName('');
+        setNewKatDesc('');
+        toastSuccess('Berhasil!', 'Kategori praktek berhasil diperbarui.');
+      } else {
+        // Mode Add
+        const res = await axios.post('/api/praktek/kategori', {
+          nama_kategori: newKatName.trim(),
+          deskripsi: newKatDesc.trim()
+        }).catch(() => null);
+
+        const created = res?.data?.data || {
+          id: Date.now(),
+          nama_kategori: newKatName.trim(),
+          deskripsi: newKatDesc.trim()
+        };
+
+        const updated = [...kategoriList, created];
+        setKategoriList(updated);
+        setNewKatName('');
+        setNewKatDesc('');
+        toastSuccess('Berhasil!', 'Kategori praktek baru berhasil ditambahkan.');
+      }
     } catch (err) {
-      showError('Gagal', 'Gagal menambah kategori baru.');
+      showError('Gagal', 'Gagal menyimpan kategori.');
     } finally {
       setSavingKat(false);
     }
@@ -324,6 +375,12 @@ export default function PraktekIbadahView() {
           await axios.delete(`/api/praktek/kategori/${kat.id}`).catch(() => null);
           const updated = kategoriList.filter(k => k.id !== kat.id);
           setKategoriList(updated);
+          if (editingKatId === kat.id) {
+            handleCancelEditKategori();
+          }
+          if (filterKategori === kat.nama_kategori) {
+            setFilterKategori('Semua Kategori');
+          }
           toastSuccess('Kategori berhasil dihapus');
         } catch (err) {
           showError('Gagal menghapus kategori');
@@ -1176,10 +1233,35 @@ export default function PraktekIbadahView() {
               </button>
             </div>
 
-            {/* Form Tambah Kategori */}
-            <form onSubmit={handleAddKategori} style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '14px' }}>
-              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
-                + Tambah Kategori Baru
+            {/* Form Tambah / Edit Kategori */}
+            <form onSubmit={handleAddKategori} style={{ 
+              background: editingKatId ? '#f0f9ff' : '#f8fafc', 
+              padding: '12px', 
+              borderRadius: '10px', 
+              border: editingKatId ? '1.5px solid #0284c7' : '1px solid #e2e8f0', 
+              marginBottom: '14px',
+              transition: 'all 0.2s'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: editingKatId ? '#0369a1' : '#1e293b' }}>
+                  {editingKatId ? '✏️ Edit Kategori Praktek' : '+ Tambah Kategori Baru'}
+                </div>
+                {editingKatId && (
+                  <button
+                    type="button"
+                    onClick={handleCancelEditKategori}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#dc2626',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Batal Edit
+                  </button>
+                )}
               </div>
               <input
                 type="text"
@@ -1187,29 +1269,43 @@ export default function PraktekIbadahView() {
                 value={newKatName}
                 onChange={(e) => setNewKatName(e.target.value)}
                 required
-                style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box', marginBottom: '6px' }}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box', marginBottom: '6px', background: '#ffffff' }}
               />
               <input
                 type="text"
                 placeholder="Deskripsi singkat (opsional)"
                 value={newKatDesc}
                 onChange={(e) => setNewKatDesc(e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box', marginBottom: '8px' }}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box', marginBottom: '8px', background: '#ffffff' }}
               />
-              <button
-                type="submit"
-                disabled={savingKat}
-                className="btn btn-primary"
-                style={{
-                  width: '100%',
-                  justifyContent: 'center',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-              >
-                <Plus size={14} /> Simpan Kategori Baru
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {editingKatId && (
+                  <button
+                    type="button"
+                    onClick={handleCancelEditKategori}
+                    className="btn btn-outline"
+                    style={{ flex: 1, justifyContent: 'center' }}
+                  >
+                    Batal
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={savingKat}
+                  className="btn btn-primary"
+                  style={{
+                    flex: editingKatId ? 2 : 1,
+                    width: editingKatId ? 'auto' : '100%',
+                    justifyContent: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  {editingKatId ? <Save size={14} /> : <Plus size={14} />}
+                  {editingKatId ? 'Simpan Perubahan' : 'Simpan Kategori Baru'}
+                </button>
+              </div>
             </form>
 
             {/* List Kategori */}
@@ -1221,6 +1317,7 @@ export default function PraktekIbadahView() {
                 {kategoriList.map((kat, idx) => {
                   const katName = kat.nama_kategori || kat;
                   const katDesc = kat.deskripsi || '';
+                  const isCurrentEditing = editingKatId === kat.id;
                   return (
                     <div
                       key={kat.id || idx}
@@ -1229,8 +1326,8 @@ export default function PraktekIbadahView() {
                         justifyContent: 'space-between',
                         alignItems: 'center',
                         padding: '8px 12px',
-                        background: '#ffffff',
-                        border: '1px solid #e2e8f0',
+                        background: isCurrentEditing ? '#f0f9ff' : '#ffffff',
+                        border: isCurrentEditing ? '1.5px solid #0284c7' : '1px solid #e2e8f0',
                         borderRadius: '8px'
                       }}
                     >
@@ -1244,23 +1341,42 @@ export default function PraktekIbadahView() {
                           </div>
                         )}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteKategori(kat)}
-                        title="Hapus Kategori"
-                        style={{
-                          background: '#fee2e2',
-                          border: 'none',
-                          borderRadius: '6px',
-                          color: '#dc2626',
-                          padding: '5px 8px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center'
-                        }}
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleStartEditKategori(kat)}
+                          title="Edit Kategori"
+                          style={{
+                            background: '#eff6ff',
+                            border: '1px solid #bfdbfe',
+                            borderRadius: '6px',
+                            color: '#2563eb',
+                            padding: '5px 8px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <Edit3 size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteKategori(kat)}
+                          title="Hapus Kategori"
+                          style={{
+                            background: '#fee2e2',
+                            border: '1px solid #fecaca',
+                            borderRadius: '6px',
+                            color: '#dc2626',
+                            padding: '5px 8px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -1270,7 +1386,10 @@ export default function PraktekIbadahView() {
             <div style={{ marginTop: '14px', paddingTop: '10px', borderTop: '1px solid #f1f5f9', textAlign: 'right' }}>
               <button
                 type="button"
-                onClick={() => setIsKategoriModalOpen(false)}
+                onClick={() => {
+                  handleCancelEditKategori();
+                  setIsKategoriModalOpen(false);
+                }}
                 className="btn btn-outline"
               >
                 Tutup

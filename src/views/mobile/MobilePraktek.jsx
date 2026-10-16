@@ -141,6 +141,7 @@ export default function MobilePraktek() {
   const [newKategoriName, setNewKategoriName] = useState('');
   const [newKategoriDesc, setNewKategoriDesc] = useState('');
   const [savingKategori, setSavingKategori] = useState(false);
+  const [editingKategoriId, setEditingKategoriId] = useState(null);
 
   const session = JSON.parse(localStorage.getItem('mobile_session') || '{}');
   const currentPenguji = session?.nama || session?.nama_lengkap || 'Ust. Pembina Ibadah';
@@ -345,6 +346,18 @@ export default function MobilePraktek() {
   };
 
   // Custom Kategori Management
+  const handleStartEditKategori = (kat) => {
+    setEditingKategoriId(kat.id);
+    setNewKategoriName(kat.nama_kategori || kat);
+    setNewKategoriDesc(kat.deskripsi || '');
+  };
+
+  const handleCancelEditKategori = () => {
+    setEditingKategoriId(null);
+    setNewKategoriName('');
+    setNewKategoriDesc('');
+  };
+
   const handleAddKategori = async (e) => {
     e.preventDefault();
     if (!newKategoriName.trim()) {
@@ -354,25 +367,64 @@ export default function MobilePraktek() {
 
     setSavingKategori(true);
     try {
-      const res = await axios.post('/api/praktek/kategori', {
-        nama_kategori: newKategoriName.trim(),
-        deskripsi: newKategoriDesc.trim()
-      }).catch(() => null);
+      if (editingKategoriId) {
+        // Mode Update
+        await axios.put(`/api/praktek/kategori/${editingKategoriId}`, {
+          nama_kategori: newKategoriName.trim(),
+          deskripsi: newKategoriDesc.trim()
+        }).catch(() => null);
 
-      const created = res?.data?.data || {
-        id: Date.now(),
-        nama_kategori: newKategoriName.trim(),
-        deskripsi: newKategoriDesc.trim()
-      };
+        const oldItem = kategoriList.find(k => k.id === editingKategoriId);
+        const oldName = oldItem?.nama_kategori || '';
 
-      const updated = [...kategoriList, created];
-      setKategoriList(updated);
-      localStorage.setItem('mobile_kategori_cache', JSON.stringify(updated));
-      setNewKategoriName('');
-      setNewKategoriDesc('');
-      toastSuccess('Kategori praktek baru berhasil ditambahkan');
+        const updated = kategoriList.map(k => {
+          if (k.id === editingKategoriId) {
+            return {
+              ...k,
+              nama_kategori: newKategoriName.trim(),
+              deskripsi: newKategoriDesc.trim()
+            };
+          }
+          return k;
+        });
+
+        setKategoriList(updated);
+        localStorage.setItem('mobile_kategori_cache', JSON.stringify(updated));
+
+        // Cascade update in praktekList if category name changed
+        if (oldName && oldName !== newKategoriName.trim()) {
+          setPraktekList(prev => prev.map(p => p.kategori === oldName ? { ...p, kategori: newKategoriName.trim(), nama_praktek: newKategoriName.trim() } : p));
+          if (selectedKategori === oldName) {
+            setSelectedKategori(newKategoriName.trim());
+          }
+        }
+
+        setEditingKategoriId(null);
+        setNewKategoriName('');
+        setNewKategoriDesc('');
+        toastSuccess('Kategori praktek berhasil diperbarui');
+      } else {
+        // Mode Add Baru
+        const res = await axios.post('/api/praktek/kategori', {
+          nama_kategori: newKategoriName.trim(),
+          deskripsi: newKategoriDesc.trim()
+        }).catch(() => null);
+
+        const created = res?.data?.data || {
+          id: Date.now(),
+          nama_kategori: newKategoriName.trim(),
+          deskripsi: newKategoriDesc.trim()
+        };
+
+        const updated = [...kategoriList, created];
+        setKategoriList(updated);
+        localStorage.setItem('mobile_kategori_cache', JSON.stringify(updated));
+        setNewKategoriName('');
+        setNewKategoriDesc('');
+        toastSuccess('Kategori praktek baru berhasil ditambahkan');
+      }
     } catch (err) {
-      showError('Gagal menambah kategori');
+      showError('Gagal menyimpan kategori');
     } finally {
       setSavingKategori(false);
     }
@@ -388,6 +440,9 @@ export default function MobilePraktek() {
           const updated = kategoriList.filter(k => k.id !== katItem.id);
           setKategoriList(updated);
           localStorage.setItem('mobile_kategori_cache', JSON.stringify(updated));
+          if (editingKategoriId === katItem.id) {
+            handleCancelEditKategori();
+          }
           if (selectedKategori === katItem.nama_kategori) {
             setSelectedKategori('Semua');
           }
@@ -1360,10 +1415,35 @@ export default function MobilePraktek() {
               </button>
             </div>
 
-            {/* Form Tambah Kategori Baru */}
-            <form onSubmit={handleAddKategori} style={{ background: '#f8fafc', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '14px' }}>
-              <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
-                + Tambah Kategori Custom Baru
+            {/* Form Tambah / Edit Kategori */}
+            <form onSubmit={handleAddKategori} style={{ 
+              background: editingKategoriId ? '#f0f9ff' : '#f8fafc', 
+              padding: '12px', 
+              borderRadius: '12px', 
+              border: editingKategoriId ? '1.5px solid #0284c7' : '1px solid #e2e8f0', 
+              marginBottom: '14px',
+              transition: 'all 0.2s'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div style={{ fontSize: '0.76rem', fontWeight: 700, color: editingKategoriId ? '#0369a1' : '#334155' }}>
+                  {editingKategoriId ? '✏️ Edit Kategori Praktek' : '+ Tambah Kategori Custom Baru'}
+                </div>
+                {editingKategoriId && (
+                  <button
+                    type="button"
+                    onClick={handleCancelEditKategori}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#dc2626',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Batal Edit
+                  </button>
+                )}
               </div>
               <input
                 type="text"
@@ -1378,7 +1458,8 @@ export default function MobilePraktek() {
                   border: '1px solid #cbd5e1',
                   fontSize: '0.8rem',
                   boxSizing: 'border-box',
-                  marginBottom: '6px'
+                  marginBottom: '6px',
+                  background: '#ffffff'
                 }}
               />
               <input
@@ -1393,31 +1474,60 @@ export default function MobilePraktek() {
                   border: '1px solid #cbd5e1',
                   fontSize: '0.8rem',
                   boxSizing: 'border-box',
-                  marginBottom: '8px'
+                  marginBottom: '8px',
+                  background: '#ffffff'
                 }}
               />
-              <button
-                type="submit"
-                disabled={savingKategori}
-                style={{
-                  width: '100%',
-                  padding: '9px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: '#059669',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  fontSize: '0.78rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px'
-                }}
-              >
-                {savingKategori ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-                Simpan Kategori Baru
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {editingKategoriId && (
+                  <button
+                    type="button"
+                    onClick={handleCancelEditKategori}
+                    style={{
+                      flex: 1,
+                      padding: '9px',
+                      borderRadius: '10px',
+                      border: '1px solid #cbd5e1',
+                      background: '#ffffff',
+                      color: '#64748b',
+                      fontWeight: 700,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Batal
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={savingKategori}
+                  style={{
+                    flex: editingKategoriId ? 2 : 1,
+                    width: editingKategoriId ? 'auto' : '100%',
+                    padding: '9px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: editingKategoriId ? '#0284c7' : '#059669',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: '0.78rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  {savingKategori ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : editingKategoriId ? (
+                    <Save size={14} />
+                  ) : (
+                    <Plus size={14} />
+                  )}
+                  {editingKategoriId ? 'Simpan Perubahan' : 'Simpan Kategori Baru'}
+                </button>
+              </div>
             </form>
 
             {/* List Tabel Kategori yang Ada */}
@@ -1429,6 +1539,7 @@ export default function MobilePraktek() {
                 {kategoriList.map((kat, idx) => {
                   const katName = kat.nama_kategori || kat;
                   const katDesc = kat.deskripsi || '';
+                  const isCurrentEditing = editingKategoriId === kat.id;
                   return (
                     <div
                       key={kat.id || idx}
@@ -1437,8 +1548,8 @@ export default function MobilePraktek() {
                         justifyContent: 'space-between',
                         alignItems: 'center',
                         padding: '9px 12px',
-                        background: '#ffffff',
-                        border: '1px solid #e2e8f0',
+                        background: isCurrentEditing ? '#f0f9ff' : '#ffffff',
+                        border: isCurrentEditing ? '1.5px solid #0284c7' : '1px solid #e2e8f0',
                         borderRadius: '10px'
                       }}
                     >
@@ -1452,23 +1563,42 @@ export default function MobilePraktek() {
                           </div>
                         )}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteKategori(kat)}
-                        title="Hapus Kategori"
-                        style={{
-                          background: '#fee2e2',
-                          border: 'none',
-                          borderRadius: '8px',
-                          color: '#dc2626',
-                          padding: '6px 8px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center'
-                        }}
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleStartEditKategori(kat)}
+                          title="Edit Kategori"
+                          style={{
+                            background: '#eff6ff',
+                            border: '1px solid #bfdbfe',
+                            borderRadius: '8px',
+                            color: '#2563eb',
+                            padding: '6px 8px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <Edit3 size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteKategori(kat)}
+                          title="Hapus Kategori"
+                          style={{
+                            background: '#fee2e2',
+                            border: '1px solid #fecaca',
+                            borderRadius: '8px',
+                            color: '#dc2626',
+                            padding: '6px 8px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -1479,7 +1609,10 @@ export default function MobilePraktek() {
             <div style={{ marginTop: '14px', paddingTop: '10px', borderTop: '1px solid #f1f5f9', textAlign: 'right' }}>
               <button
                 type="button"
-                onClick={() => setIsKategoriModalOpen(false)}
+                onClick={() => {
+                  handleCancelEditKategori();
+                  setIsKategoriModalOpen(false);
+                }}
                 style={{
                   padding: '9px 16px',
                   borderRadius: '10px',

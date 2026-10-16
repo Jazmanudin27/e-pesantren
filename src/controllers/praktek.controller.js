@@ -61,6 +61,50 @@ export const deleteKategoriPraktek = async (req, res) => {
   }
 };
 
+export const updateKategoriPraktek = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nama_kategori, deskripsi } = req.body;
+    if (!nama_kategori || !nama_kategori.trim()) {
+      return sendError(res, 'Nama kategori praktek wajib diisi', 400);
+    }
+
+    let oldName = null;
+    try {
+      const [oldRows] = await pool.query('SELECT nama_kategori FROM kategori_praktek WHERE id = ?', [id]);
+      if (oldRows && oldRows.length > 0) {
+        oldName = oldRows[0].nama_kategori;
+      }
+    } catch (e) {}
+
+    await pool.query(
+      'UPDATE kategori_praktek SET nama_kategori = ?, deskripsi = ? WHERE id = ?',
+      [nama_kategori.trim(), deskripsi ? deskripsi.trim() : null, id]
+    );
+
+    // Update cascade nama kategori di tabel penilaian praktek_ibadah jika nama berubah
+    if (oldName && oldName !== nama_kategori.trim()) {
+      try {
+        await pool.query(
+          'UPDATE praktek_ibadah SET kategori = ? WHERE kategori = ?',
+          [nama_kategori.trim(), oldName]
+        );
+      } catch (e) {}
+    }
+
+    return sendSuccess(res, 'Kategori praktek berhasil diperbarui', {
+      id: Number(id),
+      nama_kategori: nama_kategori.trim(),
+      deskripsi: deskripsi ? deskripsi.trim() : null
+    });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      return sendError(res, 'Kategori praktek dengan nama ini sudah ada', 400);
+    }
+    return sendError(res, err.message, 500);
+  }
+};
+
 // ==========================================
 // 2. PENILAIAN PRAKTEK IBADAH (LULUS / MENGULANG & DESKRIPSI)
 // ==========================================

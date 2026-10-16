@@ -7,6 +7,7 @@ import {
   deletePraktek,
   getKategoriPraktek,
   createKategoriPraktek,
+  updateKategoriPraktek,
   deleteKategoriPraktek
 } from '../controllers/praktek.controller.js';
 
@@ -15,6 +16,7 @@ const router = express.Router();
 // Master Kategori Praktek
 router.get('/kategori', getKategoriPraktek);
 router.post('/kategori', createKategoriPraktek);
+router.put('/kategori/:id', updateKategoriPraktek);
 router.delete('/kategori/:id', deleteKategoriPraktek);
 
 // Penilaian Praktek Ibadah
