@@ -9,6 +9,7 @@ import {
   Edit3, 
   Trash2, 
   QrCode, 
+  CheckCircle,
   CheckCircle2, 
   LogOut, 
   LogIn, 
