@@ -53,20 +53,14 @@ export default function AsatidzView() {
     try {
       setLoading(true);
       const res = await axios.get('/api/asatidz');
-      if (res.data && res.data.success && res.data.data && res.data.data.length > 0) {
+      if (res.data && res.data.success && Array.isArray(res.data.data)) {
         setAsatidzList(res.data.data);
       } else {
-        setAsatidzList([
-          { id: 1, nama_asatidz: 'K.H. Abdullah Gymnastiar', gelar: 'Lc., M.Ag.', nik_niy: 'AST-2021-001', jk: 'L', tugas_utama: 'Pimpinan & Pengasuh Utama', no_hp: '08122334455', email: 'kh.abdullah@pesantren.id', alamat: 'Komp. Pondok Utama Blok A1', status: 'Aktif', bidang_keahlian: 'Tafsir & Akhlak Tasawuf' },
-          { id: 2, nama_asatidz: 'Ust. Ahmad Fauzi', gelar: 'S.Pd.I, Al-Hafidz', nik_niy: 'AST-2022-004', jk: 'L', tugas_utama: 'Kepala Bagian Tahfidz & Musyrif Asrama Putra', no_hp: '081344556677', email: 'ahmad.fauzi@pesantren.id', alamat: 'Asrama Ali bin Abi Thalib Lt. 1', status: 'Aktif', bidang_keahlian: 'Tahfidz 30 Juz & Qiraat Ashim' },
-          { id: 3, nama_asatidz: 'Ust. Muhammad Zaki', gelar: 'Lc.', nik_niy: 'AST-2023-008', jk: 'L', tugas_utama: 'Pengajar Kitab Kuning (Nahwu Shorof)', no_hp: '085711223344', email: 'zaki.lc@pesantren.id', alamat: 'Perum Gading Residence No. 12', status: 'Aktif', bidang_keahlian: 'Gramatika Arab & Fiqih Syafi\'i' },
-          { id: 4, nama_asatidz: 'Usth. Sarah Humaira', gelar: 'S.Th.I, Al-Hafidzah', nik_niy: 'AST-2022-009', jk: 'P', tugas_utama: 'Koordinator Tahfidz Putri & Musyrifah', no_hp: '081299887766', email: 'sarah.humaira@pesantren.id', alamat: 'Gedung Asrama Putri 01', status: 'Aktif', bidang_keahlian: 'Tahfidz 30 Juz & Tajwid Jazariyah' },
-          { id: 5, nama_asatidz: 'Usth. Siti Maryam', gelar: 'M.Ag.', nik_niy: 'AST-2021-003', jk: 'P', tugas_utama: 'Pengasuh Keputrian & Pengajar Sirah Nabawiyah', no_hp: '081322110099', email: 'siti.maryam@pesantren.id', alamat: 'Gedung Asrama Putri 02', status: 'Aktif', bidang_keahlian: 'Sirah Nabawiyah & Fiqih Wanita' },
-          { id: 6, nama_asatidz: 'Ust. Bilal Mansur', gelar: 'S.Pd.I', nik_niy: 'AST-2024-012', jk: 'L', tugas_utama: 'Musyrif Disiplin & Pengasuh Santri Baru', no_hp: '087855667788', email: 'bilal.mansur@pesantren.id', alamat: 'Asrama Umar bin Khattab', status: 'Aktif', bidang_keahlian: 'Bimbingan Konseling Santri' }
-        ]);
+        setAsatidzList([]);
       }
     } catch (err) {
       console.error('Gagal mengambil data asatidz:', err);
+      setAsatidzList([]);
     } finally {
       setLoading(false);
     }
@@ -217,7 +211,7 @@ export default function AsatidzView() {
         <div className="stat-card-colored stat-card-blue">
           <div>
             <div className="stat-colored-title">TOTAL ASATIDZ & DEWAN GURU</div>
-            <div className="stat-colored-number">{asatidzList.length || 6}</div>
+            <div className="stat-colored-number">{asatidzList.length}</div>
           </div>
           <div className="stat-colored-icon-box">
             <GraduationCap size={22} />
@@ -227,7 +221,7 @@ export default function AsatidzView() {
         <div className="stat-card-colored stat-card-green">
           <div>
             <div className="stat-colored-title">ASATIDZ IKHWAN (USTADZ)</div>
-            <div className="stat-colored-number">{countIkhwan || 4}</div>
+            <div className="stat-colored-number">{countIkhwan}</div>
           </div>
           <div className="stat-colored-icon-box">
             <Users size={22} />
@@ -237,7 +231,7 @@ export default function AsatidzView() {
         <div className="stat-card-colored stat-card-purple">
           <div>
             <div className="stat-colored-title">USTADZAH (AKHWAT)</div>
-            <div className="stat-colored-number">{countAkhwat || 2}</div>
+            <div className="stat-colored-number">{countAkhwat}</div>
           </div>
           <div className="stat-colored-icon-box">
             <Award size={22} />
@@ -247,7 +241,7 @@ export default function AsatidzView() {
         <div className="stat-card-colored stat-card-amber">
           <div>
             <div className="stat-colored-title">MUSYRIF ASRAMA & TAHFIDZ</div>
-            <div className="stat-colored-number">{countMusyrif || 3}</div>
+            <div className="stat-colored-number">{countMusyrif}</div>
           </div>
           <div className="stat-colored-icon-box">
             <ShieldCheck size={22} />
@@ -354,63 +348,73 @@ export default function AsatidzView() {
               </tr>
             </thead>
             <tbody>
-              {filteredList.map((ast, idx) => (
-                <tr key={ast.id || idx}>
-                  <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
-                    {idx + 1}
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{ast.nama_asatidz}</div>
-                    <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>Gelar: {ast.gelar || '-'} | NIY: {ast.nik_niy || '-'}</div>
-                  </td>
-                  <td className="td-center">
-                    <span className={`badge ${ast.jk === 'L' ? 'badge-info' : 'badge-purple'}`}>
-                      {ast.jk === 'L' ? 'Ustadz (L)' : 'Ustadzah (P)'}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 600, color: '#059669' }}>{ast.tugas_utama}</div>
-                  </td>
-                  <td>
-                    <div style={{ fontSize: '0.74rem', color: '#334155' }}>{ast.bidang_keahlian || 'Kajian Kitab Diniyah'}</div>
-                  </td>
-                  <td>
-                    <div style={{ fontSize: '0.74rem', fontWeight: 600, color: '#0f172a' }}>
-                      {ast.no_hp || '-'}
-                    </div>
-                  </td>
-                  <td className="td-center">
-                    <span className={`badge ${ast.status === 'Aktif' ? 'badge-success' : 'badge-warning'}`}>
-                      {ast.status}
-                    </span>
-                  </td>
-                  <td className="td-center">
-                    <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
-                      <button 
-                        className="btn-action btn-action-view"
-                        onClick={() => openDetail(ast)}
-                        title="Lihat Detail Profil Asatidz"
-                      >
-                        <Eye size={13} />
-                      </button>
-                      <button 
-                        className="btn-action btn-action-edit"
-                        onClick={() => openEditForm(ast)}
-                        title="Edit Asatidz"
-                      >
-                        <Edit3 size={13} />
-                      </button>
-                      <button 
-                        className="btn-action btn-action-delete"
-                        onClick={() => handleDeleteAsatidz(ast.id, ast.nama_asatidz)}
-                        title="Hapus Asatidz"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
+              {filteredList.length === 0 ? (
+                <tr>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '40px 20px', color: '#64748b' }}>
+                    <GraduationCap size={36} style={{ margin: '0 auto 10px', opacity: 0.4 }} />
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#334155' }}>Belum ada data asatidz / dewan guru di database</div>
+                    <div style={{ fontSize: '0.75rem', marginTop: '4px' }}>Silakan tambahkan data ustadz/ustadzah baru dengan klik tombol "Tambah Asatidz Baru".</div>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredList.map((ast, idx) => (
+                  <tr key={ast.id || idx}>
+                    <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
+                      {idx + 1}
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 700, color: '#0f172a' }}>{ast.nama_asatidz}</div>
+                      <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>Gelar: {ast.gelar || '-'} | NIY: {ast.nik_niy || '-'}</div>
+                    </td>
+                    <td className="td-center">
+                      <span className={`badge ${ast.jk === 'L' ? 'badge-info' : 'badge-purple'}`}>
+                        {ast.jk === 'L' ? 'Ustadz (L)' : 'Ustadzah (P)'}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600, color: '#059669' }}>{ast.tugas_utama}</div>
+                    </td>
+                    <td>
+                      <div style={{ fontSize: '0.74rem', color: '#334155' }}>{ast.bidang_keahlian || 'Kajian Kitab Diniyah'}</div>
+                    </td>
+                    <td>
+                      <div style={{ fontSize: '0.74rem', fontWeight: 600, color: '#0f172a' }}>
+                        {ast.no_hp || '-'}
+                      </div>
+                    </td>
+                    <td className="td-center">
+                      <span className={`badge ${ast.status === 'Aktif' ? 'badge-success' : 'badge-warning'}`}>
+                        {ast.status}
+                      </span>
+                    </td>
+                    <td className="td-center">
+                      <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
+                        <button 
+                          className="btn-action btn-action-view"
+                          onClick={() => openDetail(ast)}
+                          title="Lihat Detail Profil Asatidz"
+                        >
+                          <Eye size={13} />
+                        </button>
+                        <button 
+                          className="btn-action btn-action-edit"
+                          onClick={() => openEditForm(ast)}
+                          title="Edit Asatidz"
+                        >
+                          <Edit3 size={13} />
+                        </button>
+                        <button 
+                          className="btn-action btn-action-delete"
+                          onClick={() => handleDeleteAsatidz(ast.id, ast.nama_asatidz)}
+                          title="Hapus Asatidz"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         )}

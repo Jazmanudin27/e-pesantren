@@ -71,21 +71,15 @@ export default function KelasView() {
         setHalaqahList(fetched);
       } else {
         const res = await axios.get('/api/tahfidz/halaqah');
-        if (res.data && res.data.success && res.data.data && res.data.data.length > 0) {
+        if (res.data && res.data.success && Array.isArray(res.data.data)) {
           setHalaqahList(res.data.data);
         } else {
-          setHalaqahList([
-            { id: 1, nama_halaqah: 'Halaqah Imam Nafi (Ikhwan A)', nama_asatidz: 'Ust. Abdullah Al-Hafidz', gender: 'L', target_program: 'Tahfidz 30 Juz & Mutqin', waktu_halaqah: 'Ba\'da Subuh & Ba\'da Maghrib', total_santri: 12, lokasi_halaqah: 'Masjid Utama Lantai 1', tingkat: 'Ulya' },
-            { id: 2, nama_halaqah: 'Halaqah Imam Ashim (Ikhwan B)', nama_asatidz: 'Ust. Muhammad Zaki, Lc.', gender: 'L', target_program: 'Tahsin & Ziyadah 15 Juz', waktu_halaqah: 'Ba\'da Ashar & Ba\'da Isya', total_santri: 15, lokasi_halaqah: 'Gazebo Tahfidz Timur', tingkat: 'Wustho' },
-            { id: 3, nama_halaqah: 'Halaqah Imam Hamzah (Ikhwan C)', nama_asatidz: 'Ust. Bilal Mansur, S.Pd.I', gender: 'L', target_program: 'Tahfidz Juz 30 & Diniyah Dasar', waktu_halaqah: 'Ba\'da Subuh & Ashar', total_santri: 14, lokasi_halaqah: 'Ruang Kelas Diniyah 01', tingkat: 'Ula' },
-            { id: 4, nama_halaqah: 'Halaqah Hafshah binti Umar (Akhwat A)', nama_asatidz: 'Usth. Sarah Humaira, Al-Hafidzah', gender: 'P', target_program: 'Tahfidz 30 Juz & Sanad Jazariyah', waktu_halaqah: 'Ba\'da Subuh & Ba\'da Maghrib', total_santri: 12, lokasi_halaqah: 'Musholla Putri Lt. 2', tingkat: 'Ulya' },
-            { id: 5, nama_halaqah: 'Halaqah Maryam Al-Adzra (Akhwat B)', nama_asatidz: 'Usth. Salma Fauziyah, M.Ag.', gender: 'P', target_program: 'Ziyadah 10 Juz & Tartil', waktu_halaqah: 'Ba\'da Ashar & Ba\'da Isya', total_santri: 16, lokasi_halaqah: 'Aula Asrama Putri', tingkat: 'Wustho' },
-            { id: 6, nama_halaqah: 'Halaqah Asma binti Abi Bakar (Akhwat C)', nama_asatidz: 'Usth. Siti Rahmawati, S.Pd.', gender: 'P', target_program: 'Tahsin Al-Jazari & Juz Amma', waktu_halaqah: 'Ba\'da Subuh & Ashar', total_santri: 14, lokasi_halaqah: 'Ruang Belajar Putri 02', tingkat: 'Ula' }
-          ]);
+          setHalaqahList([]);
         }
       }
     } catch (err) {
       console.error('Gagal mengambil data halaqah/kelas:', err);
+      setHalaqahList([]);
     } finally {
       setLoading(false);
     }
@@ -226,7 +220,7 @@ export default function KelasView() {
         <div className="stat-card-colored stat-card-blue">
           <div>
             <div className="stat-colored-title">TOTAL KELOMPOK HALAQAH</div>
-            <div className="stat-colored-number">{halaqahList.length || 6}</div>
+            <div className="stat-colored-number">{halaqahList.length}</div>
           </div>
           <div className="stat-colored-icon-box">
             <BookOpen size={22} />
@@ -236,7 +230,7 @@ export default function KelasView() {
         <div className="stat-card-colored stat-card-green">
           <div>
             <div className="stat-colored-title">HALAQAH IKHWAN (PUTRA)</div>
-            <div className="stat-colored-number">{countIkhwan || 3}</div>
+            <div className="stat-colored-number">{countIkhwan}</div>
           </div>
           <div className="stat-colored-icon-box">
             <Users size={22} />
@@ -246,7 +240,7 @@ export default function KelasView() {
         <div className="stat-card-colored stat-card-purple">
           <div>
             <div className="stat-colored-title">HALAQAH AKHWAT (PUTRI)</div>
-            <div className="stat-colored-number">{countAkhwat || 3}</div>
+            <div className="stat-colored-number">{countAkhwat}</div>
           </div>
           <div className="stat-colored-icon-box">
             <Sparkles size={22} />
@@ -256,7 +250,7 @@ export default function KelasView() {
         <div className="stat-card-colored stat-card-amber">
           <div>
             <div className="stat-colored-title">TOTAL SANTRI AKTIF MENGAJI</div>
-            <div className="stat-colored-number">{totalSantriInHalaqah || 83}</div>
+            <div className="stat-colored-number">{totalSantriInHalaqah}</div>
           </div>
           <div className="stat-colored-icon-box">
             <GraduationCap size={22} />
@@ -364,65 +358,75 @@ export default function KelasView() {
               </tr>
             </thead>
             <tbody>
-              {filteredList.map((h, idx) => (
-                <tr key={h.id || idx}>
-                  <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
-                    {idx + 1}
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{h.nama_halaqah}</div>
-                    <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>Tingkat: {h.tingkat || 'Wustho'}</div>
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 600, color: '#059669' }}>{h.nama_asatidz || 'Musyrif Halaqah'}</div>
-                    <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Lokasi: {h.lokasi_halaqah || 'Masjid Utama'}</div>
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.76rem' }}>{h.target_program}</div>
-                  </td>
-                  <td>
-                    <div style={{ fontSize: '0.72rem', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Clock size={12} color="#0284c7" />
-                      <span>{h.waktu_halaqah}</span>
-                    </div>
-                  </td>
-                  <td className="td-center">
-                    <span className={`badge ${h.gender === 'L' ? 'badge-info' : 'badge-purple'}`}>
-                      {h.gender === 'L' ? 'Ikhwan (L)' : 'Akhwat (P)'}
-                    </span>
-                  </td>
-                  <td className="td-center">
-                    <span className="badge badge-success">
-                      {h.total_santri || 0} Santri
-                    </span>
-                  </td>
-                  <td className="td-center">
-                    <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
-                      <button 
-                        className="btn-action btn-action-view"
-                        onClick={() => openDetail(h)}
-                        title="Lihat Detail Halaqah"
-                      >
-                        <Eye size={13} />
-                      </button>
-                      <button 
-                        className="btn-action btn-action-edit"
-                        onClick={() => openEditForm(h)}
-                        title="Edit Halaqah"
-                      >
-                        <Edit3 size={13} />
-                      </button>
-                      <button 
-                        className="btn-action btn-action-delete"
-                        onClick={() => handleDeleteHalaqah(h.id, h.nama_halaqah)}
-                        title="Hapus Halaqah"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
+              {filteredList.length === 0 ? (
+                <tr>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '40px 20px', color: '#64748b' }}>
+                    <BookOpen size={36} style={{ margin: '0 auto 10px', opacity: 0.4 }} />
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#334155' }}>Belum ada data halaqah / kelas di database</div>
+                    <div style={{ fontSize: '0.75rem', marginTop: '4px' }}>Silakan tambahkan kelompok halaqah baru dengan klik tombol "Tambah Halaqah Baru".</div>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredList.map((h, idx) => (
+                  <tr key={h.id || idx}>
+                    <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
+                      {idx + 1}
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 700, color: '#0f172a' }}>{h.nama_halaqah}</div>
+                      <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>Tingkat: {h.tingkat || 'Wustho'}</div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600, color: '#059669' }}>{h.nama_asatidz || 'Musyrif Halaqah'}</div>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Lokasi: {h.lokasi_halaqah || 'Masjid Utama'}</div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.76rem' }}>{h.target_program}</div>
+                    </td>
+                    <td>
+                      <div style={{ fontSize: '0.72rem', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Clock size={12} color="#0284c7" />
+                        <span>{h.waktu_halaqah}</span>
+                      </div>
+                    </td>
+                    <td className="td-center">
+                      <span className={`badge ${h.gender === 'L' ? 'badge-info' : 'badge-purple'}`}>
+                        {h.gender === 'L' ? 'Ikhwan (L)' : 'Akhwat (P)'}
+                      </span>
+                    </td>
+                    <td className="td-center">
+                      <span className="badge badge-success">
+                        {h.total_santri || 0} Santri
+                      </span>
+                    </td>
+                    <td className="td-center">
+                      <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
+                        <button 
+                          className="btn-action btn-action-view"
+                          onClick={() => openDetail(h)}
+                          title="Lihat Detail Halaqah"
+                        >
+                          <Eye size={13} />
+                        </button>
+                        <button 
+                          className="btn-action btn-action-edit"
+                          onClick={() => openEditForm(h)}
+                          title="Edit Halaqah"
+                        >
+                          <Edit3 size={13} />
+                        </button>
+                        <button 
+                          className="btn-action btn-action-delete"
+                          onClick={() => handleDeleteHalaqah(h.id, h.nama_halaqah)}
+                          title="Hapus Halaqah"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         )}

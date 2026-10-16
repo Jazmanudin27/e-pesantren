@@ -25,92 +25,7 @@ import {
 import { showConfirm, toastSuccess, showError } from '../../utils/alert.util';
 import SearchableSelect from '../../components/SearchableSelect';
 
-const DEFAULT_PRAKTEK_DATA = [
-  {
-    id: 1,
-    santri_id: 1,
-    nama_santri: 'Ahmad Faiz Al-Hafidz',
-    nis: '2601001',
-    nama_asrama: 'Asrama Ali bin Abi Thalib',
-    nama_kamar: 'Kamar Abu Bakar 01',
-    kategori: 'Sholat Fardhu',
-    nama_praktek: 'Praktek Sholat Shubuh + Qunut',
-    deskripsi: 'Makhraj huruf fashih, gerakan ruku dan sujud sempurna sesuai sunnah, qunut lancar.',
-    status: 'Lulus',
-    nama_penguji: 'Ust. Hamdan S.Pd.I',
-    tanggal_ujian: '2026-10-12'
-  },
-  {
-    id: 2,
-    santri_id: 1,
-    nama_santri: 'Ahmad Faiz Al-Hafidz',
-    nis: '2601001',
-    nama_asrama: 'Asrama Ali bin Abi Thalib',
-    nama_kamar: 'Kamar Abu Bakar 01',
-    kategori: 'Wudhu & Tayammum',
-    nama_praktek: 'Praktek Wudhu Sempurna & Doa',
-    deskripsi: 'Rukun dan sunnah wudhu terlaksana tertib serta doa setelah wudhu lancar.',
-    status: 'Lulus',
-    nama_penguji: 'Ust. Hamdan S.Pd.I',
-    tanggal_ujian: '2026-10-10'
-  },
-  {
-    id: 3,
-    santri_id: 2,
-    nama_santri: 'Zaidan Muhammad',
-    nis: '2601002',
-    nama_asrama: 'Asrama Umar bin Khattab',
-    nama_kamar: 'Kamar Umar 01',
-    kategori: 'Sholat Fardhu',
-    nama_praktek: 'Praktek Sholat Maghrib & Dzikir Ba\'da Sholat',
-    deskripsi: 'Bacaan surat dan rukun sah, tuma\'ninah ruku perlu sedikit diperpanjang.',
-    status: 'Lulus',
-    nama_penguji: 'Ust. M. Huda Al-Hafidz',
-    tanggal_ujian: '2026-10-11'
-  },
-  {
-    id: 4,
-    santri_id: 3,
-    nama_santri: 'Fatimah Az-Zahra',
-    nis: '2602001',
-    nama_asrama: 'Asrama Fathimah Az-Zahra',
-    nama_kamar: 'Kamar Aisyah 01',
-    kategori: 'Sholat Jenazah',
-    nama_praktek: 'Praktek Sholat Jenazah (4 Takbir)',
-    deskripsi: 'Hafalan doa takbir ke-3 dan ke-4 sangat lancar dan tartil.',
-    status: 'Lulus',
-    nama_penguji: 'Usth. Salma M.Pd',
-    tanggal_ujian: '2026-10-09'
-  },
-  {
-    id: 5,
-    santri_id: 4,
-    nama_santri: 'Muhammad Rifqi',
-    nis: '2601003',
-    nama_asrama: 'Asrama Ali bin Abi Thalib',
-    nama_kamar: 'Kamar Abu Bakar 02',
-    kategori: 'Wudhu & Tayammum',
-    nama_praktek: 'Praktek Wudhu & Thaharah',
-    deskripsi: 'Basuhan kedua telinga dan tertib rukun belum sempurna, mengulang pekan depan.',
-    status: 'Mengulang',
-    nama_penguji: 'Ust. Hamdan S.Pd.I',
-    tanggal_ujian: '2026-10-08'
-  },
-  {
-    id: 6,
-    santri_id: 5,
-    nama_santri: 'Aisyah Humaira',
-    nis: '2602002',
-    nama_asrama: 'Asrama Fathimah Az-Zahra',
-    nama_kamar: 'Kamar Aisyah 02',
-    kategori: 'Adzan & Iqomah',
-    nama_praktek: 'Praktek Adzan Shubuh & Tarhim',
-    deskripsi: 'Vokal lantang, tajwid lafadz adzan benar dan intonasi indah.',
-    status: 'Lulus',
-    nama_penguji: 'Ust. M. Huda Al-Hafidz',
-    tanggal_ujian: '2026-10-07'
-  }
-];
+
 
 export default function PraktekIbadahView() {
   const [praktekList, setPraktekList] = useState([]);
@@ -187,78 +102,42 @@ export default function PraktekIbadahView() {
     try {
       setLoading(true);
       const res = await axios.get('/api/praktek');
-      if (res.data?.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
+      if (res.data?.success && Array.isArray(res.data.data)) {
         setPraktekList(res.data.data);
       } else {
-        loadFallbackPraktek();
+        setPraktekList([]);
       }
     } catch (e) {
-      loadFallbackPraktek();
+      console.error('Gagal mengambil data praktek ibadah:', e);
+      setPraktekList([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadFallbackPraktek = () => {
-    try {
-      const cached = localStorage.getItem('epesantren_praktek_cache');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setPraktekList(parsed);
-          return;
-        }
-      }
-    } catch (e) {}
-    setPraktekList(DEFAULT_PRAKTEK_DATA);
-  };
-
   const fetchSantriMaster = async () => {
     try {
       const res = await axios.get('/api/santri');
-      if (res.data?.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
+      if (res.data?.success && Array.isArray(res.data.data)) {
         setSantriList(res.data.data);
       } else {
-        setSantriList([
-          { id: 1, nama_santri: 'Ahmad Faiz Al-Hafidz', nis: '2601001', nama_asrama: 'Asrama Ali bin Abi Thalib' },
-          { id: 2, nama_santri: 'Zaidan Muhammad', nis: '2601002', nama_asrama: 'Asrama Umar bin Khattab' },
-          { id: 3, nama_santri: 'Fatimah Az-Zahra', nis: '2602001', nama_asrama: 'Asrama Fathimah Az-Zahra' },
-          { id: 4, nama_santri: 'Muhammad Rifqi', nis: '2601003', nama_asrama: 'Asrama Ali bin Abi Thalib' },
-          { id: 5, nama_santri: 'Aisyah Humaira', nis: '2602002', nama_asrama: 'Asrama Fathimah Az-Zahra' },
-          { id: 6, nama_santri: 'Bilal Abdurrahman', nis: '2601004', nama_asrama: 'Asrama Umar bin Khattab' }
-        ]);
+        setSantriList([]);
       }
     } catch (e) {
-      setSantriList([
-        { id: 1, nama_santri: 'Ahmad Faiz Al-Hafidz', nis: '2601001', nama_asrama: 'Asrama Ali bin Abi Thalib' },
-        { id: 2, nama_santri: 'Zaidan Muhammad', nis: '2601002', nama_asrama: 'Asrama Umar bin Khattab' },
-        { id: 3, nama_santri: 'Fatimah Az-Zahra', nis: '2602001', nama_asrama: 'Asrama Fathimah Az-Zahra' }
-      ]);
+      setSantriList([]);
     }
   };
 
   const fetchKategoriMaster = async () => {
     try {
       const res = await axios.get('/api/praktek/kategori');
-      if (res.data?.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
+      if (res.data?.success && Array.isArray(res.data.data)) {
         setKategoriList(res.data.data);
       } else {
-        setKategoriList([
-          { id: 1, nama_kategori: 'Sholat Fardhu', deskripsi: 'Praktek kaifiyah dan bacaan sholat lima waktu' },
-          { id: 2, nama_kategori: 'Wudhu & Tayammum', deskripsi: 'Tata cara bersuci wudhu dan tayammum sunnah' },
-          { id: 3, nama_kategori: 'Sholat Jenazah', deskripsi: 'Praktek tata cara sholat jenazah 4 takbir' },
-          { id: 4, nama_kategori: 'Adzan & Iqomah', deskripsi: 'Keterampilan adzan, tarhim dan iqomah' },
-          { id: 5, nama_kategori: 'Dzikir & Doa', deskripsi: 'Wirid ba\'da sholat fardhu dan doa harian' },
-          { id: 6, nama_kategori: 'Mandi Wajib', deskripsi: 'Rukun dan niat thaharah mandi junub' },
-          { id: 7, nama_kategori: 'Khutbah & Ceramah', deskripsi: 'Kultum, ceramah dan rukun khutbah Jum\'at' }
-        ]);
+        setKategoriList([]);
       }
     } catch (e) {
-      setKategoriList([
-        { id: 1, nama_kategori: 'Sholat Fardhu', deskripsi: 'Praktek kaifiyah dan bacaan sholat lima waktu' },
-        { id: 2, nama_kategori: 'Wudhu & Tayammum', deskripsi: 'Tata cara bersuci wudhu dan tayammum sunnah' },
-        { id: 3, nama_kategori: 'Sholat Jenazah', deskripsi: 'Praktek tata cara sholat jenazah 4 takbir' }
-      ]);
+      setKategoriList([]);
     }
   };
 

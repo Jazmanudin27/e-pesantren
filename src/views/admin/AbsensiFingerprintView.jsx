@@ -83,19 +83,11 @@ export default function AbsensiFingerprintView() {
         });
         setAbsensiList(normalized);
       } else {
-        // Mock data default per tanggal hari ini
-        setAbsensiList([
-          { id: 1, nama_santri: 'Ahmad Faiz Al-Hafidz', nis: '2601001', tanggal: todayStr, kegiatan: 'Presensi Santri', jam_masuk: '04:42:15', jam_pulang: '05:30:10', status: 'Terlambat', nama_asrama: 'Asrama Ali bin Abi Thalib', nama_kamar: 'Kamar 04', tipe_santri: 'Santri Mukim', lat_lng: '-7.325374, 108.208331' },
-          { id: 2, nama_santri: 'Zaidan Muhammad', nis: '2601002', tanggal: todayStr, kegiatan: 'Presensi Santri', jam_masuk: '04:36:24', jam_pulang: '05:32:12', status: 'Hadir Tepat Waktu', nama_asrama: 'Asrama Umar bin Khattab', nama_kamar: 'Kamar 02', tipe_santri: 'Santri Mukim', lat_lng: '-7.325593, 108.208196' },
-          { id: 3, nama_santri: 'Muhammad Rifqi', nis: '2601003', tanggal: todayStr, kegiatan: 'Absensi Halaqah Tahfidz', jam_masuk: '05:25:08', jam_pulang: '06:30:00', status: 'Hadir Tepat Waktu', nama_asrama: 'Asrama Abu Bakar', nama_kamar: 'Kamar 06', tipe_santri: 'Santri Mukim', lat_lng: '-7.325100, 108.208406' },
-          { id: 4, nama_santri: 'Fatimah Az-Zahra', nis: '2602001', tanggal: todayStr, kegiatan: 'Shalat Berjamaah', jam_masuk: '04:35:07', jam_pulang: '05:15:17', status: 'Hadir Tepat Waktu', nama_asrama: 'Asrama Fathimah (Putri)', nama_kamar: 'Kamar 01', tipe_santri: 'Santri Mukim', lat_lng: '-7.325418, 108.208318' },
-          { id: 5, nama_santri: 'Aisyah Humaira', nis: '2602002', tanggal: todayStr, kegiatan: 'Absensi Halaqah Tahfidz', jam_masuk: '05:48:48', jam_pulang: 'Belum Scan', status: 'Terlambat', nama_asrama: 'Asrama Khadijah (Putri)', nama_kamar: 'Kamar 03', tipe_santri: 'Santri Kalong', lat_lng: '-7.325025, 108.208421' },
-          { id: 6, nama_santri: 'Bilal Abdurrahman', nis: '2601004', tanggal: todayStr, kegiatan: 'Shalat Berjamaah', jam_masuk: '04:41:11', jam_pulang: 'Belum Scan', status: 'Terlambat', nama_asrama: 'Asrama Utsman', nama_kamar: 'Kamar 03', tipe_santri: 'Santri Mukim', lat_lng: '-7.325110, 108.208405' },
-          { id: 7, nama_santri: 'Umar Faruq', nis: '2601005', tanggal: todayStr, kegiatan: 'Presensi Santri', jam_masuk: '04:30:00', jam_pulang: '05:30:00', status: 'Hadir Tepat Waktu', nama_asrama: 'Asrama Umar bin Khattab', nama_kamar: 'Kamar 01', tipe_santri: 'Santri Kalong', lat_lng: '-7.325200, 108.208300' },
-        ]);
+        setAbsensiList([]);
       }
     } catch (err) {
       console.error('Gagal mengambil data absensi:', err);
+      setAbsensiList([]);
     } finally {
       setLoading(false);
     }

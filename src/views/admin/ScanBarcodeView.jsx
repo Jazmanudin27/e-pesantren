@@ -109,28 +109,13 @@ export default function ScanBarcodeView() {
   const fetchSantriData = async () => {
     try {
       const res = await axios.get('/api/santri');
-      if (res.data?.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
+      if (res.data?.success && Array.isArray(res.data.data)) {
         setSantriList(res.data.data);
       } else {
-        setSantriList([
-          { id: 1, kode_santri: 'STR-26-001', nama_santri: 'Ahmad Faiz Al-Hafidz', nis: '2601001', nama_asrama: 'Asrama Ali bin Abi Thalib', nama_kamar: 'Kamar Abu Bakar 01', capaian_hafalan_juz: 15 },
-          { id: 2, kode_santri: 'STR-26-002', nama_santri: 'Zaidan Muhammad', nis: '2601002', nama_asrama: 'Asrama Umar bin Khattab', nama_kamar: 'Kamar Umar 01', capaian_hafalan_juz: 28 },
-          { id: 3, kode_santri: 'STR-26-003', nama_santri: 'Fatimah Az-Zahra', nis: '2602001', nama_asrama: 'Asrama Fathimah Az-Zahra', nama_kamar: 'Kamar Aisyah 01', capaian_hafalan_juz: 30 },
-          { id: 4, kode_santri: 'STR-26-004', nama_santri: 'Muhammad Rifqi', nis: '2601003', nama_asrama: 'Asrama Ali bin Abi Thalib', nama_kamar: 'Kamar Abu Bakar 02', capaian_hafalan_juz: 5 },
-          { id: 5, kode_santri: 'STR-26-005', nama_santri: 'Aisyah Humaira', nis: '2602002', nama_asrama: 'Asrama Fathimah Az-Zahra', nama_kamar: 'Kamar Aisyah 02', capaian_hafalan_juz: 3 },
-          { id: 6, kode_santri: 'STR-26-006', nama_santri: 'Bilal Abdurrahman', nis: '2601004', nama_asrama: 'Asrama Umar bin Khattab', nama_kamar: 'Kamar Umar 01', capaian_hafalan_juz: 12 }
-        ]);
+        setSantriList([]);
       }
     } catch (e) {
-      // Fallback
-      setSantriList([
-        { id: 1, kode_santri: 'STR-26-001', nama_santri: 'Ahmad Faiz Al-Hafidz', nis: '2601001', nama_asrama: 'Asrama Ali bin Abi Thalib', nama_kamar: 'Kamar Abu Bakar 01', capaian_hafalan_juz: 15 },
-        { id: 2, kode_santri: 'STR-26-002', nama_santri: 'Zaidan Muhammad', nis: '2601002', nama_asrama: 'Asrama Umar bin Khattab', nama_kamar: 'Kamar Umar 01', capaian_hafalan_juz: 28 },
-        { id: 3, kode_santri: 'STR-26-003', nama_santri: 'Fatimah Az-Zahra', nis: '2602001', nama_asrama: 'Asrama Fathimah Az-Zahra', nama_kamar: 'Kamar Aisyah 01', capaian_hafalan_juz: 30 },
-        { id: 4, kode_santri: 'STR-26-004', nama_santri: 'Muhammad Rifqi', nis: '2601003', nama_asrama: 'Asrama Ali bin Abi Thalib', nama_kamar: 'Kamar Abu Bakar 02', capaian_hafalan_juz: 5 },
-        { id: 5, kode_santri: 'STR-26-005', nama_santri: 'Aisyah Humaira', nis: '2602002', nama_asrama: 'Asrama Fathimah Az-Zahra', nama_kamar: 'Kamar Aisyah 02', capaian_hafalan_juz: 3 },
-        { id: 6, kode_santri: 'STR-26-006', nama_santri: 'Bilal Abdurrahman', nis: '2601004', nama_asrama: 'Asrama Umar bin Khattab', nama_kamar: 'Kamar Umar 01', capaian_hafalan_juz: 12 }
-      ]);
+      setSantriList([]);
     }
   };
 

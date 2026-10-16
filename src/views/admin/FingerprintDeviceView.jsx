@@ -52,18 +52,14 @@ export default function FingerprintDeviceView() {
     try {
       setLoading(true);
       const res = await axios.get('/api/fingerprint/devices');
-      if (res.data && res.data.success && res.data.data && res.data.data.length > 0) {
+      if (res.data && res.data.success && Array.isArray(res.data.data)) {
         setDevices(res.data.data);
       } else {
-        setDevices([
-          { id: 1, nama_device: 'Mesin Gerbang Putra (Pos 1)', sn_device: 'ZKT-X100C-9901', ip_address: '192.168.1.201', port: 4370, lokasi: 'Pos Satpam Gerbang Utama Putra', peruntukan: 'Ikhwan', status_koneksi: 'Online', tipe_mesin: 'ZKTeco X100-C / Standalone', last_sync: '2026-10-08 05:40:12', total_enrolled: 180 },
-          { id: 2, nama_device: 'Mesin Gerbang Putri (Pos 2)', sn_device: 'ZKT-X100C-9902', ip_address: '192.168.1.202', port: 4370, lokasi: 'Pos Satpam Gerbang Putri', peruntukan: 'Akhwat', status_koneksi: 'Online', tipe_mesin: 'ZKTeco X100-C / Standalone', last_sync: '2026-10-08 05:41:00', total_enrolled: 160 },
-          { id: 3, nama_device: 'Mesin Asrama Ali Lt. 1', sn_device: 'ZKT-K40-8801', ip_address: '192.168.1.203', port: 4370, lokasi: 'Lobi Masuk Asrama Ali bin Abi Thalib', peruntukan: 'Ikhwan', status_koneksi: 'Online', tipe_mesin: 'ZKTeco K40 Fingerprint & RFID', last_sync: '2026-10-08 05:39:45', total_enrolled: 64 },
-          { id: 4, nama_device: 'Mesin Asrama Fathimah Lt. 1', sn_device: 'ZKT-K40-8802', ip_address: '192.168.1.204', port: 4370, lokasi: 'Lobi Masuk Asrama Putri 01', peruntukan: 'Akhwat', status_koneksi: 'Offline', tipe_mesin: 'ZKTeco K40 Fingerprint & RFID', last_sync: '2026-10-07 21:15:30', total_enrolled: 80 }
-        ]);
+        setDevices([]);
       }
     } catch (err) {
       console.error('Gagal mengambil data perangkat fingerprint:', err);
+      setDevices([]);
     } finally {
       setLoading(false);
     }
@@ -128,27 +124,25 @@ export default function FingerprintDeviceView() {
       if (formMode === 'add') {
         const res = await axios.post('/api/fingerprint/devices', formData);
         if (res.data && res.data.success) {
+          toastSuccess('Perangkat fingerprint berhasil ditambahkan');
           fetchDevices();
+          setIsFormOpen(false);
         } else {
-          setDevices([...devices, { ...formData, id: Date.now() }]);
+          showError('Gagal Menyimpan', res.data?.message || 'Gagal menyimpan perangkat');
         }
       } else {
         const res = await axios.put(`/api/fingerprint/devices/${formData.id}`, formData);
         if (res.data && res.data.success) {
+          toastSuccess('Perangkat fingerprint berhasil diperbarui');
           fetchDevices();
+          setIsFormOpen(false);
         } else {
-          setDevices(devices.map(d => d.id === formData.id ? formData : d));
+          showError('Gagal Memperbarui', res.data?.message || 'Gagal memperbarui perangkat');
         }
       }
-      setIsFormOpen(false);
     } catch (err) {
       console.error('Gagal simpan perangkat:', err);
-      if (formMode === 'add') {
-        setDevices([...devices, { ...formData, id: Date.now() }]);
-      } else {
-        setDevices(devices.map(d => d.id === formData.id ? formData : d));
-      }
-      setIsFormOpen(false);
+      showError('Gagal Simpan', err.response?.data?.message || err.message || 'Terjadi kesalahan sistem.');
     } finally {
       setSubmitting(false);
     }
@@ -158,13 +152,16 @@ export default function FingerprintDeviceView() {
     const confirmed = await showConfirm('Konfirmasi Hapus', `Yakin ingin menghapus perangkat mesin "${nama}"?`);
     if (!confirmed) return;
     try {
-      await axios.delete(`/api/fingerprint/devices/${id}`);
-      fetchDevices();
-      toastSuccess(`Perangkat mesin "${nama}" berhasil dihapus`);
+      const res = await axios.delete(`/api/fingerprint/devices/${id}`);
+      if (res.data && res.data.success) {
+        toastSuccess(`Perangkat mesin "${nama}" berhasil dihapus`);
+        fetchDevices();
+      } else {
+        showError('Gagal Hapus', res.data?.message || 'Gagal menghapus perangkat');
+      }
     } catch (err) {
       console.error('Gagal hapus mesin:', err);
-      setDevices(devices.filter(d => d.id !== id));
-      toastSuccess(`Perangkat mesin "${nama}" berhasil dihapus`);
+      showError('Gagal Hapus', err.response?.data?.message || err.message || 'Terjadi kesalahan saat menghapus data.');
     }
   };
 
@@ -203,7 +200,7 @@ export default function FingerprintDeviceView() {
         <div className="stat-card-colored stat-card-blue">
           <div>
             <div className="stat-colored-title">TOTAL MESIN TERPASANG</div>
-            <div className="stat-colored-number">{devices.length || 4}</div>
+            <div className="stat-colored-number">{devices.length}</div>
           </div>
           <div className="stat-colored-icon-box">
             <Server size={22} />
@@ -213,7 +210,7 @@ export default function FingerprintDeviceView() {
         <div className="stat-card-colored stat-card-green">
           <div>
             <div className="stat-colored-title">MESIN ONLINE (CONNECTED)</div>
-            <div className="stat-colored-number">{countOnline || 3}</div>
+            <div className="stat-colored-number">{countOnline}</div>
           </div>
           <div className="stat-colored-icon-box">
             <Wifi size={22} />
@@ -223,7 +220,7 @@ export default function FingerprintDeviceView() {
         <div className="stat-card-colored stat-card-amber">
           <div>
             <div className="stat-colored-title">MESIN OFFLINE / DISCONNECT</div>
-            <div className="stat-colored-number">{countOffline || 1}</div>
+            <div className="stat-colored-number">{countOffline}</div>
           </div>
           <div className="stat-colored-icon-box">
             <WifiOff size={22} />
@@ -233,7 +230,7 @@ export default function FingerprintDeviceView() {
         <div className="stat-card-colored stat-card-purple">
           <div>
             <div className="stat-colored-title">TOTAL TEMPLATE BIOMETRIC</div>
-            <div className="stat-colored-number">{totalEnrolled || 484}</div>
+            <div className="stat-colored-number">{totalEnrolled}</div>
           </div>
           <div className="stat-colored-icon-box">
             <Fingerprint size={22} />
@@ -340,65 +337,75 @@ export default function FingerprintDeviceView() {
               </tr>
             </thead>
             <tbody>
-              {filteredList.map((d, idx) => (
-                <tr key={d.id || idx}>
-                  <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
-                    {idx + 1}
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{d.nama_device}</div>
-                    <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>Tipe: {d.tipe_mesin || 'ZKTeco Standalone'}</div>
-                  </td>
-                  <td>
-                    <code style={{ background: '#f1f5f9', padding: '3px 6px', borderRadius: '4px', color: '#334155', fontWeight: 700, fontSize: '0.72rem' }}>
-                      {d.sn_device}
-                    </code>
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.76rem' }}>{d.ip_address}</div>
-                    <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Port TCP: {d.port || 4370}</div>
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 600, color: '#059669' }}>{d.lokasi}</div>
-                  </td>
-                  <td className="td-center">
-                    <span className={`badge ${d.peruntukan === 'Ikhwan' ? 'badge-info' : d.peruntukan === 'Akhwat' ? 'badge-purple' : 'badge-success'}`}>
-                      {d.peruntukan === 'Ikhwan' ? 'Ikhwan (L)' : d.peruntukan === 'Akhwat' ? 'Akhwat (P)' : 'Umum'}
-                    </span>
-                  </td>
-                  <td className="td-center">
-                    <span className={`badge ${d.status_koneksi === 'Online' ? 'badge-success' : 'badge-danger'}`}>
-                      {d.status_koneksi === 'Online' ? <Wifi size={11} /> : <WifiOff size={11} />}
-                      <span>{d.status_koneksi}</span>
-                    </span>
-                  </td>
-                  <td className="td-center">
-                    <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
-                      <button 
-                        className="btn-action btn-action-view"
-                        onClick={() => openDetail(d)}
-                        title="Lihat Detail Konfigurasi Mesin"
-                      >
-                        <Eye size={13} />
-                      </button>
-                      <button 
-                        className="btn-action btn-action-edit"
-                        onClick={() => openEditForm(d)}
-                        title="Edit Mesin"
-                      >
-                        <Edit3 size={13} />
-                      </button>
-                      <button 
-                        className="btn-action btn-action-delete"
-                        onClick={() => handleDeleteDevice(d.id, d.nama_device)}
-                        title="Hapus Mesin"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
+              {filteredList.length === 0 ? (
+                <tr>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '40px 20px', color: '#64748b' }}>
+                    <Server size={36} style={{ margin: '0 auto 10px', opacity: 0.4 }} />
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#334155' }}>Belum ada mesin fingerprint di database</div>
+                    <div style={{ fontSize: '0.75rem', marginTop: '4px' }}>Silakan daftarkan perangkat baru dengan klik tombol "Tambah Mesin Baru".</div>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredList.map((d, idx) => (
+                  <tr key={d.id || idx}>
+                    <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
+                      {idx + 1}
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 700, color: '#0f172a' }}>{d.nama_device}</div>
+                      <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>Tipe: {d.tipe_mesin || 'ZKTeco Standalone'}</div>
+                    </td>
+                    <td>
+                      <code style={{ background: '#f1f5f9', padding: '3px 6px', borderRadius: '4px', color: '#334155', fontWeight: 700, fontSize: '0.72rem' }}>
+                        {d.sn_device}
+                      </code>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.76rem' }}>{d.ip_address}</div>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Port TCP: {d.port || 4370}</div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600, color: '#059669' }}>{d.lokasi}</div>
+                    </td>
+                    <td className="td-center">
+                      <span className={`badge ${d.peruntukan === 'Ikhwan' ? 'badge-info' : d.peruntukan === 'Akhwat' ? 'badge-purple' : 'badge-success'}`}>
+                        {d.peruntukan === 'Ikhwan' ? 'Ikhwan (L)' : d.peruntukan === 'Akhwat' ? 'Akhwat (P)' : 'Umum'}
+                      </span>
+                    </td>
+                    <td className="td-center">
+                      <span className={`badge ${d.status_koneksi === 'Online' ? 'badge-success' : 'badge-danger'}`}>
+                        {d.status_koneksi === 'Online' ? <Wifi size={11} /> : <WifiOff size={11} />}
+                        <span>{d.status_koneksi}</span>
+                      </span>
+                    </td>
+                    <td className="td-center">
+                      <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
+                        <button 
+                          className="btn-action btn-action-view"
+                          onClick={() => openDetail(d)}
+                          title="Lihat Detail Konfigurasi Mesin"
+                        >
+                          <Eye size={13} />
+                        </button>
+                        <button 
+                          className="btn-action btn-action-edit"
+                          onClick={() => openEditForm(d)}
+                          title="Edit Mesin"
+                        >
+                          <Edit3 size={13} />
+                        </button>
+                        <button 
+                          className="btn-action btn-action-delete"
+                          onClick={() => handleDeleteDevice(d.id, d.nama_device)}
+                          title="Hapus Mesin"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         )}

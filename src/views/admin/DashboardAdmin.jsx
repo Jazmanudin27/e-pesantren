@@ -15,7 +15,7 @@ import {
 export default function DashboardAdmin() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({
-    stats: { total_santri: 6, total_halaqah: 3, total_izin_aktif: 2, avg_juz: '8.4' },
+    stats: { total_santri: 0, total_halaqah: 0, total_izin_aktif: 0, avg_juz: '0' },
     recentSetoran: [],
     activeIzin: []
   });
@@ -27,21 +27,13 @@ export default function DashboardAdmin() {
       if (res.data && res.data.success) {
         setData({
           stats: {
-            total_santri: res.data.stats.total_santri || 6,
-            total_halaqah: res.data.stats.total_halaqah || 3,
-            total_izin_aktif: res.data.stats.total_izin_aktif || 2,
-            avg_juz: res.data.stats.avg_juz || '8.4'
+            total_santri: res.data.stats?.total_santri || 0,
+            total_halaqah: res.data.stats?.total_halaqah || 0,
+            total_izin_aktif: res.data.stats?.total_izin_aktif || 0,
+            avg_juz: res.data.stats?.avg_juz || '0'
           },
-          recentSetoran: res.data.recentSetoran && res.data.recentSetoran.length > 0 ? res.data.recentSetoran : [
-            { id: 1, nama_santri: 'Ahmad Faiz Al-Hafidz', nama_asrama: 'Asrama Ali', nama_kamar: 'Kamar 04', juz: 15, surat_mulai: 'Al-Isra: 1-25', kualitas_tajwid: 'Mumtaz (A)', nama_asatidz: 'Ust. Hamdan', tanggal: '2026-10-08' },
-            { id: 2, nama_santri: 'Zaidan Muhammad', nama_asrama: 'Asrama Umar', nama_kamar: 'Kamar 02', juz: 28, surat_mulai: 'Al-Mujadilah', kualitas_tajwid: 'Jayyid (B+)', nama_asatidz: 'Ust. Nurul Huda', tanggal: '2026-10-08' },
-            { id: 3, nama_santri: 'Fatimah Az-Zahra', nama_asrama: 'Asrama Fathimah', nama_kamar: 'Kamar 01', juz: 30, surat_mulai: 'An-Naba - An-Nas', kualitas_tajwid: 'Mumtaz (A)', nama_asatidz: 'Usth. Salma', tanggal: '2026-10-08' },
-            { id: 4, nama_santri: 'Muhammad Rifqi', nama_asrama: 'Asrama Abu Bakar', nama_kamar: 'Kamar 06', juz: 5, surat_mulai: 'An-Nisa: 50-80', kualitas_tajwid: 'Jayyid (B)', nama_asatidz: 'Ust. Hamdan', tanggal: '2026-10-08' }
-          ],
-          activeIzin: res.data.activeIzin && res.data.activeIzin.length > 0 ? res.data.activeIzin : [
-            { id: 1, nama_santri: 'Bilal Abdurrahman', keperluan: 'Acara Keluarga / Walimah', tgl_kembali_rencana: '2026-10-10', status: 'Aktif Keluar' },
-            { id: 2, nama_santri: 'Syifa Nurul Izzah', keperluan: 'Berobat / Kontrol Dokter', tgl_kembali_rencana: '2026-10-08', status: 'Aktif Keluar' }
-          ]
+          recentSetoran: Array.isArray(res.data.recentSetoran) ? res.data.recentSetoran : [],
+          activeIzin: Array.isArray(res.data.activeIzin) ? res.data.activeIzin : []
         });
       }
     } catch (err) {

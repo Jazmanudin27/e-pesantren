@@ -28,74 +28,7 @@ import {
 } from 'lucide-react';
 import { showConfirm, toastSuccess, showError } from '../../utils/alert.util';
 
-const DEFAULT_USERS = [
-  {
-    id: 1,
-    name: 'Administrator Ponpes',
-    username: 'admin',
-    email: 'admin@nurulwafa.sch.id',
-    role: 'Super Admin',
-    status: 'Active',
-    phone: '081288881111',
-    created_at: '2026-01-10T08:00:00Z',
-    updated_at: '2026-10-12T14:30:00Z'
-  },
-  {
-    id: 2,
-    name: 'KH. M. Syukron Ma\'mun, Lc.',
-    username: 'pengasuh',
-    email: 'pengasuh@nurulwafa.sch.id',
-    role: 'Pengasuh',
-    status: 'Active',
-    phone: '081288882222',
-    created_at: '2026-01-12T09:15:00Z',
-    updated_at: '2026-10-10T10:00:00Z'
-  },
-  {
-    id: 3,
-    name: 'Ust. Hamdan S.Pd.I',
-    username: 'hamdan',
-    email: 'hamdan@nurulwafa.sch.id',
-    role: 'Ustadz',
-    status: 'Active',
-    phone: '081399993333',
-    created_at: '2026-02-01T11:20:00Z',
-    updated_at: '2026-10-11T16:45:00Z'
-  },
-  {
-    id: 4,
-    name: 'Ust. M. Huda Al-Hafidz',
-    username: 'huda',
-    email: 'huda@nurulwafa.sch.id',
-    role: 'Musyrif',
-    status: 'Active',
-    phone: '085788884444',
-    created_at: '2026-02-15T13:10:00Z',
-    updated_at: '2026-10-09T08:20:00Z'
-  },
-  {
-    id: 5,
-    name: 'Ust. Bilal Mansur (Kamtib)',
-    username: 'keamanan',
-    email: 'kamtib@nurulwafa.sch.id',
-    role: 'Keamanan',
-    status: 'Active',
-    phone: '087855667788',
-    created_at: '2026-03-01T10:00:00Z',
-    updated_at: '2026-09-25T11:30:00Z'
-  },
-  {
-    id: 6,
-    name: 'H. Sudirman (Wali Santri)',
-    username: 'wali.sudirman',
-    email: 'sudirman@gmail.com',
-    role: 'Wali Santri',
-    status: 'Active',
-    phone: '081912345678',
-    created_at: '2026-03-20T14:40:00Z',
-    updated_at: '2026-08-15T09:10:00Z'
-  }
-];
+
 
 export default function UserManagementView() {
   const [usersList, setUsersList] = useState([]);
@@ -131,37 +64,22 @@ export default function UserManagementView() {
   const [copied, setCopied] = useState(false);
   const [resetting, setResetting] = useState(false);
 
-  // Load Users from API / Local Storage
+  // Load Users from API
   const fetchUsers = async () => {
     try {
       setLoading(true);
       const res = await axios.get('/api/users');
-      if (res.data && res.data.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
+      if (res.data && res.data.success && Array.isArray(res.data.data)) {
         setUsersList(res.data.data);
-        localStorage.setItem('epesantren_users_cache', JSON.stringify(res.data.data));
       } else {
-        loadFallbackUsers();
+        setUsersList([]);
       }
     } catch (err) {
-      loadFallbackUsers();
+      console.error('Gagal mengambil data user:', err);
+      setUsersList([]);
     } finally {
       setLoading(false);
     }
-  };
-
-  const loadFallbackUsers = () => {
-    try {
-      const cached = localStorage.getItem('epesantren_users_cache');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setUsersList(parsed);
-          return;
-        }
-      }
-    } catch (e) {}
-    setUsersList(DEFAULT_USERS);
-    localStorage.setItem('epesantren_users_cache', JSON.stringify(DEFAULT_USERS));
   };
 
   useEffect(() => {

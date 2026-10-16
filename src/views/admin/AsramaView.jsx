@@ -55,35 +55,23 @@ export default function AsramaView() {
     try {
       setLoading(true);
       const res = await axios.get('/api/asrama');
-      const defaultAsramaList = [
-        { id: 1, nama_asrama: 'Asrama Ali bin Abi Thalib', kode_asrama: 'ASR-IKH-01', gender: 'L', lokasi_gedung: 'Gedung Asrama Putra Blok A', total_kamar: 4, total_santri: 12, pembina: 'Ust. Hamdan S.Th.I' },
-        { id: 2, nama_asrama: 'Asrama Umar bin Khattab', kode_asrama: 'ASR-IKH-02', gender: 'L', lokasi_gedung: 'Gedung Asrama Putra Blok B', total_kamar: 4, total_santri: 12, pembina: 'Ust. Nurul Huda Al-Hafidz' },
-        { id: 3, nama_asrama: 'Asrama Fathimah Az-Zahra', kode_asrama: 'ASR-AKH-01', gender: 'P', lokasi_gedung: 'Gedung Asrama Putri Blok A', total_kamar: 4, total_santri: 10, pembina: 'Usth. Salma M.Pd' },
-        { id: 4, nama_asrama: 'Asrama Khadijah Al-Kubra', kode_asrama: 'ASR-AKH-02', gender: 'P', lokasi_gedung: 'Gedung Asrama Putri Blok B', total_kamar: 4, total_santri: 10, pembina: 'Usth. Salma M.Pd' }
-      ];
-
-      const finalAsrama = (res.data && res.data.asrama && res.data.asrama.length > 0) ? res.data.asrama : defaultAsramaList;
-
-      if (res.data && res.data.success) {
+      if (res.data && res.data.success && res.data.data) {
         setData({
-          asrama: res.data.asrama && res.data.asrama.length ? res.data.asrama : finalAsrama,
-          kamar: res.data.kamar || []
+          asrama: Array.isArray(res.data.data.asrama) ? res.data.data.asrama : [],
+          kamar: Array.isArray(res.data.data.kamar) ? res.data.data.kamar : []
+        });
+      } else if (res.data && res.data.asrama) {
+        setData({
+          asrama: Array.isArray(res.data.asrama) ? res.data.asrama : [],
+          kamar: Array.isArray(res.data.kamar) ? res.data.kamar : []
         });
       } else {
-        setData({
-          asrama: finalAsrama,
-          kamar: [
-            { id: 1, kode_kamar: 'KMR-A01', nama_kamar: 'Kamar Abu Bakar 01', nama_asrama: 'Asrama Ali bin Abi Thalib', asrama_gender: 'L', lantai: 1, kapasitas: 10, terisi: 9, ketua_kamar: 'Ahmad Faiz Al-Hafidz', pembina: 'Ust. Ahmad Fauzi' },
-            { id: 2, kode_kamar: 'KMR-A02', nama_kamar: 'Kamar Abu Bakar 02', nama_asrama: 'Asrama Ali bin Abi Thalib', asrama_gender: 'L', lantai: 1, kapasitas: 10, terisi: 10, ketua_kamar: 'Zaidan Muhammad', pembina: 'Ust. Ahmad Fauzi' },
-            { id: 3, kode_kamar: 'KMR-B01', nama_kamar: 'Kamar Umar 01', nama_asrama: 'Asrama Umar bin Khattab', asrama_gender: 'L', lantai: 2, kapasitas: 10, terisi: 8, ketua_kamar: 'Muhammad Rifqi', pembina: 'Ust. Ridwan Kamil' },
-            { id: 4, kode_kamar: 'KMR-C01', nama_kamar: 'Kamar Aisyah 01', nama_asrama: 'Asrama Fathimah Az-Zahra', asrama_gender: 'P', lantai: 1, kapasitas: 10, terisi: 10, ketua_kamar: 'Fatimah Az-Zahra', pembina: 'Usth. Siti Maryam' },
-            { id: 5, kode_kamar: 'KMR-C02', nama_kamar: 'Kamar Aisyah 02', nama_asrama: 'Asrama Fathimah Az-Zahra', asrama_gender: 'P', lantai: 2, kapasitas: 8, terisi: 7, ketua_kamar: 'Aisyah Humaira', pembina: 'Usth. Siti Maryam' },
-            { id: 6, kode_kamar: 'KMR-D01', nama_kamar: 'Kamar Maryam 01', nama_asrama: 'Asrama Khadijah Al-Kubra', asrama_gender: 'P', lantai: 1, kapasitas: 8, terisi: 8, ketua_kamar: 'Khadijah Zahra', pembina: 'Usth. Nur Aini' }
-          ]
-        });
+        setData({ asrama: [], kamar: [] });
       }
     } catch (err) {
       console.error('Gagal mengambil data asrama:', err);
+      showError('Gagal Memuat Data', 'Tidak dapat mengambil data asrama & kobong dari server.');
+      setData({ asrama: [], kamar: [] });
     } finally {
       setLoading(false);
     }
@@ -105,18 +93,19 @@ export default function AsramaView() {
 
   const openAddForm = () => {
     setFormMode('add');
+    const firstAsr = data.asrama[0];
     setFormData({
       id: null,
       kode_kamar: `KMR-${Date.now().toString().slice(-3)}`,
       nama_kamar: '',
-      asrama_id: 1,
-      nama_asrama: 'Asrama Ali bin Abi Thalib',
-      asrama_gender: 'L',
+      asrama_id: firstAsr?.id || 1,
+      nama_asrama: firstAsr?.nama_asrama || '',
+      asrama_gender: firstAsr?.gender || 'L',
       lantai: 1,
       kapasitas: 10,
       terisi: 0,
       ketua_kamar: '',
-      pembina: 'Ust. Ahmad Fauzi'
+      pembina: firstAsr?.pembina || ''
     });
     setIsFormOpen(true);
   };
@@ -128,13 +117,13 @@ export default function AsramaView() {
       kode_kamar: kamar.kode_kamar || '',
       nama_kamar: kamar.nama_kamar || '',
       asrama_id: kamar.asrama_id || 1,
-      nama_asrama: kamar.nama_asrama || 'Asrama Ali bin Abi Thalib',
+      nama_asrama: kamar.nama_asrama || '',
       asrama_gender: kamar.asrama_gender || 'L',
       lantai: kamar.lantai || 1,
       kapasitas: kamar.kapasitas || 10,
       terisi: kamar.terisi || 0,
       ketua_kamar: kamar.ketua_kamar || '',
-      pembina: kamar.pembina || 'Musyrif Asrama'
+      pembina: kamar.pembina || ''
     });
     setIsFormOpen(true);
   };
@@ -150,33 +139,25 @@ export default function AsramaView() {
       if (formMode === 'add') {
         const res = await axios.post('/api/kamar', formData);
         if (res.data && res.data.success) {
+          toastSuccess('Kamar kobong berhasil ditambahkan.');
           fetchAsrama();
+          setIsFormOpen(false);
         } else {
-          setData({ ...data, kamar: [...data.kamar, { ...formData, id: Date.now() }] });
+          showError('Gagal Menyimpan', res.data?.message || 'Gagal menyimpan kamar kobong');
         }
       } else {
         const res = await axios.put(`/api/kamar/${formData.id}`, formData);
         if (res.data && res.data.success) {
+          toastSuccess('Kamar kobong berhasil diperbarui.');
           fetchAsrama();
+          setIsFormOpen(false);
         } else {
-          setData({
-            ...data,
-            kamar: data.kamar.map(k => k.id === formData.id ? formData : k)
-          });
+          showError('Gagal Memperbarui', res.data?.message || 'Gagal memperbarui kamar kobong');
         }
       }
-      setIsFormOpen(false);
     } catch (err) {
       console.error('Gagal simpan kamar:', err);
-      if (formMode === 'add') {
-        setData({ ...data, kamar: [...data.kamar, { ...formData, id: Date.now() }] });
-      } else {
-        setData({
-          ...data,
-          kamar: data.kamar.map(k => k.id === formData.id ? formData : k)
-        });
-      }
-      setIsFormOpen(false);
+      showError('Gagal Simpan', err.response?.data?.message || err.message || 'Terjadi kesalahan sistem.');
     } finally {
       setSubmitting(false);
     }
@@ -186,22 +167,22 @@ export default function AsramaView() {
     const ok = await showConfirm('Hapus Kamar', `Yakin ingin menghapus kamar kobong "${nama}"?`, 'Ya, Hapus', 'Batal');
     if (ok) {
       try {
-        await axios.delete(`/api/kamar/${id}`);
-        fetchAsrama();
-        toastSuccess(`Kamar "${nama}" berhasil dihapus.`);
+        const res = await axios.delete(`/api/kamar/${id}`);
+        if (res.data && res.data.success) {
+          toastSuccess(`Kamar "${nama}" berhasil dihapus.`);
+          fetchAsrama();
+        } else {
+          showError('Gagal Menghapus', res.data?.message || 'Gagal menghapus kamar');
+        }
       } catch (err) {
         console.error('Gagal hapus kamar:', err);
-        setData({
-          ...data,
-          kamar: data.kamar.filter(k => k.id !== id)
-        });
-        toastSuccess(`Kamar "${nama}" berhasil dihapus.`);
+        showError('Gagal Hapus', err.response?.data?.message || err.message || 'Terjadi kesalahan saat menghapus data.');
       }
     }
   };
 
   // Filter calculation
-  const totalKapasitas = data.kamar.reduce((acc, k) => acc + (parseInt(k.kapasitas) || 10), 0);
+  const totalKapasitas = data.kamar.reduce((acc, k) => acc + (parseInt(k.kapasitas) || 0), 0);
   const totalTerisi = data.kamar.reduce((acc, k) => acc + (parseInt(k.terisi) || 0), 0);
   const totalPutra = data.asrama.filter(a => a.gender === 'L').length;
   const totalPutri = data.asrama.filter(a => a.gender === 'P').length;
@@ -238,7 +219,7 @@ export default function AsramaView() {
         <div className="stat-card-colored stat-card-blue">
           <div>
             <div className="stat-colored-title">TOTAL GEDUNG ASRAMA</div>
-            <div className="stat-colored-number">{data.asrama.length || 4}</div>
+            <div className="stat-colored-number">{data.asrama.length}</div>
           </div>
           <div className="stat-colored-icon-box">
             <Building size={22} />
@@ -248,7 +229,7 @@ export default function AsramaView() {
         <div className="stat-card-colored stat-card-green">
           <div>
             <div className="stat-colored-title">TOTAL KAMAR KOBONG</div>
-            <div className="stat-colored-number">{data.kamar.length || 6}</div>
+            <div className="stat-colored-number">{data.kamar.length}</div>
           </div>
           <div className="stat-colored-icon-box">
             <BedDouble size={22} />
@@ -258,7 +239,7 @@ export default function AsramaView() {
         <div className="stat-card-colored stat-card-amber">
           <div>
             <div className="stat-colored-title">TOTAL KAPASITAS SANTRI</div>
-            <div className="stat-colored-number">{totalKapasitas || 56}</div>
+            <div className="stat-colored-number">{totalKapasitas}</div>
           </div>
           <div className="stat-colored-icon-box">
             <Users size={22} />
@@ -268,7 +249,7 @@ export default function AsramaView() {
         <div className="stat-card-colored stat-card-purple">
           <div>
             <div className="stat-colored-title">SANTRI MUKIM TERISI</div>
-            <div className="stat-colored-number">{totalTerisi || 52}</div>
+            <div className="stat-colored-number">{totalTerisi}</div>
           </div>
           <div className="stat-colored-icon-box">
             <Home size={22} />
@@ -378,75 +359,85 @@ export default function AsramaView() {
               </tr>
             </thead>
             <tbody>
-              {filteredKamar.map((k, idx) => {
-                const isFull = (parseInt(k.terisi) || 0) >= (parseInt(k.kapasitas) || 10);
-                return (
-                  <tr key={k.id || idx}>
-                    <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
-                      {idx + 1}
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 700, color: '#0f172a' }}>{k.nama_kamar}</div>
-                      <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>Kode: {k.kode_kamar}</div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px', color: '#0f172a' }}>
-                        <Building size={13} color="#059669" />
-                        <span>{k.nama_asrama}</span>
-                      </div>
-                      <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
-                        Lantai {k.lantai || 1}
-                      </div>
-                    </td>
-                    <td className="td-center">
-                      <span className={`badge ${k.asrama_gender === 'L' ? 'badge-info' : 'badge-purple'}`}>
-                        {k.asrama_gender === 'L' ? 'Ikhwan (L)' : 'Akhwat (P)'}
-                      </span>
-                    </td>
-                    <td className="td-center" style={{ fontWeight: 700, color: '#334155' }}>
-                      {k.kapasitas || 10} Santri
-                    </td>
-                    <td className="td-center">
-                      <span className={`badge ${isFull ? 'badge-danger' : 'badge-success'}`}>
-                        {k.terisi || 0} / {k.kapasitas || 10} Terisi
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#0f172a' }}>
-                        {k.ketua_kamar || 'Belum Ditunjuk'}
-                      </div>
-                      <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
-                        Pembina: {k.pembina || 'Musyrif Asrama'}
-                      </div>
-                    </td>
-                    <td className="td-center">
-                      <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
-                        <button 
-                          className="btn-action btn-action-view"
-                          onClick={() => openDetail(k)}
-                          title="Lihat Detail Kamar Kobong"
-                        >
-                          <Eye size={13} />
-                        </button>
-                        <button 
-                          className="btn-action btn-action-edit"
-                          onClick={() => openEditForm(k)}
-                          title="Edit Kamar"
-                        >
-                          <Edit3 size={13} />
-                        </button>
-                        <button 
-                          className="btn-action btn-action-delete"
-                          onClick={() => handleDeleteKamar(k.id, k.nama_kamar)}
-                          title="Hapus Kamar"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+              {filteredKamar.length === 0 ? (
+                <tr>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '40px 20px', color: '#64748b' }}>
+                    <BedDouble size={36} style={{ margin: '0 auto 10px', opacity: 0.4 }} />
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#334155' }}>Belum ada data kamar kobong di database</div>
+                    <div style={{ fontSize: '0.75rem', marginTop: '4px' }}>Silakan klik tombol "Tambah Kamar Baru" di atas untuk menambahkan data.</div>
+                  </td>
+                </tr>
+              ) : (
+                filteredKamar.map((k, idx) => {
+                  const isFull = (parseInt(k.terisi) || 0) >= (parseInt(k.kapasitas) || 10);
+                  return (
+                    <tr key={k.id || idx}>
+                      <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
+                        {idx + 1}
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 700, color: '#0f172a' }}>{k.nama_kamar}</div>
+                        <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>Kode: {k.kode_kamar}</div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px', color: '#0f172a' }}>
+                          <Building size={13} color="#059669" />
+                          <span>{k.nama_asrama}</span>
+                        </div>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                          Lantai {k.lantai || 1}
+                        </div>
+                      </td>
+                      <td className="td-center">
+                        <span className={`badge ${k.asrama_gender === 'L' ? 'badge-info' : 'badge-purple'}`}>
+                          {k.asrama_gender === 'L' ? 'Ikhwan (L)' : 'Akhwat (P)'}
+                        </span>
+                      </td>
+                      <td className="td-center" style={{ fontWeight: 700, color: '#334155' }}>
+                        {k.kapasitas || 0} Santri
+                      </td>
+                      <td className="td-center">
+                        <span className={`badge ${isFull ? 'badge-danger' : 'badge-success'}`}>
+                          {k.terisi || 0} / {k.kapasitas || 0} Terisi
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#0f172a' }}>
+                          {k.ketua_kamar || 'Belum Ditunjuk'}
+                        </div>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                          Pembina: {k.pembina || 'Musyrif Asrama'}
+                        </div>
+                      </td>
+                      <td className="td-center">
+                        <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
+                          <button 
+                            className="btn-action btn-action-view"
+                            onClick={() => openDetail(k)}
+                            title="Lihat Detail Kamar Kobong"
+                          >
+                            <Eye size={13} />
+                          </button>
+                          <button 
+                            className="btn-action btn-action-edit"
+                            onClick={() => openEditForm(k)}
+                            title="Edit Kamar"
+                          >
+                            <Edit3 size={13} />
+                          </button>
+                          <button 
+                            className="btn-action btn-action-delete"
+                            onClick={() => handleDeleteKamar(k.id, k.nama_kamar)}
+                            title="Hapus Kamar"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         )}

@@ -51,15 +51,6 @@ export default function TataTertibView() {
     wa_notif_wali: 1
   });
 
-  const DEFAULT_SANTRI = [
-    { id: 1, kode_santri: 'STR-26-001', nama_santri: 'Ahmad Faiz Al-Hafidz', nis: '2601001', nama_asrama: 'Asrama Ali bin Abi Thalib' },
-    { id: 2, kode_santri: 'STR-26-002', nama_santri: 'Zaidan Muhammad', nis: '2601002', nama_asrama: 'Asrama Umar bin Khattab' },
-    { id: 3, kode_santri: 'STR-26-003', nama_santri: 'Fatimah Az-Zahra', nis: '2602001', nama_asrama: 'Asrama Fathimah Az-Zahra' },
-    { id: 4, kode_santri: 'STR-26-004', nama_santri: 'Muhammad Rifqi', nis: '2601003', nama_asrama: 'Asrama Ali bin Abi Thalib' },
-    { id: 5, kode_santri: 'STR-26-005', nama_santri: 'Aisyah Humaira', nis: '2602002', nama_asrama: 'Asrama Fathimah Az-Zahra' },
-    { id: 6, kode_santri: 'STR-26-006', nama_santri: 'Bilal Abdurrahman', nis: '2601004', nama_asrama: 'Asrama Umar bin Khattab' }
-  ];
-
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -70,15 +61,19 @@ export default function TataTertibView() {
 
       if (resPelanggaran.data && resPelanggaran.data.success) {
         setPelanggaranList(resPelanggaran.data.data || []);
+      } else {
+        setPelanggaranList([]);
       }
-      if (resSantri.data && resSantri.data.success && resSantri.data.data && resSantri.data.data.length > 0) {
+
+      if (resSantri.data && resSantri.data.success && Array.isArray(resSantri.data.data)) {
         setSantriList(resSantri.data.data);
       } else {
-        setSantriList(DEFAULT_SANTRI);
+        setSantriList([]);
       }
     } catch (err) {
       console.error('Gagal memuat data tata tertib:', err);
-      setSantriList(DEFAULT_SANTRI);
+      setPelanggaranList([]);
+      setSantriList([]);
     } finally {
       setLoading(false);
     }
