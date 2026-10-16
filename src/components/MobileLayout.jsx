@@ -41,6 +41,7 @@ import MobileProfil from '../views/mobile/MobileProfil';
 import MobileLogin from '../views/mobile/MobileLogin';
 import MobilePraktek from '../views/mobile/MobilePraktek';
 import MobileMateriHafalan from '../views/mobile/MobileMateriHafalan';
+import PortalWaliSantri from '../views/wali/PortalWaliSantri';
 
 export default function MobileLayout() {
   const [session, setSession] = useState(() => {
@@ -153,6 +154,7 @@ export default function MobileLayout() {
       case 'laporan-tahfidz': return 'Laporan Tahfidz & Tasmi\'';
       case 'syahriah': return 'Syahriah & Uang Saku';
       case 'profil': return 'Profil Asatidz & Admin';
+      case 'portal-wali': return 'Portal Orang Tua (Wali)';
       default: return '';
     }
   };
@@ -160,13 +162,15 @@ export default function MobileLayout() {
   const isOtherMenuActive = [
     'dashboard', 'master-santri', 'master-asrama', 'master-kelas', 
     'master-asatidz', 'master-materi', 'kitab', 'master-device', 'tata-tertib', 
-    'laporan-presensi', 'laporan-tahfidz', 'syahriah', 'praktek-ibadah', 'praktek'
+    'laporan-presensi', 'laporan-tahfidz', 'syahriah', 'praktek-ibadah', 'praktek', 'portal-wali'
   ].includes(mobileTab);
 
   const renderContent = () => {
     switch (mobileTab) {
       case 'home':
         return <MobileHome onChangeTab={handleSelectTab} onLogout={handleLogout} />;
+      case 'portal-wali':
+        return <PortalWaliSantri onLogout={handleLogout} />;
       case 'dashboard':
         return <MobileDashboard />;
       case 'presensi':
@@ -377,6 +381,9 @@ export default function MobileLayout() {
                     </button>
                     <button onClick={() => handleSelectTab('syahriah')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'syahriah' ? '#fef3c7' : '#f8fafc', border: mobileTab === 'syahriah' ? '1px solid #d97706' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                       <Wallet size={16} color="#d97706" /> Syahriah
+                    </button>
+                    <button onClick={() => handleSelectTab('portal-wali')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'portal-wali' ? '#dcfce7' : '#f8fafc', border: mobileTab === 'portal-wali' ? '1px solid #059669' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                      <Users size={16} color="#059669" /> Portal Wali
                     </button>
                   </div>
                 </div>

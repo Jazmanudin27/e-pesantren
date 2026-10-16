@@ -29,19 +29,26 @@ export const createSantri = async (req, res) => {
     const {
       kode_santri, nis, nisn, nama_santri, jk, tempat_lahir, tgl_lahir,
       status_santri, asrama_id, kamar_id, fingerprint_pin, rfid_card_uid,
-      nama_wali, no_wa_wali, hubungan_wali, alamat_asal, status, tahun_masuk
+      nama_wali, no_wa_wali, hubungan_wali, alamat_asal, status, tahun_masuk,
+      username, password
     } = req.body;
+
+    const finalNis = nis || Date.now().toString().slice(-6);
+    const finalUsername = username ? String(username).trim() : finalNis;
+    const finalPassword = password ? String(password).trim() : finalNis;
 
     const [result] = await pool.query(`
       INSERT INTO santri (
-        kode_santri, nis, nisn, nama_santri, jk, tempat_lahir, tgl_lahir,
+        kode_santri, nis, nisn, username, password, nama_santri, jk, tempat_lahir, tgl_lahir,
         status_santri, asrama_id, kamar_id, fingerprint_pin, rfid_card_uid,
         nama_wali, no_wa_wali, hubungan_wali, alamat_asal, status, tahun_masuk
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       kode_santri || `STR-${Date.now().toString().slice(-4)}`,
-      nis || Date.now().toString().slice(-6),
+      finalNis,
       nisn || null,
+      finalUsername,
+      finalPassword,
       nama_santri,
       jk || 'L',
       tempat_lahir || '',
@@ -72,24 +79,38 @@ export const updateSantri = async (req, res) => {
       kode_santri, nis, nisn, nama_santri, jk, tempat_lahir, tgl_lahir,
       status_santri, asrama_id, kamar_id, fingerprint_pin, rfid_card_uid,
       nama_wali, no_wa_wali, hubungan_wali, alamat_asal, status, tahun_masuk,
-      capaian_hafalan_juz, tingkat_diniyah
+      capaian_hafalan_juz, tingkat_diniyah, username, password
     } = req.body;
 
-    await pool.query(`
-      UPDATE santri SET
-        kode_santri = ?, nis = ?, nisn = ?, nama_santri = ?, jk = ?,
-        tempat_lahir = ?, tgl_lahir = ?, status_santri = ?, asrama_id = ?,
-        kamar_id = ?, fingerprint_pin = ?, rfid_card_uid = ?, nama_wali = ?,
-        no_wa_wali = ?, hubungan_wali = ?, alamat_asal = ?, status = ?,
-        tahun_masuk = ?, capaian_hafalan_juz = ?, tingkat_diniyah = ?
-      WHERE id = ?
-    `, [
+    let updateFields = `
+      kode_santri = ?, nis = ?, nisn = ?, nama_santri = ?, jk = ?,
+      tempat_lahir = ?, tgl_lahir = ?, status_santri = ?, asrama_id = ?,
+      kamar_id = ?, fingerprint_pin = ?, rfid_card_uid = ?, nama_wali = ?,
+      no_wa_wali = ?, hubungan_wali = ?, alamat_asal = ?, status = ?,
+      tahun_masuk = ?, capaian_hafalan_juz = ?, tingkat_diniyah = ?
+    `;
+
+    const params = [
       kode_santri, nis, nisn, nama_santri, jk,
       tempat_lahir, tgl_lahir, status_santri, asrama_id, kamar_id,
       fingerprint_pin, rfid_card_uid, nama_wali, no_wa_wali,
       hubungan_wali, alamat_asal, status, tahun_masuk,
-      capaian_hafalan_juz || 0, tingkat_diniyah || 'Wustho', id
-    ]);
+      capaian_hafalan_juz || 0, tingkat_diniyah || 'Wustho'
+    ];
+
+    if (username !== undefined && String(username).trim() !== '') {
+      updateFields += `, username = ?`;
+      params.push(String(username).trim());
+    }
+
+    if (password !== undefined && String(password).trim() !== '') {
+      updateFields += `, password = ?`;
+      params.push(String(password).trim());
+    }
+
+    params.push(id);
+
+    await pool.query(`UPDATE santri SET ${updateFields} WHERE id = ?`, params);
 
     return sendSuccess(res, 'Data santri berhasil diperbarui');
   } catch (err) {

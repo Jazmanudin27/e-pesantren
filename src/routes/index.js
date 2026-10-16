@@ -13,6 +13,7 @@ import kelasRoutes from './kelas.routes.js';
 import userRoutes from './user.routes.js';
 import praktekRoutes from './praktek.routes.js';
 import materiHafalanRoutes from './materiHafalan.routes.js';
+import waliRoutes from './wali.routes.js';
 
 const router = express.Router();
 
@@ -31,5 +32,6 @@ router.use('/pesantren', pesantrenRoutes); // /api/pesantren/profil
 router.use('/users', userRoutes); // /api/users
 router.use('/praktek', praktekRoutes); // /api/praktek
 router.use('/materi-hafalan', materiHafalanRoutes); // /api/materi-hafalan
+router.use('/wali', waliRoutes); // /api/wali/santri, /api/wali/password
 
 export default router;

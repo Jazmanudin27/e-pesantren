@@ -40,8 +40,15 @@ app.use((err, req, res, next) => {
   });
 });
 
+import { ensureSantriCredentialsColumns } from './src/config/initWaliDb.js';
+
 // Start HTTP Server
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', async () => {
   console.log(`[E-PESANTREN] Server aktif & rapi di http://0.0.0.0:${PORT}`);
+  try {
+    await ensureSantriCredentialsColumns();
+  } catch (e) {
+    console.warn('[E-PESANTREN] Init DB credentials notice:', e.message);
+  }
 });
 

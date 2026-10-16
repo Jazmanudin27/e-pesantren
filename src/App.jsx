@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from './components/AdminLayout';
 import MobileLayout from './components/MobileLayout';
+import PortalWaliSantri from './views/wali/PortalWaliSantri';
 import SplashScreen from './components/SplashScreen';
 
 export default function App() {
@@ -10,6 +11,16 @@ export default function App() {
     const hostname = window.location.hostname.toLowerCase();
     const hash = window.location.hash;
     const pathname = window.location.pathname;
+
+    // Cek apakah user sedang login sebagai Wali Santri / URL mengarah ke portal wali
+    try {
+      const desktopSess = JSON.parse(localStorage.getItem('desktop_session') || sessionStorage.getItem('desktop_session') || '{}');
+      const mobileSess = JSON.parse(localStorage.getItem('mobile_session') || '{}');
+      const role = String(desktopSess.role || mobileSess.role || '').toLowerCase();
+      if (role === 'wali' || role === 'wali santri' || hash.startsWith('#wali') || pathname.startsWith('/wali')) {
+        return 'wali';
+      }
+    } catch (e) {}
 
     // Domain khusus Mobile: mnurulwafa.ruangtech.com / mpesantren
     const isMobileDomain = 
@@ -45,7 +56,13 @@ export default function App() {
   return (
     <>
       {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
-      {mode === 'mobile' ? <MobileLayout /> : <AdminLayout />}
+      {mode === 'wali' ? (
+        <PortalWaliSantri onLogout={() => { window.location.hash = '#login'; setMode(getMode()); }} />
+      ) : mode === 'mobile' ? (
+        <MobileLayout />
+      ) : (
+        <AdminLayout />
+      )}
     </>
   );
 }

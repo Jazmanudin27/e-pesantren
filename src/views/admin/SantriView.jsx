@@ -132,7 +132,9 @@ export default function SantriView() {
     status: 'Aktif',
     tahun_masuk: '2026/2027',
     capaian_hafalan_juz: 0,
-    tingkat_diniyah: 'Wustho'
+    tingkat_diniyah: 'Wustho',
+    username: '',
+    password: ''
   });
 
   const fetchAsramaData = async () => {
@@ -207,7 +209,9 @@ export default function SantriView() {
       status: 'Aktif',
       tahun_masuk: '2026/2027',
       capaian_hafalan_juz: 0,
-      tingkat_diniyah: 'Wustho'
+      tingkat_diniyah: 'Wustho',
+      username: '',
+      password: ''
     });
     setIsFormOpen(true);
   };
@@ -236,7 +240,9 @@ export default function SantriView() {
       status: santri.status || 'Aktif',
       tahun_masuk: santri.tahun_masuk || '2026/2027',
       capaian_hafalan_juz: santri.capaian_hafalan_juz || 0,
-      tingkat_diniyah: santri.tingkat_diniyah || 'Wustho'
+      tingkat_diniyah: santri.tingkat_diniyah || 'Wustho',
+      username: santri.username || santri.nis || '',
+      password: santri.password || santri.nis || ''
     });
     setIsFormOpen(true);
   };
@@ -758,6 +764,31 @@ export default function SantriView() {
                 </div>
               </div>
 
+              {/* Akun Login Orang Tua Santri */}
+              <div style={{ border: '1.5px solid #bfdbfe', borderRadius: '8px', padding: '14px 16px', background: '#eff6ff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', marginTop: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div style={{ fontSize: '0.74rem', textTransform: 'uppercase', color: '#1e40af', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Lock size={14} color="#2563eb" /> Akun Login Portal Orang Tua Santri
+                  </div>
+                  <span style={{ fontSize: '0.65rem', background: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '10px', fontWeight: 700 }}>
+                    Tersimpan di Tabel Santri
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.78rem' }}>
+                  <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
+                    <span style={{ color: '#64748b', fontSize: '0.7rem', display: 'block' }}>Username Login Wali:</span>
+                    <strong style={{ color: '#0f172a', fontSize: '0.85rem' }}>{selectedSantri.username || selectedSantri.nis || '-'}</strong>
+                  </div>
+                  <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
+                    <span style={{ color: '#64748b', fontSize: '0.7rem', display: 'block' }}>Password Login Wali:</span>
+                    <strong style={{ color: '#059669', fontSize: '0.85rem' }}>{selectedSantri.password || selectedSantri.nis || '-'}</strong>
+                  </div>
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#3b82f6', marginTop: '6px' }}>
+                  * Kredensial ini digunakan orang tua untuk login ke Portal Monitoring Santri (default: NIS Santri).
+                </div>
+              </div>
+
             </div>
 
             {/* Modal Footer */}
@@ -1026,6 +1057,44 @@ export default function SantriView() {
                     value={formData.alamat_asal}
                     onChange={(e) => setFormData({ ...formData, alamat_asal: e.target.value })}
                   />
+                </div>
+
+                {/* Kredensial Login Orang Tua Santri */}
+                <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '12px', marginTop: '4px' }}>
+                  <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#1e40af', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Lock size={13} color="#2563eb" /> KREDENSIAL LOGIN PORTAL ORANG TUA (WALI)
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
+                        USERNAME ORANG TUA
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder={formData.nis || 'Default: NIS Santri'} 
+                        className="filter-select" 
+                        style={{ width: '100%', padding: '6px 10px', background: '#ffffff' }} 
+                        value={formData.username}
+                        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
+                        PASSWORD ORANG TUA
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder={formData.nis || 'Default: NIS Santri'} 
+                        className="filter-select" 
+                        style={{ width: '100%', padding: '6px 10px', background: '#ffffff' }} 
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: '#3b82f6', marginTop: '4px' }}>
+                    * Jika dikosongkan, username & password login orang tua otomatis menggunakan Nomor Induk Santri (NIS).
+                  </div>
                 </div>
 
               </div>

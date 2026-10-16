@@ -47,6 +47,7 @@ import PerizinanView from '../views/admin/PerizinanView';
 import TataTertibView from '../views/admin/TataTertibView';
 import AbsensiFingerprintView from '../views/admin/AbsensiFingerprintView';
 import LoginAdmin from '../views/admin/LoginAdmin';
+import PortalWaliSantri from '../views/wali/PortalWaliSantri';
 import { showConfirm, toastSuccess } from '../utils/alert.util';
 
 export default function AdminLayout() {
@@ -315,6 +316,10 @@ export default function AdminLayout() {
       case 'praktek-ibadah':
       case 'praktek':
         return <PraktekIbadahView />;
+      case 'portal-wali':
+      case 'wali-santri':
+      case 'wali':
+        return <PortalWaliSantri />;
       default:
         return <DashboardAdmin />;
     }
@@ -460,6 +465,17 @@ export default function AdminLayout() {
             <ShieldAlert size={15} />
             <span>Tata Tertib & Ta'zir</span>
           </div>
+        </button>
+
+        <button 
+          className={`nav-link ${activeTab === 'portal-wali' || activeTab === 'wali' ? 'active' : ''}`}
+          onClick={() => handleTabClick('portal-wali')}
+        >
+          <div className="nav-link-left">
+            <Users size={15} style={{ color: '#0284c7' }} />
+            <span>Portal Orang Tua (Wali)</span>
+          </div>
+          <span style={{ fontSize: '0.62rem', background: '#0284c7', color: '#fff', padding: '1px 6px', borderRadius: '10px', fontWeight: 800 }}>WALI</span>
         </button>
 
         <div className="menu-category">LAPORAN & REKAP</div>

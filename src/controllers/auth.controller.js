@@ -129,23 +129,46 @@ export const login = async (req, res, next) => {
       }
     }
 
-    // 4. Query santri table
+    // 4. Query santri table (Orang Tua / Wali Santri)
     if (!account) {
       try {
-        const [strRows] = await pool.query(
-          `SELECT s.*, a.nama_asrama, k.nama_kamar 
-           FROM santri s 
-           LEFT JOIN asrama a ON s.asrama_id = a.id 
-           LEFT JOIN kamar_kobong k ON s.kamar_id = k.id 
-           WHERE LOWER(TRIM(s.nis)) = LOWER(TRIM(?)) 
-              OR LOWER(TRIM(s.nisn)) = LOWER(TRIM(?)) 
-              OR LOWER(TRIM(s.kode_santri)) = LOWER(TRIM(?)) 
-           LIMIT 1`,
-          [cleanUser, cleanUser, cleanUser]
-        );
+        let strRows = [];
+        try {
+          const [resWithUser] = await pool.query(
+            `SELECT s.*, a.nama_asrama, k.nama_kamar 
+             FROM santri s 
+             LEFT JOIN asrama a ON s.asrama_id = a.id 
+             LEFT JOIN kamar_kobong k ON s.kamar_id = k.id 
+             WHERE LOWER(TRIM(COALESCE(s.username, ''))) = LOWER(TRIM(?))
+                OR LOWER(TRIM(s.nis)) = LOWER(TRIM(?)) 
+                OR LOWER(TRIM(COALESCE(s.nisn, ''))) = LOWER(TRIM(?)) 
+                OR LOWER(TRIM(s.kode_santri)) = LOWER(TRIM(?)) 
+             LIMIT 1`,
+            [cleanUser, cleanUser, cleanUser, cleanUser]
+          );
+          strRows = resWithUser;
+        } catch (colErr) {
+          const [resLegacy] = await pool.query(
+            `SELECT s.*, a.nama_asrama, k.nama_kamar 
+             FROM santri s 
+             LEFT JOIN asrama a ON s.asrama_id = a.id 
+             LEFT JOIN kamar_kobong k ON s.kamar_id = k.id 
+             WHERE LOWER(TRIM(s.nis)) = LOWER(TRIM(?)) 
+                OR LOWER(TRIM(s.nisn)) = LOWER(TRIM(?)) 
+                OR LOWER(TRIM(s.kode_santri)) = LOWER(TRIM(?)) 
+             LIMIT 1`,
+            [cleanUser, cleanUser, cleanUser]
+          );
+          strRows = resLegacy;
+        }
+
         if (strRows && strRows.length > 0) {
           account = strRows[0];
-          userType = 'Santri';
+          // Default password jika di database masih kosong: gunakan NIS santri
+          if (!account.password || String(account.password).trim() === '') {
+            account.password = account.nis || '123456';
+          }
+          userType = 'Wali Santri';
         }
       } catch (e) {
         console.warn('Query santri error:', e.message);
@@ -199,15 +222,21 @@ export const login = async (req, res, next) => {
     }
 
     // Generate JWT Token (E-Sekolah Architecture)
+    const isWali = userType === 'Wali Santri';
     const tokenPayload = {
       id: account.id,
-      username: account.username || account.kode_asrama || account.nik_niy || cleanUser,
-      role: (account.role || (userType === 'Asatidz' ? 'asatidz' : userType) || 'asrama').toLowerCase(),
-      userType: userType === 'Asatidz' ? 'Ustadz / Guru' : userType,
+      santri_id: isWali ? account.id : undefined,
+      username: account.username || account.kode_asrama || account.nik_niy || account.nis || cleanUser,
+      role: isWali ? 'wali' : (account.role || (userType === 'Asatidz' ? 'asatidz' : userType) || 'asrama').toLowerCase(),
+      userType: isWali ? 'Wali Santri' : (userType === 'Asatidz' ? 'Ustadz / Guru' : userType),
       asrama_id: account.asrama_id || account.id || 1
     };
 
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '7d' });
+
+    const displayName = isWali
+      ? (account.nama_wali ? `${account.nama_wali} (Wali ${account.nama_santri})` : `Wali Santri ${account.nama_santri}`)
+      : (account.nama_asatidz || account.nama_asrama || account.nama_santri || account.name || cleanUser);
 
     // Success response with JWT Token
     return sendSuccess(res, 'Login berhasil', {
@@ -215,17 +244,22 @@ export const login = async (req, res, next) => {
       role: tokenPayload.role,
       userType: tokenPayload.userType,
       asrama_id: tokenPayload.asrama_id,
-      nama: account.nama_asatidz || account.nama_asrama || account.nama_santri || account.name || cleanUser,
+      santri_id: isWali ? account.id : undefined,
+      nama: displayName,
       nama_asatidz: account.nama_asatidz || '',
-      nama_asrama: account.nama_asrama || account.nama_santri || account.nama_asatidz || account.name || 'Asrama',
+      nama_asrama: account.nama_asrama || (isWali ? account.nama_asrama : account.nama_santri) || 'Asrama',
       pembina: account.pembina || account.nama_asatidz || 'Musyrif Asrama',
       username: tokenPayload.username,
       user: {
         id: account.id,
+        santri_id: isWali ? account.id : undefined,
         username: tokenPayload.username,
         role: tokenPayload.role,
         userType: tokenPayload.userType,
-        nama: account.nama_asatidz || account.nama_asrama || account.name || cleanUser,
+        nama: displayName,
+        nama_wali: account.nama_wali,
+        nama_santri: account.nama_santri,
+        nis: account.nis,
         ...account
       }
     });
