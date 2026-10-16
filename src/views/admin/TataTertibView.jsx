@@ -454,13 +454,16 @@ export default function TataTertibView() {
                       >
                         <Edit3 size={13} />
                       </button>
-                      <button 
-                        className="btn-action btn-action-delete"
-                        onClick={() => handleDelete(row.id, `Kategori ${row.kategori}`)}
-                        title="Hapus Catatan"
-                      >
-                        <Trash2 size={13} />
-                      </button>
+
+                      {row.status_tazir !== "Selesai Ta'zir" && (
+                        <button 
+                          className="btn-action btn-action-delete"
+                          onClick={() => handleDelete(row.id, `Kategori ${row.kategori}`)}
+                          title="Hapus Catatan"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

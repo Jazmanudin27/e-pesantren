@@ -109,6 +109,10 @@ export const finishTazir = async (req, res) => {
 export const deletePelanggaran = async (req, res) => {
   try {
     const { id } = req.params;
+    const [[record]] = await pool.query('SELECT status_tazir FROM tata_tertib_pelanggaran WHERE id = ?', [id]);
+    if (record && record.status_tazir === "Selesai Ta'zir") {
+      return sendError(res, 'Pelanggaran yang sudah selesai ta\'zir tidak boleh dihapus!', 400);
+    }
     await pool.query('DELETE FROM tata_tertib_pelanggaran WHERE id = ?', [id]);
     return sendSuccess(res, 'Catatan pelanggaran berhasil dihapus');
   } catch (err) {

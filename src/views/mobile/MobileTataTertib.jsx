@@ -239,12 +239,14 @@ export default function MobileTataTertib() {
                   >
                     <Edit3 size={14} /> Edit
                   </button>
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: '#fee2e2', color: '#b91c1c', fontSize: '0.76rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
-                  >
-                    <Trash2 size={14} /> Hapus
-                  </button>
+                  {item.status_tazir !== "Selesai Ta'zir" && (
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: '#fee2e2', color: '#b91c1c', fontSize: '0.76rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                    >
+                      <Trash2 size={14} /> Hapus
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
