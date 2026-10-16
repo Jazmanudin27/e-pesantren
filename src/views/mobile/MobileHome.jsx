@@ -136,10 +136,11 @@ export default function MobileHome({ onChangeTab, onLogout }) {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [resStats, resAbs, resSesi] = await Promise.all([
+        const [resStats, resAbs, resSesi, resIzin] = await Promise.all([
           axios.get('/api/dashboard/stats').catch(() => null),
           axios.get('/api/absensi/fingerprint').catch(() => null),
-          axios.get('/api/absensi/sesi').catch(() => null)
+          axios.get('/api/absensi/sesi').catch(() => null),
+          axios.get('/api/perizinan').catch(() => null)
         ]);
 
         if (resSesi?.data?.data && Array.isArray(resSesi.data.data)) {
@@ -182,6 +183,73 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             );
             if (!exists) {
               combinedTodayLogs.push(item);
+            }
+          });
+        } catch (e) {}
+
+        // 4. Sinkronkan santri dengan izin aktif/kembali hari ini dari perizinan
+        try {
+          let izinItems = [];
+          if (resIzin?.data?.data && Array.isArray(resIzin.data.data)) {
+            izinItems = [...resIzin.data.data];
+          }
+          const localIzin = JSON.parse(localStorage.getItem('mobile_izin_list') || '[]');
+          if (Array.isArray(localIzin)) {
+            localIzin.forEach(item => {
+              const exists = izinItems.some(ex => ex.id === item.id || (ex.santri_id === item.santri_id && ex.tgl_keluar_rencana === item.tgl_keluar_rencana));
+              if (!exists) izinItems.push(item);
+            });
+          }
+
+          izinItems.forEach(sp => {
+            const st = String(sp.status || '').toLowerCase();
+            if (st.includes('tolak') || st.includes('batal')) return;
+
+            const tglMulai = normalizeDateStr(sp.tgl_keluar_aktual || sp.tgl_keluar_rencana);
+            const isReturned = st.includes('kembali') && !st.includes('terlambat');
+            const tglSelesai = normalizeDateStr(
+              (isReturned && sp.tgl_kembali_aktual) ? sp.tgl_kembali_aktual : (sp.tgl_kembali_rencana || sp.tgl_kembali_aktual)
+            );
+
+            if (tglMulai && todayStr < tglMulai) return;
+            if (tglSelesai && todayStr > tglSelesai && !st.includes('terlambat')) return;
+
+            const isSakit = (sp.jenis_izin || '').toLowerCase().includes('sakit') ||
+                            (sp.jenis_izin || '').toLowerCase().includes('berobat') ||
+                            (sp.keperluan || '').toLowerCase().includes('sakit');
+            const finalStatus = isSakit ? 'Sakit' : 'Izin';
+
+            const existingIdx = combinedTodayLogs.findIndex(l => 
+              (l.santri_id && l.santri_id === sp.santri_id) || 
+              (l.nama_santri && sp.nama_santri && l.nama_santri.toLowerCase() === sp.nama_santri.toLowerCase())
+            );
+
+            const izinObj = {
+              id: `izin-${sp.id}`,
+              santri_id: sp.santri_id,
+              nama_santri: sp.nama_santri,
+              nis: sp.nis,
+              nama_asrama: sp.nama_asrama || '-',
+              nama_kamar: sp.nama_kamar || '-',
+              tanggal: todayStr,
+              waktu_scan: '00:00:00',
+              status_kehadiran: finalStatus,
+              status: finalStatus,
+              metode_scan: 'Perizinan',
+              metode_presensi: 'Perizinan',
+              keterangan: `Perizinan ${sp.jenis_izin || 'Pulang'} (${sp.keperluan || sp.status || 'Disetujui'})`,
+              nama_sesi: 'Semua Kegiatan (Perizinan Pulang/Sakit)',
+              kategori: 'Perizinan',
+              is_perizinan_auto: true
+            };
+
+            if (existingIdx === -1) {
+              combinedTodayLogs.push(izinObj);
+            } else {
+              const cur = simplifyStatus(combinedTodayLogs[existingIdx].status_kehadiran || combinedTodayLogs[existingIdx].status);
+              if (cur !== 'Izin' && cur !== 'Sakit') {
+                combinedTodayLogs[existingIdx] = { ...combinedTodayLogs[existingIdx], ...izinObj };
+              }
             }
           });
         } catch (e) {}

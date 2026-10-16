@@ -189,20 +189,46 @@ export default function MobilePresensi() {
         setSantriList(resSantri.data.data);
       }
 
-      if (resIzin.data && resIzin.data.data) {
-        setIzinList(resIzin.data.data);
+      let combinedIzin = [];
+      if (resIzin.data && resIzin.data.data && Array.isArray(resIzin.data.data)) {
+        combinedIzin = [...resIzin.data.data];
       }
+      try {
+        const localIzin = JSON.parse(localStorage.getItem('mobile_izin_list') || '[]');
+        if (Array.isArray(localIzin)) {
+          localIzin.forEach(item => {
+            const exists = combinedIzin.some(ex => ex.id === item.id || (ex.santri_id === item.santri_id && ex.tgl_keluar_rencana === item.tgl_keluar_rencana));
+            if (!exists) combinedIzin.push(item);
+          });
+        }
+      } catch (e) {}
+      setIzinList(combinedIzin);
 
+      let combinedLogs = [];
       if (resAbs.data && resAbs.data.data && resAbs.data.data.length > 0) {
-        setPresensiLogs(resAbs.data.data);
+        combinedLogs = resAbs.data.data;
       } else {
         const saved = JSON.parse(localStorage.getItem('mobile_presensi_logs') || '[]');
-        setPresensiLogs(saved);
+        combinedLogs = saved;
       }
+      try {
+        const localLogs = JSON.parse(localStorage.getItem('mobile_presensi_logs') || '[]');
+        if (Array.isArray(localLogs)) {
+          localLogs.forEach(item => {
+            const exists = combinedLogs.some(ex => ex.id === item.id || (ex.santri_id === item.santri_id && ex.tanggal === item.tanggal && ex.sesi_id === item.sesi_id));
+            if (!exists) combinedLogs.push(item);
+          });
+        }
+      } catch (e) {}
+      setPresensiLogs(combinedLogs);
     } catch (err) {
       console.warn('Fallback data lokal:', err);
       const saved = JSON.parse(localStorage.getItem('mobile_presensi_logs') || '[]');
       setPresensiLogs(saved);
+      try {
+        const localIzin = JSON.parse(localStorage.getItem('mobile_izin_list') || '[]');
+        setIzinList(localIzin);
+      } catch (e) {}
     } finally {
       setLoading(false);
     }
@@ -537,14 +563,17 @@ export default function MobilePresensi() {
         (sp.nama_santri && santri.nama_santri && sp.nama_santri.toLowerCase() === santri.nama_santri.toLowerCase());
       if (!matchSantri) return false;
 
-      const statusActive = ['Aktif Keluar', 'Disetujui Pengasuh', 'Terlambat Kembali'].includes(sp.status);
-      if (!statusActive) return false;
+      const st = String(sp.status || '').toLowerCase();
+      if (st.includes('tolak') || st.includes('batal')) return false;
 
-      const tglMulai = normalizeDateStr(sp.tgl_keluar_rencana || sp.tgl_keluar_aktual);
-      const tglSelesai = normalizeDateStr(sp.tgl_kembali_rencana || sp.tgl_kembali_aktual);
+      const tglMulai = normalizeDateStr(sp.tgl_keluar_aktual || sp.tgl_keluar_rencana);
+      const isReturned = st.includes('kembali') && !st.includes('terlambat');
+      const tglSelesai = normalizeDateStr(
+        (isReturned && sp.tgl_kembali_aktual) ? sp.tgl_kembali_aktual : (sp.tgl_kembali_rencana || sp.tgl_kembali_aktual)
+      );
 
       if (tglMulai && dateToCheck < tglMulai) return false;
-      if (tglSelesai && dateToCheck > tglSelesai && sp.status !== 'Terlambat Kembali') return false;
+      if (tglSelesai && dateToCheck > tglSelesai && !st.includes('terlambat')) return false;
 
       return true;
     });
@@ -646,8 +675,66 @@ export default function MobilePresensi() {
     return st.includes(filterManualStatus.toLowerCase());
   });
 
+  // Gabungkan presensiLogs dengan perizinan untuk Tab Riwayat
+  const riwayatLogsCombined = (() => {
+    let list = [...presensiLogs];
+    const targetDate = filterTanggalRiwayat || getTodayDateStr();
+
+    (izinList || []).forEach(sp => {
+      const st = String(sp.status || '').toLowerCase();
+      if (st.includes('tolak') || st.includes('batal')) return;
+
+      const tglMulai = normalizeDateStr(sp.tgl_keluar_aktual || sp.tgl_keluar_rencana);
+      const isReturned = st.includes('kembali') && !st.includes('terlambat');
+      const tglSelesai = normalizeDateStr(
+        (isReturned && sp.tgl_kembali_aktual) ? sp.tgl_kembali_aktual : (sp.tgl_kembali_rencana || sp.tgl_kembali_aktual)
+      );
+
+      if (tglMulai && targetDate < tglMulai) return;
+      if (tglSelesai && targetDate > tglSelesai && !st.includes('terlambat')) return;
+
+      const isSakit = (sp.jenis_izin || '').toLowerCase().includes('sakit') ||
+                      (sp.jenis_izin || '').toLowerCase().includes('berobat') ||
+                      (sp.keperluan || '').toLowerCase().includes('sakit');
+      const finalStatus = isSakit ? 'Sakit' : 'Izin';
+
+      const existingIdx = list.findIndex(l => 
+        normalizeDateStr(l.tanggal) === targetDate &&
+        ((l.santri_id && l.santri_id === sp.santri_id) || 
+         (l.nama_santri && sp.nama_santri && l.nama_santri.toLowerCase() === sp.nama_santri.toLowerCase()))
+      );
+
+      const izinObj = {
+        id: `izin-${sp.id}`,
+        santri_id: sp.santri_id,
+        nama_santri: sp.nama_santri,
+        nis: sp.nis,
+        kegiatan: 'Semua Kegiatan (Perizinan Pulang/Sakit)',
+        tanggal: targetDate,
+        waktu_scan: '00:00:00',
+        status: finalStatus,
+        status_kehadiran: finalStatus,
+        metode_scan: 'Perizinan',
+        metode_presensi: 'Perizinan',
+        keterangan: `Perizinan ${sp.jenis_izin || 'Pulang'} (${sp.keperluan || sp.status || 'Disetujui'})`,
+        is_perizinan_auto: true
+      };
+
+      if (existingIdx === -1) {
+        list.push(izinObj);
+      } else {
+        const curStatus = simplifyStatus(list[existingIdx].status_kehadiran || list[existingIdx].status);
+        if (curStatus !== 'Izin' && curStatus !== 'Sakit') {
+          list[existingIdx] = { ...list[existingIdx], ...izinObj };
+        }
+      }
+    });
+
+    return list;
+  })();
+
   // Filter riwayat untuk tab riwayat (sesuai tanggal filter, search & status)
-  const filteredRiwayat = presensiLogs.filter(log => {
+  const filteredRiwayat = riwayatLogsCombined.filter(log => {
     const q = searchRiwayat.toLowerCase();
     const matchSearch = (log.nama_santri || '').toLowerCase().includes(q) ||
       (log.kegiatan || '').toLowerCase().includes(q) ||
@@ -670,7 +757,7 @@ export default function MobilePresensi() {
   const sessionPercent = sessionTotal > 0 ? Math.round((sessionSudahCount / sessionTotal) * 100) : 0;
 
   // Perhitungan statistik riwayat (sesuai tanggal filter yang dipilih)
-  const riwayatLogsForStats = presensiLogs.filter(l => !filterTanggalRiwayat || normalizeDateStr(l.tanggal) === filterTanggalRiwayat);
+  const riwayatLogsForStats = riwayatLogsCombined.filter(l => !filterTanggalRiwayat || normalizeDateStr(l.tanggal) === filterTanggalRiwayat);
   const countTotalRiwayat = riwayatLogsForStats.length;
   const countHadir = riwayatLogsForStats.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('hadir')).length;
   const countSakit = riwayatLogsForStats.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('sakit')).length;
@@ -678,7 +765,7 @@ export default function MobilePresensi() {
   const countAlpa = riwayatLogsForStats.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('alpa') || (l.status_kehadiran || l.status || '').toLowerCase().includes('alpha')).length;
 
   // Badge notifikasi tab riwayat: sinkron dengan data tanggal aktif
-  const todayPresensiCount = presensiLogs.filter(l => normalizeDateStr(l.tanggal) === getTodayDateStr()).length;
+  const todayPresensiCount = riwayatLogsCombined.filter(l => normalizeDateStr(l.tanggal) === getTodayDateStr()).length;
   const riwayatBadgeCount = activeMode === 'riwayat' ? filteredRiwayat.length : todayPresensiCount;
 
   return (

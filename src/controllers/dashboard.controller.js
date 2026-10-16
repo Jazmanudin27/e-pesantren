@@ -73,16 +73,21 @@ export const getDashboardStats = async (req, res) => {
       try {
         const [activeIzinRows] = await pool.query(`
           SELECT sp.*,
-                 DATE_FORMAT(sp.tgl_keluar_rencana, '%Y-%m-%d') as tgl_mulai,
-                 DATE_FORMAT(sp.tgl_kembali_rencana, '%Y-%m-%d') as tgl_selesai,
+                 DATE_FORMAT(COALESCE(sp.tgl_keluar_aktual, sp.tgl_keluar_rencana), '%Y-%m-%d') as tgl_mulai,
+                 DATE_FORMAT(COALESCE(sp.tgl_kembali_aktual, sp.tgl_kembali_rencana), '%Y-%m-%d') as tgl_selesai,
                  s.nama_santri, s.nis, a.nama_asrama, k.nama_kamar
           FROM santri_perizinan sp
           JOIN santri s ON sp.santri_id = s.id
           LEFT JOIN asrama a ON s.asrama_id = a.id
           LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
-          WHERE sp.status IN ('Aktif Keluar', 'Disetujui Pengasuh', 'Terlambat Kembali')
-            AND (DATE(sp.tgl_keluar_rencana) <= CURDATE() OR sp.tgl_keluar_aktual IS NOT NULL)
-            AND (sp.tgl_kembali_aktual IS NULL OR DATE(sp.tgl_kembali_aktual) >= CURDATE())
+          WHERE sp.status NOT IN ('Ditolak', 'Dibatalkan', 'Menunggu Persetujuan')
+            AND DATE(COALESCE(sp.tgl_keluar_aktual, sp.tgl_keluar_rencana)) <= CURDATE()
+            AND (
+              sp.status = 'Terlambat Kembali'
+              OR sp.tgl_kembali_aktual IS NULL
+              OR DATE(sp.tgl_kembali_aktual) >= CURDATE()
+              OR DATE(sp.tgl_kembali_rencana) >= CURDATE()
+            )
         `);
 
         if (activeIzinRows && activeIzinRows.length > 0) {

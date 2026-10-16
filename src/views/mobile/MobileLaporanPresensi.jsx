@@ -63,12 +63,36 @@ export default function MobileLaporanPresensi() {
         axios.get('/api/santri').catch(() => ({ data: { data: [] } }))
       ]);
 
-      if (resAbs?.data?.data) {
-        setPresensiLogs(resAbs.data.data);
+      let combinedLogs = [];
+      if (resAbs?.data?.data && Array.isArray(resAbs.data.data)) {
+        combinedLogs = resAbs.data.data;
       }
-      if (resIzin?.data?.data) {
-        setPerizinanList(resIzin.data.data);
+      try {
+        const localLogs = JSON.parse(localStorage.getItem('mobile_presensi_logs') || '[]');
+        if (Array.isArray(localLogs)) {
+          localLogs.forEach(item => {
+            const exists = combinedLogs.some(ex => ex.id === item.id || (ex.santri_id === item.santri_id && ex.tanggal === item.tanggal && ex.sesi_id === item.sesi_id));
+            if (!exists) combinedLogs.push(item);
+          });
+        }
+      } catch (e) {}
+      setPresensiLogs(combinedLogs);
+
+      let combinedIzin = [];
+      if (resIzin?.data?.data && Array.isArray(resIzin.data.data)) {
+        combinedIzin = [...resIzin.data.data];
       }
+      try {
+        const localIzin = JSON.parse(localStorage.getItem('mobile_izin_list') || '[]');
+        if (Array.isArray(localIzin)) {
+          localIzin.forEach(item => {
+            const exists = combinedIzin.some(ex => ex.id === item.id || (ex.santri_id === item.santri_id && ex.tgl_keluar_rencana === item.tgl_keluar_rencana));
+            if (!exists) combinedIzin.push(item);
+          });
+        }
+      } catch (e) {}
+      setPerizinanList(combinedIzin);
+
       if (resSantri?.data?.data) {
         setSantriList(resSantri.data.data);
       }
@@ -85,21 +109,30 @@ export default function MobileLaporanPresensi() {
 
   // Filter santri yang sedang aktif izin / sakit pada tanggal yang dipilih
   const activePerizinanOnDate = perizinanList.filter(sp => {
-    const statusActive = ['Aktif Keluar', 'Disetujui Pengasuh', 'Terlambat Kembali'].includes(sp.status);
-    if (!statusActive) return false;
+    const st = String(sp.status || '').toLowerCase();
+    // Abaikan jika status ditolak atau dibatalkan
+    if (st.includes('tolak') || st.includes('batal')) return false;
 
-    const tglMulai = normalizeDateStr(sp.tgl_keluar_rencana || sp.tgl_keluar_aktual);
-    const tglSelesai = normalizeDateStr(sp.tgl_kembali_rencana || sp.tgl_kembali_aktual);
+    // Ambil tanggal mulai izin (aktual keluar atau rencana keluar)
+    const tglMulai = normalizeDateStr(sp.tgl_keluar_aktual || sp.tgl_keluar_rencana);
+
+    // Ambil tanggal selesai izin:
+    // Jika santri sudah kembali, tanggal akhir izin adalah tanggal kepulangan aktual.
+    // Jika belum kembali (aktif keluar / terlambat), tanggal akhir adalah tanggal rencana (atau tetap aktif jika terlambat).
+    const isReturned = st.includes('kembali') && !st.includes('terlambat');
+    const tglSelesai = normalizeDateStr(
+      (isReturned && sp.tgl_kembali_aktual) ? sp.tgl_kembali_aktual : (sp.tgl_kembali_rencana || sp.tgl_kembali_aktual)
+    );
 
     if (tglMulai && filterTanggal < tglMulai) return false;
-    if (tglSelesai && filterTanggal > tglSelesai && sp.status !== 'Terlambat Kembali') return false;
+    if (tglSelesai && filterTanggal > tglSelesai && !st.includes('terlambat')) return false;
 
     return true;
   });
 
-  // Gabungkan logs hari ini dengan active perizinan jika belum tercatat
+  // Gabungkan logs hari ini dengan active perizinan jika belum tercatat atau statusnya belum Izin
   const logsForSelectedDate = (() => {
-    const list = presensiLogs.filter(l => normalizeDateStr(l.tanggal) === filterTanggal);
+    const list = [...presensiLogs.filter(l => normalizeDateStr(l.tanggal) === filterTanggal)];
     
     // Pastikan santri yang izin/sakit pada tanggal ini ada di list
     activePerizinanOnDate.forEach(sp => {
@@ -108,24 +141,39 @@ export default function MobileLaporanPresensi() {
                       (sp.keperluan || '').toLowerCase().includes('sakit');
       const st = isSakit ? 'Sakit' : 'Izin';
 
-      const exists = list.some(l => l.santri_id === sp.santri_id);
-      if (!exists) {
-        list.push({
-          id: `izin-${sp.id}`,
-          santri_id: sp.santri_id,
-          nama_santri: sp.nama_santri,
-          nis: sp.nis,
-          nama_asrama: sp.nama_asrama,
-          nama_kamar: sp.nama_kamar,
-          tanggal: filterTanggal,
-          waktu_scan: '00:00:00',
-          status_kehadiran: st,
-          status: st,
-          metode_scan: 'Perizinan',
-          keterangan: `Perizinan ${sp.jenis_izin} (${sp.keperluan || 'Disetujui'})`,
-          nama_sesi: 'Semua Kegiatan (Perizinan Pulang/Sakit)',
-          is_perizinan_auto: true
-        });
+      const existingIdx = list.findIndex(l => 
+        (l.santri_id && l.santri_id === sp.santri_id) ||
+        (l.nama_santri && sp.nama_santri && l.nama_santri.toLowerCase() === sp.nama_santri.toLowerCase())
+      );
+
+      const izinItem = {
+        id: `izin-${sp.id}`,
+        santri_id: sp.santri_id,
+        nama_santri: sp.nama_santri,
+        nis: sp.nis,
+        nama_asrama: sp.nama_asrama || '-',
+        nama_kamar: sp.nama_kamar || '-',
+        tanggal: filterTanggal,
+        waktu_scan: '00:00:00',
+        status_kehadiran: st,
+        status: st,
+        metode_scan: 'Perizinan',
+        metode_presensi: 'Perizinan',
+        keterangan: `Perizinan ${sp.jenis_izin || 'Pulang'} (${sp.keperluan || sp.status || 'Disetujui'})`,
+        nama_sesi: 'Semua Kegiatan (Perizinan Pulang/Sakit)',
+        is_perizinan_auto: true
+      };
+
+      if (existingIdx === -1) {
+        list.push(izinItem);
+      } else {
+        const curStatus = simplifyStatus(list[existingIdx].status_kehadiran || list[existingIdx].status);
+        if (curStatus !== 'Izin' && curStatus !== 'Sakit') {
+          list[existingIdx] = {
+            ...list[existingIdx],
+            ...izinItem
+          };
+        }
       }
     });
 
