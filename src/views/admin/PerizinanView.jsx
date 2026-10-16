@@ -49,9 +49,9 @@ export default function PerizinanView() {
     keperluan: 'Kepentingan keluarga / libur pondok',
     tgl_keluar_rencana: new Date().toISOString().slice(0, 16),
     tgl_kembali_rencana: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
-    nama_penjemput_mahrom: '',
+    nama_penjemput_mahrom: '-',
     no_hp_penjemput: '',
-    hubungan_mahrom: 'Orang Tua (Ayah)',
+    hubungan_mahrom: 'Orang Tua',
     status: 'Disetujui Pengasuh',
     disetujui_oleh: 'KH. Ahmad Fauzan (Pengasuh)'
   });
@@ -167,13 +167,19 @@ export default function PerizinanView() {
     }
     try {
       setSubmitting(true);
+      const payload = {
+        ...formData,
+        nama_penjemput_mahrom: formData.nama_penjemput_mahrom || '-',
+        no_hp_penjemput: formData.no_hp_penjemput || '',
+        hubungan_mahrom: formData.hubungan_mahrom || 'Orang Tua'
+      };
       if (formMode === 'add') {
-        const res = await axios.post('/api/perizinan', formData);
+        const res = await axios.post('/api/perizinan', payload);
         if (res.data && res.data.success) {
           fetchData();
         }
       } else {
-        const res = await axios.put(`/api/perizinan/${formData.id}`, formData);
+        const res = await axios.put(`/api/perizinan/${formData.id}`, payload);
         if (res.data && res.data.success) {
           fetchData();
         }
@@ -892,56 +898,20 @@ export default function PerizinanView() {
                   </div>
                 </div>
 
-                {/* Mahrom & Approval Card */}
+                {/* Approval Card */}
                 <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px', background: '#ffffff' }}>
                   <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <Phone size={14} color="#059669" /> PENJEMPUT MAHROM & APPROVAL
+                    <CheckCircle size={14} color="#059669" /> PERSETUJUAN & APPROVAL
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div>
-                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Nama Penjemput Mahrom *</label>
-                      <input 
-                        type="text"
-                        placeholder="Nama penjemput sah"
-                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
-                        value={formData.nama_penjemput_mahrom}
-                        onChange={(e) => setFormData({ ...formData, nama_penjemput_mahrom: e.target.value })}
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Hubungan Mahrom *</label>
-                      <SearchableSelect
-                        options={hubunganMahromOptions}
-                        value={formData.hubungan_mahrom}
-                        onChange={(val) => setFormData({ ...formData, hubungan_mahrom: val })}
-                        placeholder="-- Hubungan Mahrom --"
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>No. HP / WA Penjemput *</label>
-                      <input 
-                        type="text"
-                        placeholder="08123456789"
-                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
-                        value={formData.no_hp_penjemput}
-                        onChange={(e) => setFormData({ ...formData, no_hp_penjemput: e.target.value })}
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Disetujui Oleh</label>
-                      <input 
-                        type="text"
-                        placeholder="KH. Ahmad Fauzan (Pengasuh)"
-                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
-                        value={formData.disetujui_oleh}
-                        onChange={(e) => setFormData({ ...formData, disetujui_oleh: e.target.value })}
-                      />
-                    </div>
+                  <div>
+                    <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Disetujui Oleh</label>
+                    <input 
+                      type="text"
+                      placeholder="KH. Ahmad Fauzan (Pengasuh)"
+                      style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                      value={formData.disetujui_oleh}
+                      onChange={(e) => setFormData({ ...formData, disetujui_oleh: e.target.value })}
+                    />
                   </div>
                 </div>
               </div>

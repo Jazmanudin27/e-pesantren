@@ -54,9 +54,9 @@ export default function MobileIzin() {
     santri_id: 1,
     jenis_izin: 'Izin Pulang',
     keperluan: 'Acara Keluarga & Walimah',
-    nama_penjemput_mahrom: 'H. Rahman (Ayah)',
-    no_hp_penjemput: '081234567890',
-    hubungan_mahrom: 'Orang Tua (Ayah)',
+    nama_penjemput_mahrom: '-',
+    no_hp_penjemput: '',
+    hubungan_mahrom: 'Orang Tua',
     tgl_keluar_rencana: getNowLocalString(),
     tgl_kembali_rencana: getFutureLocalString(3),
     status: 'Aktif Keluar'
@@ -244,6 +244,8 @@ export default function MobileIzin() {
     try {
       const payload = {
         ...formData,
+        nama_penjemput_mahrom: formData.nama_penjemput_mahrom || '-',
+        no_hp_penjemput: formData.no_hp_penjemput || '',
         status: formData.status || 'Aktif Keluar'
       };
 
@@ -660,10 +662,12 @@ export default function MobileIzin() {
                     <span style={{ color: '#64748b', minWidth: '65px' }}>Keperluan:</span>
                     <strong style={{ color: '#0f172a' }}>{item.keperluan}</strong>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ color: '#64748b', minWidth: '65px' }}>Penjemput:</span>
-                    <span>{item.nama_penjemput_mahrom || '-'} {item.no_hp_penjemput ? `(${item.no_hp_penjemput})` : ''}</span>
-                  </div>
+                  {item.nama_penjemput_mahrom && item.nama_penjemput_mahrom !== '-' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ color: '#64748b', minWidth: '65px' }}>Penjemput:</span>
+                      <span>{item.nama_penjemput_mahrom} {item.no_hp_penjemput ? `(${item.no_hp_penjemput})` : ''}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Schedule Dates & Lateness Alert */}
@@ -877,30 +881,6 @@ export default function MobileIzin() {
                 />
               </div>
 
-              {/* Penjemput & No WA */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Penjemput (Mahrom) *</label>
-                  <input
-                    type="text" 
-                    required
-                    placeholder="Contoh: H. Rahman (Ayah)"
-                    value={formData.nama_penjemput_mahrom}
-                    onChange={(e) => setFormData({ ...formData, nama_penjemput_mahrom: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '12px', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>No WA Penjemput</label>
-                  <input
-                    type="text" 
-                    placeholder="081234567890"
-                    value={formData.no_hp_penjemput}
-                    onChange={(e) => setFormData({ ...formData, no_hp_penjemput: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '12px', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none' }}
-                  />
-                </div>
-              </div>
 
               {/* Rencana Keluar & Rencana Kembali */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
