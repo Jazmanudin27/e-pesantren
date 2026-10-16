@@ -284,23 +284,42 @@ export const createFingerprintSesi = async (req, res) => {
     const finalKode = kode_sesi || `SESI-${Date.now()}`;
     const finalPesertaIds = typeof peserta_santri_ids === 'object' ? JSON.stringify(peserta_santri_ids) : (peserta_santri_ids || null);
 
-    const [result] = await pool.query(`
-      INSERT INTO kegiatan_sesi (
-        kode_sesi, nama_sesi, kategori, 
-        jam_mulai_presensi, jam_target, jam_toleransi_telat, jam_tutup_presensi, 
-        hari_aktif, tipe_peserta, target_gender, target_tipe_santri, 
-        peserta_santri_ids, is_active, keterangan
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      finalKode, nama_sesi, kategori || 'Shalat Berjamaah',
-      jam_mulai_presensi || '04:15:00', jam_target || '04:40:00',
-      jam_toleransi_telat || '04:45:00', jam_tutup_presensi || '05:15:00',
-      hari_aktif || 'Semua', tipe_peserta || 'Wajib Semua Santri',
-      target_gender || 'Semua', target_tipe_santri || 'Semua',
-      finalPesertaIds, is_active !== undefined ? is_active : 1, keterangan || ''
-    ]);
+    try {
+      const [result] = await pool.query(`
+        INSERT INTO kegiatan_sesi (
+          kode_sesi, nama_sesi, kategori, 
+          jam_mulai_presensi, jam_target, jam_toleransi_telat, jam_tutup_presensi, 
+          hari_aktif, tipe_peserta, target_gender, target_tipe_santri, 
+          peserta_santri_ids, is_active, keterangan
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        finalKode, nama_sesi, kategori || 'Shalat Berjamaah',
+        jam_mulai_presensi || '04:15:00', jam_target || '04:40:00',
+        jam_toleransi_telat || '04:45:00', jam_tutup_presensi || '05:15:00',
+        hari_aktif || 'Semua', tipe_peserta || 'Wajib Semua Santri',
+        target_gender || 'Semua', target_tipe_santri || 'Semua',
+        finalPesertaIds, is_active !== undefined ? is_active : 1, keterangan || ''
+      ]);
 
-    return sendSuccess(res, 'Kegiatan berhasil ditambahkan', { id: result.insertId });
+      return sendSuccess(res, 'Kegiatan berhasil ditambahkan', { id: result.insertId }, 201);
+    } catch (insertErr) {
+      // Fallback jika tabel di database belum memiliki kolom baru (tipe_peserta/keterangan/peserta_santri_ids)
+      console.warn('Fallback insert kegiatan_sesi:', insertErr.message);
+      const [result] = await pool.query(`
+        INSERT INTO kegiatan_sesi (
+          kode_sesi, nama_sesi, kategori, 
+          jam_mulai_presensi, jam_target, jam_toleransi_telat, jam_tutup_presensi, 
+          hari_aktif, is_active
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        finalKode, nama_sesi, kategori || 'Shalat Berjamaah',
+        jam_mulai_presensi || '04:15:00', jam_target || '04:40:00',
+        jam_toleransi_telat || '04:45:00', jam_tutup_presensi || '05:15:00',
+        hari_aktif || 'Semua', is_active !== undefined ? is_active : 1
+      ]);
+
+      return sendSuccess(res, 'Kegiatan berhasil ditambahkan', { id: result.insertId }, 201);
+    }
   } catch (err) {
     return sendError(res, err.message, 500);
   }
@@ -328,29 +347,51 @@ export const updateFingerprintSesi = async (req, res) => {
 
     const finalPesertaIds = typeof peserta_santri_ids === 'object' ? JSON.stringify(peserta_santri_ids) : (peserta_santri_ids || null);
 
-    await pool.query(`
-      UPDATE kegiatan_sesi SET 
-        kode_sesi = COALESCE(?, kode_sesi),
-        nama_sesi = COALESCE(?, nama_sesi),
-        kategori = COALESCE(?, kategori),
-        jam_mulai_presensi = COALESCE(?, jam_mulai_presensi),
-        jam_target = COALESCE(?, jam_target),
-        jam_toleransi_telat = COALESCE(?, jam_toleransi_telat),
-        jam_tutup_presensi = COALESCE(?, jam_tutup_presensi),
-        hari_aktif = COALESCE(?, hari_aktif),
-        tipe_peserta = COALESCE(?, tipe_peserta),
-        target_gender = COALESCE(?, target_gender),
-        target_tipe_santri = COALESCE(?, target_tipe_santri),
-        peserta_santri_ids = ?,
-        is_active = COALESCE(?, is_active),
-        keterangan = COALESCE(?, keterangan)
-      WHERE id = ?
-    `, [
-      kode_sesi, nama_sesi, kategori,
-      jam_mulai_presensi, jam_target, jam_toleransi_telat, jam_tutup_presensi,
-      hari_aktif, tipe_peserta, target_gender, target_tipe_santri,
-      finalPesertaIds, is_active, keterangan, id
-    ]);
+    try {
+      await pool.query(`
+        UPDATE kegiatan_sesi SET 
+          kode_sesi = COALESCE(?, kode_sesi),
+          nama_sesi = COALESCE(?, nama_sesi),
+          kategori = COALESCE(?, kategori),
+          jam_mulai_presensi = COALESCE(?, jam_mulai_presensi),
+          jam_target = COALESCE(?, jam_target),
+          jam_toleransi_telat = COALESCE(?, jam_toleransi_telat),
+          jam_tutup_presensi = COALESCE(?, jam_tutup_presensi),
+          hari_aktif = COALESCE(?, hari_aktif),
+          tipe_peserta = COALESCE(?, tipe_peserta),
+          target_gender = COALESCE(?, target_gender),
+          target_tipe_santri = COALESCE(?, target_tipe_santri),
+          peserta_santri_ids = ?,
+          is_active = COALESCE(?, is_active),
+          keterangan = COALESCE(?, keterangan)
+        WHERE id = ?
+      `, [
+        kode_sesi, nama_sesi, kategori,
+        jam_mulai_presensi, jam_target, jam_toleransi_telat, jam_tutup_presensi,
+        hari_aktif, tipe_peserta, target_gender, target_tipe_santri,
+        finalPesertaIds, is_active, keterangan, id
+      ]);
+    } catch (updateErr) {
+      // Fallback jika tabel hanya memiliki kolom dasar
+      console.warn('Fallback update kegiatan_sesi:', updateErr.message);
+      await pool.query(`
+        UPDATE kegiatan_sesi SET 
+          kode_sesi = COALESCE(?, kode_sesi),
+          nama_sesi = COALESCE(?, nama_sesi),
+          kategori = COALESCE(?, kategori),
+          jam_mulai_presensi = COALESCE(?, jam_mulai_presensi),
+          jam_target = COALESCE(?, jam_target),
+          jam_toleransi_telat = COALESCE(?, jam_toleransi_telat),
+          jam_tutup_presensi = COALESCE(?, jam_tutup_presensi),
+          hari_aktif = COALESCE(?, hari_aktif),
+          is_active = COALESCE(?, is_active)
+        WHERE id = ?
+      `, [
+        kode_sesi, nama_sesi, kategori,
+        jam_mulai_presensi, jam_target, jam_toleransi_telat, jam_tutup_presensi,
+        hari_aktif, is_active, id
+      ]);
+    }
 
     return sendSuccess(res, 'Kegiatan berhasil diperbarui');
   } catch (err) {

@@ -22,7 +22,7 @@ import {
   Info,
   Database
 } from 'lucide-react';
-import { showConfirm, toastSuccess, toastError } from '../../utils/alert.util';
+import { showConfirm, showSuccess, showError, toastSuccess, toastError } from '../../utils/alert.util';
 
 const ALL_DAYS = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'];
 
@@ -331,12 +331,12 @@ export default function SettingKegiatanView() {
   const handleSaveKegiatan = async (e) => {
     e.preventDefault();
     if (!formData.nama_sesi.trim()) {
-      alert('Nama kegiatan santri tidak boleh kosong!');
+      showError('Validasi Gagal', 'Nama kegiatan santri tidak boleh kosong!');
       return;
     }
 
     if (!formData.selected_days || formData.selected_days.length === 0) {
-      alert('Pilih minimal satu hari pelaksanaan kegiatan!');
+      showError('Validasi Gagal', 'Pilih minimal satu hari pelaksanaan kegiatan!');
       return;
     }
 
@@ -359,7 +359,7 @@ export default function SettingKegiatanView() {
           setIsFormOpen(false);
           await fetchKegiatan();
         } else {
-          toastError(res.data?.message || 'Gagal menyimpan kegiatan ke database');
+          showError('Gagal Menyimpan', res.data?.message || 'Gagal menyimpan kegiatan ke database');
         }
       } else {
         // Mode Edit
@@ -369,12 +369,12 @@ export default function SettingKegiatanView() {
           setIsFormOpen(false);
           await fetchKegiatan();
         } else {
-          toastError(res.data?.message || 'Gagal memperbarui kegiatan di database');
+          showError('Gagal Memperbarui', res.data?.message || 'Gagal memperbarui kegiatan di database');
         }
       }
     } catch (err) {
       console.error('Error simpan kegiatan:', err);
-      toastError(err.response?.data?.message || 'Gagal menyimpan data kegiatan ke database');
+      showError('Gagal Menyimpan', err.response?.data?.message || err.message || 'Gagal menyimpan data kegiatan ke database');
     } finally {
       setSubmitting(false);
     }
@@ -868,26 +868,58 @@ export default function SettingKegiatanView() {
 
       {/* 6. MODAL FORM TAMBAH / EDIT KEGIATAN */}
       {isFormOpen && (
-        <div className="modal-backdrop">
-          <div className="modal-card" style={{ maxWidth: '680px', width: '95%' }}>
-            <div className="modal-header">
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '680px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <div style={{
+              padding: '14px 18px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+              color: '#ffffff',
+              borderRadius: '12px 12px 0 0'
+            }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <CalendarCheck size={18} color="#0284c7" />
-                <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700 }}>
+                <CalendarCheck size={18} />
+                <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#ffffff' }}>
                   {formMode === 'add' ? 'Tambah Kegiatan Baru ke Database' : 'Edit Pengaturan Kegiatan'}
                 </h3>
               </div>
               <button 
-                className="btn-icon" 
                 onClick={() => setIsFormOpen(false)}
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}
+                style={{ background: 'rgba(255, 255, 255, 0.15)', border: 'none', color: '#ffffff', padding: '5px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                title="Tutup Form"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleSaveKegiatan}>
-              <div className="modal-body" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '75vh', overflowY: 'auto' }}>
+              <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: 'calc(90vh - 120px)', overflowY: 'auto' }}>
                 
                 {/* KODE & NAMA KEGIATAN */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
@@ -1200,30 +1232,62 @@ export default function SettingKegiatanView() {
 
       {/* 7. MODAL KELOLA PESERTA SANTRI TERTENTU */}
       {isPesertaModalOpen && activeKegiatanForPeserta && (
-        <div className="modal-backdrop">
-          <div className="modal-card" style={{ maxWidth: '680px', width: '95%' }}>
-            <div className="modal-header">
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '680px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <div style={{
+              padding: '14px 18px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+              color: '#ffffff',
+              borderRadius: '12px 12px 0 0'
+            }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Users size={18} color="#7c3aed" />
-                  <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700 }}>
+                  <Users size={18} />
+                  <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#ffffff' }}>
                     Pilih Santri Peserta: {activeKegiatanForPeserta.nama_sesi}
                   </h3>
                 </div>
-                <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
+                <div style={{ fontSize: '0.72rem', color: 'rgba(255, 255, 255, 0.85)', marginTop: '2px' }}>
                   Tentukan santri mana saja yang wajib scan pada kegiatan khusus ini (Disimpan ke database)
                 </div>
               </div>
               <button 
-                className="btn-icon" 
                 onClick={() => setIsPesertaModalOpen(false)}
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}
+                style={{ background: 'rgba(255, 255, 255, 0.15)', border: 'none', color: '#ffffff', padding: '5px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                title="Tutup Modal"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
 
-            <div className="modal-body" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: 'calc(90vh - 120px)', overflowY: 'auto' }}>
               {/* FILTER & PENCARIAN SANTRI */}
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <div className="filter-search-input" style={{ flex: 1, minWidth: '180px', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '4px 8px' }}>
