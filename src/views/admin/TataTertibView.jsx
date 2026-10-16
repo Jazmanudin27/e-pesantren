@@ -46,7 +46,6 @@ export default function TataTertibView() {
     tanggal: new Date().toISOString().split('T')[0],
     kategori: 'Ringan',
     jenis_pelanggaran: 'Terlambat Shalat Berjamaah',
-    poin_pelanggaran: 5,
     bentuk_tazir: 'Membaca Surat Yasin dan menyapu serambi masjid',
     status_tazir: 'Belum Dikerjakan',
     musyrif_pencatat: 'Ust. Bilal Mansur (Biro Keamanan)',
@@ -109,7 +108,6 @@ export default function TataTertibView() {
       tanggal: new Date().toISOString().split('T')[0],
       kategori: 'Ringan',
       jenis_pelanggaran: 'Terlambat Shalat Berjamaah',
-      poin_pelanggaran: 5,
       bentuk_tazir: 'Membaca Surat Yasin dan menyapu serambi masjid',
       status_tazir: 'Belum Dikerjakan',
       musyrif_pencatat: 'Ust. Bilal Mansur (Biro Keamanan)',
@@ -126,7 +124,6 @@ export default function TataTertibView() {
       tanggal: item.tanggal ? item.tanggal.split('T')[0] : new Date().toISOString().split('T')[0],
       kategori: item.kategori || 'Ringan',
       jenis_pelanggaran: item.jenis_pelanggaran || '',
-      poin_pelanggaran: item.poin_pelanggaran || 5,
       bentuk_tazir: item.bentuk_tazir || '',
       status_tazir: item.status_tazir || 'Belum Dikerjakan',
       musyrif_pencatat: item.musyrif_pencatat || '',
@@ -228,9 +225,9 @@ export default function TataTertibView() {
   }));
 
   const kategoriOptions = [
-    { value: 'Ringan', label: 'Ringan (Poin 1-10)' },
-    { value: 'Sedang', label: 'Sedang (Poin 11-25)' },
-    { value: 'Berat', label: 'Berat (Poin 26-100)' }
+    { value: 'Ringan', label: 'Ringan' },
+    { value: 'Sedang', label: 'Sedang' },
+    { value: 'Berat', label: 'Berat' }
   ];
 
   const statusTazirOptions = [
@@ -379,7 +376,6 @@ export default function TataTertibView() {
                 <th>NAMA SANTRI & ASRAMA</th>
                 <th className="td-center">KATEGORI</th>
                 <th>JENIS PELANGGARAN</th>
-                <th className="td-center" style={{ width: '65px' }}>POIN</th>
                 <th>BENTUK TA'ZIR</th>
                 <th className="td-center">STATUS TA'ZIR</th>
                 <th>MUSYRIF PENCATAT</th>
@@ -420,19 +416,6 @@ export default function TataTertibView() {
                     <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.82rem', lineHeight: 1.4 }}>
                       {row.jenis_pelanggaran}
                     </div>
-                  </td>
-                  <td className="td-center">
-                    <span style={{ 
-                      display: 'inline-block',
-                      padding: '3px 10px',
-                      borderRadius: '12px',
-                      fontWeight: 800, 
-                      fontSize: '0.78rem',
-                      background: row.poin_pelanggaran >= 20 ? '#fee2e2' : row.poin_pelanggaran >= 10 ? '#fef3c7' : '#e0f2fe',
-                      color: row.poin_pelanggaran >= 20 ? '#dc2626' : row.poin_pelanggaran >= 10 ? '#d97706' : '#0284c7'
-                    }}>
-                      +{row.poin_pelanggaran}
-                    </span>
                   </td>
                   <td>
                     <div style={{ fontSize: '0.78rem', color: '#334155', lineHeight: 1.5 }}>
@@ -543,7 +526,7 @@ export default function TataTertibView() {
                 <div>
                   <h3 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>Detail Catatan Pelanggaran</h3>
                   <p style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.85)', margin: 0 }}>
-                    Tanggal: {selectedItem.tanggal ? new Date(selectedItem.tanggal).toLocaleDateString('id-ID') : '-'} • Poin: +{selectedItem.poin_pelanggaran}
+                    Tanggal: {selectedItem.tanggal ? new Date(selectedItem.tanggal).toLocaleDateString('id-ID') : '-'}
                   </p>
                 </div>
               </div>
@@ -590,7 +573,6 @@ export default function TataTertibView() {
                     Deskripsi Pelanggaran
                   </div>
                   <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a' }}>{selectedItem.jenis_pelanggaran}</div>
-                  <div style={{ fontSize: '0.74rem', color: '#dc2626', fontWeight: 700, marginTop: '2px' }}>Akumulasi Poin: +{selectedItem.poin_pelanggaran}</div>
                 </div>
 
                 <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff' }}>
@@ -750,23 +732,20 @@ export default function TataTertibView() {
                       <SearchableSelect
                         options={kategoriOptions}
                         value={formData.kategori}
-                        onChange={(val) => {
-                          const defaultPoin = val === 'Berat' ? 30 : val === 'Sedang' ? 15 : 5;
-                          setFormData({ ...formData, kategori: val, poin_pelanggaran: defaultPoin });
-                        }}
+                        onChange={(val) => setFormData({ ...formData, kategori: val })}
                         placeholder="-- Pilih Kategori --"
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Jenis & Poin Card */}
+                {/* Jenis Card */}
                 <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px', background: '#ffffff', marginBottom: '12px' }}>
                   <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <AlertTriangle size={14} color="#d97706" /> PELANGGARAN & POIN
+                    <AlertTriangle size={14} color="#d97706" /> DETAIL PELANGGARAN
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div style={{ gridColumn: 'span 2' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
+                    <div>
                       <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Jenis Pelanggaran *</label>
                       <input 
                         type="text"
@@ -774,19 +753,6 @@ export default function TataTertibView() {
                         style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
                         value={formData.jenis_pelanggaran}
                         onChange={(e) => setFormData({ ...formData, jenis_pelanggaran: e.target.value })}
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Poin Pelanggaran *</label>
-                      <input 
-                        type="number"
-                        min="1"
-                        max="100"
-                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
-                        value={formData.poin_pelanggaran}
-                        onChange={(e) => setFormData({ ...formData, poin_pelanggaran: parseInt(e.target.value) || 0 })}
                         required
                       />
                     </div>

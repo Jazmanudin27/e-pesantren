@@ -18,7 +18,6 @@ export default function MobileTataTertib() {
     tanggal: new Date().toISOString().split('T')[0],
     kategori: 'Ringan',
     jenis_pelanggaran: 'Terlambat Berjamaah Shalat',
-    poin_pelanggaran: 5,
     bentuk_tazir: 'Membaca Surat Yasin di Depan Asrama',
     status_tazir: 'Belum Dikerjakan',
     musyrif_pencatat: 'Ust. Ahmad Fauzi (Musyrif)',
@@ -28,8 +27,8 @@ export default function MobileTataTertib() {
   const [formData, setFormData] = useState(initialForm);
 
   const defaultPelanggaran = [
-    { id: 1, santri_id: 1, nama_santri: 'Muhammad Al-Fatih', tanggal: '2026-10-04', jenis_pelanggaran: 'Terlambat Berjamaah Shalat', kategori: 'Ringan', poin_pelanggaran: 5, bentuk_tazir: 'Membaca Juz 30 di Depan Asrama', status_tazir: 'Sudah Dikerjakan' },
-    { id: 2, santri_id: 2, nama_santri: 'Ahmad Dahlan', tanggal: '2026-09-28', jenis_pelanggaran: 'Lupa Membawa Kartu Santri', kategori: 'Ringan', poin_pelanggaran: 2, bentuk_tazir: 'Pembersihan Area Wudhu', status_tazir: 'Sudah Dikerjakan' }
+    { id: 1, santri_id: 1, nama_santri: 'Muhammad Al-Fatih', tanggal: '2026-10-04', jenis_pelanggaran: 'Terlambat Berjamaah Shalat', kategori: 'Ringan', bentuk_tazir: 'Membaca Juz 30 di Depan Asrama', status_tazir: 'Sudah Dikerjakan' },
+    { id: 2, santri_id: 2, nama_santri: 'Ahmad Dahlan', tanggal: '2026-09-28', jenis_pelanggaran: 'Lupa Membawa Kartu Santri', kategori: 'Ringan', bentuk_tazir: 'Pembersihan Area Wudhu', status_tazir: 'Sudah Dikerjakan' }
   ];
 
   const fetchData = async () => {
@@ -81,7 +80,6 @@ export default function MobileTataTertib() {
       tanggal: item.tanggal ? String(item.tanggal).split('T')[0] : new Date().toISOString().split('T')[0],
       kategori: item.kategori || 'Ringan',
       jenis_pelanggaran: item.jenis_pelanggaran || '',
-      poin_pelanggaran: item.poin_pelanggaran || 5,
       bentuk_tazir: item.bentuk_tazir || '',
       status_tazir: item.status_tazir || 'Belum Dikerjakan',
       musyrif_pencatat: item.musyrif_pencatat || 'Musyrif',
@@ -211,7 +209,7 @@ export default function MobileTataTertib() {
                   {item.tanggal ? String(item.tanggal).split('T')[0] : '-'}
                 </span>
                 <span className="badge badge-danger">
-                  +{item.poin_pelanggaran || 5} Poin ({item.kategori || 'Ringan'})
+                  {item.kategori || 'Ringan'}
                 </span>
               </div>
 
@@ -308,28 +306,17 @@ export default function MobileTataTertib() {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Kategori</label>
-                  <select
-                    value={formData.kategori}
-                    onChange={(e) => setFormData({ ...formData, kategori: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#ffffff' }}
-                  >
-                    <option value="Ringan">Ringan</option>
-                    <option value="Sedang">Sedang</option>
-                    <option value="Berat">Berat</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Poin Pelanggaran</label>
-                  <input
-                    type="number" required min={1} max={100}
-                    value={formData.poin_pelanggaran}
-                    onChange={(e) => setFormData({ ...formData, poin_pelanggaran: parseInt(e.target.value) || 5 })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
-                  />
-                </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Kategori Pelanggaran</label>
+                <select
+                  value={formData.kategori}
+                  onChange={(e) => setFormData({ ...formData, kategori: e.target.value })}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#ffffff' }}
+                >
+                  <option value="Ringan">Ringan</option>
+                  <option value="Sedang">Sedang</option>
+                  <option value="Berat">Berat</option>
+                </select>
               </div>
 
               <div>

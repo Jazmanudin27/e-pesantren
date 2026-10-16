@@ -225,7 +225,7 @@ CREATE TABLE IF NOT EXISTS `tata_tertib_pelanggaran` (
   `tanggal` DATE NOT NULL,
   `kategori` ENUM('Ringan', 'Sedang', 'Berat') NOT NULL DEFAULT 'Ringan',
   `jenis_pelanggaran` VARCHAR(255) NOT NULL,
-  `poin_pelanggaran` INT NOT NULL DEFAULT 5,
+  `poin_pelanggaran` INT DEFAULT 0,
   `bentuk_tazir` TEXT NOT NULL,
   `status_tazir` ENUM('Belum Dikerjakan', 'Sedang Proses', 'Selesai Ta\'zir') NOT NULL DEFAULT 'Belum Dikerjakan',
   `musyrif_pencatat` VARCHAR(150) NOT NULL,
