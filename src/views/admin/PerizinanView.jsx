@@ -113,9 +113,6 @@ export default function PerizinanView() {
       keperluan: 'Kepentingan keluarga / libur pondok',
       tgl_keluar_rencana: new Date().toISOString().slice(0, 16),
       tgl_kembali_rencana: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
-      nama_penjemput_mahrom: firstSantri ? firstSantri.nama_wali || '' : '',
-      no_hp_penjemput: firstSantri ? firstSantri.no_wa_wali || '' : '',
-      hubungan_mahrom: firstSantri ? firstSantri.hubungan_wali || 'Orang Tua (Ayah)' : 'Orang Tua (Ayah)',
       status: 'Disetujui Pengasuh',
       disetujui_oleh: 'KH. Ahmad Fauzan (Pengasuh)'
     });
@@ -123,18 +120,7 @@ export default function PerizinanView() {
   };
 
   const handleSantriSelectChange = (santriId) => {
-    const s = santriList.find(item => item.id.toString() === santriId.toString());
-    if (s) {
-      setFormData(prev => ({
-        ...prev,
-        santri_id: santriId,
-        nama_penjemput_mahrom: s.nama_wali || prev.nama_penjemput_mahrom,
-        no_hp_penjemput: s.no_wa_wali || prev.no_hp_penjemput,
-        hubungan_mahrom: s.hubungan_wali || prev.hubungan_mahrom
-      }));
-    } else {
-      setFormData(prev => ({ ...prev, santri_id: santriId }));
-    }
+    setFormData(prev => ({ ...prev, santri_id: santriId }));
   };
 
   const openEditForm = (item) => {
@@ -146,9 +132,6 @@ export default function PerizinanView() {
       keperluan: item.keperluan || '',
       tgl_keluar_rencana: item.tgl_keluar_rencana ? item.tgl_keluar_rencana.slice(0, 16) : new Date().toISOString().slice(0, 16),
       tgl_kembali_rencana: item.tgl_kembali_rencana ? item.tgl_kembali_rencana.slice(0, 16) : new Date().toISOString().slice(0, 16),
-      nama_penjemput_mahrom: item.nama_penjemput_mahrom || '',
-      no_hp_penjemput: item.no_hp_penjemput || '',
-      hubungan_mahrom: item.hubungan_mahrom || 'Orang Tua',
       status: item.status || 'Menunggu Persetujuan',
       disetujui_oleh: item.disetujui_oleh || 'Dewan Pengasuh'
     });
@@ -169,9 +152,9 @@ export default function PerizinanView() {
       setSubmitting(true);
       const payload = {
         ...formData,
-        nama_penjemput_mahrom: formData.nama_penjemput_mahrom || '-',
-        no_hp_penjemput: formData.no_hp_penjemput || '',
-        hubungan_mahrom: formData.hubungan_mahrom || 'Orang Tua'
+        nama_penjemput_mahrom: '',
+        no_hp_penjemput: '',
+        hubungan_mahrom: ''
       };
       if (formMode === 'add') {
         const res = await axios.post('/api/perizinan', payload);
@@ -245,7 +228,6 @@ export default function PerizinanView() {
       row.nis?.toLowerCase().includes(q) ||
       row.barcode?.toLowerCase().includes(q) ||
       row.kode_izin?.toLowerCase().includes(q) ||
-      row.nama_penjemput_mahrom?.toLowerCase().includes(q) ||
       row.keperluan?.toLowerCase().includes(q) ||
       row.nama_asrama?.toLowerCase().includes(q)
     );
@@ -343,7 +325,7 @@ export default function PerizinanView() {
           <DoorOpen size={22} className="page-title-icon" style={{ color: '#0284c7' }} />
           <div>
             <h2>Perizinan Santri & Validasi Gerbang Satpam</h2>
-            <p>Kelola surat izin santri, barcode digital gate pass, data mahrom penjemput, dan kepulangan santri</p>
+            <p>Kelola surat izin santri, barcode digital gate pass, dan kepulangan santri</p>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -390,7 +372,7 @@ export default function PerizinanView() {
           <Search size={15} color="#94a3b8" />
           <input 
             type="text" 
-            placeholder="Cari barcode, nama santri, NIS, atau nama penjemput..." 
+            placeholder="Cari barcode, nama santri, NIS, atau keperluan..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -432,7 +414,7 @@ export default function PerizinanView() {
                 <th>NAMA SANTRI & ASRAMA</th>
                 <th className="td-center">JENIS IZIN</th>
                 <th>RENCANA JADWAL</th>
-                <th>PENJEMPUT / MAHROM</th>
+                <th>KEPERLUAN</th>
                 <th className="td-center">STATUS</th>
                 <th className="td-center" style={{ width: '130px' }}>POS GERBANG</th>
                 <th className="td-center" style={{ width: '130px' }}>AKSI</th>
@@ -477,11 +459,8 @@ export default function PerizinanView() {
                     </div>
                   </td>
                   <td>
-                    <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.76rem' }}>
-                      {row.nama_penjemput_mahrom || '-'}
-                    </div>
-                    <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
-                      {row.hubungan_mahrom} {row.no_hp_penjemput ? `• ${row.no_hp_penjemput}` : ''}
+                    <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.76rem' }}>
+                      {row.keperluan || '-'}
                     </div>
                   </td>
                   <td className="td-center">
@@ -688,24 +667,13 @@ export default function PerizinanView() {
                 </div>
               </div>
 
-              {/* Data Mahrom Card */}
+              {/* Persetujuan Card */}
               <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px 16px', background: '#ffffff' }}>
                 <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Phone size={14} color="#059669" /> Data Penjemput Mahrom Sah & Persetujuan
+                  <CheckCircle size={14} color="#059669" /> Data Persetujuan Izin
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.76rem' }}>
-                  <div>
-                    <span style={{ color: '#64748b' }}>Nama Penjemput:</span> <strong>{selectedItem.nama_penjemput_mahrom || '-'}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: '#64748b' }}>Hubungan Mahrom:</span> <strong>{selectedItem.hubungan_mahrom || '-'}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: '#64748b' }}>No. HP / WA:</span> <strong>{selectedItem.no_hp_penjemput || '-'}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: '#64748b' }}>Disetujui Oleh:</span> <strong>{selectedItem.disetujui_oleh || 'Dewan Pengasuh'}</strong>
-                  </div>
+                <div style={{ fontSize: '0.76rem' }}>
+                  <span style={{ color: '#64748b' }}>Disetujui Oleh:</span> <strong>{selectedItem.disetujui_oleh || 'Dewan Pengasuh'}</strong>
                 </div>
               </div>
             </div>

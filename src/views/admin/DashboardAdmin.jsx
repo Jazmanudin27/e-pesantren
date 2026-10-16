@@ -39,8 +39,8 @@ export default function DashboardAdmin() {
             { id: 4, nama_santri: 'Muhammad Rifqi', nama_asrama: 'Asrama Abu Bakar', nama_kamar: 'Kamar 06', juz: 5, surat_mulai: 'An-Nisa: 50-80', kualitas_tajwid: 'Jayyid (B)', nama_asatidz: 'Ust. Hamdan', tanggal: '2026-10-08' }
           ],
           activeIzin: res.data.activeIzin && res.data.activeIzin.length > 0 ? res.data.activeIzin : [
-            { id: 1, nama_santri: 'Bilal Abdurrahman', keperluan: 'Acara Keluarga / Walimah', nama_penjemput_mahrom: 'H. Rahman (Ayah)', tgl_kembali_rencana: '2026-10-10', status: 'Aktif Keluar' },
-            { id: 2, nama_santri: 'Syifa Nurul Izzah', keperluan: 'Berobat / Kontrol Dokter', nama_penjemput_mahrom: 'Ibu Aminah (Ibu)', tgl_kembali_rencana: '2026-10-08', status: 'Aktif Keluar' }
+            { id: 1, nama_santri: 'Bilal Abdurrahman', keperluan: 'Acara Keluarga / Walimah', tgl_kembali_rencana: '2026-10-10', status: 'Aktif Keluar' },
+            { id: 2, nama_santri: 'Syifa Nurul Izzah', keperluan: 'Berobat / Kontrol Dokter', tgl_kembali_rencana: '2026-10-08', status: 'Aktif Keluar' }
           ]
         });
       }
@@ -199,8 +199,7 @@ export default function DashboardAdmin() {
                   <div style={{ fontSize: '0.72rem', color: '#475569', marginBottom: '2px' }}>
                     <strong>Keperluan:</strong> {iz.keperluan}
                   </div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Wali: {iz.nama_penjemput_mahrom}</span>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', display: 'flex', justifyContent: 'flex-end' }}>
                     <span>Kembali: <strong>{iz.tgl_kembali_rencana ? new Date(iz.tgl_kembali_rencana).toLocaleDateString('id-ID') : '-'}</strong></span>
                   </div>
                 </div>

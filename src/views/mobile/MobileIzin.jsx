@@ -53,10 +53,7 @@ export default function MobileIzin() {
     id: null,
     santri_id: 1,
     jenis_izin: 'Izin Pulang',
-    keperluan: 'Acara Keluarga & Walimah',
-    nama_penjemput_mahrom: '-',
-    no_hp_penjemput: '',
-    hubungan_mahrom: 'Orang Tua',
+    keperluan: '',
     tgl_keluar_rencana: getNowLocalString(),
     tgl_kembali_rencana: getFutureLocalString(3),
     status: 'Aktif Keluar'
@@ -73,8 +70,6 @@ export default function MobileIzin() {
       jenis_izin: 'Izin Pulang', 
       status: 'Aktif Keluar', 
       keperluan: 'Acara Keluarga & Walimah', 
-      nama_penjemput_mahrom: 'H. Rahman (Ayah)', 
-      no_hp_penjemput: '081234567890',
       tgl_keluar_rencana: '2026-10-10T08:00', 
       tgl_kembali_rencana: '2026-10-12T10:00',
       tgl_kembali_aktual: null
@@ -87,8 +82,6 @@ export default function MobileIzin() {
       jenis_izin: 'Izin Berobat', 
       status: 'Terlambat Kembali', 
       keperluan: 'Pemeriksaan Gigi ke RSUD', 
-      nama_penjemput_mahrom: 'Siti Aminah (Ibu)', 
-      no_hp_penjemput: '081299887766',
       tgl_keluar_rencana: '2026-10-08T09:00', 
       tgl_kembali_rencana: '2026-10-09T14:00',
       tgl_kembali_aktual: '2026-10-09T18:30'
@@ -101,8 +94,6 @@ export default function MobileIzin() {
       jenis_izin: 'Izin Khusus', 
       status: 'Kembali Tepat Waktu', 
       keperluan: 'Urusan Dokumen Kependudukan', 
-      nama_penjemput_mahrom: 'Umar (Paman)', 
-      no_hp_penjemput: '085712345678',
       tgl_keluar_rencana: '2026-10-05T08:00', 
       tgl_kembali_rencana: '2026-10-06T17:00',
       tgl_kembali_aktual: '2026-10-06T15:15'
@@ -117,20 +108,37 @@ export default function MobileIzin() {
         axios.get('/api/santri').catch(() => ({ data: { data: [] } }))
       ]);
 
+      const sanitizeItems = (arr) => {
+        if (!Array.isArray(arr)) return [];
+        return arr.map(i => {
+          const { nama_penjemput_mahrom, no_hp_penjemput, hubungan_mahrom, ...rest } = i;
+          return rest;
+        });
+      };
+
       if (resSantri.data && resSantri.data.data && resSantri.data.data.length > 0) {
         setSantriOptions(resSantri.data.data);
       }
 
       if (resIzin.data && resIzin.data.data && resIzin.data.data.length > 0) {
-        setIzinList(resIzin.data.data);
+        const sanitized = sanitizeItems(resIzin.data.data);
+        setIzinList(sanitized);
+        localStorage.setItem('mobile_izin_list', JSON.stringify(sanitized));
       } else {
         const saved = JSON.parse(localStorage.getItem('mobile_izin_list') || 'null');
-        setIzinList(saved || defaultIzin);
+        const sanitized = sanitizeItems(saved || defaultIzin);
+        setIzinList(sanitized);
+        localStorage.setItem('mobile_izin_list', JSON.stringify(sanitized));
       }
     } catch (err) {
       console.warn('Fallback data izin lokal:', err);
       const saved = JSON.parse(localStorage.getItem('mobile_izin_list') || 'null');
-      setIzinList(saved || defaultIzin);
+      const sanitized = Array.isArray(saved) ? saved.map(i => {
+        const { nama_penjemput_mahrom, no_hp_penjemput, hubungan_mahrom, ...rest } = i;
+        return rest;
+      }) : defaultIzin;
+      setIzinList(sanitized);
+      localStorage.setItem('mobile_izin_list', JSON.stringify(sanitized));
     } finally {
       setLoading(false);
     }
@@ -228,9 +236,6 @@ export default function MobileIzin() {
       santri_id: item.santri_id || 1,
       jenis_izin: item.jenis_izin || 'Izin Pulang',
       keperluan: item.keperluan || '',
-      nama_penjemput_mahrom: item.nama_penjemput_mahrom || '',
-      no_hp_penjemput: item.no_hp_penjemput || '081234567890',
-      hubungan_mahrom: item.hubungan_mahrom || 'Orang Tua (Ayah)',
       tgl_keluar_rencana: item.tgl_keluar_rencana ? String(item.tgl_keluar_rencana).replace(' ', 'T').slice(0, 16) : getNowLocalString(),
       tgl_kembali_rencana: item.tgl_kembali_rencana ? String(item.tgl_kembali_rencana).replace(' ', 'T').slice(0, 16) : getFutureLocalString(3),
       status: item.status || 'Aktif Keluar'
@@ -244,8 +249,6 @@ export default function MobileIzin() {
     try {
       const payload = {
         ...formData,
-        nama_penjemput_mahrom: formData.nama_penjemput_mahrom || '-',
-        no_hp_penjemput: formData.no_hp_penjemput || '',
         status: formData.status || 'Aktif Keluar'
       };
 
@@ -647,7 +650,7 @@ export default function MobileIzin() {
                   </div>
                 </div>
 
-                {/* Keperluan & Penjemput Details */}
+                {/* Keperluan Details */}
                 <div style={{
                   background: '#f8fafc',
                   borderRadius: '12px',
@@ -662,12 +665,6 @@ export default function MobileIzin() {
                     <span style={{ color: '#64748b', minWidth: '65px' }}>Keperluan:</span>
                     <strong style={{ color: '#0f172a' }}>{item.keperluan}</strong>
                   </div>
-                  {item.nama_penjemput_mahrom && item.nama_penjemput_mahrom !== '-' && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ color: '#64748b', minWidth: '65px' }}>Penjemput:</span>
-                      <span>{item.nama_penjemput_mahrom} {item.no_hp_penjemput ? `(${item.no_hp_penjemput})` : ''}</span>
-                    </div>
-                  )}
                 </div>
 
                 {/* Schedule Dates & Lateness Alert */}

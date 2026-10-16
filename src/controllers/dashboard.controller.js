@@ -25,7 +25,7 @@ export const getDashboardStats = async (req, res) => {
     // Perizinan aktif
     const [activeIzin] = await pool.query(`
       SELECT sp.id, sp.kode_izin, sp.barcode, sp.jenis_izin, sp.tgl_keluar_rencana, sp.tgl_kembali_rencana,
-             sp.nama_penjemput_mahrom, sp.keperluan, sp.status,
+             sp.keperluan, sp.status,
              s.nama_santri, a.nama_asrama, k.nama_kamar
       FROM santri_perizinan sp
       JOIN santri s ON sp.santri_id = s.id
