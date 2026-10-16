@@ -17,7 +17,6 @@ export default function MobileTataTertib() {
     santri_id: 1,
     tanggal: new Date().toISOString().split('T')[0],
     kategori: 'Ringan',
-    jenis_pelanggaran: 'Terlambat Berjamaah Shalat',
     bentuk_tazir: 'Membaca Surat Yasin di Depan Asrama',
     status_tazir: 'Belum Dikerjakan',
     musyrif_pencatat: 'Ust. Ahmad Fauzi (Musyrif)',
@@ -27,8 +26,8 @@ export default function MobileTataTertib() {
   const [formData, setFormData] = useState(initialForm);
 
   const defaultPelanggaran = [
-    { id: 1, santri_id: 1, nama_santri: 'Muhammad Al-Fatih', tanggal: '2026-10-04', jenis_pelanggaran: 'Terlambat Berjamaah Shalat', kategori: 'Ringan', bentuk_tazir: 'Membaca Juz 30 di Depan Asrama', status_tazir: 'Sudah Dikerjakan' },
-    { id: 2, santri_id: 2, nama_santri: 'Ahmad Dahlan', tanggal: '2026-09-28', jenis_pelanggaran: 'Lupa Membawa Kartu Santri', kategori: 'Ringan', bentuk_tazir: 'Pembersihan Area Wudhu', status_tazir: 'Sudah Dikerjakan' }
+    { id: 1, santri_id: 1, nama_santri: 'Muhammad Al-Fatih', tanggal: '2026-10-04', kategori: 'Ringan', bentuk_tazir: 'Membaca Juz 30 di Depan Asrama', status_tazir: 'Sudah Dikerjakan' },
+    { id: 2, santri_id: 2, nama_santri: 'Ahmad Dahlan', tanggal: '2026-09-28', kategori: 'Ringan', bentuk_tazir: 'Pembersihan Area Wudhu', status_tazir: 'Sudah Dikerjakan' }
   ];
 
   const fetchData = async () => {
@@ -79,7 +78,6 @@ export default function MobileTataTertib() {
       santri_id: item.santri_id || 1,
       tanggal: item.tanggal ? String(item.tanggal).split('T')[0] : new Date().toISOString().split('T')[0],
       kategori: item.kategori || 'Ringan',
-      jenis_pelanggaran: item.jenis_pelanggaran || '',
       bentuk_tazir: item.bentuk_tazir || '',
       status_tazir: item.status_tazir || 'Belum Dikerjakan',
       musyrif_pencatat: item.musyrif_pencatat || 'Musyrif',
@@ -167,7 +165,7 @@ export default function MobileTataTertib() {
         <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
         <input
           type="text"
-          placeholder="Cari santri, jenis pelanggaran, ta'zir..."
+          placeholder="Cari santri atau bentuk ta'zir..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{
@@ -213,12 +211,8 @@ export default function MobileTataTertib() {
                 </span>
               </div>
 
-              <div style={{ fontWeight: 800, fontSize: '0.94rem', color: '#0f172a', marginBottom: '4px' }}>
+              <div style={{ fontWeight: 800, fontSize: '0.94rem', color: '#0f172a', marginBottom: '8px' }}>
                 👤 {item.nama_santri || 'Santri'}
-              </div>
-
-              <div style={{ fontWeight: 700, fontSize: '0.86rem', color: '#be123c', marginBottom: '6px' }}>
-                🚨 {item.jenis_pelanggaran}
               </div>
 
               <div style={{ fontSize: '0.78rem', color: '#334155', background: '#fff1f2', padding: '8px 10px', borderRadius: '8px', marginBottom: '10px' }}>
@@ -294,16 +288,6 @@ export default function MobileTataTertib() {
                     <option value={1}>Muhammad Al-Fatih</option>
                   )}
                 </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Jenis Pelanggaran *</label>
-                <input
-                  type="text" required placeholder="Contoh: Terlambat Berjamaah Shalat Shubuh"
-                  value={formData.jenis_pelanggaran}
-                  onChange={(e) => setFormData({ ...formData, jenis_pelanggaran: e.target.value })}
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
-                />
               </div>
 
               <div>

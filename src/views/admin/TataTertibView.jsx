@@ -45,7 +45,6 @@ export default function TataTertibView() {
     santri_id: '',
     tanggal: new Date().toISOString().split('T')[0],
     kategori: 'Ringan',
-    jenis_pelanggaran: 'Terlambat Shalat Berjamaah',
     bentuk_tazir: 'Membaca Surat Yasin dan menyapu serambi masjid',
     status_tazir: 'Belum Dikerjakan',
     musyrif_pencatat: 'Ust. Bilal Mansur (Biro Keamanan)',
@@ -107,7 +106,6 @@ export default function TataTertibView() {
       santri_id: firstSantri?.id || '',
       tanggal: new Date().toISOString().split('T')[0],
       kategori: 'Ringan',
-      jenis_pelanggaran: 'Terlambat Shalat Berjamaah',
       bentuk_tazir: 'Membaca Surat Yasin dan menyapu serambi masjid',
       status_tazir: 'Belum Dikerjakan',
       musyrif_pencatat: 'Ust. Bilal Mansur (Biro Keamanan)',
@@ -123,7 +121,6 @@ export default function TataTertibView() {
       santri_id: item.santri_id || '',
       tanggal: item.tanggal ? item.tanggal.split('T')[0] : new Date().toISOString().split('T')[0],
       kategori: item.kategori || 'Ringan',
-      jenis_pelanggaran: item.jenis_pelanggaran || '',
       bentuk_tazir: item.bentuk_tazir || '',
       status_tazir: item.status_tazir || 'Belum Dikerjakan',
       musyrif_pencatat: item.musyrif_pencatat || '',
@@ -334,7 +331,7 @@ export default function TataTertibView() {
           <Search size={15} color="#94a3b8" />
           <input 
             type="text" 
-            placeholder="Cari santri, NIS, jenis pelanggaran, atau musyrif..." 
+            placeholder="Cari santri, NIS, atau musyrif..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -375,7 +372,6 @@ export default function TataTertibView() {
                 <th className="td-center" style={{ width: '95px' }}>TANGGAL</th>
                 <th>NAMA SANTRI & ASRAMA</th>
                 <th className="td-center">KATEGORI</th>
-                <th>JENIS PELANGGARAN</th>
                 <th>BENTUK TA'ZIR</th>
                 <th className="td-center">STATUS TA'ZIR</th>
                 <th>MUSYRIF PENCATAT</th>
@@ -411,11 +407,6 @@ export default function TataTertibView() {
                     }`}>
                       {row.kategori}
                     </span>
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.82rem', lineHeight: 1.4 }}>
-                      {row.jenis_pelanggaran}
-                    </div>
                   </td>
                   <td>
                     <div style={{ fontSize: '0.78rem', color: '#334155', lineHeight: 1.5 }}>
@@ -465,7 +456,7 @@ export default function TataTertibView() {
                       </button>
                       <button 
                         className="btn-action btn-action-delete"
-                        onClick={() => handleDelete(row.id, row.jenis_pelanggaran)}
+                        onClick={() => handleDelete(row.id, `Kategori ${row.kategori}`)}
                         title="Hapus Catatan"
                       >
                         <Trash2 size={13} />
@@ -568,13 +559,6 @@ export default function TataTertibView() {
 
               {/* Info Grid 2 Kolom */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
-                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff', gridColumn: 'span 2' }}>
-                  <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px' }}>
-                    Deskripsi Pelanggaran
-                  </div>
-                  <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a' }}>{selectedItem.jenis_pelanggaran}</div>
-                </div>
-
                 <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff' }}>
                   <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px' }}>
                     Musyrif / Biro Keamanan
@@ -736,28 +720,8 @@ export default function TataTertibView() {
                         placeholder="-- Pilih Kategori --"
                       />
                     </div>
-                  </div>
-                </div>
 
-                {/* Jenis Card */}
-                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px', background: '#ffffff', marginBottom: '12px' }}>
-                  <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <AlertTriangle size={14} color="#d97706" /> DETAIL PELANGGARAN
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
-                    <div>
-                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Jenis Pelanggaran *</label>
-                      <input 
-                        type="text"
-                        placeholder="Contoh: Terlambat Shalat Berjamaah, Membawa HP..."
-                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
-                        value={formData.jenis_pelanggaran}
-                        onChange={(e) => setFormData({ ...formData, jenis_pelanggaran: e.target.value })}
-                        required
-                      />
-                    </div>
-
-                    <div>
+                    <div style={{ gridColumn: 'span 2' }}>
                       <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>Musyrif Pencatat *</label>
                       <input 
                         type="text"

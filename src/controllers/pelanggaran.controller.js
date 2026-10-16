@@ -34,8 +34,8 @@ export const createPelanggaran = async (req, res) => {
       santri_id,
       tanggal || new Date().toISOString().split('T')[0],
       kategori || 'Ringan',
-      jenis_pelanggaran || 'Terlambat Berjamaah',
-      poin_pelanggaran || 5,
+      jenis_pelanggaran || kategori || 'Pelanggaran Disiplin',
+      poin_pelanggaran || 0,
       bentuk_tazir || 'Membaca Surat Yasin',
       status_tazir || 'Belum Dikerjakan',
       musyrif_pencatat || 'Biro Keamanan & Disiplin',
@@ -47,7 +47,7 @@ export const createPelanggaran = async (req, res) => {
       try {
         const [[santri]] = await pool.query('SELECT nama_santri, no_wa_wali FROM santri WHERE id = ?', [santri_id]);
         if (santri && santri.no_wa_wali) {
-          const msg = `[RUANG PONPES DISIPLIN]\n\nYth. Wali Santri ${santri.nama_santri},\nDiberitahukan bahwa santri tercatat melakukan pelanggaran:\n- Kategori: ${kategori || 'Ringan'}\n- Pelanggaran: ${jenis_pelanggaran}\n- Ta'zir: ${bentuk_tazir}\n\nMohon bimbingan dan kerja samanya. Terima kasih.`;
+          const msg = `[RUANG PONPES DISIPLIN]\n\nYth. Wali Santri ${santri.nama_santri},\nDiberitahukan bahwa santri tercatat melakukan pelanggaran:\n- Kategori: ${kategori || 'Ringan'}\n- Ta'zir: ${bentuk_tazir}\n\nMohon bimbingan dan kerja samanya. Terima kasih.`;
           sendWANotification(santri.no_wa_wali, msg);
         }
       } catch (e) {
@@ -79,8 +79,8 @@ export const updatePelanggaran = async (req, res) => {
       santri_id,
       tanggal || new Date().toISOString().split('T')[0],
       kategori || 'Ringan',
-      jenis_pelanggaran || '',
-      poin_pelanggaran || 5,
+      jenis_pelanggaran || kategori || 'Pelanggaran Disiplin',
+      poin_pelanggaran || 0,
       bentuk_tazir || '',
       status_tazir || 'Belum Dikerjakan',
       musyrif_pencatat || '',
