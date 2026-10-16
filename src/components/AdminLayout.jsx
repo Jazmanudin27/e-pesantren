@@ -448,7 +448,7 @@ export default function AdminLayout() {
         >
           <div className="nav-link-left">
             <HeartHandshake size={15} style={{ color: '#059669' }} />
-            <span>Praktek (Sholat/Wudhu)</span>
+            <span>Praktek</span>
           </div>
         </button>
 
