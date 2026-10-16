@@ -16,27 +16,33 @@ import {
   UserCheck, 
   Sparkles, 
   Calendar, 
-  Printer, 
   FileText, 
   Building,
   FolderPlus,
-  Tag
+  Tag,
+  Home,
+  User,
+  Clock,
+  CheckCircle
 } from 'lucide-react';
 import { showConfirm, toastSuccess, showError } from '../../utils/alert.util';
 import SearchableSelect from '../../components/SearchableSelect';
-
-
 
 export default function PraktekIbadahView() {
   const [praktekList, setPraktekList] = useState([]);
   const [santriList, setSantriList] = useState([]);
   const [kategoriList, setKategoriList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('semua');
   const [search, setSearch] = useState('');
   const [filterKategori, setFilterKategori] = useState('Semua Kategori');
   const [filterStatus, setFilterStatus] = useState('Semua Status');
 
-  // Modal Form (Add & Edit)
+  // Modal Detail State
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [selectedPraktek, setSelectedPraktek] = useState(null);
+
+  // Modal Form (Add & Edit) State
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formMode, setFormMode] = useState('add');
   const [submitting, setSubmitting] = useState(false);
@@ -49,6 +55,12 @@ export default function PraktekIbadahView() {
     nama_penguji: 'Ust. Hamdan S.Pd.I',
     tanggal_ujian: new Date().toISOString().split('T')[0]
   });
+
+  // Modal Kelola Kategori Master
+  const [isKategoriModalOpen, setIsKategoriModalOpen] = useState(false);
+  const [newKatName, setNewKatName] = useState('');
+  const [newKatDesc, setNewKatDesc] = useState('');
+  const [savingKat, setSavingKat] = useState(false);
 
   // Cek apakah santri yang dipilih sudah LULUS untuk kategori ini
   const isAlreadyPassed = Boolean(
@@ -87,16 +99,6 @@ export default function PraktekIbadahView() {
     }
     return 'Belum Diuji';
   };
-
-  // Modal Detail
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [selectedPraktek, setSelectedPraktek] = useState(null);
-
-  // Modal Kelola Kategori
-  const [isKategoriModalOpen, setIsKategoriModalOpen] = useState(false);
-  const [newKatName, setNewKatName] = useState('');
-  const [newKatDesc, setNewKatDesc] = useState('');
-  const [savingKat, setSavingKat] = useState(false);
 
   const fetchPraktek = async () => {
     try {
@@ -154,13 +156,19 @@ export default function PraktekIbadahView() {
     } catch (e) {}
   };
 
+  // Open Detail Modal
+  const openDetail = (item) => {
+    setSelectedPraktek(item);
+    setIsDetailOpen(true);
+  };
+
   // Open Add Form
   const openAddForm = () => {
     setFormMode('add');
     const defaultKat = kategoriList[0]?.nama_kategori || 'Sholat Fardhu';
     setFormData({
       id: null,
-      santri_id: santriList[0]?.id || 1,
+      santri_id: santriList[0]?.id || '',
       kategori: defaultKat,
       deskripsi: '',
       status: 'Lulus',
@@ -261,7 +269,7 @@ export default function PraktekIbadahView() {
   const handleDelete = (item) => {
     showConfirm(
       'Hapus Penilaian Praktek?',
-      `Hapus penilaian ${item.nama_praktek} untuk santri ${item.nama_santri}?`,
+      `Hapus penilaian ${item.kategori || item.nama_praktek} untuk santri ${item.nama_santri}?`,
       async () => {
         try {
           await axios.delete(`/api/praktek/${item.id}`).catch(() => null);
@@ -331,14 +339,21 @@ export default function PraktekIbadahView() {
       (item.nama_santri && item.nama_santri.toLowerCase().includes(search.toLowerCase())) ||
       (item.nis && item.nis.toLowerCase().includes(search.toLowerCase())) ||
       (item.nama_praktek && item.nama_praktek.toLowerCase().includes(search.toLowerCase())) ||
+      (item.kategori && item.kategori.toLowerCase().includes(search.toLowerCase())) ||
       (item.deskripsi && item.deskripsi.toLowerCase().includes(search.toLowerCase())) ||
       (item.nama_penguji && item.nama_penguji.toLowerCase().includes(search.toLowerCase()));
 
     const matchKat = filterKategori === 'Semua Kategori' || item.kategori === filterKategori;
-    const itemStatus = (item.status === 'Remedial' || item.status === 'Mengulang') ? 'Mengulang' : 'Lulus';
+    const isItemLulus = item.status === 'Lulus';
+    const itemStatus = isItemLulus ? 'Lulus' : 'Mengulang';
     const matchStatus = filterStatus === 'Semua Status' || itemStatus === filterStatus;
 
-    return matchSearch && matchKat && matchStatus;
+    const matchTab = 
+      activeTab === 'semua' ? true :
+      activeTab === 'lulus' ? isItemLulus :
+      !isItemLulus;
+
+    return matchSearch && matchKat && matchStatus && matchTab;
   });
 
   // Statistik
@@ -348,338 +363,174 @@ export default function PraktekIbadahView() {
   const totalKategori = kategoriList.length;
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1440px', margin: '0 auto', fontFamily: 'inherit' }}>
+    <div className="view-container">
       
-      {/* ================= HEADER SECTION ================= */}
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '16px',
-        marginBottom: '24px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#ffffff',
-            boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)'
-          }}>
-            <BookOpen size={24} />
-          </div>
+      {/* 1. TOP STATS CARDS (4 COLORED CARDS LIKE SANTRI VIEW) */}
+      <div className="top-stats-grid">
+        <div className="stat-card-colored stat-card-blue">
           <div>
-            <h1 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
-              Ujian Praktek Ibadah
-            </h1>
-            <p style={{ fontSize: '0.84rem', color: '#64748b', margin: '4px 0 0 0' }}>
-              Perekaman kelulusan ibadah amaliyah (sholat, wudhu, thaharah, jenazah, adzan) santri.
-            </p>
+            <div className="stat-colored-title">TOTAL PENILAIAN UJIAN</div>
+            <div className="stat-colored-number">{totalSantriDiuji}</div>
           </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button
-            onClick={() => setIsKategoriModalOpen(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '9px 16px',
-              borderRadius: '10px',
-              border: '1px solid #cbd5e1',
-              background: '#ffffff',
-              color: '#334155',
-              fontSize: '0.84rem',
-              fontWeight: 700,
-              cursor: 'pointer'
-            }}
-          >
-            <FolderPlus size={16} color="#059669" />
-            Kelola Kategori
-          </button>
-
-          <button
-            onClick={fetchPraktek}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '9px 14px',
-              borderRadius: '10px',
-              border: '1px solid #cbd5e1',
-              background: '#ffffff',
-              color: '#475569',
-              fontSize: '0.84rem',
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
-          >
-            <RotateCw size={15} className={loading ? 'animate-spin' : ''} />
-            Segarkan
-          </button>
-
-          <button
-            onClick={openAddForm}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '9px 18px',
-              borderRadius: '10px',
-              border: 'none',
-              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-              color: '#ffffff',
-              fontSize: '0.84rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(5, 150, 105, 0.3)'
-            }}
-          >
-            <Plus size={16} />
-            Input Penilaian Ujian
-          </button>
-        </div>
-      </div>
-
-      {/* ================= STATS SUMMARY CARDS ================= */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-        gap: '16px',
-        marginBottom: '20px'
-      }}>
-        {/* Total Diuji */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '12px',
-          padding: '16px 18px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <div>
-            <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>
-              Total Penilaian Ujian
-            </div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
-              {totalSantriDiuji}
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px' }}>
-              Seluruh catatan amaliyah
-            </div>
-          </div>
-          <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: '#f1f5f9', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="stat-colored-icon-box">
             <FileText size={22} />
           </div>
         </div>
 
-        {/* Total Lulus */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '12px',
-          padding: '16px 18px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
+        <div className="stat-card-colored stat-card-green">
           <div>
-            <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>
-              Santri Lulus Ujian
-            </div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#047857', marginTop: '2px' }}>
-              {totalLulus}
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#10b981', marginTop: '4px' }}>
-              Memenuhi syarat ibadah
-            </div>
+            <div className="stat-colored-title">SANTRI LULUS UJIAN</div>
+            <div className="stat-colored-number">{totalLulus}</div>
           </div>
-          <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: '#d1fae5', color: '#047857', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="stat-colored-icon-box">
             <CheckCircle2 size={22} />
           </div>
         </div>
 
-        {/* Total Mengulang */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '12px',
-          padding: '16px 18px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
+        <div className="stat-card-colored stat-card-amber">
           <div>
-            <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>
-              Santri Mengulang
-            </div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#dc2626', marginTop: '2px' }}>
-              {totalMengulang}
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#dc2626', marginTop: '4px' }}>
-              Perlu bimbingan & ujian ulang
-            </div>
+            <div className="stat-colored-title">SANTRI MENGULANG</div>
+            <div className="stat-colored-number">{totalMengulang}</div>
           </div>
-          <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="stat-colored-icon-box">
             <RotateCw size={22} />
           </div>
         </div>
 
-        {/* Total Kategori */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '12px',
-          padding: '16px 18px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
+        <div className="stat-card-colored stat-card-purple">
           <div>
-            <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>
-              Kategori Praktek
-            </div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0284c7', marginTop: '2px' }}>
-              {totalKategori}
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#0284c7', marginTop: '4px' }}>
-              Bidang amaliah aktif
-            </div>
+            <div className="stat-colored-title">KATEGORI PRAKTEK</div>
+            <div className="stat-colored-number">{totalKategori}</div>
           </div>
-          <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="stat-colored-icon-box">
             <Tag size={22} />
           </div>
         </div>
       </div>
 
-      {/* ================= FILTER & SEARCH BAR ================= */}
-      <div style={{
-        background: '#ffffff',
-        borderRadius: '12px',
-        padding: '14px 18px',
-        border: '1px solid #e2e8f0',
-        marginBottom: '16px',
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '12px'
-      }}>
-        {/* Search Input */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          background: '#f8fafc',
-          border: '1px solid #cbd5e1',
-          borderRadius: '8px',
-          padding: '7px 12px',
-          minWidth: '280px',
-          flex: '1 1 300px'
-        }}>
-          <Search size={16} color="#64748b" />
-          <input
-            type="text"
-            placeholder="Cari nama santri, NIS, materi praktek, atau deskripsi..."
+      {/* 2. TITLE STRIP */}
+      <div className="page-title-strip">
+        <div className="page-title-left">
+          <BookOpen size={22} className="page-title-icon" style={{ color: '#059669' }} />
+          <div>
+            <h2>Ujian Praktek Ibadah</h2>
+            <p>Perekaman kelulusan ibadah amaliyah (sholat, wudhu, thaharah, jenazah, adzan) santri</p>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button 
+            type="button"
+            className="btn btn-outline" 
+            onClick={fetchPraktek}
+          >
+            <RotateCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
+          </button>
+          <button 
+            type="button"
+            className="btn btn-outline" 
+            onClick={() => setIsKategoriModalOpen(true)}
+          >
+            <FolderPlus size={14} color="#059669" /> Kelola Kategori
+          </button>
+          <button 
+            type="button"
+            className="btn btn-primary" 
+            onClick={openAddForm}
+          >
+            <Plus size={14} /> Input Penilaian Ujian
+          </button>
+        </div>
+      </div>
+
+      {/* 3. TAB FILTER BAR */}
+      <div className="tab-filter-bar">
+        <button 
+          className={`tab-btn ${activeTab === 'semua' ? 'active' : ''}`}
+          onClick={() => setActiveTab('semua')}
+        >
+          <BookOpen size={14} /> Semua Ujian ({praktekList.length})
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'lulus' ? 'active' : ''}`}
+          onClick={() => setActiveTab('lulus')}
+        >
+          <CheckCircle2 size={14} /> Santri Lulus ({totalLulus})
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'mengulang' ? 'active' : ''}`}
+          onClick={() => setActiveTab('mengulang')}
+        >
+          <RotateCw size={14} /> Santri Mengulang ({totalMengulang})
+        </button>
+      </div>
+
+      {/* 4. FILTER SEARCH BAR STRIP */}
+      <div className="filter-search-box">
+        <div className="filter-search-input">
+          <Search size={15} color="#94a3b8" />
+          <input 
+            type="text" 
+            placeholder="Cari nama santri, NIS, penguji, materi praktek, evaluasi..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{
-              border: 'none',
-              background: 'transparent',
-              outline: 'none',
-              fontSize: '0.84rem',
-              color: '#1e293b',
-              width: '100%'
-            }}
           />
           {search && (
-            <button onClick={() => setSearch('')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+            <button 
+              type="button"
+              onClick={() => setSearch('')} 
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+            >
               <X size={14} />
             </button>
           )}
         </div>
 
-        {/* Filter Dropdowns */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '210px' }}>
-            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, flexShrink: 0 }}>Kategori:</span>
-            <SearchableSelect
-              options={[
-                { value: 'Semua Kategori', label: 'Semua Kategori' },
-                ...kategoriList.map(k => ({ value: k.nama_kategori || k, label: k.nama_kategori || k }))
-              ]}
-              value={filterKategori}
-              onChange={(val) => setFilterKategori(val || 'Semua Kategori')}
-              placeholder="Semua Kategori"
-              searchPlaceholder="Cari kategori..."
-              triggerStyle={{
-                padding: '6px 10px',
-                borderRadius: '8px',
-                fontSize: '0.82rem'
-              }}
-            />
-          </div>
+        <select 
+          className="filter-select"
+          value={filterKategori}
+          onChange={(e) => setFilterKategori(e.target.value)}
+        >
+          <option value="Semua Kategori">Semua Kategori</option>
+          {kategoriList.map(k => {
+            const name = k.nama_kategori || k;
+            return <option key={k.id || name} value={name}>{name}</option>;
+          })}
+        </select>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Status:</span>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              style={{
-                fontSize: '0.82rem',
-                padding: '6px 10px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                background: '#ffffff',
-                color: '#334155',
-                outline: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="Semua Status">Semua Status</option>
-              <option value="Lulus">Lulus</option>
-              <option value="Mengulang">Mengulang</option>
-            </select>
-          </div>
-        </div>
+        <select 
+          className="filter-select"
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+        >
+          <option value="Semua Status">Semua Status</option>
+          <option value="Lulus">Lulus</option>
+          <option value="Mengulang">Mengulang</option>
+        </select>
       </div>
 
-      {/* ================= TABLE LIST ================= */}
-      <div style={{
-        background: '#ffffff',
-        borderRadius: '12px',
-        border: '1px solid #e2e8f0',
-        overflow: 'hidden',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
-      }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.84rem' }}>
+      {/* 5. DATA TABLE */}
+      <div className="table-container-card">
+        {loading ? (
+          <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
+            <RotateCw size={24} className="animate-spin" /> Memuat data penilaian ujian...
+          </div>
+        ) : (
+          <table className="data-table">
             <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                <th style={{ padding: '12px 14px', fontWeight: 700, width: '40px' }}>No</th>
-                <th style={{ padding: '12px 14px', fontWeight: 700 }}>Santri</th>
-                <th style={{ padding: '12px 14px', fontWeight: 700 }}>Kategori Praktek</th>
-                <th style={{ padding: '12px 14px', fontWeight: 700 }}>Deskripsi & Evaluasi</th>
-                <th style={{ padding: '12px 14px', fontWeight: 700 }}>Penguji & Tanggal</th>
-                <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>Nilai / Status</th>
-                <th style={{ padding: '12px 14px', fontWeight: 700, textAlign: 'center', width: '120px' }}>Aksi</th>
+              <tr>
+                <th className="td-center" style={{ width: '45px' }}>NO</th>
+                <th>NAMA SANTRI & NIS</th>
+                <th>KATEGORI PRAKTEK</th>
+                <th>DESKRIPSI & EVALUASI</th>
+                <th>PENGUJI & TANGGAL</th>
+                <th className="td-center">STATUS NILAI</th>
+                <th className="td-center" style={{ width: '130px' }}>AKSI</th>
               </tr>
             </thead>
             <tbody>
               {filteredList.length === 0 ? (
                 <tr>
-                  <td colSpan="7" style={{ padding: '40px 20px', textAlign: 'center', color: '#94a3b8' }}>
+                  <td colSpan="7" style={{ padding: '36px 20px', textAlign: 'center', color: '#94a3b8' }}>
                     Belum ada data penilaian praktek ibadah yang sesuai filter.
                   </td>
                 </tr>
@@ -689,16 +540,13 @@ export default function PraktekIbadahView() {
                   const initials = (item.nama_santri || 'S').slice(0, 2).toUpperCase();
 
                   return (
-                    <tr 
-                      key={item.id}
-                      style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#ffffff')}
-                    >
-                      <td style={{ padding: '12px 14px', color: '#64748b', fontWeight: 600 }}>{idx + 1}</td>
+                    <tr key={item.id || idx}>
+                      <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
+                        {idx + 1}
+                      </td>
 
-                      {/* Santri */}
-                      <td style={{ padding: '12px 14px' }}>
+                      {/* Santri Info */}
+                      <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <div style={{
                             width: '34px',
@@ -716,100 +564,76 @@ export default function PraktekIbadahView() {
                             {initials}
                           </div>
                           <div>
-                            <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.86rem' }}>
+                            <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.84rem' }}>
                               {item.nama_santri}
                             </div>
                             <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                              NIS: <strong style={{ color: '#047857' }}>{item.nis}</strong> • {item.nama_asrama || 'Asrama'}
+                              NIS: <strong style={{ color: '#047857' }}>{item.nis || '-'}</strong> • {item.nama_asrama || 'Asrama'}
                             </div>
                           </div>
                         </div>
                       </td>
 
                       {/* Kategori Praktek */}
-                      <td style={{ padding: '12px 14px' }}>
-                        <span style={{
-                          fontSize: '0.84rem',
-                          fontWeight: 800,
-                          color: '#065f46',
-                          background: '#ecfdf5',
-                          border: '1px solid #a7f3d0',
-                          padding: '4px 10px',
-                          borderRadius: '8px',
-                          display: 'inline-block'
-                        }}>
+                      <td>
+                        <span className="badge badge-purple" style={{ fontWeight: 700, fontSize: '0.75rem' }}>
                           {item.kategori}
                         </span>
                       </td>
 
-                      {/* Deskripsi */}
-                      <td style={{ padding: '12px 14px', maxWidth: '320px' }}>
-                        <div style={{ fontSize: '0.78rem', color: '#334155', lineHeight: 1.35 }}>
+                      {/* Deskripsi & Evaluasi */}
+                      <td style={{ maxWidth: '320px' }}>
+                        <div style={{ fontSize: '0.78rem', color: '#334155', lineHeight: 1.4 }}>
                           {item.deskripsi || item.catatan_perbaikan || '-'}
                         </div>
                       </td>
 
                       {/* Penguji & Tanggal */}
-                      <td style={{ padding: '12px 14px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: 600, color: '#334155' }}>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', fontWeight: 600, color: '#1e293b' }}>
                           <UserCheck size={13} color="#059669" />
                           <span>{item.nama_penguji || 'Ust. Penguji'}</span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
                           <Calendar size={12} />
                           <span>{item.tanggal_ujian ? String(item.tanggal_ujian).split('T')[0] : '-'}</span>
                         </div>
                       </td>
 
-                      {/* Nilai / Status Lulus / Mengulang */}
-                      <td style={{ padding: '12px 14px', textAlign: 'center' }}>
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '4px 10px',
-                          borderRadius: '8px',
-                          fontSize: '0.76rem',
-                          fontWeight: 800,
-                          background: isLulus ? '#dcfce7' : '#fee2e2',
-                          color: isLulus ? '#15803d' : '#b91c1c',
-                          border: `1px solid ${isLulus ? '#bbf7d0' : '#fecaca'}`
-                        }}>
-                          {isLulus ? <CheckCircle2 size={13} /> : <RotateCw size={13} />}
+                      {/* Nilai / Status Lulus vs Mengulang */}
+                      <td className="td-center">
+                        <span 
+                          className={`badge ${isLulus ? 'badge-success' : 'badge-danger'}`} 
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}
+                        >
+                          {isLulus ? <CheckCircle2 size={12} /> : <RotateCw size={12} />}
                           {isLulus ? 'LULUS' : 'MENGULANG'}
                         </span>
                       </td>
 
-                      {/* Aksi */}
-                      <td style={{ padding: '12px 14px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                          <button
+                      {/* Aksi Buttons */}
+                      <td className="td-center">
+                        <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
+                          <button 
+                            className="btn-action btn-action-view"
+                            onClick={() => openDetail(item)}
+                            title="Lihat Detail Ujian"
+                          >
+                            <Eye size={13} />
+                          </button>
+                          <button 
+                            className="btn-action btn-action-edit"
                             onClick={() => openEditForm(item)}
                             title="Edit Penilaian"
-                            style={{
-                              background: '#f8fafc',
-                              border: '1px solid #cbd5e1',
-                              borderRadius: '6px',
-                              padding: '5px 8px',
-                              color: '#2563eb',
-                              cursor: 'pointer'
-                            }}
                           >
-                            <Edit3 size={14} />
+                            <Edit3 size={13} />
                           </button>
-                          <button
+                          <button 
+                            className="btn-action btn-action-delete"
                             onClick={() => handleDelete(item)}
                             title="Hapus Penilaian"
-                            style={{
-                              background: '#fef2f2',
-                              border: '1px solid #fecaca',
-                              borderRadius: '6px',
-                              padding: '5px 8px',
-                              color: '#dc2626',
-                              cursor: 'pointer'
-                            }}
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       </td>
@@ -819,10 +643,163 @@ export default function PraktekIbadahView() {
               )}
             </tbody>
           </table>
-        </div>
+        )}
       </div>
 
-      {/* ================= MODAL FORM INPUT / EDIT ================= */}
+      {/* ==================================================== */}
+      {/* MODAL DETAIL HASIL UJIAN PRAKTEK IBADAH              */}
+      {/* ==================================================== */}
+      {isDetailOpen && selectedPraktek && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '620px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.25)',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '16px 20px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+              color: '#ffffff',
+              borderTopLeftRadius: '16px',
+              borderTopRightRadius: '16px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.2)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255, 255, 255, 0.3)' }}>
+                  <BookOpen size={18} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>Detail Ujian Praktek Ibadah</h3>
+                  <p style={{ fontSize: '0.72rem', color: 'rgba(255, 255, 255, 0.85)', margin: 0 }}>
+                    Kategori: {selectedPraktek.kategori} • Santri: {selectedPraktek.nama_santri}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsDetailOpen(false)}
+                style={{ background: 'rgba(255, 255, 255, 0.15)', border: 'none', cursor: 'pointer', color: '#ffffff', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                title="Tutup Modal"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '20px', background: '#f8fafc' }}>
+              
+              {/* Profile Card Banner */}
+              <div style={{
+                background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                color: '#ffffff',
+                borderRadius: '12px',
+                padding: '16px 18px',
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)',
+                border: '1px solid #334155'
+              }}>
+                <div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#ffffff' }}>{selectedPraktek.nama_santri}</div>
+                  <div style={{ fontSize: '0.76rem', color: '#94a3b8', marginTop: '2px' }}>
+                    NIS: <strong style={{ color: '#34d399' }}>{selectedPraktek.nis || '-'}</strong> • {selectedPraktek.nama_asrama || 'Asrama Pondok'}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span className={`badge ${selectedPraktek.status === 'Lulus' ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.8rem', padding: '5px 12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {selectedPraktek.status === 'Lulus' ? <CheckCircle2 size={13} /> : <RotateCw size={13} />}
+                    {selectedPraktek.status === 'Lulus' ? 'LULUS UJIAN' : 'MENGULANG'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Info Grid 2 Kolom */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                
+                {/* Kategori Praktek */}
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '10px', padding: '12px 14px', background: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+                  <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Tag size={13} color="#059669" /> Kategori Praktek
+                  </div>
+                  <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#065f46' }}>{selectedPraktek.kategori}</div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Kompetensi Amaliyah</div>
+                </div>
+
+                {/* Penguji & Tanggal */}
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '10px', padding: '12px 14px', background: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+                  <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <UserCheck size={13} color="#0284c7" /> Asatidz Penguji
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a' }}>{selectedPraktek.nama_penguji || 'Ust. Penguji'}</div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    Tanggal: {selectedPraktek.tanggal_ujian ? String(selectedPraktek.tanggal_ujian).split('T')[0] : '-'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Deskripsi & Evaluasi */}
+              <div style={{ border: '1px solid #cbd5e1', borderRadius: '10px', padding: '14px 16px', background: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', marginBottom: '16px' }}>
+                <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <FileText size={13} color="#7c3aed" /> Catatan & Evaluasi Penguji
+                </div>
+                <div style={{ fontSize: '0.82rem', color: '#334155', lineHeight: 1.5, background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  {selectedPraktek.deskripsi || selectedPraktek.catatan_perbaikan || 'Tidak ada catatan evaluasi khusus. Penilaian sesuai kriteria kelulusan amaliyah.'}
+                </div>
+              </div>
+
+              {/* Actions Footer */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setIsDetailOpen(false)}
+                >
+                  Tutup
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => {
+                    setIsDetailOpen(false);
+                    openEditForm(selectedPraktek);
+                  }}
+                >
+                  <Edit3 size={14} /> Edit Penilaian
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================== */}
+      {/* MODAL FORM INPUT / EDIT                             */}
+      {/* ==================================================== */}
       {isFormOpen && (
         <div style={{
           position: 'fixed',
@@ -830,7 +807,7 @@ export default function PraktekIbadahView() {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(15, 23, 42, 0.6)',
+          background: 'rgba(15, 23, 42, 0.65)',
           backdropFilter: 'blur(3px)',
           display: 'flex',
           alignItems: 'center',
@@ -882,6 +859,7 @@ export default function PraktekIbadahView() {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setIsFormOpen(false)}
                 style={{
                   background: '#ffffff',
@@ -951,7 +929,7 @@ export default function PraktekIbadahView() {
                 />
               </div>
 
-              {/* Status Alert Desktop */}
+              {/* Status Alert */}
               {isAlreadyPassed && (
                 <div style={{
                   background: '#fef2f2',
@@ -993,7 +971,7 @@ export default function PraktekIbadahView() {
                 </div>
               )}
 
-              {/* NILAI: HANYA LULUS & MENGULANG */}
+              {/* NILAI: LULUS & MENGULANG */}
               <div style={{ marginBottom: '18px' }}>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
                   Hasil Nilai Ujian *
@@ -1116,30 +1094,16 @@ export default function PraktekIbadahView() {
                 <button
                   type="button"
                   onClick={() => setIsFormOpen(false)}
-                  style={{
-                    padding: '9px 18px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    background: '#f8fafc',
-                    color: '#64748b',
-                    fontSize: '0.84rem',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
+                  className="btn btn-outline"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submitting || (formMode === 'add' && isAlreadyPassed)}
+                  className="btn btn-primary"
                   style={{
-                    padding: '9px 22px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    background: (formMode === 'add' && isAlreadyPassed) ? '#cbd5e1' : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-                    color: '#ffffff',
-                    fontSize: '0.84rem',
-                    fontWeight: 800,
+                    opacity: (formMode === 'add' && isAlreadyPassed) ? 0.6 : 1,
                     cursor: (formMode === 'add' && isAlreadyPassed) ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -1165,7 +1129,9 @@ export default function PraktekIbadahView() {
         </div>
       )}
 
-      {/* ================= MODAL KELOLA KATEGORI MASTER ================= */}
+      {/* ==================================================== */}
+      {/* MODAL KELOLA KATEGORI MASTER                         */}
+      {/* ==================================================== */}
       {isKategoriModalOpen && (
         <div style={{
           position: 'fixed',
@@ -1173,7 +1139,7 @@ export default function PraktekIbadahView() {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(15, 23, 42, 0.6)',
+          background: 'rgba(15, 23, 42, 0.65)',
           backdropFilter: 'blur(3px)',
           display: 'flex',
           alignItems: 'center',
@@ -1202,6 +1168,7 @@ export default function PraktekIbadahView() {
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => setIsKategoriModalOpen(false)}
                 style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
@@ -1232,19 +1199,12 @@ export default function PraktekIbadahView() {
               <button
                 type="submit"
                 disabled={savingKat}
+                className="btn btn-primary"
                 style={{
                   width: '100%',
-                  padding: '8px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: '#059669',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  fontSize: '0.8rem',
-                  cursor: 'pointer',
+                  justifyContent: 'center',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
                   gap: '6px'
                 }}
               >
@@ -1311,7 +1271,7 @@ export default function PraktekIbadahView() {
               <button
                 type="button"
                 onClick={() => setIsKategoriModalOpen(false)}
-                style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#334155', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}
+                className="btn btn-outline"
               >
                 Tutup
               </button>
