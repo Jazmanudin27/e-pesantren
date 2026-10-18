@@ -102,6 +102,8 @@ CREATE TABLE IF NOT EXISTS `santri` (
   `kode_santri` VARCHAR(50) NOT NULL UNIQUE,
   `nis` VARCHAR(50) NOT NULL UNIQUE,
   `nisn` VARCHAR(50) DEFAULT NULL,
+  `username` VARCHAR(100) DEFAULT NULL UNIQUE,
+  `password` VARCHAR(255) DEFAULT NULL,
   `fingerprint_pin` INT DEFAULT NULL UNIQUE, -- User ID di Mesin Fingerprint
   `rfid_card_uid` VARCHAR(50) DEFAULT NULL, -- Opsional kartu RFID tap
   `nama_santri` VARCHAR(150) NOT NULL,
