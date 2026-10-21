@@ -13,11 +13,12 @@ import {
   HelpCircle,
   X,
   Loader2,
-  Sparkles
+  Sparkles,
+  ArrowLeft
 } from 'lucide-react';
 import { showError, showSuccess, toastSuccess } from '../../utils/alert.util';
 
-export default function MobileLogin({ onLoginSuccess }) {
+export default function MobileLogin({ onLoginSuccess, onBackToOnboarding }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -153,6 +154,33 @@ export default function MobileLogin({ onLoginSuccess }) {
         boxSizing: 'border-box',
         position: 'relative'
       }}>
+        {/* Back to Onboarding Button */}
+        {onBackToOnboarding && (
+          <button
+            type="button"
+            onClick={onBackToOnboarding}
+            style={{
+              position: 'absolute',
+              top: '20px',
+              left: '20px',
+              background: '#f1f5f9',
+              border: 'none',
+              borderRadius: '12px',
+              width: '36px',
+              height: '36px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#334155',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+            title="Kembali ke Beranda"
+          >
+            <ArrowLeft size={18} />
+          </button>
+        )}
+
         {/* Top Badge */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
           <span style={{

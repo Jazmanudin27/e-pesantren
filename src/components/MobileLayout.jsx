@@ -39,6 +39,7 @@ import MobileLaporanTahfidz from '../views/mobile/MobileLaporanTahfidz';
 import MobileKitab from '../views/mobile/MobileKitab';
 import MobileProfil from '../views/mobile/MobileProfil';
 import MobileLogin from '../views/mobile/MobileLogin';
+import MobileOnboarding from '../views/mobile/MobileOnboarding';
 import MobilePraktek from '../views/mobile/MobilePraktek';
 import MobileMateriHafalan from '../views/mobile/MobileMateriHafalan';
 import PortalWaliSantri from '../views/wali/PortalWaliSantri';
@@ -76,11 +77,21 @@ export default function MobileLayout() {
   };
 
   const [mobileTab, setMobileTab] = useState(getInitialTab);
+  const [authView, setAuthView] = useState(() => {
+    const hash = (typeof window !== 'undefined' ? window.location.hash : '').toLowerCase();
+    if (hash.includes('login')) return 'login';
+    return 'onboarding';
+  });
   const [isMenuDrawerOpen, setIsMenuDrawerOpen] = useState(false);
 
   useEffect(() => {
     const syncTabFromHash = () => {
       const hash = window.location.hash.replace('#', '');
+      if (hash.toLowerCase().includes('login')) {
+        setAuthView('login');
+      } else if (hash.toLowerCase().includes('welcome') || hash.toLowerCase().includes('onboarding')) {
+        setAuthView('onboarding');
+      }
       if (hash.includes('/')) {
         const sub = hash.split('/')[1];
         if (sub) {
@@ -128,9 +139,25 @@ export default function MobileLayout() {
     setSession(userSession);
   };
 
-  // If user is not logged in on mobile app, display MobileLogin screen!
+  // If user is not logged in on mobile app, display MobileOnboarding or MobileLogin screen!
   if (!session) {
-    return <MobileLogin onLoginSuccess={handleLoginSuccess} />;
+    if (authView === 'login') {
+      return (
+        <MobileLogin 
+          onLoginSuccess={handleLoginSuccess}
+          onBackToOnboarding={() => setAuthView('onboarding')}
+        />
+      );
+    }
+    return (
+      <MobileOnboarding 
+        onStart={() => setAuthView('login')}
+        onOpenWali={() => {
+          window.location.hash = '#wali';
+          window.location.reload();
+        }}
+      />
+    );
   }
 
   const getSubmenuTitle = () => {
