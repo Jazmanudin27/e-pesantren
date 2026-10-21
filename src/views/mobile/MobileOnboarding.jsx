@@ -1,10 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   ArrowRight, 
   Sparkles, 
-  Wifi, 
-  Battery, 
-  Signal, 
   ShieldCheck, 
   BookOpen, 
   HeartHandshake, 
@@ -16,21 +13,7 @@ import {
 } from 'lucide-react';
 
 export default function MobileOnboarding({ onStart, onOpenWali }) {
-  const [currentTime, setCurrentTime] = useState('');
   const [showPendaftaranModal, setShowPendaftaranModal] = useState(false);
-
-  // Update real-time clock for mobile status bar
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      setCurrentTime(`${hours}:${minutes}`);
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 30000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div style={{
@@ -101,46 +84,15 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
         <div style={{
           position: 'relative',
           zIndex: 10,
-          padding: '12px 18px 0',
+          padding: '16px 18px 0',
           display: 'flex',
-          flexDirection: 'column',
-          gap: '12px'
+          flexDirection: 'column'
         }}>
-          {/* Simulated Mobile Status Bar (Time, Camera Notch, Wifi/Battery) */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            color: '#ffffff',
-            fontSize: '0.82rem',
-            fontWeight: 700,
-            textShadow: '0 1px 3px rgba(0,0,0,0.6)',
-            padding: '2px 4px'
-          }}>
-            <span>{currentTime || '15:58'}</span>
-            
-            {/* Camera Punch-hole */}
-            <div style={{
-              width: '12px',
-              height: '12px',
-              background: '#000000',
-              borderRadius: '50%',
-              boxShadow: '0 0 0 2px rgba(255,255,255,0.15)'
-            }} />
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Signal size={14} />
-              <Wifi size={14} />
-              <Battery size={16} />
-            </div>
-          </div>
-
           {/* Header Badges: Brand Pill (Left) & Status Badge (Right) */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            marginTop: '4px'
+            justifyContent: 'space-between'
           }}>
             {/* Left Brand Badge */}
             <div style={{

@@ -15,9 +15,6 @@ import {
   Fingerprint,
   Grid,
   X,
-  Wifi,
-  Battery,
-  Signal,
   ArrowLeft,
   User,
   HeartHandshake
