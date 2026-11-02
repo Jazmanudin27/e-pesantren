@@ -301,7 +301,7 @@ export default function KurikulumPengajianView() {
         <div className="stat-card-colored stat-card-green">
           <div>
             <div className="stat-colored-title">MAPEL / KITAB PENGAJIAN</div>
-            <div className="stat-colored-number">{allKitabOptions.length} Kitab</div>
+            <div className="stat-colored-number">{allMasterOptions.length} Kitab</div>
           </div>
           <div className="stat-colored-icon-box">
             <BookOpen size={22} />
