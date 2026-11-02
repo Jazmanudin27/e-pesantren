@@ -44,6 +44,7 @@ export default function KurikulumPengajianView() {
   const [editingMatrix, setEditingMatrix] = useState(false);
   const [tempMatrix, setTempMatrix] = useState([]);
   const [savingMatrix, setSavingMatrix] = useState(false);
+  const [masterKegiatanList, setMasterKegiatanList] = useState([]);
 
   // Data Jadwal Mengajar Asatidz
   const [jadwalList, setJadwalList] = useState([]);
@@ -113,10 +114,23 @@ export default function KurikulumPengajianView() {
     }
   };
 
+  // Fetch Master Kegiatan & Kitab
+  const fetchMasterKegiatan = async () => {
+    try {
+      const res = await axios.get('/api/materi-hafalan');
+      if (res.data?.success && res.data.data) {
+        setMasterKegiatanList(res.data.data);
+      }
+    } catch (err) {
+      console.warn('Gagal fetch master kegiatan:', err.message);
+    }
+  };
+
   useEffect(() => {
     fetchMatriks();
     fetchJadwal();
     fetchAsatidz();
+    fetchMasterKegiatan();
   }, []);
 
   // Simpan Perubahan Matriks
@@ -138,6 +152,31 @@ export default function KurikulumPengajianView() {
     const updated = [...tempMatrix];
     updated[rowIndex][colKey] = val;
     setTempMatrix(updated);
+  };
+
+  // Tambah Baris Kegiatan ke Bawah
+  const handleAddRow = () => {
+    const nextNo = tempMatrix.length + 1;
+    const newRow = {
+      no: nextNo,
+      k1: '',
+      k2: '',
+      k3: '',
+      k4: '',
+      k5: '',
+      k6: ''
+    };
+    setTempMatrix([...tempMatrix, newRow]);
+  };
+
+  // Hapus Baris Terbawah (Opsional)
+  const handleRemoveRow = (indexToRemove) => {
+    if (tempMatrix.length <= 1) return;
+    const filtered = tempMatrix.filter((_, idx) => idx !== indexToRemove).map((r, i) => ({
+      ...r,
+      no: i + 1
+    }));
+    setTempMatrix(filtered);
   };
 
   // Form Modal Handler
@@ -231,11 +270,12 @@ export default function KurikulumPengajianView() {
     return true;
   });
 
-  // Ambil daftar kitab unik dari matriks untuk pilihan otomatis
-  const allKitabOptions = Array.from(
-    new Set(
-      matrixData.flatMap((r) => [r.k1, r.k2, r.k3, r.k4, r.k5, r.k6]).filter(Boolean)
-    )
+  // Daftar Pilihan Kegiatan / Kitab (Gabungan Master Kegiatan 39 + Nilai Eksisting)
+  const allMasterOptions = Array.from(
+    new Set([
+      ...masterKegiatanList.map((m) => m.nama_materi),
+      ...matrixData.flatMap((r) => [r.k1, r.k2, r.k3, r.k4, r.k5, r.k6]).filter(Boolean)
+    ])
   ).sort().map((k) => ({ value: k, label: k }));
 
   // Kitab spesifik untuk tingkat kelas yang dipilih di form
@@ -415,13 +455,37 @@ export default function KurikulumPengajianView() {
                 fontSize: '0.78rem',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
                 gap: '8px'
               }}
             >
-              <AlertCircle size={15} />
-              <span>
-                <strong>Mode Edit Aktif:</strong> Anda dapat langsung mengetik atau mengubah nama kitab pada setiap kotak kelas. Klik tombol <strong>"Simpan Kurikulum"</strong> di kanan atas setelah selesai.
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertCircle size={15} />
+                <span>
+                  <strong>Mode Edit:</strong> Pilih kegiatan/kitab via <strong>Select Option</strong> pada tiap kelas. Tambah baris baru menggunakan tombol <strong>"+ Tambah Kegiatan Ke Bawah"</strong>.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleAddRow}
+                className="btn btn-sm"
+                style={{
+                  background: '#059669',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  fontWeight: 700,
+                  fontSize: '0.76rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                <Plus size={14} /> Tambah Kegiatan Ke Bawah (Baris {tempMatrix.length + 1})
+              </button>
             </div>
           )}
 
@@ -456,6 +520,20 @@ export default function KurikulumPengajianView() {
                       KELAS {k}
                     </th>
                   ))}
+                  {editingMatrix && (
+                    <th
+                      style={{
+                        width: '45px',
+                        textAlign: 'center',
+                        background: '#1e4620',
+                        color: '#ffffff',
+                        fontWeight: 800,
+                        border: '1px solid #4a844d'
+                      }}
+                    >
+                      AKSI
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -493,21 +571,28 @@ export default function KurikulumPengajianView() {
                           }}
                         >
                           {editingMatrix ? (
-                            <input
-                              type="text"
+                            <select
                               value={val}
                               onChange={(e) => handleCellChange(idx, `k${k}`, e.target.value)}
-                              placeholder={`- Kosong -`}
                               style={{
                                 width: '100%',
                                 padding: '6px 8px',
-                                borderRadius: '4px',
+                                borderRadius: '6px',
                                 border: '1px solid #94a3b8',
                                 fontSize: '0.8rem',
-                                fontWeight: 600,
-                                background: val ? '#ffffff' : '#f8fafc'
+                                fontWeight: val ? 700 : 400,
+                                color: val ? '#0f172a' : '#94a3b8',
+                                background: val ? '#ffffff' : '#f8fafc',
+                                cursor: 'pointer'
                               }}
-                            />
+                            >
+                              <option value="">- Kosong -</option>
+                              {allMasterOptions.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
                           ) : val ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <span
@@ -527,11 +612,80 @@ export default function KurikulumPengajianView() {
                         </td>
                       );
                     })}
+
+                    {editingMatrix && (
+                      <td
+                        style={{
+                          textAlign: 'center',
+                          border: '1px solid #cbd5e1',
+                          padding: '4px'
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveRow(idx)}
+                          disabled={tempMatrix.length <= 1}
+                          title="Hapus baris ini"
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: tempMatrix.length <= 1 ? '#cbd5e1' : '#ef4444',
+                            cursor: tempMatrix.length <= 1 ? 'not-allowed' : 'pointer',
+                            padding: '4px'
+                          }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+
+          {editingMatrix && (
+            <div
+              style={{
+                padding: '12px 18px',
+                background: '#f8fafc',
+                borderTop: '1px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}
+            >
+              <button
+                type="button"
+                onClick={handleAddRow}
+                style={{
+                  background: '#f0fdf4',
+                  color: '#15803d',
+                  border: '1px dashed #86efac',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                <Plus size={14} /> Tambah Baris Kegiatan Ke Bawah (+ Baris {tempMatrix.length + 1})
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveMatrix}
+                disabled={savingMatrix}
+                className="btn btn-primary"
+                style={{ background: '#059669', borderColor: '#059669', padding: '8px 20px', fontWeight: 800 }}
+              >
+                <Save size={14} /> {savingMatrix ? 'Menyimpan...' : 'Simpan Semua Perubahan'}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
