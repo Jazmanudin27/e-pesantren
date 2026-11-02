@@ -179,389 +179,205 @@ export default function MasterMateriView() {
   }).length;
 
   return (
-    <div style={{ padding: '4px', maxWidth: '100%', margin: '0 auto' }}>
-      
-      {/* HEADER SECTION */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '14px',
-        marginBottom: '20px',
-        background: '#ffffff',
-        padding: '18px 20px',
-        borderRadius: '12px',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-            color: '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 10px rgba(5, 150, 105, 0.25)'
-          }}>
-            <BookOpen size={24} />
-          </div>
+    <div>
+      {/* 1. TOP 4 COLORED STATS CARDS (PERSIS MASTER SANTRI) */}
+      <div className="top-stats-grid">
+        <div className="stat-card-colored stat-card-blue">
           <div>
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              Master Materi Hafalan & Kitab Kuning
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, background: '#ecfdf5', color: '#059669', padding: '2px 8px', borderRadius: '999px', border: '1px solid #a7f3d0' }}>
-                DATABASE RESMI
-              </span>
-            </h1>
-            <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '3px 0 0' }}>
-              Kelola daftar hafalan Al-Qur'an, Nadzom Nahwu, Matan Fiqih, Hadits, dan Kitab Kuning untuk mutaba'ah setoran santri
-            </p>
+            <div className="stat-colored-title">TOTAL MATERI KITAB</div>
+            <div className="stat-colored-number">{totalMateri}</div>
+          </div>
+          <div className="stat-colored-icon-box">
+            <BookOpen size={22} />
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button
-            onClick={fetchMateri}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 14px',
-              background: '#f8fafc',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              color: '#475569',
-              cursor: 'pointer'
-            }}
-            title="Refresh Data"
-          >
-            <RotateCw size={15} />
-            <span>Refresh</span>
-          </button>
-
-          <button
-            onClick={openAddForm}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 16px',
-              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '0.82rem',
-              fontWeight: 700,
-              color: '#ffffff',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(5, 150, 105, 0.28)'
-            }}
-          >
-            <Plus size={16} />
-            <span>+ Tambah Materi / Kitab</span>
-          </button>
-        </div>
-      </div>
-
-      {/* STATS OVERVIEW CARDS */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-        gap: '14px',
-        marginBottom: '20px'
-      }}>
-        {/* Card 1: Total */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '10px',
-          padding: '14px 16px',
-          border: '1px solid #e2e8f0',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
-        }}>
+        <div className="stat-card-colored stat-card-green">
           <div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>TOTAL MATERI</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{totalMateri}</div>
-            <div style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 600, marginTop: '2px' }}>Tersimpan di Sistem</div>
+            <div className="stat-colored-title">AL-QUR'AN & TAHFIDZ</div>
+            <div className="stat-colored-number">{countQuran}</div>
           </div>
-          <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Layers size={20} />
+          <div className="stat-colored-icon-box">
+            <BookmarkCheck size={22} />
           </div>
         </div>
 
-        {/* Card 2: Al-Qur'an */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '10px',
-          padding: '14px 16px',
-          border: '1px solid #e2e8f0',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
-        }}>
+        <div className="stat-card-colored stat-card-amber">
           <div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>AL-QUR'AN & TAHFIDZ</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#047857', marginTop: '2px' }}>{countQuran}</div>
-            <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>Juz & Surat Pilihan</div>
+            <div className="stat-colored-title">NAHWU & SHOROF</div>
+            <div className="stat-colored-number">{countNahwu}</div>
           </div>
-          <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#d1fae5', color: '#047857', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <BookmarkCheck size={20} />
+          <div className="stat-colored-icon-box">
+            <ScrollText size={22} />
           </div>
         </div>
 
-        {/* Card 3: Nahwu & Shorof */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '10px',
-          padding: '14px 16px',
-          border: '1px solid #e2e8f0',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
-        }}>
+        <div className="stat-card-colored stat-card-purple">
           <div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>NAHWU & SHOROF</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1d4ed8', marginTop: '2px' }}>{countNahwu}</div>
-            <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>Jurumiyah, Imrithi, Alfiyah</div>
+            <div className="stat-colored-title">FIQIH, HADITS & LAINNYA</div>
+            <div className="stat-colored-number">{countFiqihHadits}</div>
           </div>
-          <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#eff6ff', color: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <ScrollText size={20} />
-          </div>
-        </div>
-
-        {/* Card 4: Fiqih & Hadits */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '10px',
-          padding: '14px 16px',
-          border: '1px solid #e2e8f0',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
-        }}>
-          <div>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>FIQIH & HADITS</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#b45309', marginTop: '2px' }}>{countFiqihHadits}</div>
-            <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>Taqrib, Arbain, dll</div>
-          </div>
-          <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#fef3c7', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <FileSpreadsheet size={20} />
+          <div className="stat-colored-icon-box">
+            <Layers size={22} />
           </div>
         </div>
       </div>
 
-      {/* FILTER & SEARCH BAR */}
-      <div style={{
-        background: '#ffffff',
-        borderRadius: '12px',
-        border: '1px solid #e2e8f0',
-        padding: '14px 18px',
-        marginBottom: '16px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '12px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-      }}>
-        {/* Filter Tabs by Kategori */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', maxWidth: '100%', paddingBottom: '4px' }}>
-          {[
-            { id: 'semua', label: 'Semua Kategori' },
-            { id: "Al-Qur'an", label: "Al-Qur'an" },
-            { id: 'Nahwu & Shorof', label: 'Nahwu & Shorof' },
-            { id: "Fiqih Syafi'i", label: "Fiqih Syafi'i" },
-            { id: 'Hadits Nabawi', label: 'Hadits Nabawi' },
-            { id: 'Aqidah & Tauhid', label: 'Aqidah & Tauhid' },
-            { id: 'Tajwid', label: 'Tajwid' }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setFilterKategori(tab.id)}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: filterKategori === tab.id ? '1px solid #059669' : '1px solid #cbd5e1',
-                background: filterKategori === tab.id ? '#ecfdf5' : '#ffffff',
-                color: filterKategori === tab.id ? '#065f46' : '#475569',
-                fontSize: '0.76rem',
-                fontWeight: filterKategori === tab.id ? 700 : 500,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
+      {/* 2. TITLE STRIP (PERSIS MASTER SANTRI) */}
+      <div className="page-title-strip">
+        <div className="page-title-left">
+          <BookOpen size={22} className="page-title-icon" style={{ color: '#0284c7' }} />
+          <div>
+            <h2>Data Master Materi Hafalan & Kitab Kuning</h2>
+            <p>Kelola daftar hafalan Al-Qur'an, Nadzom Nahwu, Matan Fiqih, Hadits, dan Kitab Kuning untuk mutaba'ah santri</p>
+          </div>
         </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="btn btn-outline" onClick={fetchMateri}>
+            <RotateCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
+          </button>
+          <button className="btn btn-primary" onClick={openAddForm}>
+            <Plus size={14} /> Tambah Materi / Kitab Baru
+          </button>
+        </div>
+      </div>
 
-        {/* Search Bar */}
-        <div style={{ position: 'relative', minWidth: '260px' }}>
-          <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+      {/* 3. TAB FILTER BAR (PERSIS MASTER SANTRI) */}
+      <div className="tab-filter-bar">
+        {[
+          { id: 'semua', label: `Semua Materi (${totalMateri})` },
+          { id: "Al-Qur'an", label: `Al-Qur'an (${countQuran})` },
+          { id: 'Nahwu & Shorof', label: `Nahwu & Shorof (${countNahwu})` },
+          { id: "Fiqih Syafi'i", label: "Fiqih Syafi'i" },
+          { id: 'Hadits Nabawi', label: 'Hadits Nabawi' },
+          { id: 'Aqidah & Tauhid', label: 'Aqidah & Tauhid' },
+          { id: 'Tajwid', label: 'Tajwid' }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            className={`tab-btn ${filterKategori === tab.id ? 'active' : ''}`}
+            onClick={() => setFilterKategori(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 4. FILTER SEARCH BAR STRIP (PERSIS MASTER SANTRI) */}
+      <div className="filter-search-box">
+        <div className="filter-search-input">
+          <Search size={15} color="#94a3b8" />
           <input
             type="text"
+            placeholder="Cari nama materi, kitab, atau bait..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari materi, kitab, atau bait..."
-            style={{
-              width: '100%',
-              padding: '7px 12px 7px 32px',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px',
-              fontSize: '0.8rem',
-              boxSizing: 'border-box'
-            }}
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
+
+        <select
+          className="filter-select"
+          value={filterKategori}
+          onChange={(e) => setFilterKategori(e.target.value)}
+        >
+          <option value="semua">Semua Kategori Bidang</option>
+          {KATEGORI_OPTIONS.map(k => (
+            <option key={k.value} value={k.value}>{k.label}</option>
+          ))}
+        </select>
       </div>
 
-      {/* TABLE DATA MASTER MATERI */}
-      <div style={{
-        background: '#ffffff',
-        borderRadius: '12px',
-        border: '1px solid #e2e8f0',
-        overflow: 'hidden',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-      }}>
+      {/* 5. DATA TABLE (PERSIS MASTER SANTRI) */}
+      <div className="table-container-card">
         {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-            <Loader2 size={28} className="animate-spin" style={{ margin: '0 auto 10px', color: '#059669' }} />
-            <p style={{ fontSize: '0.85rem' }}>Memuat master data materi hafalan & kitab...</p>
+          <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
+            <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 8px', display: 'block' }} />
+            Memuat data master materi hafalan & kitab...
           </div>
         ) : filteredList.length === 0 ? (
           <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
             <BookOpen size={36} style={{ margin: '0 auto 10px', color: '#cbd5e1' }} />
-            <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#334155', margin: '0 0 4px' }}>Tidak Ada Data Materi</h3>
-            <p style={{ fontSize: '0.8rem', margin: 0 }}>Belum ada materi hafalan yang cocok dengan pencarian / filter.</p>
+            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>Tidak Ada Data Materi</div>
+            <div style={{ fontSize: '0.75rem', marginTop: '4px' }}>Belum ada materi yang cocok dengan pencarian atau filter kategori.</div>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700, fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                  <th style={{ padding: '12px 16px', width: '48px', textAlign: 'center' }}>No</th>
-                  <th style={{ padding: '12px 16px' }}>Nama Materi / Kitab</th>
-                  <th style={{ padding: '12px 16px' }}>Kategori Bidang</th>
-                  <th style={{ padding: '12px 16px' }}>Target Capaian</th>
-                  <th style={{ padding: '12px 16px' }}>Keterangan & Deskripsi</th>
-                  <th style={{ padding: '12px 16px', width: '120px', textAlign: 'center' }}>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredList.map((item, index) => {
-                  const badge = getBadgeStyle(item.kategori);
-                  return (
-                    <tr 
-                      key={item.id}
-                      style={{
-                        borderBottom: '1px solid #f1f5f9',
-                        transition: 'background-color 0.15s ease'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
-                      <td style={{ padding: '12px 16px', textAlign: 'center', color: '#64748b', fontWeight: 600 }}>
-                        {index + 1}
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.88rem' }}>
-                          {item.nama_materi}
-                        </div>
-                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '1px' }}>
-                          ID Master: #{item.id}
-                        </div>
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span style={{
-                          display: 'inline-block',
-                          padding: '3px 10px',
-                          borderRadius: '12px',
-                          fontSize: '0.72rem',
-                          fontWeight: 700,
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th className="td-center" style={{ width: '40px' }}>NO</th>
+                <th>NAMA MATERI / KITAB KUNING</th>
+                <th>KATEGORI BIDANG</th>
+                <th>TARGET CAPAIAN</th>
+                <th>KETERANGAN / DESKRIPSI</th>
+                <th className="td-center" style={{ width: '120px' }}>AKSI</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredList.map((item, index) => {
+                const badge = getBadgeStyle(item.kategori);
+                return (
+                  <tr key={item.id || index}>
+                    <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
+                      {index + 1}
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 700, color: '#0f172a' }}>{item.nama_materi}</div>
+                      <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>Kode: #{item.id}</div>
+                    </td>
+                    <td>
+                      <span
+                        className="badge"
+                        style={{
                           background: badge.bg,
                           color: badge.color,
                           border: `1px solid ${badge.border}`
-                        }}>
-                          {item.kategori || 'Kitab Kuning'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '3px 8px',
-                          borderRadius: '6px',
-                          fontSize: '0.74rem',
-                          fontWeight: 600,
-                          background: '#f1f5f9',
-                          color: '#334155',
-                          border: '1px solid #e2e8f0'
-                        }}>
-                          🎯 {item.target_hafalan || 'Sesuai Kurikulum'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px 16px', color: '#475569', fontSize: '0.78rem', maxWidth: '300px' }}>
+                        }}
+                      >
+                        {item.kategori || 'Kitab Kuning'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="badge badge-info" style={{ fontWeight: 600 }}>
+                        🎯 {item.target_hafalan || 'Sesuai Kurikulum'}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ fontSize: '0.74rem', color: '#334155', maxWidth: '300px' }}>
                         {item.deskripsi || '-'}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                          <button
-                            onClick={() => openEditForm(item)}
-                            style={{
-                              padding: '5px 8px',
-                              borderRadius: '6px',
-                              background: '#eff6ff',
-                              color: '#1d4ed8',
-                              border: '1px solid #bfdbfe',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              fontSize: '0.72rem',
-                              fontWeight: 600
-                            }}
-                            title="Edit Materi"
-                          >
-                            <Edit3 size={13} />
-                            <span>Edit</span>
-                          </button>
-
-                          <button
-                            onClick={() => handleDelete(item)}
-                            style={{
-                              padding: '5px 8px',
-                              borderRadius: '6px',
-                              background: '#fef2f2',
-                              color: '#b91c1c',
-                              border: '1px solid #fecaca',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}
-                            title="Hapus Materi"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    </td>
+                    <td className="td-center">
+                      <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
+                        <button
+                          className="btn-action btn-action-edit"
+                          onClick={() => openEditForm(item)}
+                          title="Edit Materi"
+                        >
+                          <Edit3 size={13} />
+                        </button>
+                        <button
+                          className="btn-action btn-action-delete"
+                          onClick={() => handleDelete(item)}
+                          title="Hapus Materi"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </div>
 
