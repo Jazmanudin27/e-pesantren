@@ -51,6 +51,32 @@ export default function KeuanganAdminView() {
   const [processingPay, setProcessingPay] = useState(false);
   const [generatingAuto, setGeneratingAuto] = useState(false);
 
+  // State Form Auto-Generate Tagihan SPP Bulanan (Persis Artanita)
+  const [autoGenForm, setAutoGenForm] = useState({
+    komponen_id: '',
+    mode_generasi: 'looping', // 'looping' | 'single'
+    bulan_mulai: '7',
+    tahun_mulai: '2026',
+    bulan_selesai: '6',
+    tahun_selesai: '2027',
+    filter_kamar: ''
+  });
+
+  const NAMA_BULAN_MAP = {
+    '1': 'Januari',
+    '2': 'Februari',
+    '3': 'Maret',
+    '4': 'April',
+    '5': 'Mei',
+    '6': 'Juni',
+    '7': 'Juli',
+    '8': 'Agustus',
+    '9': 'September',
+    '10': 'Oktober',
+    '11': 'November',
+    '12': 'Desember'
+  };
+
   // Data Rekap Global & Master Komponen
   const [loadingRekap, setLoadingRekap] = useState(false);
   const [dataRekap, setDataRekap] = useState({
@@ -94,6 +120,20 @@ export default function KeuanganAdminView() {
   });
 
   const formatRupiah = (val) => `Rp ${Math.round(parseFloat(val || 0)).toLocaleString('id-ID')}`;
+
+  // Helper formatting angka ribuan (titik) untuk input nominal
+  const formatNumberWithSeparator = (val) => {
+    if (val === undefined || val === null || val === '') return '';
+    const clean = String(val).replace(/\D/g, '');
+    if (!clean) return '';
+    return parseInt(clean, 10).toLocaleString('id-ID');
+  };
+
+  const parseNumberFromFormatted = (formattedStr) => {
+    if (!formattedStr) return 0;
+    const clean = String(formattedStr).replace(/\D/g, '');
+    return clean ? parseInt(clean, 10) : 0;
+  };
 
   // Tutup dropdown pencarian santri saat klik di luar
   useEffect(() => {
@@ -224,7 +264,8 @@ export default function KeuanganAdminView() {
 
   // Ubah Nominal Bayar (Cicilan / Sebagian) pada Input Baris
   const handleChangeNominalBayar = (billId, maxSisa, rawVal) => {
-    const num = Math.max(0, Math.min(maxSisa, parseFloat(rawVal) || 0));
+    const parsed = typeof rawVal === 'string' ? parseNumberFromFormatted(rawVal) : (parseFloat(rawVal) || 0);
+    const num = Math.max(0, Math.min(maxSisa, parsed));
     setSelectedPayMap((prev) => ({
       ...prev,
       [billId]: num
@@ -313,12 +354,43 @@ export default function KeuanganAdminView() {
     }
   };
 
-  // Handler Generate Auto Tagihan (1 Tahun Ajaran untuk Semua Santri / Santri Ini)
-  const handleGenerateAutoTagihan = async (mode = 'all') => {
-    const label = mode === 'all' ? 'SELURUH SANTRI AKTIF' : (santriProfile?.nama_santri || 'Santri Terpilih');
+  // Handler Buka Halaman Auto-Generate Tagihan SPP Bulanan (Persis Artanita)
+  const openAutoGeneratePage = () => {
+    const defaultKomp =
+      (dataRekap.komponenBiaya || []).find((k) => k.kategori === 'Bulanan') ||
+      dataRekap.komponenBiaya?.[0];
+    setAutoGenForm((prev) => ({
+      ...prev,
+      komponen_id: prev.komponen_id || (defaultKomp ? String(defaultKomp.id) : '')
+    }));
+    setViewMode('generate');
+  };
+
+  // Handler Submit Form Auto-Generate Tagihan SPP Bulanan
+  const handleSubmitAutoGenerate = async (e) => {
+    e.preventDefault();
+    if (!autoGenForm.komponen_id) {
+      showError('Pilih Pos & Tarif', 'Silakan pilih Pos & Tarif Pembayaran terlebih dahulu.');
+      return;
+    }
+
+    const selKomp = (dataRekap.komponenBiaya || []).find(
+      (k) => String(k.id) === String(autoGenForm.komponen_id)
+    );
+    const rentangLabel =
+      autoGenForm.mode_generasi === 'single'
+        ? `${NAMA_BULAN_MAP[autoGenForm.bulan_mulai]} ${autoGenForm.tahun_mulai}`
+        : `${NAMA_BULAN_MAP[autoGenForm.bulan_mulai]} ${autoGenForm.tahun_mulai} s/d ${NAMA_BULAN_MAP[autoGenForm.bulan_selesai]} ${autoGenForm.tahun_selesai}`;
+
+    const filterLabel = !autoGenForm.filter_kamar
+      ? 'Seluruh Santri Aktif'
+      : autoGenForm.filter_kamar.startsWith('SANTRI:')
+      ? `Santri: ${activeSantriObj?.nama_santri || 'Terpilih'}`
+      : `Kamar/Asrama: ${autoGenForm.filter_kamar}`;
+
     const ok = await showConfirm(
-      'Generate Auto Tagihan Otomatis?',
-      `Sistem akan menerbitkan otomatis Tagihan SPP Rutin Bulanan (Oktober 2026 s/d Juni 2027) dan Tagihan Tipe Bebas (Non-Bulanan) untuk ${label}. Tagihan yang sudah ada tidak akan digandakan.`,
+      'Konfirmasi Auto-Generate Tagihan',
+      `Buat tagihan "${selKomp?.nama_komponen || 'SPP'}" (${formatRupiah(selKomp?.nominal_default || 0)}) periode ${rentangLabel} untuk ${filterLabel}? Tagihan yang sudah ada akan dilewati (tidak duplikat).`,
       'Ya, Generate Sekarang',
       'Batal'
     );
@@ -327,16 +399,23 @@ export default function KeuanganAdminView() {
     try {
       setGeneratingAuto(true);
       const res = await axios.post('/api/keuangan/admin/generate-auto', {
-        mode,
-        santri_id: selectedSantriId ? parseInt(selectedSantriId) : null
+        komponen_id: parseInt(autoGenForm.komponen_id),
+        mode_generasi: autoGenForm.mode_generasi,
+        bulan_mulai: parseInt(autoGenForm.bulan_mulai),
+        tahun_mulai: parseInt(autoGenForm.tahun_mulai),
+        bulan_selesai: parseInt(autoGenForm.bulan_selesai),
+        tahun_selesai: parseInt(autoGenForm.tahun_selesai),
+        filter_kamar: autoGenForm.filter_kamar
       });
+
       if (res.data?.success) {
-        toastSuccess('Generate Selesai!', res.data.message);
+        toastSuccess('Auto-Generate Berhasil!', res.data.message);
         if (selectedSantriId) await fetchSantriTagihan(selectedSantriId);
         await fetchRekap();
+        setViewMode('kasir');
       }
     } catch (err) {
-      showError('Gagal Generate', err.response?.data?.message || err.message);
+      showError('Gagal Auto-Generate', err.response?.data?.message || err.message);
     } finally {
       setGeneratingAuto(false);
     }
@@ -557,6 +636,26 @@ export default function KeuanganAdminView() {
 
           <button
             type="button"
+            onClick={openAutoGeneratePage}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: viewMode === 'generate' ? '1px solid #0284c7' : '1px solid #cbd5e1',
+              background: viewMode === 'generate' ? '#0284c7' : '#ffffff',
+              color: viewMode === 'generate' ? '#ffffff' : '#334155',
+              fontWeight: 800,
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <RotateCw size={14} /> Auto-Generate Tagihan SPP
+          </button>
+
+          <button
+            type="button"
             onClick={() => setIsKomponenModalOpen(true)}
             style={{
               padding: '8px 14px',
@@ -579,8 +678,7 @@ export default function KeuanganAdminView() {
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button
             type="button"
-            disabled={generatingAuto}
-            onClick={() => handleGenerateAutoTagihan('all')}
+            onClick={openAutoGeneratePage}
             style={{
               padding: '8px 14px',
               borderRadius: '8px',
@@ -596,7 +694,7 @@ export default function KeuanganAdminView() {
               boxShadow: '0 2px 6px rgba(5, 150, 105, 0.25)'
             }}
           >
-            <Zap size={14} /> {generatingAuto ? 'Generating...' : 'Generate Auto Tagihan'}
+            <RotateCw size={14} /> Auto-Generate Tagihan SPP Bulanan
           </button>
 
           <button
@@ -620,6 +718,412 @@ export default function KeuanganAdminView() {
           </button>
         </div>
       </div>
+
+      {/* =========================================================================
+          VIEW 0: AUTO-GENERATE TAGIHAN SPP BULANAN (PERSIS SCREENSHOT ARTANITA)
+      ========================================================================= */}
+      {viewMode === 'generate' && (
+        <div
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '14px',
+            maxWidth: '720px',
+            padding: '28px 30px',
+            boxShadow: '0 4px 20px rgba(15, 23, 42, 0.05)'
+          }}
+        >
+          {/* Header Judul */}
+          <div style={{ marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid #f1f5f9' }}>
+            <h2
+              style={{
+                margin: 0,
+                fontSize: '1.15rem',
+                fontWeight: 800,
+                color: '#0f172a',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}
+            >
+              <RotateCw size={20} color="#0284c7" />
+              Auto-Generate Tagihan SPP Bulanan
+            </h2>
+            <p style={{ margin: '6px 0 0 0', fontSize: '0.82rem', color: '#64748b', lineHeight: 1.5 }}>
+              Sistem akan membuat tagihan SPP bulanan secara otomatis untuk seluruh santri aktif sesuai tarif dan periode yang ditentukan.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmitAutoGenerate} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            {/* 1. Pilih Pos & Tarif Pembayaran */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155' }}>
+                  Pilih Pos & Tarif Pembayaran <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsKomponenModalOpen(true)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#0284c7',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    padding: 0
+                  }}
+                >
+                  + Kelola Pos & Tarif
+                </button>
+              </div>
+              <SearchableSelect
+                options={(dataRekap.komponenBiaya || []).map((k) => ({
+                  value: String(k.id),
+                  label: k.nama_komponen,
+                  sublabel: `${formatRupiah(k.nominal_default)} • ${k.kategori === 'Bulanan' ? 'Rutin Bulanan' : 'Satu Kali Bayar / Bebas'}`
+                }))}
+                value={autoGenForm.komponen_id}
+                onChange={(val) => setAutoGenForm({ ...autoGenForm, komponen_id: val })}
+                placeholder="-- Pilih atau cari Pos & Tarif --"
+                searchPlaceholder="Ketik cari nama pos atau kategori..."
+              />
+            </div>
+
+            {/* 2. Mode Generasi Tagihan */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
+                Mode Generasi Tagihan <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                {/* Card Mode 1: Rentang Bulan Custom (Looping) */}
+                <div
+                  onClick={() => setAutoGenForm({ ...autoGenForm, mode_generasi: 'looping' })}
+                  style={{
+                    padding: '14px 16px',
+                    borderRadius: '10px',
+                    border: autoGenForm.mode_generasi === 'looping' ? '2px solid #0284c7' : '1px solid #cbd5e1',
+                    background: autoGenForm.mode_generasi === 'looping' ? '#f0f9ff' : '#ffffff',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '7px',
+                      fontWeight: 800,
+                      fontSize: '0.84rem',
+                      color: autoGenForm.mode_generasi === 'looping' ? '#0369a1' : '#0f172a'
+                    }}
+                  >
+                    <span
+                      style={{
+                        background: '#0284c7',
+                        color: '#fff',
+                        borderRadius: '5px',
+                        padding: '2px 5px',
+                        fontSize: '0.7rem',
+                        display: 'inline-flex',
+                        alignItems: 'center'
+                      }}
+                    >
+                      🔁
+                    </span>
+                    Rentang Bulan Custom (Looping)
+                  </div>
+                  <div style={{ fontSize: '0.73rem', color: '#64748b', marginTop: '4px' }}>
+                    Misal: Juli 2026 s/d Juni 2027 (1 Tahun Ajaran)
+                  </div>
+                </div>
+
+                {/* Card Mode 2: Per 1 Bulan (Single) */}
+                <div
+                  onClick={() => setAutoGenForm({ ...autoGenForm, mode_generasi: 'single' })}
+                  style={{
+                    padding: '14px 16px',
+                    borderRadius: '10px',
+                    border: autoGenForm.mode_generasi === 'single' ? '2px solid #0284c7' : '1px solid #cbd5e1',
+                    background: autoGenForm.mode_generasi === 'single' ? '#f0f9ff' : '#ffffff',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '7px',
+                      fontWeight: 800,
+                      fontSize: '0.84rem',
+                      color: autoGenForm.mode_generasi === 'single' ? '#0369a1' : '#0f172a'
+                    }}
+                  >
+                    <span style={{ fontSize: '0.85rem' }}>📅</span>
+                    Per 1 Bulan (Single)
+                  </div>
+                  <div style={{ fontSize: '0.73rem', color: '#64748b', marginTop: '4px' }}>
+                    Generate hanya untuk 1 bulan spesifik
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Box Rentang Bulan Custom (Looping) / Single Bulan */}
+            <div
+              style={{
+                border: '1.5px solid #bae6fd',
+                borderRadius: '12px',
+                padding: '18px 20px',
+                background: '#ffffff'
+              }}
+            >
+              <div
+                style={{
+                  fontWeight: 800,
+                  fontSize: '0.84rem',
+                  color: '#0369a1',
+                  marginBottom: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '7px'
+                }}
+              >
+                <span>📅</span>
+                {autoGenForm.mode_generasi === 'looping'
+                  ? 'Rentang Bulan Custom (Looping Auto-Generate)'
+                  : 'Pilih Periode Bulan Spesifik (Single)'}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#475569', marginBottom: '5px' }}>
+                    {autoGenForm.mode_generasi === 'looping' ? 'Dari Bulan (Mulai) *' : 'Bulan Tagihan *'}
+                  </label>
+                  <select
+                    value={autoGenForm.bulan_mulai}
+                    onChange={(e) => setAutoGenForm({ ...autoGenForm, bulan_mulai: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      background: '#ffffff',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      color: '#0f172a',
+                      outline: 'none'
+                    }}
+                  >
+                    {Object.entries(NAMA_BULAN_MAP).map(([num, nama]) => (
+                      <option key={num} value={num}>
+                        {num} - {nama}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#475569', marginBottom: '5px' }}>
+                    {autoGenForm.mode_generasi === 'looping' ? 'Tahun Mulai *' : 'Tahun Tagihan *'}
+                  </label>
+                  <input
+                    type="number"
+                    min="2024"
+                    max="2035"
+                    value={autoGenForm.tahun_mulai}
+                    onChange={(e) => setAutoGenForm({ ...autoGenForm, tahun_mulai: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      background: '#ffffff',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      color: '#0f172a',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                {autoGenForm.mode_generasi === 'looping' && (
+                  <>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#475569', marginBottom: '5px' }}>
+                        Sampai Bulan (Selesai) *
+                      </label>
+                      <select
+                        value={autoGenForm.bulan_selesai}
+                        onChange={(e) => setAutoGenForm({ ...autoGenForm, bulan_selesai: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: '9px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          background: '#ffffff',
+                          fontSize: '0.82rem',
+                          fontWeight: 600,
+                          color: '#0f172a',
+                          outline: 'none'
+                        }}
+                      >
+                        {Object.entries(NAMA_BULAN_MAP).map(([num, nama]) => (
+                          <option key={num} value={num}>
+                            {num} - {nama}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#475569', marginBottom: '5px' }}>
+                        Tahun Selesai *
+                      </label>
+                      <input
+                        type="number"
+                        min="2024"
+                        max="2035"
+                        value={autoGenForm.tahun_selesai}
+                        onChange={(e) => setAutoGenForm({ ...autoGenForm, tahun_selesai: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: '9px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          background: '#ffffff',
+                          fontSize: '0.82rem',
+                          fontWeight: 600,
+                          color: '#0f172a',
+                          outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Info Box Looping Otomatis */}
+              <div
+                style={{
+                  marginTop: '14px',
+                  background: '#f0f9ff',
+                  border: '1px solid #e0f2fe',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  fontSize: '0.76rem',
+                  color: '#0369a1',
+                  lineHeight: 1.5
+                }}
+              >
+                {autoGenForm.mode_generasi === 'looping' ? (
+                  <>
+                    💡 <strong>Looping otomatis:</strong> Sistem akan membuat tagihan per bulan mulai dari{' '}
+                    <strong>
+                      {NAMA_BULAN_MAP[autoGenForm.bulan_mulai]} {autoGenForm.tahun_mulai}
+                    </strong>{' '}
+                    sampai{' '}
+                    <strong>
+                      {NAMA_BULAN_MAP[autoGenForm.bulan_selesai]} {autoGenForm.tahun_selesai}
+                    </strong>
+                    . Tagihan yang sudah pernah ada akan dilewati (tidak akan duplikat).
+                  </>
+                ) : (
+                  <>
+                    💡 <strong>Single periode:</strong> Sistem akan membuat tagihan untuk periode{' '}
+                    <strong>
+                      {NAMA_BULAN_MAP[autoGenForm.bulan_mulai]} {autoGenForm.tahun_mulai}
+                    </strong>
+                    . Tagihan yang sudah pernah ada akan dilewati (tidak akan duplikat).
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* 4. Filter Kamar / Kelas (Opsional) */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                Filter Kamar / Asrama (Opsional)
+              </label>
+              <SearchableSelect
+                options={[
+                  { value: '', label: '-- Semua Kamar / Asrama (Semua Santri Aktif) --', sublabel: `${santriList.length} Santri` },
+                  ...Array.from(
+                    new Set(
+                      santriList
+                        .map((s) => s.nama_asrama || s.nama_kamar)
+                        .filter(Boolean)
+                    )
+                  ).map((kmr) => ({
+                    value: kmr,
+                    label: `Kamar / Asrama: ${kmr}`,
+                    sublabel: 'Filter kelompok'
+                  })),
+                  ...(activeSantriObj?.id
+                    ? [
+                        {
+                          value: `SANTRI:${activeSantriObj.id}`,
+                          label: `Hanya Santri: ${activeSantriObj.nama_santri}`,
+                          sublabel: `NIS: ${activeSantriObj.nis || '-'}`
+                        }
+                      ]
+                    : [])
+                ]}
+                value={autoGenForm.filter_kamar}
+                onChange={(val) => setAutoGenForm({ ...autoGenForm, filter_kamar: val })}
+                placeholder="-- Pilih Kamar / Asrama atau Santri Spesifik --"
+                searchPlaceholder="Ketik cari nama kamar/asrama..."
+              />
+            </div>
+
+            {/* 5. Tombol Submit Auto-Generate */}
+            <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+              <button
+                type="submit"
+                disabled={generatingAuto}
+                style={{
+                  flex: 1,
+                  padding: '12px 20px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: '#0284c7',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '0.88rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)'
+                }}
+              >
+                <RotateCw size={16} />
+                {generatingAuto ? 'Sedang Memproses Auto-Generate...' : 'Proses Auto-Generate Tagihan Sekarang'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('kasir')}
+                style={{
+                  padding: '12px 18px',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  background: '#f8fafc',
+                  color: '#475569',
+                  fontWeight: 700,
+                  fontSize: '0.84rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Kembali ke Kasir
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* =========================================================================
           VIEW 1: KASIR & INPUT PEMBAYARAN SANTRI (PERSIS SCREENSHOT ARTANITA)
@@ -891,9 +1395,9 @@ export default function KeuanganAdminView() {
                         </th>
                         <th style={{ width: '240px' }}>POS PEMBAYARAN</th>
                         <th>TIPE & PERIODE TAGIHAN</th>
-                        <th style={{ width: '160px' }}>NOMINAL TAGIHAN</th>
-                        <th style={{ width: '160px' }}>SISA TAGIHAN</th>
-                        <th style={{ width: '210px' }}>NOMINAL BAYAR (RP)</th>
+                        <th style={{ width: '160px', textAlign: 'right' }}>NOMINAL TAGIHAN</th>
+                        <th style={{ width: '160px', textAlign: 'right' }}>SISA TAGIHAN</th>
+                        <th style={{ width: '220px', textAlign: 'right' }}>NOMINAL BAYAR (RP)</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -975,33 +1479,36 @@ export default function KeuanganAdminView() {
                               )}
                             </td>
 
-                            <td style={{ fontWeight: 700, color: '#1e293b' }}>
+                            <td style={{ fontWeight: 700, color: '#1e293b', textAlign: 'right' }}>
                               {formatRupiah(b.total_tagihan)}
                             </td>
 
-                            <td style={{ fontWeight: 800, color: '#dc2626' }}>
+                            <td style={{ fontWeight: 800, color: '#dc2626', textAlign: 'right' }}>
                               {formatRupiah(sisa)}
                             </td>
 
-                            <td onClick={(e) => e.stopPropagation()}>
+                            <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'right' }}>
                               {isChecked ? (
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max={sisa}
-                                  value={selectedPayMap[b.id]}
-                                  onChange={(e) => handleChangeNominalBayar(b.id, sisa, e.target.value)}
-                                  style={{
-                                    width: '100%',
-                                    padding: '6px 10px',
-                                    borderRadius: '6px',
-                                    border: '1.5px solid #0284c7',
-                                    fontWeight: 800,
-                                    fontSize: '0.8rem',
-                                    color: '#0f172a',
-                                    background: '#ffffff'
-                                  }}
-                                />
+                                <div style={{ display: 'inline-flex', alignItems: 'center', width: '100%', maxWidth: '200px' }}>
+                                  <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', marginRight: '6px' }}>Rp</span>
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={formatNumberWithSeparator(selectedPayMap[b.id])}
+                                    onChange={(e) => handleChangeNominalBayar(b.id, sisa, e.target.value)}
+                                    style={{
+                                      width: '100%',
+                                      padding: '6px 10px',
+                                      borderRadius: '6px',
+                                      border: '1.5px solid #0284c7',
+                                      fontWeight: 800,
+                                      fontSize: '0.84rem',
+                                      color: '#0f172a',
+                                      background: '#ffffff',
+                                      textAlign: 'right'
+                                    }}
+                                  />
+                                </div>
                               ) : (
                                 <span style={{ color: '#94a3b8' }}>-</span>
                               )}
@@ -1109,9 +1616,9 @@ export default function KeuanganAdminView() {
                         </th>
                         <th style={{ width: '240px' }}>POS PEMBAYARAN</th>
                         <th>TIPE & PERIODE TAGIHAN</th>
-                        <th style={{ width: '160px' }}>NOMINAL TAGIHAN</th>
-                        <th style={{ width: '160px' }}>SISA TAGIHAN</th>
-                        <th style={{ width: '210px' }}>NOMINAL BAYAR (RP)</th>
+                        <th style={{ width: '160px', textAlign: 'right' }}>NOMINAL TAGIHAN</th>
+                        <th style={{ width: '160px', textAlign: 'right' }}>SISA TAGIHAN</th>
+                        <th style={{ width: '220px', textAlign: 'right' }}>NOMINAL BAYAR (RP)</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1170,35 +1677,38 @@ export default function KeuanganAdminView() {
                               </div>
                             </td>
 
-                            <td style={{ fontWeight: 700, color: '#1e293b' }}>
+                            <td style={{ fontWeight: 700, color: '#1e293b', textAlign: 'right' }}>
                               {formatRupiah(b.total_tagihan)}
                             </td>
 
-                            <td style={{ fontWeight: 800, color: '#dc2626' }}>
+                            <td style={{ fontWeight: 800, color: '#dc2626', textAlign: 'right' }}>
                               {formatRupiah(sisa)}
                             </td>
 
-                            <td onClick={(e) => e.stopPropagation()}>
+                            <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'right' }}>
                               {isChecked ? (
-                                <div>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    max={sisa}
-                                    value={selectedPayMap[b.id]}
-                                    onChange={(e) => handleChangeNominalBayar(b.id, sisa, e.target.value)}
-                                    style={{
-                                      width: '100%',
-                                      padding: '6px 10px',
-                                      borderRadius: '6px',
-                                      border: '1.5px solid #d97706',
-                                      fontWeight: 800,
-                                      fontSize: '0.8rem',
-                                      color: '#0f172a',
-                                      background: '#ffffff'
-                                    }}
-                                  />
-                                  <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+                                <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', width: '100%', maxWidth: '200px' }}>
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', width: '100%' }}>
+                                    <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b', marginRight: '6px' }}>Rp</span>
+                                    <input
+                                      type="text"
+                                      inputMode="numeric"
+                                      value={formatNumberWithSeparator(selectedPayMap[b.id])}
+                                      onChange={(e) => handleChangeNominalBayar(b.id, sisa, e.target.value)}
+                                      style={{
+                                        width: '100%',
+                                        padding: '6px 10px',
+                                        borderRadius: '6px',
+                                        border: '1.5px solid #d97706',
+                                        fontWeight: 800,
+                                        fontSize: '0.84rem',
+                                        color: '#0f172a',
+                                        background: '#ffffff',
+                                        textAlign: 'right'
+                                      }}
+                                    />
+                                  </div>
+                                  <div style={{ display: 'flex', gap: '4px', marginTop: '4px', width: '100%', justifyContent: 'flex-end' }}>
                                     {[
                                       { label: '50%', val: Math.round(sisa * 0.5) },
                                       { label: 'Lunas', val: sisa }
@@ -1868,13 +2378,27 @@ export default function KeuanganAdminView() {
                       <label style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', display: 'block', marginBottom: '8px' }}>
                         4. Nominal Total Tagihan (Rp) *
                       </label>
-                      <input
-                        type="number"
-                        required
-                        value={formTagihan.total_tagihan}
-                        onChange={(e) => setFormTagihan({ ...formTagihan, total_tagihan: e.target.value })}
-                        style={{ width: '100%', padding: '11px 14px', borderRadius: '10px', border: '1.5px solid #cbd5e1', fontSize: '1.05rem', fontWeight: 800, boxSizing: 'border-box' }}
-                      />
+                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <span style={{ position: 'absolute', left: '14px', fontSize: '0.9rem', fontWeight: 700, color: '#64748b' }}>Rp</span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          required
+                          value={formatNumberWithSeparator(formTagihan.total_tagihan)}
+                          onChange={(e) => setFormTagihan({ ...formTagihan, total_tagihan: String(parseNumberFromFormatted(e.target.value)) })}
+                          placeholder="0"
+                          style={{
+                            width: '100%',
+                            padding: '11px 14px 11px 44px',
+                            borderRadius: '10px',
+                            border: '1.5px solid #cbd5e1',
+                            fontSize: '1.05rem',
+                            fontWeight: 800,
+                            boxSizing: 'border-box',
+                            textAlign: 'right'
+                          }}
+                        />
+                      </div>
                     </div>
 
                     <div style={{ background: '#ffffff', borderRadius: '14px', padding: '18px', border: '1px solid #e2e8f0' }}>
@@ -1916,12 +2440,24 @@ export default function KeuanganAdminView() {
                           <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#92400e', display: 'block', marginBottom: '4px' }}>
                             Nominal Cicilan Dibayar (Rp)
                           </label>
-                          <input
-                            type="number"
-                            value={formTagihan.sudah_dibayar}
-                            onChange={(e) => setFormTagihan({ ...formTagihan, sudah_dibayar: e.target.value })}
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #f59e0b', fontWeight: 800, boxSizing: 'border-box' }}
-                          />
+                          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <span style={{ position: 'absolute', left: '12px', fontSize: '0.85rem', fontWeight: 700, color: '#b45309' }}>Rp</span>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={formatNumberWithSeparator(formTagihan.sudah_dibayar)}
+                              onChange={(e) => setFormTagihan({ ...formTagihan, sudah_dibayar: String(parseNumberFromFormatted(e.target.value)) })}
+                              style={{
+                                width: '100%',
+                                padding: '10px 12px 10px 42px',
+                                borderRadius: '8px',
+                                border: '1.5px solid #f59e0b',
+                                fontWeight: 800,
+                                boxSizing: 'border-box',
+                                textAlign: 'right'
+                              }}
+                            />
+                          </div>
                         </div>
                       )}
                     </div>

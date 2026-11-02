@@ -115,10 +115,15 @@ export const getDashboardKeuanganWali = async (req, res) => {
 
     const santri = santriRows[0] || {};
 
-    // Cek apakah santri belum punya tagihan sama sekali -> jika belum, auto-generate!
-    const [countCheck] = await pool.query('SELECT COUNT(*) as total FROM keuangan_tagihan WHERE santri_id = ?', [santriId]);
-    if (!countCheck[0] || countCheck[0].total === 0) {
-      await ensureAutoTagihanForSantri(santriId);
+    // Pastikan master komponen minimal tersedia di database
+    const [kompCheck] = await pool.query('SELECT COUNT(*) as total FROM keuangan_komponen_biaya');
+    if (!kompCheck[0] || kompCheck[0].total === 0) {
+      await pool.query(`
+        INSERT INTO keuangan_komponen_biaya (kode_komponen, nama_komponen, kategori, nominal_default, deskripsi, is_active)
+        VALUES
+          ('SPP-BLN', 'SPP Bulanan', 'Bulanan', 350000, 'Tagihan SPP & Syahriah Rutin Bulanan', 1),
+          ('DSP-MSK', 'Uang Pangkal & Daftar Ulang', 'Biaya Masuk', 1500000, 'Tagihan Tipe Bebas Non-Bulanan (Bisa Dicicil)', 1)
+      `);
     }
 
     // 1. Ambil Seluruh Tagihan Santri
@@ -825,28 +830,195 @@ export const deleteKomponenAdmin = async (req, res) => {
 };
 
 /**
- * Admin: Generate Auto Tagihan (1 Santri atau Seluruh Santri Aktif)
+ * Admin: Auto-Generate Tagihan SPP Bulanan / Custom Periode (Looping Rentang Bulan atau Single Bulan)
  */
 export const generateAutoTagihanAdmin = async (req, res) => {
   const connection = await pool.getConnection();
   try {
-    const { santri_id, mode } = req.body; // mode: 'single' | 'all'
+    const {
+      komponen_id,
+      mode_generasi = 'looping', // 'looping' | 'single'
+      bulan_mulai = 7,
+      tahun_mulai = 2026,
+      bulan_selesai = 6,
+      tahun_selesai = 2027,
+      filter_kamar = '', // '' = Semua Kamar/Asrama (Semua Santri Aktif), atau nama_asrama, atau 'SANTRI:<id>'
+      santri_id
+    } = req.body;
+
     await connection.beginTransaction();
 
-    let totalGenerated = 0;
-    if (mode === 'all' || !santri_id) {
-      const [allSantri] = await connection.query('SELECT id FROM santri ORDER BY id ASC');
-      for (const s of allSantri) {
-        totalGenerated += await ensureAutoTagihanForSantri(s.id, connection);
+    // Fallback jika dipanggil tanpa komponen_id
+    if (!komponen_id) {
+      let totalGenerated = 0;
+      if (!santri_id) {
+        const [allSantri] = await connection.query('SELECT id FROM santri ORDER BY id ASC');
+        for (const s of allSantri) {
+          totalGenerated += await ensureAutoTagihanForSantri(s.id, connection);
+        }
+      } else {
+        totalGenerated += await ensureAutoTagihanForSantri(santri_id, connection);
       }
+      await connection.commit();
+      return sendSuccess(res, `Auto-Generate Tagihan selesai (${totalGenerated} tagihan baru diterbitkan)`, {
+        total_generated: totalGenerated,
+        total_skipped: 0
+      });
+    }
+
+    // 1. Ambil Detail Pos & Tarif Pembayaran
+    const [kompRows] = await connection.query('SELECT * FROM keuangan_komponen_biaya WHERE id = ? LIMIT 1', [komponen_id]);
+    if (!kompRows || kompRows.length === 0) {
+      await connection.rollback();
+      return sendError(res, 'Pos & Tarif Pembayaran tidak ditemukan', 404);
+    }
+    const komp = kompRows[0];
+    const nominal = parseFloat(komp.nominal_default || 0);
+
+    // 2. Bangun daftar periode bulan yang akan di-generate
+    const NAMA_BULAN = [
+      '',
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember'
+    ];
+
+    const daftarPeriode = [];
+    const bMulai = Math.min(12, Math.max(1, parseInt(bulan_mulai) || 7));
+    const tMulai = parseInt(tahun_mulai) || 2026;
+    const bSelesai = Math.min(12, Math.max(1, parseInt(bulan_selesai) || 6));
+    const tSelesai = parseInt(tahun_selesai) || 2027;
+
+    if (mode_generasi === 'single') {
+      const namaBln = NAMA_BULAN[bMulai];
+      daftarPeriode.push({
+        periode_bulan: `${namaBln} ${tMulai}`,
+        jatuh_tempo: `${tMulai}-${String(bMulai).padStart(2, '0')}-10`,
+        prefix: `${String(tMulai).slice(-2)}${String(bMulai).padStart(2, '0')}`
+      });
     } else {
-      totalGenerated += await ensureAutoTagihanForSantri(santri_id, connection);
+      // Looping dari (tMulai, bMulai) s/d (tSelesai, bSelesai) maksimal 36 bulan
+      let curY = tMulai;
+      let curM = bMulai;
+      let safety = 0;
+      while ((curY < tSelesai || (curY === tSelesai && curM <= bSelesai)) && safety < 36) {
+        const namaBln = NAMA_BULAN[curM];
+        daftarPeriode.push({
+          periode_bulan: `${namaBln} ${curY}`,
+          jatuh_tempo: `${curY}-${String(curM).padStart(2, '0')}-10`,
+          prefix: `${String(curY).slice(-2)}${String(curM).padStart(2, '0')}`
+        });
+        curM++;
+        if (curM > 12) {
+          curM = 1;
+          curY++;
+        }
+        safety++;
+      }
+    }
+
+    if (daftarPeriode.length === 0) {
+      await connection.rollback();
+      return sendError(res, 'Rentang bulan tidak valid (Bulan/Tahun mulai harus sebelum atau sama dengan Bulan/Tahun selesai)', 400);
+    }
+
+    // 3. Ambil daftar santri target sesuai filter kamar/kelas
+    let santriQuery = `
+      SELECT s.id, s.nama_santri, a.nama_asrama, k.nama_kamar
+      FROM santri s
+      LEFT JOIN asrama a ON s.asrama_id = a.id
+      LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+      WHERE 1=1
+    `;
+    const queryParams = [];
+
+    if (santri_id) {
+      santriQuery += ' AND s.id = ?';
+      queryParams.push(santri_id);
+    } else if (filter_kamar && String(filter_kamar).startsWith('SANTRI:')) {
+      const sId = String(filter_kamar).replace('SANTRI:', '');
+      santriQuery += ' AND s.id = ?';
+      queryParams.push(sId);
+    } else if (filter_kamar && filter_kamar.trim() !== '') {
+      santriQuery += ' AND (a.nama_asrama = ? OR k.nama_kamar = ?)';
+      queryParams.push(filter_kamar.trim(), filter_kamar.trim());
+    }
+
+    santriQuery += ' ORDER BY s.id ASC';
+    const [targetSantri] = await connection.query(santriQuery, queryParams);
+
+    if (!targetSantri || targetSantri.length === 0) {
+      await connection.rollback();
+      return sendError(res, 'Tidak ada santri aktif yang sesuai dengan filter tersebut', 404);
+    }
+
+    // 4. Loop setiap santri & setiap periode bulan -> lewati yang sudah ada (anti duplikat)
+    let totalGenerated = 0;
+    let totalSkipped = 0;
+
+    for (const s of targetSantri) {
+      const [existingRows] = await connection.query(
+        'SELECT id, komponen_id, judul_tagihan, periode_bulan FROM keuangan_tagihan WHERE santri_id = ?',
+        [s.id]
+      );
+
+      for (let i = 0; i < daftarPeriode.length; i++) {
+        const p = daftarPeriode[i];
+        const isDuplicate = (existingRows || []).some(
+          (r) =>
+            (String(r.komponen_id) === String(komp.id) ||
+              String(r.judul_tagihan || '').toLowerCase() === String(komp.nama_komponen || '').toLowerCase()) &&
+            String(r.periode_bulan || '').toLowerCase() === p.periode_bulan.toLowerCase()
+        );
+
+        if (isDuplicate) {
+          totalSkipped++;
+          continue;
+        }
+
+        const randSuffix = String(s.id).padStart(2, '0') + String(i + 1).padStart(2, '0');
+        const invCode = `INV-${p.prefix}${randSuffix}`;
+
+        await connection.query(
+          `INSERT INTO keuangan_tagihan
+           (kode_tagihan, santri_id, komponen_id, judul_tagihan, kategori, periode_bulan, total_tagihan, sudah_dibayar, sisa_tagihan, status, jatuh_tempo)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 0.00, ?, 'Belum Dibayar', ?)`,
+          [
+            invCode,
+            s.id,
+            komp.id,
+            komp.nama_komponen,
+            komp.kategori || 'Bulanan',
+            p.periode_bulan,
+            nominal,
+            nominal,
+            p.jatuh_tempo
+          ]
+        );
+        totalGenerated++;
+      }
     }
 
     await connection.commit();
-    return sendSuccess(res, `Generate Auto Tagihan selesai (${totalGenerated} item tagihan baru diterbitkan)`, {
-      total_generated: totalGenerated
-    });
+    return sendSuccess(
+      res,
+      `Berhasil menerbitkan ${totalGenerated} tagihan baru untuk ${targetSantri.length} santri (${totalSkipped} duplikat dilewati).`,
+      {
+        total_generated: totalGenerated,
+        total_skipped: totalSkipped,
+        total_santri: targetSantri.length,
+        periode_count: daftarPeriode.length
+      }
+    );
   } catch (err) {
     await connection.rollback();
     return sendError(res, `Gagal generate auto tagihan: ${err.message}`, 500);
