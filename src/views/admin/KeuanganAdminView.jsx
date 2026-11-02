@@ -167,11 +167,8 @@ export default function KeuanganAdminView() {
         });
       }
 
-      if (sList.length > 0 && !selectedSantriId) {
-        const first = sList[0];
-        setSelectedSantriId(String(first.id));
-        setSantriSearchText(`${first.nama_santri} (${first.nis || '-'})`);
-      }
+      // Biarkan kosong di awal agar kasir mencari nama santri terlebih dahulu
+      // (Tidak auto-select santri pertama)
     } catch (err) {
       console.warn('Gagal memuat data awal keuangan:', err.message);
     }
@@ -286,6 +283,20 @@ export default function KeuanganAdminView() {
           next[b.id] = Math.round(parseFloat(b.sisa_tagihan || 0));
         });
       }
+      return next;
+    });
+  };
+
+  // Pilih N Bulan Pertama / Kedepan SPP Bulanan (misal 3 bulan atau semua)
+  const handleSelectMonthsCount = (count) => {
+    setSelectedPayMap((prev) => {
+      const next = { ...prev };
+      // Bersihkan seleksi SPP bulanan dulu
+      tagihanBulanan.forEach((b) => delete next[b.id]);
+      const targetBills = count === 'all' ? tagihanBulanan : tagihanBulanan.slice(0, count);
+      targetBills.forEach((b) => {
+        next[b.id] = Math.round(parseFloat(b.sisa_tagihan || 0));
+      });
       return next;
     });
   };
@@ -988,6 +999,11 @@ export default function KeuanganAdminView() {
                   type="button"
                   onClick={() => {
                     setSantriSearchText('');
+                    setSelectedSantriId('');
+                    setTagihanBulanan([]);
+                    setTagihanBebas([]);
+                    setRiwayatSantri([]);
+                    setSelectedPayMap({});
                     setIsSantriDropdownOpen(true);
                   }}
                   style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
@@ -1045,41 +1061,78 @@ export default function KeuanganAdminView() {
               )}
             </div>
 
-            {/* Profil Ringkas Santri Aktif */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 4px', flexWrap: 'wrap' }}>
-              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>
-                {activeSantriObj.nama_santri || 'Pilih Santri'}
+            {/* Profil Ringkas Santri Aktif (Hanya jika santri sudah dipilih) */}
+            {selectedSantriId && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 4px', flexWrap: 'wrap' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>
+                  {activeSantriObj.nama_santri}
+                </div>
+                <span className="badge badge-info" style={{ fontSize: '0.65rem' }}>
+                  NIS: {activeSantriObj.nis || '-'}
+                </span>
+                <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>
+                  {activeSantriObj.nama_asrama || 'Asrama Pondok'}
+                </span>
               </div>
-              <span className="badge badge-info" style={{ fontSize: '0.65rem' }}>
-                NIS: {activeSantriObj.nis || '-'}
-              </span>
-              <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>
-                {activeSantriObj.nama_asrama || 'Asrama Pondok'}
-              </span>
-            </div>
+            )}
 
-            {/* Tab Sub: Tagihan vs Riwayat Bayar */}
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
-              <button
-                type="button"
-                className={`btn btn-sm ${santriSubTab === 'tagihan' ? 'btn-primary' : 'btn-outline'}`}
-                onClick={() => setSantriSubTab('tagihan')}
-                style={{ padding: '4px 10px', fontSize: '0.72rem', fontWeight: 700 }}
-              >
-                Tagihan Belum Lunas ({totalUnpaidCount})
-              </button>
-              <button
-                type="button"
-                className={`btn btn-sm ${santriSubTab === 'riwayat' ? 'btn-primary' : 'btn-outline'}`}
-                onClick={() => setSantriSubTab('riwayat')}
-                style={{ padding: '4px 10px', fontSize: '0.72rem', fontWeight: 700 }}
-              >
-                <History size={12} /> Riwayat ({riwayatSantri.length})
-              </button>
-            </div>
+            {/* Tab Sub: Tagihan vs Riwayat Bayar (Hanya jika santri sudah dipilih) */}
+            {selectedSantriId && (
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${santriSubTab === 'tagihan' ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => setSantriSubTab('tagihan')}
+                  style={{ padding: '4px 10px', fontSize: '0.72rem', fontWeight: 700 }}
+                >
+                  Tagihan Belum Lunas ({totalUnpaidCount})
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${santriSubTab === 'riwayat' ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => setSantriSubTab('riwayat')}
+                  style={{ padding: '4px 10px', fontSize: '0.72rem', fontWeight: 700 }}
+                >
+                  <History size={12} /> Riwayat ({riwayatSantri.length})
+                </button>
+              </div>
+            )}
           </div>
 
-          {loadingSantriBill ? (
+          {!selectedSantriId ? (
+            <div
+              className="table-container-card"
+              style={{
+                padding: '48px 24px',
+                textAlign: 'center',
+                background: '#ffffff',
+                border: '1px dashed #cbd5e1',
+                borderRadius: '12px'
+              }}
+            >
+              <div
+                style={{
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '50%',
+                  background: '#f0f9ff',
+                  color: '#0284c7',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 14px'
+                }}
+              >
+                <Search size={26} />
+              </div>
+              <h4 style={{ margin: '0 0 6px 0', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+                Cari & Pilih Nama Santri Terlebih Dahulu
+              </h4>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', maxWidth: '420px', marginInline: 'auto' }}>
+                Ketik nama atau NIS santri pada kolom pencarian di atas untuk memuat tagihan SPP bulanan, tunggakan, serta riwayat pembayarannya.
+              </p>
+            </div>
+          ) : loadingSantriBill ? (
             <div className="table-container-card" style={{ padding: '32px', textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>
               Memuat data tagihan santri...
             </div>
@@ -1108,31 +1161,68 @@ export default function KeuanganAdminView() {
                     </span>
 
                     {tagihanBulanan.length > 0 && (
-                      <label
-                        onClick={handleToggleAllBulanan}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          background: '#ffffff',
-                          border: '1px solid #cbd5e1',
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                          fontSize: '0.68rem',
-                          fontWeight: 700,
-                          color: '#334155',
-                          cursor: 'pointer',
-                          userSelect: 'none'
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={allBulananSelected}
-                          onChange={() => {}}
-                          style={{ accentColor: '#0284c7', cursor: 'pointer' }}
-                        />
-                        Pilih Semua (Pelunasan Sekaligus)
-                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectMonthsCount(3)}
+                          style={{
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            border: '1px solid #93c5fd',
+                            background: '#eff6ff',
+                            color: '#1d4ed8',
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                          title="Pilih 3 Bulan SPP Pertama / Kedepan"
+                        >
+                          ⚡ Bayar 3 Bulan
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectMonthsCount('all')}
+                          style={{
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            border: '1px solid #86efac',
+                            background: '#f0fdf4',
+                            color: '#15803d',
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                          title="Pilih Seluruh Bulan SPP yang Belum Lunas"
+                        >
+                          ⚡ Full Bulanan Kedepan
+                        </button>
+
+                        <label
+                          onClick={handleToggleAllBulanan}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: '#ffffff',
+                            border: '1px solid #cbd5e1',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            color: '#334155',
+                            cursor: 'pointer',
+                            userSelect: 'none'
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={allBulananSelected}
+                            onChange={() => {}}
+                            style={{ accentColor: '#0284c7', cursor: 'pointer' }}
+                          />
+                          Pilih Semua
+                        </label>
+                      </div>
                     )}
                   </div>
 
