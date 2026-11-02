@@ -479,46 +479,103 @@ export const getRekapKeuanganAdmin = async (req, res) => {
  * Admin: Buat Tagihan Baru untuk Santri
  */
 export const createTagihanAdmin = async (req, res) => {
+  const connection = await pool.getConnection();
   try {
     if (req.user && !canAccessKeuangan(req.user)) {
       return sendError(res, 'Akses Ditolak: Fitur keuangan khusus untuk Admin Keuangan / Bendahara.', 403);
     }
 
-    const { santri_id, komponen_id, judul_tagihan, total_tagihan, periode_bulan, jatuh_tempo } = req.body;
+    const {
+      santri_id,
+      komponen_id,
+      judul_tagihan,
+      total_tagihan,
+      sudah_dibayar,
+      periode_bulan,
+      jatuh_tempo,
+      metode_pembayaran
+    } = req.body;
 
     if (!santri_id || !komponen_id || !total_tagihan) {
       return sendError(res, 'Santri, Komponen, dan Nominal Tagihan wajib diisi', 400);
     }
 
-    const [kompRows] = await pool.query('SELECT kategori, nama_komponen FROM keuangan_komponen_biaya WHERE id = ?', [komponen_id]);
+    await connection.beginTransaction();
+
+    const [kompRows] = await connection.query('SELECT kategori, nama_komponen FROM keuangan_komponen_biaya WHERE id = ?', [komponen_id]);
     const komp = kompRows[0] || { kategori: 'Lainnya', nama_komponen: 'Tagihan' };
 
     const kodeTagihan = `TGH-${santri_id}-${Date.now().toString().slice(-6)}`;
-    const judul = judul_tagihan || `${komp.nama_komponen} ${periode_bulan || ''}`.trim();
-    const nominal = parseFloat(total_tagihan);
+    const judul = (judul_tagihan && judul_tagihan.trim())
+      ? judul_tagihan.trim()
+      : `${komp.nama_komponen}${periode_bulan ? ` - ${periode_bulan}` : ''}`.trim();
 
-    await pool.query(`
+    const nominal = Math.max(0, parseFloat(total_tagihan) || 0);
+    const dibayar = Math.min(nominal, Math.max(0, parseFloat(sudah_dibayar) || 0));
+    const sisa = Math.max(0, nominal - dibayar);
+    const finalStatus = sisa <= 0 ? 'Lunas' : dibayar > 0 ? 'Cicilan' : 'Belum Dibayar';
+
+    const [insRes] = await connection.query(`
       INSERT INTO keuangan_tagihan 
       (kode_tagihan, santri_id, komponen_id, judul_tagihan, kategori, periode_bulan, total_tagihan, sudah_dibayar, sisa_tagihan, status, jatuh_tempo)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 0.00, ?, 'Belum Dibayar', ?)
-    `, [kodeTagihan, santri_id, komponen_id, judul, komp.kategori, periode_bulan || null, nominal, nominal, jatuh_tempo || null]);
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [kodeTagihan, santri_id, komponen_id, judul, komp.kategori, periode_bulan || null, nominal, dibayar, sisa, finalStatus, jatuh_tempo || null]);
 
-    return sendSuccess(res, 'Tagihan santri berhasil diterbitkan', { kode_tagihan: kodeTagihan });
+    const tagihanId = insRes.insertId;
+
+    // Jika langsung ada pembayaran (Cicilan / Lunas), catat ke Log Transaksi & Kuitansi
+    if (dibayar > 0) {
+      const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const rand4 = Math.floor(1000 + Math.random() * 9000);
+      const nomorTrx = `TRX-${datePart}-${rand4}`;
+      const kuitansiNo = `KWT/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${rand4}`;
+      const metode = metode_pembayaran || 'Tunai / Kasir';
+
+      const [trxRes] = await connection.query(`
+        INSERT INTO keuangan_transaksi_pembayaran
+        (nomor_transaksi, santri_id, metode_pembayaran, channel_pembayaran, total_bayar, status_pembayaran, tanggal_bayar, kuitansi_nomor, keterangan)
+        VALUES (?, ?, ?, ?, ?, 'Berhasil', NOW(), ?, ?)
+      `, [nomorTrx, santri_id, metode.includes('QRIS') ? 'QRIS' : 'Virtual Account', metode, dibayar, kuitansiNo, `Pembayaran ${finalStatus}: ${judul}`]);
+
+      await connection.query(`
+        INSERT INTO keuangan_transaksi_detail (transaksi_id, tagihan_id, nominal_alokasi)
+        VALUES (?, ?, ?)
+      `, [trxRes.insertId, tagihanId, dibayar]);
+    }
+
+    await connection.commit();
+    return sendSuccess(res, 'Tagihan santri berhasil diterbitkan', { kode_tagihan: kodeTagihan, id: tagihanId });
   } catch (err) {
+    await connection.rollback();
     return sendError(res, `Gagal membuat tagihan: ${err.message}`, 500);
+  } finally {
+    connection.release();
   }
 };
 
 /**
- * Admin: Update Tagihan Santri
+ * Admin: Update Tagihan Santri (Termasuk Tambah Cicilan / Pelunasan)
  */
 export const updateTagihanAdmin = async (req, res) => {
+  const connection = await pool.getConnection();
   try {
     const { id } = req.params;
-    const { santri_id, komponen_id, judul_tagihan, total_tagihan, sudah_dibayar, periode_bulan, jatuh_tempo, status } = req.body;
+    const {
+      santri_id,
+      komponen_id,
+      judul_tagihan,
+      total_tagihan,
+      sudah_dibayar,
+      periode_bulan,
+      jatuh_tempo,
+      metode_pembayaran
+    } = req.body;
 
-    const [existingRows] = await pool.query('SELECT * FROM keuangan_tagihan WHERE id = ?', [id]);
+    await connection.beginTransaction();
+
+    const [existingRows] = await connection.query('SELECT * FROM keuangan_tagihan WHERE id = ? FOR UPDATE', [id]);
     if (!existingRows || existingRows.length === 0) {
+      await connection.rollback();
       return sendError(res, 'Tagihan tidak ditemukan', 404);
     }
     const existing = existingRows[0];
@@ -526,19 +583,24 @@ export const updateTagihanAdmin = async (req, res) => {
     let kategori = existing.kategori;
     let namaKomponen = existing.judul_tagihan;
     if (komponen_id) {
-      const [kompRows] = await pool.query('SELECT kategori, nama_komponen FROM keuangan_komponen_biaya WHERE id = ?', [komponen_id]);
+      const [kompRows] = await connection.query('SELECT kategori, nama_komponen FROM keuangan_komponen_biaya WHERE id = ?', [komponen_id]);
       if (kompRows && kompRows.length > 0) {
         kategori = kompRows[0].kategori;
         namaKomponen = kompRows[0].nama_komponen;
       }
     }
 
-    const total = total_tagihan !== undefined ? parseFloat(total_tagihan) : parseFloat(existing.total_tagihan);
-    const dibayar = sudah_dibayar !== undefined ? parseFloat(sudah_dibayar) : parseFloat(existing.sudah_dibayar || 0);
-    const sisa = Math.max(0, total - dibayar);
-    const finalStatus = status || (sisa <= 0 ? 'Lunas' : dibayar > 0 ? 'Sebagian' : 'Belum Dibayar');
+    const periodeVal = periode_bulan !== undefined ? periode_bulan : existing.periode_bulan;
+    const autoJudul = (judul_tagihan && judul_tagihan.trim())
+      ? judul_tagihan.trim()
+      : `${namaKomponen}${periodeVal ? ` - ${periodeVal}` : ''}`.trim();
 
-    await pool.query(`
+    const total = total_tagihan !== undefined ? Math.max(0, parseFloat(total_tagihan) || 0) : parseFloat(existing.total_tagihan);
+    const dibayar = sudah_dibayar !== undefined ? Math.min(total, Math.max(0, parseFloat(sudah_dibayar) || 0)) : parseFloat(existing.sudah_dibayar || 0);
+    const sisa = Math.max(0, total - dibayar);
+    const finalStatus = sisa <= 0 ? 'Lunas' : dibayar > 0 ? 'Cicilan' : 'Belum Dibayar';
+
+    await connection.query(`
       UPDATE keuangan_tagihan SET
         santri_id = ?,
         komponen_id = ?,
@@ -554,9 +616,9 @@ export const updateTagihanAdmin = async (req, res) => {
     `, [
       santri_id || existing.santri_id,
       komponen_id || existing.komponen_id,
-      judul_tagihan || namaKomponen,
+      autoJudul,
       kategori,
-      periode_bulan !== undefined ? periode_bulan : existing.periode_bulan,
+      periodeVal,
       total,
       dibayar,
       sisa,
@@ -565,9 +627,43 @@ export const updateTagihanAdmin = async (req, res) => {
       id
     ]);
 
+    // Jika ada penambahan pembayaran baru (cicilan baru / pelunasan), catat ke Log Transaksi
+    const prevDibayar = parseFloat(existing.sudah_dibayar || 0);
+    const selisihBayar = dibayar - prevDibayar;
+    if (selisihBayar > 0) {
+      const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const rand4 = Math.floor(1000 + Math.random() * 9000);
+      const nomorTrx = `TRX-${datePart}-${rand4}`;
+      const kuitansiNo = `KWT/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${rand4}`;
+      const metode = metode_pembayaran || 'Tunai / Kasir';
+
+      const [trxRes] = await connection.query(`
+        INSERT INTO keuangan_transaksi_pembayaran
+        (nomor_transaksi, santri_id, metode_pembayaran, channel_pembayaran, total_bayar, status_pembayaran, tanggal_bayar, kuitansi_nomor, keterangan)
+        VALUES (?, ?, ?, ?, ?, 'Berhasil', NOW(), ?, ?)
+      `, [
+        nomorTrx,
+        santri_id || existing.santri_id,
+        metode.includes('QRIS') ? 'QRIS' : 'Virtual Account',
+        metode,
+        selisihBayar,
+        kuitansiNo,
+        `Pembayaran ${finalStatus}: ${autoJudul}`
+      ]);
+
+      await connection.query(`
+        INSERT INTO keuangan_transaksi_detail (transaksi_id, tagihan_id, nominal_alokasi)
+        VALUES (?, ?, ?)
+      `, [trxRes.insertId, id, selisihBayar]);
+    }
+
+    await connection.commit();
     return sendSuccess(res, 'Tagihan berhasil diperbarui');
   } catch (err) {
+    await connection.rollback();
     return sendError(res, `Gagal memperbarui tagihan: ${err.message}`, 500);
+  } finally {
+    connection.release();
   }
 };
 

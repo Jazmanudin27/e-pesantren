@@ -55,6 +55,9 @@ export default function KeuanganAdminView() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formMode, setFormMode] = useState('add');
   const [submitting, setSubmitting] = useState(false);
+  const [modalFilterTipe, setModalFilterTipe] = useState('Semua'); // 'Semua' | 'Bulanan' | 'Sekali Bayar'
+  const [skemaBayar, setSkemaBayar] = useState('belum'); // 'belum' | 'cicil' | 'lunas'
+  const [metodeBayarForm, setMetodeBayarForm] = useState('Tunai / Kasir');
   const initialFormTagihan = {
     id: null,
     santri_id: '',
@@ -118,28 +121,40 @@ export default function KeuanganAdminView() {
   // Handlers Tagihan
   const openAddTagihan = () => {
     const firstKomp = data.komponenBiaya?.[0];
+    const isBulanan = !firstKomp || firstKomp.kategori === 'Bulanan';
+    const defaultPeriode = isBulanan ? 'November 2026' : 'TA 2026/2027 (Satu Kali Bayar)';
     setFormMode('add');
+    setModalFilterTipe('Semua');
+    setSkemaBayar('belum');
+    setMetodeBayarForm('Tunai / Kasir');
     setFormTagihan({
       ...initialFormTagihan,
       santri_id: santriList[0]?.id || '',
-      komponen_id: firstKomp?.id || '',
-      judul_tagihan: firstKomp ? `${firstKomp.nama_komponen} November 2026` : '',
-      total_tagihan: firstKomp ? String(firstKomp.nominal_default || '') : ''
+      komponen_id: firstKomp?.id ? String(firstKomp.id) : '',
+      judul_tagihan: firstKomp ? `${firstKomp.nama_komponen} - ${defaultPeriode}` : '',
+      periode_bulan: defaultPeriode,
+      total_tagihan: firstKomp ? String(parseFloat(firstKomp.nominal_default || 0)) : '',
+      sudah_dibayar: '0'
     });
     setIsModalOpen(true);
   };
 
   const openEditTagihan = (item) => {
+    const tot = parseFloat(item.total_tagihan || 0);
+    const dib = parseFloat(item.sudah_dibayar || 0);
     setFormMode('edit');
+    setModalFilterTipe('Semua');
+    setSkemaBayar(dib >= tot && tot > 0 ? 'lunas' : dib > 0 ? 'cicil' : 'belum');
+    setMetodeBayarForm('Tunai / Kasir');
     setFormTagihan({
       id: item.id,
       santri_id: item.santri_id,
-      komponen_id: item.komponen_id || '',
+      komponen_id: item.komponen_id ? String(item.komponen_id) : '',
       judul_tagihan: item.judul_tagihan || '',
-      total_tagihan: String(item.total_tagihan || 0),
-      sudah_dibayar: String(item.sudah_dibayar || 0),
-      periode_bulan: item.periode_bulan || '',
-      jatuh_tempo: item.jatuh_tempo ? String(item.jatuh_tempo).slice(0, 10) : '',
+      total_tagihan: String(tot),
+      sudah_dibayar: String(dib),
+      periode_bulan: item.periode_bulan || 'November 2026',
+      jatuh_tempo: item.jatuh_tempo ? String(item.jatuh_tempo).slice(0, 10) : new Date().toISOString().slice(0, 10),
       status: item.status || 'Belum Dibayar'
     });
     setIsModalOpen(true);
@@ -156,17 +171,39 @@ export default function KeuanganAdminView() {
       showError('Validasi Gagal', 'Santri, Komponen Biaya, dan Nominal wajib diisi');
       return;
     }
+
+    const selKomp = (data.komponenBiaya || []).find(k => String(k.id) === String(formTagihan.komponen_id));
+    const autoJudul = selKomp
+      ? `${selKomp.nama_komponen}${formTagihan.periode_bulan ? ` - ${formTagihan.periode_bulan}` : ''}`
+      : formTagihan.judul_tagihan;
+
+    const totalNum = Math.max(0, parseFloat(formTagihan.total_tagihan) || 0);
+    const dibayarNum =
+      skemaBayar === 'lunas'
+        ? totalNum
+        : skemaBayar === 'belum'
+        ? 0
+        : Math.min(totalNum, Math.max(0, parseFloat(formTagihan.sudah_dibayar) || 0));
+
+    const payload = {
+      ...formTagihan,
+      judul_tagihan: autoJudul,
+      total_tagihan: totalNum,
+      sudah_dibayar: dibayarNum,
+      metode_pembayaran: metodeBayarForm
+    };
+
     try {
       setSubmitting(true);
       if (formMode === 'add') {
-        const res = await axios.post('/api/keuangan/admin/tagihan', formTagihan);
+        const res = await axios.post('/api/keuangan/admin/tagihan', payload);
         if (res.data?.success) {
-          toastSuccess('Berhasil!', 'Tagihan baru berhasil diterbitkan untuk santri');
+          toastSuccess('Berhasil!', 'Tagihan & status pembayaran santri berhasil disimpan');
         }
       } else {
-        const res = await axios.put(`/api/keuangan/admin/tagihan/${formTagihan.id}`, formTagihan);
+        const res = await axios.put(`/api/keuangan/admin/tagihan/${formTagihan.id}`, payload);
         if (res.data?.success) {
-          toastSuccess('Berhasil!', 'Data tagihan santri berhasil diperbarui');
+          toastSuccess('Berhasil!', 'Data tagihan & cicilan santri berhasil diperbarui');
         }
       }
       setIsModalOpen(false);
@@ -904,187 +941,716 @@ export default function KeuanganAdminView() {
       )}
 
       {/* ==================================================== */}
-      {/* MODAL BUAT / EDIT TAGIHAN SANTRI                     */}
+      {/* MODAL FULL-SCREEN / WIDE BUAT & EDIT TAGIHAN SANTRI  */}
       {/* ==================================================== */}
-      {isModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '16px'
-        }}>
+      {isModalOpen && (() => {
+        const selectedSantriObj = santriList.find(s => String(s.id) === String(formTagihan.santri_id));
+        const selectedKompObj = (data.komponenBiaya || []).find(k => String(k.id) === String(formTagihan.komponen_id));
+        const isBulananKomp = !selectedKompObj || selectedKompObj.kategori === 'Bulanan';
+
+        const filteredModalKomponen = (data.komponenBiaya || []).filter(k => {
+          if (modalFilterTipe === 'Bulanan') return k.kategori === 'Bulanan';
+          if (modalFilterTipe === 'Sekali Bayar') return k.kategori !== 'Bulanan';
+          return true;
+        });
+
+        const totalNum = Math.max(0, parseFloat(formTagihan.total_tagihan) || 0);
+        const dibayarNum =
+          skemaBayar === 'lunas'
+            ? totalNum
+            : skemaBayar === 'belum'
+            ? 0
+            : Math.min(totalNum, Math.max(0, parseFloat(formTagihan.sudah_dibayar) || 0));
+        const sisaNum = Math.max(0, totalNum - dibayarNum);
+        const persenLunas = totalNum > 0 ? Math.min(100, Math.round((dibayarNum / totalNum) * 100)) : 0;
+
+        const autoJudulPreview = selectedKompObj
+          ? `${selectedKompObj.nama_komponen}${formTagihan.periode_bulan ? ` - ${formTagihan.periode_bulan}` : ''}`
+          : (formTagihan.judul_tagihan || 'Pilih Komponen Biaya');
+
+        return (
           <div style={{
-            background: '#fff',
-            borderRadius: '14px',
-            width: '100%',
-            maxWidth: '540px',
-            overflow: 'hidden',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.25)'
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.72)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '16px'
           }}>
             <div style={{
-              padding: '15px 20px',
-              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-              color: '#fff',
+              background: '#f8fafc',
+              borderRadius: '18px',
+              width: '96vw',
+              maxWidth: '1160px',
+              minHeight: '82vh',
+              maxHeight: '94vh',
               display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
+              flexDirection: 'column',
+              overflow: 'hidden',
+              boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.45)',
+              border: '1px solid #cbd5e1'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <CreditCard size={18} />
-                <span style={{ fontWeight: 800, fontSize: '0.98rem' }}>
-                  {formMode === 'add' ? 'Buat Tagihan Baru Santri' : 'Edit Tagihan Santri'}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', cursor: 'pointer', padding: '5px', borderRadius: '6px', display: 'flex' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSimpanTagihan} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
-                  Pilih Santri *
-                </label>
-                <SearchableSelect
-                  options={santriList.map(s => ({
-                    value: s.id,
-                    label: s.nama_santri,
-                    sublabel: `NIS: ${s.nis} • ${s.nama_asrama || 'Asrama'}`
-                  }))}
-                  value={formTagihan.santri_id}
-                  onChange={(val) => setFormTagihan({ ...formTagihan, santri_id: val })}
-                  placeholder="-- Pilih atau cari santri --"
-                  searchPlaceholder="Ketik nama atau NIS santri..."
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
-                  Komponen Biaya *
-                </label>
-                <select
-                  value={formTagihan.komponen_id}
-                  onChange={(e) => {
-                    const sel = (data.komponenBiaya || []).find(k => String(k.id) === e.target.value);
-                    setFormTagihan({
-                      ...formTagihan,
-                      komponen_id: e.target.value,
-                      total_tagihan: sel ? String(sel.nominal_default) : formTagihan.total_tagihan,
-                      judul_tagihan: sel ? `${sel.nama_komponen} ${formTagihan.periode_bulan || ''}`.trim() : formTagihan.judul_tagihan
-                    });
-                  }}
-                  required
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem' }}
-                >
-                  <option value="">-- Pilih Komponen Biaya --</option>
-                  {(data.komponenBiaya || []).map(k => (
-                    <option key={k.id} value={k.id}>{k.nama_komponen} ({k.kategori} - {formatRupiah(k.nominal_default)})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
-                    Judul Tagihan *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Contoh: SPP Bulanan November 2026"
-                    value={formTagihan.judul_tagihan}
-                    onChange={(e) => setFormTagihan({ ...formTagihan, judul_tagihan: e.target.value })}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
-                    Periode Bulan
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: November 2026"
-                    value={formTagihan.periode_bulan}
-                    onChange={(e) => setFormTagihan({ ...formTagihan, periode_bulan: e.target.value })}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: formMode === 'edit' ? '1fr 1fr 1fr' : '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
-                    Total Tagihan (Rp) *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    value={formTagihan.total_tagihan}
-                    onChange={(e) => setFormTagihan({ ...formTagihan, total_tagihan: e.target.value })}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                {formMode === 'edit' && (
-                  <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
-                      Sudah Dibayar (Rp)
-                    </label>
-                    <input
-                      type="number"
-                      value={formTagihan.sudah_dibayar}
-                      onChange={(e) => setFormTagihan({ ...formTagihan, sudah_dibayar: e.target.value })}
-                      style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', boxSizing: 'border-box' }}
-                    />
+              {/* Header Modal Fullscreen */}
+              <div style={{
+                padding: '16px 24px',
+                background: 'linear-gradient(135deg, #064e3b 0%, #047857 55%, #059669 100%)',
+                color: '#ffffff',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottom: '1px solid rgba(255,255,255,0.15)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '10px',
+                    background: 'rgba(255,255,255,0.18)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <CreditCard size={22} />
                   </div>
-                )}
-
-                <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
-                    Jatuh Tempo
-                  </label>
-                  <input
-                    type="date"
-                    value={formTagihan.jatuh_tempo}
-                    onChange={(e) => setFormTagihan({ ...formTagihan, jatuh_tempo: e.target.value })}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', boxSizing: 'border-box' }}
-                  />
+                  <div>
+                    <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.1rem', letterSpacing: '0.01em' }}>
+                      {formMode === 'add' ? 'Terbitkan Tagihan & Input Pembayaran Santri' : 'Kelola Tagihan & Pembayaran Cicilan Santri'}
+                    </h3>
+                    <div style={{ fontSize: '0.76rem', color: '#d1fae5', marginTop: '2px' }}>
+                      Mendukung tagihan rutin bulanan maupun biaya satu kali bayar (dapat dibayar lunas atau dicicil bertahap)
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
                 <button
                   type="button"
-                  className="btn btn-outline"
                   onClick={() => setIsModalOpen(false)}
+                  style={{
+                    background: 'rgba(255,255,255,0.18)',
+                    border: '1px solid rgba(255,255,255,0.25)',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    padding: '7px 12px',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontWeight: 700,
+                    fontSize: '0.78rem'
+                  }}
                 >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="btn btn-primary"
-                >
-                  <Save size={14} />
-                  {submitting ? 'Menyimpan...' : formMode === 'add' ? 'Terbitkan Tagihan' : 'Simpan Perubahan'}
+                  <X size={16} /> Tutup (ESC)
                 </button>
               </div>
-            </form>
+
+              {/* Body 2 Kolom Proporsional */}
+              <form
+                onSubmit={handleSimpanTagihan}
+                style={{
+                  flex: 1,
+                  overflowY: 'auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <div style={{
+                  padding: '22px 24px',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(440px, 1fr))',
+                  gap: '22px',
+                  alignItems: 'start'
+                }}>
+                  {/* ==========================================================
+                      KOLOM KIRI: DATA SANTRI, KATEGORI KOMPONEN & PERIODE
+                  ========================================================== */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {/* 1. Card Pilih Santri */}
+                    <div style={{
+                      background: '#ffffff',
+                      borderRadius: '14px',
+                      padding: '18px',
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                        <label style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ background: '#0284c7', color: '#fff', width: '22px', height: '22px', borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem' }}>1</span>
+                          Pilih Santri Penerima Tagihan *
+                        </label>
+                        {selectedSantriObj && (
+                          <span className="badge badge-info">
+                            NIS: {selectedSantriObj.nis}
+                          </span>
+                        )}
+                      </div>
+
+                      <SearchableSelect
+                        options={santriList.map(s => ({
+                          value: s.id,
+                          label: s.nama_santri,
+                          sublabel: `NIS: ${s.nis} • ${s.nama_asrama || 'Asrama'}`
+                        }))}
+                        value={formTagihan.santri_id}
+                        onChange={(val) => setFormTagihan({ ...formTagihan, santri_id: val })}
+                        placeholder="-- Pilih atau cari nama / NIS santri --"
+                        searchPlaceholder="Ketik nama atau NIS santri..."
+                      />
+
+                      {selectedSantriObj && (
+                        <div style={{
+                          marginTop: '12px',
+                          padding: '10px 14px',
+                          background: '#f0f9ff',
+                          border: '1px solid #bae6fd',
+                          borderRadius: '10px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: '8px'
+                        }}>
+                          <div>
+                            <div style={{ fontWeight: 800, fontSize: '0.86rem', color: '#0369a1' }}>
+                              {selectedSantriObj.nama_santri}
+                            </div>
+                            <div style={{ fontSize: '0.73rem', color: '#475569' }}>
+                              {selectedSantriObj.nama_asrama || 'Asrama Pondok'} • {selectedSantriObj.nama_kamar || 'Kobong'}
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right', fontSize: '0.72rem', color: '#047857', fontWeight: 700 }}>
+                            Wali: {selectedSantriObj.nama_wali || '-'}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 2. Card Pilih Komponen Biaya (Bulanan vs Satu Kali Bayar) */}
+                    <div style={{
+                      background: '#ffffff',
+                      borderRadius: '14px',
+                      padding: '18px',
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                        <label style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ background: '#0284c7', color: '#fff', width: '22px', height: '22px', borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem' }}>2</span>
+                          Pilih Komponen Biaya *
+                        </label>
+
+                        {/* Filter Tipe Komponen: Semua / Bulanan / Satu Kali Bayar */}
+                        <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', gap: '4px' }}>
+                          {[
+                            { id: 'Semua', label: 'Semua' },
+                            { id: 'Bulanan', label: 'Bulanan' },
+                            { id: 'Sekali Bayar', label: 'Satu Kali Bayar' }
+                          ].map(t => (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => setModalFilterTipe(t.id)}
+                              style={{
+                                border: 'none',
+                                padding: '4px 10px',
+                                borderRadius: '6px',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                background: modalFilterTipe === t.id ? '#0284c7' : 'transparent',
+                                color: modalFilterTipe === t.id ? '#ffffff' : '#64748b'
+                              }}
+                            >
+                              {t.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Grid Kartu Pilihan Komponen Biaya */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
+                        gap: '10px',
+                        maxHeight: '240px',
+                        overflowY: 'auto',
+                        padding: '2px'
+                      }}>
+                        {filteredModalKomponen.map(k => {
+                          const isSelected = String(formTagihan.komponen_id) === String(k.id);
+                          const isBulan = k.kategori === 'Bulanan';
+                          return (
+                            <div
+                              key={k.id}
+                              onClick={() => {
+                                const nextPeriode = isBulan
+                                  ? (formTagihan.periode_bulan.includes('Satu Kali') ? 'November 2026' : formTagihan.periode_bulan || 'November 2026')
+                                  : 'TA 2026/2027 (Satu Kali Bayar)';
+                                const nextTotal = String(parseFloat(k.nominal_default || 0));
+                                setFormTagihan({
+                                  ...formTagihan,
+                                  komponen_id: String(k.id),
+                                  total_tagihan: nextTotal,
+                                  sudah_dibayar: skemaBayar === 'lunas' ? nextTotal : formTagihan.sudah_dibayar,
+                                  periode_bulan: nextPeriode,
+                                  judul_tagihan: `${k.nama_komponen} - ${nextPeriode}`
+                                });
+                              }}
+                              style={{
+                                padding: '12px',
+                                borderRadius: '10px',
+                                border: isSelected ? '2px solid #059669' : '1px solid #cbd5e1',
+                                background: isSelected ? '#ecfdf5' : '#ffffff',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'space-between',
+                                gap: '6px'
+                              }}
+                            >
+                              <div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '4px' }}>
+                                  <span style={{
+                                    fontSize: '0.65rem',
+                                    fontWeight: 800,
+                                    padding: '2px 7px',
+                                    borderRadius: '4px',
+                                    background: isBulan ? '#e0f2fe' : '#f3e8ff',
+                                    color: isBulan ? '#0369a1' : '#7e22ce'
+                                  }}>
+                                    {isBulan ? 'RUTIN BULANAN' : `SATU KALI BAYAR (${k.kategori.toUpperCase()})`}
+                                  </span>
+                                  {isSelected && <CheckCircle2 size={15} color="#059669" />}
+                                </div>
+                                <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#0f172a', marginTop: '6px', lineHeight: 1.3 }}>
+                                  {k.nama_komponen}
+                                </div>
+                              </div>
+                              <div style={{ fontWeight: 800, fontSize: '0.86rem', color: '#059669' }}>
+                                {formatRupiah(k.nominal_default)}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* 3. Card Periode & Tanggal Jatuh Tempo (Tanpa Input Judul Tagihan Manual) */}
+                    <div style={{
+                      background: '#ffffff',
+                      borderRadius: '14px',
+                      padding: '18px',
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                    }}>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
+                        <span style={{ background: '#0284c7', color: '#fff', width: '22px', height: '22px', borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem' }}>3</span>
+                        Periode Tagihan & Jatuh Tempo
+                      </label>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                        <div>
+                          <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                            {isBulananKomp ? 'Periode Bulan Tagihan' : 'Periode / Tahun Ajaran (Satu Kali Bayar)'}
+                          </label>
+                          {isBulananKomp ? (
+                            <select
+                              value={formTagihan.periode_bulan}
+                              onChange={(e) => setFormTagihan({ ...formTagihan, periode_bulan: e.target.value })}
+                              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', fontWeight: 600 }}
+                            >
+                              {[
+                                'Juli 2026', 'Agustus 2026', 'September 2026', 'Oktober 2026',
+                                'November 2026', 'Desember 2026', 'Januari 2027', 'Februari 2027',
+                                'Maret 2027', 'April 2027', 'Mei 2027', 'Juni 2027'
+                              ].map(bln => (
+                                <option key={bln} value={bln}>{bln}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <select
+                              value={formTagihan.periode_bulan}
+                              onChange={(e) => setFormTagihan({ ...formTagihan, periode_bulan: e.target.value })}
+                              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', fontWeight: 600 }}
+                            >
+                              <option value="TA 2026/2027 (Satu Kali Bayar)">TA 2026/2027 (Satu Kali Bayar)</option>
+                              <option value="TA 2025/2026 (Satu Kali Bayar)">TA 2025/2026 (Satu Kali Bayar)</option>
+                              <option value="Semester Ganjil 2026/2027">Semester Ganjil 2026/2027</option>
+                              <option value="Semester Genap 2026/2027">Semester Genap 2026/2027</option>
+                            </select>
+                          )}
+                        </div>
+
+                        <div>
+                          <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                            Batas Jatuh Tempo
+                          </label>
+                          <input
+                            type="date"
+                            value={formTagihan.jatuh_tempo}
+                            onChange={(e) => setFormTagihan({ ...formTagihan, jatuh_tempo: e.target.value })}
+                            style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', boxSizing: 'border-box', fontWeight: 600 }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ==========================================================
+                      KOLOM KANAN: NOMINAL, SKEMA CICILAN / LUNAS & KALKULASI
+                  ========================================================== */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {/* 4. Nominal Total Tagihan */}
+                    <div style={{
+                      background: '#ffffff',
+                      borderRadius: '14px',
+                      padding: '18px',
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                    }}>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                        <span style={{ background: '#059669', color: '#fff', width: '22px', height: '22px', borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem' }}>4</span>
+                        Total Nominal Tagihan (Rp) *
+                      </label>
+                      <div style={{ position: 'relative' }}>
+                        <span style={{
+                          position: 'absolute',
+                          left: '14px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          fontWeight: 800,
+                          color: '#64748b',
+                          fontSize: '0.95rem'
+                        }}>
+                          Rp
+                        </span>
+                        <input
+                          type="number"
+                          required
+                          min="0"
+                          step="any"
+                          value={formTagihan.total_tagihan}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setFormTagihan({
+                              ...formTagihan,
+                              total_tagihan: val,
+                              sudah_dibayar: skemaBayar === 'lunas' ? val : formTagihan.sudah_dibayar
+                            });
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '12px 14px 12px 42px',
+                            borderRadius: '10px',
+                            border: '1.5px solid #cbd5e1',
+                            fontSize: '1.1rem',
+                            fontWeight: 800,
+                            color: '#0f172a',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '6px' }}>
+                        Nominal otomatis mengikuti komponen biaya terpilih, dapat disesuaikan bila ada potongan/beasiswa.
+                      </div>
+                    </div>
+
+                    {/* 5. Skema Pembayaran: Belum Bayar / Dicicil / Langsung Lunas */}
+                    <div style={{
+                      background: '#ffffff',
+                      borderRadius: '14px',
+                      padding: '18px',
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                    }}>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                        <span style={{ background: '#059669', color: '#fff', width: '22px', height: '22px', borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem' }}>5</span>
+                        Skema Pembayaran (Bisa Dicicil / Angsuran)
+                      </label>
+                      <p style={{ fontSize: '0.73rem', color: '#64748b', margin: '0 0 12px' }}>
+                        Baik tagihan <strong>Bulanan</strong> maupun <strong>Satu Kali Bayar</strong> dapat diterbitkan belum bayar, dicicil bertahap, atau langsung lunas.
+                      </p>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: skemaBayar !== 'belum' ? '14px' : 0 }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSkemaBayar('belum');
+                            setFormTagihan({ ...formTagihan, sudah_dibayar: '0' });
+                          }}
+                          style={{
+                            padding: '12px 10px',
+                            borderRadius: '10px',
+                            border: skemaBayar === 'belum' ? '2px solid #dc2626' : '1px solid #cbd5e1',
+                            background: skemaBayar === 'belum' ? '#fef2f2' : '#ffffff',
+                            color: skemaBayar === 'belum' ? '#b91c1c' : '#475569',
+                            fontWeight: 800,
+                            fontSize: '0.78rem',
+                            cursor: 'pointer',
+                            textAlign: 'center'
+                          }}
+                        >
+                          <div>⏳ Belum Bayar</div>
+                          <div style={{ fontSize: '0.66rem', fontWeight: 600, opacity: 0.85, marginTop: '2px' }}>Terbitkan Tagihan</div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSkemaBayar('cicil');
+                            const cur = parseFloat(formTagihan.sudah_dibayar || 0);
+                            if (cur <= 0 || cur >= totalNum) {
+                              setFormTagihan({ ...formTagihan, sudah_dibayar: String(Math.round(totalNum * 0.5)) });
+                            }
+                          }}
+                          style={{
+                            padding: '12px 10px',
+                            borderRadius: '10px',
+                            border: skemaBayar === 'cicil' ? '2px solid #d97706' : '1px solid #cbd5e1',
+                            background: skemaBayar === 'cicil' ? '#fffbeb' : '#ffffff',
+                            color: skemaBayar === 'cicil' ? '#b45309' : '#475569',
+                            fontWeight: 800,
+                            fontSize: '0.78rem',
+                            cursor: 'pointer',
+                            textAlign: 'center'
+                          }}
+                        >
+                          <div>💳 Bayar Cicilan</div>
+                          <div style={{ fontSize: '0.66rem', fontWeight: 600, opacity: 0.85, marginTop: '2px' }}>DP / Angsuran</div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSkemaBayar('lunas');
+                            setFormTagihan({ ...formTagihan, sudah_dibayar: String(totalNum) });
+                          }}
+                          style={{
+                            padding: '12px 10px',
+                            borderRadius: '10px',
+                            border: skemaBayar === 'lunas' ? '2px solid #059669' : '1px solid #cbd5e1',
+                            background: skemaBayar === 'lunas' ? '#ecfdf5' : '#ffffff',
+                            color: skemaBayar === 'lunas' ? '#047857' : '#475569',
+                            fontWeight: 800,
+                            fontSize: '0.78rem',
+                            cursor: 'pointer',
+                            textAlign: 'center'
+                          }}
+                        >
+                          <div>✅ Langsung Lunas</div>
+                          <div style={{ fontSize: '0.66rem', fontWeight: 600, opacity: 0.85, marginTop: '2px' }}>Bayar Penuh 100%</div>
+                        </button>
+                      </div>
+
+                      {/* Input Nominal Cicilan & Metode Pembayaran */}
+                      {skemaBayar === 'cicil' && (
+                        <div style={{
+                          background: '#fffbeb',
+                          border: '1px solid #fde68a',
+                          borderRadius: '10px',
+                          padding: '14px',
+                          marginBottom: '12px'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <label style={{ fontSize: '0.76rem', fontWeight: 800, color: '#92400e' }}>
+                              Nominal Sudah Dibayar / Cicilan Masuk (Rp) *
+                            </label>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              {[
+                                { label: '25%', pct: 0.25 },
+                                { label: '50%', pct: 0.5 },
+                                { label: '75%', pct: 0.75 }
+                              ].map(btn => (
+                                <button
+                                  key={btn.label}
+                                  type="button"
+                                  onClick={() => setFormTagihan({ ...formTagihan, sudah_dibayar: String(Math.round(totalNum * btn.pct)) })}
+                                  style={{
+                                    background: '#ffffff',
+                                    border: '1px solid #f59e0b',
+                                    color: '#b45309',
+                                    borderRadius: '6px',
+                                    padding: '2px 8px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 800,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Cicil {btn.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <input
+                            type="number"
+                            min="0"
+                            max={totalNum}
+                            step="any"
+                            value={formTagihan.sudah_dibayar}
+                            onChange={(e) => setFormTagihan({ ...formTagihan, sudah_dibayar: e.target.value })}
+                            style={{
+                              width: '100%',
+                              padding: '10px 12px',
+                              borderRadius: '8px',
+                              border: '1.5px solid #f59e0b',
+                              fontSize: '1rem',
+                              fontWeight: 800,
+                              color: '#92400e',
+                              background: '#ffffff',
+                              boxSizing: 'border-box'
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {skemaBayar !== 'belum' && (
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                            Metode Penerimaan Pembayaran
+                          </label>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                            {['Tunai / Kasir', 'Transfer Bank (VA)', 'QRIS Pesantren'].map(m => (
+                              <button
+                                key={m}
+                                type="button"
+                                onClick={() => setMetodeBayarForm(m)}
+                                style={{
+                                  padding: '8px',
+                                  borderRadius: '8px',
+                                  border: metodeBayarForm === m ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
+                                  background: metodeBayarForm === m ? '#e0f2fe' : '#ffffff',
+                                  color: metodeBayarForm === m ? '#0369a1' : '#475569',
+                                  fontSize: '0.73rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                {m}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 6. Kartu Ringkasan Tagihan & Kalkulasi Sisa Cicilan */}
+                    <div style={{
+                      background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                      color: '#ffffff',
+                      borderRadius: '14px',
+                      padding: '18px',
+                      boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.25)'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                        <div>
+                          <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>
+                            RINGKASAN TAGIHAN OTOMATIS
+                          </div>
+                          <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#ffffff', marginTop: '2px' }}>
+                            {autoJudulPreview}
+                          </div>
+                        </div>
+                        <span style={{
+                          padding: '4px 10px',
+                          borderRadius: '20px',
+                          fontSize: '0.7rem',
+                          fontWeight: 800,
+                          background: sisaNum <= 0 && totalNum > 0 ? '#10b981' : dibayarNum > 0 ? '#f59e0b' : '#ef4444',
+                          color: '#ffffff'
+                        }}>
+                          {sisaNum <= 0 && totalNum > 0 ? 'LUNAS' : dibayarNum > 0 ? `CICILAN (${persenLunas}%)` : 'BELUM DIBAYAR'}
+                        </span>
+                      </div>
+
+                      {/* Progress Bar Pelunasan */}
+                      <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.12)', borderRadius: '999px', overflow: 'hidden', marginBottom: '14px' }}>
+                        <div style={{
+                          width: `${persenLunas}%`,
+                          height: '100%',
+                          background: persenLunas >= 100 ? '#10b981' : '#38bdf8',
+                          transition: 'width 0.25s ease'
+                        }} />
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', borderTop: '1px solid rgba(255,255,255,0.12)', paddingTop: '12px' }}>
+                        <div>
+                          <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Total Tagihan</div>
+                          <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#ffffff', marginTop: '2px' }}>
+                            {formatRupiah(totalNum)}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Sudah Dibayar / Dicicil</div>
+                          <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#34d399', marginTop: '2px' }}>
+                            {formatRupiah(dibayarNum)}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Sisa Tagihan / Cicilan</div>
+                          <div style={{ fontSize: '0.92rem', fontWeight: 800, color: sisaNum > 0 ? '#f87171' : '#34d399', marginTop: '2px' }}>
+                            {formatRupiah(sisaNum)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer Action Bar */}
+                <div style={{
+                  padding: '14px 24px',
+                  background: '#ffffff',
+                  borderTop: '1px solid #cbd5e1',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '12px'
+                }}>
+                  <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                    Kategori: <strong style={{ color: '#0f172a' }}>{selectedKompObj?.kategori || '-'}</strong> • Judul Tagihan dibuat otomatis dari komponen & periode.
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      onClick={() => setIsModalOpen(false)}
+                      style={{ padding: '9px 18px', fontSize: '0.82rem' }}
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="btn btn-primary"
+                      style={{
+                        padding: '9px 22px',
+                        fontSize: '0.84rem',
+                        fontWeight: 800,
+                        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                        border: 'none'
+                      }}
+                    >
+                      <Save size={15} />
+                      {submitting
+                        ? 'Menyimpan...'
+                        : formMode === 'add'
+                        ? (dibayarNum > 0 ? 'Terbitkan & Simpan Pembayaran' : 'Terbitkan Tagihan Santri')
+                        : 'Simpan Perubahan & Cicilan'}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ==================================================== */}
       {/* MODAL KELOLA MASTER KOMPONEN BIAYA                   */}
