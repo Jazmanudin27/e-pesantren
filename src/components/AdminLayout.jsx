@@ -499,8 +499,8 @@ export default function AdminLayout() {
               className={`nav-sublink ${activeTab === 'kurikulum-pengajian' || activeTab === 'jadwal-mengajar' ? 'active' : ''}`}
               onClick={() => handleTabClick('kurikulum-pengajian')}
             >
-              <Calendar size={13} style={{ marginRight: '6px', color: '#0284c7' }} />
-              <span>Jadwal Mengajar</span>
+              <BookOpen size={13} style={{ marginRight: '6px', color: '#059669' }} />
+              <span>Kurikulum Pengajian</span>
             </button>
           </div>
         )}

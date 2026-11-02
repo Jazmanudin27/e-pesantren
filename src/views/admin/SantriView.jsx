@@ -664,6 +664,8 @@ export default function SantriView() {
 
     const matchTab = 
       activeFilterTab === 'semua' ? true :
+      activeFilterTab === 'boys' ? s.jk === 'L' :
+      activeFilterTab === 'girls' ? s.jk === 'P' :
       activeFilterTab === 'mukim' ? s.status_santri === 'Mukim' :
       activeFilterTab === 'kalong' ? s.status_santri === 'Kalong' :
       activeFilterTab === 'alumni' ? s.status === 'Alumni' || s.status === 'Boyong' : true;
@@ -801,16 +803,16 @@ export default function SantriView() {
           <Users size={14} /> Semua Santri ({santriList.length})
         </button>
         <button 
-          className={`tab-btn ${activeFilterTab === 'mukim' ? 'active' : ''}`}
-          onClick={() => setActiveFilterTab('mukim')}
+          className={`tab-btn ${activeFilterTab === 'boys' || activeFilterTab === 'L' ? 'active' : ''}`}
+          onClick={() => setActiveFilterTab('boys')}
         >
-          <Home size={14} /> Santri Mukim ({countMukim})
+          <Users size={14} /> Santri Putra / Boys ({santriList.filter(s => s.jk === 'L').length})
         </button>
         <button 
-          className={`tab-btn ${activeFilterTab === 'kalong' ? 'active' : ''}`}
-          onClick={() => setActiveFilterTab('kalong')}
+          className={`tab-btn ${activeFilterTab === 'girls' || activeFilterTab === 'P' ? 'active' : ''}`}
+          onClick={() => setActiveFilterTab('girls')}
         >
-          <Clock size={14} /> Santri Kalong ({countKalong})
+          <Users size={14} /> Santri Putri / Girls ({santriList.filter(s => s.jk === 'P').length})
         </button>
         <button 
           className={`tab-btn ${activeFilterTab === 'alumni' ? 'active' : ''}`}
@@ -877,11 +879,11 @@ export default function SantriView() {
               <tr>
                 <th className="td-center" style={{ width: '40px' }}>NO</th>
                 <th>NAMA SANTRI & NIS</th>
+                <th className="td-center">KELAS</th>
                 <th className="td-center">GENDER</th>
+                <th>MUSTAHIQ & MUNAWWIB</th>
                 <th>ASRAMA & KOBONG</th>
-                <th className="td-center">STATUS MUKIM</th>
-                <th className="td-center">PIN FINGERPRINT</th>
-                <th>WALI & KONTAK MAHROM</th>
+                <th className="td-center">STATUS</th>
                 <th className="td-center" style={{ width: '130px' }}>AKSI</th>
               </tr>
             </thead>
@@ -896,36 +898,51 @@ export default function SantriView() {
                     <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>NIS: {row.nis}</div>
                   </td>
                   <td className="td-center">
-                    <span className={`badge ${row.jk === 'L' ? 'badge-info' : 'badge-purple'}`}>
-                      {row.jk === 'L' ? 'Ikhwan (L)' : 'Akhwat (P)'}
+                    <span
+                      className="badge"
+                      style={{
+                        background: '#ecfdf5',
+                        color: '#047857',
+                        border: '1px solid #a7f3d0',
+                        fontWeight: 800,
+                        fontSize: '0.72rem'
+                      }}
+                    >
+                      {row.nama_kelas || row.tingkat_diniyah || '1A'}
                     </span>
+                  </td>
+                  <td className="td-center">
+                    <span className={`badge ${row.jk === 'L' ? 'badge-info' : 'badge-purple'}`}>
+                      {row.jk === 'L' ? 'Boys (L)' : 'Girls (P)'}
+                    </span>
+                  </td>
+                  <td>
+                    {row.mustahiq ? (
+                      <div style={{ fontSize: '0.74rem', color: '#0f172a', fontWeight: 700 }}>
+                        <span style={{ color: '#059669', fontWeight: 800 }}>M:</span> {row.mustahiq}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>-</div>
+                    )}
+                    {row.munawwib && (
+                      <div style={{ fontSize: '0.7rem', color: '#0284c7', fontWeight: 600, marginTop: '2px' }}>
+                        <span style={{ color: '#0284c7', fontWeight: 800 }}>N:</span> {row.munawwib}
+                      </div>
+                    )}
                   </td>
                   <td>
                     <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', color: '#0f172a' }}>
                       <Building size={13} color="#059669" />
-                      <span>{row.nama_asrama || 'Asrama Pondok'}</span>
+                      <span>{row.nama_asrama || (row.jk === 'L' ? 'Asrama Putra' : 'Asrama Putri')}</span>
                     </div>
                     <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
-                      {row.nama_kamar || 'Kamar 01'}
+                      {row.nama_kamar || 'Kobong Santri'}
                     </div>
                   </td>
                   <td className="td-center">
                     <span className={`badge ${row.status_santri === 'Mukim' ? 'badge-success' : 'badge-warning'}`}>
                       {row.status_santri || 'Mukim'}
                     </span>
-                  </td>
-                  <td className="td-center">
-                    <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', color: '#0284c7', fontWeight: 700, fontSize: '0.7rem' }}>
-                      PIN: {row.fingerprint_pin || '1001'}
-                    </code>
-                  </td>
-                  <td>
-                    <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#0f172a' }}>
-                      {row.nama_wali || 'Orang Tua'}
-                    </div>
-                    <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
-                      {row.no_wa_wali || '-'}
-                    </div>
                   </td>
                   <td className="td-center">
                     <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
