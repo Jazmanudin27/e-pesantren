@@ -430,3 +430,17 @@ export const getRekapEvaluasi = async (req, res) => {
   }
 };
 
+/**
+ * 11. Hapus Satu Data Evaluasi Perkembangan
+ */
+export const deleteEvaluasi = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM perkembangan_evaluasi_santri WHERE id = ?', [id]);
+    return sendSuccess(res, 'Data evaluasi perkembangan berhasil dihapus');
+  } catch (err) {
+    return sendError(res, err.message, 500);
+  }
+};
+
+

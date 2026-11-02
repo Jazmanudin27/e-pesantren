@@ -18,7 +18,8 @@ import {
   ArrowLeft,
   User,
   HeartHandshake,
-  Smile
+  Smile,
+  Award
 } from 'lucide-react';
 import MobileHome from '../views/mobile/MobileHome';
 import MobileTahfidz from '../views/mobile/MobileTahfidz';
@@ -40,6 +41,7 @@ import MobileDaftarWajah from '../views/mobile/MobileDaftarWajah';
 import MobileLogin from '../views/mobile/MobileLogin';
 import MobileOnboarding from '../views/mobile/MobileOnboarding';
 import MobilePraktek from '../views/mobile/MobilePraktek';
+import MobilePengembangan from '../views/mobile/MobilePengembangan';
 import MobileMateriHafalan from '../views/mobile/MobileMateriHafalan';
 import PortalWaliSantri from '../views/wali/PortalWaliSantri';
 import { canAccessKeuangan } from '../utils/authRole.util';
@@ -167,6 +169,9 @@ export default function MobileLayout() {
       case 'tahfidz': return 'Tahfidz & Muroja\'ah';
       case 'praktek-ibadah':
       case 'praktek': return 'Praktek';
+      case 'pengembangan':
+      case 'perkembangan-ikhwan':
+      case 'perkembangan-akhwat': return 'Pengembangan (Ikhwan & Akhwat)';
       case 'perizinan':
       case 'izin': return 'Perizinan';
       case 'master-santri': return 'Data Santri';
@@ -209,6 +214,10 @@ export default function MobileLayout() {
       case 'praktek-ibadah':
       case 'praktek':
         return <MobilePraktek />;
+      case 'pengembangan':
+      case 'perkembangan-ikhwan':
+      case 'perkembangan-akhwat':
+        return <MobilePengembangan />;
       case 'perizinan':
       case 'izin':
         return <MobileIzin />;
@@ -387,8 +396,11 @@ export default function MobileLayout() {
                     <button onClick={() => handleSelectTab('perizinan')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: (mobileTab === 'perizinan' || mobileTab === 'izin') ? '#dbeafe' : '#f8fafc', border: (mobileTab === 'perizinan' || mobileTab === 'izin') ? '1px solid #2563eb' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                       <DoorOpen size={16} color="#2563eb" /> Perizinan
                     </button>
-                    <button onClick={() => handleSelectTab('praktek-ibadah')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: (mobileTab === 'praktek-ibadah' || mobileTab === 'praktek') ? '#d1fae5' : '#f8fafc', border: (mobileTab === 'praktek-ibadah' || mobileTab === 'praktek') ? '1px solid #059669' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer', gridColumn: 'span 2' }}>
+                    <button onClick={() => handleSelectTab('praktek-ibadah')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: (mobileTab === 'praktek-ibadah' || mobileTab === 'praktek') ? '#d1fae5' : '#f8fafc', border: (mobileTab === 'praktek-ibadah' || mobileTab === 'praktek') ? '1px solid #059669' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                       <HeartHandshake size={16} color="#059669" /> Praktek
+                    </button>
+                    <button onClick={() => handleSelectTab('pengembangan')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'pengembangan' ? '#e0f2fe' : '#f8fafc', border: mobileTab === 'pengembangan' ? '1px solid #0284c7' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                      <Award size={16} color="#0284c7" /> Pengembangan
                     </button>
                   </div>
                 </div>

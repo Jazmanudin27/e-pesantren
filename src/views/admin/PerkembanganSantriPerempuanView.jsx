@@ -25,12 +25,15 @@ import {
   FileText, 
   XCircle,
   HelpCircle,
-  ShieldAlert
+  ShieldAlert,
+  Camera
 } from 'lucide-react';
 import { showConfirm, toastSuccess, showError, showSuccess } from '../../utils/alert.util';
+import FaceScanPengembanganModal from '../../components/FaceScanPengembanganModal';
 
 export default function PerkembanganSantriPerempuanView() {
   const [activeTab, setActiveTab] = useState('input'); // 'input' | 'master' | 'rekap'
+  const [isFaceScanOpen, setIsFaceScanOpen] = useState(false);
 
   // Master Kategori & Items Khusus Akhwat (Perempuan)
   const [masterKategori, setMasterKategori] = useState([]);
@@ -404,9 +407,17 @@ export default function PerkembanganSantriPerempuanView() {
           <button 
             type="button"
             className="btn btn-outline" 
-            onClick={() => { fetchMaster(); fetchSantriEvaluasi(); }}
+            onClick={() => { fetchMaster(); fetchSantriEvaluasi(); fetchRekap(); }}
           >
             <RotateCw size={13} /> Refresh
+          </button>
+          <button
+            type="button"
+            className="btn"
+            style={{ background: '#9d174d', color: '#ffffff', border: 'none', fontWeight: 700 }}
+            onClick={() => setIsFaceScanOpen(true)}
+          >
+            <Camera size={14} /> Uji via Scan Wajah
           </button>
           {activeTab === 'input' && (
             <>
@@ -1236,6 +1247,19 @@ export default function PerkembanganSantriPerempuanView() {
         );
       })()}
 
+      <FaceScanPengembanganModal
+        isOpen={isFaceScanOpen}
+        onClose={() => setIsFaceScanOpen(false)}
+        gender="P"
+        masterKategori={masterKategori}
+        santriList={santriList}
+        defaultKategoriId={selectedKategoriId}
+        tanggalEvaluasi={tanggalEvaluasi}
+        onSuccess={() => {
+          fetchSantriEvaluasi();
+          fetchRekap();
+        }}
+      />
     </div>
   );
 }

@@ -809,7 +809,15 @@ export default function MobileHome({ onChangeTab, onLogout }) {
           <span style={menuLabelStyle}>Praktek</span>
         </div>
 
-        {/* 11. Daftar Wajah (Face AI Registration) */}
+        {/* 11. Pengembangan (Ikhwan & Akhwat - Scan Wajah + Diagnostik) */}
+        <div onClick={() => onChangeTab('pengembangan')} style={menuCardStyle}>
+          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #0284c7, #2563eb)', boxShadow: '0 8px 16px -2px rgba(37, 99, 235, 0.35)' }}>
+            <Award size={26} />
+          </div>
+          <span style={menuLabelStyle}>Pengembangan</span>
+        </div>
+
+        {/* 12. Daftar Wajah (Face AI Registration) */}
         <div onClick={() => onChangeTab('daftar-wajah')} style={menuCardStyle}>
           <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', boxShadow: '0 8px 16px -2px rgba(14, 165, 233, 0.35)' }}>
             <Smile size={26} />

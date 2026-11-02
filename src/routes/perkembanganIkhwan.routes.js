@@ -9,7 +9,8 @@ import {
   deleteMasterItem,
   getSantriIkhwanByKelas,
   saveEvaluasiBatch,
-  getRekapEvaluasi
+  getRekapEvaluasi,
+  deleteEvaluasi
 } from '../controllers/perkembanganIkhwan.controller.js';
 
 const router = express.Router();
@@ -27,6 +28,7 @@ router.delete('/item/:id', deleteMasterItem);
 // Form Input Perkembangan Santri (Pilih Kategori & Kelas)
 router.get('/santri-kelas', getSantriIkhwanByKelas);
 router.post('/evaluasi-batch', saveEvaluasiBatch);
+router.delete('/evaluasi/:id', deleteEvaluasi);
 
 // Rekap & Riwayat Evaluasi
 router.get('/rekap', getRekapEvaluasi);
