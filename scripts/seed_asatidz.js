@@ -1,4 +1,4 @@
-import pool from './src/config/database.js';
+import pool from '../src/config/database.js';
 
 const MUSTAHIQ = [
   { nama: 'Iis F.S', jk: 'P' },
