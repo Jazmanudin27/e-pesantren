@@ -10,7 +10,9 @@ import {
   deleteTagihanAdmin,
   createKomponenAdmin,
   updateKomponenAdmin,
-  deleteKomponenAdmin
+  deleteKomponenAdmin,
+  generateAutoTagihanAdmin,
+  bayarTagihanLangsungAdmin
 } from '../controllers/keuangan.controller.js';
 
 const router = express.Router();
@@ -26,6 +28,8 @@ router.get('/admin/rekap', getRekapKeuanganAdmin);
 router.post('/admin/tagihan', createTagihanAdmin);
 router.put('/admin/tagihan/:id', updateTagihanAdmin);
 router.delete('/admin/tagihan/:id', deleteTagihanAdmin);
+router.post('/admin/generate-auto', generateAutoTagihanAdmin);
+router.post('/admin/bayar-langsung', bayarTagihanLangsungAdmin);
 
 // Endpoint Master Komponen Biaya
 router.post('/admin/komponen', createKomponenAdmin);
