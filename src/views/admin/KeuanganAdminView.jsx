@@ -577,146 +577,150 @@ export default function KeuanganAdminView() {
 
   return (
     <div style={{ paddingBottom: selectedIds.length > 0 ? '96px' : '24px' }}>
-      {/* =========================================================================
-          TOP NAVIGATION BAR: KASIR PEMBAYARAN SANTRI vs REKAP & MASTER POS BIAYA
-      ========================================================================= */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '10px',
-          marginBottom: '14px'
-        }}
-      >
+      {/* 1. TOP 4 COLORED STATS CARDS (PERSIS MASTER SANTRI) */}
+      <div className="top-stats-grid">
+        <div className="stat-card-colored stat-card-blue">
+          <div>
+            <div className="stat-colored-title">TOTAL TAGIHAN AKTIF</div>
+            <div className="stat-colored-number">
+              {dataRekap.summary?.total_nominal_tagihan ? formatRupiah(dataRekap.summary.total_nominal_tagihan) : 'Rp 0'}
+            </div>
+          </div>
+          <div className="stat-colored-icon-box">
+            <DollarSign size={22} />
+          </div>
+        </div>
+
+        <div className="stat-card-colored stat-card-green">
+          <div>
+            <div className="stat-colored-title">TOTAL TERBAYAR / LUNAS</div>
+            <div className="stat-colored-number">
+              {dataRekap.summary?.total_terbayar ? formatRupiah(dataRekap.summary.total_terbayar) : 'Rp 0'}
+            </div>
+          </div>
+          <div className="stat-colored-icon-box">
+            <CheckCircle2 size={22} />
+          </div>
+        </div>
+
+        <div className="stat-card-colored stat-card-amber">
+          <div>
+            <div className="stat-colored-title">SISA TUNGGAKAN</div>
+            <div className="stat-colored-number">
+              {dataRekap.summary?.total_tunggakan ? formatRupiah(dataRekap.summary.total_tunggakan) : 'Rp 0'}
+            </div>
+          </div>
+          <div className="stat-colored-icon-box">
+            <AlertTriangle size={22} />
+          </div>
+        </div>
+
+        <div className="stat-card-colored stat-card-purple">
+          <div>
+            <div className="stat-colored-title">SANTRI MENUNGGAK</div>
+            <div className="stat-colored-number">
+              {(dataRekap.tunggakanSantri || []).length} Santri
+            </div>
+          </div>
+          <div className="stat-colored-icon-box">
+            <Clock size={22} />
+          </div>
+        </div>
+      </div>
+
+      {/* 2. TITLE STRIP (PERSIS MASTER SANTRI) */}
+      <div className="page-title-strip">
+        <div className="page-title-left">
+          <CreditCard size={22} className="page-title-icon" style={{ color: '#0284c7' }} />
+          <div>
+            <h2>Keuangan & Tagihan Santri</h2>
+            <p>Kasir pembayaran SPP bulanan, tagihan bebas, auto-generate tagihan rutin, dan riwayat transaksi</p>
+          </div>
+        </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button
             type="button"
-            onClick={() => setViewMode('kasir')}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '8px',
-              border: viewMode === 'kasir' ? '1px solid #0284c7' : '1px solid #cbd5e1',
-              background: viewMode === 'kasir' ? '#0284c7' : '#ffffff',
-              color: viewMode === 'kasir' ? '#ffffff' : '#334155',
-              fontWeight: 800,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <CreditCard size={15} /> Kasir & Pembayaran Santri
-          </button>
-
-          <button
-            type="button"
+            className="btn btn-outline"
             onClick={() => {
-              setViewMode('rekap');
+              if (selectedSantriId) fetchSantriTagihan(selectedSantriId);
               fetchRekap();
             }}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '8px',
-              border: viewMode === 'rekap' ? '1px solid #0284c7' : '1px solid #cbd5e1',
-              background: viewMode === 'rekap' ? '#0284c7' : '#ffffff',
-              color: viewMode === 'rekap' ? '#ffffff' : '#334155',
-              fontWeight: 700,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
           >
-            <Layers size={15} /> Rekap Tunggakan & Log Transaksi
+            <RotateCw size={13} className={loadingRekap || loadingSantriBill ? 'animate-spin' : ''} /> Refresh
           </button>
-
           <button
             type="button"
-            onClick={openAutoGeneratePage}
+            className="btn"
             style={{
-              padding: '8px 16px',
-              borderRadius: '8px',
-              border: viewMode === 'generate' ? '1px solid #0284c7' : '1px solid #cbd5e1',
-              background: viewMode === 'generate' ? '#0284c7' : '#ffffff',
-              color: viewMode === 'generate' ? '#ffffff' : '#334155',
-              fontWeight: 800,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              display: 'inline-flex',
+              display: 'flex',
               alignItems: 'center',
-              gap: '6px'
+              gap: '6px',
+              background: '#059669',
+              color: '#ffffff',
+              border: 'none',
+              padding: '6px 14px',
+              borderRadius: '6px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              cursor: 'pointer'
             }}
+            onClick={openAutoGeneratePage}
           >
             <RotateCw size={14} /> Auto-Generate Tagihan SPP
           </button>
-
           <button
             type="button"
-            onClick={() => setIsKomponenModalOpen(true)}
+            className="btn"
             style={{
-              padding: '8px 14px',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
               background: '#ffffff',
               color: '#334155',
-              fontWeight: 700,
+              border: '1px solid #cbd5e1',
+              padding: '6px 14px',
+              borderRadius: '6px',
               fontSize: '0.8rem',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px'
+              fontWeight: 700,
+              cursor: 'pointer'
             }}
+            onClick={() => setIsKomponenModalOpen(true)}
           >
             <FileText size={14} /> Master Pos Biaya
           </button>
-        </div>
-
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button
             type="button"
-            onClick={openAutoGeneratePage}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '8px',
-              border: 'none',
-              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-              color: '#ffffff',
-              fontWeight: 800,
-              fontSize: '0.78rem',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: '0 2px 6px rgba(5, 150, 105, 0.25)'
-            }}
-          >
-            <RotateCw size={14} /> Auto-Generate Tagihan SPP Bulanan
-          </button>
-
-          <button
-            type="button"
+            className="btn btn-primary"
             onClick={openAddTagihan}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '8px',
-              border: 'none',
-              background: '#0284c7',
-              color: '#ffffff',
-              fontWeight: 800,
-              fontSize: '0.78rem',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
           >
-            <Plus size={14} /> Tambah Tagihan Custom
+            <Plus size={14} /> Tambah Tagihan Baru
           </button>
         </div>
+      </div>
+
+      {/* 3. TAB FILTER BAR (PERSIS MASTER SANTRI) */}
+      <div className="tab-filter-bar">
+        <button
+          className={`tab-btn ${viewMode === 'kasir' ? 'active' : ''}`}
+          onClick={() => setViewMode('kasir')}
+        >
+          <CreditCard size={14} /> Kasir Pembayaran Santri
+        </button>
+        <button
+          className={`tab-btn ${viewMode === 'rekap' ? 'active' : ''}`}
+          onClick={() => {
+            setViewMode('rekap');
+            fetchRekap();
+          }}
+        >
+          <Layers size={14} /> Rekap Tunggakan & Transaksi
+        </button>
+        <button
+          className={`tab-btn ${viewMode === 'generate' ? 'active' : ''}`}
+          onClick={openAutoGeneratePage}
+        >
+          <RotateCw size={14} /> Auto-Generate Tagihan SPP
+        </button>
       </div>
 
       {/* =========================================================================
