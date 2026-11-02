@@ -13,10 +13,11 @@ export default function MobileAsatidz() {
   const initialForm = {
     id: null,
     nama_asatidz: '',
-    gelar: 'S.Pd.I',
+    gelar: 'Ustadz',
     nik_niy: '',
     jk: 'L',
-    tugas_utama: 'Musyrif & Pengajar Tahfidz',
+    tugas_utama: 'Mustahiq',
+    kategori_asatidz: 'Mustahiq',
     no_hp: '',
     email: '',
     alamat: ''

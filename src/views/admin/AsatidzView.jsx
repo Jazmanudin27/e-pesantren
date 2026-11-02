@@ -90,7 +90,8 @@ export default function AsatidzView() {
       username: '',
       password: '',
       jk: 'L',
-      tugas_utama: '',
+      tugas_utama: 'Mustahiq',
+      kategori_asatidz: 'Mustahiq',
       no_hp: '',
       email: '',
       alamat: '',
@@ -110,7 +111,8 @@ export default function AsatidzView() {
       username: ast.username || '',
       password: '',
       jk: ast.jk || 'L',
-      tugas_utama: ast.tugas_utama || '',
+      tugas_utama: ast.tugas_utama || ast.kategori_asatidz || 'Mustahiq',
+      kategori_asatidz: ast.kategori_asatidz || ast.tugas_utama || 'Mustahiq',
       no_hp: ast.no_hp || '',
       email: ast.email || '',
       alamat: ast.alamat || '',
@@ -176,23 +178,27 @@ export default function AsatidzView() {
 
   const countIkhwan = asatidzList.filter(a => a.jk === 'L').length;
   const countAkhwat = asatidzList.filter(a => a.jk === 'P').length;
-  const countMusyrif = asatidzList.filter(a => a.tugas_utama?.toLowerCase().includes('musyrif') || a.tugas_utama?.toLowerCase().includes('asrama')).length;
+  const countMustahiq = asatidzList.filter(a => (a.kategori_asatidz || a.tugas_utama || '').toLowerCase().includes('mustahiq')).length;
+  const countMunawwib = asatidzList.filter(a => (a.kategori_asatidz || a.tugas_utama || '').toLowerCase().includes('munawwib')).length;
 
   const filteredList = asatidzList.filter((a) => {
     const q = search.toLowerCase();
+    const kat = (a.kategori_asatidz || a.tugas_utama || '').toLowerCase();
     const matchSearch = (
       a.nama_asatidz?.toLowerCase().includes(q) ||
       a.nik_niy?.toLowerCase().includes(q) ||
       a.tugas_utama?.toLowerCase().includes(q) ||
+      a.kategori_asatidz?.toLowerCase().includes(q) ||
       a.bidang_keahlian?.toLowerCase().includes(q) ||
       a.no_hp?.includes(q)
     );
 
     const matchTab = 
       activeFilterTab === 'semua' ? true :
+      activeFilterTab === 'mustahiq' ? kat.includes('mustahiq') :
+      activeFilterTab === 'munawwib' ? kat.includes('munawwib') :
       activeFilterTab === 'ikhwan' ? a.jk === 'L' :
-      activeFilterTab === 'akhwat' ? a.jk === 'P' :
-      activeFilterTab === 'musyrif' ? (a.tugas_utama?.toLowerCase().includes('musyrif') || a.tugas_utama?.toLowerCase().includes('asrama')) : true;
+      activeFilterTab === 'akhwat' ? a.jk === 'P' : true;
 
     const matchGender = 
       filterGender === 'Semua Gender' ? true :
@@ -210,7 +216,7 @@ export default function AsatidzView() {
       <div className="top-stats-grid">
         <div className="stat-card-colored stat-card-blue">
           <div>
-            <div className="stat-colored-title">TOTAL ASATIDZ & DEWAN GURU</div>
+            <div className="stat-colored-title">TOTAL ASATIDZ TERDAFTAR</div>
             <div className="stat-colored-number">{asatidzList.length}</div>
           </div>
           <div className="stat-colored-icon-box">
@@ -220,18 +226,18 @@ export default function AsatidzView() {
 
         <div className="stat-card-colored stat-card-green">
           <div>
-            <div className="stat-colored-title">ASATIDZ IKHWAN (USTADZ)</div>
-            <div className="stat-colored-number">{countIkhwan}</div>
+            <div className="stat-colored-title">DEWAN MUSTAHIQ</div>
+            <div className="stat-colored-number">{countMustahiq}</div>
           </div>
           <div className="stat-colored-icon-box">
-            <Users size={22} />
+            <ShieldCheck size={22} />
           </div>
         </div>
 
         <div className="stat-card-colored stat-card-purple">
           <div>
-            <div className="stat-colored-title">USTADZAH (AKHWAT)</div>
-            <div className="stat-colored-number">{countAkhwat}</div>
+            <div className="stat-colored-title">DEWAN MUNAWWIB</div>
+            <div className="stat-colored-number">{countMunawwib}</div>
           </div>
           <div className="stat-colored-icon-box">
             <Award size={22} />
@@ -240,11 +246,11 @@ export default function AsatidzView() {
 
         <div className="stat-card-colored stat-card-amber">
           <div>
-            <div className="stat-colored-title">MUSYRIF ASRAMA & TAHFIDZ</div>
-            <div className="stat-colored-number">{countMusyrif}</div>
+            <div className="stat-colored-title">USTADZ / USTADZAH</div>
+            <div className="stat-colored-number">{countIkhwan} L / {countAkhwat} P</div>
           </div>
           <div className="stat-colored-icon-box">
-            <ShieldCheck size={22} />
+            <Users size={22} />
           </div>
         </div>
       </div>
@@ -254,8 +260,8 @@ export default function AsatidzView() {
         <div className="page-title-left">
           <GraduationCap size={22} className="page-title-icon" style={{ color: '#0284c7' }} />
           <div>
-            <h2>Data Master Asatidz, Ustadzah & Musyrif</h2>
-            <p>Kelola data pendidik diniyah, pengampu halaqah tahfidz Qur'an, musyrif asrama, dan dewan pengasuh</p>
+            <h2>Data Master Asatidz (Mustahiq & Munawwib)</h2>
+            <p>Kelola data pendidik diniyah, pengampu halaqah tahfidz Qur'an, dewan mustahiq, dan dewan munawwib</p>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -277,6 +283,18 @@ export default function AsatidzView() {
           <GraduationCap size={14} /> Semua Asatidz ({asatidzList.length})
         </button>
         <button 
+          className={`tab-btn ${activeFilterTab === 'mustahiq' ? 'active' : ''}`}
+          onClick={() => setActiveFilterTab('mustahiq')}
+        >
+          <ShieldCheck size={14} /> Mustahiq ({countMustahiq})
+        </button>
+        <button 
+          className={`tab-btn ${activeFilterTab === 'munawwib' ? 'active' : ''}`}
+          onClick={() => setActiveFilterTab('munawwib')}
+        >
+          <Award size={14} /> Munawwib ({countMunawwib})
+        </button>
+        <button 
           className={`tab-btn ${activeFilterTab === 'ikhwan' ? 'active' : ''}`}
           onClick={() => setActiveFilterTab('ikhwan')}
         >
@@ -287,12 +305,6 @@ export default function AsatidzView() {
           onClick={() => setActiveFilterTab('akhwat')}
         >
           <Award size={14} /> Ustadzah Akhwat ({countAkhwat})
-        </button>
-        <button 
-          className={`tab-btn ${activeFilterTab === 'musyrif' ? 'active' : ''}`}
-          onClick={() => setActiveFilterTab('musyrif')}
-        >
-          <ShieldCheck size={14} /> Musyrif Kobong & Pembina
         </button>
       </div>
 
@@ -340,7 +352,7 @@ export default function AsatidzView() {
                 <th className="td-center" style={{ width: '40px' }}>NO</th>
                 <th>NAMA ASATIDZ & GELAR</th>
                 <th className="td-center">GENDER</th>
-                <th>TUGAS UTAMA / AMANAH</th>
+                <th>KATEGORI & AMANAH</th>
                 <th>BIDANG KEAHLIAN / ILMU</th>
                 <th>KONTAK WHATSAPP</th>
                 <th className="td-center">STATUS</th>
@@ -372,7 +384,9 @@ export default function AsatidzView() {
                       </span>
                     </td>
                     <td>
-                      <div style={{ fontWeight: 600, color: '#059669' }}>{ast.tugas_utama}</div>
+                      <div style={{ fontWeight: 700, color: '#059669' }}>
+                        {ast.kategori_asatidz || ast.tugas_utama || 'Mustahiq'}
+                      </div>
                     </td>
                     <td>
                       <div style={{ fontSize: '0.74rem', color: '#334155' }}>{ast.bidang_keahlian || 'Kajian Kitab Diniyah'}</div>
@@ -643,14 +657,18 @@ export default function AsatidzView() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>TUGAS UTAMA / AMANAH</label>
-                    <input 
-                      type="text" 
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>KATEGORI ASATIDZ *</label>
+                    <select 
                       className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }} 
-                      value={formData.tugas_utama}
-                      onChange={(e) => setFormData({ ...formData, tugas_utama: e.target.value })}
-                    />
+                      style={{ width: '100%', padding: '6px 10px' }}
+                      value={formData.kategori_asatidz || formData.tugas_utama || 'Mustahiq'}
+                      onChange={(e) => setFormData({ ...formData, kategori_asatidz: e.target.value, tugas_utama: e.target.value })}
+                    >
+                      <option value="Mustahiq">Mustahiq</option>
+                      <option value="Munawwib">Munawwib</option>
+                      <option value="Musyrif Asrama">Musyrif Asrama</option>
+                      <option value="Pengajar Tahfidz">Pengajar Tahfidz</option>
+                    </select>
                   </div>
                   <div>
                     <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>BIDANG KEAHLIAN</label>
@@ -660,6 +678,7 @@ export default function AsatidzView() {
                       style={{ width: '100%', padding: '6px 10px' }} 
                       value={formData.bidang_keahlian}
                       onChange={(e) => setFormData({ ...formData, bidang_keahlian: e.target.value })}
+                      placeholder="misal: Kajian Kitab Kuning, Nahwu, Fiqih"
                     />
                   </div>
                 </div>

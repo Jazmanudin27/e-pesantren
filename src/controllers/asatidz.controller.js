@@ -4,6 +4,11 @@ import { sendSuccess, sendError } from '../utils/response.util.js';
 
 export const getAsatidz = async (req, res) => {
   try {
+    // Pastikan kolom kategori_asatidz tersedia di tabel asatidz
+    try {
+      await pool.query(`ALTER TABLE asatidz ADD COLUMN IF NOT EXISTS kategori_asatidz VARCHAR(50) DEFAULT 'Mustahiq' AFTER tugas_utama`);
+    } catch (e) {}
+
     const [rows] = await pool.query('SELECT * FROM asatidz ORDER BY id ASC');
     return sendSuccess(res, 'Data asatidz berhasil diambil', { data: rows });
   } catch (err) {
@@ -13,23 +18,23 @@ export const getAsatidz = async (req, res) => {
 
 export const createAsatidz = async (req, res) => {
   try {
-    const { nama_asatidz, gelar, nik_niy, jk, tugas_utama, no_hp, email, alamat, status, username, password } = req.body;
+    const { nama_asatidz, gelar, nik_niy, jk, tugas_utama, kategori_asatidz, no_hp, email, alamat, status, username, password } = req.body;
     const finalUser = (username || nik_niy || '').trim();
     const finalPass = password ? bcrypt.hashSync(String(password).trim(), 10) : bcrypt.hashSync('12345', 10);
+    const finalKat = kategori_asatidz || tugas_utama || 'Mustahiq';
 
-    // Coba simpan dengan kolom username & password (jika kolom sudah ada di DB)
+    // Coba simpan dengan kolom kategori_asatidz, username & password
     try {
       const [result] = await pool.query(`
-        INSERT INTO asatidz (nama_asatidz, gelar, nik_niy, jk, tugas_utama, no_hp, email, alamat, status, username, password)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [nama_asatidz, gelar || '', nik_niy || `AST-${Date.now().toString().slice(-4)}`, jk || 'L', tugas_utama || '', no_hp || '', email || '', alamat || '', status || 'Aktif', finalUser, finalPass]);
+        INSERT INTO asatidz (nama_asatidz, gelar, nik_niy, jk, tugas_utama, kategori_asatidz, no_hp, email, alamat, status, username, password)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [nama_asatidz, gelar || '', nik_niy || `AST-${Date.now().toString().slice(-4)}`, jk || 'L', tugas_utama || finalKat, finalKat, no_hp || '', email || '', alamat || '', status || 'Aktif', finalUser, finalPass]);
       return sendSuccess(res, 'Data asatidz berhasil ditambahkan', { id: result.insertId }, 201);
     } catch (dbErr) {
-      // Fallback jika kolom username/password belum ditambahkan di DB
       const [result] = await pool.query(`
         INSERT INTO asatidz (nama_asatidz, gelar, nik_niy, jk, tugas_utama, no_hp, email, alamat, status)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [nama_asatidz, gelar || '', nik_niy || `AST-${Date.now().toString().slice(-4)}`, jk || 'L', tugas_utama || '', no_hp || '', email || '', alamat || '', status || 'Aktif']);
+      `, [nama_asatidz, gelar || '', nik_niy || `AST-${Date.now().toString().slice(-4)}`, jk || 'L', tugas_utama || finalKat, no_hp || '', email || '', alamat || '', status || 'Aktif']);
       return sendSuccess(res, 'Data asatidz berhasil ditambahkan', { id: result.insertId }, 201);
     }
   } catch (err) {
@@ -40,32 +45,32 @@ export const createAsatidz = async (req, res) => {
 export const updateAsatidz = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nama_asatidz, gelar, nik_niy, jk, tugas_utama, no_hp, email, alamat, status, username, password } = req.body;
+    const { nama_asatidz, gelar, nik_niy, jk, tugas_utama, kategori_asatidz, no_hp, email, alamat, status, username, password } = req.body;
+    const finalKat = kategori_asatidz || tugas_utama || 'Mustahiq';
     
-    // Coba update dengan username & password
+    // Coba update dengan kategori_asatidz, username & password
     try {
       if (password && String(password).trim().length > 0) {
         const hashed = bcrypt.hashSync(String(password).trim(), 10);
         await pool.query(`
           UPDATE asatidz SET
-            nama_asatidz = ?, gelar = ?, nik_niy = ?, jk = ?, tugas_utama = ?, no_hp = ?, email = ?, alamat = ?, status = ?, username = ?, password = ?
+            nama_asatidz = ?, gelar = ?, nik_niy = ?, jk = ?, tugas_utama = ?, kategori_asatidz = ?, no_hp = ?, email = ?, alamat = ?, status = ?, username = ?, password = ?
           WHERE id = ?
-        `, [nama_asatidz, gelar || '', nik_niy || '', jk || 'L', tugas_utama || '', no_hp || '', email || '', alamat || '', status || 'Aktif', username || nik_niy, hashed, id]);
+        `, [nama_asatidz, gelar || '', nik_niy || '', jk || 'L', tugas_utama || finalKat, finalKat, no_hp || '', email || '', alamat || '', status || 'Aktif', username || nik_niy, hashed, id]);
       } else {
         await pool.query(`
           UPDATE asatidz SET
-            nama_asatidz = ?, gelar = ?, nik_niy = ?, jk = ?, tugas_utama = ?, no_hp = ?, email = ?, alamat = ?, status = ?, username = ?
+            nama_asatidz = ?, gelar = ?, nik_niy = ?, jk = ?, tugas_utama = ?, kategori_asatidz = ?, no_hp = ?, email = ?, alamat = ?, status = ?, username = ?
           WHERE id = ?
-        `, [nama_asatidz, gelar || '', nik_niy || '', jk || 'L', tugas_utama || '', no_hp || '', email || '', alamat || '', status || 'Aktif', username || nik_niy, id]);
+        `, [nama_asatidz, gelar || '', nik_niy || '', jk || 'L', tugas_utama || finalKat, finalKat, no_hp || '', email || '', alamat || '', status || 'Aktif', username || nik_niy, id]);
       }
       return sendSuccess(res, 'Data asatidz berhasil diperbarui');
     } catch (dbErr) {
-      // Fallback jika kolom belum ada
       await pool.query(`
         UPDATE asatidz SET
           nama_asatidz = ?, gelar = ?, nik_niy = ?, jk = ?, tugas_utama = ?, no_hp = ?, email = ?, alamat = ?, status = ?
         WHERE id = ?
-      `, [nama_asatidz, gelar || '', nik_niy || '', jk || 'L', tugas_utama || '', no_hp || '', email || '', alamat || '', status || 'Aktif', id]);
+      `, [nama_asatidz, gelar || '', nik_niy || '', jk || 'L', tugas_utama || finalKat, no_hp || '', email || '', alamat || '', status || 'Aktif', id]);
       return sendSuccess(res, 'Data asatidz berhasil diperbarui');
     }
   } catch (err) {
