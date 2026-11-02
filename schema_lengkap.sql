@@ -309,6 +309,39 @@ CREATE TABLE IF NOT EXISTS `fingerprint_raw_log` (
   INDEX `idx_raw_processed` (`is_processed`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ------------------------------------------------------------------------------
+-- 13. TABEL MASTER KATEGORI PRAKTEK & PENILAIAN PRAKTEK IBADAH
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `kategori_praktek` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `nama_kategori` VARCHAR(150) NOT NULL UNIQUE,
+  `deskripsi` VARCHAR(255) DEFAULT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `praktek_ibadah` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `santri_id` INT NOT NULL,
+  `kategori` VARCHAR(150) NOT NULL,
+  `nama_praktek` VARCHAR(150) DEFAULT NULL,
+  `deskripsi` TEXT DEFAULT NULL,
+  `nilai_gerakan` DECIMAL(5,2) DEFAULT 0,
+  `nilai_bacaan` DECIMAL(5,2) DEFAULT 0,
+  `nilai_adab` DECIMAL(5,2) DEFAULT 0,
+  `nilai_akhir` DECIMAL(5,2) DEFAULT 0,
+  `predikat` VARCHAR(50) DEFAULT 'Lulus',
+  `status` VARCHAR(50) NOT NULL DEFAULT 'Lulus',
+  `nama_penguji` VARCHAR(150) DEFAULT NULL,
+  `catatan_perbaikan` TEXT DEFAULT NULL,
+  `tanggal_ujian` DATE NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX `idx_praktek_santri` (`santri_id`),
+  INDEX `idx_praktek_kategori` (`kategori`),
+  INDEX `idx_praktek_tgl` (`tanggal_ujian`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ==============================================================================
 -- INITIAL SEED DATA
 -- ==============================================================================

@@ -1,26 +1,59 @@
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
 
+let isPraktekTablesInitialized = false;
+
+export const ensurePraktekTables = async () => {
+  if (isPraktekTablesInitialized) return;
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS \`kategori_praktek\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`nama_kategori\` VARCHAR(150) NOT NULL UNIQUE,
+        \`deskripsi\` VARCHAR(255) DEFAULT NULL,
+        \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS \`praktek_ibadah\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`santri_id\` INT NOT NULL,
+        \`kategori\` VARCHAR(150) NOT NULL,
+        \`nama_praktek\` VARCHAR(150) DEFAULT NULL,
+        \`deskripsi\` TEXT DEFAULT NULL,
+        \`nilai_gerakan\` DECIMAL(5,2) DEFAULT 0,
+        \`nilai_bacaan\` DECIMAL(5,2) DEFAULT 0,
+        \`nilai_adab\` DECIMAL(5,2) DEFAULT 0,
+        \`nilai_akhir\` DECIMAL(5,2) DEFAULT 0,
+        \`predikat\` VARCHAR(50) DEFAULT 'Lulus',
+        \`status\` VARCHAR(50) NOT NULL DEFAULT 'Lulus',
+        \`nama_penguji\` VARCHAR(150) DEFAULT NULL,
+        \`catatan_perbaikan\` TEXT DEFAULT NULL,
+        \`tanggal_ujian\` DATE NOT NULL,
+        \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX \`idx_praktek_santri\` (\`santri_id\`),
+        INDEX \`idx_praktek_kategori\` (\`kategori\`),
+        INDEX \`idx_praktek_tgl\` (\`tanggal_ujian\`)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    isPraktekTablesInitialized = true;
+  } catch (err) {
+    console.warn('[PRAKTEK DB INIT]', err.message);
+  }
+};
+
 // ==========================================
 // 1. KELOLA KATEGORI PRAKTEK (CUSTOM MASTER)
 // ==========================================
 export const getKategoriPraktek = async (req, res) => {
   try {
-    let rows;
-    try {
-      [rows] = await pool.query('SELECT * FROM kategori_praktek ORDER BY id ASC');
-    } catch (e) {
-      rows = [
-        { id: 1, nama_kategori: 'Sholat Fardhu', deskripsi: 'Praktek kaifiyah dan bacaan sholat lima waktu' },
-        { id: 2, nama_kategori: 'Wudhu & Tayammum', deskripsi: 'Tata cara bersuci wudhu dan tayammum sunnah' },
-        { id: 3, nama_kategori: 'Sholat Jenazah', deskripsi: 'Praktek tata cara sholat jenazah 4 takbir' },
-        { id: 4, nama_kategori: 'Adzan & Iqomah', deskripsi: 'Keterampilan adzan, tarhim dan iqomah' },
-        { id: 5, nama_kategori: 'Dzikir & Doa', deskripsi: 'Wirid ba\'da sholat fardhu dan doa harian' },
-        { id: 6, nama_kategori: 'Mandi Wajib', deskripsi: 'Rukun dan niat thaharah mandi junub' },
-        { id: 7, nama_kategori: 'Khutbah & Ceramah', deskripsi: 'Kultum, ceramah dan rukun khutbah Jum\'at' }
-      ];
-    }
-    return sendSuccess(res, 'Daftar kategori praktek berhasil diambil', { data: rows });
+    await ensurePraktekTables();
+    const [rows] = await pool.query('SELECT * FROM kategori_praktek ORDER BY id ASC');
+    return sendSuccess(res, 'Daftar kategori praktek berhasil diambil', { data: rows || [] });
   } catch (err) {
     return sendError(res, err.message, 500);
   }
@@ -28,6 +61,7 @@ export const getKategoriPraktek = async (req, res) => {
 
 export const createKategoriPraktek = async (req, res) => {
   try {
+    await ensurePraktekTables();
     const { nama_kategori, deskripsi } = req.body;
     if (!nama_kategori || !nama_kategori.trim()) {
       return sendError(res, 'Nama kategori praktek wajib diisi', 400);
@@ -53,6 +87,7 @@ export const createKategoriPraktek = async (req, res) => {
 
 export const deleteKategoriPraktek = async (req, res) => {
   try {
+    await ensurePraktekTables();
     const { id } = req.params;
     await pool.query('DELETE FROM kategori_praktek WHERE id = ?', [id]);
     return sendSuccess(res, 'Kategori praktek berhasil dihapus');
@@ -63,6 +98,7 @@ export const deleteKategoriPraktek = async (req, res) => {
 
 export const updateKategoriPraktek = async (req, res) => {
   try {
+    await ensurePraktekTables();
     const { id } = req.params;
     const { nama_kategori, deskripsi } = req.body;
     if (!nama_kategori || !nama_kategori.trim()) {
@@ -110,6 +146,7 @@ export const updateKategoriPraktek = async (req, res) => {
 // ==========================================
 export const getPraktek = async (req, res) => {
   try {
+    await ensurePraktekTables();
     let rows;
     try {
       [rows] = await pool.query(`
@@ -144,6 +181,7 @@ export const getPraktek = async (req, res) => {
 
 export const getPraktekById = async (req, res) => {
   try {
+    await ensurePraktekTables();
     const { id } = req.params;
     const [rows] = await pool.query(`
       SELECT 
@@ -178,6 +216,7 @@ export const getPraktekById = async (req, res) => {
 
 export const createPraktek = async (req, res) => {
   try {
+    await ensurePraktekTables();
     const {
       santri_id,
       kategori,
@@ -260,6 +299,7 @@ export const createPraktek = async (req, res) => {
 
 export const updatePraktek = async (req, res) => {
   try {
+    await ensurePraktekTables();
     const { id } = req.params;
     const {
       santri_id,
@@ -335,6 +375,7 @@ export const updatePraktek = async (req, res) => {
 
 export const deletePraktek = async (req, res) => {
   try {
+    await ensurePraktekTables();
     const { id } = req.params;
     await pool.query('DELETE FROM praktek_ibadah WHERE id = ?', [id]);
     return sendSuccess(res, 'Data penilaian praktek berhasil dihapus');

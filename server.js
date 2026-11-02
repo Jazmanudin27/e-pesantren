@@ -43,6 +43,7 @@ app.use((err, req, res, next) => {
 import { ensureSantriCredentialsColumns } from './src/config/initWaliDb.js';
 import { initKeuanganAndInfoDb } from './src/config/initKeuanganAndInfoDb.js';
 import { initPerkembanganIkhwanDb } from './src/config/initPerkembanganIkhwanDb.js';
+import { ensurePraktekTables } from './src/controllers/praktek.controller.js';
 
 // Start HTTP Server
 app.listen(PORT, '0.0.0.0', async () => {
@@ -51,6 +52,7 @@ app.listen(PORT, '0.0.0.0', async () => {
     await ensureSantriCredentialsColumns();
     await initKeuanganAndInfoDb();
     await initPerkembanganIkhwanDb();
+    await ensurePraktekTables();
   } catch (e) {
     console.warn('[E-PESANTREN] Init DB notice:', e.message);
   }

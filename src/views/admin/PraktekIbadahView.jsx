@@ -145,17 +145,11 @@ export default function PraktekIbadahView() {
   };
 
   useEffect(() => {
+    localStorage.removeItem('epesantren_praktek_cache');
     fetchPraktek();
     fetchSantriMaster();
     fetchKategoriMaster();
   }, []);
-
-  const syncCache = (newList) => {
-    setPraktekList(newList);
-    try {
-      localStorage.setItem('epesantren_praktek_cache', JSON.stringify(newList));
-    } catch (e) {}
-  };
 
   // Open Detail Modal
   const openDetail = (item) => {
@@ -166,7 +160,7 @@ export default function PraktekIbadahView() {
   // Open Add Form
   const openAddForm = () => {
     setFormMode('add');
-    const defaultKat = kategoriList[0]?.nama_kategori || 'Sholat Fardhu';
+    const defaultKat = kategoriList[0]?.nama_kategori || '';
     setFormData({
       id: null,
       santri_id: santriList[0]?.id || '',
@@ -185,7 +179,7 @@ export default function PraktekIbadahView() {
     setFormData({
       id: item.id,
       santri_id: item.santri_id,
-      kategori: item.kategori || 'Sholat Fardhu',
+      kategori: item.kategori || '',
       deskripsi: item.deskripsi || item.catatan_perbaikan || '',
       status: (item.status === 'Remedial' || item.status === 'Mengulang') ? 'Mengulang' : 'Lulus',
       nama_penguji: item.nama_penguji || 'Ust. Hamdan S.Pd.I',
@@ -212,55 +206,23 @@ export default function PraktekIbadahView() {
 
     try {
       setSubmitting(true);
-      const selectedSantriObj = santriList.find((s) => s.id === Number(formData.santri_id));
       const payload = {
         ...formData,
         nama_praktek: formData.kategori
       };
 
       if (formMode === 'add') {
-        let newId = Date.now();
-        try {
-          const res = await axios.post('/api/praktek', payload);
-          if (res.data?.data?.id) newId = res.data.data.id;
-        } catch (apiErr) {}
-
-        const newItem = {
-          ...payload,
-          id: newId,
-          nama_santri: selectedSantriObj?.nama_santri || 'Santri',
-          nis: selectedSantriObj?.nis || '-',
-          nama_asrama: selectedSantriObj?.nama_asrama || 'Asrama'
-        };
-
-        const updated = [newItem, ...praktekList];
-        syncCache(updated);
-        toastSuccess('Berhasil!', 'Data penilaian praktek ibadah berhasil disimpan.');
+        await axios.post('/api/praktek', payload);
+        toastSuccess('Berhasil!', 'Data penilaian praktek ibadah berhasil disimpan ke database.');
       } else {
-        try {
-          await axios.put(`/api/praktek/${formData.id}`, formData);
-        } catch (apiErr) {}
-
-        const updated = praktekList.map((item) => {
-          if (item.id === formData.id) {
-            return {
-              ...item,
-              ...formData,
-              nama_santri: selectedSantriObj?.nama_santri || item.nama_santri,
-              nis: selectedSantriObj?.nis || item.nis,
-              nama_asrama: selectedSantriObj?.nama_asrama || item.nama_asrama
-            };
-          }
-          return item;
-        });
-
-        syncCache(updated);
+        await axios.put(`/api/praktek/${formData.id}`, formData);
         toastSuccess('Berhasil!', 'Data penilaian praktek ibadah berhasil diperbarui.');
       }
 
+      await fetchPraktek();
       setIsFormOpen(false);
     } catch (err) {
-      showError('Gagal Menyimpan', err.message || 'Terjadi kesalahan sistem.');
+      showError('Gagal Menyimpan', err?.response?.data?.message || err.message || 'Terjadi kesalahan sistem.');
     } finally {
       setSubmitting(false);
     }
@@ -273,12 +235,11 @@ export default function PraktekIbadahView() {
       `Hapus penilaian ${item.kategori || item.nama_praktek} untuk santri ${item.nama_santri}?`,
       async () => {
         try {
-          await axios.delete(`/api/praktek/${item.id}`).catch(() => null);
-          const updated = praktekList.filter((p) => p.id !== item.id);
-          syncCache(updated);
-          toastSuccess('Dihapus!', 'Data praktek ibadah berhasil dihapus.');
+          await axios.delete(`/api/praktek/${item.id}`);
+          await fetchPraktek();
+          toastSuccess('Dihapus!', 'Data praktek ibadah berhasil dihapus dari database.');
         } catch (err) {
-          showError('Gagal', 'Gagal menghapus data.');
+          showError('Gagal', err?.response?.data?.message || 'Gagal menghapus data.');
         }
       }
     );
@@ -306,34 +267,16 @@ export default function PraktekIbadahView() {
     setSavingKat(true);
     try {
       if (editingKatId) {
-        // Mode Update
-        await axios.put(`/api/praktek/kategori/${editingKatId}`, {
-          nama_kategori: newKatName.trim(),
-          deskripsi: newKatDesc.trim()
-        }).catch(() => null);
-
         const oldItem = kategoriList.find(k => k.id === editingKatId);
         const oldName = oldItem?.nama_kategori || '';
 
-        const updated = kategoriList.map(k => {
-          if (k.id === editingKatId) {
-            return {
-              ...k,
-              nama_kategori: newKatName.trim(),
-              deskripsi: newKatDesc.trim()
-            };
-          }
-          return k;
+        await axios.put(`/api/praktek/kategori/${editingKatId}`, {
+          nama_kategori: newKatName.trim(),
+          deskripsi: newKatDesc.trim()
         });
 
-        setKategoriList(updated);
-
-        // Cascade update in praktekList if category name changed
-        if (oldName && oldName !== newKatName.trim()) {
-          setPraktekList(prev => prev.map(p => p.kategori === oldName ? { ...p, kategori: newKatName.trim(), nama_praktek: newKatName.trim() } : p));
-          if (filterKategori === oldName) {
-            setFilterKategori(newKatName.trim());
-          }
+        if (oldName && oldName !== newKatName.trim() && filterKategori === oldName) {
+          setFilterKategori(newKatName.trim());
         }
 
         setEditingKatId(null);
@@ -341,26 +284,19 @@ export default function PraktekIbadahView() {
         setNewKatDesc('');
         toastSuccess('Berhasil!', 'Kategori praktek berhasil diperbarui.');
       } else {
-        // Mode Add
-        const res = await axios.post('/api/praktek/kategori', {
+        await axios.post('/api/praktek/kategori', {
           nama_kategori: newKatName.trim(),
           deskripsi: newKatDesc.trim()
-        }).catch(() => null);
+        });
 
-        const created = res?.data?.data || {
-          id: Date.now(),
-          nama_kategori: newKatName.trim(),
-          deskripsi: newKatDesc.trim()
-        };
-
-        const updated = [...kategoriList, created];
-        setKategoriList(updated);
         setNewKatName('');
         setNewKatDesc('');
         toastSuccess('Berhasil!', 'Kategori praktek baru berhasil ditambahkan.');
       }
+      await fetchKategoriMaster();
+      await fetchPraktek();
     } catch (err) {
-      showError('Gagal', 'Gagal menyimpan kategori.');
+      showError('Gagal', err?.response?.data?.message || 'Gagal menyimpan kategori.');
     } finally {
       setSavingKat(false);
     }
@@ -372,15 +308,14 @@ export default function PraktekIbadahView() {
       `Hapus kategori "${kat.nama_kategori}"?`,
       async () => {
         try {
-          await axios.delete(`/api/praktek/kategori/${kat.id}`).catch(() => null);
-          const updated = kategoriList.filter(k => k.id !== kat.id);
-          setKategoriList(updated);
+          await axios.delete(`/api/praktek/kategori/${kat.id}`);
           if (editingKatId === kat.id) {
             handleCancelEditKategori();
           }
           if (filterKategori === kat.nama_kategori) {
             setFilterKategori('Semua Kategori');
           }
+          await fetchKategoriMaster();
           toastSuccess('Kategori berhasil dihapus');
         } catch (err) {
           showError('Gagal menghapus kategori');

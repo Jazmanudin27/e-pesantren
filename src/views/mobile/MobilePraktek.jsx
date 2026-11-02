@@ -35,103 +35,6 @@ import {
   isFaceModelReady
 } from '../../utils/faceApi.util';
 
-const DEFAULT_KATEGORI = [
-  'Sholat Fardhu',
-  'Wudhu & Tayammum',
-  'Sholat Jenazah',
-  'Adzan & Iqomah',
-  'Dzikir & Doa',
-  'Mandi Wajib',
-  'Khutbah & Ceramah'
-];
-
-const DEFAULT_PRAKTEK_DATA = [
-  {
-    id: 1,
-    santri_id: 1,
-    nama_santri: 'Ahmad Faiz Al-Hafidz',
-    nis: '2601001',
-    nama_asrama: 'Asrama Ali bin Abi Thalib',
-    nama_kamar: 'Kamar 01',
-    kategori: 'Sholat Fardhu',
-    nama_praktek: 'Praktek Sholat Shubuh + Qunut',
-    deskripsi: 'Makhraj huruf fashih, gerakan ruku dan sujud sempurna sesuai sunnah, qunut lancar.',
-    status: 'Lulus',
-    nama_penguji: 'Ust. Hamdan S.Pd.I',
-    tanggal_ujian: '2026-10-12'
-  },
-  {
-    id: 2,
-    santri_id: 1,
-    nama_santri: 'Ahmad Faiz Al-Hafidz',
-    nis: '2601001',
-    nama_asrama: 'Asrama Ali bin Abi Thalib',
-    nama_kamar: 'Kamar 01',
-    kategori: 'Wudhu & Tayammum',
-    nama_praktek: 'Praktek Wudhu Sempurna & Doa',
-    deskripsi: 'Rukun dan sunnah wudhu terlaksana tertib serta doa setelah wudhu lancar.',
-    status: 'Lulus',
-    nama_penguji: 'Ust. Hamdan S.Pd.I',
-    tanggal_ujian: '2026-10-10'
-  },
-  {
-    id: 3,
-    santri_id: 2,
-    nama_santri: 'Zaidan Muhammad',
-    nis: '2601002',
-    nama_asrama: 'Asrama Umar bin Khattab',
-    nama_kamar: 'Kamar 01',
-    kategori: 'Sholat Fardhu',
-    nama_praktek: 'Praktek Sholat Maghrib & Dzikir Ba\'da Sholat',
-    deskripsi: 'Bacaan surat dan rukun sah, tuma\'ninah ruku perlu sedikit diperpanjang.',
-    status: 'Lulus',
-    nama_penguji: 'Ust. M. Huda Al-Hafidz',
-    tanggal_ujian: '2026-10-11'
-  },
-  {
-    id: 4,
-    santri_id: 3,
-    nama_santri: 'Fatimah Az-Zahra',
-    nis: '2602001',
-    nama_asrama: 'Asrama Fathimah Az-Zahra',
-    nama_kamar: 'Kamar 01',
-    kategori: 'Sholat Jenazah',
-    nama_praktek: 'Praktek Sholat Jenazah (4 Takbir)',
-    deskripsi: 'Hafalan doa takbir ke-3 dan ke-4 sangat lancar dan tartil.',
-    status: 'Lulus',
-    nama_penguji: 'Usth. Salma M.Pd',
-    tanggal_ujian: '2026-10-09'
-  },
-  {
-    id: 5,
-    santri_id: 4,
-    nama_santri: 'Muhammad Rifqi',
-    nis: '2601003',
-    nama_asrama: 'Asrama Ali bin Abi Thalib',
-    nama_kamar: 'Kamar 02',
-    kategori: 'Wudhu & Tayammum',
-    nama_praktek: 'Praktek Wudhu & Thaharah',
-    deskripsi: 'Basuhan kedua telinga dan tertib rukun belum sempurna, mengulang pekan depan.',
-    status: 'Mengulang',
-    nama_penguji: 'Ust. Hamdan S.Pd.I',
-    tanggal_ujian: '2026-10-08'
-  },
-  {
-    id: 6,
-    santri_id: 5,
-    nama_santri: 'Aisyah Humaira',
-    nis: '2602002',
-    nama_asrama: 'Asrama Fathimah Az-Zahra',
-    nama_kamar: 'Kamar 02',
-    kategori: 'Adzan & Iqomah',
-    nama_praktek: 'Praktek Adzan Shubuh & Tarhim',
-    deskripsi: 'Vokal lantang, tajwid lafadz adzan benar dan intonasi indah.',
-    status: 'Lulus',
-    nama_penguji: 'Ust. M. Huda Al-Hafidz',
-    tanggal_ujian: '2026-10-07'
-  }
-];
-
 export default function MobilePraktek() {
   const [praktekList, setPraktekList] = useState([]);
   const [santriList, setSantriList] = useState([]);
@@ -491,47 +394,37 @@ export default function MobilePraktek() {
   const fetchData = async () => {
     try {
       setLoading(true);
+      localStorage.removeItem('mobile_praktek_cache');
+      localStorage.removeItem('mobile_kategori_cache');
+
       const [resPraktek, resSantri, resKat] = await Promise.all([
         axios.get('/api/praktek').catch(() => ({ data: { data: [] } })),
         axios.get('/api/santri').catch(() => ({ data: { data: [] } })),
         axios.get('/api/praktek/kategori').catch(() => ({ data: { data: [] } }))
       ]);
 
-      // 1. Data Praktek
-      if (resPraktek.data && resPraktek.data.success && Array.isArray(resPraktek.data.data) && resPraktek.data.data.length > 0) {
+      // 1. Data Praktek dari MySQL
+      if (resPraktek.data && Array.isArray(resPraktek.data.data)) {
         setPraktekList(resPraktek.data.data);
       } else {
-        const saved = JSON.parse(localStorage.getItem('mobile_praktek_cache') || 'null');
-        setPraktekList(saved || DEFAULT_PRAKTEK_DATA);
+        setPraktekList([]);
       }
 
-      // 2. Data Santri
-      if (resSantri.data && resSantri.data.success && Array.isArray(resSantri.data.data)) {
+      // 2. Data Santri dari MySQL
+      if (resSantri.data && Array.isArray(resSantri.data.data)) {
         setSantriList(resSantri.data.data);
       } else {
-        const fallbackSantri = [
-          { id: 1, nama_santri: 'Ahmad Faiz Al-Hafidz', nis: '2601001', nama_asrama: 'Asrama Ali bin Abi Thalib' },
-          { id: 2, nama_santri: 'Zaidan Muhammad', nis: '2601002', nama_asrama: 'Asrama Umar bin Khattab' },
-          { id: 3, nama_santri: 'Fatimah Az-Zahra', nis: '2602001', nama_asrama: 'Asrama Fathimah Az-Zahra' },
-          { id: 4, nama_santri: 'Muhammad Rifqi', nis: '2601003', nama_asrama: 'Asrama Ali bin Abi Thalib' },
-          { id: 5, nama_santri: 'Aisyah Humaira', nis: '2602002', nama_asrama: 'Asrama Fathimah Az-Zahra' }
-        ];
-        setSantriList(fallbackSantri);
+        setSantriList([]);
       }
 
-      // 3. Data Master Kategori
-      if (resKat.data && resKat.data.success && Array.isArray(resKat.data.data) && resKat.data.data.length > 0) {
+      // 3. Data Master Kategori dari MySQL
+      if (resKat.data && Array.isArray(resKat.data.data)) {
         setKategoriList(resKat.data.data);
       } else {
-        const savedKat = JSON.parse(localStorage.getItem('mobile_kategori_cache') || 'null');
-        const defaultObjs = (savedKat || DEFAULT_KATEGORI).map((k, idx) => 
-          typeof k === 'string' ? { id: idx + 1, nama_kategori: k, deskripsi: '' } : k
-        );
-        setKategoriList(defaultObjs);
+        setKategoriList([]);
       }
     } catch (err) {
-      const saved = JSON.parse(localStorage.getItem('mobile_praktek_cache') || 'null');
-      setPraktekList(saved || DEFAULT_PRAKTEK_DATA);
+      setPraktekList([]);
     } finally {
       setLoading(false);
     }
@@ -543,8 +436,8 @@ export default function MobilePraktek() {
 
   const handleOpenAdd = () => {
     setFormMode('add');
-    const defaultSantriId = santriList[0]?.id || 1;
-    const defaultKategori = kategoriList[0]?.nama_kategori || 'Sholat Fardhu';
+    const defaultSantriId = santriList[0]?.id || '';
+    const defaultKategori = kategoriList[0]?.nama_kategori || '';
     setFormData({
       ...initialForm,
       santri_id: defaultSantriId,
@@ -560,7 +453,7 @@ export default function MobilePraktek() {
     setFormData({
       id: item.id,
       santri_id: item.santri_id,
-      kategori: item.kategori || 'Sholat Fardhu',
+      kategori: item.kategori || '',
       deskripsi: item.deskripsi || item.catatan_perbaikan || '',
       status: (item.status === 'Remedial' || item.status === 'Mengulang') ? 'Mengulang' : 'Lulus',
       nama_penguji: item.nama_penguji || currentPenguji,
@@ -575,13 +468,11 @@ export default function MobilePraktek() {
       `Hapus penilaian ${item.kategori} untuk santri ${item.nama_santri}?`,
       async () => {
         try {
-          await axios.delete(`/api/praktek/${item.id}`).catch(() => null);
-          const updated = praktekList.filter(p => p.id !== item.id);
-          setPraktekList(updated);
-          localStorage.setItem('mobile_praktek_cache', JSON.stringify(updated));
-          toastSuccess('Data ujian berhasil dihapus');
+          await axios.delete(`/api/praktek/${item.id}`);
+          await fetchData();
+          toastSuccess('Data ujian berhasil dihapus dari database');
         } catch (err) {
-          showError('Gagal menghapus data ujian');
+          showError(err?.response?.data?.message || 'Gagal menghapus data ujian');
         }
       }
     );
@@ -591,6 +482,10 @@ export default function MobilePraktek() {
     e.preventDefault();
     if (!formData.santri_id) {
       showError('Pilih santri terlebih dahulu');
+      return;
+    }
+    if (!formData.kategori) {
+      showError('Pilih atau tambahkan kategori terlebih dahulu');
       return;
     }
 
@@ -616,22 +511,16 @@ export default function MobilePraktek() {
 
     try {
       if (formMode === 'add') {
-        const res = await axios.post('/api/praktek', payload).catch(() => null);
-        const newItem = res?.data?.data ? res.data.data : { ...payload, id: Date.now() };
-        const updated = [newItem, ...praktekList];
-        setPraktekList(updated);
-        localStorage.setItem('mobile_praktek_cache', JSON.stringify(updated));
-        toastSuccess('Penilaian ujian berhasil disimpan');
+        await axios.post('/api/praktek', payload);
+        toastSuccess('Penilaian ujian berhasil disimpan ke database');
       } else {
-        await axios.put(`/api/praktek/${formData.id}`, payload).catch(() => null);
-        const updated = praktekList.map(p => p.id === formData.id ? { ...p, ...payload } : p);
-        setPraktekList(updated);
-        localStorage.setItem('mobile_praktek_cache', JSON.stringify(updated));
+        await axios.put(`/api/praktek/${formData.id}`, payload);
         toastSuccess('Penilaian ujian berhasil diperbarui');
       }
+      await fetchData();
       setIsModalOpen(false);
     } catch (err) {
-      showError('Gagal menyimpan nilai ujian');
+      showError(err?.response?.data?.message || 'Gagal menyimpan nilai ujian');
     } finally {
       setSubmitting(false);
     }
@@ -660,35 +549,16 @@ export default function MobilePraktek() {
     setSavingKategori(true);
     try {
       if (editingKategoriId) {
-        // Mode Update
-        await axios.put(`/api/praktek/kategori/${editingKategoriId}`, {
-          nama_kategori: newKategoriName.trim(),
-          deskripsi: newKategoriDesc.trim()
-        }).catch(() => null);
-
         const oldItem = kategoriList.find(k => k.id === editingKategoriId);
         const oldName = oldItem?.nama_kategori || '';
 
-        const updated = kategoriList.map(k => {
-          if (k.id === editingKategoriId) {
-            return {
-              ...k,
-              nama_kategori: newKategoriName.trim(),
-              deskripsi: newKategoriDesc.trim()
-            };
-          }
-          return k;
+        await axios.put(`/api/praktek/kategori/${editingKategoriId}`, {
+          nama_kategori: newKategoriName.trim(),
+          deskripsi: newKategoriDesc.trim()
         });
 
-        setKategoriList(updated);
-        localStorage.setItem('mobile_kategori_cache', JSON.stringify(updated));
-
-        // Cascade update in praktekList if category name changed
-        if (oldName && oldName !== newKategoriName.trim()) {
-          setPraktekList(prev => prev.map(p => p.kategori === oldName ? { ...p, kategori: newKategoriName.trim(), nama_praktek: newKategoriName.trim() } : p));
-          if (selectedKategori === oldName) {
-            setSelectedKategori(newKategoriName.trim());
-          }
+        if (oldName && oldName !== newKategoriName.trim() && selectedKategori === oldName) {
+          setSelectedKategori(newKategoriName.trim());
         }
 
         setEditingKategoriId(null);
@@ -696,27 +566,18 @@ export default function MobilePraktek() {
         setNewKategoriDesc('');
         toastSuccess('Kategori praktek berhasil diperbarui');
       } else {
-        // Mode Add Baru
-        const res = await axios.post('/api/praktek/kategori', {
+        await axios.post('/api/praktek/kategori', {
           nama_kategori: newKategoriName.trim(),
           deskripsi: newKategoriDesc.trim()
-        }).catch(() => null);
+        });
 
-        const created = res?.data?.data || {
-          id: Date.now(),
-          nama_kategori: newKategoriName.trim(),
-          deskripsi: newKategoriDesc.trim()
-        };
-
-        const updated = [...kategoriList, created];
-        setKategoriList(updated);
-        localStorage.setItem('mobile_kategori_cache', JSON.stringify(updated));
         setNewKategoriName('');
         setNewKategoriDesc('');
         toastSuccess('Kategori praktek baru berhasil ditambahkan');
       }
+      await fetchData();
     } catch (err) {
-      showError('Gagal menyimpan kategori');
+      showError(err?.response?.data?.message || 'Gagal menyimpan kategori');
     } finally {
       setSavingKategori(false);
     }
@@ -728,19 +589,17 @@ export default function MobilePraktek() {
       `Hapus kategori "${katItem.nama_kategori}"?`,
       async () => {
         try {
-          await axios.delete(`/api/praktek/kategori/${katItem.id}`).catch(() => null);
-          const updated = kategoriList.filter(k => k.id !== katItem.id);
-          setKategoriList(updated);
-          localStorage.setItem('mobile_kategori_cache', JSON.stringify(updated));
+          await axios.delete(`/api/praktek/kategori/${katItem.id}`);
           if (editingKategoriId === katItem.id) {
             handleCancelEditKategori();
           }
           if (selectedKategori === katItem.nama_kategori) {
             setSelectedKategori('Semua');
           }
+          await fetchData();
           toastSuccess('Kategori berhasil dihapus');
         } catch (err) {
-          showError('Gagal menghapus kategori');
+          showError(err?.response?.data?.message || 'Gagal menghapus kategori');
         }
       }
     );
