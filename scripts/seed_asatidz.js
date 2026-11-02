@@ -67,10 +67,22 @@ const MUNAWWIB = [
 
 async function run() {
   try {
-    // 1. Kolom
+    // 1. Cek & Tambah Kolom kategori_asatidz jika belum ada (kompatibel MySQL 5.7 & 8.0)
     try {
-      await pool.query(`ALTER TABLE asatidz ADD COLUMN IF NOT EXISTS kategori_asatidz VARCHAR(50) DEFAULT 'Mustahiq' AFTER tugas_utama`);
-    } catch (e) {}
+      const [colCheck] = await pool.query(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'asatidz' 
+          AND COLUMN_NAME = 'kategori_asatidz'
+      `);
+      if (!colCheck || colCheck.length === 0) {
+        await pool.query(`ALTER TABLE asatidz ADD COLUMN kategori_asatidz VARCHAR(50) DEFAULT 'Mustahiq' AFTER tugas_utama`);
+        console.log("Kolom 'kategori_asatidz' berhasil ditambahkan ke tabel asatidz.");
+      }
+    } catch (colErr) {
+      console.warn("Info cek kolom:", colErr.message);
+    }
 
     let totalInserted = 0;
 
