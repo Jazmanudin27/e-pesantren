@@ -404,11 +404,15 @@ export const getRekapKeuanganAdmin = async (req, res) => {
       SELECT 
         p.*,
         s.nama_santri,
-        s.nis
+        s.nis,
+        a.nama_asrama,
+        k.nama_kamar
       FROM keuangan_transaksi_pembayaran p
       JOIN santri s ON p.santri_id = s.id
+      LEFT JOIN asrama a ON s.asrama_id = a.id
+      LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
       ORDER BY p.created_at DESC
-      LIMIT 15
+      LIMIT 50
     `);
 
     // 3. Daftar Santri dengan Rekap Tunggakan
@@ -419,15 +423,19 @@ export const getRekapKeuanganAdmin = async (req, res) => {
         s.nama_santri,
         s.nama_wali,
         s.no_wa_wali,
+        a.nama_asrama,
+        k.nama_kamar,
         COALESCE(SUM(CASE WHEN t.kategori = 'Bulanan' THEN t.sisa_tagihan ELSE 0 END), 0) as tunggakan_bulanan,
         COALESCE(SUM(CASE WHEN t.kategori = 'Biaya Masuk' THEN t.sisa_tagihan ELSE 0 END), 0) as tunggakan_biaya_masuk,
         COALESCE(SUM(t.sisa_tagihan), 0) as total_tunggakan
       FROM santri s
+      LEFT JOIN asrama a ON s.asrama_id = a.id
+      LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
       LEFT JOIN keuangan_tagihan t ON s.id = t.santri_id AND t.status != 'Lunas'
-      GROUP BY s.id, s.nis, s.nama_santri, s.nama_wali, s.no_wa_wali
+      GROUP BY s.id, s.nis, s.nama_santri, s.nama_wali, s.no_wa_wali, a.nama_asrama, k.nama_kamar
       HAVING total_tunggakan > 0
       ORDER BY total_tunggakan DESC
-      LIMIT 25
+      LIMIT 100
     `);
 
     // 4. Master Komponen Biaya
@@ -435,11 +443,32 @@ export const getRekapKeuanganAdmin = async (req, res) => {
       SELECT * FROM keuangan_komponen_biaya ORDER BY id ASC
     `);
 
+    // 5. Semua Daftar Tagihan Santri
+    const [semuaTagihan] = await pool.query(`
+      SELECT 
+        t.*,
+        s.nama_santri,
+        s.nis,
+        s.nama_wali,
+        s.no_wa_wali,
+        a.nama_asrama,
+        k.nama_kamar,
+        kb.nama_komponen
+      FROM keuangan_tagihan t
+      JOIN santri s ON t.santri_id = s.id
+      LEFT JOIN asrama a ON s.asrama_id = a.id
+      LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+      LEFT JOIN keuangan_komponen_biaya kb ON t.komponen_id = kb.id
+      ORDER BY t.id DESC
+      LIMIT 150
+    `);
+
     return sendSuccess(res, 'Rekap keuangan admin berhasil dimuat', {
       summary: summary[0],
       transaksiTerakhir: transaksiTerakhir || [],
       tunggakanSantri: tunggakanSantri || [],
-      komponenBiaya: komponenBiaya || []
+      komponenBiaya: komponenBiaya || [],
+      semuaTagihan: semuaTagihan || []
     });
   } catch (err) {
     return sendError(res, `Gagal memuat rekap admin: ${err.message}`, 500);
@@ -477,6 +506,134 @@ export const createTagihanAdmin = async (req, res) => {
     return sendSuccess(res, 'Tagihan santri berhasil diterbitkan', { kode_tagihan: kodeTagihan });
   } catch (err) {
     return sendError(res, `Gagal membuat tagihan: ${err.message}`, 500);
+  }
+};
+
+/**
+ * Admin: Update Tagihan Santri
+ */
+export const updateTagihanAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { santri_id, komponen_id, judul_tagihan, total_tagihan, sudah_dibayar, periode_bulan, jatuh_tempo, status } = req.body;
+
+    const [existingRows] = await pool.query('SELECT * FROM keuangan_tagihan WHERE id = ?', [id]);
+    if (!existingRows || existingRows.length === 0) {
+      return sendError(res, 'Tagihan tidak ditemukan', 404);
+    }
+    const existing = existingRows[0];
+
+    let kategori = existing.kategori;
+    let namaKomponen = existing.judul_tagihan;
+    if (komponen_id) {
+      const [kompRows] = await pool.query('SELECT kategori, nama_komponen FROM keuangan_komponen_biaya WHERE id = ?', [komponen_id]);
+      if (kompRows && kompRows.length > 0) {
+        kategori = kompRows[0].kategori;
+        namaKomponen = kompRows[0].nama_komponen;
+      }
+    }
+
+    const total = total_tagihan !== undefined ? parseFloat(total_tagihan) : parseFloat(existing.total_tagihan);
+    const dibayar = sudah_dibayar !== undefined ? parseFloat(sudah_dibayar) : parseFloat(existing.sudah_dibayar || 0);
+    const sisa = Math.max(0, total - dibayar);
+    const finalStatus = status || (sisa <= 0 ? 'Lunas' : dibayar > 0 ? 'Sebagian' : 'Belum Dibayar');
+
+    await pool.query(`
+      UPDATE keuangan_tagihan SET
+        santri_id = ?,
+        komponen_id = ?,
+        judul_tagihan = ?,
+        kategori = ?,
+        periode_bulan = ?,
+        total_tagihan = ?,
+        sudah_dibayar = ?,
+        sisa_tagihan = ?,
+        status = ?,
+        jatuh_tempo = ?
+      WHERE id = ?
+    `, [
+      santri_id || existing.santri_id,
+      komponen_id || existing.komponen_id,
+      judul_tagihan || namaKomponen,
+      kategori,
+      periode_bulan !== undefined ? periode_bulan : existing.periode_bulan,
+      total,
+      dibayar,
+      sisa,
+      finalStatus,
+      jatuh_tempo !== undefined ? (jatuh_tempo || null) : existing.jatuh_tempo,
+      id
+    ]);
+
+    return sendSuccess(res, 'Tagihan berhasil diperbarui');
+  } catch (err) {
+    return sendError(res, `Gagal memperbarui tagihan: ${err.message}`, 500);
+  }
+};
+
+/**
+ * Admin: Hapus Tagihan Santri
+ */
+export const deleteTagihanAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM keuangan_tagihan WHERE id = ?', [id]);
+    return sendSuccess(res, 'Tagihan berhasil dihapus');
+  } catch (err) {
+    return sendError(res, `Gagal menghapus tagihan: ${err.message}`, 500);
+  }
+};
+
+/**
+ * Admin: CRUD Master Komponen Biaya
+ */
+export const createKomponenAdmin = async (req, res) => {
+  try {
+    const { kode_komponen, nama_komponen, kategori, nominal_default, deskripsi } = req.body;
+    if (!nama_komponen || !nominal_default) {
+      return sendError(res, 'Nama komponen dan nominal default wajib diisi', 400);
+    }
+    const kode = kode_komponen || `KMP-${Date.now().toString().slice(-5)}`;
+    const [result] = await pool.query(`
+      INSERT INTO keuangan_komponen_biaya (kode_komponen, nama_komponen, kategori, nominal_default, deskripsi, is_active)
+      VALUES (?, ?, ?, ?, ?, 1)
+    `, [kode, nama_komponen.trim(), kategori || 'Bulanan', parseFloat(nominal_default), deskripsi || null]);
+
+    return sendSuccess(res, 'Komponen biaya berhasil ditambahkan', { id: result.insertId }, 201);
+  } catch (err) {
+    return sendError(res, `Gagal menambah komponen biaya: ${err.message}`, 500);
+  }
+};
+
+export const updateKomponenAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nama_komponen, kategori, nominal_default, deskripsi } = req.body;
+    if (!nama_komponen || !nominal_default) {
+      return sendError(res, 'Nama komponen dan nominal default wajib diisi', 400);
+    }
+    await pool.query(`
+      UPDATE keuangan_komponen_biaya SET
+        nama_komponen = ?,
+        kategori = ?,
+        nominal_default = ?,
+        deskripsi = ?
+      WHERE id = ?
+    `, [nama_komponen.trim(), kategori || 'Bulanan', parseFloat(nominal_default), deskripsi || null, id]);
+
+    return sendSuccess(res, 'Komponen biaya berhasil diperbarui');
+  } catch (err) {
+    return sendError(res, `Gagal memperbarui komponen biaya: ${err.message}`, 500);
+  }
+};
+
+export const deleteKomponenAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM keuangan_komponen_biaya WHERE id = ?', [id]);
+    return sendSuccess(res, 'Komponen biaya berhasil dihapus');
+  } catch (err) {
+    return sendError(res, `Gagal menghapus komponen biaya: ${err.message}`, 500);
   }
 };
 

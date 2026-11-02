@@ -4,7 +4,7 @@ import {
   CreditCard, 
   QrCode, 
   DollarSign, 
-  CheckCircle, 
+  CheckCircle2, 
   Clock, 
   AlertCircle, 
   FileText, 
@@ -18,9 +18,16 @@ import {
   UserCheck,
   Send,
   Eye,
-  Check
+  Edit3,
+  Trash2,
+  X,
+  Save,
+  Loader2,
+  FolderPlus,
+  Tag
 } from 'lucide-react';
-import { toastSuccess, showError, showSuccess } from '../../utils/alert.util';
+import { toastSuccess, showError, showConfirm } from '../../utils/alert.util';
+import SearchableSelect from '../../components/SearchableSelect';
 
 export default function KeuanganAdminView() {
   const [loading, setLoading] = useState(true);
@@ -28,28 +35,64 @@ export default function KeuanganAdminView() {
     summary: {},
     transaksiTerakhir: [],
     tunggakanSantri: [],
-    komponenBiaya: []
+    komponenBiaya: [],
+    semuaTagihan: []
   });
-  const [activeTab, setActiveTab] = useState('tunggakan'); // 'tunggakan' | 'transaksi' | 'komponen'
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [santriList, setSantriList] = useState([]);
-  const [formTagihan, setFormTagihan] = useState({
+
+  // Tab & Filter State (Sesuai Master Produk / Master Santri)
+  const [activeTab, setActiveTab] = useState('tagihan'); // 'tagihan' | 'tunggakan' | 'transaksi' | 'komponen'
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterKategori, setFilterKategori] = useState('Semua Kategori');
+  const [filterAsrama, setFilterAsrama] = useState('Semua Asrama');
+  const [filterStatus, setFilterStatus] = useState('Semua Status');
+
+  // Modal Detail Tagihan / Transaksi
+  const [selectedDetail, setSelectedDetail] = useState(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  // Modal Buat / Edit Tagihan
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formMode, setFormMode] = useState('add');
+  const [submitting, setSubmitting] = useState(false);
+  const initialFormTagihan = {
+    id: null,
     santri_id: '',
     komponen_id: '',
     judul_tagihan: '',
     total_tagihan: '',
-    periode_bulan: '',
-    jatuh_tempo: ''
+    sudah_dibayar: '0',
+    periode_bulan: 'November 2026',
+    jatuh_tempo: new Date().toISOString().slice(0, 10),
+    status: 'Belum Dibayar'
+  };
+  const [formTagihan, setFormTagihan] = useState(initialFormTagihan);
+
+  // Modal Kelola Komponen Biaya (Master Produk Biaya)
+  const [isKomponenModalOpen, setIsKomponenModalOpen] = useState(false);
+  const [editingKompId, setEditingKompId] = useState(null);
+  const [savingKomp, setSavingKomp] = useState(false);
+  const [formKomponen, setFormKomponen] = useState({
+    nama_komponen: '',
+    kategori: 'Bulanan',
+    nominal_default: '',
+    deskripsi: ''
   });
-  const [submitting, setSubmitting] = useState(false);
+
+  const formatRupiah = (val) => `Rp ${parseFloat(val || 0).toLocaleString('id-ID')}`;
 
   const fetchRekap = async () => {
     try {
       setLoading(true);
       const res = await axios.get('/api/keuangan/admin/rekap');
       if (res.data?.success) {
-        setData(res.data.data);
+        setData({
+          summary: res.data.data.summary || {},
+          transaksiTerakhir: res.data.data.transaksiTerakhir || [],
+          tunggakanSantri: res.data.data.tunggakanSantri || [],
+          komponenBiaya: res.data.data.komponenBiaya || [],
+          semuaTagihan: res.data.data.semuaTagihan || []
+        });
       }
     } catch (err) {
       console.warn('Gagal ambil data rekap keuangan:', err.message);
@@ -61,7 +104,7 @@ export default function KeuanganAdminView() {
   const fetchSantri = async () => {
     try {
       const res = await axios.get('/api/santri');
-      if (res.data?.success) {
+      if (res.data?.success && Array.isArray(res.data.data)) {
         setSantriList(res.data.data);
       }
     } catch (e) {}
@@ -72,28 +115,62 @@ export default function KeuanganAdminView() {
     fetchSantri();
   }, []);
 
+  // Handlers Tagihan
+  const openAddTagihan = () => {
+    const firstKomp = data.komponenBiaya?.[0];
+    setFormMode('add');
+    setFormTagihan({
+      ...initialFormTagihan,
+      santri_id: santriList[0]?.id || '',
+      komponen_id: firstKomp?.id || '',
+      judul_tagihan: firstKomp ? `${firstKomp.nama_komponen} November 2026` : '',
+      total_tagihan: firstKomp ? String(firstKomp.nominal_default || '') : ''
+    });
+    setIsModalOpen(true);
+  };
+
+  const openEditTagihan = (item) => {
+    setFormMode('edit');
+    setFormTagihan({
+      id: item.id,
+      santri_id: item.santri_id,
+      komponen_id: item.komponen_id || '',
+      judul_tagihan: item.judul_tagihan || '',
+      total_tagihan: String(item.total_tagihan || 0),
+      sudah_dibayar: String(item.sudah_dibayar || 0),
+      periode_bulan: item.periode_bulan || '',
+      jatuh_tempo: item.jatuh_tempo ? String(item.jatuh_tempo).slice(0, 10) : '',
+      status: item.status || 'Belum Dibayar'
+    });
+    setIsModalOpen(true);
+  };
+
+  const openDetailTagihan = (item) => {
+    setSelectedDetail(item);
+    setIsDetailOpen(true);
+  };
+
   const handleSimpanTagihan = async (e) => {
     e.preventDefault();
     if (!formTagihan.santri_id || !formTagihan.komponen_id || !formTagihan.total_tagihan) {
-      showError('Validasi Gagal', 'Semua kolom wajib diisi');
+      showError('Validasi Gagal', 'Santri, Komponen Biaya, dan Nominal wajib diisi');
       return;
     }
     try {
       setSubmitting(true);
-      const res = await axios.post('/api/keuangan/admin/tagihan', formTagihan);
-      if (res.data?.success) {
-        toastSuccess('Berhasil!', 'Tagihan baru berhasil diterbitkan untuk santri');
-        setIsModalOpen(false);
-        setFormTagihan({
-          santri_id: '',
-          komponen_id: '',
-          judul_tagihan: '',
-          total_tagihan: '',
-          periode_bulan: '',
-          jatuh_tempo: ''
-        });
-        fetchRekap();
+      if (formMode === 'add') {
+        const res = await axios.post('/api/keuangan/admin/tagihan', formTagihan);
+        if (res.data?.success) {
+          toastSuccess('Berhasil!', 'Tagihan baru berhasil diterbitkan untuk santri');
+        }
+      } else {
+        const res = await axios.put(`/api/keuangan/admin/tagihan/${formTagihan.id}`, formTagihan);
+        if (res.data?.success) {
+          toastSuccess('Berhasil!', 'Data tagihan santri berhasil diperbarui');
+        }
       }
+      setIsModalOpen(false);
+      await fetchRekap();
     } catch (err) {
       showError('Gagal', err.response?.data?.message || err.message);
     } finally {
@@ -101,363 +178,734 @@ export default function KeuanganAdminView() {
     }
   };
 
-  const filteredTunggakan = (data.tunggakanSantri || []).filter(item => {
-    const q = searchQuery.toLowerCase();
-    return (
+  const handleDeleteTagihan = (item) => {
+    showConfirm(
+      'Hapus Tagihan Santri?',
+      `Hapus tagihan "${item.judul_tagihan}" (${formatRupiah(item.total_tagihan)}) milik ${item.nama_santri}?`,
+      async () => {
+        try {
+          await axios.delete(`/api/keuangan/admin/tagihan/${item.id}`);
+          toastSuccess('Dihapus!', 'Tagihan berhasil dihapus dari database');
+          await fetchRekap();
+        } catch (err) {
+          showError('Gagal', err.response?.data?.message || err.message);
+        }
+      }
+    );
+  };
+
+  // Handlers Komponen Biaya (Master Produk Biaya)
+  const handleStartEditKomp = (k) => {
+    setEditingKompId(k.id);
+    setFormKomponen({
+      nama_komponen: k.nama_komponen || '',
+      kategori: k.kategori || 'Bulanan',
+      nominal_default: String(k.nominal_default || ''),
+      deskripsi: k.deskripsi || ''
+    });
+    setIsKomponenModalOpen(true);
+  };
+
+  const handleResetKompForm = () => {
+    setEditingKompId(null);
+    setFormKomponen({
+      nama_komponen: '',
+      kategori: 'Bulanan',
+      nominal_default: '',
+      deskripsi: ''
+    });
+  };
+
+  const handleSimpanKomponen = async (e) => {
+    e.preventDefault();
+    if (!formKomponen.nama_komponen.trim() || !formKomponen.nominal_default) {
+      showError('Validasi Gagal', 'Nama komponen dan nominal wajib diisi');
+      return;
+    }
+    try {
+      setSavingKomp(true);
+      if (editingKompId) {
+        await axios.put(`/api/keuangan/admin/komponen/${editingKompId}`, formKomponen);
+        toastSuccess('Berhasil!', 'Master komponen biaya berhasil diperbarui');
+      } else {
+        await axios.post('/api/keuangan/admin/komponen', formKomponen);
+        toastSuccess('Berhasil!', 'Master komponen biaya baru berhasil ditambahkan');
+      }
+      handleResetKompForm();
+      await fetchRekap();
+    } catch (err) {
+      showError('Gagal', err.response?.data?.message || err.message);
+    } finally {
+      setSavingKomp(false);
+    }
+  };
+
+  const handleDeleteKomponen = (k) => {
+    showConfirm(
+      'Hapus Komponen Biaya?',
+      `Hapus komponen "${k.nama_komponen}" (${formatRupiah(k.nominal_default)})?`,
+      async () => {
+        try {
+          await axios.delete(`/api/keuangan/admin/komponen/${k.id}`);
+          toastSuccess('Dihapus!', 'Komponen biaya berhasil dihapus');
+          await fetchRekap();
+        } catch (err) {
+          showError('Gagal', err.response?.data?.message || err.message);
+        }
+      }
+    );
+  };
+
+  // Unique Asrama List for Filter
+  const uniqueAsramas = Array.from(
+    new Set(
+      [...(data.semuaTagihan || []), ...(data.tunggakanSantri || [])]
+        .map(x => x.nama_asrama)
+        .filter(Boolean)
+    )
+  );
+
+  // Filtered Lists per Tab
+  const q = searchQuery.toLowerCase();
+
+  const filteredTagihan = (data.semuaTagihan || []).filter(item => {
+    const matchQ =
+      !q ||
       (item.nama_santri || '').toLowerCase().includes(q) ||
       (item.nis || '').toLowerCase().includes(q) ||
-      (item.nama_wali || '').toLowerCase().includes(q)
-    );
+      (item.kode_tagihan || '').toLowerCase().includes(q) ||
+      (item.judul_tagihan || '').toLowerCase().includes(q);
+    const matchKat = filterKategori === 'Semua Kategori' ? true : item.kategori === filterKategori;
+    const matchAsr = filterAsrama === 'Semua Asrama' ? true : (item.nama_asrama || '').includes(filterAsrama);
+    const matchSt = filterStatus === 'Semua Status' ? true : item.status === filterStatus;
+    return matchQ && matchKat && matchAsr && matchSt;
   });
 
-  const formatRupiah = (val) => `Rp ${parseFloat(val || 0).toLocaleString('id-ID')}`;
+  const filteredTunggakan = (data.tunggakanSantri || []).filter(item => {
+    const matchQ =
+      !q ||
+      (item.nama_santri || '').toLowerCase().includes(q) ||
+      (item.nis || '').toLowerCase().includes(q) ||
+      (item.nama_wali || '').toLowerCase().includes(q);
+    const matchAsr = filterAsrama === 'Semua Asrama' ? true : (item.nama_asrama || '').includes(filterAsrama);
+    return matchQ && matchAsr;
+  });
+
+  const filteredTransaksi = (data.transaksiTerakhir || []).filter(trx => {
+    const matchQ =
+      !q ||
+      (trx.nama_santri || '').toLowerCase().includes(q) ||
+      (trx.nis || '').toLowerCase().includes(q) ||
+      (trx.nomor_transaksi || '').toLowerCase().includes(q) ||
+      (trx.kuitansi_nomor || '').toLowerCase().includes(q);
+    const matchAsr = filterAsrama === 'Semua Asrama' ? true : (trx.nama_asrama || '').includes(filterAsrama);
+    return matchQ && matchAsr;
+  });
+
+  const filteredKomponen = (data.komponenBiaya || []).filter(k => {
+    const matchQ =
+      !q ||
+      (k.nama_komponen || '').toLowerCase().includes(q) ||
+      (k.kode_komponen || '').toLowerCase().includes(q) ||
+      (k.deskripsi || '').toLowerCase().includes(q);
+    const matchKat = filterKategori === 'Semua Kategori' ? true : k.kategori === filterKategori;
+    return matchQ && matchKat;
+  });
 
   return (
-    <div className="admin-content-inner" style={{ padding: '24px' }}>
-      {/* Top Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <CreditCard size={26} color="#059669" />
-            <span>Administrasi Keuangan & Pembayaran Digital</span>
-          </h1>
-          <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '4px 0 0' }}>
-            Manajemen tagihan SPP bulanan, biaya awal masuk pesantren, QRIS & Virtual Account santri
-          </p>
+    <div>
+      {/* 1. TOP 4 COLORED STATS CARDS (Standar Master Produk / Master Santri) */}
+      <div className="top-stats-grid">
+        <div className="stat-card-colored stat-card-blue">
+          <div>
+            <div className="stat-colored-title">TOTAL TAGIHAN DITERBITKAN</div>
+            <div className="stat-colored-number" style={{ fontSize: '1.35rem' }}>
+              {formatRupiah(data.summary?.total_nominal_tagihan)}
+            </div>
+          </div>
+          <div className="stat-colored-icon-box">
+            <DollarSign size={22} />
+          </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button 
+        <div className="stat-card-colored stat-card-green">
+          <div>
+            <div className="stat-colored-title">PEMBAYARAN TERVERIFIKASI</div>
+            <div className="stat-colored-number" style={{ fontSize: '1.35rem' }}>
+              {formatRupiah(data.summary?.total_terbayar)}
+            </div>
+          </div>
+          <div className="stat-colored-icon-box">
+            <CheckCircle2 size={22} />
+          </div>
+        </div>
+
+        <div className="stat-card-colored stat-card-amber">
+          <div>
+            <div className="stat-colored-title">TOTAL SISA TUNGGAKAN</div>
+            <div className="stat-colored-number" style={{ fontSize: '1.35rem' }}>
+              {formatRupiah(data.summary?.total_tunggakan)}
+            </div>
+          </div>
+          <div className="stat-colored-icon-box">
+            <AlertCircle size={22} />
+          </div>
+        </div>
+
+        <div className="stat-card-colored stat-card-purple">
+          <div>
+            <div className="stat-colored-title">KOMPONEN BIAYA & METODE</div>
+            <div className="stat-colored-number" style={{ fontSize: '1.35rem' }}>
+              {data.komponenBiaya?.length || 0} Item (QRIS/VA)
+            </div>
+          </div>
+          <div className="stat-colored-icon-box">
+            <QrCode size={22} />
+          </div>
+        </div>
+      </div>
+
+      {/* 2. TITLE STRIP */}
+      <div className="page-title-strip">
+        <div className="page-title-left">
+          <CreditCard size={22} className="page-title-icon" style={{ color: '#059669' }} />
+          <div>
+            <h2>Keuangan, Tagihan Santri & Pembayaran Digital (QRIS / VA)</h2>
+            <p>Manajemen tagihan SPP bulanan, biaya awal masuk pesantren, master komponen biaya, dan kuitansi otomatis</p>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn btn-outline"
             onClick={fetchRekap}
-            className="btn-refresh" 
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}
           >
-            <RotateCw size={15} /> Refresh Data
+            <RotateCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#059669', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700 }}
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => {
+              handleResetKompForm();
+              setIsKomponenModalOpen(true);
+            }}
           >
-            <Plus size={16} /> Buat Tagihan Baru
+            <FolderPlus size={14} color="#059669" /> Master Komponen Biaya
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={openAddTagihan}
+          >
+            <Plus size={14} /> Buat Tagihan Baru
           </button>
         </div>
       </div>
 
-      {/* 4 Summary Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div style={{ background: '#fff', padding: '18px', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>TOTAL TAGIHAN DITERBITKAN</span>
-            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <DollarSign size={20} color="#2563eb" />
-            </div>
-          </div>
-          <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', marginTop: '10px' }}>
-            {formatRupiah(data.summary?.total_nominal_tagihan)}
-          </div>
-          <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px' }}>Akumulasi SPP & Biaya Masuk</div>
-        </div>
-
-        <div style={{ background: '#fff', padding: '18px', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>PEMBAYARAN TERVERIFIKASI</span>
-            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CheckCircle size={20} color="#059669" />
-            </div>
-          </div>
-          <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#059669', marginTop: '10px' }}>
-            {formatRupiah(data.summary?.total_terbayar)}
-          </div>
-          <div style={{ fontSize: '0.74rem', color: '#059669', marginTop: '4px' }}>
-            {data.summary?.jumlah_tagihan_lunas || 0} tagihan telah lunas
-          </div>
-        </div>
-
-        <div style={{ background: '#fff', padding: '18px', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>TOTAL SISA TUNGGAKAN</span>
-            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <AlertCircle size={20} color="#dc2626" />
-            </div>
-          </div>
-          <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#dc2626', marginTop: '10px' }}>
-            {formatRupiah(data.summary?.total_tunggakan)}
-          </div>
-          <div style={{ fontSize: '0.74rem', color: '#dc2626', marginTop: '4px' }}>
-            {data.summary?.jumlah_tagihan_tertunggak || 0} tagihan belum lunas
-          </div>
-        </div>
-
-        <div style={{ background: '#fff', padding: '18px', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>METODE DIGITAL AKTIF</span>
-            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#faf5ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <QrCode size={20} color="#9333ea" />
-            </div>
-          </div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#7e22ce', marginTop: '10px' }}>
-            QRIS & Virtual Account
-          </div>
-          <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px' }}>BCA, Mandiri, BNI, BRI, BSI</div>
-        </div>
-      </div>
-
-      {/* Tabs Menu Navigation */}
-      <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', marginBottom: '20px', gap: '8px' }}>
+      {/* 3. TAB FILTER BAR */}
+      <div className="tab-filter-bar">
         <button
+          className={`tab-btn ${activeTab === 'tagihan' ? 'active' : ''}`}
+          onClick={() => setActiveTab('tagihan')}
+        >
+          <FileText size={14} /> Daftar Tagihan Santri ({data.semuaTagihan?.length || 0})
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'tunggakan' ? 'active' : ''}`}
           onClick={() => setActiveTab('tunggakan')}
-          style={{
-            padding: '10px 18px',
-            fontSize: '0.88rem',
-            fontWeight: 700,
-            background: 'none',
-            border: 'none',
-            borderBottom: activeTab === 'tunggakan' ? '3px solid #059669' : '3px solid transparent',
-            color: activeTab === 'tunggakan' ? '#059669' : '#64748b',
-            cursor: 'pointer'
-          }}
         >
-          Rekap Tunggakan Santri ({data.tunggakanSantri?.length || 0})
+          <AlertCircle size={14} /> Rekap Tunggakan Santri ({data.tunggakanSantri?.length || 0})
         </button>
         <button
+          className={`tab-btn ${activeTab === 'transaksi' ? 'active' : ''}`}
           onClick={() => setActiveTab('transaksi')}
-          style={{
-            padding: '10px 18px',
-            fontSize: '0.88rem',
-            fontWeight: 700,
-            background: 'none',
-            border: 'none',
-            borderBottom: activeTab === 'transaksi' ? '3px solid #059669' : '3px solid transparent',
-            color: activeTab === 'transaksi' ? '#059669' : '#64748b',
-            cursor: 'pointer'
-          }}
         >
-          Log Transaksi & Kuitansi Digital ({data.transaksiTerakhir?.length || 0})
+          <QrCode size={14} /> Log Transaksi & Kuitansi ({data.transaksiTerakhir?.length || 0})
         </button>
         <button
+          className={`tab-btn ${activeTab === 'komponen' ? 'active' : ''}`}
           onClick={() => setActiveTab('komponen')}
-          style={{
-            padding: '10px 18px',
-            fontSize: '0.88rem',
-            fontWeight: 700,
-            background: 'none',
-            border: 'none',
-            borderBottom: activeTab === 'komponen' ? '3px solid #059669' : '3px solid transparent',
-            color: activeTab === 'komponen' ? '#059669' : '#64748b',
-            cursor: 'pointer'
-          }}
         >
-          Master Komponen Biaya ({data.komponenBiaya?.length || 0})
+          <Layers size={14} /> Master Komponen Biaya ({data.komponenBiaya?.length || 0})
         </button>
       </div>
 
-      {/* TAB 1: REKAP TUNGGAKAN SANTRI */}
-      {activeTab === 'tunggakan' && (
-        <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-          <div style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', flexWrap: 'wrap', gap: '10px' }}>
-            <div style={{ position: 'relative', width: '320px' }}>
-              <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '10px' }} />
-              <input
-                type="text"
-                placeholder="Cari santri, NIS, atau nama wali..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ width: '100%', padding: '8px 12px 8px 36px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
-              />
-            </div>
-            <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
-              Menampilkan {filteredTunggakan.length} santri dengan kewajiban tagihan
-            </div>
-          </div>
-
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.84rem' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                  <th style={{ padding: '12px 16px' }}>NO</th>
-                  <th style={{ padding: '12px 16px' }}>SANTRI & NIS</th>
-                  <th style={{ padding: '12px 16px' }}>NAMA & NO. WA WALI</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'right' }}>TUNGGAKAN SPP BULANAN</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'right' }}>SISA BIAYA MASUK</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'right' }}>TOTAL KEWAJIBAN</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'center' }}>AKSI</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredTunggakan.map((item, idx) => (
-                  <tr key={item.santri_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '12px 16px', color: '#94a3b8' }}>{idx + 1}</td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ fontWeight: 700, color: '#0f172a' }}>{item.nama_santri}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>NIS: {item.nis}</div>
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ fontWeight: 600, color: '#1e293b' }}>{item.nama_wali}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#0284c7' }}>📱 {item.no_wa_wali}</div>
-                    </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: '#f59e0b' }}>
-                      {formatRupiah(item.tunggakan_bulanan)}
-                    </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: '#3b82f6' }}>
-                      {formatRupiah(item.tunggakan_biaya_masuk)}
-                    </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 800, color: '#dc2626' }}>
-                      {formatRupiah(item.total_tunggakan)}
-                    </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                      <a
-                        href={`https://wa.me/${(item.no_wa_wali || '').replace(/[^0-9]/g, '')}?text=Assalamu'alaikum%20Bpk/Ibu%20Wali%20Santri%20${encodeURIComponent(item.nama_santri)},%20informasi%20tagihan%20pesantren%20sebesar%20${encodeURIComponent(formatRupiah(item.total_tunggakan))}%20dapat%20dibayar%20via%20aplikasi%20Ruang%20Ponpes.`}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          background: '#ecfdf5',
-                          color: '#059669',
-                          border: '1px solid #a7f3d0',
-                          padding: '5px 10px',
-                          borderRadius: '6px',
-                          textDecoration: 'none',
-                          fontWeight: 700,
-                          fontSize: '0.74rem'
-                        }}
-                      >
-                        <Send size={12} /> Kirim Info WA
-                      </a>
-                    </td>
-                  </tr>
-                ))}
-                {filteredTunggakan.length === 0 && (
-                  <tr>
-                    <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: '#94a3b8' }}>
-                      Tidak ada data tunggakan yang sesuai pencarian.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+      {/* 4. FILTER SEARCH BAR STRIP */}
+      <div className="filter-search-box">
+        <div className="filter-search-input">
+          <Search size={15} color="#94a3b8" />
+          <input
+            type="text"
+            placeholder="Cari nama santri, NIS, kode tagihan, judul biaya, nomor kuitansi..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
-      )}
 
-      {/* TAB 2: LOG TRANSAKSI & KUITANSI DIGITAL */}
-      {activeTab === 'transaksi' && (
-        <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-          <div style={{ padding: '16px', borderBottom: '1px solid #e2e8f0', fontWeight: 700, color: '#0f172a' }}>
-            Riwayat Pembayaran Digital & Kuitansi Otomatis (QRIS / Virtual Account)
-          </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.84rem' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                  <th style={{ padding: '12px 16px' }}>NO. TRANSAKSI</th>
-                  <th style={{ padding: '12px 16px' }}>SANTRI</th>
-                  <th style={{ padding: '12px 16px' }}>METODE & CHANNEL</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'right' }}>TOTAL BAYAR</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'center' }}>STATUS</th>
-                  <th style={{ padding: '12px 16px' }}>NO. KUITANSI</th>
-                  <th style={{ padding: '12px 16px' }}>TANGGAL BAYAR</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(data.transaksiTerakhir || []).map((trx) => (
-                  <tr key={trx.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>
-                      {trx.nomor_transaksi}
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ fontWeight: 600 }}>{trx.nama_santri}</div>
-                      <div style={{ fontSize: '0.74rem', color: '#64748b' }}>NIS: {trx.nis}</div>
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <span style={{
-                        background: trx.metode_pembayaran === 'QRIS' ? '#f0fdf4' : '#eff6ff',
-                        color: trx.metode_pembayaran === 'QRIS' ? '#166534' : '#1e40af',
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        fontSize: '0.74rem',
-                        fontWeight: 700
-                      }}>
-                        {trx.channel_pembayaran || trx.metode_pembayaran}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 800, color: '#059669' }}>
-                      {formatRupiah(trx.total_bayar)}
-                    </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                      <span style={{
-                        background: trx.status_pembayaran === 'Berhasil' ? '#10b981' : '#f59e0b',
-                        color: '#fff',
-                        padding: '2px 8px',
-                        borderRadius: '999px',
-                        fontSize: '0.7rem',
-                        fontWeight: 800
-                      }}>
-                        {trx.status_pembayaran}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px 16px', fontFamily: 'monospace', color: '#0284c7', fontWeight: 600 }}>
-                      {trx.kuitansi_nomor || '-'}
-                    </td>
-                    <td style={{ padding: '12px 16px', color: '#64748b' }}>
-                      {trx.tanggal_bayar ? new Date(trx.tanggal_bayar).toLocaleString('id-ID') : '-'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+        {(activeTab === 'tagihan' || activeTab === 'komponen') && (
+          <select
+            className="filter-select"
+            value={filterKategori}
+            onChange={(e) => setFilterKategori(e.target.value)}
+          >
+            <option value="Semua Kategori">Semua Kategori</option>
+            <option value="Bulanan">Bulanan (SPP & Makan)</option>
+            <option value="Biaya Masuk">Biaya Masuk</option>
+            <option value="Tahunan">Tahunan</option>
+            <option value="Insidental">Insidental</option>
+          </select>
+        )}
 
-      {/* TAB 3: MASTER KOMPONEN BIAYA */}
-      {activeTab === 'komponen' && (
-        <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-          <div style={{ padding: '16px', borderBottom: '1px solid #e2e8f0', fontWeight: 700, color: '#0f172a' }}>
-            Daftar Komponen Biaya Santri (Biaya Awal Masuk & Administrasi Bulanan)
+        {activeTab !== 'komponen' && (
+          <select
+            className="filter-select"
+            value={filterAsrama}
+            onChange={(e) => setFilterAsrama(e.target.value)}
+          >
+            <option value="Semua Asrama">Semua Asrama</option>
+            {uniqueAsramas.map(asr => (
+              <option key={asr} value={asr}>{asr}</option>
+            ))}
+          </select>
+        )}
+
+        {activeTab === 'tagihan' && (
+          <select
+            className="filter-select"
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
+            <option value="Semua Status">Semua Status</option>
+            <option value="Belum Dibayar">Belum Dibayar</option>
+            <option value="Sebagian">Dicicil / Sebagian</option>
+            <option value="Lunas">Lunas</option>
+          </select>
+        )}
+      </div>
+
+      {/* 5. DATA TABLE CARD */}
+      <div className="table-container-card">
+        {loading ? (
+          <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
+            <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 8px', display: 'block' }} />
+            Memuat data keuangan & tagihan santri...
           </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.84rem' }}>
+        ) : activeTab === 'tagihan' ? (
+          /* TAB 1: DAFTAR SEMUA TAGIHAN SANTRI */
+          <table className="data-table">
             <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                <th style={{ padding: '12px 16px' }}>KOMPONEN BIAYA</th>
-                <th style={{ padding: '12px 16px' }}>KATEGORI</th>
-                <th style={{ padding: '12px 16px' }}>JENJANG</th>
-                <th style={{ padding: '12px 16px', textAlign: 'right' }}>NOMINAL DEFAULT</th>
-                <th style={{ padding: '12px 16px' }}>DESKRIPSI / KETERANGAN</th>
+              <tr>
+                <th className="td-center" style={{ width: '40px' }}>NO</th>
+                <th>KODE & JUDUL TAGIHAN</th>
+                <th>NAMA SANTRI & NIS</th>
+                <th className="td-center">KATEGORI</th>
+                <th style={{ textAlign: 'right' }}>TOTAL TAGIHAN</th>
+                <th style={{ textAlign: 'right' }}>TERBAYAR</th>
+                <th style={{ textAlign: 'right' }}>SISA TAGIHAN</th>
+                <th className="td-center">STATUS</th>
+                <th className="td-center" style={{ width: '130px' }}>AKSI</th>
               </tr>
             </thead>
             <tbody>
-              {(data.komponenBiaya || []).map((k) => (
-                <tr key={k.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>
-                    {k.nama_komponen}
+              {filteredTagihan.map((item, idx) => (
+                <tr key={item.id || idx}>
+                  <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
+                    {idx + 1}
                   </td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <span style={{
-                      background: k.kategori === 'Bulanan' ? '#fef3c7' : '#e0f2fe',
-                      color: k.kategori === 'Bulanan' ? '#92400e' : '#0369a1',
-                      padding: '3px 8px',
-                      borderRadius: '6px',
-                      fontSize: '0.74rem',
-                      fontWeight: 700
-                    }}>
+                  <td>
+                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{item.judul_tagihan}</div>
+                    <div style={{ fontSize: '0.68rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <code style={{ color: '#0284c7', fontWeight: 700 }}>{item.kode_tagihan}</code>
+                      {item.jatuh_tempo && (
+                        <span>• Tempo: {new Date(item.jatuh_tempo).toLocaleDateString('id-ID')}</span>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{item.nama_santri}</div>
+                    <div style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 600 }}>
+                      NIS: {item.nis} • {item.nama_asrama || 'Asrama'}
+                    </div>
+                  </td>
+                  <td className="td-center">
+                    <span className={`badge ${item.kategori === 'Bulanan' ? 'badge-info' : item.kategori === 'Biaya Masuk' ? 'badge-purple' : 'badge-warning'}`}>
+                      {item.kategori}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
+                    {formatRupiah(item.total_tagihan)}
+                  </td>
+                  <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669' }}>
+                    {formatRupiah(item.sudah_dibayar)}
+                  </td>
+                  <td style={{ textAlign: 'right', fontWeight: 800, color: parseFloat(item.sisa_tagihan) > 0 ? '#dc2626' : '#64748b' }}>
+                    {formatRupiah(item.sisa_tagihan)}
+                  </td>
+                  <td className="td-center">
+                    <span className={`badge ${item.status === 'Lunas' ? 'badge-success' : item.status === 'Sebagian' ? 'badge-warning' : 'badge-danger'}`}>
+                      {item.status}
+                    </span>
+                  </td>
+                  <td className="td-center">
+                    <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
+                      <button
+                        className="btn-action btn-action-view"
+                        onClick={() => openDetailTagihan(item)}
+                        title="Lihat Detail Tagihan"
+                      >
+                        <Eye size={13} />
+                      </button>
+                      <button
+                        className="btn-action btn-action-edit"
+                        onClick={() => openEditTagihan(item)}
+                        title="Edit Tagihan"
+                      >
+                        <Edit3 size={13} />
+                      </button>
+                      <button
+                        className="btn-action btn-action-delete"
+                        onClick={() => handleDeleteTagihan(item)}
+                        title="Hapus Tagihan"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filteredTagihan.length === 0 && (
+                <tr>
+                  <td colSpan={9} style={{ padding: '36px', textAlign: 'center', color: '#94a3b8' }}>
+                    Tidak ada data tagihan santri yang sesuai filter.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        ) : activeTab === 'tunggakan' ? (
+          /* TAB 2: REKAP TUNGGAKAN SANTRI */
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th className="td-center" style={{ width: '40px' }}>NO</th>
+                <th>NAMA SANTRI & NIS</th>
+                <th>ASRAMA & KOBONG</th>
+                <th>WALI & KONTAK WA</th>
+                <th style={{ textAlign: 'right' }}>TUNGGAKAN SPP BULANAN</th>
+                <th style={{ textAlign: 'right' }}>SISA BIAYA MASUK</th>
+                <th style={{ textAlign: 'right' }}>TOTAL KEWAJIBAN</th>
+                <th className="td-center" style={{ width: '140px' }}>AKSI</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredTunggakan.map((item, idx) => (
+                <tr key={item.santri_id || idx}>
+                  <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
+                    {idx + 1}
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{item.nama_santri}</div>
+                    <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>NIS: {item.nis}</div>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', color: '#0f172a' }}>
+                      <Building size={13} color="#059669" />
+                      <span>{item.nama_asrama || 'Asrama Pondok'}</span>
+                    </div>
+                    <div style={{ fontSize: '0.68rem', color: '#64748b' }}>{item.nama_kamar || 'Kamar 01'}</div>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.76rem' }}>{item.nama_wali || '-'}</div>
+                    <div style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 600 }}>{item.no_wa_wali || '-'}</div>
+                  </td>
+                  <td style={{ textAlign: 'right', fontWeight: 700, color: '#d97706' }}>
+                    {formatRupiah(item.tunggakan_bulanan)}
+                  </td>
+                  <td style={{ textAlign: 'right', fontWeight: 700, color: '#0284c7' }}>
+                    {formatRupiah(item.tunggakan_biaya_masuk)}
+                  </td>
+                  <td style={{ textAlign: 'right', fontWeight: 800, color: '#dc2626' }}>
+                    {formatRupiah(item.total_tunggakan)}
+                  </td>
+                  <td className="td-center">
+                    <a
+                      href={`https://wa.me/${(item.no_wa_wali || '').replace(/[^0-9]/g, '')}?text=Assalamu'alaikum%20Bpk/Ibu%20Wali%20Santri%20${encodeURIComponent(item.nama_santri)},%20informasi%20tagihan%20pesantren%20sebesar%20${encodeURIComponent(formatRupiah(item.total_tunggakan))}%20dapat%20dibayar%20via%20aplikasi%20Ruang%20Ponpes.`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        background: '#ecfdf5',
+                        color: '#059669',
+                        border: '1px solid #a7f3d0',
+                        padding: '5px 10px',
+                        borderRadius: '6px',
+                        textDecoration: 'none',
+                        fontWeight: 700,
+                        fontSize: '0.72rem'
+                      }}
+                    >
+                      <Send size={12} /> Tagih via WA
+                    </a>
+                  </td>
+                </tr>
+              ))}
+              {filteredTunggakan.length === 0 && (
+                <tr>
+                  <td colSpan={8} style={{ padding: '36px', textAlign: 'center', color: '#94a3b8' }}>
+                    Tidak ada data tunggakan santri.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        ) : activeTab === 'transaksi' ? (
+          /* TAB 3: LOG TRANSAKSI & KUITANSI DIGITAL */
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th className="td-center" style={{ width: '40px' }}>NO</th>
+                <th>NOMOR TRANSAKSI</th>
+                <th>NAMA SANTRI & NIS</th>
+                <th className="td-center">METODE & CHANNEL</th>
+                <th style={{ textAlign: 'right' }}>TOTAL BAYAR</th>
+                <th className="td-center">STATUS</th>
+                <th>NOMOR KUITANSI</th>
+                <th>TANGGAL BAYAR</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredTransaksi.map((trx, idx) => (
+                <tr key={trx.id || idx}>
+                  <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
+                    {idx + 1}
+                  </td>
+                  <td>
+                    <code style={{ background: '#f1f5f9', padding: '3px 7px', borderRadius: '4px', color: '#0f172a', fontWeight: 700, fontSize: '0.74rem' }}>
+                      {trx.nomor_transaksi}
+                    </code>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{trx.nama_santri}</div>
+                    <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>NIS: {trx.nis}</div>
+                  </td>
+                  <td className="td-center">
+                    <span className={`badge ${trx.metode_pembayaran === 'QRIS' ? 'badge-success' : 'badge-info'}`}>
+                      {trx.channel_pembayaran || trx.metode_pembayaran}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: 'right', fontWeight: 800, color: '#059669' }}>
+                    {formatRupiah(trx.total_bayar)}
+                  </td>
+                  <td className="td-center">
+                    <span className={`badge ${trx.status_pembayaran === 'Berhasil' ? 'badge-success' : 'badge-warning'}`}>
+                      {trx.status_pembayaran}
+                    </span>
+                  </td>
+                  <td>
+                    <code style={{ color: '#0284c7', fontWeight: 700, fontSize: '0.76rem' }}>
+                      {trx.kuitansi_nomor || '-'}
+                    </code>
+                  </td>
+                  <td style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                    {trx.tanggal_bayar ? new Date(trx.tanggal_bayar).toLocaleString('id-ID') : '-'}
+                  </td>
+                </tr>
+              ))}
+              {filteredTransaksi.length === 0 && (
+                <tr>
+                  <td colSpan={8} style={{ padding: '36px', textAlign: 'center', color: '#94a3b8' }}>
+                    Belum ada riwayat transaksi pembayaran.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        ) : (
+          /* TAB 4: MASTER KOMPONEN BIAYA (Sama seperti Master Produk) */
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th className="td-center" style={{ width: '40px' }}>NO</th>
+                <th>KODE & NAMA KOMPONEN BIAYA</th>
+                <th className="td-center">KATEGORI</th>
+                <th style={{ textAlign: 'right' }}>NOMINAL DEFAULT</th>
+                <th>DESKRIPSI & KETERANGAN</th>
+                <th className="td-center" style={{ width: '110px' }}>AKSI</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredKomponen.map((k, idx) => (
+                <tr key={k.id || idx}>
+                  <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
+                    {idx + 1}
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{k.nama_komponen}</div>
+                    <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>
+                      Kode: {k.kode_komponen || `KMP-0${k.id}`}
+                    </div>
+                  </td>
+                  <td className="td-center">
+                    <span className={`badge ${k.kategori === 'Bulanan' ? 'badge-info' : k.kategori === 'Biaya Masuk' ? 'badge-purple' : 'badge-warning'}`}>
                       {k.kategori}
                     </span>
                   </td>
-                  <td style={{ padding: '12px 16px', color: '#64748b' }}>{k.jenjang || 'Semua'}</td>
-                  <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
+                  <td style={{ textAlign: 'right', fontWeight: 800, color: '#059669' }}>
                     {formatRupiah(k.nominal_default)}
                   </td>
-                  <td style={{ padding: '12px 16px', color: '#64748b' }}>{k.deskripsi}</td>
+                  <td style={{ color: '#475569', fontSize: '0.78rem' }}>
+                    {k.deskripsi || '-'}
+                  </td>
+                  <td className="td-center">
+                    <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
+                      <button
+                        className="btn-action btn-action-edit"
+                        onClick={() => handleStartEditKomp(k)}
+                        title="Edit Komponen Biaya"
+                      >
+                        <Edit3 size={13} />
+                      </button>
+                      <button
+                        className="btn-action btn-action-delete"
+                        onClick={() => handleDeleteKomponen(k)}
+                        title="Hapus Komponen Biaya"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
+              {filteredKomponen.length === 0 && (
+                <tr>
+                  <td colSpan={6} style={{ padding: '36px', textAlign: 'center', color: '#94a3b8' }}>
+                    Belum ada master komponen biaya.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
+        )}
+      </div>
+
+      {/* ==================================================== */}
+      {/* MODAL DETAIL TAGIHAN SANTRI                          */}
+      {/* ==================================================== */}
+      {isDetailOpen && selectedDetail && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.7)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '14px',
+            width: '100%',
+            maxWidth: '560px',
+            overflow: 'hidden',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)'
+          }}>
+            <div style={{
+              padding: '14px 18px',
+              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+              color: '#ffffff',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CreditCard size={18} />
+                <span style={{ fontWeight: 800, fontSize: '0.96rem' }}>Rincian Tagihan Santri</span>
+              </div>
+              <button
+                onClick={() => setIsDetailOpen(false)}
+                style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', padding: '5px', borderRadius: '6px', cursor: 'pointer', display: 'flex' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ padding: '18px', background: '#f8fafc', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ background: '#0f172a', color: '#fff', padding: '14px 16px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800 }}>{selectedDetail.nama_santri}</div>
+                  <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>NIS: {selectedDetail.nis} • {selectedDetail.nama_asrama || 'Asrama Pondok'}</div>
+                </div>
+                <span className={`badge ${selectedDetail.status === 'Lunas' ? 'badge-success' : 'badge-danger'}`}>
+                  {selectedDetail.status}
+                </span>
+              </div>
+
+              <div style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '14px' }}>
+                <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>JUDUL TAGIHAN</div>
+                <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{selectedDetail.judul_tagihan}</div>
+                <div style={{ fontSize: '0.75rem', color: '#0284c7', fontWeight: 600, marginTop: '4px' }}>
+                  Kode: {selectedDetail.kode_tagihan} • Kategori: {selectedDetail.kategori}
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                <div style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>TOTAL TAGIHAN</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>{formatRupiah(selectedDetail.total_tagihan)}</div>
+                </div>
+                <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.68rem', color: '#047857', fontWeight: 700 }}>SUDAH DIBAYAR</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#059669', marginTop: '4px' }}>{formatRupiah(selectedDetail.sudah_dibayar)}</div>
+                </div>
+                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.68rem', color: '#b91c1c', fontWeight: 700 }}>SISA TAGIHAN</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#dc2626', marginTop: '4px' }}>{formatRupiah(selectedDetail.sisa_tagihan)}</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ padding: '12px 18px', borderTop: '1px solid #cbd5e1', background: '#fff', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => {
+                  setIsDetailOpen(false);
+                  openEditTagihan(selectedDetail);
+                }}
+              >
+                <Edit3 size={13} /> Edit Tagihan
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setIsDetailOpen(false)}
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* MODAL BUAT TAGIHAN BARU */}
+      {/* ==================================================== */}
+      {/* MODAL BUAT / EDIT TAGIHAN SANTRI                     */}
+      {/* ==================================================== */}
       {isModalOpen && (
         <div style={{
           position: 'fixed',
@@ -465,52 +913,65 @@ export default function KeuanganAdminView() {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(15, 23, 42, 0.6)',
+          background: 'rgba(15, 23, 42, 0.65)',
           backdropFilter: 'blur(4px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 99999,
+          zIndex: 9999,
           padding: '16px'
         }}>
           <div style={{
             background: '#fff',
-            borderRadius: '16px',
+            borderRadius: '14px',
             width: '100%',
-            maxWidth: '520px',
+            maxWidth: '540px',
             overflow: 'hidden',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+            boxShadow: '0 20px 40px rgba(0,0,0,0.25)'
           }}>
-            <div style={{ padding: '16px 20px', background: '#059669', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontWeight: 800, fontSize: '1rem' }}>Buat Tagihan Baru Santri</div>
-              <button 
+            <div style={{
+              padding: '15px 20px',
+              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+              color: '#fff',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CreditCard size={18} />
+                <span style={{ fontWeight: 800, fontSize: '0.98rem' }}>
+                  {formMode === 'add' ? 'Buat Tagihan Baru Santri' : 'Edit Tagihan Santri'}
+                </span>
+              </div>
+              <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
-                style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '1.2rem' }}
+                style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', cursor: 'pointer', padding: '5px', borderRadius: '6px', display: 'flex' }}
               >
-                ✕
+                <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleSimpanTagihan} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
                   Pilih Santri *
                 </label>
-                <select
+                <SearchableSelect
+                  options={santriList.map(s => ({
+                    value: s.id,
+                    label: s.nama_santri,
+                    sublabel: `NIS: ${s.nis} • ${s.nama_asrama || 'Asrama'}`
+                  }))}
                   value={formTagihan.santri_id}
-                  onChange={(e) => setFormTagihan({ ...formTagihan, santri_id: e.target.value })}
-                  required
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
-                >
-                  <option value="">-- Pilih Santri --</option>
-                  {santriList.map(s => (
-                    <option key={s.id} value={s.id}>{s.nama_santri} (NIS: {s.nis})</option>
-                  ))}
-                </select>
+                  onChange={(val) => setFormTagihan({ ...formTagihan, santri_id: val })}
+                  placeholder="-- Pilih atau cari santri --"
+                  searchPlaceholder="Ketik nama atau NIS santri..."
+                />
               </div>
 
               <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
                   Komponen Biaya *
                 </label>
                 <select
@@ -520,80 +981,286 @@ export default function KeuanganAdminView() {
                     setFormTagihan({
                       ...formTagihan,
                       komponen_id: e.target.value,
-                      total_tagihan: sel ? sel.nominal_default : '',
-                      judul_tagihan: sel ? sel.nama_komponen : ''
+                      total_tagihan: sel ? String(sel.nominal_default) : formTagihan.total_tagihan,
+                      judul_tagihan: sel ? `${sel.nama_komponen} ${formTagihan.periode_bulan || ''}`.trim() : formTagihan.judul_tagihan
                     });
                   }}
                   required
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem' }}
                 >
-                  <option value="">-- Pilih Komponen --</option>
+                  <option value="">-- Pilih Komponen Biaya --</option>
                   {(data.komponenBiaya || []).map(k => (
                     <option key={k.id} value={k.id}>{k.nama_komponen} ({k.kategori} - {formatRupiah(k.nominal_default)})</option>
                   ))}
                 </select>
               </div>
 
-              <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
-                  Judul Tagihan
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Administrasi Bulanan (November 2026)"
-                  value={formTagihan.judul_tagihan}
-                  onChange={(e) => setFormTagihan({ ...formTagihan, judul_tagihan: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
-                />
-              </div>
-
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
-                    Nominal Tagihan (Rp) *
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                    Judul Tagihan *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: SPP Bulanan November 2026"
+                    value={formTagihan.judul_tagihan}
+                    onChange={(e) => setFormTagihan({ ...formTagihan, judul_tagihan: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                    Periode Bulan
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: November 2026"
+                    value={formTagihan.periode_bulan}
+                    onChange={(e) => setFormTagihan({ ...formTagihan, periode_bulan: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: formMode === 'edit' ? '1fr 1fr 1fr' : '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                    Total Tagihan (Rp) *
                   </label>
                   <input
                     type="number"
                     required
                     value={formTagihan.total_tagihan}
                     onChange={(e) => setFormTagihan({ ...formTagihan, total_tagihan: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', boxSizing: 'border-box' }}
                   />
                 </div>
+
+                {formMode === 'edit' && (
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                      Sudah Dibayar (Rp)
+                    </label>
+                    <input
+                      type="number"
+                      value={formTagihan.sudah_dibayar}
+                      onChange={(e) => setFormTagihan({ ...formTagihan, sudah_dibayar: e.target.value })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                )}
+
                 <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
                     Jatuh Tempo
                   </label>
                   <input
                     type="date"
                     value={formTagihan.jatuh_tempo}
                     onChange={(e) => setFormTagihan({ ...formTagihan, jatuh_tempo: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', boxSizing: 'border-box' }}
                   />
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
                 <button
                   type="button"
+                  className="btn btn-outline"
                   onClick={() => setIsModalOpen(false)}
-                  style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', background: '#059669', color: '#fff', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700 }}
+                  className="btn btn-primary"
                 >
-                  {submitting ? 'Menyimpan...' : 'Terbitkan Tagihan'}
+                  <Save size={14} />
+                  {submitting ? 'Menyimpan...' : formMode === 'add' ? 'Terbitkan Tagihan' : 'Simpan Perubahan'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* ==================================================== */}
+      {/* MODAL KELOLA MASTER KOMPONEN BIAYA                   */}
+      {/* ==================================================== */}
+      {isKomponenModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: '14px',
+            width: '100%',
+            maxWidth: '580px',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.25)'
+          }}>
+            <div style={{
+              padding: '15px 20px',
+              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+              color: '#fff',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Layers size={18} />
+                <span style={{ fontWeight: 800, fontSize: '0.98rem' }}>
+                  Kelola Master Komponen Biaya Pesantren
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsKomponenModalOpen(false)}
+                style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', cursor: 'pointer', padding: '5px', borderRadius: '6px', display: 'flex' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSimpanKomponen} style={{ padding: '16px 20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1.2fr', gap: '10px', marginBottom: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                    Nama Komponen Biaya *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: SPP & Makan Bulanan"
+                    value={formKomponen.nama_komponen}
+                    onChange={(e) => setFormKomponen({ ...formKomponen, nama_komponen: e.target.value })}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                    Kategori *
+                  </label>
+                  <select
+                    value={formKomponen.kategori}
+                    onChange={(e) => setFormKomponen({ ...formKomponen, kategori: e.target.value })}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box' }}
+                  >
+                    <option value="Bulanan">Bulanan</option>
+                    <option value="Biaya Masuk">Biaya Masuk</option>
+                    <option value="Tahunan">Tahunan</option>
+                    <option value="Insidental">Insidental</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                    Nominal Default (Rp) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="500000"
+                    value={formKomponen.nominal_default}
+                    onChange={(e) => setFormKomponen({ ...formKomponen, nominal_default: e.target.value })}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  placeholder="Deskripsi singkat komponen biaya (opsional)..."
+                  value={formKomponen.deskripsi}
+                  onChange={(e) => setFormKomponen({ ...formKomponen, deskripsi: e.target.value })}
+                  style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                />
+                {editingKompId && (
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={handleResetKompForm}
+                  >
+                    Batal Edit
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={savingKomp}
+                  className="btn btn-primary"
+                >
+                  <Save size={14} />
+                  {savingKomp ? 'Menyimpan...' : editingKompId ? 'Update' : 'Tambah'}
+                </button>
+              </div>
+            </form>
+
+            <div style={{ padding: '16px 20px', overflowY: 'auto', flex: 1 }}>
+              <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#475569', marginBottom: '10px' }}>
+                DAFTAR KOMPONEN BIAYA TERDAFTAR ({data.komponenBiaya?.length || 0})
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {(data.komponenBiaya || []).map(k => (
+                  <div
+                    key={k.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      border: editingKompId === k.id ? '1.5px solid #0284c7' : '1px solid #e2e8f0',
+                      background: editingKompId === k.id ? '#f0f9ff' : '#ffffff'
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#0f172a' }}>
+                        {k.nama_komponen}{' '}
+                        <span className="badge badge-info" style={{ marginLeft: '6px' }}>{k.kategori}</span>
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 700, marginTop: '2px' }}>
+                        {formatRupiah(k.nominal_default)} <span style={{ color: '#64748b', fontWeight: 400 }}>• {k.deskripsi || '-'}</span>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button
+                        type="button"
+                        className="btn-action btn-action-edit"
+                        onClick={() => handleStartEditKomp(k)}
+                      >
+                        <Edit3 size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-action btn-action-delete"
+                        onClick={() => handleDeleteKomponen(k)}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-

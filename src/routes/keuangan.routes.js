@@ -5,7 +5,12 @@ import {
   konfirmasiPembayaranBerhasil, 
   getKuitansiPembayaran,
   getRekapKeuanganAdmin,
-  createTagihanAdmin
+  createTagihanAdmin,
+  updateTagihanAdmin,
+  deleteTagihanAdmin,
+  createKomponenAdmin,
+  updateKomponenAdmin,
+  deleteKomponenAdmin
 } from '../controllers/keuangan.controller.js';
 
 const router = express.Router();
@@ -19,6 +24,13 @@ router.get('/wali/kuitansi', getKuitansiPembayaran);
 // Endpoint Admin Desktop
 router.get('/admin/rekap', getRekapKeuanganAdmin);
 router.post('/admin/tagihan', createTagihanAdmin);
+router.put('/admin/tagihan/:id', updateTagihanAdmin);
+router.delete('/admin/tagihan/:id', deleteTagihanAdmin);
+
+// Endpoint Master Komponen Biaya
+router.post('/admin/komponen', createKomponenAdmin);
+router.put('/admin/komponen/:id', updateKomponenAdmin);
+router.delete('/admin/komponen/:id', deleteKomponenAdmin);
 
 export default router;
 

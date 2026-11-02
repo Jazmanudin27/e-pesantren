@@ -181,6 +181,76 @@ export const createLaporanAdmin = async (req, res) => {
 };
 
 /**
+ * Admin: Update Laporan Perkembangan Santri
+ */
+export const updateLaporanAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      santri_id,
+      periode,
+      tanggal_laporan,
+      nilai_akademik,
+      catatan_akademik,
+      catatan_hafalan,
+      catatan_perilaku,
+      catatan_ibadah,
+      catatan_ustadz,
+      nama_penulis,
+      status_publikasi
+    } = req.body;
+
+    if (!santri_id || !periode || !catatan_ustadz) {
+      return sendError(res, 'Santri, Periode, dan Catatan Ustadz wajib diisi', 400);
+    }
+
+    const tgl = tanggal_laporan || new Date().toISOString().slice(0, 10);
+    const penulis = nama_penulis || 'Ust. Hamdan S.Th.I';
+    const status = status_publikasi || 'Diterbitkan';
+
+    let jsonNilai = null;
+    if (typeof nilai_akademik === 'object' && nilai_akademik !== null) {
+      jsonNilai = JSON.stringify(nilai_akademik);
+    } else if (typeof nilai_akademik === 'string' && nilai_akademik.trim() !== '') {
+      jsonNilai = nilai_akademik.trim();
+    }
+
+    await pool.query(`
+      UPDATE santri_laporan_perkembangan SET
+        santri_id = ?,
+        periode = ?,
+        tanggal_laporan = ?,
+        nilai_akademik = ?,
+        catatan_akademik = ?,
+        catatan_hafalan = ?,
+        catatan_perilaku = ?,
+        catatan_ibadah = ?,
+        catatan_ustadz = ?,
+        nama_penulis = ?,
+        status_publikasi = ?
+      WHERE id = ?
+    `, [
+      santri_id,
+      periode,
+      tgl,
+      jsonNilai,
+      catatan_akademik || null,
+      catatan_hafalan || null,
+      catatan_perilaku || null,
+      catatan_ibadah || null,
+      catatan_ustadz,
+      penulis,
+      status,
+      id
+    ]);
+
+    return sendSuccess(res, 'Laporan perkembangan santri berhasil diperbarui', { id: Number(id) });
+  } catch (err) {
+    return sendError(res, `Gagal memperbarui laporan: ${err.message}`, 500);
+  }
+};
+
+/**
  * Admin: Hapus Laporan
  */
 export const deleteLaporanAdmin = async (req, res) => {
