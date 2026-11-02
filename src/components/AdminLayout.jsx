@@ -30,7 +30,8 @@ import {
   UserCog,
   QrCode,
   HeartHandshake,
-  CreditCard
+  CreditCard,
+  Calendar
 } from 'lucide-react';
 import DashboardAdmin from '../views/admin/DashboardAdmin';
 import SantriView from '../views/admin/SantriView';
@@ -48,6 +49,7 @@ import PerizinanView from '../views/admin/PerizinanView';
 import TataTertibView from '../views/admin/TataTertibView';
 import AbsensiFingerprintView from '../views/admin/AbsensiFingerprintView';
 import KeuanganAdminView from '../views/admin/KeuanganAdminView';
+import KurikulumPengajianView from '../views/admin/KurikulumPengajianView';
 import LaporanPerkembanganAdminView from '../views/admin/LaporanPerkembanganAdminView';
 import InformasiKegiatanAdminView from '../views/admin/InformasiKegiatanAdminView';
 import PerkembanganSantriLakiView from '../views/admin/PerkembanganSantriLakiView';
@@ -309,6 +311,10 @@ export default function AdminLayout() {
         return <AsatidzView />;
       case 'master-materi':
         return <MasterMateriView />;
+      case 'kurikulum-pengajian':
+      case 'jadwal-mengajar':
+      case 'kurikulum':
+        return <KurikulumPengajianView />;
       case 'master-device':
         return <FingerprintDeviceView />;
       case 'setting-kegiatan':
@@ -370,7 +376,7 @@ export default function AdminLayout() {
     }
   };
 
-  const isMasterActive = ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-materi'].includes(activeTab);
+  const isMasterActive = ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-materi', 'kurikulum-pengajian', 'jadwal-mengajar'].includes(activeTab);
   const isSettingsActive = ['master-device', 'setting-kegiatan', 'master-kegiatan', 'manajemen-user', 'users'].includes(activeTab);
   const isLaporanActive = ['laporan-presensi', 'laporan-tahfidz'].includes(activeTab);
 
@@ -462,7 +468,7 @@ export default function AdminLayout() {
               onClick={() => handleTabClick('master-asrama')}
             >
               <Building size={13} style={{ marginRight: '6px' }} />
-              <span>Data Asrama & Kobong</span>
+              <span>Asrama</span>
             </button>
 
             <button 
@@ -470,7 +476,7 @@ export default function AdminLayout() {
               onClick={() => handleTabClick('master-kelas')}
             >
               <GraduationCap size={13} style={{ marginRight: '6px' }} />
-              <span>Data Kelas & Halaqah</span>
+              <span>Kelas</span>
             </button>
 
             <button 
@@ -478,7 +484,7 @@ export default function AdminLayout() {
               onClick={() => handleTabClick('master-asatidz')}
             >
               <Users size={13} style={{ marginRight: '6px' }} />
-              <span>Data Asatidz & Musyrif</span>
+              <span>Asatidz</span>
             </button>
 
             <button 
@@ -487,6 +493,14 @@ export default function AdminLayout() {
             >
               <BookOpen size={13} style={{ marginRight: '6px', color: '#059669' }} />
               <span>Kegiatan</span>
+            </button>
+
+            <button 
+              className={`nav-sublink ${activeTab === 'kurikulum-pengajian' || activeTab === 'jadwal-mengajar' ? 'active' : ''}`}
+              onClick={() => handleTabClick('kurikulum-pengajian')}
+            >
+              <Calendar size={13} style={{ marginRight: '6px', color: '#0284c7' }} />
+              <span>Jadwal Mengajar</span>
             </button>
           </div>
         )}

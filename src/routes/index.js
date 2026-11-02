@@ -18,6 +18,7 @@ import keuanganRoutes from './keuangan.routes.js';
 import laporanRoutes from './laporan.routes.js';
 import informasiRoutes from './informasi.routes.js';
 import perkembanganIkhwanRoutes from './perkembanganIkhwan.routes.js';
+import kurikulumRoutes from './kurikulum.routes.js';
 
 const router = express.Router();
 
@@ -41,5 +42,6 @@ router.use('/keuangan', keuanganRoutes); // /api/keuangan/wali/dashboard, /api/k
 router.use('/laporan-perkembangan', laporanRoutes); // /api/laporan-perkembangan/wali, dll
 router.use('/informasi-kegiatan', informasiRoutes); // /api/informasi-kegiatan/feed, dll
 router.use('/perkembangan-ikhwan', perkembanganIkhwanRoutes); // /api/perkembangan-ikhwan/master, santri-kelas, dll
+router.use('/kurikulum', kurikulumRoutes); // /api/kurikulum/matriks, /api/kurikulum/jadwal
 
 export default router;
