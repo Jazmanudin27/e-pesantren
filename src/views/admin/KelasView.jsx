@@ -58,11 +58,13 @@ export default function KelasView() {
             nama_halaqah: k.nama_kelas,
             kode_kelas: k.kode_kelas,
             tingkat: k.tingkat || (k.nama_kelas?.startsWith('1') ? 'Kelas 1' : k.nama_kelas?.startsWith('2') ? 'Kelas 2' : k.nama_kelas?.startsWith('3') ? 'Kelas 3' : 'Kelas 4'),
-            gender: k.gender || (k.nama_kelas?.includes('GIRL') ? 'P' : 'L'),
-            nama_asatidz: k.wali_kelas || (k.gender === 'P' || k.nama_kelas?.includes('GIRL') ? 'Usth. Pembina Akhwat' : 'Ust. Pembina Ikhwan'),
+            gender: k.gender || (k.nama_kelas?.includes('Girls') || k.nama_kelas?.includes('GIRL') ? 'P' : 'L'),
+            nama_asatidz: k.mustahiq || k.wali_kelas || (k.gender === 'P' ? 'Usth. Pembina Akhwat' : 'Ust. Pembina Ikhwan'),
+            mustahiq: k.mustahiq || '',
+            munawwib: k.munawwib || '',
             target_program: `Kurikulum Pesantren ${k.tingkat || ''}`,
             total_santri: k.total_santri || 0,
-            lokasi_halaqah: k.nama_kelas?.includes('GIRL') ? 'Gedung Kelas Putri' : 'Gedung Kelas Putra'
+            lokasi_halaqah: k.nama_kelas?.includes('Girls') ? 'Gedung Putri' : 'Gedung Putra'
           }));
         }
       } catch {}
@@ -348,11 +350,11 @@ export default function KelasView() {
             <thead>
               <tr>
                 <th className="td-center" style={{ width: '40px' }}>NO</th>
-                <th>NAMA HALAQAH & TINGKAT</th>
-                <th>ASATIDZ / MUSYRIF PENGAMPU</th>
-                <th>TARGET PEMBELAJARAN</th>
-                <th>JADWAL HALAQAH</th>
+                <th>NAMA KELAS</th>
+                <th className="td-center">TINGKAT</th>
                 <th className="td-center">GENDER</th>
+                <th>MUSTAHIQ</th>
+                <th>MUNAWWIB</th>
                 <th className="td-center">TOTAL SANTRI</th>
                 <th className="td-center" style={{ width: '130px' }}>AKSI</th>
               </tr>
@@ -362,8 +364,8 @@ export default function KelasView() {
                 <tr>
                   <td colSpan="8" style={{ textAlign: 'center', padding: '40px 20px', color: '#64748b' }}>
                     <BookOpen size={36} style={{ margin: '0 auto 10px', opacity: 0.4 }} />
-                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#334155' }}>Belum ada data halaqah / kelas di database</div>
-                    <div style={{ fontSize: '0.75rem', marginTop: '4px' }}>Silakan tambahkan kelompok halaqah baru dengan klik tombol "Tambah Halaqah Baru".</div>
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#334155' }}>Belum ada data kelas di database</div>
+                    <div style={{ fontSize: '0.75rem', marginTop: '4px' }}>Silakan klik tombol "Tambah Kelas Baru".</div>
                   </td>
                 </tr>
               ) : (
@@ -373,29 +375,31 @@ export default function KelasView() {
                       {idx + 1}
                     </td>
                     <td>
-                      <div style={{ fontWeight: 700, color: '#0f172a' }}>{h.nama_halaqah}</div>
-                      <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>Tingkat: {h.tingkat || 'Wustho'}</div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600, color: '#059669' }}>{h.nama_asatidz || 'Musyrif Halaqah'}</div>
-                      <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Lokasi: {h.lokasi_halaqah || 'Masjid Utama'}</div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.76rem' }}>{h.target_program}</div>
-                    </td>
-                    <td>
-                      <div style={{ fontSize: '0.72rem', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Clock size={12} color="#0284c7" />
-                        <span>{h.waktu_halaqah}</span>
-                      </div>
+                      <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.85rem' }}>{h.nama_halaqah}</div>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b' }}>{h.kode_kelas || h.nama_halaqah}</div>
                     </td>
                     <td className="td-center">
-                      <span className={`badge ${h.gender === 'L' ? 'badge-info' : 'badge-purple'}`}>
-                        {h.gender === 'L' ? 'Ikhwan (L)' : 'Akhwat (P)'}
+                      <span className="badge" style={{ background: '#f1f5f9', color: '#334155', fontWeight: 700, fontSize: '0.7rem' }}>
+                        {h.tingkat || 'Kelas'}
                       </span>
                     </td>
                     <td className="td-center">
-                      <span className="badge badge-success">
+                      <span className={`badge ${h.gender === 'L' ? 'badge-info' : 'badge-purple'}`}>
+                        {h.gender === 'L' ? 'Boys (Putra)' : 'Girls (Putri)'}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 700, color: '#047857', fontSize: '0.78rem' }}>
+                        {h.mustahiq || '-'}
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600, color: '#0284c7', fontSize: '0.74rem' }}>
+                        {h.munawwib || '-'}
+                      </div>
+                    </td>
+                    <td className="td-center">
+                      <span className="badge badge-success" style={{ fontWeight: 800 }}>
                         {h.total_santri || 0} Santri
                       </span>
                     </td>

@@ -45,10 +45,15 @@ export const getKelas = async (req, res) => {
       console.warn('[KELAS CONTROLLER] Note init kelas:', dbInitErr.message);
     }
 
-    // 2. Query data kelas
+    // 2. Query data kelas beserta total santri terkini
     let rows = [];
     try {
-      const [r] = await pool.query('SELECT k.*, 0 as total_santri FROM kelas k ORDER BY k.id ASC');
+      const [r] = await pool.query(`
+        SELECT k.*, 
+          (SELECT COUNT(*) FROM santri s WHERE s.nama_kelas = k.nama_kelas OR s.kelas_id = k.id) as total_santri
+        FROM kelas k 
+        ORDER BY k.id ASC
+      `);
       rows = r;
     } catch (e) {
       rows = defaultKelasList;

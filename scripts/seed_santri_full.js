@@ -1,7 +1,7 @@
 import pool from '../src/config/database.js';
 
 // RAW DATA DARI USER (305 Boys + 314 Girls = 619 Santri)
-const RAW_SANTRI = [
+export const RAW_SANTRI = [
   // --- BOYS (LAKI-LAKI) ---
   { no: 1, nama: 'Ahmad rofi rebriana', kelas: '1A', jk: 'L', mustahiq: 'Mr. M Raya Nizar', munawwib: 'Mr. Abdillah Azhar' },
   { no: 2, nama: 'Arthur Bumiputra A.S', kelas: '1A', jk: 'L', mustahiq: 'Mr. M Raya Nizar', munawwib: 'Mr. Abdillah Azhar' },
@@ -629,8 +629,17 @@ const RAW_SANTRI = [
 async function seedSantriBaru() {
   console.log('--- SEEDING & RESET DATA MASTER SANTRI (619 SANTRI) ---');
   try {
-    // 1. Pastikan kolom-kolom pendukung tersedia di tabel santri
+    // 1. Pastikan kolom-kolom pendukung tersedia di tabel santri & ubah strict NOT NULL ke DEFAULT
     const alterQueries = [
+      "ALTER TABLE santri MODIFY COLUMN nama_wali VARCHAR(100) NULL DEFAULT ''",
+      "ALTER TABLE santri MODIFY COLUMN no_wa_wali VARCHAR(50) NULL DEFAULT ''",
+      "ALTER TABLE santri MODIFY COLUMN hubungan_wali VARCHAR(50) NULL DEFAULT 'Orang Tua'",
+      "ALTER TABLE santri MODIFY COLUMN alamat_asal TEXT NULL",
+      "ALTER TABLE santri MODIFY COLUMN tempat_lahir VARCHAR(100) NULL DEFAULT ''",
+      "ALTER TABLE santri MODIFY COLUMN tgl_lahir DATE NULL",
+      "ALTER TABLE santri MODIFY COLUMN foto LONGTEXT NULL",
+      "ALTER TABLE santri MODIFY COLUMN capaian_hafalan_juz INT DEFAULT 0",
+      "ALTER TABLE santri MODIFY COLUMN tingkat_diniyah VARCHAR(50) DEFAULT 'Wustho'",
       "ALTER TABLE santri ADD COLUMN tempat_lahir VARCHAR(100) NULL AFTER jk",
       "ALTER TABLE santri ADD COLUMN tgl_lahir DATE NULL AFTER tempat_lahir",
       "ALTER TABLE santri ADD COLUMN foto LONGTEXT NULL AFTER nama_santri",
@@ -684,8 +693,9 @@ async function seedSantriBaru() {
       await pool.query(`
         INSERT INTO santri (
           kode_santri, nis, username, password, nama_santri, jk, status_santri,
-          asrama_id, tingkat_diniyah, nama_kelas, mustahiq, munawwib, status, tahun_masuk
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          asrama_id, tingkat_diniyah, nama_kelas, mustahiq, munawwib, status, tahun_masuk,
+          nama_wali, no_wa_wali, hubungan_wali, alamat_asal
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         kode_santri,
         nis,
@@ -700,7 +710,11 @@ async function seedSantriBaru() {
         s.mustahiq || null,
         s.munawwib || null,
         'Aktif',
-        '2026/2027'
+        '2026/2027',
+        'Orang Tua Santri',
+        '-',
+        'Orang Tua',
+        'Pondok Pesantren Nurul Wafa'
       ]);
 
       count++;
