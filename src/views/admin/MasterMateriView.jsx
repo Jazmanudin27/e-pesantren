@@ -21,14 +21,21 @@ import { showConfirm, toastSuccess, showError } from '../../utils/alert.util';
 import SearchableSelect from '../../components/SearchableSelect';
 
 const KATEGORI_OPTIONS = [
-  { value: "Al-Qur'an", label: "Al-Qur'an", sublabel: 'Juz & Surat Al-Qur\'an' },
-  { value: 'Nahwu & Shorof', label: 'Nahwu & Shorof', sublabel: 'Jurumiyah, Imrithi, Alfiyah' },
-  { value: "Fiqih Syafi'i", label: "Fiqih Syafi'i", sublabel: 'Taqrib, Fathul Qorib, Safinah' },
-  { value: 'Hadits Nabawi', label: 'Hadits Nabawi', sublabel: 'Arbain, Bulughul Maram' },
-  { value: 'Aqidah & Tauhid', label: 'Aqidah & Tauhid', sublabel: 'Aqidatul Awam, Tijan Darori' },
-  { value: 'Akhlak & Adab', label: 'Akhlak & Adab', sublabel: 'Taisirul Khalaq, Ta\'lim Muta\'allim' },
-  { value: 'Tajwid', label: 'Tajwid', sublabel: 'Hidayatus Shibyan, Jazariyah' },
-  { value: 'Kitab Kuning Lainnya', label: 'Kitab Kuning Lainnya', sublabel: 'Materi Hafalan Tambahan' }
+  { value: "Nahwu & Shorof", label: "Nahwu & Shorof", sublabel: 'Jurumiyah, Imrithi, Alfiyah, Kailani, I\'lal, Tasrifan' },
+  { value: "Fiqih", label: "Fiqih", sublabel: 'Safinah, Bajuri, Sulam Taufik, I\'anah, Riyadhul Badi\'ah' },
+  { value: "Tajwid & Al-Qur'an", label: "Tajwid & Al-Qur'an", sublabel: 'Tajwid, Al-Qur\'an, Khataman Qur\'an' },
+  { value: "Muhafadzoh (Hafalan)", label: "Muhafadzoh (Hafalan)", sublabel: 'Setoran Jurumiyah, Imrithi, Alfiyah, Waroqot' },
+  { value: "Akhlak & Adab", label: "Akhlak & Adab", sublabel: 'Ta\'lim, Akhlaqul Banin' },
+  { value: "Aqidah & Tauhid", label: "Aqidah & Tauhid", sublabel: 'Tijan Ad-Darori' },
+  { value: "Ushul Fiqih", label: "Ushul Fiqih", sublabel: 'Waroqot, Lathoif' },
+  { value: "Tasawwuf & Adab", label: "Tasawwuf & Adab", sublabel: 'Bidayatul Hidayah' },
+  { value: "Tafsir & Ulumul Quran", label: "Tafsir & Ulumul Quran", sublabel: 'Kajian Tafsir' },
+  { value: "Praktek & Ubudiyah", label: "Praktek & Ubudiyah", sublabel: 'Praktek Ibadah' },
+  { value: "Bahasa & Penulisan", label: "Bahasa & Penulisan", sublabel: 'Pegon, Penulisan Patokan, Bahasa Inggris' },
+  { value: "Qiroatul Kitab", label: "Qiroatul Kitab", sublabel: 'Baca Kosongan' },
+  { value: "Bahtsul Masail & Diskusi", label: "Bahtsul Masail & Diskusi", sublabel: 'Munadzoroh' },
+  { value: "Doa & Wirid", label: "Doa & Wirid", sublabel: 'Tafrijul Qurob, Al-Burdah' },
+  { value: "Kitab Kuning Lainnya", label: "Kitab Kuning Lainnya", sublabel: 'Kegiatan Pembelajaran Lainnya' }
 ];
 
 export default function MasterMateriView() {
@@ -184,7 +191,7 @@ export default function MasterMateriView() {
       <div className="top-stats-grid">
         <div className="stat-card-colored stat-card-blue">
           <div>
-            <div className="stat-colored-title">TOTAL MATERI KITAB</div>
+            <div className="stat-colored-title">TOTAL KEGIATAN & KITAB</div>
             <div className="stat-colored-number">{totalMateri}</div>
           </div>
           <div className="stat-colored-icon-box">
@@ -194,17 +201,17 @@ export default function MasterMateriView() {
 
         <div className="stat-card-colored stat-card-green">
           <div>
-            <div className="stat-colored-title">AL-QUR'AN & TAHFIDZ</div>
-            <div className="stat-colored-number">{countQuran}</div>
+            <div className="stat-colored-title">FIQIH & USHUL FIQIH</div>
+            <div className="stat-colored-number">{countFiqihHadits}</div>
           </div>
           <div className="stat-colored-icon-box">
-            <BookmarkCheck size={22} />
+            <Layers size={22} />
           </div>
         </div>
 
         <div className="stat-card-colored stat-card-amber">
           <div>
-            <div className="stat-colored-title">NAHWU & SHOROF</div>
+            <div className="stat-colored-title">NAHWU, SHOROF & MUHAFADZOH</div>
             <div className="stat-colored-number">{countNahwu}</div>
           </div>
           <div className="stat-colored-icon-box">
@@ -214,11 +221,11 @@ export default function MasterMateriView() {
 
         <div className="stat-card-colored stat-card-purple">
           <div>
-            <div className="stat-colored-title">FIQIH, HADITS & LAINNYA</div>
-            <div className="stat-colored-number">{countFiqihHadits}</div>
+            <div className="stat-colored-title">AL-QUR'AN, TAJWID & LAINNYA</div>
+            <div className="stat-colored-number">{countQuran}</div>
           </div>
           <div className="stat-colored-icon-box">
-            <Layers size={22} />
+            <BookmarkCheck size={22} />
           </div>
         </div>
       </div>
@@ -228,8 +235,8 @@ export default function MasterMateriView() {
         <div className="page-title-left">
           <BookOpen size={22} className="page-title-icon" style={{ color: '#0284c7' }} />
           <div>
-            <h2>Data Master Materi Hafalan & Kitab Kuning</h2>
-            <p>Kelola daftar hafalan Al-Qur'an, Nadzom Nahwu, Matan Fiqih, Hadits, dan Kitab Kuning untuk mutaba'ah santri</p>
+            <h2>Data Master Kegiatan & Pembelajaran Kitab</h2>
+            <p>Kelola daftar 39 kegiatan pembelajaran kitab, muhafadzoh, tajwid, nahwu & shorof, dan praktek ibadah</p>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -237,7 +244,7 @@ export default function MasterMateriView() {
             <RotateCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
           <button className="btn btn-primary" onClick={openAddForm}>
-            <Plus size={14} /> Tambah Materi / Kitab Baru
+            <Plus size={14} /> Tambah Kegiatan / Kitab Baru
           </button>
         </div>
       </div>
@@ -245,13 +252,14 @@ export default function MasterMateriView() {
       {/* 3. TAB FILTER BAR (PERSIS MASTER SANTRI) */}
       <div className="tab-filter-bar">
         {[
-          { id: 'semua', label: `Semua Materi (${totalMateri})` },
-          { id: "Al-Qur'an", label: `Al-Qur'an (${countQuran})` },
-          { id: 'Nahwu & Shorof', label: `Nahwu & Shorof (${countNahwu})` },
-          { id: "Fiqih Syafi'i", label: "Fiqih Syafi'i" },
-          { id: 'Hadits Nabawi', label: 'Hadits Nabawi' },
-          { id: 'Aqidah & Tauhid', label: 'Aqidah & Tauhid' },
-          { id: 'Tajwid', label: 'Tajwid' }
+          { id: 'semua', label: `Semua Kegiatan (${totalMateri})` },
+          { id: 'Nahwu & Shorof', label: 'Nahwu & Shorof' },
+          { id: 'Fiqih', label: 'Fiqih' },
+          { id: 'Muhafadzoh (Hafalan)', label: 'Muhafadzoh' },
+          { id: "Tajwid & Al-Qur'an", label: "Tajwid & Al-Qur'an" },
+          { id: 'Akhlak & Adab', label: 'Akhlak & Adab' },
+          { id: 'Ushul Fiqih', label: 'Ushul Fiqih' },
+          { id: 'Bahasa & Penulisan', label: 'Bahasa' }
         ].map(tab => (
           <button
             key={tab.id}

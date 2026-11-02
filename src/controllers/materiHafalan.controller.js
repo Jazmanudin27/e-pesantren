@@ -1,18 +1,47 @@
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
 
-// Default presets fallback saat offline / database belum terhubung
+// Default presets 39 Kegiatan & Pembelajaran Kitab
 const DEFAULT_PRESETS = [
-  { id: 1, nama_materi: "Al-Qur'an 30 Juz", kategori: "Al-Qur'an", target_hafalan: '30 Juz (114 Surat)', deskripsi: "Hafalan ayat-ayat suci Al-Qur'an Al-Karim" },
-  { id: 2, nama_materi: "Juz 'Amma (Juz 30)", kategori: "Al-Qur'an", target_hafalan: '37 Surat Pendek', deskripsi: 'Hafalan surat-surat juz ke-30 an-Naba s/d an-Naas' },
-  { id: 3, nama_materi: 'Nadzom Al-Jurumiyah', kategori: 'Nahwu & Shorof', target_hafalan: '60 Bait', deskripsi: 'Kaidah dasar ilmu nahwu tata bahasa Arab' },
-  { id: 4, nama_materi: 'Nadzom Al-Imrithi', kategori: 'Nahwu & Shorof', target_hafalan: '254 Bait', deskripsi: "Sya'ir pendalaman kaidah nahwu tingkat menengah" },
-  { id: 5, nama_materi: 'Nadzom Alfiyah Ibnu Malik', kategori: 'Nahwu & Shorof', target_hafalan: '1002 Bait', deskripsi: 'Master gramatika bahasa Arab dan nahwu shorof' },
-  { id: 6, nama_materi: 'Matan Taqrib (Ghayah wat Taqrib)', kategori: "Fiqih Syafi'i", target_hafalan: 'Seluruh Bab Fiqih', deskripsi: "Matan fiqih pokok madzhab Imam Asy-Syafi'i" },
-  { id: 7, nama_materi: "Hadits Al-Arba'in An-Nawawiyah", kategori: 'Hadits Nabawi', target_hafalan: '42 Hadits Pokok', deskripsi: 'Kumpulan hadits pokok ajaran Islam pilihan Imam Nawawi' },
-  { id: 8, nama_materi: 'Aqidatul Awam', kategori: 'Aqidah & Tauhid', target_hafalan: '57 Bait', deskripsi: 'Hafalan pokok-pokok aqidah tauhid ahlussunnah wal jama\'ah' },
-  { id: 9, nama_materi: 'Hidayatus Shibyan', kategori: 'Tajwid', target_hafalan: '40 Bait', deskripsi: "Nadzom kaidah ilmu tajwid bacaan Al-Qur'an" },
-  { id: 10, nama_materi: 'Taisirul Khalaq', kategori: 'Akhlak & Adab', target_hafalan: 'Seluruh Fasal', deskripsi: 'Kitab akhlak budi pekerti dan adab santri mukim' }
+  { id: 1, nama_materi: 'Pegon', kategori: 'Bahasa & Penulisan', target_hafalan: 'Pelajaran aksara Arab Pegon', deskripsi: 'Pelajaran aksara Arab Pegon' },
+  { id: 2, nama_materi: 'Tajwid', kategori: 'Tajwid & Al-Qur\'an', target_hafalan: 'Ilmu tajwid Al-Qur\'an', deskripsi: 'Ilmu kaidah tajwid bacaan Al-Qur\'an' },
+  { id: 3, nama_materi: 'Safinah', kategori: 'Fiqih', target_hafalan: 'Matan Safinatun Najah', deskripsi: 'Kitab Safinatun Najah (dasar fiqih)' },
+  { id: 4, nama_materi: 'Ta\'lim', kategori: 'Akhlak & Adab', target_hafalan: 'Ta\'limul Muta\'allim', deskripsi: 'Kitab Ta\'limul Muta\'allim (adab menuntut ilmu)' },
+  { id: 5, nama_materi: 'Akhlaqul Banain jilid 1', kategori: 'Akhlak & Adab', target_hafalan: 'Akhlaqul Banin Jilid 1', deskripsi: 'Kitab Akhlaqul Banin Jilid 1' },
+  { id: 6, nama_materi: 'Praktek Ibadah', kategori: 'Praktek & Ubudiyah', target_hafalan: 'Wudhu & Shalat', deskripsi: 'Praktek wudhu, shalat fardhu dan sunnah' },
+  { id: 7, nama_materi: 'Al - Qur\'an', kategori: 'Tajwid & Al-Qur\'an', target_hafalan: 'Tilawah & Tadarus', deskripsi: 'Tilawah dan tadarus Al-Qur\'an' },
+  { id: 8, nama_materi: 'Bahasa Inggris', kategori: 'Bahasa & Umum', target_hafalan: 'Vocabulary & Grammar', deskripsi: 'Pelajaran bahasa Inggris santri' },
+  { id: 9, nama_materi: 'Penulisan Patokan', kategori: 'Bahasa & Penulisan', target_hafalan: 'Patokan Kaidah', deskripsi: 'Kaidah penulisan patokan/rumus' },
+  { id: 10, nama_materi: 'Al - I\'lal', kategori: 'Nahwu & Shorof', target_hafalan: 'Qawaidul I\'lal', deskripsi: 'Kaidah perubahan huruf illat dalam shorof' },
+  { id: 11, nama_materi: 'Mufrodatu alfadzi taqrib', kategori: 'Fiqih', target_hafalan: 'Mufrodat Taqrib', deskripsi: 'Kosakata dan istilah matan Taqrib' },
+  { id: 12, nama_materi: 'Bajuri Jilid 1', kategori: 'Fiqih', target_hafalan: 'Fathul Qorib & Bajuri 1', deskripsi: 'Hasyiyah Al-Bajuri ala Fathil Qorib Jilid 1' },
+  { id: 13, nama_materi: 'Sulam Taufik', kategori: 'Fiqih', target_hafalan: 'Sullamut Taufiq', deskripsi: 'Kitab Sullamut Taufiq (fiqih dan tauhid)' },
+  { id: 14, nama_materi: 'Jurumiyah', kategori: 'Nahwu & Shorof', target_hafalan: 'Matan Al-Ajurumiyyah', deskripsi: 'Kitab Matan Al-Ajurumiyyah' },
+  { id: 15, nama_materi: 'Tijan', kategori: 'Aqidah & Tauhid', target_hafalan: 'Tijan Ad-Darori', deskripsi: 'Kitab Tijan Ad-Darori (ilmu tauhid)' },
+  { id: 16, nama_materi: 'Yaqulu', kategori: 'Nahwu & Shorof', target_hafalan: 'Nadzom Maqshud / Yaqulu', deskripsi: 'Nadzom Maqshud / Yaqulu (kaidah shorof)' },
+  { id: 17, nama_materi: 'Tafrijul qurob', kategori: 'Doa & Wirid', target_hafalan: 'Wirid & Doa', deskripsi: 'Kitab wirid dan doa Tafrijul Qurob' },
+  { id: 18, nama_materi: 'Muhafadzoh Jurumiyah', kategori: 'Muhafadzoh (Hafalan)', target_hafalan: 'Setoran Bait/Matan Jurumiyah', deskripsi: 'Setoran hafalan nadzom/matan Jurumiyah' },
+  { id: 19, nama_materi: 'Tasrifan', kategori: 'Nahwu & Shorof', target_hafalan: 'Tashrif Istilahi & Lughawi', deskripsi: 'Hafalan dan praktek tashrif istilahi & lughawi' },
+  { id: 20, nama_materi: 'Al qur\'an', kategori: 'Tajwid & Al-Qur\'an', target_hafalan: 'Tahsin & Hafalan', deskripsi: 'Tahsin dan hafalan ayat-ayat Al-Qur\'an' },
+  { id: 21, nama_materi: 'Bajuri Jilid 2', kategori: 'Fiqih', target_hafalan: 'Fathul Qorib & Bajuri 2', deskripsi: 'Hasyiyah Al-Bajuri ala Fathil Qorib Jilid 2' },
+  { id: 22, nama_materi: 'Riyadhul Badi\'ah', kategori: 'Fiqih', target_hafalan: 'Riyadhul Badi\'ah', deskripsi: 'Kitab Riyadhul Badi\'ah fi Fiqhis Syafi\'i' },
+  { id: 23, nama_materi: 'Al - Kaelani', kategori: 'Nahwu & Shorof', target_hafalan: 'Kitab Kailani', deskripsi: 'Kitab Kailani (syarah Izzi ilmu shorof)' },
+  { id: 24, nama_materi: 'Muhafadzoh I\'mrithi', kategori: 'Muhafadzoh (Hafalan)', target_hafalan: 'Setoran Bait Imrithi', deskripsi: 'Setoran hafalan Nadzom Imrithi' },
+  { id: 25, nama_materi: 'Munadzoroh', kategori: 'Bahtsul Masail & Diskusi', target_hafalan: 'Adab Munadzarah', deskripsi: 'Praktek adab diskusi dan munadzarah ilmiah' },
+  { id: 26, nama_materi: 'I\'anah Jilid 1', kategori: 'Fiqih', target_hafalan: 'I\'anatuth Tholibin 1', deskripsi: 'Hasyiyah I\'anatuth Tholibin Jilid 1' },
+  { id: 27, nama_materi: 'I\'mrithi', kategori: 'Nahwu & Shorof', target_hafalan: 'Nadzom Al-Imrithi 254 Bait', deskripsi: 'Kitab Nadzom Al-Imrithi' },
+  { id: 28, nama_materi: 'Al - Burdah', kategori: 'Sholawat & Sastra', target_hafalan: 'Qoshidah Burdah', deskripsi: 'Qoshidah Burdah Imam Al-Bushiri' },
+  { id: 29, nama_materi: 'Waroqot', kategori: 'Ushul Fiqih', target_hafalan: 'Matan Al-Waraqat', deskripsi: 'Kitab Al-Waraqat Imam Al-Haramain' },
+  { id: 30, nama_materi: 'Muhafadzoh Waroqot', kategori: 'Muhafadzoh (Hafalan)', target_hafalan: 'Setoran Matan Al-Waraqat', deskripsi: 'Setoran hafalan matan Al-Waraqat' },
+  { id: 31, nama_materi: 'Baca Kosongan', kategori: 'Qiroatul Kitab', target_hafalan: 'Baca Kitab Kuning Gundul', deskripsi: 'Praktek membaca kitab gundul / tanpa harakat' },
+  { id: 32, nama_materi: 'I\'anah Jilid 2', kategori: 'Fiqih', target_hafalan: 'I\'anatuth Tholibin 2', deskripsi: 'Hasyiyah I\'anatuth Tholibin Jilid 2' },
+  { id: 33, nama_materi: 'Lathoif', kategori: 'Ushul Fiqih', target_hafalan: 'Lathaiful Isyarat', deskripsi: 'Kitab Lathaiful Isyarat / Al-Asybah' },
+  { id: 34, nama_materi: 'Mutammimah', kategori: 'Nahwu & Shorof', target_hafalan: 'Mutammimah Al-Ajurumiyyah', deskripsi: 'Kitab Mutammimah Al-Ajurumiyyah' },
+  { id: 35, nama_materi: 'Bidayatul Hidayah', kategori: 'Tasawwuf & Adab', target_hafalan: 'Bidayatul Hidayah', deskripsi: 'Kitab Bidayatul Hidayah Hujjatul Islam Al-Ghazali' },
+  { id: 36, nama_materi: 'Tafsir', kategori: 'Tafsir & Ulumul Quran', target_hafalan: 'Tafsir Quran', deskripsi: 'Kajian Tafsir Jalalain / Al-Ibriz' },
+  { id: 37, nama_materi: 'Muhafadzoh Alfiyah', kategori: 'Muhafadzoh (Hafalan)', target_hafalan: 'Setoran Bait Alfiyah Ibnu Malik', deskripsi: 'Setoran hafalan bait Nadzom Alfiyah Ibnu Malik' },
+  { id: 38, nama_materi: 'Khataman Qur`an', kategori: 'Tajwid & Al-Qur\'an', target_hafalan: 'Wisuda Khataman Al-Qur\'an', deskripsi: 'Kegiatan khataman dan wisuda Al-Qur\'an' },
+  { id: 39, nama_materi: 'I\'anah Jilid 3', kategori: 'Fiqih', target_hafalan: 'I\'anatuth Tholibin 3', deskripsi: 'Hasyiyah I\'anatuth Tholibin Jilid 3' }
 ];
 
 // GET /api/materi-hafalan

@@ -486,7 +486,7 @@ export default function AdminLayout() {
               onClick={() => handleTabClick('master-materi')}
             >
               <BookOpen size={13} style={{ marginRight: '6px', color: '#059669' }} />
-              <span>Materi Hafalan & Kitab</span>
+              <span>Kegiatan</span>
             </button>
           </div>
         )}
