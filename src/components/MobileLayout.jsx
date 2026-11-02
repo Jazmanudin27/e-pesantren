@@ -1,0 +1,531 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Home, 
+  BookOpen, 
+  Wallet, 
+  DoorOpen, 
+  Users,
+  Building,
+  GraduationCap,
+  ShieldAlert,
+  HardDrive,
+  BarChart3,
+  FileText,
+  LayoutDashboard,
+  Fingerprint,
+  Grid,
+  X,
+  ArrowLeft,
+  User,
+  HeartHandshake,
+  Smile
+} from 'lucide-react';
+import MobileHome from '../views/mobile/MobileHome';
+import MobileTahfidz from '../views/mobile/MobileTahfidz';
+import MobileSyahriah from '../views/mobile/MobileSyahriah';
+import MobileIzin from '../views/mobile/MobileIzin';
+import MobileDashboard from '../views/mobile/MobileDashboard';
+import MobilePresensi from '../views/mobile/MobilePresensi';
+import MobileSantri from '../views/mobile/MobileSantri';
+import MobileAsrama from '../views/mobile/MobileAsrama';
+import MobileKelas from '../views/mobile/MobileKelas';
+import MobileAsatidz from '../views/mobile/MobileAsatidz';
+import MobileDevice from '../views/mobile/MobileDevice';
+import MobileTataTertib from '../views/mobile/MobileTataTertib';
+import MobileLaporanPresensi from '../views/mobile/MobileLaporanPresensi';
+import MobileLaporanTahfidz from '../views/mobile/MobileLaporanTahfidz';
+import MobileKitab from '../views/mobile/MobileKitab';
+import MobileProfil from '../views/mobile/MobileProfil';
+import MobileDaftarWajah from '../views/mobile/MobileDaftarWajah';
+import MobileLogin from '../views/mobile/MobileLogin';
+import MobileOnboarding from '../views/mobile/MobileOnboarding';
+import MobilePraktek from '../views/mobile/MobilePraktek';
+import MobileMateriHafalan from '../views/mobile/MobileMateriHafalan';
+import PortalWaliSantri from '../views/wali/PortalWaliSantri';
+import { canAccessKeuangan } from '../utils/authRole.util';
+
+export default function MobileLayout() {
+  const [session, setSession] = useState(() => {
+    try {
+      const saved = localStorage.getItem('mobile_session');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  const isMobileDomain = typeof window !== 'undefined' && (
+    window.location.hostname === 'mnurulwafa.ruangtech.com' ||
+    window.location.hostname === 'm.nurulwafa.ruangtech.com' ||
+    window.location.hostname.startsWith('mnurulwafa.') ||
+    window.location.hostname.startsWith('m.') ||
+    window.location.hostname === 'mpesantren.aspartech.com' ||
+    window.location.hostname.startsWith('mpesantren.') ||
+    window.location.hostname.includes('mpesantren')
+  );
+
+  const getInitialTab = () => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash.includes('/')) {
+      const sub = hash.split('/')[1];
+      if (sub) return sub;
+    }
+    if (hash && hash !== 'mobile') {
+      return hash;
+    }
+    return localStorage.getItem('mobileTab') || 'home';
+  };
+
+  const [mobileTab, setMobileTab] = useState(getInitialTab);
+  const [authView, setAuthView] = useState(() => {
+    const hash = (typeof window !== 'undefined' ? window.location.hash : '').toLowerCase();
+    if (hash.includes('login')) return 'login';
+    return 'onboarding';
+  });
+  const [isMenuDrawerOpen, setIsMenuDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    const syncTabFromHash = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (hash.toLowerCase().includes('login')) {
+        setAuthView('login');
+      } else if (hash.toLowerCase().includes('welcome') || hash.toLowerCase().includes('onboarding')) {
+        setAuthView('onboarding');
+      }
+      if (hash.includes('/')) {
+        const sub = hash.split('/')[1];
+        if (sub) {
+          setMobileTab(sub);
+          localStorage.setItem('mobileTab', sub);
+        }
+      } else if (hash && hash !== 'mobile') {
+        setMobileTab(hash);
+        localStorage.setItem('mobileTab', hash);
+      } else if (hash === 'mobile' || (!hash && isMobileDomain)) {
+        const saved = localStorage.getItem('mobileTab');
+        if (saved) {
+          setMobileTab(saved);
+        } else {
+          setMobileTab('home');
+        }
+      }
+    };
+
+    syncTabFromHash();
+    window.addEventListener('hashchange', syncTabFromHash);
+    return () => window.removeEventListener('hashchange', syncTabFromHash);
+  }, [isMobileDomain]);
+
+  const handleSelectTab = (tab) => {
+    setMobileTab(tab);
+    localStorage.setItem('mobileTab', tab);
+    if (isMobileDomain) {
+      window.location.hash = tab === 'home' ? '' : tab;
+    } else {
+      window.location.hash = tab === 'home' ? 'mobile' : `mobile/${tab}`;
+    }
+    setIsMenuDrawerOpen(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('mobile_session');
+    setSession(null);
+  };
+
+  const handleLoginSuccess = (userSession) => {
+    localStorage.setItem('mobileTab', 'home');
+    setMobileTab('home');
+    window.location.hash = 'mobile';
+    setSession(userSession);
+  };
+
+  // If user is not logged in on mobile app, display MobileOnboarding or MobileLogin screen!
+  if (!session) {
+    if (authView === 'login') {
+      return (
+        <MobileLogin 
+          onLoginSuccess={handleLoginSuccess}
+          onBackToOnboarding={() => setAuthView('onboarding')}
+        />
+      );
+    }
+    return (
+      <MobileOnboarding 
+        onStart={() => setAuthView('login')}
+        onOpenWali={() => {
+          window.location.hash = '#wali';
+          window.location.reload();
+        }}
+      />
+    );
+  }
+
+  const getSubmenuTitle = () => {
+    switch (mobileTab) {
+      case 'dashboard': return 'Dashboard System';
+      case 'presensi': return 'Presensi Barcode & Wajah';
+      case 'tahfidz': return 'Tahfidz & Muroja\'ah';
+      case 'praktek-ibadah':
+      case 'praktek': return 'Praktek';
+      case 'perizinan':
+      case 'izin': return 'Perizinan';
+      case 'master-santri': return 'Data Santri';
+      case 'daftar-wajah':
+      case 'wajah': return 'Daftar Wajah Santri';
+      case 'master-asrama': return 'Data Asrama & Kobong';
+      case 'master-kelas': return 'Data Kelas & Halaqah';
+      case 'master-asatidz': return 'Data Asatidz & Musyrif';
+      case 'master-materi': return 'Master Materi & Kitab';
+      case 'kitab': return 'Kajian Kitab Kuning';
+      case 'master-device': return 'Data Mesin Fingerprint';
+      case 'tata-tertib': return 'Tata Tertib & Ta\'zir';
+      case 'laporan-presensi': return 'Rekap Presensi Harian';
+      case 'laporan-tahfidz': return 'Laporan Tahfidz & Tasmi\'';
+      case 'syahriah': return 'Syahriah & Uang Saku';
+      case 'profil': return 'Profil Asatidz & Admin';
+      case 'portal-wali': return 'Portal Orang Tua (Wali)';
+      default: return '';
+    }
+  };
+
+  const isOtherMenuActive = [
+    'dashboard', 'master-santri', 'master-asrama', 'master-kelas', 
+    'master-asatidz', 'master-materi', 'kitab', 'master-device', 'tata-tertib', 
+    'laporan-presensi', 'laporan-tahfidz', 'syahriah', 'praktek-ibadah', 'praktek', 'portal-wali'
+  ].includes(mobileTab);
+
+  const renderContent = () => {
+    switch (mobileTab) {
+      case 'home':
+        return <MobileHome onChangeTab={handleSelectTab} onLogout={handleLogout} />;
+      case 'portal-wali':
+        return <PortalWaliSantri onLogout={handleLogout} />;
+      case 'dashboard':
+        return <MobileDashboard />;
+      case 'presensi':
+        return <MobilePresensi />;
+      case 'tahfidz':
+        return <MobileTahfidz />;
+      case 'praktek-ibadah':
+      case 'praktek':
+        return <MobilePraktek />;
+      case 'perizinan':
+      case 'izin':
+        return <MobileIzin />;
+      case 'master-santri':
+        return <MobileSantri />;
+      case 'daftar-wajah':
+      case 'wajah':
+        return <MobileDaftarWajah />;
+      case 'master-asrama':
+        return <MobileAsrama />;
+      case 'master-kelas':
+        return <MobileKelas />;
+      case 'master-asatidz':
+        return <MobileAsatidz />;
+      case 'master-materi':
+        return <MobileMateriHafalan />;
+      case 'kitab':
+        return <MobileKitab />;
+      case 'master-device':
+        return <MobileDevice />;
+      case 'tata-tertib':
+        return <MobileTataTertib />;
+      case 'laporan-presensi':
+        return <MobileLaporanPresensi />;
+      case 'laporan-tahfidz':
+        return <MobileLaporanTahfidz />;
+      case 'syahriah':
+      case 'keuangan':
+        if (!canAccessKeuangan(session)) {
+          return (
+            <div style={{ padding: '36px 20px', textAlign: 'center', background: '#fff', borderRadius: '20px', margin: '20px 14px', border: '1px solid #fee2e2' }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#fef2f2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+                <ShieldAlert size={30} />
+              </div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>
+                Akses Dibatasi
+              </h3>
+              <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 16px', lineHeight: 1.4 }}>
+                Menu Keuangan hanya dapat diakses oleh Admin Keuangan / Bendahara. Admin Absensi dan operasional tidak memiliki hak akses.
+              </p>
+              <button 
+                onClick={() => handleSelectTab('home')}
+                style={{ background: '#059669', color: '#fff', border: 'none', padding: '9px 18px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Kembali ke Beranda
+              </button>
+            </div>
+          );
+        }
+        return <MobileSyahriah />;
+      case 'profil':
+        return <MobileProfil onChangeTab={handleSelectTab} onLogout={handleLogout} />;
+      default:
+        return <MobileHome onChangeTab={handleSelectTab} />;
+    }
+  };
+
+  return (
+    <div className="mobile-wrapper">
+      <div className="mobile-app-container">
+        {/* Sub-Menu Top Navigation Header (Excludes Beranda/Home) */}
+        {mobileTab !== 'home' && (
+          <div style={{
+            background: 'linear-gradient(135deg, #064e3b 0%, #047857 60%, #059669 100%)',
+            color: '#ffffff',
+            padding: '15px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
+            borderBottomLeftRadius: '20px',
+            borderBottomRightRadius: '20px',
+            boxShadow: '0 8px 20px -4px rgba(6, 78, 59, 0.35)',
+            position: 'sticky',
+            top: 0,
+            zIndex: 20
+          }}>
+            <button 
+              onClick={() => handleSelectTab('home')}
+              style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                color: '#ffffff',
+                width: '38px',
+                height: '38px',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'transform 0.15s ease'
+              }}
+              title="Kembali ke Beranda"
+            >
+              <ArrowLeft size={20} />
+            </button>
+
+            <span style={{ fontWeight: 800, fontSize: '0.98rem', color: '#ffffff', textAlign: 'center', flex: 1, margin: '0 12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '0.01em' }}>
+              {getSubmenuTitle()}
+            </span>
+
+            <div style={{ width: '38px' }} />
+          </div>
+        )}
+
+        {/* Dynamic Mobile Content */}
+        <div className="mobile-content">
+          {renderContent()}
+        </div>
+
+        {/* Mobile Menu Sheet Drawer */}
+        {isMenuDrawerOpen && (
+          <div 
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(15, 23, 42, 0.75)',
+              backdropFilter: 'blur(4px)',
+              zIndex: 999,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'flex-end',
+              alignItems: 'center'
+            }}
+            onClick={() => setIsMenuDrawerOpen(false)}
+          >
+            <div 
+              style={{
+                background: '#ffffff',
+                borderTopLeftRadius: '24px',
+                borderTopRightRadius: '24px',
+                padding: '20px 16px 30px',
+                maxHeight: '80vh',
+                overflowY: 'auto',
+                boxShadow: '0 -10px 25px rgba(0,0,0,0.2)',
+                width: '100%',
+                maxWidth: '430px',
+                boxSizing: 'border-box'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Grid size={18} color="#059669" />
+                  <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f172a' }}>Daftar Semua Menu Mobile</span>
+                </div>
+                <button 
+                  onClick={() => setIsMenuDrawerOpen(false)}
+                  style={{ background: '#f1f5f9', border: 'none', padding: '4px', borderRadius: '50%', cursor: 'pointer', color: '#64748b' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Menu Categories */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#059669', textTransform: 'uppercase', marginBottom: '8px' }}>
+                    MAIN MENU
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                    <button onClick={() => handleSelectTab('dashboard')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'dashboard' ? '#e0f2fe' : '#f8fafc', border: mobileTab === 'dashboard' ? '1px solid #0284c7' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                      <LayoutDashboard size={16} color="#0284c7" /> Dashboard
+                    </button>
+                    <button onClick={() => handleSelectTab('presensi')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'presensi' ? '#f3e8ff' : '#f8fafc', border: mobileTab === 'presensi' ? '1px solid #7c3aed' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                      <Fingerprint size={16} color="#7c3aed" /> Presensi
+                    </button>
+                    <button onClick={() => handleSelectTab('tahfidz')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'tahfidz' ? '#dcfce7' : '#f8fafc', border: mobileTab === 'tahfidz' ? '1px solid #059669' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                      <BookOpen size={16} color="#059669" /> Tahfidz & Kitab
+                    </button>
+                    <button onClick={() => handleSelectTab('perizinan')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: (mobileTab === 'perizinan' || mobileTab === 'izin') ? '#dbeafe' : '#f8fafc', border: (mobileTab === 'perizinan' || mobileTab === 'izin') ? '1px solid #2563eb' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                      <DoorOpen size={16} color="#2563eb" /> Perizinan
+                    </button>
+                    <button onClick={() => handleSelectTab('praktek-ibadah')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: (mobileTab === 'praktek-ibadah' || mobileTab === 'praktek') ? '#d1fae5' : '#f8fafc', border: (mobileTab === 'praktek-ibadah' || mobileTab === 'praktek') ? '1px solid #059669' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer', gridColumn: 'span 2' }}>
+                      <HeartHandshake size={16} color="#059669" /> Praktek
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#059669', textTransform: 'uppercase', marginBottom: '8px' }}>
+                    DATA MASTER
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                    <button onClick={() => handleSelectTab('master-santri')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-santri' ? '#ccfbf1' : '#f8fafc', border: mobileTab === 'master-santri' ? '1px solid #0d9488' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                      <Users size={16} color="#0d9488" /> Data Santri
+                    </button>
+                    <button onClick={() => handleSelectTab('daftar-wajah')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'daftar-wajah' ? '#e0f2fe' : '#f8fafc', border: mobileTab === 'daftar-wajah' ? '1px solid #0284c7' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                      <Smile size={16} color="#0284c7" /> Daftar Wajah
+                    </button>
+                    <button onClick={() => handleSelectTab('master-asrama')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-asrama' ? '#fef3c7' : '#f8fafc', border: mobileTab === 'master-asrama' ? '1px solid #d97706' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                      <Building size={16} color="#d97706" /> Data Asrama
+                    </button>
+                    <button onClick={() => handleSelectTab('master-kelas')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-kelas' ? '#cffaff' : '#f8fafc', border: mobileTab === 'master-kelas' ? '1px solid #0891b2' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                      <GraduationCap size={16} color="#0891b2" /> Data Kelas
+                    </button>
+                    <button onClick={() => handleSelectTab('master-asatidz')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-asatidz' ? '#f3e8ff' : '#f8fafc', border: mobileTab === 'master-asatidz' ? '1px solid #9333ea' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                      <Users size={16} color="#9333ea" /> Data Asatidz
+                    </button>
+                    <button onClick={() => handleSelectTab('master-materi')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-materi' ? '#ecfdf5' : '#f8fafc', border: mobileTab === 'master-materi' ? '1px solid #059669' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                      <BookOpen size={16} color="#059669" /> Materi & Kitab
+                    </button>
+                    <button onClick={() => handleSelectTab('master-device')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-device' ? '#e2e8f0' : '#f8fafc', border: mobileTab === 'master-device' ? '1px solid #475569' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                      <HardDrive size={16} color="#475569" /> Fingerprint
+                    </button>
+                    <button onClick={() => handleSelectTab('tata-tertib')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'tata-tertib' ? '#ffe4e6' : '#f8fafc', border: mobileTab === 'tata-tertib' ? '1px solid #be123c' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                      <ShieldAlert size={16} color="#be123c" /> Tata Tertib
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#059669', textTransform: 'uppercase', marginBottom: '8px' }}>
+                    {canAccessKeuangan(session) ? 'LAPORAN & KEUANGAN' : 'LAPORAN REKAP'}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                    <button onClick={() => handleSelectTab('laporan-presensi')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'laporan-presensi' ? '#ffedd5' : '#f8fafc', border: mobileTab === 'laporan-presensi' ? '1px solid #ea580c' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                      <BarChart3 size={16} color="#ea580c" /> Rekap Absen
+                    </button>
+                    <button onClick={() => handleSelectTab('laporan-tahfidz')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'laporan-tahfidz' ? '#e0f2fe' : '#f8fafc', border: mobileTab === 'laporan-tahfidz' ? '1px solid #0284c7' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                      <FileText size={16} color="#0284c7" /> Laporan Tahfidz
+                    </button>
+                    {canAccessKeuangan(session) && (
+                      <button onClick={() => handleSelectTab('syahriah')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'syahriah' ? '#fef3c7' : '#f8fafc', border: mobileTab === 'syahriah' ? '1px solid #d97706' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                        <Wallet size={16} color="#d97706" /> Keuangan & SPP
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #e2e8f0' }}>
+                  <a 
+                    href={typeof window !== 'undefined' && window.location.hostname.includes('ruangtech.com') ? 'https://nurulwafa.ruangtech.com' : (typeof window !== 'undefined' && window.location.hostname.includes('aspartech.com') ? 'https://pesantren.aspartech.com' : '#dashboard')}
+                    target={typeof window !== 'undefined' && (window.location.hostname.includes('ruangtech.com') || window.location.hostname.includes('aspartech.com')) ? '_blank' : '_self'}
+                    rel="noreferrer"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      padding: '10px 14px',
+                      background: 'linear-gradient(135deg, #0f172a, #1e293b)',
+                      color: '#ffffff',
+                      borderRadius: '10px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                      boxShadow: '0 2px 6px rgba(15, 23, 42, 0.2)'
+                    }}
+                  >
+                    🖥️ Buka Portal Desktop (Admin)
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Elevated Floating White Bottom Navigation Bar */}
+        <nav className="mobile-bottom-nav">
+          <button 
+            className={`mobile-nav-item ${mobileTab === 'home' ? 'active' : ''}`}
+            onClick={() => handleSelectTab('home')}
+          >
+            <div className={`nav-icon-wrapper ${mobileTab === 'home' ? 'active' : ''}`}>
+              <Home size={20} />
+            </div>
+            <span>Beranda</span>
+          </button>
+
+          <button 
+            className={`mobile-nav-item ${(mobileTab === 'perizinan' || mobileTab === 'izin') ? 'active' : ''}`}
+            onClick={() => handleSelectTab('perizinan')}
+          >
+            <div className={`nav-icon-wrapper ${(mobileTab === 'perizinan' || mobileTab === 'izin') ? 'active' : ''}`}>
+              <DoorOpen size={20} />
+            </div>
+            <span>Izin</span>
+          </button>
+
+          {/* Prominent Center Floating Fingerprint Action Button */}
+          <button 
+            className="mobile-fab-center"
+            onClick={() => handleSelectTab('presensi')}
+            title="Presensi Barcode & Wajah"
+          >
+            <div className="fab-inner-glow">
+              <Fingerprint size={28} color="#ffffff" strokeWidth={2.4} />
+            </div>
+          </button>
+
+          <button 
+            className={`mobile-nav-item ${mobileTab === 'tahfidz' ? 'active' : ''}`}
+            onClick={() => handleSelectTab('tahfidz')}
+          >
+            <div className={`nav-icon-wrapper ${mobileTab === 'tahfidz' ? 'active' : ''}`}>
+              <BookOpen size={20} />
+            </div>
+            <span>Tahfidz</span>
+          </button>
+
+          <button 
+            className={`mobile-nav-item ${mobileTab === 'profil' ? 'active' : ''}`}
+            onClick={() => handleSelectTab('profil')}
+          >
+            <div className={`nav-icon-wrapper ${mobileTab === 'profil' ? 'active' : ''}`}>
+              <User size={20} />
+            </div>
+            <span>Profile</span>
+          </button>
+        </nav>
+      </div>
+    </div>
+  );
+}

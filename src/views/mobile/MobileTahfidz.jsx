@@ -1,0 +1,529 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { BookOpen, Plus, Edit3, Trash2, X, Save, Loader2, Search, CheckCircle, Award } from 'lucide-react';
+import { SURAH_LIST } from '../../utils/quranSurah.util';
+import { showConfirm, toastSuccess } from '../../utils/alert.util';
+import SearchableSelect from '../../components/SearchableSelect';
+import { DEFAULT_KITAB_DATA } from './MobileKitab';
+
+const getMasterKitabOptions = () => {
+  let rawKitab = [];
+  try {
+    const saved = localStorage.getItem('pesantren_kitab_list');
+    rawKitab = saved ? JSON.parse(saved) : DEFAULT_KITAB_DATA;
+  } catch (e) {
+    rawKitab = DEFAULT_KITAB_DATA;
+  }
+
+  return [
+    {
+      value: "Al-Qur'an 30 Juz",
+      label: "Al-Qur'an 30 Juz",
+      sublabel: "Tahfidz Al-Qur'an (114 Surat)"
+    },
+    {
+      value: "Juz 'Amma (Juz 30)",
+      label: "Juz 'Amma (Juz 30)",
+      sublabel: "Tahfidz Surat Pendek"
+    },
+    ...rawKitab.map(k => ({
+      value: k.judul,
+      label: k.judul,
+      sublabel: `${k.fan || 'Kitab Kuning'}${k.pengarang ? ` • ${k.pengarang}` : ''}`
+    }))
+  ];
+};
+
+export default function MobileTahfidz() {
+  const [setoranList, setSetoranList] = useState([]);
+  const [santriOptions, setSantriOptions] = useState([]);
+  const [materiOptions, setMateriOptions] = useState(getMasterKitabOptions);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formMode, setFormMode] = useState('add');
+  const [submitting, setSubmitting] = useState(false);
+
+  const initialForm = {
+    id: null,
+    santri_id: 1,
+    materi_hafalan: "Al-Qur'an 30 Juz",
+    capaian_hafalan: '',
+    status: 'Lulus',
+    catatan: '',
+    tanggal: new Date().toISOString().split('T')[0]
+  };
+
+  const [formData, setFormData] = useState(initialForm);
+
+  const defaultSetoran = [
+    { id: 1, santri_id: 1, nama_santri: 'Muhammad Al-Fatih', materi_hafalan: "Al-Qur'an 30 Juz", capaian_hafalan: 'Juz 15 (Al-Isra 1-25)', status: 'Lulus', tanggal: '2026-10-07' },
+    { id: 2, santri_id: 2, nama_santri: 'Ahmad Dahlan', materi_hafalan: 'Matan Al-Ajurumiyyah', capaian_hafalan: 'Bait 1 - 35 (Bab Kalam & I\'rab)', status: 'Lulus', tanggal: '2026-10-06' },
+    { id: 3, santri_id: 3, nama_santri: 'Khadijah Az-Zahra', materi_hafalan: 'Nadhom Al-Imrithi', capaian_hafalan: 'Bait 1 - 50', status: 'Lulus', tanggal: '2026-10-05' }
+  ];
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setMateriOptions(getMasterKitabOptions());
+      const [resSetoran, resSantri] = await Promise.all([
+        axios.get('/api/dashboard/stats'),
+        axios.get('/api/santri')
+      ]);
+
+      if (resSantri.data && resSantri.data.data) {
+        setSantriOptions(resSantri.data.data);
+      }
+
+      if (resSetoran.data && resSetoran.data.recentSetoran && resSetoran.data.recentSetoran.length > 0) {
+        setSetoranList(resSetoran.data.recentSetoran);
+      } else {
+        const saved = JSON.parse(localStorage.getItem('mobile_tahfidz_list') || 'null');
+        setSetoranList(saved || defaultSetoran);
+      }
+    } catch (err) {
+      console.warn('API error, falling back to local tahfidz:', err);
+      const saved = JSON.parse(localStorage.getItem('mobile_tahfidz_list') || 'null');
+      setSetoranList(saved || defaultSetoran);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleOpenAdd = () => {
+    setFormMode('add');
+    setFormData({
+      ...initialForm,
+      santri_id: santriOptions[0]?.id || 1,
+      materi_hafalan: materiOptions[0]?.value || "Al-Qur'an 30 Juz",
+      status: 'Lulus',
+      tanggal: new Date().toISOString().split('T')[0]
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (item) => {
+    setFormMode('edit');
+    setFormData({
+      id: item.id,
+      santri_id: item.santri_id || 1,
+      materi_hafalan: item.materi_hafalan || (item.surat_mulai ? "Al-Qur'an 30 Juz" : (materiOptions[0]?.value || "Fathul Qorib (Al-Ghayah wat Taqrib)")),
+      capaian_hafalan: item.capaian_hafalan || (item.surat_mulai ? `QS. ${item.surat_mulai}` : ''),
+      status: item.status === 'Mengulang' ? 'Mengulang' : 'Lulus',
+      catatan: item.catatan || '',
+      tanggal: item.tanggal ? String(item.tanggal).split('T')[0] : new Date().toISOString().split('T')[0]
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    const payload = {
+      ...formData,
+      jenis_setoran: formData.materi_hafalan,
+      juz: 1,
+      surat_mulai: formData.materi_hafalan,
+      ayat_mulai: 1,
+      surat_selesai: formData.capaian_hafalan,
+      ayat_selesai: 1,
+      nilai_kelancaran: formData.status === 'Lulus' ? 'Mumtaz (A)' : 'Mengulang',
+      kualitas_tajwid: formData.status === 'Lulus' ? 'Mumtaz (A)' : 'Mengulang'
+    };
+
+    try {
+      if (formMode === 'add') {
+        await axios.post('/api/tahfidz/setoran', payload);
+      } else {
+        await axios.put(`/api/tahfidz/setoran/${formData.id}`, payload);
+      }
+
+      setSetoranList(prev => {
+        let next;
+        const selectedSantri = santriOptions.find(s => s.id === parseInt(formData.santri_id));
+        const itemObj = {
+          ...payload,
+          nama_santri: selectedSantri ? selectedSantri.nama_santri : 'Santri'
+        };
+
+        if (formMode === 'add') {
+          next = [itemObj, ...prev];
+        } else {
+          next = prev.map(i => i.id === formData.id ? itemObj : i);
+        }
+        localStorage.setItem('mobile_tahfidz_list', JSON.stringify(next));
+        return next;
+      });
+
+      fetchData();
+      setIsModalOpen(false);
+      toastSuccess(formMode === 'add' ? 'Setoran hafalan santri berhasil dicatat' : 'Data setoran berhasil diperbarui');
+    } catch (err) {
+      console.warn('API save fallback local:', err);
+      setSetoranList(prev => {
+        let next;
+        const selectedSantri = santriOptions.find(s => s.id === parseInt(formData.santri_id));
+        const itemObj = {
+          ...payload,
+          nama_santri: selectedSantri ? selectedSantri.nama_santri : 'Santri',
+          id: Date.now()
+        };
+
+        if (formMode === 'add') {
+          next = [itemObj, ...prev];
+        } else {
+          next = prev.map(i => i.id === formData.id ? itemObj : i);
+        }
+        localStorage.setItem('mobile_tahfidz_list', JSON.stringify(next));
+        return next;
+      });
+      setIsModalOpen(false);
+      toastSuccess('Tersimpan di perangkat lokal');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    const confirmed = await showConfirm('Konfirmasi Hapus', 'Apakah Anda yakin ingin menghapus data setoran ini?');
+    if (!confirmed) return;
+    try {
+      await axios.delete(`/api/tahfidz/setoran/${id}`);
+      setSetoranList(prev => {
+        const next = prev.filter(i => i.id !== id);
+        localStorage.setItem('mobile_tahfidz_list', JSON.stringify(next));
+        return next;
+      });
+      toastSuccess('Data setoran dihapus');
+    } catch (err) {
+      console.warn('API delete fallback local:', err);
+      setSetoranList(prev => {
+        const next = prev.filter(i => i.id !== id);
+        localStorage.setItem('mobile_tahfidz_list', JSON.stringify(next));
+        return next;
+      });
+      toastSuccess('Data setoran dihapus');
+    }
+  };
+
+  const filteredList = setoranList.filter(s => {
+    const q = searchQuery.toLowerCase();
+    const nama = (s.nama_santri || '').toLowerCase();
+    const mat = (s.materi_hafalan || s.surat_mulai || '').toLowerCase();
+    const cap = (s.capaian_hafalan || s.surat_selesai || '').toLowerCase();
+    return nama.includes(q) || mat.includes(q) || cap.includes(q);
+  });
+
+  const MATERI_PRESETS = [
+    "Al-Qur'an",
+    "Nadzom Al-Jurumiyah",
+    "Nadzom Al-Imrithi",
+    "Nadzom Alfiyah Ibnu Malik",
+    "Matan Al-Ghoyah wat Taqrib",
+    "Aqidatul Awam",
+    "Hadits Al-Arba'in An-Nawawiyyah",
+    "Taisirul Khalaq",
+    "Kitab / Nadzom Lainnya"
+  ];
+
+  return (
+    <div style={{ padding: '16px', paddingBottom: '80px' }}>
+      {/* Input Cari */}
+      <div style={{ position: 'relative', marginBottom: '14px' }}>
+        <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+        <input
+          type="text"
+          placeholder="Cari santri, kitab, nadzom, capaian..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '12px 14px 12px 42px',
+            borderRadius: '12px',
+            border: '1px solid #cbd5e1',
+            fontSize: '0.85rem',
+            background: '#ffffff',
+            boxSizing: 'border-box'
+          }}
+        />
+      </div>
+
+      {/* List Setoran Card */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
+          <Loader2 size={28} className="animate-spin" style={{ margin: '0 auto 8px' }} />
+          <div>Memuat riwayat setoran...</div>
+        </div>
+      ) : filteredList.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '30px 16px', background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+          <BookOpen size={36} style={{ color: '#94a3b8', marginBottom: '8px' }} />
+          <div style={{ fontWeight: 700, color: '#334155' }}>Tidak Ada Setoran Hafalan</div>
+          <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px' }}>Tekan tombol "Input Setoran" untuk menambahkan record baru</div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {filteredList.map((r) => (
+            <div key={r.id} style={{
+              background: '#ffffff',
+              borderRadius: '14px',
+              padding: '14px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                  {r.tanggal ? String(r.tanggal).split('T')[0] : '-'}
+                </span>
+                <span className="badge badge-purple" style={{ fontWeight: 700 }}>
+                  {r.materi_hafalan || (r.surat_mulai ? "Al-Qur'an" : 'Hafalan')}
+                </span>
+              </div>
+
+              <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a', marginBottom: '2px' }}>
+                👤 {r.nama_santri || 'Santri'}
+              </div>
+              <div style={{ fontSize: '0.82rem', color: '#047857', fontWeight: 700, marginBottom: '6px' }}>
+                📖 {r.capaian_hafalan || (r.surat_mulai ? `QS. ${r.surat_mulai} (${r.ayat_mulai || 1}) s/d ${r.surat_selesai || r.surat_mulai} (${r.ayat_selesai || 10})` : '-')}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', background: '#f8fafc', padding: '8px 10px', borderRadius: '8px', marginBottom: '10px' }}>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontWeight: 800,
+                  fontSize: '0.74rem',
+                  color: (r.status === 'Mengulang' || r.status === 'Perlu Pengulangan') ? '#b91c1c' : '#059669',
+                  background: (r.status === 'Mengulang' || r.status === 'Perlu Pengulangan') ? '#fee2e2' : '#ecfdf5',
+                  padding: '3px 8px',
+                  borderRadius: '6px'
+                }}>
+                  {(r.status === 'Mengulang' || r.status === 'Perlu Pengulangan') ? '🔄 Mengulang' : '✅ Lulus'}
+                </span>
+                <span style={{ color: '#64748b', fontSize: '0.74rem' }}>{r.tanggal ? String(r.tanggal).split('T')[0] : 'Hari ini'}</span>
+              </div>
+
+              {/* Tombol Aksi */}
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', borderTop: '1px solid #f1f5f9', paddingTop: '8px' }}>
+                <button
+                  onClick={() => handleOpenEdit(r)}
+                  style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#334155', fontSize: '0.76rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                >
+                  <Edit3 size={14} /> Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(r.id)}
+                  style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: '#fee2e2', color: '#b91c1c', fontSize: '0.76rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                >
+                  <Trash2 size={14} /> Hapus
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Modal Form Tambah / Edit */}
+      {isModalOpen && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)', zIndex: 10000,
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          backdropFilter: 'blur(3px)'
+        }}>
+          <div style={{
+            background: '#ffffff', width: '100%', maxHeight: '90vh',
+            borderTopLeftRadius: '24px', borderTopRightRadius: '24px',
+            padding: '20px', overflowY: 'auto', boxShadow: '0 -10px 25px rgba(0,0,0,0.2)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
+                {formMode === 'add' ? '➕ Input Setoran Tahfidz' : '✏️ Edit Setoran Tahfidz'}
+              </h3>
+              <button onClick={() => setIsModalOpen(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <X size={18} style={{ color: '#64748b' }} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Pilih Santri *</label>
+                <SearchableSelect
+                  options={santriOptions.map(s => ({
+                    value: s.id,
+                    label: s.nama_santri,
+                    sublabel: s.nis ? `NIS: ${s.nis}` : null
+                  }))}
+                  value={formData.santri_id}
+                  onChange={(val) => setFormData({ ...formData, santri_id: parseInt(val) })}
+                  placeholder="-- Pilih Santri --"
+                  searchPlaceholder="Cari nama atau NIS santri..."
+                  required
+                />
+              </div>
+
+              {/* Materi Hafalan / Kitab (Diambil dari Data Master Kitab) */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Materi Hafalan / Kitab *</label>
+                <SearchableSelect
+                  options={materiOptions}
+                  value={formData.materi_hafalan}
+                  onChange={(val) => setFormData({ ...formData, materi_hafalan: val })}
+                  placeholder="-- Pilih Kitab / Materi dari Data Master --"
+                  searchPlaceholder="Cari nama kitab atau fan..."
+                  required
+                />
+                
+                {/* Chip Pilihan Cepat dari Data Master Kitab */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                  {materiOptions.slice(0, 6).map(chip => (
+                    <button
+                      key={chip.value}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, materi_hafalan: chip.value })}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '12px',
+                        border: formData.materi_hafalan === chip.value ? '1.5px solid #059669' : '1px solid #cbd5e1',
+                        background: formData.materi_hafalan === chip.value ? '#ecfdf5' : '#f8fafc',
+                        color: formData.materi_hafalan === chip.value ? '#065f46' : '#475569',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {chip.label.split('(')[0].trim()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Capaian Bagian Hafalan */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Capaian / Bagian Hafalan *</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.capaian_hafalan}
+                  onChange={(e) => setFormData({ ...formData, capaian_hafalan: e.target.value })}
+                  placeholder="Contoh: Bait 1 - 25 (Bab Kalam) / Juz 30 (An-Naba s/d An-Nas)..."
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              {/* Status Kelulusan (Hanya Lulus & Mengulang) */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>Status *</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, status: 'Lulus' })}
+                    style={{
+                      padding: '11px',
+                      borderRadius: '12px',
+                      border: formData.status === 'Lulus' ? '2px solid #059669' : '1px solid #cbd5e1',
+                      background: formData.status === 'Lulus' ? '#ecfdf5' : '#ffffff',
+                      color: formData.status === 'Lulus' ? '#065f46' : '#64748b',
+                      fontSize: '0.85rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s ease',
+                      boxShadow: formData.status === 'Lulus' ? '0 3px 8px rgba(5, 150, 105, 0.2)' : 'none'
+                    }}
+                  >
+                    <span>✅</span> Lulus
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, status: 'Mengulang' })}
+                    style={{
+                      padding: '11px',
+                      borderRadius: '12px',
+                      border: formData.status === 'Mengulang' ? '2px solid #ea580c' : '1px solid #cbd5e1',
+                      background: formData.status === 'Mengulang' ? '#fff7ed' : '#ffffff',
+                      color: formData.status === 'Mengulang' ? '#9a3412' : '#64748b',
+                      fontSize: '0.85rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s ease',
+                      boxShadow: formData.status === 'Mengulang' ? '0 3px 8px rgba(234, 88, 12, 0.2)' : 'none'
+                    }}
+                  >
+                    <span>🔄</span> Mengulang
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Tanggal Setoran</label>
+                <input
+                  type="date"
+                  required
+                  value={formData.tanggal}
+                  onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Catatan Bimbingan</label>
+                <textarea
+                  rows="2"
+                  value={formData.catatan}
+                  onChange={(e) => setFormData({ ...formData, catatan: e.target.value })}
+                  placeholder="Catatan makhraj, kelebihan, atau perbaikan hafalan..."
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                <button type="button" onClick={() => setIsModalOpen(false)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#475569', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}>Batal</button>
+                <button type="submit" disabled={submitting} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#064e3b', color: '#ffffff', fontWeight: 700, fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer' }}>
+                  {submitting ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Simpan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Action Button (FAB) (+) Warna Biru Gaya Live Chat */}
+      <button
+        onClick={handleOpenAdd}
+        title="Input Setoran Tahfidz Baru"
+        style={{
+          position: 'fixed',
+          right: '20px',
+          bottom: '80px',
+          width: '56px',
+          height: '56px',
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+          color: '#ffffff',
+          border: 'none',
+          boxShadow: '0 8px 24px rgba(37, 99, 235, 0.45)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          zIndex: 90
+        }}
+      >
+        <Plus size={28} />
+      </button>
+    </div>
+  );
+}
