@@ -5,10 +5,16 @@ export const getAllSantri = async (req, res) => {
   try {
     const { asrama_id } = req.query;
     let sql = `
-      SELECT s.*, a.nama_asrama, a.gender as asrama_gender, k.nama_kamar
+      SELECT s.*, 
+             a.nama_asrama, 
+             a.gender as asrama_gender, 
+             k.nama_kamar,
+             COALESCE(kl.mustahiq, s.mustahiq) as mustahiq,
+             COALESCE(kl.munawwib, s.munawwib) as munawwib
       FROM santri s
       LEFT JOIN asrama a ON s.asrama_id = a.id
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+      LEFT JOIN kelas kl ON (s.kelas_id = kl.id OR s.nama_kelas = kl.nama_kelas)
     `;
     const params = [];
     if (asrama_id) {

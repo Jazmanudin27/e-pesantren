@@ -626,11 +626,65 @@ export const RAW_SANTRI = [
   { no: 314, nama: 'Sahla putri Aini', kelas: '5', jk: 'P', mustahiq: 'Mr. Muqoddas M.S.I', munawwib: 'Miss. Regina' }
 ];
 
-async function seedSantriBaru() {
-  console.log('--- SEEDING & RESET DATA MASTER SANTRI (619 SANTRI) ---');
+// DATA MAPPING KELAS, GENDER, MUSTAHIQ, DAN MUNAWWIB
+export const KELAS_DATA = [
+  // --- BOYS (LAKI-LAKI) ---
+  { nama_kelas: '1A Boys', tingkat: 'Kelas 1', gender: 'L', mustahiq: 'Mr. M Raya Nizar', munawwib: 'Mr. Abdillah Azhar' },
+  { nama_kelas: '1B Boys', tingkat: 'Kelas 1', gender: 'L', mustahiq: 'Mr. Rapin FN', munawwib: 'Mr. Ilham Yasin' },
+  { nama_kelas: '1C Boys', tingkat: 'Kelas 1', gender: 'L', mustahiq: 'Mr. Hilmi Nursyamsi', munawwib: 'Mr. Ifham' },
+  { nama_kelas: '1D Boys', tingkat: 'Kelas 1', gender: 'L', mustahiq: 'Mr. Rahwan', munawwib: 'Mr. Helmi Ali Akbar' },
+  { nama_kelas: '1E Boys', tingkat: 'Kelas 1', gender: 'L', mustahiq: 'Mr. Tanzilurrohman', munawwib: 'Mr. Ragyad' },
+  { nama_kelas: '1F Boys', tingkat: 'Kelas 1', gender: 'L', mustahiq: 'Mr. Isyam M Noor', munawwib: 'Mr. Marzan' },
+  { nama_kelas: '2A Boys', tingkat: 'Kelas 2', gender: 'L', mustahiq: 'Mr. Kanza S.M', munawwib: 'Mr. Habiburrahman' },
+  { nama_kelas: '2B Boys', tingkat: 'Kelas 2', gender: 'L', mustahiq: 'Mr. Amin Ma`ruf', munawwib: 'Mr. Akesa' },
+  { nama_kelas: '2C Boys', tingkat: 'Kelas 2', gender: 'L', mustahiq: 'Mr. Wahyu Ramdhani', munawwib: 'Mr. M. Nizar' },
+  { nama_kelas: '2D Boys', tingkat: 'Kelas 2', gender: 'L', mustahiq: 'Mr. Sandi Nursya`ban', munawwib: 'Mr. Fabregas' },
+  { nama_kelas: '3A Boys', tingkat: 'Kelas 3', gender: 'L', mustahiq: 'Mr. M Hikam M.H', munawwib: 'Mr. Abdul Kodir' },
+  { nama_kelas: '3B Boys', tingkat: 'Kelas 3', gender: 'L', mustahiq: 'Mr. M Busrol Karim', munawwib: 'Mr. Dede Maulana' },
+  { nama_kelas: '4 Boys', tingkat: 'Kelas 4', gender: 'L', mustahiq: 'Mr. Lili Abdul Jalil', munawwib: 'Mr. M Fadly Ibrahim' },
+  { nama_kelas: '5 Boys', tingkat: 'Kelas 5', gender: 'L', mustahiq: 'Mr. Muqoddas M.S.I', munawwib: 'Mr. Ridwannurulloh' },
+  { nama_kelas: '6 Boys', tingkat: 'Kelas 6', gender: 'L', mustahiq: '', munawwib: '' },
+  { nama_kelas: 'Takhoshus 1 Boys', tingkat: 'Takhoshus', gender: 'L', mustahiq: '', munawwib: '' },
+  { nama_kelas: 'Takhoshus 2 Boys', tingkat: 'Takhoshus', gender: 'L', mustahiq: '', munawwib: '' },
+  { nama_kelas: 'Takhoshus 3 Boys', tingkat: 'Takhoshus', gender: 'L', mustahiq: '', munawwib: '' },
+
+  // --- GIRLS (PEREMPUAN) ---
+  { nama_kelas: '1A Girls', tingkat: 'Kelas 1', gender: 'P', mustahiq: 'Miss. Iis F.S', munawwib: 'Miss. Fadilah' },
+  { nama_kelas: '1B Girls', tingkat: 'Kelas 1', gender: 'P', mustahiq: 'Miss. Imas Masripah', munawwib: 'Miss. Neng Gina' },
+  { nama_kelas: '1C Girls', tingkat: 'Kelas 1', gender: 'P', mustahiq: 'Miss. Laelatul Fauziah', munawwib: 'Miss. Neng Nafis' },
+  { nama_kelas: '1D Girls', tingkat: 'Kelas 1', gender: 'P', mustahiq: 'Miss. Fatia', munawwib: 'Miss. Lia Farida' },
+  { nama_kelas: '1E Girls', tingkat: 'Kelas 1', gender: 'P', mustahiq: 'Miss. Nurul', munawwib: 'Miss. Reva' },
+  { nama_kelas: '2A Girls', tingkat: 'Kelas 2', gender: 'P', mustahiq: 'Miss. Siti Luthfiah', munawwib: 'Miss. Rika' },
+  { nama_kelas: '2B Girls', tingkat: 'Kelas 2', gender: 'P', mustahiq: 'Miss. Indri Lesatari', munawwib: 'Miss. Yeyen' },
+  { nama_kelas: '2C Girls', tingkat: 'Kelas 2', gender: 'P', mustahiq: 'Mr. Ardiana Firdaus', munawwib: 'Miss. Imel & Miss. Dinar' },
+  { nama_kelas: '2D Girls', tingkat: 'Kelas 2', gender: 'P', mustahiq: 'Miss. Najiyah F.N', munawwib: 'Miss. Siti Maryam' },
+  { nama_kelas: '2E Girls', tingkat: 'Kelas 2', gender: 'P', mustahiq: 'Mr. Syahrul H', munawwib: 'Miss. Syifa Q' },
+  { nama_kelas: '3A Girls', tingkat: 'Kelas 3', gender: 'P', mustahiq: 'Mr. Hapid Usman', munawwib: 'Miss. Nafisa' },
+  { nama_kelas: '3B Girls', tingkat: 'Kelas 3', gender: 'P', mustahiq: 'Mr. Asep Nasrulloh', munawwib: 'Miss. Fatimah , Miss. Putri Marwah & Miss. Delia' },
+  { nama_kelas: '4 Girls', tingkat: 'Kelas 4', gender: 'P', mustahiq: 'Mr. M Hayatul Fauzi', munawwib: 'Miss. Wardah & Miss. Nurul Ba Hasna' },
+  { nama_kelas: '5 Girls', tingkat: 'Kelas 5', gender: 'P', mustahiq: 'Mr. Muqoddas M.S.I', munawwib: 'Miss. Regina' }
+];
+
+// Helper: Nama kelas format baru (contoh: '1A' + 'L' => '1A Boys', '1A' + 'P' => '1A Girls')
+export function getFormattedClassName(rawClass, jk) {
+  const clean = String(rawClass || '').trim();
+  const suffix = jk === 'P' ? 'Girls' : 'Boys';
+  if (clean.toLowerCase().includes('boys') || clean.toLowerCase().includes('girls')) {
+    return clean;
+  }
+  return `${clean} ${suffix}`;
+}
+
+export async function seedSantriBaru() {
+  console.log('--- SEEDING MASTER KELAS (DENGAN MUSTAHIQ & MUNAWWIB) & 619 SANTRI ---');
   try {
-    // 1. Pastikan kolom-kolom pendukung tersedia di tabel santri & ubah strict NOT NULL ke DEFAULT
-    const alterQueries = [
+    // 1. Pastikan kolom-kolom pendukung tersedia di tabel kelas
+    try { await pool.query("ALTER TABLE kelas MODIFY COLUMN id INT NOT NULL AUTO_INCREMENT"); } catch (e) {}
+    try { await pool.query("ALTER TABLE kelas ADD COLUMN mustahiq VARCHAR(191) NULL AFTER gender"); } catch (e) {}
+    try { await pool.query("ALTER TABLE kelas ADD COLUMN munawwib VARCHAR(191) NULL AFTER mustahiq"); } catch (e) {}
+
+    // 2. Pastikan kolom-kolom pendukung tersedia di tabel santri
+    const alterSantri = [
       "ALTER TABLE santri MODIFY COLUMN nama_wali VARCHAR(100) NULL DEFAULT ''",
       "ALTER TABLE santri MODIFY COLUMN no_wa_wali VARCHAR(50) NULL DEFAULT ''",
       "ALTER TABLE santri MODIFY COLUMN hubungan_wali VARCHAR(50) NULL DEFAULT 'Orang Tua'",
@@ -640,36 +694,51 @@ async function seedSantriBaru() {
       "ALTER TABLE santri MODIFY COLUMN foto LONGTEXT NULL",
       "ALTER TABLE santri MODIFY COLUMN capaian_hafalan_juz INT DEFAULT 0",
       "ALTER TABLE santri MODIFY COLUMN tingkat_diniyah VARCHAR(50) DEFAULT 'Wustho'",
-      "ALTER TABLE santri ADD COLUMN tempat_lahir VARCHAR(100) NULL AFTER jk",
-      "ALTER TABLE santri ADD COLUMN tgl_lahir DATE NULL AFTER tempat_lahir",
-      "ALTER TABLE santri ADD COLUMN foto LONGTEXT NULL AFTER nama_santri",
-      "ALTER TABLE santri ADD COLUMN capaian_hafalan_juz INT DEFAULT 0 AFTER kamar_id",
-      "ALTER TABLE santri ADD COLUMN tingkat_diniyah VARCHAR(50) DEFAULT 'Wustho' AFTER capaian_hafalan_juz",
       "ALTER TABLE santri ADD COLUMN nama_kelas VARCHAR(50) NULL AFTER tingkat_diniyah",
-      "ALTER TABLE santri ADD COLUMN mustahiq VARCHAR(100) NULL AFTER nama_kelas",
-      "ALTER TABLE santri ADD COLUMN munawwib VARCHAR(100) NULL AFTER mustahiq"
+      "ALTER TABLE santri ADD COLUMN kelas_id INT NULL AFTER nama_kelas"
     ];
-
-    for (const q of alterQueries) {
-      try {
-        await pool.query(q);
-      } catch (e) {
-        // Abaikan jika kolom sudah ada
-      }
+    for (const q of alterSantri) {
+      try { await pool.query(q); } catch (e) {}
     }
 
-    // 2. Kosongkan data santri lama (Truncate / Delete)
-    console.log('[!] Mengosongkan data santri lama...');
+    // 3. Reset dan Input Master Kelas (Mustahiq dan Munawwib masuk ke tabel kelas)
+    console.log('[1/3] Memperbarui tabel kelas...');
     await pool.query('SET FOREIGN_KEY_CHECKS = 0');
-    try {
-      await pool.query('TRUNCATE TABLE santri');
-    } catch (trErr) {
-      await pool.query('DELETE FROM santri');
-    }
+    try { await pool.query('DELETE FROM kelas'); } catch (e) {}
     await pool.query('SET FOREIGN_KEY_CHECKS = 1');
-    console.log('[✓] Data santri lama berhasil dikosongkan.');
 
-    // 3. Ambil data asrama & kamar default jika ada
+    const kelasMap = {}; // nama_kelas => id
+    let kIdCounter = 1;
+    for (const k of KELAS_DATA) {
+      const kode_kelas = k.nama_kelas.replace(/\s+/g, '-').toUpperCase();
+      const currentId = kIdCounter++;
+      await pool.query(`
+        INSERT INTO kelas (id, kode_kelas, nama_kelas, tingkat, gender, mustahiq, munawwib)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          nama_kelas = VALUES(nama_kelas),
+          tingkat = VALUES(tingkat),
+          gender = VALUES(gender),
+          mustahiq = VALUES(mustahiq),
+          munawwib = VALUES(munawwib)
+      `, [currentId, kode_kelas, k.nama_kelas, k.tingkat, k.gender, k.mustahiq || null, k.munawwib || null]);
+    }
+
+    // Query kembali kelas untuk pemetaan ID yang akurat
+    const [allKelas] = await pool.query('SELECT id, nama_kelas FROM kelas');
+    for (const row of allKelas) {
+      kelasMap[row.nama_kelas] = row.id;
+    }
+    console.log(`[✓] Master Kelas siap: ${allKelas.length} Kelas tersimpan.`);
+
+    // 4. Kosongkan data santri lama
+    console.log('[2/3] Mengosongkan data santri lama...');
+    await pool.query('SET FOREIGN_KEY_CHECKS = 0');
+    try { await pool.query('DELETE FROM santri'); } catch (trErr) {}
+    await pool.query('SET FOREIGN_KEY_CHECKS = 1');
+    console.log('[✓] Data santri lama berhasil dibersihkan.');
+
+    // 5. Ambil data asrama default
     let defaultAsramaL = 1;
     let defaultAsramaP = 2;
     try {
@@ -680,7 +749,8 @@ async function seedSantriBaru() {
       if (p) defaultAsramaP = p.id;
     } catch (e) {}
 
-    // 4. Insert 619 santri secara berurutan
+    // 6. Insert 619 santri secara berurutan dengan kelas Boys / Girls dan link ke kelas_id
+    console.log('[3/3] Memasukkan 619 santri...');
     let count = 0;
     for (let i = 0; i < RAW_SANTRI.length; i++) {
       const s = RAW_SANTRI[i];
@@ -688,14 +758,34 @@ async function seedSantriBaru() {
       const nis = String(nisNum);
       const kode_santri = `STR-26-${String(i + 1).padStart(4, '0')}`;
       const asrama_id = s.jk === 'L' ? defaultAsramaL : defaultAsramaP;
-      const tingkat_diniyah = s.kelas.includes('1') || s.kelas.includes('2') || s.kelas.includes('3') ? 'Wustho' : 'Ulya';
+      
+      const finalKelasName = getFormattedClassName(s.kelas, s.jk);
+      const kelas_id = kelasMap[finalKelasName] || null;
+      const tingkat_diniyah = finalKelasName.includes('1') || finalKelasName.includes('2') || finalKelasName.includes('3') ? 'Wustho' : 'Ulya';
 
       await pool.query(`
         INSERT INTO santri (
           kode_santri, nis, username, password, nama_santri, jk, status_santri,
-          asrama_id, tingkat_diniyah, nama_kelas, mustahiq, munawwib, status, tahun_masuk,
+          asrama_id, tingkat_diniyah, nama_kelas, kelas_id, status, tahun_masuk,
           nama_wali, no_wa_wali, hubungan_wali, alamat_asal
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          nis = VALUES(nis),
+          username = VALUES(username),
+          password = VALUES(password),
+          nama_santri = VALUES(nama_santri),
+          jk = VALUES(jk),
+          status_santri = VALUES(status_santri),
+          asrama_id = VALUES(asrama_id),
+          tingkat_diniyah = VALUES(tingkat_diniyah),
+          nama_kelas = VALUES(nama_kelas),
+          kelas_id = VALUES(kelas_id),
+          status = VALUES(status),
+          tahun_masuk = VALUES(tahun_masuk),
+          nama_wali = VALUES(nama_wali),
+          no_wa_wali = VALUES(no_wa_wali),
+          hubungan_wali = VALUES(hubungan_wali),
+          alamat_asal = VALUES(alamat_asal)
       `, [
         kode_santri,
         nis,
@@ -706,9 +796,8 @@ async function seedSantriBaru() {
         'Mukim',
         asrama_id,
         tingkat_diniyah,
-        s.kelas,
-        s.mustahiq || null,
-        s.munawwib || null,
+        finalKelasName,
+        kelas_id,
         'Aktif',
         '2026/2027',
         'Orang Tua Santri',
@@ -720,16 +809,16 @@ async function seedSantriBaru() {
       count++;
     }
 
-    console.log(`\n[✓] SELESAI! Berhasil menginput ${count} Data Santri Baru.`);
-    console.log(`- Santri Putra (Boys): 305`);
-    console.log(`- Santri Putri (Girls): 314`);
-    console.log(`- Lengkap dengan Kelas, Mustahiq, dan Munawwib masing-masing.`);
+    console.log(`\n[✓] SELESAI SEMUA!`);
+    console.log(`1. Master Kelas: ${KELAS_DATA.length} Kelas tersimpan dengan data MUSTAHIQ & MUNAWWIB.`);
+    console.log(`2. Data Santri: ${count} Santri tersimpan dengan nama kelas terpisah Boys / Girls (contoh: 1A Boys, 1B Girls) & terhubung ke tabel kelas.`);
     process.exit(0);
   } catch (err) {
-    console.error('Gagal seed santri:', err);
+    console.error('Gagal seed kelas dan santri:', err);
     process.exit(1);
   }
 }
 
 seedSantriBaru();
+
 
