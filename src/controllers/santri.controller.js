@@ -172,8 +172,8 @@ export const createSantri = async (req, res) => {
     } = req.body;
 
     const finalNis = nis || Date.now().toString().slice(-6);
-    const finalUsername = username ? String(username).trim() : finalNis;
-    const finalPassword = password ? String(password).trim() : finalNis;
+    const finalUsername = username ? String(username).trim() : (nisn ? String(nisn).trim() : finalNis);
+    const finalPassword = password ? String(password).trim() : '123456';
     const finalFoto = foto || foto_santri || null;
 
     // Pastikan kolom-kolom baru tersedia di database secara dinamis
@@ -384,8 +384,8 @@ export const importSantri = async (req, res) => {
 
       const nisn = String(row.nisn || row.NISN || '').trim() || null;
       const kodeSantri = String(row.kode_santri || row['Kode Santri'] || `STR-${nis}`).trim();
-      const username = String(row.username || nis).trim();
-      const password = String(row.password || nis).trim();
+      const username = String(row.username || nisn || nis).trim();
+      const password = String(row.password || '123456').trim();
 
       // Normalisasi Gender (L/P)
       const rawJk = String(row.jk || row.gender || row['Jenis Kelamin'] || 'L').toUpperCase().trim();

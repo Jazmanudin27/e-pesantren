@@ -607,8 +607,8 @@ export default function SantriView() {
       capaian_hafalan_juz: santri.capaian_hafalan_juz || 0,
       tingkat_diniyah: santri.tingkat_diniyah || 'Wustho',
       foto: santri.foto || santri.foto_santri || '',
-      username: santri.username || santri.nis || '',
-      password: santri.password || santri.nis || ''
+      username: santri.username || santri.nisn || santri.nis || '',
+      password: santri.password || '123456'
     });
     setIsFormOpen(true);
   };
@@ -1420,11 +1420,11 @@ export default function SantriView() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.78rem' }}>
                     <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
                       <span style={{ color: '#64748b', fontSize: '0.68rem', display: 'block' }}>Username Login Wali:</span>
-                      <strong style={{ color: '#0f172a', fontSize: '0.85rem' }}>{selectedSantri.username || selectedSantri.nis || '-'}</strong>
+                      <strong style={{ color: '#0f172a', fontSize: '0.85rem' }}>{selectedSantri.username || selectedSantri.nisn || selectedSantri.nis || '-'}</strong>
                     </div>
                     <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
                       <span style={{ color: '#64748b', fontSize: '0.68rem', display: 'block' }}>Password Login Wali:</span>
-                      <strong style={{ color: '#059669', fontSize: '0.85rem' }}>{selectedSantri.password || selectedSantri.nis || '-'}</strong>
+                      <strong style={{ color: '#059669', fontSize: '0.85rem' }}>{selectedSantri.password || '123456'}</strong>
                     </div>
                   </div>
                 </div>
@@ -1737,11 +1737,11 @@ export default function SantriView() {
                       </div>
                       <div>
                         <label style={{ fontSize: '0.68rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
-                          PASSWORD WALI
+                          PASSWORD WALI (Default: 123456)
                         </label>
                         <input 
                           type="text" 
-                          placeholder={formData.nis || formData.nisn || 'Default: Password / NIS Santri'} 
+                          placeholder="Default: 123456" 
                           className="filter-select" 
                           style={{ width: '100%', padding: '6px 10px', background: '#ffffff', fontSize: '0.82rem' }} 
                           value={formData.password}
@@ -1750,7 +1750,7 @@ export default function SantriView() {
                       </div>
                     </div>
                     <div style={{ fontSize: '0.66rem', color: '#0d9488', marginTop: '6px', lineHeight: 1.3 }}>
-                      * Wali Santri bisa login langsung menggunakan <strong>NISN</strong> atau <strong>NIS</strong> santri. Jika password dikosongkan, default password otomatis menggunakan NIS / NISN santri.
+                      * Wali Santri login menggunakan <strong>NISN</strong> (atau NIS) santri. Password default adalah <strong>123456</strong> jika tidak ditentukan lain.
                     </div>
                   </div>
 
