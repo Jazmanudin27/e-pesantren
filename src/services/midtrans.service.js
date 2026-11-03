@@ -27,8 +27,7 @@ export async function createMidtransSnapToken({
   totalBayar,
   santriNama = 'Santri',
   noWaWali = '081234567890',
-  items = [],
-  biayaAdmin = 4000
+  items = []
 }) {
   const config = getMidtransConfig();
   const authHeader = Buffer.from(`${config.serverKey}:`).toString('base64');
@@ -53,6 +52,15 @@ export async function createMidtransSnapToken({
         name: cleanName
       };
     });
+
+    if (sum !== Math.round(totalBayar)) {
+      itemDetails = [{
+        id: nomorTransaksi,
+        price: Math.round(totalBayar),
+        quantity: 1,
+        name: 'Pembayaran Tagihan Santri'
+      }];
+    }
   } else {
     sum = Math.round(totalBayar);
     itemDetails = [{
@@ -62,20 +70,6 @@ export async function createMidtransSnapToken({
       name: 'Pembayaran Tagihan Santri'
     }];
   }
-
-  // Tambahkan item biaya admin payment gateway (ditanggung pengirim / wali santri)
-  const fee = Math.round(Number(biayaAdmin || 0));
-  if (fee > 0) {
-    sum += fee;
-    itemDetails.push({
-      id: 'FEE-ADMIN',
-      price: fee,
-      quantity: 1,
-      name: 'Biaya Layanan & Admin Bank'
-    });
-  }
-
-  const grossAmount = sum;
 
   const cleanFirstName = String(santriNama || 'Santri')
     .replace(/[^\w\s]/gi, '')
@@ -89,7 +83,11 @@ export async function createMidtransSnapToken({
   const payload = {
     transaction_details: {
       order_id: nomorTransaksi,
-      gross_amount: grossAmount
+      gross_amount: Math.round(totalBayar)
+    },
+    // Fitur Resmi Midtrans: Bebankan biaya admin per metode pembayaran langsung ke pengirim / pelanggan
+    customer_imposed_payment_fee: {
+      enable: true
     },
     customer_details: {
       first_name: cleanFirstName,

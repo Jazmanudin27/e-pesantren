@@ -84,6 +84,17 @@ export async function ensureSantriCredentialsColumns() {
         SET password = '123456'
         WHERE (password IS NULL OR TRIM(password) = '')
       `);
+
+      // 5. Pastikan kolom metode & channel pembayaran di keuangan_transaksi_pembayaran aman panjangnya
+      try {
+        await pool.query(`
+          ALTER TABLE keuangan_transaksi_pembayaran 
+          MODIFY COLUMN metode_pembayaran VARCHAR(100) DEFAULT 'QRIS',
+          MODIFY COLUMN channel_pembayaran VARCHAR(100) DEFAULT 'Midtrans Snap'
+        `);
+      } catch (alterErr) {
+        // Abaikan jika tabel belum ada
+      }
     } catch (syncErr) {
       console.warn('[E-PESANTREN DB] Sinkronisasi NISN & Kredensial santri:', syncErr.message);
     }

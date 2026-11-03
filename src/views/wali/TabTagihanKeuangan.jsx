@@ -131,7 +131,7 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
       const res = await axios.post('/api/keuangan/wali/bayar', {
         santri_id: santriId || data?.santri?.id,
         items: itemsPayload,
-        metode_pembayaran: 'Midtrans Payment Gateway',
+        metode_pembayaran: 'QRIS',
         channel_pembayaran: 'Midtrans Snap'
       });
 
@@ -627,10 +627,10 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
           }}>
             <div>
               <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
-                {countSelected} tagihan (+ Admin Rp 4.000)
+                {countSelected} tagihan dipilih
               </div>
               <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#34d399' }}>
-                {formatRp(totalSelectedBayar + 4000)}
+                {formatRp(totalSelectedBayar)}
               </div>
             </div>
 
