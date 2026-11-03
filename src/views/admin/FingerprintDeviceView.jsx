@@ -18,6 +18,7 @@ import {
   Save 
 } from 'lucide-react';
 import { showConfirm, toastSuccess } from '../../utils/alert.util';
+import SearchableSelect from '../../components/SearchableSelect';
 
 export default function FingerprintDeviceView() {
   const [devices, setDevices] = useState([]);
@@ -296,24 +297,20 @@ export default function FingerprintDeviceView() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <select 
-          className="filter-select"
+        <SearchableSelect 
+          style={{ minWidth: '150px', flex: '1 1 140px', maxWidth: '200px' }}
           value={filterPeruntukan}
-          onChange={(e) => setFilterPeruntukan(e.target.value)}
-        >
-          <option>Semua Peruntukan</option>
-          <option>Ikhwan</option>
-          <option>Akhwat</option>
-        </select>
-        <select 
-          className="filter-select"
+          onChange={(val) => setFilterPeruntukan(val || 'Semua Peruntukan')}
+          placeholder="Semua Peruntukan"
+          options={['Semua Peruntukan', 'Ikhwan', 'Akhwat']}
+        />
+        <SearchableSelect 
+          style={{ minWidth: '140px', flex: '1 1 130px', maxWidth: '180px' }}
           value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-        >
-          <option>Semua Status</option>
-          <option>Online</option>
-          <option>Offline</option>
-        </select>
+          onChange={(val) => setFilterStatus(val || 'Semua Status')}
+          placeholder="Semua Status"
+          options={['Semua Status', 'Online', 'Offline']}
+        />
       </div>
 
       {/* 5. DATA TABLE */}
@@ -604,16 +601,16 @@ export default function FingerprintDeviceView() {
                   </div>
                   <div>
                     <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>PERUNTUKAN</label>
-                    <select 
-                      className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }}
+                    <SearchableSelect 
+                      options={[
+                        { value: 'Ikhwan', label: 'Ikhwan (Putra)' },
+                        { value: 'Akhwat', label: 'Akhwat (Putri)' },
+                        { value: 'Semua', label: 'Semua / Umum' }
+                      ]}
                       value={formData.peruntukan}
-                      onChange={(e) => setFormData({ ...formData, peruntukan: e.target.value })}
-                    >
-                      <option value="Ikhwan">Ikhwan (Putra)</option>
-                      <option value="Akhwat">Akhwat (Putri)</option>
-                      <option value="Semua">Semua / Umum</option>
-                    </select>
+                      onChange={(val) => setFormData({ ...formData, peruntukan: val })}
+                      placeholder="-- Pilih Peruntukan --"
+                    />
                   </div>
                 </div>
 
@@ -653,15 +650,15 @@ export default function FingerprintDeviceView() {
                   </div>
                   <div>
                     <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>STATUS KONEKSI</label>
-                    <select 
-                      className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }}
+                    <SearchableSelect 
+                      options={[
+                        { value: 'Online', label: 'Online' },
+                        { value: 'Offline', label: 'Offline' }
+                      ]}
                       value={formData.status_koneksi}
-                      onChange={(e) => setFormData({ ...formData, status_koneksi: e.target.value })}
-                    >
-                      <option value="Online">Online</option>
-                      <option value="Offline">Offline</option>
-                    </select>
+                      onChange={(val) => setFormData({ ...formData, status_koneksi: val })}
+                      placeholder="-- Pilih Status --"
+                    />
                   </div>
                 </div>
               </div>

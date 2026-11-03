@@ -878,45 +878,37 @@ export default function SantriView() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <select 
-          className="filter-select"
+        <SearchableSelect 
+          style={{ minWidth: '150px', flex: '1 1 140px', maxWidth: '200px' }}
           value={filterAsrama}
-          onChange={(e) => { setFilterAsrama(e.target.value); setPage(1); }}
-        >
-          <option>Semua Asrama</option>
-          {asramaList.map(a => (
-            <option key={a.id} value={a.nama_asrama}>{a.nama_asrama}</option>
-          ))}
-        </select>
-        <select 
-          className="filter-select"
+          onChange={(val) => { setFilterAsrama(val || 'Semua Asrama'); setPage(1); }}
+          placeholder="Semua Asrama"
+          options={[
+            { value: 'Semua Asrama', label: 'Semua Asrama' },
+            ...asramaList.map(a => ({ value: a.nama_asrama, label: a.nama_asrama }))
+          ]}
+        />
+        <SearchableSelect 
+          style={{ minWidth: '130px', flex: '1 1 120px', maxWidth: '180px' }}
           value={filterTingkat}
-          onChange={(e) => { setFilterTingkat(e.target.value); setPage(1); }}
-        >
-          <option>Semua Tingkat</option>
-          <option>Wustho</option>
-          <option>Ulya</option>
-          <option>Ula</option>
-        </select>
-        <select 
-          className="filter-select"
+          onChange={(val) => { setFilterTingkat(val || 'Semua Tingkat'); setPage(1); }}
+          placeholder="Semua Tingkat"
+          options={['Semua Tingkat', 'Wustho', 'Ulya', 'Ula']}
+        />
+        <SearchableSelect 
+          style={{ minWidth: '140px', flex: '1 1 130px', maxWidth: '190px' }}
           value={filterTahun}
-          onChange={(e) => { setFilterTahun(e.target.value); setPage(1); }}
-        >
-          <option>Semua Tahun</option>
-          <option>Tahun 2026/2027</option>
-          <option>Tahun 2025/2026</option>
-        </select>
-        <select 
-          className="filter-select"
+          onChange={(val) => { setFilterTahun(val || 'Semua Tahun'); setPage(1); }}
+          placeholder="Semua Tahun"
+          options={['Semua Tahun', 'Tahun 2026/2027', 'Tahun 2025/2026']}
+        />
+        <SearchableSelect 
+          style={{ minWidth: '130px', flex: '1 1 120px', maxWidth: '180px' }}
           value={filterStatus}
-          onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
-        >
-          <option>Semua Status</option>
-          <option>Aktif</option>
-          <option>Alumni</option>
-          <option>Boyong</option>
-        </select>
+          onChange={(val) => { setFilterStatus(val || 'Semua Status'); setPage(1); }}
+          placeholder="Semua Status"
+          options={['Semua Status', 'Aktif', 'Alumni', 'Boyong']}
+        />
       </div>
 
       {/* 5. DATA TABLE (SERVERSIDE) */}

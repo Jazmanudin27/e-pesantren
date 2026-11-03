@@ -20,6 +20,7 @@ import {
   Save,
 } from "lucide-react";
 import { showConfirm, toastSuccess } from "../../utils/alert.util";
+import SearchableSelect from "../../components/SearchableSelect";
 
 export default function AsramaView() {
   const [data, setData] = useState({ asrama: [], kamar: [] });
@@ -368,26 +369,23 @@ export default function AsramaView() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <select
-          className="filter-select"
+        <SearchableSelect
+          style={{ minWidth: "140px", flex: "1 1 130px", maxWidth: "180px" }}
           value={filterGender}
-          onChange={(e) => setFilterGender(e.target.value)}
-        >
-          <option>Semua Gender</option>
-          <option>Putra</option>
-          <option>Putri</option>
-        </select>
-        <select
-          className="filter-select"
+          onChange={(val) => setFilterGender(val || "Semua Gender")}
+          placeholder="Semua Gender"
+          options={["Semua Gender", "Putra", "Putri"]}
+        />
+        <SearchableSelect
+          style={{ minWidth: "160px", flex: "1 1 150px", maxWidth: "220px" }}
           value={filterGedung}
-          onChange={(e) => setFilterGedung(e.target.value)}
-        >
-          <option>Semua Gedung</option>
-          <option>Ali</option>
-          <option>Umar</option>
-          <option>Fathimah</option>
-          <option>Khadijah</option>
-        </select>
+          onChange={(val) => setFilterGedung(val || "Semua Gedung")}
+          placeholder="Semua Gedung"
+          options={[
+            "Semua Gedung",
+            ...Array.from(new Set((data.asrama || []).map((a) => a.nama_asrama))).filter(Boolean)
+          ]}
+        />
       </div>
 
       {/* 5. DATA TABLE KAMAR KOBONG */}
@@ -1024,17 +1022,19 @@ export default function AsramaView() {
                     >
                       PILIH GEDUNG ASRAMA *
                     </label>
-                    <select
-                      className="filter-select"
-                      style={{ width: "100%", padding: "6px 10px" }}
+                    <SearchableSelect
+                      options={data.asrama.map((a) => ({
+                        value: a.id,
+                        label: `${a.nama_asrama} (${a.gender === "L" ? "Putra" : "Putri"})`
+                      }))}
                       value={formData.asrama_id || data.asrama[0]?.id || 1}
-                      onChange={(e) => {
+                      onChange={(val) => {
                         const selectedAsr = data.asrama.find(
-                          (a) => a.id === parseInt(e.target.value),
+                          (a) => a.id === parseInt(val),
                         );
                         setFormData({
                           ...formData,
-                          asrama_id: parseInt(e.target.value),
+                          asrama_id: parseInt(val),
                           nama_asrama: selectedAsr
                             ? selectedAsr.nama_asrama
                             : formData.nama_asrama,
@@ -1043,14 +1043,8 @@ export default function AsramaView() {
                             : formData.asrama_gender,
                         });
                       }}
-                    >
-                      {data.asrama.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.nama_asrama} (
-                          {a.gender === "L" ? "Putra" : "Putri"})
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="-- Pilih Gedung Asrama --"
+                    />
                   </div>
                 </div>
 

@@ -18,6 +18,7 @@ import {
   Save 
 } from 'lucide-react';
 import { showConfirm, toastSuccess, showError } from '../../utils/alert.util';
+import SearchableSelect from '../../components/SearchableSelect';
 
 export default function AsatidzView() {
   const [asatidzList, setAsatidzList] = useState([]);
@@ -319,24 +320,20 @@ export default function AsatidzView() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <select 
-          className="filter-select"
+        <SearchableSelect 
+          style={{ minWidth: '140px', flex: '1 1 130px', maxWidth: '180px' }}
           value={filterGender}
-          onChange={(e) => setFilterGender(e.target.value)}
-        >
-          <option>Semua Gender</option>
-          <option>Ustadz</option>
-          <option>Ustadzah</option>
-        </select>
-        <select 
-          className="filter-select"
+          onChange={(val) => setFilterGender(val || 'Semua Gender')}
+          placeholder="Semua Gender"
+          options={['Semua Gender', 'Ustadz', 'Ustadzah']}
+        />
+        <SearchableSelect 
+          style={{ minWidth: '140px', flex: '1 1 130px', maxWidth: '180px' }}
           value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-        >
-          <option>Semua Status</option>
-          <option>Aktif</option>
-          <option>Cuti</option>
-        </select>
+          onChange={(val) => setFilterStatus(val || 'Semua Status')}
+          placeholder="Semua Status"
+          options={['Semua Status', 'Aktif', 'Cuti']}
+        />
       </div>
 
       {/* 5. DATA TABLE */}
@@ -631,44 +628,39 @@ export default function AsatidzView() {
                   </div>
                   <div>
                     <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>GENDER</label>
-                    <select 
-                      className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }}
+                    <SearchableSelect 
+                      options={[
+                        { value: 'L', label: 'Ustadz (Ikhwan)' },
+                        { value: 'P', label: 'Ustadzah (Akhwat)' }
+                      ]}
                       value={formData.jk}
-                      onChange={(e) => setFormData({ ...formData, jk: e.target.value })}
-                    >
-                      <option value="L">Ustadz (Ikhwan)</option>
-                      <option value="P">Ustadzah (Akhwat)</option>
-                    </select>
+                      onChange={(val) => setFormData({ ...formData, jk: val })}
+                      placeholder="-- Pilih Gender --"
+                    />
                   </div>
                   <div>
                     <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>STATUS</label>
-                    <select 
-                      className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }}
+                    <SearchableSelect 
+                      options={[
+                        { value: 'Aktif', label: 'Aktif' },
+                        { value: 'Cuti', label: 'Cuti' }
+                      ]}
                       value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    >
-                      <option value="Aktif">Aktif</option>
-                      <option value="Cuti">Cuti</option>
-                    </select>
+                      onChange={(val) => setFormData({ ...formData, status: val })}
+                      placeholder="-- Pilih Status --"
+                    />
                   </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
                     <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>KATEGORI ASATIDZ *</label>
-                    <select 
-                      className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }}
+                    <SearchableSelect 
+                      options={['Mustahiq', 'Munawwib', 'Musyrif Asrama', 'Pengajar Tahfidz']}
                       value={formData.kategori_asatidz || formData.tugas_utama || 'Mustahiq'}
-                      onChange={(e) => setFormData({ ...formData, kategori_asatidz: e.target.value, tugas_utama: e.target.value })}
-                    >
-                      <option value="Mustahiq">Mustahiq</option>
-                      <option value="Munawwib">Munawwib</option>
-                      <option value="Musyrif Asrama">Musyrif Asrama</option>
-                      <option value="Pengajar Tahfidz">Pengajar Tahfidz</option>
-                    </select>
+                      onChange={(val) => setFormData({ ...formData, kategori_asatidz: val, tugas_utama: val })}
+                      placeholder="-- Pilih Kategori --"
+                    />
                   </div>
                   <div>
                     <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>BIDANG KEAHLIAN</label>

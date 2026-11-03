@@ -17,6 +17,7 @@ import {
   Save 
 } from 'lucide-react';
 import { showConfirm, toastSuccess } from '../../utils/alert.util';
+import SearchableSelect from '../../components/SearchableSelect';
 
 export default function KelasView() {
   const [halaqahList, setHalaqahList] = useState([]);
@@ -318,25 +319,20 @@ export default function KelasView() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <select 
-          className="filter-select"
+        <SearchableSelect 
+          style={{ minWidth: '140px', flex: '1 1 130px', maxWidth: '180px' }}
           value={filterGender}
-          onChange={(e) => setFilterGender(e.target.value)}
-        >
-          <option>Semua Gender</option>
-          <option>Ikhwan</option>
-          <option>Akhwat</option>
-        </select>
-        <select 
-          className="filter-select"
+          onChange={(val) => setFilterGender(val || 'Semua Gender')}
+          placeholder="Semua Gender"
+          options={['Semua Gender', 'Ikhwan', 'Akhwat']}
+        />
+        <SearchableSelect 
+          style={{ minWidth: '150px', flex: '1 1 140px', maxWidth: '190px' }}
           value={filterProgram}
-          onChange={(e) => setFilterProgram(e.target.value)}
-        >
-          <option>Semua Program</option>
-          <option>Tahfidz</option>
-          <option>Tahsin</option>
-          <option>Ziyadah</option>
-        </select>
+          onChange={(val) => setFilterProgram(val || 'Semua Program')}
+          placeholder="Semua Program"
+          options={['Semua Program', 'Tahfidz', 'Tahsin', 'Ziyadah']}
+        />
       </div>
 
       {/* 5. DATA TABLE */}
@@ -627,15 +623,15 @@ export default function KelasView() {
                   </div>
                   <div>
                     <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>GENDER</label>
-                    <select 
-                      className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }}
+                    <SearchableSelect 
+                      options={[
+                        { value: 'L', label: 'Ikhwan (Putra)' },
+                        { value: 'P', label: 'Akhwat (Putri)' }
+                      ]}
                       value={formData.gender}
-                      onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                    >
-                      <option value="L">Ikhwan (Putra)</option>
-                      <option value="P">Akhwat (Putri)</option>
-                    </select>
+                      onChange={(val) => setFormData({ ...formData, gender: val })}
+                      placeholder="-- Pilih Gender --"
+                    />
                   </div>
                 </div>
 
@@ -652,16 +648,16 @@ export default function KelasView() {
                   </div>
                   <div>
                     <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>TINGKAT DINIYAH</label>
-                    <select 
-                      className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }}
+                    <SearchableSelect 
+                      options={[
+                        { value: 'Ula', label: 'Ula' },
+                        { value: 'Wustho', label: 'Wustho' },
+                        { value: 'Ulya', label: 'Ulya' }
+                      ]}
                       value={formData.tingkat}
-                      onChange={(e) => setFormData({ ...formData, tingkat: e.target.value })}
-                    >
-                      <option value="Ula">Ula</option>
-                      <option value="Wustho">Wustho</option>
-                      <option value="Ulya">Ulya</option>
-                    </select>
+                      onChange={(val) => setFormData({ ...formData, tingkat: val })}
+                      placeholder="-- Pilih Tingkat --"
+                    />
                   </div>
                 </div>
 

@@ -292,16 +292,16 @@ export default function MasterMateriView() {
           )}
         </div>
 
-        <select
-          className="filter-select"
+        <SearchableSelect
+          style={{ minWidth: '220px', flex: '1 1 200px', maxWidth: '300px' }}
           value={filterKategori}
-          onChange={(e) => setFilterKategori(e.target.value)}
-        >
-          <option value="semua">Semua Kategori Bidang</option>
-          {KATEGORI_OPTIONS.map(k => (
-            <option key={k.value} value={k.value}>{k.label}</option>
-          ))}
-        </select>
+          onChange={(val) => setFilterKategori(val || 'semua')}
+          placeholder="Semua Kategori Bidang"
+          options={[
+            { value: 'semua', label: 'Semua Kategori Bidang' },
+            ...KATEGORI_OPTIONS
+          ]}
+        />
       </div>
 
       {/* 5. DATA TABLE (PERSIS MASTER SANTRI) */}

@@ -23,6 +23,7 @@ import {
   Database
 } from 'lucide-react';
 import { showConfirm, showSuccess, showError, toastSuccess, toastError } from '../../utils/alert.util';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const ALL_DAYS = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'];
 
@@ -644,40 +645,45 @@ export default function SettingKegiatanView() {
         </div>
 
         {/* FILTER KATEGORI */}
-        <select 
-          className="filter-select"
+        <SearchableSelect 
+          style={{ minWidth: '180px', flex: '1 1 160px', maxWidth: '240px' }}
           value={filterKategori}
-          onChange={(e) => setFilterKategori(e.target.value)}
-        >
-          <option value="semua">Semua Kategori</option>
-          <option value="Shalat Berjamaah">Shalat Berjamaah</option>
-          <option value="Halaqah Qur'an">Halaqah Qur'an / Tahfidz</option>
-          <option value="Pengajian / Taklim">Pengajian / Taklim</option>
-          <option value="Kegiatan Asrama">Kegiatan Asrama</option>
-        </select>
+          onChange={(val) => setFilterKategori(val || 'semua')}
+          placeholder="Semua Kategori"
+          options={[
+            { value: 'semua', label: 'Semua Kategori' },
+            { value: 'Shalat Berjamaah', label: 'Shalat Berjamaah' },
+            { value: "Halaqah Qur'an", label: "Halaqah Qur'an / Tahfidz" },
+            { value: 'Pengajian / Taklim', label: 'Pengajian / Taklim' },
+            { value: 'Kegiatan Asrama', label: 'Kegiatan Asrama' }
+          ]}
+        />
 
         {/* FILTER SIFAT PESERTA */}
-        <select 
-          className="filter-select"
+        <SearchableSelect 
+          style={{ minWidth: '180px', flex: '1 1 160px', maxWidth: '240px' }}
           value={filterTipePeserta}
-          onChange={(e) => setFilterTipePeserta(e.target.value)}
-          style={{ fontWeight: 600, color: '#0369a1' }}
-        >
-          <option value="semua">Semua Sifat Peserta</option>
-          <option value="Wajib Semua Santri">Wajib Semua Santri</option>
-          <option value="Santri Tertentu / Terpilih">Santri Tertentu / Terpilih</option>
-        </select>
+          onChange={(val) => setFilterTipePeserta(val || 'semua')}
+          placeholder="Semua Sifat Peserta"
+          options={[
+            { value: 'semua', label: 'Semua Sifat Peserta' },
+            { value: 'Wajib Semua Santri', label: 'Wajib Semua Santri' },
+            { value: 'Santri Tertentu / Terpilih', label: 'Santri Tertentu / Terpilih' }
+          ]}
+        />
 
         {/* FILTER STATUS */}
-        <select 
-          className="filter-select"
+        <SearchableSelect 
+          style={{ minWidth: '140px', flex: '1 1 130px', maxWidth: '180px' }}
           value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-        >
-          <option value="semua">Semua Status</option>
-          <option value="1">Aktif</option>
-          <option value="0">Nonaktif</option>
-        </select>
+          onChange={(val) => setFilterStatus(val || 'semua')}
+          placeholder="Semua Status"
+          options={[
+            { value: 'semua', label: 'Semua Status' },
+            { value: '1', label: 'Aktif' },
+            { value: '0', label: 'Nonaktif' }
+          ]}
+        />
       </div>
 
       {/* 5. DATA TABLE */}
@@ -957,17 +963,17 @@ export default function SettingKegiatanView() {
                   <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '4px', display: 'block' }}>
                     Kategori Kegiatan
                   </label>
-                  <select 
-                    className="filter-select"
-                    style={{ width: '100%' }}
+                  <SearchableSelect 
+                    options={[
+                      { value: 'Shalat Berjamaah', label: 'Shalat Berjamaah' },
+                      { value: "Halaqah Qur'an", label: "Halaqah Qur'an / Tahfidz" },
+                      { value: 'Pengajian / Taklim', label: 'Pengajian / Taklim' },
+                      { value: 'Kegiatan Asrama', label: 'Kegiatan Asrama' }
+                    ]}
                     value={formData.kategori}
-                    onChange={(e) => setFormData({ ...formData, kategori: e.target.value })}
-                  >
-                    <option value="Shalat Berjamaah">Shalat Berjamaah</option>
-                    <option value="Halaqah Qur'an">Halaqah Qur'an / Tahfidz</option>
-                    <option value="Pengajian / Taklim">Pengajian / Taklim</option>
-                    <option value="Kegiatan Asrama">Kegiatan Asrama</option>
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, kategori: val })}
+                    placeholder="-- Pilih Kategori --"
+                  />
                 </div>
 
                 {/* SETTING HARI AKTIF MULTI-CHECK (JADWAL BERBEDA TIAP HARI) */}

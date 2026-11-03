@@ -28,6 +28,7 @@ import {
   X,
 } from "lucide-react";
 import { showConfirm, toastSuccess, showError } from "../../utils/alert.util";
+import SearchableSelect from "../../components/SearchableSelect";
 import {
   initFaceApiModels,
   detectFaceDescriptor,
@@ -40,20 +41,54 @@ export default function ScanBarcodeView() {
   const [santriList, setSantriList] = useState([]);
   const [sesiList, setSesiList] = useState([
     { id: 1, kode: "SHALAT-SHUBUH", nama: "Shalat Shubuh Berjamaah" },
-    { id: 2, kode: "NGAJI-PAGI", nama: "Mengaji Qur'an / Halaqah Pagi" },
-    { id: 3, kode: "SHALAT-DZUHUR", nama: "Shalat Dzuhur Berjamaah" },
-    { id: 4, kode: "SHALAT-ASHAR", nama: "Shalat Ashar Berjamaah" },
-    { id: 5, kode: "NGAJI-SORE", nama: "Kajian Kitab / Mengaji Sore" },
-    { id: 6, kode: "SHALAT-MAGHRIB", nama: "Shalat Maghrib Berjamaah" },
-    { id: 7, kode: "NGAJI-MALAM", nama: "Mudzakarah / Mengaji Malam" },
-    { id: 8, kode: "SHALAT-ISYA", nama: "Shalat Isya Berjamaah" },
-    { id: 9, kode: "PRESENSI-ASRAMA", nama: "Apel & Jam Malam Asrama" },
+    { id: 2, kode: "SHALAT-DZUHUR", nama: "Shalat Dzuhur Berjamaah" },
+    { id: 3, kode: "SHALAT-ASHAR", nama: "Shalat Ashar Berjamaah" },
+    { id: 4, kode: "SHALAT-MAGHRIB", nama: "Shalat Maghrib Berjamaah" },
+    { id: 5, kode: "SHALAT-ISYA", nama: "Shalat Isya Berjamaah" },
   ]);
 
-  // Determine current active session based on hour
-  const detectCurrentSesi = () => {
+  // Helper konversi string jam (cth: "04:15:00" atau "04:15") ke menit
+  const timeToMinutes = (tStr) => {
+    if (!tStr) return null;
+    const parts = String(tStr).split(":").map(Number);
+    if (parts.length === 0 || isNaN(parts[0])) return null;
+    return (parts[0] || 0) * 60 + (parts[1] || 0);
+  };
+
+  // Determine current active session based on current time & database schedule
+  const detectCurrentSesi = (list = sesiList) => {
     const now = new Date();
     const curMinutes = now.getHours() * 60 + now.getMinutes();
+
+    if (Array.isArray(list) && list.length > 0) {
+      // 1. Cek sesi yang saat ini masuk rentang jam_mulai s/d jam_tutup / jam_toleransi
+      const activeMatch = list.find((s) => {
+        const start = timeToMinutes(s.jam_mulai_presensi);
+        const end = timeToMinutes(
+          s.jam_tutup_presensi || s.jam_toleransi_telat || s.jam_target,
+        );
+        if (start !== null && end !== null) {
+          if (start <= end) {
+            return curMinutes >= start && curMinutes <= end;
+          } else {
+            return curMinutes >= start || curMinutes <= end;
+          }
+        }
+        return false;
+      });
+
+      if (activeMatch) return activeMatch.kode;
+
+      // 2. Jika tidak ada rentang yang pas, cari sesi terdekat yang akan datang
+      const futureMatch = list.find((s) => {
+        const start = timeToMinutes(s.jam_mulai_presensi);
+        return start !== null && start > curMinutes;
+      });
+      if (futureMatch) return futureMatch.kode;
+
+      // 3. Fallback ke sesi pertama
+      return list[0].kode;
+    }
 
     if (curMinutes >= 240 && curMinutes < 315) return "SHALAT-SHUBUH";
     if (curMinutes >= 315 && curMinutes < 420) return "NGAJI-PAGI";
@@ -63,7 +98,7 @@ export default function ScanBarcodeView() {
     if (curMinutes >= 1060 && curMinutes < 1115) return "SHALAT-MAGHRIB";
     if (curMinutes >= 1115 && curMinutes < 1155) return "NGAJI-MALAM";
     if (curMinutes >= 1155 && curMinutes < 1260) return "SHALAT-ISYA";
-    return "PRESENSI-ASRAMA";
+    return "SHALAT-SHUBUH";
   };
 
   const [selectedSesiKode, setSelectedSesiKode] = useState(detectCurrentSesi);
@@ -104,7 +139,8 @@ export default function ScanBarcodeView() {
   const [enrollSantriId, setEnrollSantriId] = useState("");
   const [enrollSnapshot, setEnrollSnapshot] = useState(null);
   const [enrollSearch, setEnrollSearch] = useState("");
-  const [enrollFilterUnregisteredOnly, setEnrollFilterUnregisteredOnly] = useState(true);
+  const [enrollFilterUnregisteredOnly, setEnrollFilterUnregisteredOnly] =
+    useState(true);
 
   // Live scan feedback
   const [lastScanned, setLastScanned] = useState(null);
@@ -171,16 +207,53 @@ export default function ScanBarcodeView() {
     } catch (e) {}
   };
 
-  // Fetch Santri master & Live Presensi Hari Ini langsung dari MySQL Database
+  // Fetch Santri master, Live Presensi Hari Ini, dan Master Kegiatan Sesi langsung dari MySQL Database
   const fetchSantriData = async () => {
     try {
-      const [resSantri, resAbs] = await Promise.all([
+      const [resSantri, resAbs, resSesi] = await Promise.all([
         axios.get("/api/santri"),
         axios
           .get("/api/absensi/fingerprint")
           .catch(() => ({ data: { data: [] } })),
+        axios.get("/api/absensi/sesi").catch(() => ({ data: { data: [] } })),
       ]);
 
+      // 1. Sinkronisasi Master Sesi Kegiatan dari Database
+      if (
+        resSesi.data?.data &&
+        Array.isArray(resSesi.data.data) &&
+        resSesi.data.data.length > 0
+      ) {
+        const loadedSesi = resSesi.data.data
+          .filter(
+            (s) =>
+              s.is_active === undefined ||
+              s.is_active === 1 ||
+              s.is_active === true,
+          )
+          .map((s) => ({
+            id: s.id,
+            kode: s.kode_sesi || `SESI-${s.id}`,
+            nama: s.nama_sesi || s.nama,
+            jam_mulai_presensi: s.jam_mulai_presensi || null,
+            jam_target: s.jam_target || null,
+            jam_toleransi_telat: s.jam_toleransi_telat || null,
+            jam_tutup_presensi: s.jam_tutup_presensi || null,
+            kategori: s.kategori || "Kegiatan",
+            hari_aktif: s.hari_aktif || "Setiap Hari",
+            tipe_peserta: s.tipe_peserta || "Wajib Semua Santri",
+          }));
+
+        if (loadedSesi.length > 0) {
+          setSesiList(loadedSesi);
+          setSelectedSesiKode((prev) => {
+            const exists = loadedSesi.some((s) => s.kode === prev);
+            return exists ? prev : detectCurrentSesi(loadedSesi);
+          });
+        }
+      }
+
+      // 2. Data Santri
       if (resSantri.data?.success && Array.isArray(resSantri.data.data)) {
         setSantriList(resSantri.data.data);
       } else {
@@ -421,19 +494,22 @@ export default function ScanBarcodeView() {
 
       let cells = [];
       let totalBrightness = 0;
-      let totalR = 0, totalG = 0, totalB = 0;
+      let totalR = 0,
+        totalG = 0,
+        totalB = 0;
 
       for (let gy = 0; gy < 4; gy++) {
         for (let gx = 0; gx < 4; gx++) {
           let bSum = 0;
-          let rSum = 0, gSum = 0;
+          let rSum = 0,
+            gSum = 0;
           for (let y = gy * 10; y < (gy + 1) * 10; y++) {
             for (let x = gx * 10; x < (gx + 1) * 10; x++) {
               const idx = (y * 40 + x) * 4;
               const r = imgData[idx];
               const g = imgData[idx + 1];
               const b = imgData[idx + 2];
-              bSum += (r * 0.299 + g * 0.587 + b * 0.114);
+              bSum += r * 0.299 + g * 0.587 + b * 0.114;
               rSum += r;
               gSum += g;
               totalR += r;
@@ -503,7 +579,10 @@ export default function ScanBarcodeView() {
     if (prof.biometricFeature?.pattern) {
       profPattern = prof.biometricFeature.pattern;
       profChroma = prof.biometricFeature.chroma;
-    } else if (Array.isArray(prof.biometricGrid) && prof.biometricGrid.length === 16) {
+    } else if (
+      Array.isArray(prof.biometricGrid) &&
+      prof.biometricGrid.length === 16
+    ) {
       const raw = prof.biometricGrid;
       if (raw.every((v) => v === 0)) return 999;
       const mean = Math.round(raw.reduce((a, b) => a + b, 0) / 16);
@@ -562,7 +641,8 @@ export default function ScanBarcodeView() {
         const needFeature =
           !p.biometricFeature ||
           !p.biometricGrid ||
-          (Array.isArray(p.biometricGrid) && p.biometricGrid.every((v) => v === 0));
+          (Array.isArray(p.biometricGrid) &&
+            p.biometricGrid.every((v) => v === 0));
 
         if (needFeature && p.foto) {
           const feature = await extractFeatureFromDataUrl(p.foto);
@@ -594,7 +674,10 @@ export default function ScanBarcodeView() {
       if (changed) {
         setRegisteredFaces(updated);
         try {
-          localStorage.setItem("epesantren_face_profiles", JSON.stringify(updated));
+          localStorage.setItem(
+            "epesantren_face_profiles",
+            JSON.stringify(updated),
+          );
         } catch (e) {}
       }
     };
@@ -699,7 +782,8 @@ export default function ScanBarcodeView() {
     faceLoopIntervalRef.current = setInterval(async () => {
       const video = faceVideoRef.current;
       const canvas = faceCanvasRef.current;
-      if (!video || !canvas || video.readyState < 2 || !video.videoWidth) return;
+      if (!video || !canvas || video.readyState < 2 || !video.videoWidth)
+        return;
 
       const ctx = canvas.getContext("2d");
       const w = (canvas.width = video.videoWidth || 640);
@@ -802,7 +886,11 @@ export default function ScanBarcodeView() {
             }
 
             setFaceDetected(true);
-            const matched = matchFaceDescriptor(faceRes.descriptor, registeredList, 0.52);
+            const matched = matchFaceDescriptor(
+              faceRes.descriptor,
+              registeredList,
+              0.52,
+            );
             if (matched) {
               matchedSantri =
                 (santriListRef.current || []).find(
@@ -830,7 +918,7 @@ export default function ScanBarcodeView() {
               }
             }
 
-            if (skinPixels / 1600 < 0.10) {
+            if (skinPixels / 1600 < 0.1) {
               setFaceDetected(false);
               setFaceStatusText("Menunggu wajah santri di depan kamera...");
               return;
@@ -869,7 +957,11 @@ export default function ScanBarcodeView() {
             ctx.fillStyle = "#ffffff";
             ctx.font = "bold 13px sans-serif";
             ctx.textAlign = "center";
-            ctx.fillText("⛔ Wajah Belum Terdaftar", boxX + boxW / 2, boxY - 13);
+            ctx.fillText(
+              "⛔ Wajah Belum Terdaftar",
+              boxX + boxW / 2,
+              boxY - 13,
+            );
 
             setFaceStatusText("⛔ Wajah Tidak Dikenali / Belum Terdaftar");
             return;
@@ -894,9 +986,15 @@ export default function ScanBarcodeView() {
             ctx.fillStyle = "#ffffff";
             ctx.font = "bold 13px sans-serif";
             ctx.textAlign = "center";
-            ctx.fillText(`⚠️ ${displayName} (Sudah Hadir)`, boxX + boxW / 2, boxY - 13);
+            ctx.fillText(
+              `⚠️ ${displayName} (Sudah Hadir)`,
+              boxX + boxW / 2,
+              boxY - 13,
+            );
 
-            setFaceStatusText(`⚠️ ${displayName} sudah tercatat hadir pada kegiatan ini`);
+            setFaceStatusText(
+              `⚠️ ${displayName} sudah tercatat hadir pada kegiatan ini`,
+            );
             return;
           }
 
@@ -1285,7 +1383,8 @@ export default function ScanBarcodeView() {
                 color: "rgba(255, 255, 255, 0.88)",
               }}
             >
-              Presensi kegiatan santri otomatis menggunakan kamera Face Recognition AI.
+              Presensi kegiatan santri otomatis menggunakan kamera Face
+              Recognition AI.
             </p>
           </div>
         </div>
@@ -1369,28 +1468,51 @@ export default function ScanBarcodeView() {
           >
             Kegiatan Aktif:
           </span>
-          <select
+          <SearchableSelect
+            style={{ flex: "1 1 320px", maxWidth: "460px" }}
             value={selectedSesiKode}
-            onChange={(e) => setSelectedSesiKode(e.target.value)}
+            onChange={(val) => setSelectedSesiKode(val)}
+            placeholder="-- Pilih Kegiatan Aktif --"
+            options={sesiList.map((s) => {
+              const start = s.jam_mulai_presensi
+                ? s.jam_mulai_presensi.slice(0, 5)
+                : "";
+              const end = s.jam_tutup_presensi
+                ? s.jam_tutup_presensi.slice(0, 5)
+                : s.jam_target
+                  ? s.jam_target.slice(0, 5)
+                  : "";
+              const timeRange =
+                start && end ? `${start} - ${end}` : start || "";
+              return {
+                value: s.kode,
+                label: s.nama,
+                sublabel: timeRange
+                  ? `Jadwal: ${timeRange} | ${s.kategori || "Kegiatan"}`
+                  : s.kategori || null,
+              };
+            })}
+          />
+          <a
+            href="#setting-kegiatan"
             style={{
-              padding: "8px 12px",
-              borderRadius: "8px",
-              border: "1px solid #cbd5e1",
-              fontSize: "0.86rem",
+              fontSize: "0.74rem",
               fontWeight: 700,
-              color: "#064e3b",
-              background: "#ecfdf5",
-              outline: "none",
-              cursor: "pointer",
-              flex: 1,
+              color: "#0284c7",
+              textDecoration: "none",
+              padding: "6px 10px",
+              background: "#f0f9ff",
+              border: "1px solid #bae6fd",
+              borderRadius: "6px",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px",
+              whiteSpace: "nowrap",
             }}
+            title="Kelola & edit master jadwal kegiatan di menu Setting"
           >
-            {sesiList.map((s) => (
-              <option key={s.kode} value={s.kode}>
-                {s.nama}
-              </option>
-            ))}
-          </select>
+            <span>Kelola Kegiatan</span>
+          </a>
         </div>
 
         <div
@@ -1429,547 +1551,267 @@ export default function ScanBarcodeView() {
         {/* LEFT COLUMN: SCANNER INPUTS (FACE RECOGNITION AI) */}
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           {/* FACE RECOGNITION HUD CARD */}
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: "14px",
+              border: "2px solid #059669",
+              padding: "18px",
+              boxShadow: "0 4px 14px rgba(5, 150, 105, 0.08)",
+            }}
+          >
             <div
               style={{
-                background: "#ffffff",
-                borderRadius: "14px",
-                border: "2px solid #059669",
-                padding: "18px",
-                boxShadow: "0 4px 14px rgba(5, 150, 105, 0.08)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: "12px",
               }}
             >
               <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: "12px",
-                }}
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
               >
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                <Smile size={20} color="#059669" />
+                <h3
+                  style={{
+                    fontSize: "0.96rem",
+                    fontWeight: 800,
+                    margin: 0,
+                    color: "#0f172a",
+                  }}
                 >
-                  <Smile size={20} color="#059669" />
-                  <h3
-                    style={{
-                      fontSize: "0.96rem",
-                      fontWeight: 800,
-                      margin: 0,
-                      color: "#0f172a",
-                    }}
-                  >
-                    Kamera Presensi Wajah (Face Recognition AI)
-                  </h3>
-                </div>
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
+                  Kamera Presensi Wajah (Face Recognition AI)
+                </h3>
+              </div>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "6px" }}
+              >
+                <span
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    fontSize: "0.7rem",
+                    fontWeight: 700,
+                    padding: "3px 9px",
+                    borderRadius: "10px",
+                    background: isFaceCameraActive ? "#dcfce7" : "#fee2e2",
+                    color: isFaceCameraActive ? "#15803d" : "#b91c1c",
+                  }}
                 >
                   <span
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "5px",
-                      fontSize: "0.7rem",
-                      fontWeight: 700,
-                      padding: "3px 9px",
-                      borderRadius: "10px",
-                      background: isFaceCameraActive ? "#dcfce7" : "#fee2e2",
-                      color: isFaceCameraActive ? "#15803d" : "#b91c1c",
+                      width: "7px",
+                      height: "7px",
+                      borderRadius: "50%",
+                      background: isFaceCameraActive ? "#22c55e" : "#ef4444",
+                      display: "inline-block",
                     }}
-                  >
-                    <span
-                      style={{
-                        width: "7px",
-                        height: "7px",
-                        borderRadius: "50%",
-                        background: isFaceCameraActive ? "#22c55e" : "#ef4444",
-                        display: "inline-block",
-                      }}
-                    />
-                    {isFaceCameraActive ? "Kamera Aktif" : "Nonaktif"}
-                  </span>
+                  />
+                  {isFaceCameraActive ? "Kamera Aktif" : "Nonaktif"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const firstUnregistered = santriList.find(
+                      (s) => !registeredFaces[s.id],
+                    );
+                    if (firstUnregistered) {
+                      setEnrollSantriId(String(firstUnregistered.id));
+                    }
+                    setEnrollFilterUnregisteredOnly(true);
+                    setEnrollSnapshot(captureFaceSnapshot());
+                    setIsEnrollModalOpen(true);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    padding: "5px 10px",
+                    borderRadius: "6px",
+                    border: "none",
+                    background: "#059669",
+                    color: "#ffffff",
+                    fontSize: "0.74rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  <UserPlus size={13} />
+                  <span>+ Daftar Wajah</span>
+                </button>
+                {isFaceCameraActive ? (
                   <button
-                    type="button"
-                    onClick={() => {
-                      const firstUnregistered = santriList.find(
-                        (s) => !registeredFaces[s.id],
-                      );
-                      if (firstUnregistered) {
-                        setEnrollSantriId(String(firstUnregistered.id));
-                      }
-                      setEnrollFilterUnregisteredOnly(true);
-                      setEnrollSnapshot(captureFaceSnapshot());
-                      setIsEnrollModalOpen(true);
-                    }}
+                    onClick={stopFaceCamera}
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                      padding: "5px 10px",
+                      padding: "4px 8px",
                       borderRadius: "6px",
-                      border: "none",
-                      background: "#059669",
-                      color: "#ffffff",
-                      fontSize: "0.74rem",
+                      border: "1px solid #fecaca",
+                      background: "#fef2f2",
+                      color: "#dc2626",
+                      fontSize: "0.72rem",
                       fontWeight: 700,
                       cursor: "pointer",
                     }}
+                    title="Matikan Kamera"
                   >
-                    <UserPlus size={13} />
-                    <span>+ Daftar Wajah</span>
+                    <VideoOff size={14} />
                   </button>
-                  {isFaceCameraActive ? (
-                    <button
-                      onClick={stopFaceCamera}
-                      style={{
-                        padding: "4px 8px",
-                        borderRadius: "6px",
-                        border: "1px solid #fecaca",
-                        background: "#fef2f2",
-                        color: "#dc2626",
-                        fontSize: "0.72rem",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                      }}
-                      title="Matikan Kamera"
-                    >
-                      <VideoOff size={14} />
-                    </button>
-                  ) : (
-                    <button
-                      onClick={startFaceCamera}
-                      style={{
-                        padding: "4px 8px",
-                        borderRadius: "6px",
-                        border: "1px solid #bbf7d0",
-                        background: "#f0fdf4",
-                        color: "#16a34a",
-                        fontSize: "0.72rem",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                      }}
-                      title="Nyalakan Kamera"
-                    >
-                      <Video size={14} />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Live Face Video & Reticle Overlay Viewport */}
-              <div
-                style={{
-                  background: "#090d16",
-                  borderRadius: "12px",
-                  aspectRatio: "4 / 3",
-                  minHeight: "280px",
-                  maxHeight: "360px",
-                  position: "relative",
-                  overflow: "hidden",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "inset 0 0 25px rgba(0,0,0,0.6)",
-                }}
-              >
-                <video
-                  ref={faceVideoRef}
-                  playsInline
-                  muted
-                  autoPlay
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                    transform: "scaleX(-1)", // Mirror effect
-                    display: isFaceCameraActive ? "block" : "none",
-                  }}
-                />
-                <canvas
-                  ref={faceCanvasRef}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: "100%",
-                    pointerEvents: "none",
-                    display: isFaceCameraActive ? "block" : "none",
-                  }}
-                />
-
-                {!isFaceCameraActive && (
-                  <div
+                ) : (
+                  <button
+                    onClick={startFaceCamera}
                     style={{
-                      textAlign: "center",
-                      color: "#94a3b8",
-                      padding: "20px",
-                    }}
-                  >
-                    <CameraOff
-                      size={42}
-                      color="#64748b"
-                      style={{ margin: "0 auto 10px" }}
-                    />
-                    <p
-                      style={{
-                        margin: "0 0 6px",
-                        fontSize: "0.86rem",
-                        fontWeight: 700,
-                      }}
-                    >
-                      Kamera Wajah Nonaktif
-                    </p>
-                    <button
-                      onClick={startFaceCamera}
-                      style={{
-                        padding: "6px 14px",
-                        borderRadius: "6px",
-                        border: "none",
-                        background: "#059669",
-                        color: "#fff",
-                        fontSize: "0.78rem",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        marginTop: "6px",
-                      }}
-                    >
-                      Aktifkan Kamera Sekarang
-                    </button>
-                  </div>
-                )}
-
-                {faceCameraError && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      bottom: "12px",
-                      left: "12px",
-                      right: "12px",
-                      background: "rgba(239, 68, 68, 0.92)",
-                      color: "#ffffff",
-                      fontSize: "0.74rem",
-                      padding: "8px 12px",
-                      borderRadius: "8px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}
-                  >
-                    <AlertCircle size={15} />
-                    <span>{faceCameraError}</span>
-                  </div>
-                )}
-
-                {/* Floating Status Bar Overlay */}
-                {isFaceCameraActive && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      bottom: "12px",
-                      left: "12px",
-                      right: "12px",
-                      background: cooldownRef.current
-                        ? "rgba(16, 185, 129, 0.9)"
-                        : "rgba(15, 23, 42, 0.82)",
-                      backdropFilter: "blur(6px)",
-                      color: "#ffffff",
-                      fontSize: "0.76rem",
+                      padding: "4px 8px",
+                      borderRadius: "6px",
+                      border: "1px solid #bbf7d0",
+                      background: "#f0fdf4",
+                      color: "#16a34a",
+                      fontSize: "0.72rem",
                       fontWeight: 700,
-                      padding: "8px 14px",
-                      borderRadius: "8px",
-                      textAlign: "center",
-                      transition: "all 0.2s",
-                      boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
+                      cursor: "pointer",
                     }}
+                    title="Nyalakan Kamera"
                   >
-                    {faceStatusText}
-                  </div>
+                    <Video size={14} />
+                  </button>
                 )}
               </div>
             </div>
-          {false && (
-            <>
-              {/* USB Scanner Gun Active Card */}
-              <div
+
+            {/* Live Face Video & Reticle Overlay Viewport */}
+            <div
+              style={{
+                background: "#090d16",
+                borderRadius: "12px",
+                aspectRatio: "4 / 3",
+                minHeight: "280px",
+                maxHeight: "360px",
+                position: "relative",
+                overflow: "hidden",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "inset 0 0 25px rgba(0,0,0,0.6)",
+              }}
+            >
+              <video
+                ref={faceVideoRef}
+                playsInline
+                muted
+                autoPlay
                 style={{
-                  background: "#ffffff",
-                  borderRadius: "12px",
-                  border: "2px solid #059669",
-                  padding: "20px",
-                  boxShadow: "0 4px 12px rgba(5, 150, 105, 0.08)",
-                  position: "relative",
-                  overflow: "hidden",
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  transform: "scaleX(-1)", // Mirror effect
+                  display: isFaceCameraActive ? "block" : "none",
                 }}
-              >
+              />
+              <canvas
+                ref={faceCanvasRef}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  pointerEvents: "none",
+                  display: isFaceCameraActive ? "block" : "none",
+                }}
+              />
+
+              {!isFaceCameraActive && (
+                <div
+                  style={{
+                    textAlign: "center",
+                    color: "#94a3b8",
+                    padding: "20px",
+                  }}
+                >
+                  <CameraOff
+                    size={42}
+                    color="#64748b"
+                    style={{ margin: "0 auto 10px" }}
+                  />
+                  <p
+                    style={{
+                      margin: "0 0 6px",
+                      fontSize: "0.86rem",
+                      fontWeight: 700,
+                    }}
+                  >
+                    Kamera Wajah Nonaktif
+                  </p>
+                  <button
+                    onClick={startFaceCamera}
+                    style={{
+                      padding: "6px 14px",
+                      borderRadius: "6px",
+                      border: "none",
+                      background: "#059669",
+                      color: "#fff",
+                      fontSize: "0.78rem",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      marginTop: "6px",
+                    }}
+                  >
+                    Aktifkan Kamera Sekarang
+                  </button>
+                </div>
+              )}
+
+              {faceCameraError && (
                 <div
                   style={{
                     position: "absolute",
-                    top: 0,
-                    right: 0,
-                    background: "#059669",
+                    bottom: "12px",
+                    left: "12px",
+                    right: "12px",
+                    background: "rgba(239, 68, 68, 0.92)",
                     color: "#ffffff",
-                    fontSize: "0.66rem",
-                    fontWeight: 800,
-                    padding: "3px 12px",
-                    borderRadius: "0 0 0 10px",
-                    letterSpacing: "0.04em",
-                  }}
-                >
-                  SIAP TEMBAK SCANNER GUN
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    marginBottom: "12px",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "38px",
-                      height: "38px",
-                      borderRadius: "10px",
-                      background: "#ecfdf5",
-                      color: "#059669",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <QrCode size={20} />
-                  </div>
-                  <div>
-                    <h3
-                      style={{
-                        fontSize: "0.96rem",
-                        fontWeight: 800,
-                        margin: 0,
-                        color: "#0f172a",
-                      }}
-                    >
-                      Input Scanner Barcode (USB / Keyboard)
-                    </h3>
-                    <p
-                      style={{
-                        fontSize: "0.72rem",
-                        color: "#64748b",
-                        margin: 0,
-                      }}
-                    >
-                      Arahkan barcode scanner gun ke kartu santri, input
-                      otomatis terproses.
-                    </p>
-                  </div>
-                </div>
-
-                <form
-                  onSubmit={handleBarcodeSubmit}
-                  style={{ display: "flex", gap: "8px" }}
-                >
-                  <input
-                    ref={barcodeInputRef}
-                    type="text"
-                    placeholder="Tembakkan barcode kartu / ketik NIS santri..."
-                    value={barcodeInput}
-                    onChange={(e) => setBarcodeInput(e.target.value)}
-                    autoFocus
-                    style={{
-                      flex: 1,
-                      padding: "10px 14px",
-                      borderRadius: "8px",
-                      border: "2px solid #cbd5e1",
-                      fontSize: "0.94rem",
-                      fontWeight: 700,
-                      outline: "none",
-                      color: "#0f172a",
-                      transition: "border-color 0.2s",
-                      boxSizing: "border-box",
-                    }}
-                    onFocus={(e) => (e.target.style.borderColor = "#059669")}
-                    onBlur={(e) => (e.target.style.borderColor = "#cbd5e1")}
-                  />
-                  <button
-                    type="submit"
-                    style={{
-                      padding: "10px 18px",
-                      borderRadius: "8px",
-                      background: "#059669",
-                      border: "none",
-                      color: "#ffffff",
-                      fontSize: "0.84rem",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}
-                  >
-                    <span>Proses</span>
-                    <ArrowRight size={15} />
-                  </button>
-                </form>
-              </div>
-
-              {/* Webcam Scanner Card */}
-              <div
-                style={{
-                  background: "#ffffff",
-                  borderRadius: "12px",
-                  border: "1px solid #e2e8f0",
-                  padding: "18px",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginBottom: "12px",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                    }}
-                  >
-                    <Camera size={18} color="#0284c7" />
-                    <h3
-                      style={{
-                        fontSize: "0.9rem",
-                        fontWeight: 800,
-                        margin: 0,
-                        color: "#0f172a",
-                      }}
-                    >
-                      Kamera Webcam Barcode / QR
-                    </h3>
-                  </div>
-                  {isCameraActive ? (
-                    <button
-                      onClick={stopCameraScanner}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        padding: "5px 10px",
-                        borderRadius: "6px",
-                        border: "1px solid #fca5a5",
-                        background: "#fef2f2",
-                        color: "#dc2626",
-                        fontSize: "0.74rem",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                      }}
-                    >
-                      <CameraOff size={14} />
-                      <span>Matikan Kamera</span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={startCameraScanner}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        padding: "5px 12px",
-                        borderRadius: "6px",
-                        border: "1px solid #bae6fd",
-                        background: "#f0f9ff",
-                        color: "#0284c7",
-                        fontSize: "0.74rem",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                      }}
-                    >
-                      <Camera size={14} />
-                      <span>Aktifkan Kamera</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* Kamera Viewport Container */}
-                <div
-                  style={{
-                    background: "#0f172a",
+                    fontSize: "0.74rem",
+                    padding: "8px 12px",
                     borderRadius: "8px",
-                    minHeight: "220px",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
-                    overflow: "hidden",
-                    position: "relative",
+                    gap: "6px",
                   }}
                 >
-                  {isCameraActive ? (
-                    <div
-                      id="desktop-webcam-reader"
-                      style={{ width: "100%", height: "100%" }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        textAlign: "center",
-                        color: "#94a3b8",
-                        padding: "24px",
-                      }}
-                    >
-                      <Camera
-                        size={36}
-                        color="#64748b"
-                        style={{ margin: "0 auto 8px" }}
-                      />
-                      <p
-                        style={{
-                          margin: "0 0 6px",
-                          fontSize: "0.82rem",
-                          fontWeight: 600,
-                        }}
-                      >
-                        Kamera webcam barcode saat ini nonaktif
-                      </p>
-                      <p
-                        style={{
-                          margin: 0,
-                          fontSize: "0.72rem",
-                          color: "#64748b",
-                        }}
-                      >
-                        Klik "Aktifkan Kamera" di atas jika ingin scan
-                        menggunakan webcam laptop/PC.
-                      </p>
-                    </div>
-                  )}
-
-                  {cameraError && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        bottom: "10px",
-                        left: "10px",
-                        right: "10px",
-                        background: "rgba(239, 68, 68, 0.9)",
-                        color: "#ffffff",
-                        fontSize: "0.72rem",
-                        padding: "6px 10px",
-                        borderRadius: "6px",
-                      }}
-                    >
-                      {cameraError}
-                    </div>
-                  )}
+                  <AlertCircle size={15} />
+                  <span>{faceCameraError}</span>
                 </div>
-              </div>
-            </>
-          )}
+              )}
+
+              {/* Floating Status Bar Overlay */}
+              {isFaceCameraActive && (
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: "12px",
+                    left: "12px",
+                    right: "12px",
+                    background: cooldownRef.current
+                      ? "rgba(16, 185, 129, 0.9)"
+                      : "rgba(15, 23, 42, 0.82)",
+                    backdropFilter: "blur(6px)",
+                    color: "#ffffff",
+                    fontSize: "0.76rem",
+                    fontWeight: 700,
+                    padding: "8px 14px",
+                    borderRadius: "8px",
+                    textAlign: "center",
+                    transition: "all 0.2s",
+                    boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
+                  }}
+                >
+                  {faceStatusText}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* RIGHT COLUMN: HIGHLIGHT CARD HASIL SCAN BARU */}
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           {/* Result Card */}
           <div
@@ -2802,7 +2644,11 @@ export default function ScanBarcodeView() {
                     const isEnrolled = !!registeredFaces[s.id];
                     return (
                       <option key={s.id} value={s.id}>
-                        {isEnrolled ? "✅" : "📷"} {s.nama_santri || s.nama || "Santri"} ({s.nis || s.id}) {isEnrolled ? "— (Sudah Ada Foto)" : "— (Belum Ada Foto)"}
+                        {isEnrolled ? "✅" : "📷"}{" "}
+                        {s.nama_santri || s.nama || "Santri"} ({s.nis || s.id}){" "}
+                        {isEnrolled
+                          ? "— (Sudah Ada Foto)"
+                          : "— (Belum Ada Foto)"}
                       </option>
                     );
                   })}
