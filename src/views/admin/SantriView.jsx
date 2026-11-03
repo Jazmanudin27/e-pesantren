@@ -33,7 +33,10 @@ import {
   UploadCloud,
   Upload,
   AlertCircle,
-  FileText
+  FileText,
+  Lock,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { showConfirm, toastSuccess, showError } from '../../utils/alert.util';
 import SearchableSelect from '../../components/SearchableSelect';
@@ -91,7 +94,23 @@ export default function SantriView() {
   const [activeFilterTab, setActiveFilterTab] = useState('semua');
   const [search, setSearch] = useState('');
   const [filterAsrama, setFilterAsrama] = useState('Semua Asrama');
+  const [filterTingkat, setFilterTingkat] = useState('Semua Tingkat');
+  const [filterTahun, setFilterTahun] = useState('Tahun 2026/2027');
   const [filterStatus, setFilterStatus] = useState('Semua Status');
+
+  // Server-side Pagination & Stats
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(25);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [stats, setStats] = useState({
+    totalAll: 0,
+    totalBoys: 0,
+    totalGirls: 0,
+    totalMukim: 0,
+    totalKalong: 0,
+    totalAlumni: 0
+  });
 
   const [asramaList, setAsramaList] = useState([]);
   const [kamarList, setKamarList] = useState([]);
@@ -380,6 +399,7 @@ export default function SantriView() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formMode, setFormMode] = useState('add'); // 'add' or 'edit'
   const [submitting, setSubmitting] = useState(false);
+  const [kelasList, setKelasList] = useState([]);
   const [formData, setFormData] = useState({
     id: null,
     nama_santri: '',
@@ -391,6 +411,8 @@ export default function SantriView() {
     nama_asrama: 'Asrama Ali bin Abi Thalib',
     kamar_id: 1,
     nama_kamar: 'Kamar Abu Bakar 01',
+    nama_kelas: '',
+    kelas_id: null,
     tempat_lahir: 'Tasikmalaya',
     tgl_lahir: '2008-01-01',
     fingerprint_pin: '',
@@ -407,6 +429,17 @@ export default function SantriView() {
     password: ''
   });
 
+  const fetchKelasData = async () => {
+    try {
+      const res = await axios.get('/api/kelas');
+      if (res.data && res.data.success && Array.isArray(res.data.data)) {
+        setKelasList(res.data.data);
+      }
+    } catch (err) {
+      console.error('Gagal mengambil master kelas:', err);
+    }
+  };
+
   const fetchAsramaData = async () => {
     try {
       const res = await axios.get('/api/asrama');
@@ -419,12 +452,48 @@ export default function SantriView() {
     }
   };
 
-  const fetchSantri = async () => {
+  const fetchSantri = async (overrideParams = {}) => {
     try {
       setLoading(true);
-      const res = await axios.get('/api/santri');
-      if (res.data && res.data.success && Array.isArray(res.data.data)) {
-        setSantriList(res.data.data);
+      const targetPage = overrideParams.page !== undefined ? overrideParams.page : page;
+      const targetLimit = overrideParams.limit !== undefined ? overrideParams.limit : limit;
+      const targetSearch = overrideParams.search !== undefined ? overrideParams.search : search;
+      const targetTab = overrideParams.tab !== undefined ? overrideParams.tab : activeFilterTab;
+      const targetAsrama = overrideParams.asrama !== undefined ? overrideParams.asrama : filterAsrama;
+      const targetTingkat = overrideParams.tingkat !== undefined ? overrideParams.tingkat : filterTingkat;
+      const targetTahun = overrideParams.tahun !== undefined ? overrideParams.tahun : filterTahun;
+      const targetStatus = overrideParams.status !== undefined ? overrideParams.status : filterStatus;
+
+      const res = await axios.get('/api/santri', {
+        params: {
+          page: targetPage,
+          limit: targetLimit,
+          search: targetSearch,
+          tab: targetTab,
+          asrama: targetAsrama,
+          tingkat: targetTingkat,
+          tahun: targetTahun,
+          status: targetStatus
+        }
+      });
+
+      if (res.data && res.data.success) {
+        const payload = res.data.data;
+        if (payload && Array.isArray(payload.data)) {
+          setSantriList(payload.data);
+          if (payload.pagination) {
+            setPage(payload.pagination.page);
+            setLimit(payload.pagination.limit);
+            setTotalPages(payload.pagination.totalPages);
+            setTotalRecords(payload.pagination.total);
+          }
+          if (payload.stats) {
+            setStats(payload.stats);
+          }
+        } else if (Array.isArray(payload)) {
+          setSantriList(payload);
+          setTotalRecords(payload.length);
+        }
       } else {
         setSantriList([]);
       }
@@ -436,9 +505,26 @@ export default function SantriView() {
     }
   };
 
+  const isInitialSearch = useRef(true);
   useEffect(() => {
-    fetchSantri();
+    if (isInitialSearch.current) {
+      isInitialSearch.current = false;
+      return;
+    }
+    const timer = setTimeout(() => {
+      setPage(1);
+      fetchSantri({ page: 1, search });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    fetchSantri({ page, tab: activeFilterTab, asrama: filterAsrama, tingkat: filterTingkat, tahun: filterTahun, status: filterStatus });
+  }, [page, activeFilterTab, filterAsrama, filterTingkat, filterTahun, filterStatus]);
+
+  useEffect(() => {
     fetchAsramaData();
+    fetchKelasData();
     initFaceApiModels().catch(() => {});
   }, []);
 
@@ -469,6 +555,8 @@ export default function SantriView() {
       nama_asrama: firstAsr?.nama_asrama || 'Asrama Ali bin Abi Thalib',
       kamar_id: firstKmr?.id || 1,
       nama_kamar: firstKmr?.nama_kamar || 'Kamar Abu Bakar 01',
+      nama_kelas: '',
+      kelas_id: null,
       tempat_lahir: 'Tasikmalaya',
       tgl_lahir: '2008-01-01',
       fingerprint_pin: `${1000 + santriList.length + 1}`,
@@ -501,6 +589,8 @@ export default function SantriView() {
       nama_asrama: santri.nama_asrama || 'Asrama Ali bin Abi Thalib',
       kamar_id: santri.kamar_id || (kamarList[0]?.id || 1),
       nama_kamar: santri.nama_kamar || 'Kamar 01',
+      nama_kelas: santri.nama_kelas || '',
+      kelas_id: santri.kelas_id || null,
       tempat_lahir: santri.tempat_lahir || '',
       tgl_lahir: santri.tgl_lahir ? (typeof santri.tgl_lahir === 'string' ? santri.tgl_lahir.split('T')[0] : santri.tgl_lahir) : '2008-01-01',
       fingerprint_pin: santri.fingerprint_pin || '',
@@ -652,33 +742,6 @@ export default function SantriView() {
     }
   };
 
-  // Filter logic
-  const filteredList = santriList.filter((s) => {
-    const q = search.toLowerCase();
-    const matchSearch = (
-      s.nama_santri?.toLowerCase().includes(q) ||
-      s.nis?.toLowerCase().includes(q) ||
-      s.nama_asrama?.toLowerCase().includes(q) ||
-      s.nama_wali?.toLowerCase().includes(q)
-    );
-
-    const matchTab = 
-      activeFilterTab === 'semua' ? true :
-      activeFilterTab === 'boys' ? s.jk === 'L' :
-      activeFilterTab === 'girls' ? s.jk === 'P' :
-      activeFilterTab === 'mukim' ? s.status_santri === 'Mukim' :
-      activeFilterTab === 'kalong' ? s.status_santri === 'Kalong' :
-      activeFilterTab === 'alumni' ? s.status === 'Alumni' || s.status === 'Boyong' : true;
-
-    const matchAsrama = filterAsrama === 'Semua Asrama' ? true : s.nama_asrama?.includes(filterAsrama);
-    const matchStatus = filterStatus === 'Semua Status' ? true : s.status === filterStatus;
-
-    return matchSearch && matchTab && matchAsrama && matchStatus;
-  });
-
-  const countMukim = santriList.filter(s => s.status_santri === 'Mukim').length;
-  const countKalong = santriList.filter(s => s.status_santri === 'Kalong').length;
-
   return (
     <div>
       {/* 1. TOP 4 COLORED STATS CARDS */}
@@ -686,7 +749,7 @@ export default function SantriView() {
         <div className="stat-card-colored stat-card-blue">
           <div>
             <div className="stat-colored-title">TOTAL SANTRI TERDAFTAR</div>
-            <div className="stat-colored-number">{santriList.length}</div>
+            <div className="stat-colored-number">{stats.totalAll || 619}</div>
           </div>
           <div className="stat-colored-icon-box">
             <Users size={22} />
@@ -696,7 +759,7 @@ export default function SantriView() {
         <div className="stat-card-colored stat-card-green">
           <div>
             <div className="stat-colored-title">SANTRI MUKIM (ASRAMA)</div>
-            <div className="stat-colored-number">{countMukim}</div>
+            <div className="stat-colored-number">{stats.totalMukim || 0}</div>
           </div>
           <div className="stat-colored-icon-box">
             <Home size={22} />
@@ -706,7 +769,7 @@ export default function SantriView() {
         <div className="stat-card-colored stat-card-amber">
           <div>
             <div className="stat-colored-title">SANTRI KALONG (NON-MUKIM)</div>
-            <div className="stat-colored-number">{countKalong}</div>
+            <div className="stat-colored-number">{stats.totalKalong || 0}</div>
           </div>
           <div className="stat-colored-icon-box">
             <Clock size={22} />
@@ -716,7 +779,7 @@ export default function SantriView() {
         <div className="stat-card-colored stat-card-purple">
           <div>
             <div className="stat-colored-title">FINGERPRINT ENROLLED</div>
-            <div className="stat-colored-number">{santriList.length}</div>
+            <div className="stat-colored-number">{stats.totalAll || 619}</div>
           </div>
           <div className="stat-colored-icon-box">
             <Fingerprint size={22} />
@@ -737,7 +800,7 @@ export default function SantriView() {
           <button 
             type="button"
             className="btn btn-outline" 
-            onClick={fetchSantri}
+            onClick={() => fetchSantri({ page: 1 })}
           >
             <RotateCw size={13} /> Refresh
           </button>
@@ -757,10 +820,10 @@ export default function SantriView() {
               fontWeight: 700, 
               cursor: 'pointer' 
             }}
-            onClick={() => handleOpenPrintModal(filteredList)}
-            title="Cetak Barcode & Kartu Santri Massal Sesuai Filter"
+            onClick={() => handleOpenPrintModal(santriList)}
+            title="Cetak Barcode & Kartu Santri Halaman Ini"
           >
-            <Printer size={14} /> Cetak Barcode & Kartu ({filteredList.length})
+            <Printer size={14} /> Cetak Barcode & Kartu ({santriList.length})
           </button>
           <button 
             type="button"
@@ -798,27 +861,27 @@ export default function SantriView() {
       <div className="tab-filter-bar">
         <button 
           className={`tab-btn ${activeFilterTab === 'semua' ? 'active' : ''}`}
-          onClick={() => setActiveFilterTab('semua')}
+          onClick={() => { setActiveFilterTab('semua'); setPage(1); }}
         >
-          <Users size={14} /> Semua Santri ({santriList.length})
+          <Users size={14} /> Semua Santri ({stats.totalAll || totalRecords})
         </button>
         <button 
           className={`tab-btn ${activeFilterTab === 'boys' || activeFilterTab === 'L' ? 'active' : ''}`}
-          onClick={() => setActiveFilterTab('boys')}
+          onClick={() => { setActiveFilterTab('boys'); setPage(1); }}
         >
-          <Users size={14} /> Santri Putra / Boys ({santriList.filter(s => s.jk === 'L').length})
+          <Users size={14} /> Santri Putra / Boys ({stats.totalBoys || 0})
         </button>
         <button 
           className={`tab-btn ${activeFilterTab === 'girls' || activeFilterTab === 'P' ? 'active' : ''}`}
-          onClick={() => setActiveFilterTab('girls')}
+          onClick={() => { setActiveFilterTab('girls'); setPage(1); }}
         >
-          <Users size={14} /> Santri Putri / Girls ({santriList.filter(s => s.jk === 'P').length})
+          <Users size={14} /> Santri Putri / Girls ({stats.totalGirls || 0})
         </button>
         <button 
           className={`tab-btn ${activeFilterTab === 'alumni' ? 'active' : ''}`}
-          onClick={() => setActiveFilterTab('alumni')}
+          onClick={() => { setActiveFilterTab('alumni'); setPage(1); }}
         >
-          <GraduationCap size={14} /> Alumni / Boyong
+          <GraduationCap size={14} /> Alumni / Boyong ({stats.totalAlumni || 0})
         </button>
       </div>
 
@@ -828,7 +891,7 @@ export default function SantriView() {
           <Search size={15} color="#94a3b8" />
           <input 
             type="text" 
-            placeholder="Cari nama santri, NIS, asrama, nama wali..." 
+            placeholder="Cari semua santri (nama, NIS, kelas, asrama, wali)..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -836,29 +899,36 @@ export default function SantriView() {
         <select 
           className="filter-select"
           value={filterAsrama}
-          onChange={(e) => setFilterAsrama(e.target.value)}
+          onChange={(e) => { setFilterAsrama(e.target.value); setPage(1); }}
         >
           <option>Semua Asrama</option>
-          <option>Ali</option>
-          <option>Umar</option>
-          <option>Fathimah</option>
-          <option>Khadijah</option>
-          <option>Abu Bakar</option>
+          {asramaList.map(a => (
+            <option key={a.id} value={a.nama_asrama}>{a.nama_asrama}</option>
+          ))}
         </select>
-        <select className="filter-select">
+        <select 
+          className="filter-select"
+          value={filterTingkat}
+          onChange={(e) => { setFilterTingkat(e.target.value); setPage(1); }}
+        >
           <option>Semua Tingkat</option>
           <option>Wustho</option>
           <option>Ulya</option>
           <option>Ula</option>
         </select>
-        <select className="filter-select">
+        <select 
+          className="filter-select"
+          value={filterTahun}
+          onChange={(e) => { setFilterTahun(e.target.value); setPage(1); }}
+        >
+          <option>Semua Tahun</option>
           <option>Tahun 2026/2027</option>
           <option>Tahun 2025/2026</option>
         </select>
         <select 
           className="filter-select"
           value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
+          onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
         >
           <option>Semua Status</option>
           <option>Aktif</option>
@@ -867,120 +937,220 @@ export default function SantriView() {
         </select>
       </div>
 
-      {/* 5. DATA TABLE */}
+      {/* 5. DATA TABLE (SERVERSIDE) */}
       <div className="table-container-card">
         {loading ? (
-          <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
-            <Loader2 size={24} className="animate-spin" /> Memuat data santri...
+          <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+            <Loader2 size={26} className="animate-spin" style={{ margin: '0 auto 8px' }} />
+            <div>Memuat data santri dari database...</div>
           </div>
         ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th className="td-center" style={{ width: '40px' }}>NO</th>
-                <th>NAMA SANTRI & NIS</th>
-                <th className="td-center">KELAS</th>
-                <th className="td-center">GENDER</th>
-                <th>MUSTAHIQ & MUNAWWIB</th>
-                <th>ASRAMA & KOBONG</th>
-                <th className="td-center">STATUS</th>
-                <th className="td-center" style={{ width: '130px' }}>AKSI</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredList.map((row, idx) => (
-                <tr key={row.id || idx}>
-                  <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
-                    {idx + 1}
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{row.nama_santri}</div>
-                    <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>NIS: {row.nis}</div>
-                  </td>
-                  <td className="td-center">
-                    <span
-                      className="badge"
-                      style={{
-                        background: '#ecfdf5',
-                        color: '#047857',
-                        border: '1px solid #a7f3d0',
-                        fontWeight: 800,
-                        fontSize: '0.72rem'
-                      }}
-                    >
-                      {row.nama_kelas || row.tingkat_diniyah || '1A'}
-                    </span>
-                  </td>
-                  <td className="td-center">
-                    <span className={`badge ${row.jk === 'L' ? 'badge-info' : 'badge-purple'}`}>
-                      {row.jk === 'L' ? 'Boys (L)' : 'Girls (P)'}
-                    </span>
-                  </td>
-                  <td>
-                    {row.mustahiq ? (
-                      <div style={{ fontSize: '0.74rem', color: '#0f172a', fontWeight: 700 }}>
-                        <span style={{ color: '#059669', fontWeight: 800 }}>M:</span> {row.mustahiq}
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>-</div>
-                    )}
-                    {row.munawwib && (
-                      <div style={{ fontSize: '0.7rem', color: '#0284c7', fontWeight: 600, marginTop: '2px' }}>
-                        <span style={{ color: '#0284c7', fontWeight: 800 }}>N:</span> {row.munawwib}
-                      </div>
-                    )}
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', color: '#0f172a' }}>
-                      <Building size={13} color="#059669" />
-                      <span>{row.nama_asrama || (row.jk === 'L' ? 'Asrama Putra' : 'Asrama Putri')}</span>
-                    </div>
-                    <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
-                      {row.nama_kamar || 'Kobong Santri'}
-                    </div>
-                  </td>
-                  <td className="td-center">
-                    <span className={`badge ${row.status_santri === 'Mukim' ? 'badge-success' : 'badge-warning'}`}>
-                      {row.status_santri || 'Mukim'}
-                    </span>
-                  </td>
-                  <td className="td-center">
-                    <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
-                      <button 
-                        className="btn-action"
-                        style={{ color: '#059669', background: '#ecfdf5', borderColor: '#a7f3d0' }}
-                        onClick={() => handleOpenPrintModal([row])}
-                        title="Cetak Barcode / Kartu Santri Ini"
-                      >
-                        <QrCode size={13} />
-                      </button>
-                      <button 
-                        className="btn-action btn-action-view"
-                        onClick={() => openDetail(row)}
-                        title="Lihat Detail Santri"
-                      >
-                        <Eye size={13} />
-                      </button>
-                      <button 
-                        className="btn-action btn-action-edit"
-                        onClick={() => openEditForm(row)}
-                        title="Edit Data Santri"
-                      >
-                        <Edit3 size={13} />
-                      </button>
-                      <button 
-                        className="btn-action btn-action-delete"
-                        onClick={() => handleDelete(row.id, row.nama_santri)}
-                        title="Hapus Santri"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </td>
+          <>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th className="td-center" style={{ width: '45px' }}>NO</th>
+                  <th>NAMA SANTRI & NIS</th>
+                  <th className="td-center">KELAS</th>
+                  <th className="td-center">GENDER</th>
+                  <th>ASRAMA & KOBONG</th>
+                  <th className="td-center">STATUS</th>
+                  <th className="td-center" style={{ width: '130px' }}>AKSI</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {santriList.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
+                      <Users size={32} style={{ margin: '0 auto 8px', opacity: 0.4 }} />
+                      <div style={{ fontWeight: 600, color: '#334155' }}>Tidak ada data santri yang cocok</div>
+                      <div style={{ fontSize: '0.75rem', marginTop: '2px' }}>Silakan periksa kata kunci pencarian atau reset filter.</div>
+                    </td>
+                  </tr>
+                ) : (
+                  santriList.map((row, idx) => (
+                    <tr key={row.id || idx}>
+                      <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
+                        {(page - 1) * limit + idx + 1}
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 700, color: '#0f172a' }}>{row.nama_santri}</div>
+                        <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>NIS: {row.nis}</div>
+                      </td>
+                      <td className="td-center">
+                        <span
+                          className="badge"
+                          style={{
+                            background: '#ecfdf5',
+                            color: '#047857',
+                            border: '1px solid #a7f3d0',
+                            fontWeight: 800,
+                            fontSize: '0.72rem'
+                          }}
+                        >
+                          {row.nama_kelas || row.tingkat_diniyah || '1A'}
+                        </span>
+                      </td>
+                      <td className="td-center">
+                        <span className={`badge ${row.jk === 'L' ? 'badge-info' : 'badge-purple'}`}>
+                          {row.jk === 'L' ? 'Boys (L)' : 'Girls (P)'}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', color: '#0f172a' }}>
+                          <Building size={13} color="#059669" />
+                          <span>{row.nama_asrama || (row.jk === 'L' ? 'Asrama Putra' : 'Asrama Putri')}</span>
+                        </div>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                          {row.nama_kamar || 'Kobong Santri'}
+                        </div>
+                      </td>
+                      <td className="td-center">
+                        <span className={`badge ${row.status_santri === 'Mukim' ? 'badge-success' : 'badge-warning'}`}>
+                          {row.status_santri || 'Mukim'}
+                        </span>
+                      </td>
+                      <td className="td-center">
+                        <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
+                          <button 
+                            className="btn-action"
+                            style={{ color: '#059669', background: '#ecfdf5', borderColor: '#a7f3d0' }}
+                            onClick={() => handleOpenPrintModal([row])}
+                            title="Cetak Barcode / Kartu Santri Ini"
+                          >
+                            <QrCode size={13} />
+                          </button>
+                          <button 
+                            className="btn-action btn-action-view"
+                            onClick={() => openDetail(row)}
+                            title="Lihat Detail Santri"
+                          >
+                            <Eye size={13} />
+                          </button>
+                          <button 
+                            className="btn-action btn-action-edit"
+                            onClick={() => openEditForm(row)}
+                            title="Edit Data Santri"
+                          >
+                            <Edit3 size={13} />
+                          </button>
+                          <button 
+                            className="btn-action btn-action-delete"
+                            onClick={() => handleDelete(row.id, row.nama_santri)}
+                            title="Hapus Santri"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+
+            {/* SERVERSIDE PAGINATION BAR */}
+            <div style={{
+              padding: '12px 18px',
+              borderTop: '1px solid #e2e8f0',
+              background: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px'
+            }}>
+              {/* Info Jumlah Data */}
+              <div style={{ fontSize: '0.78rem', color: '#475569' }}>
+                Menampilkan <strong>{totalRecords === 0 ? 0 : (page - 1) * limit + 1}</strong> s/d <strong>{Math.min(page * limit, totalRecords)}</strong> dari total <strong>{totalRecords}</strong> santri
+                {search && <span style={{ color: '#0284c7', marginLeft: '6px' }}>(hasil cari: "{search}")</span>}
+              </div>
+
+              {/* Navigasi Tombol Pagination */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <button
+                  type="button"
+                  disabled={page <= 1 || loading}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    background: page <= 1 ? '#f8fafc' : '#ffffff',
+                    color: page <= 1 ? '#94a3b8' : '#0f172a',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    cursor: page <= 1 ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <ChevronLeft size={14} /> Sebelumnya
+                </button>
+
+                {/* Halaman Buttons */}
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                  .reduce((acc, p, idx, arr) => {
+                    if (idx > 0 && p - arr[idx - 1] > 1) {
+                      acc.push('ellipsis-' + p);
+                    }
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map(p => {
+                    if (typeof p === 'string') {
+                      return <span key={p} style={{ padding: '0 4px', color: '#94a3b8', fontSize: '0.75rem' }}>...</span>;
+                    }
+                    const isActive = p === page;
+                    return (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setPage(p)}
+                        disabled={loading}
+                        style={{
+                          minWidth: '32px',
+                          height: '32px',
+                          padding: '0 6px',
+                          borderRadius: '6px',
+                          border: isActive ? '1px solid #0284c7' : '1px solid #e2e8f0',
+                          background: isActive ? '#0284c7' : '#ffffff',
+                          color: isActive ? '#ffffff' : '#334155',
+                          fontSize: '0.78rem',
+                          fontWeight: isActive ? 800 : 600,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {p}
+                      </button>
+                    );
+                  })}
+
+                <button
+                  type="button"
+                  disabled={page >= totalPages || loading}
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    background: page >= totalPages ? '#f8fafc' : '#ffffff',
+                    color: page >= totalPages ? '#94a3b8' : '#0f172a',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    cursor: page >= totalPages ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  Selanjutnya <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
@@ -1336,8 +1506,8 @@ export default function SantriView() {
                   </div>
                 </div>
 
-                {/* Baris 2: Gender, Status Mukim, Status Santri */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                {/* Baris 2: Gender, Kelas Pengajian, Status Mukim, Status Santri */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr 1fr 1fr', gap: '10px' }}>
                   <div>
                     <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>GENDER</label>
                     <SearchableSelect
@@ -1348,6 +1518,31 @@ export default function SantriView() {
                       value={formData.jk}
                       onChange={(val) => setFormData({ ...formData, jk: val })}
                       placeholder="-- Gender --"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
+                      PILIH KELAS (BOYS / GIRLS)
+                    </label>
+                    <SearchableSelect
+                      options={kelasList
+                        .filter(k => !formData.jk || k.gender === formData.jk)
+                        .map(k => ({
+                          value: k.nama_kelas,
+                          label: k.nama_kelas,
+                          sublabel: `Mustahiq: ${k.mustahiq || '-'} | Munawwib: ${k.munawwib || '-'}`
+                        }))}
+                      value={formData.nama_kelas}
+                      onChange={(val) => {
+                        const found = kelasList.find(k => k.nama_kelas === val);
+                        setFormData({ 
+                          ...formData, 
+                          nama_kelas: val, 
+                          kelas_id: found ? found.id : formData.kelas_id,
+                          tingkat_diniyah: val?.includes('1') || val?.includes('2') || val?.includes('3') ? 'Wustho' : 'Ulya'
+                        });
+                      }}
+                      placeholder="-- Pilih Kelas --"
                     />
                   </div>
                   <div>

@@ -3,8 +3,96 @@ import { sendSuccess, sendError } from '../utils/response.util.js';
 
 export const getAllSantri = async (req, res) => {
   try {
-    const { asrama_id } = req.query;
-    let sql = `
+    const { 
+      page = 1, 
+      limit = 25, 
+      search = '', 
+      tab = 'semua', 
+      asrama_id, 
+      asrama,
+      status, 
+      tingkat, 
+      tahun,
+      all = 'false'
+    } = req.query;
+
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.max(1, parseInt(limit) || 25);
+    const offset = (pageNum - 1) * limitNum;
+
+    // Conditions
+    const whereConditions = [];
+    const params = [];
+
+    // Search query across fields (nama, nis, kelas, wali, asrama, kamar)
+    if (search && String(search).trim() !== '') {
+      const q = `%${String(search).trim()}%`;
+      whereConditions.push(`(
+        s.nama_santri LIKE ? OR 
+        s.nis LIKE ? OR 
+        s.nama_kelas LIKE ? OR 
+        s.nama_wali LIKE ? OR 
+        a.nama_asrama LIKE ? OR 
+        k.nama_kamar LIKE ?
+      )`);
+      params.push(q, q, q, q, q, q);
+    }
+
+    // Tab Filter
+    if (tab === 'boys' || tab === 'L') {
+      whereConditions.push("s.jk = 'L'");
+    } else if (tab === 'girls' || tab === 'P') {
+      whereConditions.push("s.jk = 'P'");
+    } else if (tab === 'mukim') {
+      whereConditions.push("s.status_santri = 'Mukim'");
+    } else if (tab === 'kalong') {
+      whereConditions.push("s.status_santri = 'Kalong'");
+    } else if (tab === 'alumni') {
+      whereConditions.push("s.status IN ('Alumni', 'Boyong')");
+    }
+
+    // Asrama filter
+    if (asrama_id) {
+      whereConditions.push("s.asrama_id = ?");
+      params.push(asrama_id);
+    } else if (asrama && asrama !== 'Semua Asrama') {
+      whereConditions.push("a.nama_asrama LIKE ?");
+      params.push(`%${asrama}%`);
+    }
+
+    // Status filter
+    if (status && status !== 'Semua Status') {
+      whereConditions.push("s.status = ?");
+      params.push(status);
+    }
+
+    // Tingkat filter
+    if (tingkat && tingkat !== 'Semua Tingkat') {
+      whereConditions.push("s.tingkat_diniyah = ?");
+      params.push(tingkat);
+    }
+
+    // Tahun masuk filter
+    if (tahun && tahun !== 'Semua Tahun' && !String(tahun).includes('Tahun 2026/2027')) {
+      whereConditions.push("s.tahun_masuk LIKE ?");
+      params.push(`%${String(tahun).replace('Tahun ', '').trim()}%`);
+    }
+
+    const whereClause = whereConditions.length > 0 ? ` WHERE ${whereConditions.join(' AND ')} ` : '';
+
+    // Count filtered records
+    const countSql = `
+      SELECT COUNT(*) as total
+      FROM santri s
+      LEFT JOIN asrama a ON s.asrama_id = a.id
+      LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+      ${whereClause}
+    `;
+    const [countRows] = await pool.query(countSql, params);
+    const totalFiltered = countRows[0]?.total || 0;
+
+    // Base data query
+    let dataSql = `
       SELECT s.*, 
              a.nama_asrama, 
              a.gender as asrama_gender, 
@@ -15,16 +103,49 @@ export const getAllSantri = async (req, res) => {
       LEFT JOIN asrama a ON s.asrama_id = a.id
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
       LEFT JOIN kelas kl ON (s.kelas_id = kl.id OR s.nama_kelas = kl.nama_kelas)
+      ${whereClause}
+      ORDER BY s.id ASC
     `;
-    const params = [];
-    if (asrama_id) {
-      sql += ` WHERE s.asrama_id = ? `;
-      params.push(asrama_id);
-    }
-    sql += ` ORDER BY s.id ASC `;
 
-    const [rows] = await pool.query(sql, params);
-    return sendSuccess(res, 'Data santri berhasil diambil', { data: rows || [] });
+    let dataParams = [...params];
+    if (all !== 'true' && limit !== 'all') {
+      dataSql += ` LIMIT ? OFFSET ? `;
+      dataParams.push(limitNum, offset);
+    }
+
+    const [rows] = await pool.query(dataSql, dataParams);
+
+    // Global Stats for top cards & tab counts
+    const [statsRows] = await pool.query(`
+      SELECT 
+        COUNT(*) as totalAll,
+        COALESCE(SUM(CASE WHEN jk = 'L' THEN 1 ELSE 0 END), 0) as totalBoys,
+        COALESCE(SUM(CASE WHEN jk = 'P' THEN 1 ELSE 0 END), 0) as totalGirls,
+        COALESCE(SUM(CASE WHEN status_santri = 'Mukim' THEN 1 ELSE 0 END), 0) as totalMukim,
+        COALESCE(SUM(CASE WHEN status_santri = 'Kalong' THEN 1 ELSE 0 END), 0) as totalKalong,
+        COALESCE(SUM(CASE WHEN status IN ('Alumni', 'Boyong') THEN 1 ELSE 0 END), 0) as totalAlumni
+      FROM santri
+    `);
+
+    const stats = statsRows[0] || {
+      totalAll: 0,
+      totalBoys: 0,
+      totalGirls: 0,
+      totalMukim: 0,
+      totalKalong: 0,
+      totalAlumni: 0
+    };
+
+    return sendSuccess(res, 'Data santri berhasil diambil', { 
+      data: rows || [],
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: totalFiltered,
+        totalPages: Math.ceil(totalFiltered / limitNum) || 1
+      },
+      stats
+    });
   } catch (err) {
     return sendError(res, err.message, 500);
   }
@@ -88,6 +209,8 @@ export const createSantri = async (req, res) => {
     addCol('kamar_id', kamar_id || null);
     addCol('capaian_hafalan_juz', capaian_hafalan_juz || 0);
     addCol('tingkat_diniyah', tingkat_diniyah || 'Wustho');
+    addCol('nama_kelas', req.body.nama_kelas || null);
+    addCol('kelas_id', req.body.kelas_id || null);
     addCol('fingerprint_pin', fingerprint_pin || null);
     addCol('rfid_card_uid', rfid_card_uid || null);
     addCol('nama_wali', nama_wali || '');
@@ -172,6 +295,8 @@ export const updateSantri = async (req, res) => {
     if (tahun_masuk !== undefined) addIfColExists('tahun_masuk', tahun_masuk);
     if (capaian_hafalan_juz !== undefined) addIfColExists('capaian_hafalan_juz', capaian_hafalan_juz || 0);
     if (tingkat_diniyah !== undefined) addIfColExists('tingkat_diniyah', tingkat_diniyah || 'Wustho');
+    if (req.body.nama_kelas !== undefined) addIfColExists('nama_kelas', req.body.nama_kelas);
+    if (req.body.kelas_id !== undefined) addIfColExists('kelas_id', req.body.kelas_id);
 
     if (finalFoto !== undefined) addIfColExists('foto', finalFoto);
     if (username !== undefined && String(username).trim() !== '') addIfColExists('username', String(username).trim());
