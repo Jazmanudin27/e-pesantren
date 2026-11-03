@@ -135,6 +135,12 @@ export default function MobileLayout() {
   };
 
   const handleLoginSuccess = (userSession) => {
+    const role = String(userSession?.role || '').toLowerCase();
+    if (role === 'wali' || role === 'wali santri') {
+      window.location.hash = '#wali';
+      window.location.reload();
+      return;
+    }
     localStorage.setItem('mobileTab', 'home');
     setMobileTab('home');
     window.location.hash = 'mobile';
@@ -154,10 +160,6 @@ export default function MobileLayout() {
     return (
       <MobileOnboarding 
         onStart={() => setAuthView('login')}
-        onOpenWali={() => {
-          window.location.hash = '#wali';
-          window.location.reload();
-        }}
       />
     );
   }

@@ -12,8 +12,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
-export default function MobileOnboarding({ onStart, onOpenWali }) {
-  const [showPendaftaranModal, setShowPendaftaranModal] = useState(false);
+export default function MobileOnboarding({ onStart }) {
 
   return (
     <div style={{
@@ -227,9 +226,8 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
             Pantau presensi santri, setoran tahfidz Qur'an, mutaba'ah asrama, dan syahriah dengan mudah & transparan.
           </p>
 
-          {/* Action Buttons */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {/* Big Primary Button ("Mulai Sekarang ->") */}
+          {/* Action Button: Hanya Mulai Sekarang */}
+          <div style={{ marginTop: '4px' }}>
             <button
               id="btn-onboarding-start"
               onClick={onStart}
@@ -238,225 +236,34 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
                 background: '#ffffff',
                 color: '#064e3b',
                 border: 'none',
-                padding: '9px 16px',
+                padding: '12px 18px',
                 borderRadius: '999px',
-                fontSize: '0.86rem',
+                fontSize: '0.92rem',
                 fontWeight: 900,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
                 cursor: 'pointer',
-                boxShadow: '0 6px 16px -2px rgba(255, 255, 255, 0.35)',
+                boxShadow: '0 8px 20px -2px rgba(255, 255, 255, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3)',
                 transition: 'all 0.2s ease',
                 userSelect: 'none'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 10px 20px -2px rgba(255, 255, 255, 0.45)';
+                e.currentTarget.style.boxShadow = '0 12px 24px -2px rgba(255, 255, 255, 0.5)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 6px 16px -2px rgba(255, 255, 255, 0.35)';
+                e.currentTarget.style.boxShadow = '0 8px 20px -2px rgba(255, 255, 255, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3)';
               }}
             >
               <span>Mulai Sekarang</span>
-              <ArrowRight size={16} color="#064e3b" strokeWidth={3} />
+              <ArrowRight size={17} color="#064e3b" strokeWidth={3} />
             </button>
-
-            {/* Quick Secondary Links */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '6px'
-            }}>
-              {/* Button Portal Wali */}
-              <button
-                type="button"
-                onClick={onOpenWali}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.12)',
-                  backdropFilter: 'blur(10px)',
-                  WebkitBackdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  color: '#ffffff',
-                  padding: '7px 6px',
-                  borderRadius: '11px',
-                  fontSize: '0.68rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '5px',
-                  transition: 'background 0.2s ease'
-                }}
-              >
-                <HeartHandshake size={13} color="#6ee7b7" />
-                <span>Portal Orang Tua</span>
-              </button>
-
-              {/* Button Info Pendaftaran / Santri Baru */}
-              <button
-                type="button"
-                onClick={() => setShowPendaftaranModal(true)}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.12)',
-                  backdropFilter: 'blur(10px)',
-                  WebkitBackdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  color: '#ffffff',
-                  padding: '7px 6px',
-                  borderRadius: '11px',
-                  fontSize: '0.68rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '5px',
-                  transition: 'background 0.2s ease'
-                }}
-              >
-                <BookOpen size={14} color="#93c5fd" />
-                <span>Daftar / Info Santri</span>
-              </button>
-            </div>
           </div>
         </div>
       </div>
-
-      {/* ----------------- MODAL INFO PENDAFTARAN / SANTRI ----------------- */}
-      {showPendaftaranModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(6px)',
-          zIndex: 9999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '16px'
-        }}>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '24px',
-            width: '100%',
-            maxWidth: '380px',
-            padding: '24px 20px',
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
-            position: 'relative'
-          }}>
-            <button
-              onClick={() => setShowPendaftaranModal(false)}
-              style={{
-                position: 'absolute',
-                top: '16px',
-                right: '16px',
-                background: '#f1f5f9',
-                border: 'none',
-                borderRadius: '50%',
-                width: '32px',
-                height: '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: '#64748b'
-              }}
-            >
-              <X size={18} />
-            </button>
-
-            <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-              <div style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '18px',
-                background: '#ecfdf5',
-                color: '#059669',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 10px'
-              }}>
-                <GraduationCap size={30} />
-              </div>
-              <h3 style={{ margin: '0 0 4px', fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
-                Pendaftaran & Akun Santri
-              </h3>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b' }}>
-                PP. Nurul Wafa Sukarame Tasikmalaya
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8rem', color: '#334155' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', background: '#f8fafc', padding: '10px', borderRadius: '12px' }}>
-                <CheckCircle2 size={18} color="#059669" style={{ flexShrink: 0, marginTop: '2px' }} />
-                <div>
-                  <strong>Akun Santri & Asatidz:</strong>
-                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                    Diberikan langsung oleh Sekretariat Ponpes. Gunakan NIS santri atau username dari Admin.
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', background: '#f8fafc', padding: '10px', borderRadius: '12px' }}>
-                <CheckCircle2 size={18} color="#059669" style={{ flexShrink: 0, marginTop: '2px' }} />
-                <div>
-                  <strong>Pendaftaran Santri Baru (PSB):</strong>
-                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                    Pendaftaran tahun ajaran baru dibuka secara online melalui sekretariat ponpes.
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '20px' }}>
-              <button
-                onClick={() => {
-                  setShowPendaftaranModal(false);
-                  onStart();
-                }}
-                style={{
-                  width: '100%',
-                  background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '12px',
-                  borderRadius: '12px',
-                  fontWeight: 800,
-                  fontSize: '0.88rem',
-                  cursor: 'pointer'
-                }}
-              >
-                Lanjut ke Halaman Login
-              </button>
-
-              <button
-                onClick={() => setShowPendaftaranModal(false)}
-                style={{
-                  width: '100%',
-                  background: 'transparent',
-                  border: '1px solid #e2e8f0',
-                  color: '#64748b',
-                  padding: '10px',
-                  borderRadius: '12px',
-                  fontWeight: 700,
-                  fontSize: '0.8rem',
-                  cursor: 'pointer'
-                }}
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

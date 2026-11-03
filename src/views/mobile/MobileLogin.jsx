@@ -82,15 +82,32 @@ export default function MobileLogin({ onLoginSuccess, onBackToOnboarding }) {
         } catch (err) {}
 
         const userObj = res.data.user || {};
-        const detectedRole = res.data.role || userObj.role || 'asatidz';
-        const detectedType = res.data.userType || userObj.userType || 
-          (detectedRole === 'asatidz' ? 'Ustadz / Guru' : (detectedRole === 'admin' ? 'Administrator' : 'Asrama'));
+        const rawRole = String(res.data.role || userObj.role || '').toLowerCase();
+        const rawType = String(res.data.userType || userObj.userType || '').toLowerCase();
+
+        let detectedRole = 'asatidz';
+        let detectedType = 'Ustadz / Guru';
+
+        if (rawRole === 'wali' || rawRole === 'wali santri' || rawType.includes('wali') || rawType.includes('orang tua')) {
+          detectedRole = 'wali';
+          detectedType = 'Wali Santri';
+        } else if (rawRole === 'admin' || rawType.includes('admin')) {
+          detectedRole = 'admin';
+          detectedType = 'Administrator';
+        } else if (rawRole === 'asrama' || rawType.includes('asrama')) {
+          detectedRole = 'asrama';
+          detectedType = 'Asrama';
+        } else {
+          detectedRole = 'asatidz';
+          detectedType = 'Ustadz / Guru';
+        }
 
         const sessionData = {
           token: res.data.token,
           role: detectedRole,
           userType: detectedType,
-          nama: res.data.nama || userObj.nama_asatidz || userObj.nama || userObj.name || cleanUser,
+          santri_id: res.data.santri_id || userObj.santri_id || userObj.id,
+          nama: res.data.nama || userObj.nama_asatidz || userObj.nama_santri || userObj.nama || userObj.name || cleanUser,
           nama_asatidz: res.data.nama_asatidz || userObj.nama_asatidz || cleanUser,
           asrama_id: res.data.asrama_id || userObj.asrama_id || 1,
           nama_asrama: res.data.nama_asrama || userObj.nama_asrama || '',
@@ -100,8 +117,12 @@ export default function MobileLogin({ onLoginSuccess, onBackToOnboarding }) {
         };
 
         localStorage.setItem('mobile_session', JSON.stringify(sessionData));
+        if (detectedRole === 'wali') {
+          localStorage.setItem('wali_session', JSON.stringify(sessionData));
+        }
+
         setLoading(false);
-        toastSuccess(`Selamat datang, ${sessionData.nama}`);
+        toastSuccess(`Login berhasil (${detectedType}): ${sessionData.nama}`);
         if (onLoginSuccess) onLoginSuccess(sessionData);
         return;
       } else {
@@ -248,10 +269,10 @@ export default function MobileLogin({ onLoginSuccess, onBackToOnboarding }) {
 
         {/* Form Login */}
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          {/* USERNAME INPUT */}
+          {/* USERNAME / NIS INPUT */}
           <div>
             <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              Username / NIK
+              Username / NIS Santri / NIK
             </label>
             <div style={{
               position: 'relative',
@@ -266,7 +287,7 @@ export default function MobileLogin({ onLoginSuccess, onBackToOnboarding }) {
               />
               <input 
                 type="text"
-                placeholder="Username akun Anda..."
+                placeholder="Username, NIS Santri, atau NIK..."
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 onFocus={() => setFocusedField('user')}
