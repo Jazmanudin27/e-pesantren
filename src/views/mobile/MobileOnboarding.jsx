@@ -17,9 +17,12 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
 
   return (
     <div style={{
-      position: 'relative',
-      width: '100%',
-      minHeight: '100vh',
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      width: '100vw',
       height: '100dvh',
       background: '#02151f',
       display: 'flex',
@@ -34,12 +37,11 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
         width: '100%',
         maxWidth: '430px',
         height: '100%',
-        maxHeight: '932px',
+        maxHeight: '100dvh',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.7)',
         backgroundColor: '#02151f'
       }}>
         {/* Fullscreen Hero Background Image */}
@@ -51,7 +53,7 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
           bottom: 0,
           backgroundImage: "url('/onboarding-santri.jpg')",
           backgroundSize: 'cover',
-          backgroundPosition: 'center 10%',
+          backgroundPosition: 'center 6%',
           backgroundRepeat: 'no-repeat',
           zIndex: 1
         }} />
@@ -62,8 +64,8 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
           top: 0,
           left: 0,
           right: 0,
-          height: '110px',
-          background: 'linear-gradient(to bottom, rgba(2, 21, 31, 0.6) 0%, rgba(2, 21, 31, 0.15) 60%, transparent 100%)',
+          height: '100px',
+          background: 'linear-gradient(to bottom, rgba(2, 21, 31, 0.6) 0%, rgba(2, 21, 31, 0.1) 60%, transparent 100%)',
           zIndex: 2,
           pointerEvents: 'none'
         }} />
@@ -74,7 +76,7 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
           bottom: 0,
           left: 0,
           right: 0,
-          height: '48%',
+          height: '42%',
           background: 'linear-gradient(to bottom, rgba(2, 21, 31, 0) 0%, rgba(2, 25, 37, 0.45) 25%, rgba(2, 28, 42, 0.92) 55%, #021a27 80%, #01121b 100%)',
           zIndex: 2,
           pointerEvents: 'none'
@@ -84,7 +86,7 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
         <div style={{
           position: 'relative',
           zIndex: 10,
-          padding: '16px 18px 0',
+          padding: '12px 16px 0',
           display: 'flex',
           flexDirection: 'column'
         }}>
@@ -97,27 +99,27 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
             {/* Left Brand Badge */}
             <div style={{
               background: '#ffffff',
-              borderRadius: '14px',
-              padding: '6px 14px 6px 10px',
+              borderRadius: '12px',
+              padding: '5px 12px 5px 8px',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '8px',
+              gap: '6px',
               boxShadow: '0 4px 14px rgba(0,0,0,0.25)'
             }}>
               <img 
                 src="/logo.png" 
                 alt="Logo Ponpes" 
                 style={{ 
-                  width: '24px', 
-                  height: '24px', 
+                  width: '22px', 
+                  height: '22px', 
                   objectFit: 'contain' 
                 }} 
               />
               <span style={{
                 color: '#064e3b',
                 fontWeight: 900,
-                fontSize: '0.78rem',
-                letterSpacing: '0.04em'
+                fontSize: '0.74rem',
+                letterSpacing: '0.03em'
               }}>
                 RUANG PONPES
               </span>
@@ -130,15 +132,15 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
               WebkitBackdropFilter: 'blur(10px)',
               border: '1px solid rgba(255, 255, 255, 0.2)',
               borderRadius: '999px',
-              padding: '6px 14px',
+              padding: '5px 12px',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '7px',
+              gap: '6px',
               boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
             }}>
               <span style={{
-                width: '8px',
-                height: '8px',
+                width: '7px',
+                height: '7px',
                 borderRadius: '50%',
                 background: '#10b981',
                 boxShadow: '0 0 8px #10b981',
@@ -146,7 +148,7 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
               }} />
               <span style={{
                 color: '#e2e8f0',
-                fontSize: '0.72rem',
+                fontSize: '0.68rem',
                 fontWeight: 800,
                 letterSpacing: '0.03em'
               }}>
@@ -160,10 +162,10 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
         <div style={{
           position: 'relative',
           zIndex: 10,
-          padding: '0 20px 22px',
+          padding: '0 16px 14px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '6px',
+          gap: '5px',
           boxSizing: 'border-box'
         }}>
           {/* Tag Pill */}
@@ -174,13 +176,13 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
               WebkitBackdropFilter: 'blur(8px)',
               border: '1px solid rgba(52, 211, 153, 0.45)',
               borderRadius: '999px',
-              padding: '3px 10px',
+              padding: '2px 9px',
               color: '#34d399',
-              fontSize: '0.68rem',
+              fontSize: '0.64rem',
               fontWeight: 800,
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '5px'
+              gap: '4px'
             }}>
               <Sparkles size={11} color="#34d399" />
               <span>Santri Berakhlak & Terampil Digital</span>
@@ -190,10 +192,10 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
           {/* Main Headline */}
           <h1 style={{
             margin: 0,
-            fontSize: '1.35rem',
+            fontSize: '1.2rem',
             fontWeight: 900,
             color: '#ffffff',
-            lineHeight: 1.22,
+            lineHeight: 1.2,
             letterSpacing: '-0.02em',
             textShadow: '0 2px 8px rgba(0, 0, 0, 0.7)'
           }}>
@@ -203,22 +205,22 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
           {/* Subtitle / Tagline */}
           <div style={{
             color: '#6ee7b7',
-            fontSize: '0.78rem',
+            fontSize: '0.74rem',
             fontWeight: 700,
             display: 'flex',
             alignItems: 'center',
-            gap: '5px'
+            gap: '4px'
           }}>
-            <GraduationCap size={14} color="#34d399" />
+            <GraduationCap size={13} color="#34d399" />
             <span>Pendidikan Terpadu & Kualitas Terbaik</span>
           </div>
 
           {/* Description Paragraph */}
           <p style={{
-            margin: '2px 0 4px 0',
-            fontSize: '0.72rem',
+            margin: '0 0 2px 0',
+            fontSize: '0.68rem',
             color: '#cbd5e1',
-            lineHeight: 1.4,
+            lineHeight: 1.35,
             fontWeight: 500,
             textShadow: '0 1px 3px rgba(0, 0, 0, 0.6)'
           }}>
@@ -226,7 +228,7 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
           </p>
 
           {/* Action Buttons */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {/* Big Primary Button ("Mulai Sekarang ->") */}
             <button
               id="btn-onboarding-start"
@@ -236,37 +238,37 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
                 background: '#ffffff',
                 color: '#064e3b',
                 border: 'none',
-                padding: '11px 18px',
+                padding: '9px 16px',
                 borderRadius: '999px',
-                fontSize: '0.9rem',
+                fontSize: '0.86rem',
                 fontWeight: 900,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
                 cursor: 'pointer',
-                boxShadow: '0 8px 20px -3px rgba(255, 255, 255, 0.35)',
+                boxShadow: '0 6px 16px -2px rgba(255, 255, 255, 0.35)',
                 transition: 'all 0.2s ease',
                 userSelect: 'none'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 12px 24px -3px rgba(255, 255, 255, 0.45)';
+                e.currentTarget.style.boxShadow = '0 10px 20px -2px rgba(255, 255, 255, 0.45)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 8px 20px -3px rgba(255, 255, 255, 0.35)';
+                e.currentTarget.style.boxShadow = '0 6px 16px -2px rgba(255, 255, 255, 0.35)';
               }}
             >
               <span>Mulai Sekarang</span>
-              <ArrowRight size={17} color="#064e3b" strokeWidth={3} />
+              <ArrowRight size={16} color="#064e3b" strokeWidth={3} />
             </button>
 
             {/* Quick Secondary Links */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
-              gap: '8px'
+              gap: '6px'
             }}>
               {/* Button Portal Wali */}
               <button
@@ -278,19 +280,19 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
                   WebkitBackdropFilter: 'blur(10px)',
                   border: '1px solid rgba(255, 255, 255, 0.2)',
                   color: '#ffffff',
-                  padding: '10px 8px',
-                  borderRadius: '14px',
-                  fontSize: '0.74rem',
+                  padding: '7px 6px',
+                  borderRadius: '11px',
+                  fontSize: '0.68rem',
                   fontWeight: 700,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '6px',
+                  gap: '5px',
                   transition: 'background 0.2s ease'
                 }}
               >
-                <HeartHandshake size={14} color="#6ee7b7" />
+                <HeartHandshake size={13} color="#6ee7b7" />
                 <span>Portal Orang Tua</span>
               </button>
 
@@ -304,15 +306,15 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
                   WebkitBackdropFilter: 'blur(10px)',
                   border: '1px solid rgba(255, 255, 255, 0.2)',
                   color: '#ffffff',
-                  padding: '10px 8px',
-                  borderRadius: '14px',
-                  fontSize: '0.74rem',
+                  padding: '7px 6px',
+                  borderRadius: '11px',
+                  fontSize: '0.68rem',
                   fontWeight: 700,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '6px',
+                  gap: '5px',
                   transition: 'background 0.2s ease'
                 }}
               >
