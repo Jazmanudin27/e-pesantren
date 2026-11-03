@@ -41,6 +41,8 @@ export default function MobilePengembangan() {
   // Master Kategori (beserta permasalahan, penyebab, tindakan)
   const [masterKategoriAll, setMasterKategoriAll] = useState([]);
   const [santriList, setSantriList] = useState([]);
+  const [kelasList, setKelasList] = useState([]);
+  const [selectedEvalKelas, setSelectedEvalKelas] = useState('');
   const [rekapList, setRekapList] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -122,10 +124,11 @@ export default function MobilePengembangan() {
   const fetchInitialData = async () => {
     setLoading(true);
     try {
-      const [resMaster, resSantri, resRekap] = await Promise.all([
+      const [resMaster, resSantri, resRekap, resKelas] = await Promise.all([
         axios.get('/api/perkembangan-ikhwan/master?gender=Semua').catch(() => ({ data: { data: [] } })),
         axios.get('/api/santri').catch(() => ({ data: { data: [] } })),
-        axios.get('/api/perkembangan-ikhwan/rekap?limit=200').catch(() => ({ data: { data: [] } }))
+        axios.get('/api/perkembangan-ikhwan/rekap?limit=200').catch(() => ({ data: { data: [] } })),
+        axios.get('/api/kelas').catch(() => ({ data: { data: [] } }))
       ]);
 
       const katData = resMaster.data?.data || resMaster.data?.kategori || [];
@@ -133,6 +136,9 @@ export default function MobilePengembangan() {
 
       const sData = resSantri.data?.data || [];
       setSantriList(Array.isArray(sData) ? sData : []);
+
+      const kData = resKelas.data?.data || [];
+      setKelasList(Array.isArray(kData) ? kData : []);
 
       const rData = resRekap.data?.data || resRekap.data?.rekap || [];
       setRekapList(Array.isArray(rData) ? rData : []);
@@ -165,6 +171,18 @@ export default function MobilePengembangan() {
     kategoriForEvalModal.find((k) => String(k.id) === String(evalForm.kategori_id)) ||
     kategoriForEvalModal[0] ||
     null;
+
+  // Daftar Kelas gabungan (dari API /api/kelas + fallback data santri)
+  const combinedKelasOptions = React.useMemo(() => {
+    const list = [...kelasList];
+    (santriList || []).forEach((s) => {
+      const kName = s.nama_kelas;
+      if (kName && !list.some((k) => k.nama_kelas === kName || String(k.id) === String(s.kelas_id))) {
+        list.push({ id: s.kelas_id || kName, nama_kelas: kName });
+      }
+    });
+    return list;
+  }, [kelasList, santriList]);
 
   useEffect(() => {
     if (kategoriByActiveGender.length > 0 && !selectedMasterKatId) {
@@ -393,6 +411,9 @@ export default function MobilePengembangan() {
     const detectedGender = rawJk.startsWith('P') ? 'P' : 'L';
     setActiveGender(detectedGender);
 
+    const sKelas = santriObj.kelas_id ? String(santriObj.kelas_id) : (santriObj.nama_kelas || '');
+    setSelectedEvalKelas(sKelas);
+
     const availableKats = (masterKategoriRef.current || []).filter(
       (k) => !k.gender || k.gender === detectedGender || k.gender === 'Semua'
     );
@@ -495,8 +516,12 @@ export default function MobilePengembangan() {
       nama_santri: row.nama_santri,
       nis: row.nis,
       jk: row.jk,
-      nama_asrama: row.nama_asrama
+      nama_asrama: row.nama_asrama,
+      nama_kelas: row.nama_kelas,
+      kelas_id: row.kelas_id
     };
+    const sKelas = sObj.kelas_id ? String(sObj.kelas_id) : (sObj.nama_kelas || row.nama_kelas || '');
+    setSelectedEvalKelas(sKelas);
     const g = String(row.jk || activeGender).toUpperCase().startsWith('P') ? 'P' : 'L';
     setEvalForm({
       santri_id: row.santri_id,
@@ -746,6 +771,7 @@ export default function MobilePengembangan() {
             type="button"
             onClick={() => {
               const firstKat = kategoriByActiveGender[0] ? String(kategoriByActiveGender[0].id) : '';
+              setSelectedEvalKelas('');
               setEvalForm({
                 santri_id: '',
                 santriObj: null,
@@ -1520,16 +1546,19 @@ export default function MobilePengembangan() {
               onSubmit={handleSaveEvaluasi}
               style={{ padding: '16px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '14px' }}
             >
-              {/* Identitas Santri Terdeteksi / Pilih Santri */}
+              {/* Identitas Santri Terdeteksi / Pilih Santri Berdasarkan Kelas */}
               <div
                 style={{
                   background: '#f0f9ff',
                   border: '1.5px solid #bae6fd',
                   borderRadius: '12px',
-                  padding: '12px'
+                  padding: '12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0369a1' }}>
                     1. DATA SANTRI YANG DIUJI
                   </span>
@@ -1557,29 +1586,109 @@ export default function MobilePengembangan() {
                   </button>
                 </div>
 
-                <SearchableSelect
-                  options={santriList.map((s) => ({
-                    value: s.id,
-                    label: `${s.nama_santri} (NIS: ${s.nis || '-'})`
-                  }))}
-                  value={evalForm.santri_id}
-                  onChange={(val) => {
-                    const sObj = santriList.find((s) => String(s.id) === String(val));
-                    if (sObj) {
-                      const rawJk = String(sObj.jk || 'L').toUpperCase();
-                      const g = rawJk.startsWith('P') ? 'P' : 'L';
-                      const avail = masterKategoriAll.filter((k) => !k.gender || k.gender === g || k.gender === 'Semua');
-                      setEvalForm((prev) => ({
-                        ...prev,
-                        santri_id: sObj.id,
-                        santriObj: sObj,
-                        gender: g,
-                        kategori_id: avail[0] ? String(avail[0].id) : prev.kategori_id
-                      }));
-                    }
-                  }}
-                  placeholder="Pilih atau cari nama santri..."
-                />
+                {/* Pilih Kelas Terlebih Dahulu */}
+                <div>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 700, color: '#0369a1', display: 'block', marginBottom: '4px' }}>
+                    Pilih Kelas Santri *
+                  </label>
+                  <SearchableSelect
+                    options={combinedKelasOptions.map((k) => ({
+                      value: String(k.id || k.nama_kelas),
+                      label: k.nama_kelas || `Kelas ${k.id}`,
+                      sublabel: k.tingkat ? `Tingkat: ${k.tingkat}` : ''
+                    }))}
+                    value={selectedEvalKelas}
+                    onChange={(val) => {
+                      setSelectedEvalKelas(val);
+                      // Jika kelas diganti, bersihkan santri jika santri lama bukan dari kelas ini
+                      const currentSantri = santriList.find((s) => String(s.id) === String(evalForm.santri_id));
+                      const matchCurrent = currentSantri && (String(currentSantri.kelas_id) === String(val) || String(currentSantri.nama_kelas) === String(val));
+                      if (!matchCurrent) {
+                        setEvalForm((prev) => ({
+                          ...prev,
+                          santri_id: '',
+                          santriObj: null
+                        }));
+                      }
+                    }}
+                    placeholder="-- Pilih Kelas Terlebih Dahulu --"
+                    searchPlaceholder="Cari kelas santri..."
+                    triggerStyle={{
+                      background: '#ffffff',
+                      border: '1.5px solid #93c5fd',
+                      borderRadius: '10px',
+                      padding: '9px 12px',
+                      fontSize: '0.82rem'
+                    }}
+                  />
+                </div>
+
+                {/* Pilih Santri (Hanya muncul / aktif setelah kelas dipilih) */}
+                <div>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 700, color: '#0369a1', display: 'block', marginBottom: '4px' }}>
+                    Pilih Santri di Kelas Terpilih *
+                  </label>
+                  {selectedEvalKelas ? (
+                    <SearchableSelect
+                      options={santriList
+                        .filter((s) => {
+                          const matchKelas = String(s.kelas_id) === String(selectedEvalKelas) || String(s.nama_kelas) === String(selectedEvalKelas);
+                          if (!matchKelas) return false;
+                          if (evalForm.gender) {
+                            const isP = String(s.jk || s.jenis_kelamin || 'L').toUpperCase().startsWith('P');
+                            if (evalForm.gender === 'P' && !isP) return false;
+                            if (evalForm.gender === 'L' && isP) return false;
+                          }
+                          return true;
+                        })
+                        .map((s) => ({
+                          value: s.id,
+                          label: s.nama_santri,
+                          sublabel: `NIS: ${s.nis || '-'} • ${String(s.jk || 'L').toUpperCase().startsWith('P') ? 'Akhwat' : 'Ikhwan'} • ${s.nama_asrama || 'Asrama'}`
+                        }))}
+                      value={evalForm.santri_id}
+                      onChange={(val) => {
+                        const sObj = santriList.find((s) => String(s.id) === String(val));
+                        if (sObj) {
+                          const rawJk = String(sObj.jk || 'L').toUpperCase();
+                          const g = rawJk.startsWith('P') ? 'P' : 'L';
+                          const avail = masterKategoriAll.filter((k) => !k.gender || k.gender === g || k.gender === 'Semua');
+                          setEvalForm((prev) => ({
+                            ...prev,
+                            santri_id: sObj.id,
+                            santriObj: sObj,
+                            gender: g,
+                            kategori_id: avail[0] ? String(avail[0].id) : prev.kategori_id
+                          }));
+                        }
+                      }}
+                      placeholder="Pilih santri yang diuji..."
+                      searchPlaceholder="Ketik nama atau NIS santri..."
+                      triggerStyle={{
+                        background: '#ffffff',
+                        border: '1.5px solid #0284c7',
+                        borderRadius: '10px',
+                        padding: '9px 12px',
+                        fontSize: '0.82rem'
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        padding: '10px 12px',
+                        background: '#ffffff',
+                        borderRadius: '10px',
+                        border: '1.5px dashed #93c5fd',
+                        fontSize: '0.75rem',
+                        color: '#0284c7',
+                        fontWeight: 600,
+                        textAlign: 'center'
+                      }}
+                    >
+                      👆 Pilih kelas terlebih dahulu untuk memilih nama santri
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Pilih Bidang Pengembangan */}
