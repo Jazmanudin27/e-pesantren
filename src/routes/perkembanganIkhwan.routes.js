@@ -17,6 +17,15 @@ const router = express.Router();
 
 // Master Data & Kustomisasi
 router.get('/master', getMasterPerkembangan);
+router.post('/sync-master', async (req, res) => {
+  try {
+    const { initPerkembanganIkhwanDb } = await import('../config/initPerkembanganIkhwanDb.js');
+    await initPerkembanganIkhwanDb();
+    res.json({ success: true, message: 'Master perkembangan santri berhasil disinkronkan' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
 router.post('/kategori', createKategori);
 router.put('/kategori/:id', updateKategori);
 router.delete('/kategori/:id', deleteKategori);

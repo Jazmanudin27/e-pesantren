@@ -434,9 +434,8 @@ export async function initPerkembanganIkhwanDb() {
       console.warn('[E-PESANTREN DB] Add index uq_kat_gender note:', e.message);
     }
 
-    const [countKatPutri] = await pool.query("SELECT COUNT(*) as cnt FROM perkembangan_kategori WHERE gender = 'P'");
-    if (countKatPutri[0].cnt === 0) {
-      const initialDataPutri = [
+    // Sinkronisasi data master kategori & item untuk santri putri (Akhwat)
+    const initialDataPutri = [
         {
           nama: 'Praktek Ibadah',
           permasalahan: [
@@ -675,40 +674,71 @@ export async function initPerkembanganIkhwanDb() {
 
       for (let i = 0; i < initialDataPutri.length; i++) {
         const item = initialDataPutri[i];
-        const [resKat] = await pool.query(`
-          INSERT INTO perkembangan_kategori (nama_kategori, deskripsi, gender, urutan)
-          VALUES (?, ?, 'P', ?)
-        `, [item.nama, `Kategori diagnostik perkembangan santri putri (akhwat): ${item.nama}`, i + 1]);
 
-        const katId = resKat.insertId;
+        // 1. Cek atau buat kategori
+        const [existKat] = await pool.query(
+          "SELECT id FROM perkembangan_kategori WHERE (nama_kategori = ? OR LOWER(TRIM(nama_kategori)) = LOWER(TRIM(?))) AND gender = 'P' LIMIT 1",
+          [item.nama, item.nama]
+        );
 
-        // Insert Permasalahan
+        let katId;
+        if (existKat && existKat.length > 0) {
+          katId = existKat[0].id;
+        } else {
+          const [resKat] = await pool.query(`
+            INSERT INTO perkembangan_kategori (nama_kategori, deskripsi, gender, urutan)
+            VALUES (?, ?, 'P', ?)
+          `, [item.nama, `Kategori diagnostik perkembangan santri putri (akhwat): ${item.nama}`, i + 1]);
+          katId = resKat.insertId;
+        }
+
+        // 2. Cek & insert Permasalahan jika belum ada
         for (let p = 0; p < item.permasalahan.length; p++) {
-          await pool.query(`
-            INSERT INTO perkembangan_master_item (kategori_id, tipe, kode, teks, urutan)
-            VALUES (?, 'permasalahan', ?, ?, ?)
-          `, [katId, String.fromCharCode(97 + p), item.permasalahan[p], p + 1]);
+          const text = item.permasalahan[p].trim();
+          const [exist] = await pool.query(
+            "SELECT id FROM perkembangan_master_item WHERE kategori_id = ? AND tipe = 'permasalahan' AND (teks = ? OR LOWER(TRIM(teks)) = LOWER(TRIM(?))) LIMIT 1",
+            [katId, text, text]
+          );
+          if (!exist || exist.length === 0) {
+            await pool.query(`
+              INSERT INTO perkembangan_master_item (kategori_id, tipe, kode, teks, urutan)
+              VALUES (?, 'permasalahan', ?, ?, ?)
+            `, [katId, String.fromCharCode(97 + p), text, p + 1]);
+          }
         }
 
-        // Insert Penyebab
+        // 3. Cek & insert Penyebab jika belum ada
         for (let c = 0; c < item.penyebab.length; c++) {
-          await pool.query(`
-            INSERT INTO perkembangan_master_item (kategori_id, tipe, kode, teks, urutan)
-            VALUES (?, 'penyebab', ?, ?, ?)
-          `, [katId, String.fromCharCode(97 + c), item.penyebab[c], c + 1]);
+          const text = item.penyebab[c].trim();
+          const [exist] = await pool.query(
+            "SELECT id FROM perkembangan_master_item WHERE kategori_id = ? AND tipe = 'penyebab' AND (teks = ? OR LOWER(TRIM(teks)) = LOWER(TRIM(?))) LIMIT 1",
+            [katId, text, text]
+          );
+          if (!exist || exist.length === 0) {
+            await pool.query(`
+              INSERT INTO perkembangan_master_item (kategori_id, tipe, kode, teks, urutan)
+              VALUES (?, 'penyebab', ?, ?, ?)
+            `, [katId, String.fromCharCode(97 + c), text, c + 1]);
+          }
         }
 
-        // Insert Tindakan
+        // 4. Cek & insert Tindakan jika belum ada
         for (let t = 0; t < item.tindakan.length; t++) {
-          await pool.query(`
-            INSERT INTO perkembangan_master_item (kategori_id, tipe, kode, teks, urutan)
-            VALUES (?, 'tindakan', ?, ?, ?)
-          `, [katId, String.fromCharCode(97 + t), item.tindakan[t], t + 1]);
+          const text = item.tindakan[t].trim();
+          const [exist] = await pool.query(
+            "SELECT id FROM perkembangan_master_item WHERE kategori_id = ? AND tipe = 'tindakan' AND (teks = ? OR LOWER(TRIM(teks)) = LOWER(TRIM(?))) LIMIT 1",
+            [katId, text, text]
+          );
+          if (!exist || exist.length === 0) {
+            await pool.query(`
+              INSERT INTO perkembangan_master_item (kategori_id, tipe, kode, teks, urutan)
+              VALUES (?, 'tindakan', ?, ?, ?)
+            `, [katId, String.fromCharCode(97 + t), text, t + 1]);
+          }
         }
       }
 
-      console.log('[E-PESANTREN DB] Seed Master Perkembangan Santri Perempuan (7 Kategori) berhasil dibuat.');
-    }
+      console.log('[E-PESANTREN DB] Master Perkembangan Santri Perempuan (7 Kategori) berhasil disinkronkan.');
 
     return true;
   } catch (err) {

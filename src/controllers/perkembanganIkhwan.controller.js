@@ -19,7 +19,7 @@ export const getMasterPerkembangan = async (req, res) => {
     sqlKat += ` ORDER BY urutan ASC, id ASC `;
 
     let [kategoriRows] = await pool.query(sqlKat, params);
-    if (!kategoriRows || kategoriRows.length === 0) {
+    if (!kategoriRows || kategoriRows.length === 0 || (gender === 'P' && kategoriRows.length < 7)) {
       await initPerkembanganIkhwanDb();
       const [recheck] = await pool.query(sqlKat, params);
       kategoriRows = recheck;
