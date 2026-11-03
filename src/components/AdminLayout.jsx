@@ -29,6 +29,7 @@ import {
   Settings,
   UserCog,
   QrCode,
+  Camera,
   HeartHandshake,
   CreditCard,
   Calendar
@@ -404,8 +405,8 @@ export default function AdminLayout() {
           onClick={() => handleTabClick('scan-barcode')}
         >
           <div className="nav-link-left">
-            <QrCode size={15} style={{ color: '#10b981' }} />
-            <span>Presensi Barcode & Wajah</span>
+            <Camera size={15} style={{ color: '#10b981' }} />
+            <span>Presensi Wajah AI</span>
           </div>
           <span style={{ fontSize: '0.62rem', background: '#059669', color: '#fff', padding: '1px 6px', borderRadius: '10px', fontWeight: 800 }}>LIVE</span>
         </button>

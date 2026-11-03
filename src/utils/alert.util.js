@@ -66,18 +66,40 @@ export const showWarning = (title, text = '') => {
   });
 };
 
-// Confirmation Dialog
+// Confirmation Dialog (Supports both async boolean return and callback style)
 export const showConfirm = async (title, text = '', confirmButtonText = 'Ya, Lanjutkan', cancelButtonText = 'Batal') => {
+  let onConfirmCallback = null;
+  let confirmBtnLabel = 'Ya, Lanjutkan';
+  let cancelBtnLabel = 'Batal';
+
+  if (typeof confirmButtonText === 'function') {
+    onConfirmCallback = confirmButtonText;
+    confirmBtnLabel = 'Ya, Lanjutkan';
+  } else if (typeof confirmButtonText === 'string') {
+    confirmBtnLabel = confirmButtonText;
+  }
+
+  if (typeof cancelButtonText === 'string') {
+    cancelBtnLabel = cancelButtonText;
+  }
+
   const result = await customSwal.fire({
     icon: 'question',
     title,
     text,
     showCancelButton: true,
-    confirmButtonText,
-    cancelButtonText,
+    confirmButtonText: confirmBtnLabel,
+    cancelButtonText: cancelBtnLabel,
     reverseButtons: true
   });
-  return result.isConfirmed;
+
+  if (result.isConfirmed) {
+    if (onConfirmCallback) {
+      await onConfirmCallback();
+    }
+    return true;
+  }
+  return false;
 };
 
 export default customSwal;

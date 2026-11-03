@@ -519,21 +519,21 @@ export default function KeuanganAdminView() {
     }
   };
 
-  const handleDeleteTagihan = (item) => {
-    showConfirm(
+  const handleDeleteTagihan = async (item) => {
+    const ok = await showConfirm(
       'Hapus Tagihan?',
       `Hapus tagihan "${item.judul_tagihan}" (${ item.periode_bulan || '-' })?`,
-      async () => {
-        try {
-          await axios.delete(`/api/keuangan/admin/tagihan/${item.id}`);
-          toastSuccess('Dihapus!', 'Tagihan berhasil dihapus');
-          await fetchSantriTagihan(selectedSantriId);
-          await fetchRekap();
-        } catch (err) {
-          showError('Gagal', err.response?.data?.message || err.message);
-        }
-      }
+      'Ya, Hapus'
     );
+    if (!ok) return;
+    try {
+      await axios.delete(`/api/keuangan/admin/tagihan/${item.id}`);
+      toastSuccess('Dihapus!', 'Tagihan berhasil dihapus');
+      await fetchSantriTagihan(selectedSantriId);
+      await fetchRekap();
+    } catch (err) {
+      showError('Gagal', err.response?.data?.message || err.message);
+    }
   };
 
   // Master Komponen Handlers
@@ -559,16 +559,20 @@ export default function KeuanganAdminView() {
     }
   };
 
-  const handleDeleteKomponen = (k) => {
-    showConfirm('Hapus Pos Biaya?', `Hapus pos "${k.nama_komponen}"?`, async () => {
-      try {
-        await axios.delete(`/api/keuangan/admin/komponen/${k.id}`);
-        toastSuccess('Dihapus', 'Pos biaya dihapus');
-        await fetchRekap();
-      } catch (err) {
-        showError('Gagal', err.message);
-      }
-    });
+  const handleDeleteKomponen = async (k) => {
+    const ok = await showConfirm(
+      'Hapus Pos Biaya?',
+      `Hapus pos "${k.nama_komponen}"?`,
+      'Ya, Hapus'
+    );
+    if (!ok) return;
+    try {
+      await axios.delete(`/api/keuangan/admin/komponen/${k.id}`);
+      toastSuccess('Dihapus', 'Pos biaya dihapus');
+      await fetchRekap();
+    } catch (err) {
+      showError('Gagal', err.message);
+    }
   };
 
   // Filter santri untuk autocomplete search bar

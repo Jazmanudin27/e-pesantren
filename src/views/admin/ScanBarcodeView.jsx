@@ -1262,7 +1262,7 @@ export default function ScanBarcodeView() {
                   letterSpacing: "-0.02em",
                 }}
               >
-                Presensi Barcode & Wajah Santri
+                Presensi Wajah Santri (Face Recognition AI)
               </h1>
               <span
                 style={{
@@ -1285,8 +1285,7 @@ export default function ScanBarcodeView() {
                 color: "rgba(255, 255, 255, 0.88)",
               }}
             >
-              Presensi kegiatan santri dengan Scan Wajah (Face Recognition AI)
-              atau USB Barcode Scanner & Kartu Santri.
+              Presensi kegiatan santri otomatis menggunakan kamera Face Recognition AI.
             </p>
           </div>
         </div>
@@ -1339,84 +1338,6 @@ export default function ScanBarcodeView() {
             <span>{soundEnabled ? "Suara ON" : "Suara MUTE"}</span>
           </button>
         </div>
-      </div>
-
-      {/* ================= DUAL MODE SWITCHER TABS ================= */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          marginBottom: "18px",
-          background: "#e2e8f0",
-          padding: "5px",
-          borderRadius: "12px",
-          width: "fit-content",
-        }}
-      >
-        <button
-          onClick={() => setScanMode("face")}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "10px 20px",
-            borderRadius: "9px",
-            border: "none",
-            background: scanMode === "face" ? "#ffffff" : "transparent",
-            color: scanMode === "face" ? "#047857" : "#475569",
-            fontSize: "0.86rem",
-            fontWeight: 800,
-            cursor: "pointer",
-            boxShadow:
-              scanMode === "face" ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
-            transition: "all 0.2s",
-          }}
-        >
-          <Camera
-            size={18}
-            color={scanMode === "face" ? "#059669" : "#64748b"}
-          />
-          <span>Mode 1: Absen Wajah (Face Recognition AI)</span>
-          <span
-            style={{
-              fontSize: "0.62rem",
-              background: scanMode === "face" ? "#dcfce7" : "#cbd5e1",
-              color: scanMode === "face" ? "#15803d" : "#475569",
-              padding: "2px 7px",
-              borderRadius: "10px",
-              fontWeight: 800,
-            }}
-          >
-            REKOMENDASI
-          </span>
-        </button>
-
-        <button
-          onClick={() => setScanMode("barcode")}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "10px 20px",
-            borderRadius: "9px",
-            border: "none",
-            background: scanMode === "barcode" ? "#ffffff" : "transparent",
-            color: scanMode === "barcode" ? "#047857" : "#475569",
-            fontSize: "0.86rem",
-            fontWeight: 800,
-            cursor: "pointer",
-            boxShadow:
-              scanMode === "barcode" ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
-            transition: "all 0.2s",
-          }}
-        >
-          <QrCode
-            size={18}
-            color={scanMode === "barcode" ? "#059669" : "#64748b"}
-          />
-          <span>Mode 2: Scan Barcode & Kartu Santri</span>
-        </button>
       </div>
 
       {/* ================= SESSION BAR & SETTINGS ================= */}
@@ -1505,10 +1426,9 @@ export default function ScanBarcodeView() {
           marginBottom: "22px",
         }}
       >
-        {/* LEFT COLUMN: SCANNER INPUTS (MODE 1: FACE RECOGNITION OR MODE 2: BARCODE) */}
+        {/* LEFT COLUMN: SCANNER INPUTS (FACE RECOGNITION AI) */}
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          {scanMode === "face" ? (
-            /* FACE RECOGNITION HUD CARD */
+          {/* FACE RECOGNITION HUD CARD */}
             <div
               style={{
                 background: "#ffffff",
@@ -1768,8 +1688,7 @@ export default function ScanBarcodeView() {
                 )}
               </div>
             </div>
-          ) : (
-            /* BARCODE MODE (USB GUN + WEBCAM) */
+          {false && (
             <>
               {/* USB Scanner Gun Active Card */}
               <div
