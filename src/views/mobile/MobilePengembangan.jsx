@@ -1194,7 +1194,7 @@ export default function MobilePengembangan() {
           >
             {kategoriByActiveGender.map((k) => (
               <option key={k.id} value={k.id}>
-                {k.nama_kategori} ({k.permasalahan?.length || 0}P • {k.penyebab?.length || 0}F • {k.tindakan?.length || 0}T)
+                {k.nama_kategori}
               </option>
             ))}
           </select>

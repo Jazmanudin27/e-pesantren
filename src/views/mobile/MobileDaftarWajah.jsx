@@ -23,9 +23,12 @@ import {
   matchFaceDescriptor,
   isFaceModelReady
 } from '../../utils/faceApi.util';
+import SearchableSelect from '../../components/SearchableSelect';
 
 export default function MobileDaftarWajah() {
   const [santriList, setSantriList] = useState([]);
+  const [kelasList, setKelasList] = useState([]);
+  const [selectedKelas, setSelectedKelas] = useState('Semua');
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterMode, setFilterMode] = useState('all'); // 'all' | 'unregistered' | 'registered'
@@ -57,9 +60,17 @@ export default function MobileDaftarWajah() {
   const fetchSantri = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('/api/santri');
-      if (res.data?.data && Array.isArray(res.data.data)) {
-        setSantriList(res.data.data);
+      const [resSantri, resKelas] = await Promise.all([
+        axios.get('/api/santri'),
+        axios.get('/api/kelas').catch(() => ({ data: { data: [] } }))
+      ]);
+
+      if (resKelas.data?.data && Array.isArray(resKelas.data.data)) {
+        setKelasList(resKelas.data.data);
+      }
+
+      if (resSantri.data?.data && Array.isArray(resSantri.data.data)) {
+        setSantriList(resSantri.data.data);
 
         // Sinkronisasi otomatis data foto yang sudah ada di database ke registeredFaces
         const updated = { ...registeredFaces };
@@ -356,12 +367,31 @@ export default function MobileDaftarWajah() {
     }
   };
 
+  const combinedKelasOptions = React.useMemo(() => {
+    const list = [...kelasList];
+    santriList.forEach((s) => {
+      const kName = s.nama_kelas;
+      if (kName && !list.some((k) => k.nama_kelas === kName || String(k.id) === String(s.kelas_id))) {
+        list.push({ id: s.kelas_id || kName, nama_kelas: kName });
+      }
+    });
+    return list;
+  }, [kelasList, santriList]);
+
   const filteredSantri = santriList.filter((s) => {
+    if (selectedKelas !== 'Semua') {
+      const matchKelas =
+        String(s.kelas_id) === String(selectedKelas) ||
+        String(s.nama_kelas) === String(selectedKelas);
+      if (!matchKelas) return false;
+    }
+
     const q = search.toLowerCase();
     const matchSearch =
       s.nama_santri?.toLowerCase().includes(q) ||
       s.nis?.toLowerCase().includes(q) ||
-      s.nama_asrama?.toLowerCase().includes(q);
+      s.nama_asrama?.toLowerCase().includes(q) ||
+      s.nama_kelas?.toLowerCase().includes(q);
 
     if (!matchSearch) return false;
     const isEnrolled = !!(registeredFaces[s.id]?.foto || s.foto || s.foto_santri);
@@ -446,6 +476,33 @@ export default function MobileDaftarWajah() {
           {search && (
             <X size={15} color="#94a3b8" onClick={() => setSearch('')} style={{ cursor: 'pointer' }} />
           )}
+        </div>
+
+        {/* Filter Kelas Santri */}
+        <div>
+          <SearchableSelect
+            options={[
+              { value: 'Semua', label: 'Semua Kelas' },
+              ...combinedKelasOptions.map((k) => ({
+                value: String(k.id || k.nama_kelas),
+                label: k.nama_kelas || `Kelas ${k.id}`,
+                sublabel: k.tingkat ? `Tingkat: ${k.tingkat}` : ''
+              }))
+            ]}
+            value={selectedKelas}
+            onChange={(val) => setSelectedKelas(val || 'Semua')}
+            placeholder="Filter Berdasarkan Kelas..."
+            searchPlaceholder="Cari kelas..."
+            triggerStyle={{
+              background: '#ffffff',
+              border: selectedKelas !== 'Semua' ? '1.5px solid #0284c7' : '1.5px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '8px 12px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              color: selectedKelas !== 'Semua' ? '#0284c7' : '#334155'
+            }}
+          />
         </div>
 
         {/* Filter Pills */}
@@ -556,8 +613,16 @@ export default function MobileDaftarWajah() {
                     {santri.nama_santri}
                   </span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.7rem', color: '#64748b', marginTop: '2px', flexWrap: 'wrap' }}>
                   <span style={{ fontWeight: 600 }}>NIS: {santri.nis || '-'}</span>
+                  {santri.nama_kelas && (
+                    <>
+                      <span>•</span>
+                      <span style={{ background: '#f0f9ff', color: '#0284c7', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                        {santri.nama_kelas}
+                      </span>
+                    </>
+                  )}
                   <span>•</span>
                   <span>{santri.nama_asrama || 'Asrama'}</span>
                 </div>
