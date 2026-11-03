@@ -282,7 +282,7 @@ export const buatTransaksiPembayaran = async (req, res) => {
     let snapToken = null;
     let paymentUrl = null;
 
-    // 1. Buat Snap Token Midtrans: Fee admin dinamis dihitung otomatis oleh Midtrans sesuai channel
+    // 1. Buat Snap Token Midtrans
     try {
       const snapRes = await createMidtransSnapToken({
         nomorTransaksi,
@@ -294,31 +294,13 @@ export const buatTransaksiPembayaran = async (req, res) => {
       if (snapRes && snapRes.success) {
         snapToken = snapRes.token;
         paymentUrl = snapRes.redirect_url;
+      } else {
+        await connection.rollback();
+        return sendError(res, `Gagal memuat gateway Midtrans: ${snapRes?.error || 'Kredensial atau parameter tidak valid'}`, 400);
       }
     } catch (snapErr) {
-      console.warn('[MIDTRANS SNAP GENERATE ERROR]', snapErr.message);
-    }
-
-    // 2. Jika Snap gagal dibuat, baru fallback ke Direct Core API
-    if (!snapToken) {
-      try {
-        const midtransRes = await chargeMidtransDirect({
-          nomorTransaksi,
-          totalBayar,
-          santriId: santri_id,
-          santriNama,
-          noWaWali,
-          metode,
-          channel
-        });
-
-        if (midtransRes && midtransRes.success) {
-          if (midtransRes.va_number) vaNumber = midtransRes.va_number;
-          if (midtransRes.qris_data) qrisData = midtransRes.qris_data;
-        }
-      } catch (chargeErr) {
-        console.warn('[MIDTRANS DIRECT CHARGE ERROR]', chargeErr.message);
-      }
+      await connection.rollback();
+      return sendError(res, `Error gateway Midtrans: ${snapErr.message}`, 500);
     }
 
     // Fallback nomor VA jika offline simulasi

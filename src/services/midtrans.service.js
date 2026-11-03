@@ -85,10 +85,6 @@ export async function createMidtransSnapToken({
       order_id: nomorTransaksi,
       gross_amount: Math.round(totalBayar)
     },
-    // Fitur Resmi Midtrans: Bebankan biaya admin per metode pembayaran langsung ke pengirim / pelanggan
-    customer_imposed_payment_fee: {
-      enable: true
-    },
     customer_details: {
       first_name: cleanFirstName,
       phone: cleanPhone,
@@ -116,10 +112,11 @@ export async function createMidtransSnapToken({
       redirect_url: res.data?.redirect_url
     };
   } catch (err) {
-    console.warn('[MIDTRANS SNAP ERROR]', err.response?.data || err.message);
+    const errMsg = err.response?.data?.error_messages?.join(', ') || err.response?.data?.message || err.message;
+    console.warn('[MIDTRANS SNAP ERROR]', errMsg);
     return {
       success: false,
-      error: err.response?.data?.message || err.message
+      error: errMsg
     };
   }
 }
