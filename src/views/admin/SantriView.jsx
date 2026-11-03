@@ -1158,39 +1158,34 @@ export default function SantriView() {
       </div>
 
       {/* ==================================================== */}
-      {/* MODAL DETAIL SANTRI & BIODATA LENGKAP               */}
+      {/* MODAL DETAIL SANTRI & BIODATA LENGKAP (MODERN SHOW)  */}
       {/* ==================================================== */}
       {isModalOpen && selectedSantri && (
         <div style={{
           position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.75)',
-          backdropFilter: 'blur(4px)',
+          inset: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.72)',
+          backdropFilter: 'blur(6px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 9999,
-          padding: 0
+          padding: '16px'
         }}>
           <div style={{
             background: '#ffffff',
-            borderRadius: 0,
-            width: '100vw',
-            height: '100vh',
-            maxWidth: '100%',
-            maxHeight: '100vh',
-            overflowY: 'auto',
-            boxShadow: 'none',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '780px',
+            maxHeight: '90vh',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+            overflow: 'hidden'
           }}>
             {/* Modal Header */}
             <div style={{
-              padding: '14px 18px',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+              padding: '14px 20px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -1198,161 +1193,337 @@ export default function SantriView() {
               color: '#ffffff'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.2)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, border: '1px solid rgba(255, 255, 255, 0.3)' }}>
-                  <User size={18} />
+                <div style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '10px',
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid rgba(255, 255, 255, 0.3)'
+                }}>
+                  <User size={18} color="#ffffff" />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#ffffff', margin: 0, letterSpacing: '0.02em' }}>Biodata & Riwayat Santri</h3>
-                  <p style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.85)', margin: 0 }}>NIS: {selectedSantri.nis} • Kode: {selectedSantri.kode_santri || 'STR-2026'}</p>
+                  <h3 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
+                    Biodata & Riwayat Santri
+                  </h3>
+                  <p style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.85)', margin: 0 }}>
+                    NIS: {selectedSantri.nis} • Kode: {selectedSantri.kode_santri || `STR-26-${selectedSantri.id}`}
+                  </p>
                 </div>
               </div>
               <button 
+                type="button"
                 onClick={closeModal}
-                style={{ background: 'rgba(255, 255, 255, 0.15)', border: 'none', cursor: 'pointer', color: '#ffffff', padding: '5px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#ffffff',
+                  padding: '6px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
                 title="Tutup Modal"
               >
                 <X size={18} />
               </button>
             </div>
 
-            {/* Modal Body */}
-            <div style={{ padding: '18px', background: '#f1f5f9' }}>
+            {/* Modal Body (Scrollable) */}
+            <div style={{ padding: '20px 22px', background: '#f8fafc', overflowY: 'auto', flex: 1 }}>
               
-              {/* Profile Card Banner */}
+              {/* 1. Hero Profile Banner */}
               <div style={{
                 background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
                 color: '#ffffff',
-                borderRadius: '8px',
-                padding: '14px 16px',
-                marginBottom: '14px',
+                borderRadius: '12px',
+                padding: '16px 18px',
+                marginBottom: '16px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                boxShadow: '0 2px 6px rgba(15, 23, 42, 0.15)',
+                gap: '16px',
+                boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)',
                 border: '1px solid #334155'
               }}>
-                <div>
-                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff' }}>{selectedSantri.nama_santri}</div>
-                  <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '2px' }}>
-                    Status: <strong style={{ color: selectedSantri.status_santri === 'Mukim' ? '#34d399' : '#fbbf24' }}>Santri {selectedSantri.status_santri}</strong> • {selectedSantri.jk === 'L' ? 'Ikhwan' : 'Akhwat'}
-                  </div>
+                {/* Avatar Photo */}
+                <div style={{
+                  width: '68px',
+                  height: '68px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff',
+                  fontSize: '1.4rem',
+                  fontWeight: 800,
+                  border: '2px solid rgba(255, 255, 255, 0.4)',
+                  overflow: 'hidden',
+                  flexShrink: 0
+                }}>
+                  {selectedSantri.foto || selectedSantri.foto_santri ? (
+                    <img 
+                      src={selectedSantri.foto || selectedSantri.foto_santri} 
+                      alt={selectedSantri.nama_santri} 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    />
+                  ) : (
+                    <span>{selectedSantri.nama_santri?.charAt(0).toUpperCase()}</span>
+                  )}
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <span className="badge badge-success" style={{ fontSize: '0.74rem', padding: '3px 8px' }}>
-                    {selectedSantri.status || 'Aktif'}
-                  </span>
+
+                {/* Profil Detail */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#ffffff', lineHeight: 1.2 }}>
+                    {selectedSantri.nama_santri}
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '4px' }}>
+                    NIS: <strong style={{ color: '#38bdf8' }}>{selectedSantri.nis}</strong> • {selectedSantri.kode_santri || 'STR-2026'}
+                  </div>
+                  
+                  {/* Badges Pill */}
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', marginTop: '8px' }}>
+                    <span style={{
+                      background: '#065f46',
+                      color: '#a7f3d0',
+                      border: '1px solid #059669',
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      padding: '2px 8px',
+                      borderRadius: '6px'
+                    }}>
+                      {selectedSantri.nama_kelas || selectedSantri.tingkat_diniyah || 'Kelas 1'}
+                    </span>
+                    <span style={{
+                      background: selectedSantri.jk === 'L' ? '#0369a1' : '#be185d',
+                      color: '#ffffff',
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: '6px'
+                    }}>
+                      {selectedSantri.jk === 'L' ? 'Ikhwan (Boys)' : 'Akhwat (Girls)'}
+                    </span>
+                    <span style={{
+                      background: selectedSantri.status_santri === 'Mukim' ? '#047857' : '#b45309',
+                      color: '#ffffff',
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: '6px'
+                    }}>
+                      Santri {selectedSantri.status_santri || 'Mukim'}
+                    </span>
+                    <span style={{
+                      background: '#16a34a',
+                      color: '#ffffff',
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: '6px'
+                    }}>
+                      {selectedSantri.status || 'Aktif'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Info Grid 2 Kolom (Pure White Cards with Crisp Borders) */}
+              {/* 2. Bento Grid 2 Kolom */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
                 
-                {/* Asrama & Kamar */}
-                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                  <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Home size={13} color="#059669" /> Asrama & Kamar Kobong
+                {/* Box 1: Asrama & Kobong */}
+                <div style={{
+                  background: '#ffffff',
+                  borderRadius: '10px',
+                  padding: '14px 16px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+                }}>
+                  <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#059669', fontWeight: 800, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Home size={14} /> Asrama & Kamar Kobong
                   </div>
-                  <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#0f172a' }}>{selectedSantri.nama_asrama || '-'}</div>
-                  <div style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 600 }}>{selectedSantri.nama_kamar || '-'}</div>
+                  <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>
+                    {selectedSantri.nama_asrama || (selectedSantri.jk === 'L' ? 'Asrama Putra' : 'Asrama Putri')}
+                  </div>
+                  <div style={{ fontSize: '0.76rem', color: '#059669', fontWeight: 700, marginTop: '2px' }}>
+                    {selectedSantri.nama_kamar || 'Kobong Santri'}
+                  </div>
                 </div>
 
-                {/* Tahfidz & Hafalan */}
-                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                  <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Award size={13} color="#0284c7" /> Capaian Tahfidz Qur'an
+                {/* Box 2: Akademik & Hafalan */}
+                <div style={{
+                  background: '#ffffff',
+                  borderRadius: '10px',
+                  padding: '14px 16px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+                }}>
+                  <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#0284c7', fontWeight: 800, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Award size={14} /> Capaian Diniyah & Tahfidz
                   </div>
-                  <div style={{ fontWeight: 800, fontSize: '0.98rem', color: '#0284c7' }}>{selectedSantri.capaian_hafalan_juz || 0} Juz</div>
-                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Tingkat: {selectedSantri.tingkat_diniyah || 'Wustho'}</div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                    <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0284c7' }}>
+                      {selectedSantri.capaian_hafalan_juz || 0} Juz
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                      (Tingkat {selectedSantri.tingkat_diniyah || 'Wustho'})
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '2px' }}>
+                    Kelas: <strong>{selectedSantri.nama_kelas || '-'}</strong>
+                  </div>
                 </div>
 
-                {/* Biometrik Mesin Fingerprint */}
-                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                  <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Fingerprint size={13} color="#7c3aed" /> Biometrik Presensi
+                {/* Box 3: Biometrik & Presensi */}
+                <div style={{
+                  background: '#ffffff',
+                  borderRadius: '10px',
+                  padding: '14px 16px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+                }}>
+                  <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#7c3aed', fontWeight: 800, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Fingerprint size={14} /> Biometrik & Presensi
                   </div>
-                  <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#0f172a' }}>PIN Mesin: <code>{selectedSantri.fingerprint_pin || '-'}</code></div>
-                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>RFID: {selectedSantri.rfid_card_uid || 'Terdaftar'}</div>
+                  <div style={{ fontSize: '0.8rem', color: '#0f172a', fontWeight: 700 }}>
+                    PIN Fingerprint: <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', color: '#0284c7' }}>{selectedSantri.fingerprint_pin || '-'}</code>
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px' }}>
+                    Wajah AI: {selectedSantri.foto ? <span style={{ color: '#059669', fontWeight: 700 }}>✓ Terdaftar</span> : 'Belum Ada Foto'}
+                  </div>
                 </div>
 
-                {/* Tempat & Tanggal Lahir */}
-                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px 14px', background: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                  <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Calendar size={13} color="#d97706" /> TTL & Tahun Masuk
+                {/* Box 4: TTL & Tahun Masuk */}
+                <div style={{
+                  background: '#ffffff',
+                  borderRadius: '10px',
+                  padding: '14px 16px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+                }}>
+                  <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#d97706', fontWeight: 800, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Calendar size={14} /> TTL & Angkatan
                   </div>
-                  <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#0f172a' }}>{selectedSantri.tempat_lahir || 'Tasikmalaya'}, {selectedSantri.tgl_lahir || '-'}</div>
-                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Tahun Masuk: {selectedSantri.tahun_masuk || '2026/2027'}</div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a' }}>
+                    {selectedSantri.tempat_lahir || 'Tasikmalaya'}, {selectedSantri.tgl_lahir || '-'}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px' }}>
+                    Tahun Masuk: <strong>{selectedSantri.tahun_masuk || '2026/2027'}</strong>
+                  </div>
+                </div>
+
+                {/* Box 5: Wali & Mahrom (Col-span 2) */}
+                <div style={{
+                  gridColumn: 'span 2',
+                  background: '#ffffff',
+                  borderRadius: '10px',
+                  padding: '14px 16px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+                }}>
+                  <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Phone size={14} color="#059669" /> Data Mahrom & Wali Santri
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '10px', fontSize: '0.78rem' }}>
+                    <div>
+                      <span style={{ color: '#64748b' }}>Nama Wali:</span> <strong>{selectedSantri.nama_wali || '-'}</strong> ({selectedSantri.hubungan_wali || 'Orang Tua'})
+                    </div>
+                    <div>
+                      <span style={{ color: '#64748b' }}>WhatsApp:</span> <strong>{selectedSantri.no_wa_wali || '-'}</strong>
+                    </div>
+                    <div style={{ gridColumn: 'span 2' }}>
+                      <span style={{ color: '#64748b' }}>Alamat Asal:</span> <span>{selectedSantri.alamat_asal || 'Pondok Pesantren Nurul Wafa'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Box 6: Kredensial Login Wali (Col-span 2) */}
+                <div style={{
+                  gridColumn: 'span 2',
+                  background: '#eff6ff',
+                  border: '1.5px solid #bfdbfe',
+                  borderRadius: '10px',
+                  padding: '14px 16px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#1e40af', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Lock size={14} color="#2563eb" /> Kredensial Portal Orang Tua (Wali)
+                    </div>
+                    <span style={{ fontSize: '0.65rem', background: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '10px', fontWeight: 700 }}>
+                      Tersimpan di Database
+                    </span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.78rem' }}>
+                    <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.68rem', display: 'block' }}>Username Login Wali:</span>
+                      <strong style={{ color: '#0f172a', fontSize: '0.85rem' }}>{selectedSantri.username || selectedSantri.nis || '-'}</strong>
+                    </div>
+                    <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.68rem', display: 'block' }}>Password Login Wali:</span>
+                      <strong style={{ color: '#059669', fontSize: '0.85rem' }}>{selectedSantri.password || selectedSantri.nis || '-'}</strong>
+                    </div>
+                  </div>
                 </div>
 
               </div>
-
-              {/* Data Wali & Kontak Mahrom */}
-              <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px 16px', background: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Phone size={14} color="#059669" /> Data Mahrom & Wali Santri
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.76rem' }}>
-                  <div>
-                    <span style={{ color: '#64748b' }}>Nama Wali:</span> <strong>{selectedSantri.nama_wali || '-'}</strong> ({selectedSantri.hubungan_wali || 'Orang Tua'})
-                  </div>
-                  <div>
-                    <span style={{ color: '#64748b' }}>No. WhatsApp:</span> <strong>{selectedSantri.no_wa_wali || '-'}</strong>
-                  </div>
-                  <div style={{ gridColumn: 'span 2' }}>
-                    <span style={{ color: '#64748b' }}>Alamat Asal:</span> {selectedSantri.alamat_asal || 'Kota Tasikmalaya, Jawa Barat'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Akun Login Orang Tua Santri */}
-              <div style={{ border: '1.5px solid #bfdbfe', borderRadius: '8px', padding: '14px 16px', background: '#eff6ff', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', marginTop: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <div style={{ fontSize: '0.74rem', textTransform: 'uppercase', color: '#1e40af', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <Lock size={14} color="#2563eb" /> Akun Login Portal Orang Tua Santri
-                  </div>
-                  <span style={{ fontSize: '0.65rem', background: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '10px', fontWeight: 700 }}>
-                    Tersimpan di Tabel Santri
-                  </span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.78rem' }}>
-                  <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
-                    <span style={{ color: '#64748b', fontSize: '0.7rem', display: 'block' }}>Username Login Wali:</span>
-                    <strong style={{ color: '#0f172a', fontSize: '0.85rem' }}>{selectedSantri.username || selectedSantri.nis || '-'}</strong>
-                  </div>
-                  <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
-                    <span style={{ color: '#64748b', fontSize: '0.7rem', display: 'block' }}>Password Login Wali:</span>
-                    <strong style={{ color: '#059669', fontSize: '0.85rem' }}>{selectedSantri.password || selectedSantri.nis || '-'}</strong>
-                  </div>
-                </div>
-                <div style={{ fontSize: '0.7rem', color: '#3b82f6', marginTop: '6px' }}>
-                  * Kredensial ini digunakan orang tua untuk login ke Portal Monitoring Santri (default: NIS Santri).
-                </div>
-              </div>
-
             </div>
 
             {/* Modal Footer */}
             <div style={{
-              padding: '12px 18px',
-              borderTop: '1px solid #cbd5e1',
+              padding: '12px 20px',
+              borderTop: '1px solid #e2e8f0',
               background: '#ffffff',
               display: 'flex',
-              justifyContent: 'flex-end',
-              gap: '8px'
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '8px',
+              flexWrap: 'wrap'
             }}>
-              {selectedSantri.no_wa_wali && (
-                <a 
-                  href={`https://wa.me/${selectedSantri.no_wa_wali.replace(/[^0-9]/g, '')}`} 
-                  target="_blank" 
-                  rel="noreferrer"
-                  className="btn btn-primary btn-sm"
-                  style={{ background: '#25D366', borderColor: '#25D366', color: '#ffffff', fontWeight: 700 }}
+              <div>
+                {selectedSantri.no_wa_wali && (
+                  <a 
+                    href={`https://wa.me/${selectedSantri.no_wa_wali.replace(/[^0-9]/g, '')}`} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="btn btn-sm"
+                    style={{ background: '#25D366', color: '#ffffff', border: 'none', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                  >
+                    <Phone size={13} /> Chat WhatsApp Wali
+                  </a>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => {
+                    closeModal();
+                    handleOpenPrintModal([selectedSantri]);
+                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
                 >
-                  <Phone size={12} /> Chat WhatsApp Wali
-                </a>
-              )}
-              <button className="btn btn-outline btn-sm" onClick={closeModal}>
-                Tutup
-              </button>
+                  <Printer size={13} /> Cetak Kartu
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => {
+                    closeModal();
+                    openEditForm(selectedSantri);
+                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                >
+                  <Edit3 size={13} /> Edit Santri Ini
+                </button>
+                <button type="button" className="btn btn-outline btn-sm" onClick={closeModal}>
+                  Tutup
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1368,376 +1539,459 @@ export default function SantriView() {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.75)',
-          backdropFilter: 'blur(4px)',
+          backgroundColor: 'rgba(15, 23, 42, 0.72)',
+          backdropFilter: 'blur(6px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 9999,
-          padding: 0
+          padding: '16px'
         }}>
           <div style={{
             background: '#ffffff',
-            borderRadius: 0,
-            width: '100vw',
-            height: '100vh',
-            maxWidth: '100%',
-            maxHeight: '100vh',
-            overflowY: 'auto',
-            boxShadow: 'none',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '820px',
+            maxHeight: '90vh',
+            overflow: 'hidden',
+            boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.35)',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            border: '1px solid #e2e8f0'
           }}>
             {/* Form Header */}
             <div style={{
-              padding: '14px 18px',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+              padding: '16px 20px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+              background: 'linear-gradient(135deg, #0f766e 0%, #0d9488 50%, #0284c7 100%)',
               color: '#ffffff'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Users size={18} />
-                <h3 style={{ fontSize: '0.96rem', fontWeight: 800, margin: 0 }}>
-                  {formMode === 'add' ? 'Tambah Data Santri Baru' : `Edit Biodata Santri: ${formData.nama_santri}`}
-                </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backdropFilter: 'blur(4px)'
+                }}>
+                  <Users size={20} color="#ffffff" />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, color: '#ffffff' }}>
+                    {formMode === 'add' ? 'Tambah Data Santri Baru' : `Edit Biodata Santri: ${formData.nama_santri}`}
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.72rem', color: 'rgba(255, 255, 255, 0.85)' }}>
+                    Lengkapi identitas, kelas diniyah, penempatan kobong & data wali santri
+                  </p>
+                </div>
               </div>
               <button 
                 onClick={closeForm}
-                style={{ background: 'rgba(255, 255, 255, 0.15)', border: 'none', color: '#ffffff', padding: '4px', borderRadius: '4px', cursor: 'pointer' }}
+                style={{ 
+                  background: 'rgba(255, 255, 255, 0.18)', 
+                  border: 'none', 
+                  color: '#ffffff', 
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px', 
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background 0.2s'
+                }}
               >
                 <X size={18} />
               </button>
             </div>
 
             {/* Form Fields */}
-            <form onSubmit={handleSaveSantri}>
-              <div style={{ padding: '18px 20px', background: '#f1f5f9', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <form onSubmit={handleSaveSantri} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+              <div style={{ 
+                padding: '18px 20px', 
+                background: '#f8fafc', 
+                overflowY: 'auto', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '14px',
+                flex: 1
+              }}>
                 
-                {/* Baris 1: Foto Profil & Wajah AI + Nama & NIS */}
-                <div style={{ display: 'flex', gap: '14px', alignItems: 'center', background: '#ffffff', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                  <div style={{ position: 'relative', width: '70px', height: '70px', borderRadius: '14px', overflow: 'hidden', background: '#f8fafc', border: '1.5px dashed #0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    {formData.foto ? (
-                      <img src={formData.foto} alt="Foto Santri" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      <User size={30} color="#94a3b8" />
-                    )}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0f172a', display: 'block', marginBottom: '2px' }}>
-                      FOTO SANTRI (UNTUK PRESENSI WAJAH AI & KARTU)
-                    </label>
-                    <p style={{ margin: '0 0 6px', fontSize: '0.68rem', color: '#64748b' }}>
-                      Upload foto wajah santri tegak menghadap kamera (JPG/PNG).
-                    </p>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <label style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        padding: '5px 10px',
-                        borderRadius: '6px',
-                        background: '#0284c7',
-                        color: '#ffffff',
-                        fontSize: '0.7rem',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}>
-                        <Upload size={12} /> Upload Foto
-                        <input
-                          type="file"
-                          accept="image/*"
-                          style={{ display: 'none' }}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onload = () => {
-                                setFormData({ ...formData, foto: reader.result });
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                        />
-                      </label>
-                      {formData.foto && (
-                        <button
-                          type="button"
-                          onClick={() => setFormData({ ...formData, foto: '' })}
-                          style={{
-                            padding: '4px 8px',
+                {/* 1. KARTU IDENTITAS UTAMA & FOTO */}
+                <div style={{ background: '#ffffff', padding: '14px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                    {/* Foto Santri */}
+                    <div style={{ 
+                      position: 'relative', 
+                      width: '76px', 
+                      height: '76px', 
+                      borderRadius: '14px', 
+                      overflow: 'hidden', 
+                      background: '#f1f5f9', 
+                      border: '2px dashed #0d9488', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      flexShrink: 0 
+                    }}>
+                      {formData.foto ? (
+                        <img src={formData.foto} alt="Foto Santri" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <User size={36} color="#94a3b8" />
+                      )}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <label style={{ fontSize: '0.74rem', fontWeight: 800, color: '#0f172a' }}>
+                          FOTO PROFIL & BIOMETRIK WAJAH AI
+                        </label>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <label style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '4px 10px',
                             borderRadius: '6px',
-                            border: '1px solid #fecdd3',
-                            background: '#fff1f2',
-                            color: '#e11d48',
-                            fontSize: '0.68rem',
+                            background: '#0d9488',
+                            color: '#ffffff',
+                            fontSize: '0.7rem',
                             fontWeight: 700,
                             cursor: 'pointer'
-                          }}
-                        >
-                          Hapus Foto
-                        </button>
-                      )}
+                          }}>
+                            <Upload size={12} /> {formData.foto ? 'Ganti Foto' : 'Upload Foto'}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              style={{ display: 'none' }}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onload = () => {
+                                    setFormData({ ...formData, foto: reader.result });
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                            />
+                          </label>
+                          {formData.foto && (
+                            <button
+                              type="button"
+                              onClick={() => setFormData({ ...formData, foto: '' })}
+                              style={{
+                                padding: '4px 8px',
+                                borderRadius: '6px',
+                                border: '1px solid #fecdd3',
+                                background: '#fff1f2',
+                                color: '#e11d48',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Hapus
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <p style={{ margin: 0, fontSize: '0.68rem', color: '#64748b' }}>
+                        Gunakan foto santri tegak menghadap kamera (JPG/PNG) untuk cetak kartu dan presensi wajah otomatis.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginTop: '14px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                        NAMA LENGKAP SANTRI *
+                      </label>
+                      <input 
+                        type="text" 
+                        required 
+                        placeholder="Contoh: Muhammad Ihsan"
+                        className="filter-select" 
+                        style={{ width: '100%', padding: '7px 10px', fontSize: '0.84rem' }} 
+                        value={formData.nama_santri}
+                        onChange={(e) => setFormData({ ...formData, nama_santri: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                        NIS (NOMOR INDUK)
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Contoh: 2601001"
+                        className="filter-select" 
+                        style={{ width: '100%', padding: '7px 10px', fontSize: '0.84rem' }} 
+                        value={formData.nis}
+                        onChange={(e) => setFormData({ ...formData, nis: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginTop: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>GENDER</label>
+                      <SearchableSelect
+                        options={[
+                          { value: 'L', label: 'Laki-laki (Ikhwan)' },
+                          { value: 'P', label: 'Perempuan (Akhwat)' }
+                        ]}
+                        value={formData.jk}
+                        onChange={(val) => setFormData({ ...formData, jk: val })}
+                        placeholder="-- Gender --"
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>STATUS MUKIM</label>
+                      <SearchableSelect
+                        options={[
+                          { value: 'Mukim', label: 'Mukim (Asrama)' },
+                          { value: 'Kalong', label: 'Kalong (Non-Mukim)' }
+                        ]}
+                        value={formData.status_santri}
+                        onChange={(val) => setFormData({ ...formData, status_santri: val })}
+                        placeholder="-- Status Mukim --"
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>STATUS KEAKTIFAN</label>
+                      <SearchableSelect
+                        options={[
+                          { value: 'Aktif', label: 'Aktif' },
+                          { value: 'Alumni', label: 'Alumni' },
+                          { value: 'Boyong', label: 'Boyong' }
+                        ]}
+                        value={formData.status}
+                        onChange={(val) => setFormData({ ...formData, status: val })}
+                        placeholder="-- Status --"
+                      />
                     </div>
                   </div>
                 </div>
 
-                {/* Baris 2: Nama & NIS */}
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>NAMA LENGKAP SANTRI *</label>
-                    <input 
-                      type="text" 
-                      required 
-                      className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }} 
-                      value={formData.nama_santri}
-                      onChange={(e) => setFormData({ ...formData, nama_santri: e.target.value })}
-                    />
+                {/* 2. PENEMPATAN KELAS & ASRAMA KOBONG */}
+                <div style={{ background: '#ffffff', padding: '14px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                    <Building size={14} color="#0f766e" />
+                    <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0f172a' }}>PENEMPATAN KELAS & ASRAMA KOBONG</span>
                   </div>
-                  <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>NIS</label>
-                    <input 
-                      type="text" 
-                      className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }} 
-                      value={formData.nis}
-                      onChange={(e) => setFormData({ ...formData, nis: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                {/* Baris 2: Gender, Kelas Pengajian, Status Mukim, Status Santri */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr 1fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>GENDER</label>
-                    <SearchableSelect
-                      options={[
-                        { value: 'L', label: 'Laki-laki (Ikhwan)' },
-                        { value: 'P', label: 'Perempuan (Akhwat)' }
-                      ]}
-                      value={formData.jk}
-                      onChange={(val) => setFormData({ ...formData, jk: val })}
-                      placeholder="-- Gender --"
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
-                      PILIH KELAS (BOYS / GIRLS)
-                    </label>
-                    <SearchableSelect
-                      options={kelasList
-                        .filter(k => !formData.jk || k.gender === formData.jk)
-                        .map(k => ({
-                          value: k.nama_kelas,
-                          label: k.nama_kelas,
-                          sublabel: `Mustahiq: ${k.mustahiq || '-'} | Munawwib: ${k.munawwib || '-'}`
-                        }))}
-                      value={formData.nama_kelas}
-                      onChange={(val) => {
-                        const found = kelasList.find(k => k.nama_kelas === val);
-                        setFormData({ 
-                          ...formData, 
-                          nama_kelas: val, 
-                          kelas_id: found ? found.id : formData.kelas_id,
-                          tingkat_diniyah: val?.includes('1') || val?.includes('2') || val?.includes('3') ? 'Wustho' : 'Ulya'
-                        });
-                      }}
-                      placeholder="-- Pilih Kelas --"
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>STATUS MUKIM</label>
-                    <SearchableSelect
-                      options={[
-                        { value: 'Mukim', label: 'Mukim (Asrama)' },
-                        { value: 'Kalong', label: 'Kalong (Non-Mukim)' }
-                      ]}
-                      value={formData.status_santri}
-                      onChange={(val) => setFormData({ ...formData, status_santri: val })}
-                      placeholder="-- Status Mukim --"
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>STATUS KEAKTIFAN</label>
-                    <SearchableSelect
-                      options={[
-                        { value: 'Aktif', label: 'Aktif' },
-                        { value: 'Alumni', label: 'Alumni' },
-                        { value: 'Boyong', label: 'Boyong' }
-                      ]}
-                      value={formData.status}
-                      onChange={(val) => setFormData({ ...formData, status: val })}
-                      placeholder="-- Status --"
-                    />
-                  </div>
-                </div>
-
-                {/* Baris 3: Asrama & Kamar Kobong (PILIH DARI DATABASE) */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
-                      PILIH BLOK GEDUNG ASRAMA *
-                    </label>
-                    <SearchableSelect
-                      required
-                      options={asramaList.length > 0 ? asramaList.map(a => ({
-                        value: a.id,
-                        label: `${a.nama_asrama} (${a.gender === 'L' ? 'Putra' : 'Putri'})`,
-                        sublabel: `Kapasitas Total: ${a.total_kamar || 0} Kamar`
-                      })) : [
-                        { value: 1, label: 'Asrama Ali bin Abi Thalib (Putra)' },
-                        { value: 2, label: 'Asrama Umar bin Khattab (Putra)' },
-                        { value: 3, label: 'Asrama Fathimah Az-Zahra (Putri)' },
-                        { value: 4, label: 'Asrama Khadijah Al-Kubra (Putri)' }
-                      ]}
-                      value={formData.asrama_id || (asramaList[0]?.id || 1)}
-                      onChange={(val) => handleAsramaSelect(val)}
-                      placeholder="-- Pilih Gedung Asrama --"
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
-                      PILIH KAMAR KOBONG (DATABASE) *
-                    </label>
-                    <SearchableSelect
-                      required
-                      options={(kamarList.filter(k => !formData.asrama_id || k.asrama_id === parseInt(formData.asrama_id)).length > 0
-                        ? kamarList.filter(k => !formData.asrama_id || k.asrama_id === parseInt(formData.asrama_id))
-                        : kamarList
-                      ).map(k => ({
-                        value: k.id,
-                        label: `${k.nama_kamar} (Lantai ${k.lantai || 1})`,
-                        sublabel: `Kapasitas ${k.kapasitas || 10} Santri`
-                      }))}
-                      value={formData.kamar_id || ''}
-                      onChange={(val) => handleKamarSelect(val)}
-                      placeholder="-- Pilih Kamar Kobong --"
-                    />
-                  </div>
-                </div>
-
-                {/* Baris 4: PIN Fingerprint & Hafalan */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>PIN FINGERPRINT</label>
-                    <input 
-                      type="text" 
-                      className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }} 
-                      value={formData.fingerprint_pin}
-                      onChange={(e) => setFormData({ ...formData, fingerprint_pin: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>HAFALAN (JUZ)</label>
-                    <input 
-                      type="number" 
-                      className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }} 
-                      value={formData.capaian_hafalan_juz}
-                      onChange={(e) => setFormData({ ...formData, capaian_hafalan_juz: parseInt(e.target.value) || 0 })}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>TINGKAT DINIYAH</label>
-                    <SearchableSelect
-                      options={[
-                        { value: 'Ula', label: 'Ula' },
-                        { value: 'Wustho', label: 'Wustho' },
-                        { value: 'Ulya', label: 'Ulya' }
-                      ]}
-                      value={formData.tingkat_diniyah}
-                      onChange={(val) => setFormData({ ...formData, tingkat_diniyah: val })}
-                      placeholder="-- Tingkat Diniyah --"
-                    />
-                  </div>
-                </div>
-
-                {/* Baris 5: Wali & Kontak */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>NAMA WALI / MAHROM</label>
-                    <input 
-                      type="text" 
-                      className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }} 
-                      value={formData.nama_wali}
-                      onChange={(e) => setFormData({ ...formData, nama_wali: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>NO. WHATSAPP WALI</label>
-                    <input 
-                      type="text" 
-                      className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }} 
-                      value={formData.no_wa_wali}
-                      onChange={(e) => setFormData({ ...formData, no_wa_wali: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>ALAMAT ASAL</label>
-                  <input 
-                    type="text" 
-                    className="filter-select" 
-                    style={{ width: '100%', padding: '6px 10px' }} 
-                    value={formData.alamat_asal}
-                    onChange={(e) => setFormData({ ...formData, alamat_asal: e.target.value })}
-                  />
-                </div>
-
-                {/* Kredensial Login Orang Tua Santri */}
-                <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '12px', marginTop: '4px' }}>
-                  <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#1e40af', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <Lock size={13} color="#2563eb" /> KREDENSIAL LOGIN PORTAL ORANG TUA (WALI)
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '12px' }}>
                     <div>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
-                        USERNAME ORANG TUA
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                        PILIH KELAS PENGAJIAN
+                      </label>
+                      <SearchableSelect
+                        options={kelasList
+                          .filter(k => !formData.jk || k.gender === formData.jk)
+                          .map(k => ({
+                            value: k.nama_kelas,
+                            label: k.nama_kelas,
+                            sublabel: `Mustahiq: ${k.mustahiq || '-'} | Munawwib: ${k.munawwib || '-'}`
+                          }))}
+                        value={formData.nama_kelas}
+                        onChange={(val) => {
+                          const found = kelasList.find(k => k.nama_kelas === val);
+                          setFormData({ 
+                            ...formData, 
+                            nama_kelas: val, 
+                            kelas_id: found ? found.id : formData.kelas_id,
+                            tingkat_diniyah: val?.includes('1') || val?.includes('2') || val?.includes('3') ? 'Wustho' : 'Ulya'
+                          });
+                        }}
+                        placeholder="-- Pilih Kelas --"
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                        BLOK GEDUNG ASRAMA *
+                      </label>
+                      <SearchableSelect
+                        required
+                        options={asramaList.length > 0 ? asramaList.map(a => ({
+                          value: a.id,
+                          label: `${a.nama_asrama} (${a.gender === 'L' ? 'Putra' : 'Putri'})`,
+                          sublabel: `Kapasitas: ${a.total_kamar || 0} Kamar`
+                        })) : [
+                          { value: 1, label: 'Asrama Putra' }
+                        ]}
+                        value={formData.asrama_id || (asramaList[0]?.id || 1)}
+                        onChange={(val) => handleAsramaSelect(val)}
+                        placeholder="-- Pilih Gedung Asrama --"
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                        KAMAR KOBONG (DATABASE) *
+                      </label>
+                      <SearchableSelect
+                        required
+                        options={(kamarList.filter(k => !formData.asrama_id || k.asrama_id === parseInt(formData.asrama_id)).length > 0
+                          ? kamarList.filter(k => !formData.asrama_id || k.asrama_id === parseInt(formData.asrama_id))
+                          : kamarList
+                        ).map(k => ({
+                          value: k.id,
+                          label: `${k.nama_kamar} (Lt ${k.lantai || 1})`,
+                          sublabel: `Kapasitas: ${k.kapasitas || 10} Santri`
+                        }))}
+                        value={formData.kamar_id || ''}
+                        onChange={(val) => handleKamarSelect(val)}
+                        placeholder="-- Pilih Kamar Kobong --"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. AKADEMIK DINIYAH & PRESENSI BIOMETRIK */}
+                <div style={{ background: '#ffffff', padding: '14px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                    <GraduationCap size={14} color="#0284c7" />
+                    <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0f172a' }}>AKADEMIK DINIYAH & PRESENSI BIOMETRIK</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>TINGKAT DINIYAH</label>
+                      <SearchableSelect
+                        options={[
+                          { value: 'Ula', label: 'Ula' },
+                          { value: 'Wustho', label: 'Wustho' },
+                          { value: 'Ulya', label: 'Ulya' }
+                        ]}
+                        value={formData.tingkat_diniyah}
+                        onChange={(val) => setFormData({ ...formData, tingkat_diniyah: val })}
+                        placeholder="-- Tingkat Diniyah --"
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>HAFALAN (JUZ)</label>
+                      <input 
+                        type="number" 
+                        className="filter-select" 
+                        style={{ width: '100%', padding: '7px 10px', fontSize: '0.84rem' }} 
+                        value={formData.capaian_hafalan_juz}
+                        onChange={(e) => setFormData({ ...formData, capaian_hafalan_juz: parseInt(e.target.value) || 0 })}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>PIN FINGERPRINT</label>
+                      <input 
+                        type="text" 
+                        placeholder="Contoh: 1025"
+                        className="filter-select" 
+                        style={{ width: '100%', padding: '7px 10px', fontSize: '0.84rem' }} 
+                        value={formData.fingerprint_pin}
+                        onChange={(e) => setFormData({ ...formData, fingerprint_pin: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. DATA WALI / ORANG TUA & KONTAK */}
+                <div style={{ background: '#ffffff', padding: '14px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                    <Phone size={14} color="#059669" />
+                    <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0f172a' }}>DATA ORANG TUA / WALI & ALAMAT</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '12px', marginBottom: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>NAMA WALI / MAHROM</label>
+                      <input 
+                        type="text" 
+                        placeholder="Contoh: Ahmad Subarjo"
+                        className="filter-select" 
+                        style={{ width: '100%', padding: '7px 10px', fontSize: '0.84rem' }} 
+                        value={formData.nama_wali}
+                        onChange={(e) => setFormData({ ...formData, nama_wali: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>NO. WHATSAPP WALI</label>
+                      <input 
+                        type="text" 
+                        placeholder="Contoh: 081234567890"
+                        className="filter-select" 
+                        style={{ width: '100%', padding: '7px 10px', fontSize: '0.84rem' }} 
+                        value={formData.no_wa_wali}
+                        onChange={(e) => setFormData({ ...formData, no_wa_wali: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>ALAMAT ASAL LENGKAP</label>
+                    <input 
+                      type="text" 
+                      placeholder="Contoh: Jl. Pesantren No. 12, Kel. Sukamanah, Tasikmalaya"
+                      className="filter-select" 
+                      style={{ width: '100%', padding: '7px 10px', fontSize: '0.84rem' }} 
+                      value={formData.alamat_asal}
+                      onChange={(e) => setFormData({ ...formData, alamat_asal: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* 5. KREDENSIAL LOGIN PORTAL WALI */}
+                <div style={{ background: '#f0fdfa', border: '1px solid #99f6e4', borderRadius: '12px', padding: '14px 16px' }}>
+                  <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0f766e', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Lock size={14} color="#0f766e" /> KREDENSIAL LOGIN PORTAL ORANG TUA (WALI)
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                        USERNAME PORTAL WALI
                       </label>
                       <input 
                         type="text" 
                         placeholder={formData.nis || 'Default: NIS Santri'} 
                         className="filter-select" 
-                        style={{ width: '100%', padding: '6px 10px', background: '#ffffff' }} 
+                        style={{ width: '100%', padding: '7px 10px', background: '#ffffff', fontSize: '0.84rem' }} 
                         value={formData.username}
                         onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
-                        PASSWORD ORANG TUA
+                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                        PASSWORD PORTAL WALI
                       </label>
                       <input 
                         type="text" 
                         placeholder={formData.nis || 'Default: NIS Santri'} 
                         className="filter-select" 
-                        style={{ width: '100%', padding: '6px 10px', background: '#ffffff' }} 
+                        style={{ width: '100%', padding: '7px 10px', background: '#ffffff', fontSize: '0.84rem' }} 
                         value={formData.password}
                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       />
                     </div>
                   </div>
-                  <div style={{ fontSize: '0.68rem', color: '#3b82f6', marginTop: '4px' }}>
-                    * Jika dikosongkan, username & password login orang tua otomatis menggunakan Nomor Induk Santri (NIS).
+                  <div style={{ fontSize: '0.68rem', color: '#0d9488', marginTop: '6px', fontWeight: 500 }}>
+                    * Jika dikosongkan, username & password login wali otomatis menggunakan Nomor Induk Santri (NIS).
                   </div>
                 </div>
 
               </div>
 
               {/* Form Footer */}
-              <div style={{ padding: '12px 18px', borderTop: '1px solid #cbd5e1', background: '#ffffff', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                <button type="button" className="btn btn-outline btn-sm" onClick={closeForm}>
+              <div style={{ 
+                padding: '14px 20px', 
+                borderTop: '1px solid #e2e8f0', 
+                background: '#ffffff', 
+                display: 'flex', 
+                justifyContent: 'flex-end', 
+                gap: '10px' 
+              }}>
+                <button type="button" className="btn btn-outline btn-sm" onClick={closeForm} style={{ padding: '7px 14px' }}>
                   Batal
                 </button>
-                <button type="submit" className="btn btn-primary btn-sm" disabled={submitting}>
-                  {submitting ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} Simpan Data Santri
+                <button type="submit" className="btn btn-primary btn-sm" disabled={submitting} style={{ padding: '7px 18px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  {submitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} 
+                  {formMode === 'add' ? 'Simpan Santri Baru' : 'Simpan Perubahan'}
                 </button>
               </div>
             </form>
