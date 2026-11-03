@@ -52,7 +52,10 @@ function getFormattedClassName(rawClass, jk) {
 async function seedMasterKelasDanSantri() {
   console.log('--- SEEDING MASTER KELAS (DENGAN MUSTAHIQ & MUNAWWIB) & 619 SANTRI ---');
   try {
-    // 1. Tambah kolom mustahiq & munawwib di tabel kelas jika belum ada
+    // 1. Pastikan kolom id di tabel kelas AUTO_INCREMENT dan kolom mustahiq & munawwib tersedia
+    try {
+      await pool.query("ALTER TABLE kelas MODIFY COLUMN id INT NOT NULL AUTO_INCREMENT");
+    } catch (e) {}
     try {
       await pool.query("ALTER TABLE kelas ADD COLUMN mustahiq VARCHAR(191) NULL AFTER gender");
     } catch (e) {}
@@ -85,14 +88,16 @@ async function seedMasterKelasDanSantri() {
     await pool.query('SET FOREIGN_KEY_CHECKS = 1');
 
     const kelasMap = {}; // nama_kelas => id
+    let kIdCounter = 1;
     for (const k of KELAS_DATA) {
       const kode_kelas = k.nama_kelas.replace(/\s+/g, '-').toUpperCase();
+      const currentId = kIdCounter++;
       const [resK] = await pool.query(`
-        INSERT INTO kelas (kode_kelas, nama_kelas, tingkat, gender, mustahiq, munawwib)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `, [kode_kelas, k.nama_kelas, k.tingkat, k.gender, k.mustahiq || null, k.munawwib || null]);
+        INSERT INTO kelas (id, kode_kelas, nama_kelas, tingkat, gender, mustahiq, munawwib)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `, [currentId, kode_kelas, k.nama_kelas, k.tingkat, k.gender, k.mustahiq || null, k.munawwib || null]);
       
-      kelasMap[k.nama_kelas] = resK.insertId;
+      kelasMap[k.nama_kelas] = resK.insertId || currentId;
     }
     console.log(`[✓] Berhasil menyimpan ${KELAS_DATA.length} Kelas lengkap dengan Mustahiq & Munawwib.`);
 

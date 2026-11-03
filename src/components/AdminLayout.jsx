@@ -494,14 +494,6 @@ export default function AdminLayout() {
               <BookOpen size={13} style={{ marginRight: '6px', color: '#059669' }} />
               <span>Kegiatan</span>
             </button>
-
-            <button 
-              className={`nav-sublink ${activeTab === 'kurikulum-pengajian' || activeTab === 'jadwal-mengajar' ? 'active' : ''}`}
-              onClick={() => handleTabClick('kurikulum-pengajian')}
-            >
-              <BookOpen size={13} style={{ marginRight: '6px', color: '#059669' }} />
-              <span>Kurikulum Pengajian</span>
-            </button>
           </div>
         )}
 
