@@ -13,7 +13,9 @@ import {
   Users,
   CheckCircle2,
   AlertCircle,
-  Trash2
+  Trash2,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import { toastSuccess, showError, showConfirm } from '../../utils/alert.util';
 import {
@@ -32,6 +34,7 @@ export default function MobileDaftarWajah() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterMode, setFilterMode] = useState('all'); // 'all' | 'unregistered' | 'registered'
+  const [viewLayout, setViewLayout] = useState('grid'); // 'grid' | 'list'
 
   // Selected santri for enrollment
   const [selectedSantri, setSelectedSantri] = useState(null);
@@ -566,88 +569,156 @@ export default function MobileDaftarWajah() {
             Sudah Ada ({totalRegisteredInClass})
           </button>
         </div>
-      </div>
 
-      {/* Santri Cards List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingBottom: '70px' }}>
-        {filteredSantri.map((santri) => {
-          const registered = registeredFaces[santri.id];
-          const photo = registered?.foto || santri.foto || santri.foto_santri;
-          const isEnrolled = !!photo;
-
-          return (
-            <div
-              key={santri.id}
+        {/* Layout Switcher & Total Found */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 4px' }}>
+          <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>
+            Menampilkan <strong style={{ color: '#0284c7' }}>{filteredSantri.length}</strong> santri
+          </span>
+          <div style={{
+            display: 'flex',
+            background: '#e2e8f0',
+            borderRadius: '10px',
+            padding: '2px',
+            gap: '2px'
+          }}>
+            <button
+              onClick={() => setViewLayout('grid')}
+              title="Tampilan Grid"
               style={{
-                background: '#ffffff',
-                borderRadius: '18px',
-                padding: '12px 14px',
-                border: isEnrolled ? '1.5px solid #10b981' : '1.5px solid #e2e8f0',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '12px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+                gap: '4px',
+                padding: '4px 9px',
+                borderRadius: '8px',
+                border: 'none',
+                background: viewLayout === 'grid' ? '#ffffff' : 'transparent',
+                color: viewLayout === 'grid' ? '#0284c7' : '#64748b',
+                boxShadow: viewLayout === 'grid' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                cursor: 'pointer',
+                fontSize: '0.7rem',
+                fontWeight: 800
               }}
             >
-              {/* Photo / Avatar */}
-              <div style={{
-                width: '46px',
-                height: '46px',
-                borderRadius: '14px',
-                overflow: 'hidden',
-                background: isEnrolled ? '#d1fae5' : '#f1f5f9',
+              <LayoutGrid size={13} />
+              <span>Grid</span>
+            </button>
+            <button
+              onClick={() => setViewLayout('list')}
+              title="Tampilan List"
+              style={{
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                border: isEnrolled ? '1.5px solid #059669' : '1px solid #cbd5e1'
-              }}>
-                {photo ? (
-                  <img src={photo} alt={santri.nama_santri} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  <Smile size={24} color="#94a3b8" />
-                )}
-              </div>
+                gap: '4px',
+                padding: '4px 9px',
+                borderRadius: '8px',
+                border: 'none',
+                background: viewLayout === 'list' ? '#ffffff' : 'transparent',
+                color: viewLayout === 'list' ? '#0284c7' : '#64748b',
+                boxShadow: viewLayout === 'list' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                cursor: 'pointer',
+                fontSize: '0.7rem',
+                fontWeight: 800
+              }}
+            >
+              <List size={13} />
+              <span>List</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
-              {/* Info */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{
-                    fontWeight: 800,
-                    fontSize: '0.9rem',
-                    color: '#0f172a',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                  }}>
-                    {santri.nama_santri}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.7rem', color: '#64748b', marginTop: '2px', flexWrap: 'wrap' }}>
-                  <span style={{ fontWeight: 600 }}>NIS: {santri.nis || '-'}</span>
-                  {santri.nama_kelas && (
+      {/* Santri Cards Container (Grid or List) */}
+      {filteredSantri.length === 0 ? (
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '20px',
+          padding: '36px 20px',
+          textAlign: 'center',
+          color: '#94a3b8',
+          border: '1.5px dashed #cbd5e1',
+          margin: '10px 0'
+        }}>
+          <Users size={38} color="#cbd5e1" style={{ margin: '0 auto 10px' }} />
+          <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>
+            Tidak ada santri ditemukan
+          </div>
+          <div style={{ fontSize: '0.74rem' }}>
+            Coba sesuaikan kata kunci pencarian atau pilih kelas lain.
+          </div>
+        </div>
+      ) : viewLayout === 'grid' ? (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '10px',
+          paddingBottom: '80px'
+        }}>
+          {filteredSantri.map((santri) => {
+            const registered = registeredFaces[santri.id];
+            const photo = registered?.foto || santri.foto || santri.foto_santri;
+            const isEnrolled = !!photo;
+
+            return (
+              <div
+                key={santri.id}
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '18px',
+                  padding: '12px 10px',
+                  border: isEnrolled ? '1.5px solid #10b981' : '1.5px solid #e2e8f0',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  position: 'relative',
+                  boxShadow: isEnrolled
+                    ? '0 4px 14px -2px rgba(16, 185, 129, 0.15)'
+                    : '0 2px 8px rgba(0,0,0,0.03)',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                {/* Status Badge Tag */}
+                <div style={{
+                  position: 'absolute',
+                  top: '9px',
+                  left: '9px',
+                  background: isEnrolled ? '#ecfdf5' : '#f8fafc',
+                  color: isEnrolled ? '#059669' : '#94a3b8',
+                  border: isEnrolled ? '1px solid #a7f3d0' : '1px solid #e2e8f0',
+                  borderRadius: '999px',
+                  padding: '2px 6px',
+                  fontSize: '0.6rem',
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '3px'
+                }}>
+                  {isEnrolled ? (
                     <>
-                      <span>•</span>
-                      <span style={{ background: '#f0f9ff', color: '#0284c7', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                        {santri.nama_kelas}
-                      </span>
+                      <CheckCircle2 size={10} color="#059669" />
+                      <span>Ada Foto</span>
                     </>
+                  ) : (
+                    <span>Belum</span>
                   )}
-                  <span>•</span>
-                  <span>{santri.nama_asrama || 'Asrama'}</span>
                 </div>
-              </div>
 
-              {/* Action Buttons */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                {/* Hapus Foto Action */}
                 {isEnrolled && (
                   <button
-                    onClick={() => handleDeleteFace(santri)}
-                    title="Hapus Wajah Santri"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteFace(santri);
+                    }}
+                    title="Hapus Foto Wajah"
                     style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '10px',
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '8px',
                       background: '#fff1f2',
                       color: '#e11d48',
                       border: '1px solid #fecdd3',
@@ -657,33 +728,231 @@ export default function MobileDaftarWajah() {
                       cursor: 'pointer'
                     }}
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={12} />
                   </button>
                 )}
+
+                {/* Avatar / Photo */}
+                <div
+                  onClick={() => handleOpenEnrollModal(santri)}
+                  style={{
+                    width: '68px',
+                    height: '68px',
+                    borderRadius: '20px',
+                    overflow: 'hidden',
+                    background: isEnrolled ? '#d1fae5' : '#f1f5f9',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginTop: '18px',
+                    marginBottom: '8px',
+                    border: isEnrolled ? '2.5px solid #10b981' : '2px dashed #cbd5e1',
+                    boxShadow: isEnrolled ? '0 4px 10px rgba(16, 185, 129, 0.2)' : 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {photo ? (
+                    <img
+                      src={photo}
+                      alt={santri.nama_santri}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <Camera size={26} color="#94a3b8" />
+                  )}
+                </div>
+
+                {/* Name */}
+                <span
+                  title={santri.nama_santri}
+                  style={{
+                    fontWeight: 800,
+                    fontSize: '0.82rem',
+                    color: '#0f172a',
+                    lineHeight: 1.25,
+                    marginBottom: '4px',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    minHeight: '2.1em'
+                  }}
+                >
+                  {santri.nama_santri}
+                </span>
+
+                {/* NIS & Kelas */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px',
+                  fontSize: '0.66rem',
+                  color: '#64748b',
+                  marginBottom: '10px',
+                  flexWrap: 'wrap'
+                }}>
+                  <span style={{ fontWeight: 600 }}>{santri.nis || '-'}</span>
+                  {santri.nama_kelas && (
+                    <span style={{
+                      background: '#f0f9ff',
+                      color: '#0284c7',
+                      padding: '1px 5px',
+                      borderRadius: '5px',
+                      fontWeight: 700,
+                      fontSize: '0.62rem'
+                    }}>
+                      {santri.nama_kelas}
+                    </span>
+                  )}
+                </div>
+
+                {/* Button Ambil/Ubah Foto */}
                 <button
                   onClick={() => handleOpenEnrollModal(santri)}
                   style={{
-                    padding: '7px 12px',
-                    borderRadius: '10px',
-                    background: isEnrolled ? '#f0fdf4' : '#0284c7',
+                    width: '100%',
+                    marginTop: 'auto',
+                    padding: '7px 6px',
+                    borderRadius: '11px',
+                    background: isEnrolled ? '#f0fdf4' : 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
                     color: isEnrolled ? '#059669' : '#ffffff',
-                    border: isEnrolled ? '1px solid #a7f3d0' : 'none',
-                    fontSize: '0.74rem',
+                    border: isEnrolled ? '1.5px solid #a7f3d0' : 'none',
+                    fontSize: '0.72rem',
                     fontWeight: 800,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px'
+                    justifyContent: 'center',
+                    gap: '4px',
+                    boxShadow: isEnrolled ? 'none' : '0 3px 8px rgba(2, 132, 199, 0.22)'
                   }}
                 >
                   <Camera size={13} />
                   <span>{isEnrolled ? 'Ubah' : 'Ambil Foto'}</span>
                 </button>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* List View */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingBottom: '70px' }}>
+          {filteredSantri.map((santri) => {
+            const registered = registeredFaces[santri.id];
+            const photo = registered?.foto || santri.foto || santri.foto_santri;
+            const isEnrolled = !!photo;
+
+            return (
+              <div
+                key={santri.id}
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '18px',
+                  padding: '12px 14px',
+                  border: isEnrolled ? '1.5px solid #10b981' : '1.5px solid #e2e8f0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+                }}
+              >
+                {/* Photo / Avatar */}
+                <div style={{
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '14px',
+                  overflow: 'hidden',
+                  background: isEnrolled ? '#d1fae5' : '#f1f5f9',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  border: isEnrolled ? '1.5px solid #059669' : '1px solid #cbd5e1'
+                }}>
+                  {photo ? (
+                    <img src={photo} alt={santri.nama_santri} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <Smile size={24} color="#94a3b8" />
+                  )}
+                </div>
+
+                {/* Info */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{
+                      fontWeight: 800,
+                      fontSize: '0.9rem',
+                      color: '#0f172a',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {santri.nama_santri}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.7rem', color: '#64748b', marginTop: '2px', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 600 }}>NIS: {santri.nis || '-'}</span>
+                    {santri.nama_kelas && (
+                      <>
+                        <span>•</span>
+                        <span style={{ background: '#f0f9ff', color: '#0284c7', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                          {santri.nama_kelas}
+                        </span>
+                      </>
+                    )}
+                    <span>•</span>
+                    <span>{santri.nama_asrama || 'Asrama'}</span>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                  {isEnrolled && (
+                    <button
+                      onClick={() => handleDeleteFace(santri)}
+                      title="Hapus Wajah Santri"
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '10px',
+                        background: '#fff1f2',
+                        color: '#e11d48',
+                        border: '1px solid #fecdd3',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleOpenEnrollModal(santri)}
+                    style={{
+                      padding: '7px 12px',
+                      borderRadius: '10px',
+                      background: isEnrolled ? '#f0fdf4' : '#0284c7',
+                      color: isEnrolled ? '#059669' : '#ffffff',
+                      border: isEnrolled ? '1px solid #a7f3d0' : 'none',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <Camera size={13} />
+                    <span>{isEnrolled ? 'Ubah' : 'Ambil Foto'}</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Modal Ambil Foto / Daftarkan Wajah Santri */}
       {selectedSantri && (
