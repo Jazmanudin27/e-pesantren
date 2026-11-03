@@ -2,6 +2,7 @@ import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
 import { canAccessKeuangan } from '../utils/authRole.util.js';
 import { createBniVirtualAccount } from '../services/bni.service.js';
+import { createIpaymuTransaction } from '../services/ipaymu.service.js';
 
 /**
  * Helper Internal: Generate Auto Tagihan (SPP Bulanan Okt 2026 - Jun 2027 + Tagihan Bebas Non-Bulanan) untuk 1 Santri
@@ -267,39 +268,38 @@ export const buatTransaksiPembayaran = async (req, res) => {
     let vaNumber = null;
     let qrisData = null;
 
-    if (metode === 'Virtual Account') {
-      if (channel.toUpperCase().includes('BNI')) {
-        let santriNama = 'Santri';
-        try {
-          const [sRows] = await connection.query('SELECT nama_santri FROM santri WHERE id = ?', [santri_id]);
-          if (sRows && sRows.length > 0) santriNama = sRows[0].nama_santri;
-        } catch (e) {}
-
-        const bniRes = await createBniVirtualAccount({
-          nomorTransaksi,
-          santriId: santri_id,
-          santriNama,
-          totalBayar
-        });
-        vaNumber = bniRes.va_number;
-      } else {
-        const prefixMap = {
-          'BCA': '80777',
-          'Mandiri': '88908',
-          'BNI': '98812',
-          'BRI': '12800',
-          'BSI': '90022'
-        };
-        let bankCode = '80777';
-        for (const [key, val] of Object.entries(prefixMap)) {
-          if (channel.toUpperCase().includes(key)) {
-            bankCode = val;
-            break;
-          }
-        }
-        vaNumber = `${bankCode}${String(santri_id).padStart(4, '0')}${Math.floor(10000 + Math.random() * 90000)}`;
+    let santriNama = 'Santri';
+    let noWaWali = '081234567890';
+    try {
+      const [sRows] = await connection.query('SELECT nama_santri, no_wa_wali FROM santri WHERE id = ?', [santri_id]);
+      if (sRows && sRows.length > 0) {
+        santriNama = sRows[0].nama_santri || 'Santri';
+        noWaWali = sRows[0].no_wa_wali || '081234567890';
       }
-    } else {
+    } catch (e) {}
+
+    // Panggil iPaymu Direct Payment untuk VA & QRIS Resmi Live
+    const ipaymuRes = await createIpaymuTransaction({
+      nomorTransaksi,
+      santriId: santri_id,
+      santriNama,
+      noWa: noWaWali,
+      totalBayar,
+      metode,
+      channel
+    });
+
+    if (ipaymuRes?.va_number) {
+      vaNumber = ipaymuRes.va_number;
+    }
+    if (ipaymuRes?.qris_data) {
+      qrisData = ipaymuRes.qris_data;
+    }
+
+    // Fallback jika bukan QRIS dan VA masih kosong
+    if (metode === 'Virtual Account' && !vaNumber) {
+      vaNumber = `117900${String(santri_id).padStart(4, '0')}${Math.floor(1000 + Math.random() * 9000)}`;
+    } else if (metode !== 'Virtual Account' && !qrisData) {
       // Dynamic QRIS String Mock (NMID Pesantren Nurul Wafa)
       qrisData = `00020101021226590014ID.LINKAJA.WWW01189360099900000100010208${nomorTransaksi}520458125303360540${totalBayar}5802ID5925PP NURUL WAFA TASIKMALAYA6011TASIKMALAYA61054611162230119${nomorTransaksi}6304`;
     }
@@ -1250,6 +1250,107 @@ export const webhookBniHandler = async (req, res) => {
       status: '999',
       message: `Internal error: ${err.message}`
     });
+  } finally {
+    connection.release();
+  }
+};
+
+/**
+ * Webhook Callback Resmi iPaymu (notifyUrl)
+ * Otomatis melunasi tagihan saat iPaymu mendeteksi pembayaran berhasil
+ */
+export const webhookIpaymuHandler = async (req, res) => {
+  // iPaymu bisa mengirim data lewat req.body (POST) atau req.query (GET)
+  const data = Object.keys(req.body || {}).length > 0 ? req.body : req.query;
+  console.log('[IPAYMU WEBHOOK RECEIVED]', JSON.stringify(data));
+
+  const trxId = data.trx_id || data.id;
+  const referenceId = data.reference_id || data.referenceId || data.trx_id;
+  const vaNumber = data.va;
+  const status = String(data.status || '').toLowerCase();
+  const statusCode = String(data.status_code || '');
+
+  // iPaymu status 'berhasil' atau status_code '1' menandakan pembayaran lunas
+  const isPaid = status === 'berhasil' || status === 'paid' || statusCode === '1';
+
+  if (!isPaid) {
+    console.log(`[IPAYMU WEBHOOK] Status pembayaran ${referenceId} masih: ${status || statusCode}`);
+    return res.status(200).send('OK');
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // Cari transaksi berdasarkan Nomor Transaksi (referenceId) atau VA Number
+    const [trxRows] = await connection.query(`
+      SELECT * FROM keuangan_transaksi_pembayaran 
+      WHERE (nomor_transaksi IS NOT NULL AND nomor_transaksi = ?) 
+         OR (va_number IS NOT NULL AND va_number = ?)
+      ORDER BY id DESC LIMIT 1 FOR UPDATE
+    `, [referenceId || '', vaNumber || '']);
+
+    if (!trxRows || trxRows.length === 0) {
+      await connection.rollback();
+      console.warn('[IPAYMU WEBHOOK] Transaksi tidak ditemukan untuk Ref:', referenceId, 'VA:', vaNumber);
+      return res.status(200).send('Transaction Not Found');
+    }
+
+    const trx = trxRows[0];
+
+    // Idempoten: Jika sudah berhasil sebelumnya, return OK
+    if (trx.status_pembayaran === 'Berhasil') {
+      await connection.rollback();
+      return res.status(200).send('OK (Already Processed)');
+    }
+
+    const kuitansiNomor = `KWT-IPM-${new Date().toISOString().slice(0,7).replace(/-/g,'')}-${String(trx.id).padStart(4, '0')}`;
+    const tanggalBayar = new Date();
+
+    // Potong & lunasi tagihan terkait di tabel keuangan_tagihan
+    const [detailRows] = await connection.query(`
+      SELECT * FROM keuangan_transaksi_detail WHERE transaksi_id = ?
+    `, [trx.id]);
+
+    for (const d of detailRows) {
+      const [tghRows] = await connection.query(`
+        SELECT id, total_tagihan, sudah_dibayar, sisa_tagihan 
+        FROM keuangan_tagihan WHERE id = ? FOR UPDATE
+      `, [d.tagihan_id]);
+
+      if (tghRows && tghRows.length > 0) {
+        const t = tghRows[0];
+        const newSudah = parseFloat(t.sudah_dibayar) + parseFloat(d.nominal_alokasi);
+        const newSisa = Math.max(0, parseFloat(t.total_tagihan) - newSudah);
+        const newStatus = newSisa <= 0 ? 'Lunas' : 'Sebagian';
+
+        await connection.query(`
+          UPDATE keuangan_tagihan 
+          SET sudah_dibayar = ?, sisa_tagihan = ?, status = ?, updated_at = NOW()
+          WHERE id = ?
+        `, [newSudah, newSisa, newStatus, t.id]);
+      }
+    }
+
+    // Update status transaksi pembayaran jadi Berhasil
+    await connection.query(`
+      UPDATE keuangan_transaksi_pembayaran 
+      SET status_pembayaran = 'Berhasil', 
+          tanggal_bayar = ?, 
+          kuitansi_nomor = ?,
+          keterangan = CONCAT(COALESCE(keterangan, ''), ' [iPaymu Webhook Auto-Settled: Trx ID ', ?, ']'),
+          updated_at = NOW()
+      WHERE id = ?
+    `, [tanggalBayar, kuitansiNomor, trxId || '', trx.id]);
+
+    await connection.commit();
+    console.log(`[IPAYMU WEBHOOK SUCCESS] Transaksi ${trx.nomor_transaksi} otomatis lunas terverifikasi!`);
+
+    return res.status(200).send('OK');
+  } catch (err) {
+    await connection.rollback();
+    console.error('[IPAYMU WEBHOOK ERROR]', err);
+    return res.status(500).send(`Error: ${err.message}`);
   } finally {
     connection.release();
   }

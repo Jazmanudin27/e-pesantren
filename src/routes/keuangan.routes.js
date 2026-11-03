@@ -13,10 +13,15 @@ import {
   deleteKomponenAdmin,
   generateAutoTagihanAdmin,
   bayarTagihanLangsungAdmin,
-  webhookBniHandler
+  webhookBniHandler,
+  webhookIpaymuHandler
 } from '../controllers/keuangan.controller.js';
 
 const router = express.Router();
+
+// Webhook Resmi iPaymu Payment Callback (Live Production)
+router.post('/webhook/ipaymu', webhookIpaymuHandler);
+router.get('/webhook/ipaymu', webhookIpaymuHandler);
 
 // Webhook Resmi BNI Direct API / Virtual Account Payment Callback
 router.post('/webhook/bni', webhookBniHandler);
