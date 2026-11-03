@@ -27,14 +27,16 @@ export async function createMidtransSnapToken({
   totalBayar,
   santriNama = 'Santri',
   noWaWali = '081234567890',
-  items = []
+  items = [],
+  biayaAdmin = 4000
 }) {
   const config = getMidtransConfig();
   const authHeader = Buffer.from(`${config.serverKey}:`).toString('base64');
 
   let itemDetails = [];
+  let sum = 0;
+
   if (items && items.length > 0) {
-    let sum = 0;
     itemDetails = items.map((it, idx) => {
       const price = Math.round(Number(it.nominal_alokasi || 0));
       sum += price;
@@ -51,23 +53,29 @@ export async function createMidtransSnapToken({
         name: cleanName
       };
     });
-
-    if (sum !== Math.round(totalBayar)) {
-      itemDetails = [{
-        id: nomorTransaksi,
-        price: Math.round(totalBayar),
-        quantity: 1,
-        name: 'Pembayaran Tagihan Santri'
-      }];
-    }
   } else {
+    sum = Math.round(totalBayar);
     itemDetails = [{
       id: nomorTransaksi,
-      price: Math.round(totalBayar),
+      price: sum,
       quantity: 1,
       name: 'Pembayaran Tagihan Santri'
     }];
   }
+
+  // Tambahkan item biaya admin payment gateway (ditanggung pengirim / wali santri)
+  const fee = Math.round(Number(biayaAdmin || 0));
+  if (fee > 0) {
+    sum += fee;
+    itemDetails.push({
+      id: 'FEE-ADMIN',
+      price: fee,
+      quantity: 1,
+      name: 'Biaya Layanan & Admin Bank'
+    });
+  }
+
+  const grossAmount = sum;
 
   const cleanFirstName = String(santriNama || 'Santri')
     .replace(/[^\w\s]/gi, '')
@@ -81,7 +89,7 @@ export async function createMidtransSnapToken({
   const payload = {
     transaction_details: {
       order_id: nomorTransaksi,
-      gross_amount: Math.round(totalBayar)
+      gross_amount: grossAmount
     },
     customer_details: {
       first_name: cleanFirstName,

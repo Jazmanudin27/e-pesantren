@@ -263,8 +263,13 @@ export const buatTransaksiPembayaran = async (req, res) => {
     }
 
     const nomorTransaksi = `TRX-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Math.floor(1000 + Math.random() * 9000)}`;
-    const metode = metode_pembayaran === 'Virtual Account' ? 'Virtual Account' : 'QRIS';
-    const channel = channel_pembayaran || (metode === 'Virtual Account' ? 'BCA Virtual Account' : 'QRIS Dinamis');
+    const metode = metode_pembayaran === 'Virtual Account' ? 'Virtual Account' : 'Midtrans Payment Gateway';
+    const channel = channel_pembayaran || 'Midtrans Snap';
+
+    // Biaya admin payment gateway ditanggung pengirim / wali santri (default Rp 4.000)
+    const biayaAdmin = parseInt(process.env.MIDTRANS_BIAYA_ADMIN || '4000', 10);
+    const totalTagihan = totalBayar;
+    const totalGross = totalTagihan + biayaAdmin;
 
     let vaNumber = null;
     let qrisData = null;
@@ -282,14 +287,15 @@ export const buatTransaksiPembayaran = async (req, res) => {
     let snapToken = null;
     let paymentUrl = null;
 
-    // 1. Buat Snap Token Midtrans agar frontend memunculkan popup resmi Midtrans Snap
+    // 1. Buat Snap Token Midtrans dengan biaya admin ditanggung pengirim
     try {
       const snapRes = await createMidtransSnapToken({
         nomorTransaksi,
-        totalBayar,
+        totalBayar: totalTagihan,
         santriNama,
         noWaWali,
-        items: itemsValid
+        items: itemsValid,
+        biayaAdmin
       });
       if (snapRes && snapRes.success) {
         snapToken = snapRes.token;
@@ -304,7 +310,7 @@ export const buatTransaksiPembayaran = async (req, res) => {
       try {
         const midtransRes = await chargeMidtransDirect({
           nomorTransaksi,
-          totalBayar,
+          totalBayar: totalGross,
           santriId: santri_id,
           santriNama,
           noWaWali,
@@ -340,15 +346,15 @@ export const buatTransaksiPembayaran = async (req, res) => {
       vaNumber = `${bankCode}${String(santri_id).padStart(4, '0')}${Math.floor(10000 + Math.random() * 90000)}`;
     } else if (metode !== 'Virtual Account' && !qrisData) {
       // Dynamic QRIS String Mock (NMID Pesantren Nurul Wafa)
-      qrisData = `00020101021226590014ID.LINKAJA.WWW01189360099900000100010208${nomorTransaksi}520458125303360540${totalBayar}5802ID5925PP NURUL WAFA TASIKMALAYA6011TASIKMALAYA61054611162230119${nomorTransaksi}6304`;
+      qrisData = `00020101021226590014ID.LINKAJA.WWW01189360099900000100010208${nomorTransaksi}520458125303360540${totalGross}5802ID5925PP NURUL WAFA TASIKMALAYA6011TASIKMALAYA61054611162230119${nomorTransaksi}6304`;
     }
 
-    // Simpan Transaksi Induk
+    // Simpan Transaksi Induk (total_bayar termasuk biaya admin yang dibayar pengirim)
     const [trxResult] = await connection.query(`
       INSERT INTO keuangan_transaksi_pembayaran 
       (nomor_transaksi, santri_id, metode_pembayaran, channel_pembayaran, va_number, qris_data, total_bayar, status_pembayaran, keterangan)
       VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending', ?)
-    `, [nomorTransaksi, santri_id, metode, channel, vaNumber, qrisData, totalBayar, `Pembayaran ${itemsValid.length} item tagihan`]);
+    `, [nomorTransaksi, santri_id, metode, channel, vaNumber, qrisData, totalGross, `Pembayaran ${itemsValid.length} item tagihan (+ Biaya Admin Rp ${biayaAdmin.toLocaleString('id-ID')})`]);
 
     const transaksiId = trxResult.insertId;
 
@@ -367,8 +373,10 @@ export const buatTransaksiPembayaran = async (req, res) => {
       nomor_transaksi: nomorTransaksi,
       metode_pembayaran: metode,
       channel_pembayaran: channel,
-      total_bayar: totalBayar,
-      formatted_total: `Rp ${totalBayar.toLocaleString('id-ID')}`,
+      total_tagihan: totalTagihan,
+      biaya_admin: biayaAdmin,
+      total_bayar: totalGross,
+      formatted_total: `Rp ${totalGross.toLocaleString('id-ID')}`,
       va_number: vaNumber,
       qris_data: qrisData,
       snap_token: snapToken,

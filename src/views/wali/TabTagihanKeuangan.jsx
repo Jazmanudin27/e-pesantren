@@ -32,13 +32,9 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
   // Format: { [tagihanId]: { selected: boolean, nominal: number } }
   const [selectedItems, setSelectedItems] = useState({});
 
-  // Checkout Modal State
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [metodeBayar, setMetodeBayar] = useState('QRIS'); // 'QRIS' | 'Virtual Account'
-  const [selectedBank, setSelectedBank] = useState('BCA Virtual Account');
+  // Checkout State
   const [processing, setProcessing] = useState(false);
   const [activeTrx, setActiveTrx] = useState(null);
-  const [qrisDataUrl, setQrisDataUrl] = useState('');
 
   // Kuitansi Modal State
   const [isKuitansiOpen, setIsKuitansiOpen] = useState(false);
@@ -135,105 +131,41 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
       const res = await axios.post('/api/keuangan/wali/bayar', {
         santri_id: santriId || data?.santri?.id,
         items: itemsPayload,
-        metode_pembayaran: metodeBayar,
-        channel_pembayaran: metodeBayar === 'Virtual Account' ? selectedBank : 'QRIS Dinamis (Ruang Ponpes)'
+        metode_pembayaran: 'Midtrans Payment Gateway',
+        channel_pembayaran: 'Midtrans Snap'
       });
 
       if (res.data?.success) {
         const trx = res.data.data;
         setActiveTrx(trx);
 
-        if (trx.qris_data) {
-          try {
-            const url = await QRCode.toDataURL(trx.qris_data, { width: 280, margin: 2 });
-            setQrisDataUrl(url);
-          } catch (qrErr) {
-            console.warn('QR Gen error:', qrErr);
-          }
-        }
-
-        // Jika Snap Token Midtrans tersedia dan Snap JS sudah termuat, langsung luncurkan popup Midtrans
+        // Langsung luncurkan popup resmi Midtrans Snap tanpa modal tambahan
         if (trx.snap_token && window.snap) {
           window.snap.pay(trx.snap_token, {
             onSuccess: function (result) {
               toastSuccess('Pembayaran Berhasil!', 'Pembayaran via Midtrans berhasil.');
-              setIsCheckoutOpen(false);
               setSelectedItems({});
               fetchKeuangan();
             },
             onPending: function (result) {
               toastSuccess('Menunggu Pembayaran', 'Silakan selesaikan pembayaran sesuai petunjuk Midtrans.');
-              setIsCheckoutOpen(true);
               fetchKeuangan();
             },
             onError: function (result) {
               showError('Pembayaran Gagal', result?.status_message || 'Transaksi gagal.');
-              setIsCheckoutOpen(true);
             },
             onClose: function () {
-              // Jika popup ditutup tanpa bayar, buka modal lokal sebagai fallback
-              setIsCheckoutOpen(true);
+              fetchKeuangan();
             }
           });
         } else if (trx.payment_url) {
-          // Buka link snap jika script snap popup terhalang
           window.open(trx.payment_url, '_blank');
-          setIsCheckoutOpen(true);
         } else {
-          setIsCheckoutOpen(true);
+          showError('Gagal', 'Token pembayaran Midtrans tidak ditemukan.');
         }
       }
     } catch (err) {
       showError('Gagal Membuat Transaksi', err.response?.data?.message || err.message);
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const triggerSnapPay = (trx) => {
-    if (window.snap && trx?.snap_token) {
-      window.snap.pay(trx.snap_token, {
-        onSuccess: function () {
-          toastSuccess('Pembayaran Berhasil!', 'Pembayaran via Midtrans berhasil.');
-          setIsCheckoutOpen(false);
-          setSelectedItems({});
-          fetchKeuangan();
-        },
-        onPending: function () {
-          toastSuccess('Menunggu Pembayaran', 'Selesaikan pembayaran di Midtrans.');
-          fetchKeuangan();
-        },
-        onError: function (res) {
-          showError('Pembayaran Gagal', res?.status_message || 'Transaksi gagal.');
-        },
-        onClose: function () {}
-      });
-    } else if (trx?.payment_url) {
-      window.open(trx.payment_url, '_blank');
-    }
-  };
-
-  // Simulate Instant Payment Verification
-  const handleSimulasiVerifikasiSukses = async () => {
-    if (!activeTrx) return;
-    try {
-      setProcessing(true);
-      const res = await axios.post('/api/keuangan/wali/verifikasi', {
-        transaksi_id: activeTrx.transaksi_id,
-        nomor_transaksi: activeTrx.nomor_transaksi
-      });
-
-      if (res.data?.success) {
-        toastSuccess('Pembayaran Berhasil!', 'Notifikasi otomatis diterima. Tagihan telah berkurang/lunas!');
-        setIsCheckoutOpen(false);
-        setSelectedItems({});
-        fetchKeuangan();
-
-        // Tampilkan Kuitansi Otomatis
-        handleBukaKuitansi(res.data.data.kuitansi_nomor);
-      }
-    } catch (err) {
-      showError('Gagal Verifikasi', err.response?.data?.message || err.message);
     } finally {
       setProcessing(false);
     }
@@ -694,11 +626,11 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
             border: '1px solid rgba(255,255,255,0.1)'
           }}>
             <div>
-              <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
-                {countSelected} tagihan dipilih
+              <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+                {countSelected} tagihan (+ Admin Rp 4.000)
               </div>
               <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#34d399' }}>
-                {formatRp(totalSelectedBayar)}
+                {formatRp(totalSelectedBayar + 4000)}
               </div>
             </div>
 
@@ -722,180 +654,6 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
             >
               <CreditCard size={16} /> Bayar Sekarang
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL CHECKOUT PEMBAYARAN DIGITAL (QRIS / VIRTUAL ACCOUNT) */}
-      {isCheckoutOpen && activeTrx && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(5px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 99999,
-          padding: '16px'
-        }}>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '24px',
-            width: '100%',
-            maxWidth: '400px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
-            boxSizing: 'border-box'
-          }}>
-            {/* Modal Header */}
-            <div style={{ padding: '16px 20px', background: 'linear-gradient(135deg, #059669, #047857)', color: '#fff', borderTopLeftRadius: '24px', borderTopRightRadius: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: '0.98rem' }}>Pembayaran Digital Pesantren</div>
-                <div style={{ fontSize: '0.72rem', color: '#a7f3d0' }}>No: {activeTrx.nomor_transaksi}</div>
-              </div>
-              <button 
-                onClick={() => setIsCheckoutOpen(false)}
-                style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '1.2rem' }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Total Bayar Box */}
-              <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '14px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>TOTAL PEMBAYARAN</span>
-                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#059669', marginTop: '2px' }}>
-                  {formatRp(activeTrx.total_bayar)}
-                </div>
-                <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '4px' }}>
-                  {activeTrx.items?.length || 1} rincian tagihan terpilih
-                </div>
-              </div>
-
-              {/* METODE 1: QRIS */}
-              {activeTrx.metode_pembayaran === 'QRIS' && (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                  <div style={{
-                    padding: '12px',
-                    borderRadius: '16px',
-                    border: '2px solid #059669',
-                    background: '#fff',
-                    boxShadow: '0 8px 20px rgba(5, 150, 105, 0.15)'
-                  }}>
-                    {qrisDataUrl ? (
-                      <img src={qrisDataUrl} alt="QRIS Dinamis" style={{ width: '220px', height: '220px', display: 'block' }} />
-                    ) : (
-                      <div style={{ width: '220px', height: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <QrCode size={64} color="#059669" />
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a' }}>Scan dengan Aplikasi Apapun</div>
-                    <div style={{ fontSize: '0.72rem', color: '#64748b' }}>BCA Mobile, Livin, BRImo, BSI Mobile, GoPay, OVO, ShopeePay, Dana</div>
-                  </div>
-                </div>
-              )}
-
-              {/* METODE 2: VIRTUAL ACCOUNT */}
-              {activeTrx.metode_pembayaran === 'Virtual Account' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ background: '#eff6ff', padding: '14px', borderRadius: '14px', border: '1px solid #bfdbfe' }}>
-                    <span style={{ fontSize: '0.74rem', color: '#1e40af', fontWeight: 700 }}>
-                      {activeTrx.channel_pembayaran}
-                    </span>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
-                      <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', letterSpacing: '1px', fontFamily: 'monospace' }}>
-                        {activeTrx.va_number}
-                      </span>
-                      <button
-                        onClick={() => copyToClipboard(activeTrx.va_number)}
-                        style={{
-                          background: '#2563eb',
-                          color: '#fff',
-                          border: 'none',
-                          padding: '6px 10px',
-                          borderRadius: '8px',
-                          fontSize: '0.72rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}
-                      >
-                        <Copy size={12} /> Salin
-                      </button>
-                    </div>
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.4 }}>
-                    • Masukkan nomor Virtual Account di menu Transfer &gt; Virtual Account pada Mobile Banking Anda.<br />
-                    • Nominal transfer harus tepat {formatRp(activeTrx.total_bayar)}.
-                  </div>
-                </div>
-              )}
-
-              {/* Tombol Buka Popup / Link Midtrans jika ada snap_token */}
-              {activeTrx.snap_token && (
-                <button
-                  type="button"
-                  onClick={() => triggerSnapPay(activeTrx)}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: 'linear-gradient(135deg, #0284c7, #0369a1)',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '12px',
-                    fontWeight: 800,
-                    fontSize: '0.86rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    boxShadow: '0 4px 12px rgba(3, 105, 161, 0.3)'
-                  }}
-                >
-                  <ExternalLink size={16} /> Buka Pop-up Midtrans Snap
-                </button>
-              )}
-
-              {/* Tombol Simulasi Pembayaran Sukses (Otomatis Sesuai Spesifikasi) */}
-              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <button
-                  onClick={handleSimulasiVerifikasiSukses}
-                  disabled={processing}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: '#10b981',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '12px',
-                    fontWeight: 800,
-                    fontSize: '0.86rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.4)'
-                  }}
-                >
-                  <CheckCircle size={18} /> {processing ? 'Memverifikasi...' : 'Simulasi Pembayaran Berhasil (Otomatis)'}
-                </button>
-                <div style={{ fontSize: '0.68rem', color: '#94a3b8', textAlign: 'center' }}>
-                  *Dalam sistem live, webhook payment gateway akan memverifikasi ini secara otomatis saat uang diterima.
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       )}
