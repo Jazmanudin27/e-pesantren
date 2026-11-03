@@ -1,6 +1,7 @@
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
 import { canAccessKeuangan } from '../utils/authRole.util.js';
+import { createBniVirtualAccount } from '../services/bni.service.js';
 
 /**
  * Helper Internal: Generate Auto Tagihan (SPP Bulanan Okt 2026 - Jun 2027 + Tagihan Bebas Non-Bulanan) untuk 1 Santri
@@ -267,21 +268,37 @@ export const buatTransaksiPembayaran = async (req, res) => {
     let qrisData = null;
 
     if (metode === 'Virtual Account') {
-      const prefixMap = {
-        'BCA': '80777',
-        'Mandiri': '88908',
-        'BNI': '98812',
-        'BRI': '12800',
-        'BSI': '90022'
-      };
-      let bankCode = '80777';
-      for (const [key, val] of Object.entries(prefixMap)) {
-        if (channel.toUpperCase().includes(key)) {
-          bankCode = val;
-          break;
+      if (channel.toUpperCase().includes('BNI')) {
+        let santriNama = 'Santri';
+        try {
+          const [sRows] = await connection.query('SELECT nama_santri FROM santri WHERE id = ?', [santri_id]);
+          if (sRows && sRows.length > 0) santriNama = sRows[0].nama_santri;
+        } catch (e) {}
+
+        const bniRes = await createBniVirtualAccount({
+          nomorTransaksi,
+          santriId: santri_id,
+          santriNama,
+          totalBayar
+        });
+        vaNumber = bniRes.va_number;
+      } else {
+        const prefixMap = {
+          'BCA': '80777',
+          'Mandiri': '88908',
+          'BNI': '98812',
+          'BRI': '12800',
+          'BSI': '90022'
+        };
+        let bankCode = '80777';
+        for (const [key, val] of Object.entries(prefixMap)) {
+          if (channel.toUpperCase().includes(key)) {
+            bankCode = val;
+            break;
+          }
         }
+        vaNumber = `${bankCode}${String(santri_id).padStart(4, '0')}${Math.floor(10000 + Math.random() * 90000)}`;
       }
-      vaNumber = `${bankCode}${String(santri_id).padStart(4, '0')}${Math.floor(10000 + Math.random() * 90000)}`;
     } else {
       // Dynamic QRIS String Mock (NMID Pesantren Nurul Wafa)
       qrisData = `00020101021226590014ID.LINKAJA.WWW01189360099900000100010208${nomorTransaksi}520458125303360540${totalBayar}5802ID5925PP NURUL WAFA TASIKMALAYA6011TASIKMALAYA61054611162230119${nomorTransaksi}6304`;
@@ -1121,6 +1138,118 @@ export const bayarTagihanLangsungAdmin = async (req, res) => {
   } catch (err) {
     await connection.rollback();
     return sendError(res, `Gagal memproses pembayaran: ${err.message}`, 500);
+  } finally {
+    connection.release();
+  }
+};
+
+/**
+ * Webhook Callback Resmi BNI Direct API / BNI e-Collection
+ * Dipanggil secara otomatis oleh server BNI saat pembayaran VA berhasil dilakukan
+ */
+export const webhookBniHandler = async (req, res) => {
+  const payload = req.body || {};
+  console.log('[BNI WEBHOOK RECEIVED]', JSON.stringify(payload));
+
+  // Ambil identifier transaksi & VA dari berbagai kemungkinan format payload BNI
+  const virtualAccount = payload.virtual_account || payload.virtualAccount || payload.va_number || payload.data?.virtual_account;
+  const trxId = payload.trx_id || payload.trxId || payload.nomor_transaksi || payload.data?.trx_id;
+  const paymentAmount = payload.payment_amount || payload.trx_amount || payload.amount || payload.data?.trx_amount;
+
+  if (!virtualAccount && !trxId) {
+    console.warn('[BNI WEBHOOK] Payload tidak memiliki virtual_account atau trx_id');
+    return res.status(400).json({
+      status: '999',
+      message: 'Invalid payload: missing virtual_account or trx_id'
+    });
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // Cari transaksi berdasarkan VA Number atau Nomor Transaksi
+    const [trxRows] = await connection.query(`
+      SELECT * FROM keuangan_transaksi_pembayaran 
+      WHERE (va_number IS NOT NULL AND va_number = ?) 
+         OR (nomor_transaksi IS NOT NULL AND nomor_transaksi = ?) 
+      ORDER BY id DESC LIMIT 1 FOR UPDATE
+    `, [virtualAccount || '', trxId || '']);
+
+    if (!trxRows || trxRows.length === 0) {
+      await connection.rollback();
+      console.warn('[BNI WEBHOOK] Transaksi tidak ditemukan untuk VA:', virtualAccount, 'Trx:', trxId);
+      return res.status(404).json({
+        status: '001',
+        message: 'Transaction not found in pesantren database'
+      });
+    }
+
+    const trx = trxRows[0];
+
+    // Jika sudah pernah berhasil (idempoten), langsung balas 000 sukses
+    if (trx.status_pembayaran === 'Berhasil') {
+      await connection.rollback();
+      return res.status(200).json({
+        status: '000',
+        message: 'Payment already verified previously'
+      });
+    }
+
+    const kuitansiNomor = `KWT-BNI-${new Date().toISOString().slice(0,7).replace(/-/g,'')}-${String(trx.id).padStart(4, '0')}`;
+    const tanggalBayar = new Date();
+
+    // Ambil detail alokasi tagihan dan update status tagihan
+    const [detailRows] = await connection.query(`
+      SELECT * FROM keuangan_transaksi_detail WHERE transaksi_id = ?
+    `, [trx.id]);
+
+    for (const d of detailRows) {
+      const [tghRows] = await connection.query(`
+        SELECT id, total_tagihan, sudah_dibayar, sisa_tagihan 
+        FROM keuangan_tagihan WHERE id = ? FOR UPDATE
+      `, [d.tagihan_id]);
+
+      if (tghRows && tghRows.length > 0) {
+        const t = tghRows[0];
+        const newSudah = parseFloat(t.sudah_dibayar) + parseFloat(d.nominal_alokasi);
+        const newSisa = Math.max(0, parseFloat(t.total_tagihan) - newSudah);
+        const newStatus = newSisa <= 0 ? 'Lunas' : 'Sebagian';
+
+        await connection.query(`
+          UPDATE keuangan_tagihan 
+          SET sudah_dibayar = ?, sisa_tagihan = ?, status = ?, updated_at = NOW()
+          WHERE id = ?
+        `, [newSudah, newSisa, newStatus, t.id]);
+      }
+    }
+
+    // Update status transaksi pembayaran jadi Berhasil
+    await connection.query(`
+      UPDATE keuangan_transaksi_pembayaran 
+      SET status_pembayaran = 'Berhasil', 
+          tanggal_bayar = ?, 
+          kuitansi_nomor = ?,
+          keterangan = CONCAT(COALESCE(keterangan, ''), ' [BNI Direct Webhook Auto-Settled]'),
+          updated_at = NOW()
+      WHERE id = ?
+    `, [tanggalBayar, kuitansiNomor, trx.id]);
+
+    await connection.commit();
+    console.log(`[BNI WEBHOOK SUCCESS] Transaksi ${trx.nomor_transaksi} (VA: ${trx.va_number}) sukses dilunasi!`);
+
+    // Format respon resmi sesuai standar BNI Direct API
+    return res.status(200).json({
+      status: '000',
+      message: 'Payment successfully processed'
+    });
+  } catch (err) {
+    await connection.rollback();
+    console.error('[BNI WEBHOOK ERROR]', err);
+    return res.status(500).json({
+      status: '999',
+      message: `Internal error: ${err.message}`
+    });
   } finally {
     connection.release();
   }

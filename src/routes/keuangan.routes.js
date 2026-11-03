@@ -12,10 +12,15 @@ import {
   updateKomponenAdmin,
   deleteKomponenAdmin,
   generateAutoTagihanAdmin,
-  bayarTagihanLangsungAdmin
+  bayarTagihanLangsungAdmin,
+  webhookBniHandler
 } from '../controllers/keuangan.controller.js';
 
 const router = express.Router();
+
+// Webhook Resmi BNI Direct API / Virtual Account Payment Callback
+router.post('/webhook/bni', webhookBniHandler);
+router.get('/webhook/bni', (req, res) => res.json({ status: '000', message: 'BNI Webhook Endpoint Ready' }));
 
 // Endpoint Khusus Wali Santri (Mobile)
 router.get('/wali/dashboard', getDashboardKeuanganWali);
