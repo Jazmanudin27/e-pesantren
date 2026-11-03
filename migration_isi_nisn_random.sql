@@ -45,3 +45,4 @@ WHERE password IS NULL OR TRIM(password) = '';
 
 -- Cek rincian 10 data santri pertama
 SELECT id, nis, nisn, nama_santri, username, password FROM santri LIMIT 10;
+

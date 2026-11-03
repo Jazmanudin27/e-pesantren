@@ -150,7 +150,7 @@ export default function KeuanganAdminView() {
   const fetchInitialData = async () => {
     try {
       const [resSantri, resRekap] = await Promise.all([
-        axios.get('/api/santri').catch(() => ({ data: { data: [] } })),
+        axios.get('/api/santri?all=true&limit=all').catch(() => ({ data: { data: [] } })),
         axios.get('/api/keuangan/admin/rekap').catch(() => ({ data: { data: {} } }))
       ]);
 
