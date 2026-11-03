@@ -576,27 +576,17 @@ export default function MobileHome({ onChangeTab, onLogout }) {
           }}>
             {/* 1. HADIR */}
             <div
+              className="rekap-card-interactive"
               onClick={() => handleOpenStatusModal('Hadir')}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '6px',
-                cursor: 'pointer'
-              }}
             >
-              <div style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '18px',
-                background: '#10b981',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative',
-                boxShadow: '0 8px 18px -4px rgba(16, 185, 129, 0.45)'
-              }}>
+              <div
+                className="rekap-icon-animated"
+                style={{
+                  background: '#10b981',
+                  boxShadow: '0 8px 18px -4px rgba(16, 185, 129, 0.45)',
+                  animationDelay: '0s'
+                }}
+              >
                 <Check size={28} strokeWidth={2.8} />
                 {/* Count badge top-right */}
                 {rekapAbsensi.hadir > 0 && (
@@ -612,27 +602,17 @@ export default function MobileHome({ onChangeTab, onLogout }) {
 
             {/* 2. SAKIT */}
             <div
+              className="rekap-card-interactive"
               onClick={() => handleOpenStatusModal('Sakit')}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '6px',
-                cursor: 'pointer'
-              }}
             >
-              <div style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '18px',
-                background: '#ef4444',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative',
-                boxShadow: '0 8px 20px -2px rgba(239, 68, 68, 0.45)'
-              }}>
+              <div
+                className="rekap-icon-animated"
+                style={{
+                  background: '#ef4444',
+                  boxShadow: '0 8px 20px -2px rgba(239, 68, 68, 0.45)',
+                  animationDelay: '0.4s'
+                }}
+              >
                 <Building2 size={26} strokeWidth={2.4} />
                 {rekapAbsensi.sakit > 0 && (
                   <span style={countBadgeStyle}>
@@ -647,27 +627,17 @@ export default function MobileHome({ onChangeTab, onLogout }) {
 
             {/* 3. IZIN */}
             <div
+              className="rekap-card-interactive"
               onClick={() => handleOpenStatusModal('Izin')}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '6px',
-                cursor: 'pointer'
-              }}
             >
-              <div style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '18px',
-                background: '#f59e0b',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative',
-                boxShadow: '0 8px 18px -4px rgba(245, 158, 11, 0.45)'
-              }}>
+              <div
+                className="rekap-icon-animated"
+                style={{
+                  background: '#f59e0b',
+                  boxShadow: '0 8px 18px -4px rgba(245, 158, 11, 0.45)',
+                  animationDelay: '0.8s'
+                }}
+              >
                 <FileText size={26} strokeWidth={2.2} />
                 {rekapAbsensi.izin > 0 && (
                   <span style={countBadgeStyle}>
@@ -682,27 +652,17 @@ export default function MobileHome({ onChangeTab, onLogout }) {
 
             {/* 4. ALFA */}
             <div
+              className="rekap-card-interactive"
               onClick={() => handleOpenStatusModal('Alfa')}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '6px',
-                cursor: 'pointer'
-              }}
             >
-              <div style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '18px',
-                background: '#0d9488',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative',
-                boxShadow: '0 8px 18px -4px rgba(13, 148, 136, 0.45)'
-              }}>
+              <div
+                className="rekap-icon-animated"
+                style={{
+                  background: '#0d9488',
+                  boxShadow: '0 8px 18px -4px rgba(13, 148, 136, 0.45)',
+                  animationDelay: '1.2s'
+                }}
+              >
                 <Clock size={26} strokeWidth={2.4} />
                 {rekapAbsensi.alfa > 0 && (
                   <span style={countBadgeStyle}>
@@ -730,96 +690,96 @@ export default function MobileHome({ onChangeTab, onLogout }) {
         padding: '24px 14px 14px'
       }}>
         {/* 1. Santri */}
-        <div onClick={() => onChangeTab('master-santri')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', boxShadow: '0 8px 16px -2px rgba(37, 99, 235, 0.35)' }}>
+        <div onClick={() => onChangeTab('master-santri')} className="mobile-menu-interactive">
+          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', boxShadow: '0 8px 16px -2px rgba(37, 99, 235, 0.35)', animationDelay: '0s' }}>
             <Users size={26} />
           </div>
           <span style={menuLabelStyle}>Santri</span>
         </div>
 
         {/* 2. Asrama */}
-        <div onClick={() => onChangeTab('master-asrama')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #6366f1, #4f46e5)', boxShadow: '0 8px 16px -2px rgba(99, 102, 241, 0.35)' }}>
+        <div onClick={() => onChangeTab('master-asrama')} className="mobile-menu-interactive">
+          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', boxShadow: '0 8px 16px -2px rgba(99, 102, 241, 0.35)', animationDelay: '0.2s' }}>
             <Building size={26} />
           </div>
           <span style={menuLabelStyle}>Asrama</span>
         </div>
 
         {/* 3. Kelas */}
-        <div onClick={() => onChangeTab('master-kelas')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #f59e0b, #d97706)', boxShadow: '0 8px 16px -2px rgba(245, 158, 11, 0.35)' }}>
+        <div onClick={() => onChangeTab('master-kelas')} className="mobile-menu-interactive">
+          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', boxShadow: '0 8px 16px -2px rgba(245, 158, 11, 0.35)', animationDelay: '0.4s' }}>
             <Layers size={26} />
           </div>
           <span style={menuLabelStyle}>Kelas</span>
         </div>
 
         {/* 4. Kitab */}
-        <div onClick={() => onChangeTab('kitab')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #059669, #047857)', boxShadow: '0 8px 16px -2px rgba(5, 150, 105, 0.35)' }}>
+        <div onClick={() => onChangeTab('kitab')} className="mobile-menu-interactive">
+          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #059669, #047857)', boxShadow: '0 8px 16px -2px rgba(5, 150, 105, 0.35)', animationDelay: '0.6s' }}>
             <BookOpen size={26} />
           </div>
           <span style={menuLabelStyle}>Kitab</span>
         </div>
 
         {/* 5. Guru (Asatidz) */}
-        <div onClick={() => onChangeTab('master-asatidz')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #0d9488, #0f766e)', boxShadow: '0 8px 16px -2px rgba(13, 148, 136, 0.35)' }}>
+        <div onClick={() => onChangeTab('master-asatidz')} className="mobile-menu-interactive">
+          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #0d9488, #0f766e)', boxShadow: '0 8px 16px -2px rgba(13, 148, 136, 0.35)', animationDelay: '0.8s' }}>
             <UserCheck size={26} />
           </div>
           <span style={menuLabelStyle}>Guru</span>
         </div>
 
         {/* 6. Perizinan */}
-        <div onClick={() => onChangeTab('perizinan')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #ea580c, #c2410c)', boxShadow: '0 8px 16px -2px rgba(234, 88, 12, 0.35)' }}>
+        <div onClick={() => onChangeTab('perizinan')} className="mobile-menu-interactive">
+          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #ea580c, #c2410c)', boxShadow: '0 8px 16px -2px rgba(234, 88, 12, 0.35)', animationDelay: '1.0s' }}>
             <DoorOpen size={26} />
           </div>
           <span style={menuLabelStyle}>Perizinan</span>
         </div>
 
         {/* 7. Pelanggaran (Tata Tertib & Ta'zir) */}
-        <div onClick={() => onChangeTab('tata-tertib')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #e11d48, #be123c)', boxShadow: '0 8px 16px -2px rgba(225, 29, 72, 0.35)' }}>
+        <div onClick={() => onChangeTab('tata-tertib')} className="mobile-menu-interactive">
+          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #e11d48, #be123c)', boxShadow: '0 8px 16px -2px rgba(225, 29, 72, 0.35)', animationDelay: '1.2s' }}>
             <ShieldAlert size={26} />
           </div>
           <span style={menuLabelStyle}>Pelanggaran</span>
         </div>
 
         {/* 8. Absensi (Berjamaah, Mengaji, dll) */}
-        <div onClick={() => onChangeTab('presensi')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #0284c7, #0369a1)', boxShadow: '0 8px 16px -2px rgba(2, 132, 199, 0.35)' }}>
+        <div onClick={() => onChangeTab('presensi')} className="mobile-menu-interactive">
+          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #0284c7, #0369a1)', boxShadow: '0 8px 16px -2px rgba(2, 132, 199, 0.35)', animationDelay: '1.4s' }}>
             <Fingerprint size={26} />
           </div>
           <span style={menuLabelStyle}>Absensi</span>
         </div>
 
         {/* 9. Hafalan (Tahfidz & Muroja'ah) */}
-        <div onClick={() => onChangeTab('tahfidz')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', boxShadow: '0 8px 16px -2px rgba(139, 92, 246, 0.35)' }}>
+        <div onClick={() => onChangeTab('tahfidz')} className="mobile-menu-interactive">
+          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', boxShadow: '0 8px 16px -2px rgba(139, 92, 246, 0.35)', animationDelay: '0.3s' }}>
             <Sparkles size={26} />
           </div>
           <span style={menuLabelStyle}>Hafalan</span>
         </div>
 
         {/* 10. Praktek (Sholat, Wudhu, Doa) */}
-        <div onClick={() => onChangeTab('praktek-ibadah')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #10b981, #059669)', boxShadow: '0 8px 16px -2px rgba(16, 185, 129, 0.35)' }}>
+        <div onClick={() => onChangeTab('praktek-ibadah')} className="mobile-menu-interactive">
+          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #10b981, #059669)', boxShadow: '0 8px 16px -2px rgba(16, 185, 129, 0.35)', animationDelay: '0.7s' }}>
             <HeartHandshake size={26} />
           </div>
           <span style={menuLabelStyle}>Praktek</span>
         </div>
 
         {/* 11. Pengembangan (Ikhwan & Akhwat - Scan Wajah + Diagnostik) */}
-        <div onClick={() => onChangeTab('pengembangan')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #0284c7, #2563eb)', boxShadow: '0 8px 16px -2px rgba(37, 99, 235, 0.35)' }}>
+        <div onClick={() => onChangeTab('pengembangan')} className="mobile-menu-interactive">
+          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #0284c7, #2563eb)', boxShadow: '0 8px 16px -2px rgba(37, 99, 235, 0.35)', animationDelay: '1.1s' }}>
             <Award size={26} />
           </div>
           <span style={menuLabelStyle}>Pengembangan</span>
         </div>
 
         {/* 12. Daftar Wajah (Face AI Registration) */}
-        <div onClick={() => onChangeTab('daftar-wajah')} style={menuCardStyle}>
-          <div style={{ ...squircleIconStyle, background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', boxShadow: '0 8px 16px -2px rgba(14, 165, 233, 0.35)' }}>
+        <div onClick={() => onChangeTab('daftar-wajah')} className="mobile-menu-interactive">
+          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', boxShadow: '0 8px 16px -2px rgba(14, 165, 233, 0.35)', animationDelay: '1.5s' }}>
             <Smile size={26} />
           </div>
           <span style={menuLabelStyle}>Daftar Wajah</span>
@@ -1272,7 +1232,8 @@ const countBadgeStyle = {
   alignItems: 'center',
   justifyContent: 'center',
   border: '2px solid #ffffff',
-  boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+  boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+  animation: 'badgePulse 2.5s infinite ease-in-out'
 };
 
 const menuCardStyle = {
