@@ -181,6 +181,24 @@ export const getDashboardKeuanganWali = async (req, res) => {
       LIMIT 20
     `, [santriId]);
 
+    // 3. Ambil Transaksi Aktif yang Masih Pending (Menunggu Pembayaran dalam 24 jam terakhir)
+    const [pendingTrxRows] = await pool.query(`
+      SELECT 
+        p.*,
+        (SELECT GROUP_CONCAT(CONCAT(t.judul_tagihan, ' (Rp ', FORMAT(d.nominal_alokasi, 0, 'id_ID'), ')') SEPARATOR ', ')
+         FROM keuangan_transaksi_detail d
+         JOIN keuangan_tagihan t ON d.tagihan_id = t.id
+         WHERE d.transaksi_id = p.id
+        ) as item_dibayar
+      FROM keuangan_transaksi_pembayaran p
+      WHERE p.santri_id = ? 
+        AND p.status_pembayaran = 'Pending'
+        AND p.created_at >= NOW() - INTERVAL 1 DAY
+      ORDER BY p.id DESC LIMIT 1
+    `, [santriId]);
+
+    const transaksiPending = pendingTrxRows && pendingTrxRows.length > 0 ? pendingTrxRows[0] : null;
+
     return sendSuccess(res, 'Dashboard keuangan wali berhasil dimuat', {
       santri,
       summary: {
@@ -197,6 +215,7 @@ export const getDashboardKeuanganWali = async (req, res) => {
       tagihanBulanan,
       biayaAwalMasuk,
       tagihanLainnya,
+      transaksiPending,
       riwayatTransaksi: riwayatRows || []
     });
   } catch (err) {
@@ -329,12 +348,23 @@ export const buatTransaksiPembayaran = async (req, res) => {
       qrisData = `00020101021226590014ID.LINKAJA.WWW01189360099900000100010208${nomorTransaksi}520458125303360540${finalTotalBayar}5802ID5925PP NURUL WAFA TASIKMALAYA6011TASIKMALAYA61054611162230119${nomorTransaksi}6304`;
     }
 
-    // Simpan Transaksi Induk
-    const [trxResult] = await connection.query(`
-      INSERT INTO keuangan_transaksi_pembayaran 
-      (nomor_transaksi, santri_id, metode_pembayaran, channel_pembayaran, va_number, qris_data, total_bayar, status_pembayaran, keterangan)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending', ?)
-    `, [nomorTransaksi, santri_id, metode, channel, vaNumber, qrisData, finalTotalBayar, `Pembayaran ${itemsValid.length} item tagihan (Fee Midtrans ditanggung pengirim)`]);
+    // Simpan Transaksi Induk (simpan snap_token untuk restore saat refresh)
+    let trxResult = null;
+    try {
+      const [resWithSnap] = await connection.query(`
+        INSERT INTO keuangan_transaksi_pembayaran 
+        (nomor_transaksi, santri_id, metode_pembayaran, channel_pembayaran, va_number, qris_data, snap_token, total_bayar, status_pembayaran, keterangan)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pending', ?)
+      `, [nomorTransaksi, santri_id, metode, channel, vaNumber, qrisData, snapToken, finalTotalBayar, `Pembayaran ${itemsValid.length} item tagihan (Fee Midtrans ditanggung pengirim)`]);
+      trxResult = resWithSnap;
+    } catch (insertErr) {
+      const [resFallback] = await connection.query(`
+        INSERT INTO keuangan_transaksi_pembayaran 
+        (nomor_transaksi, santri_id, metode_pembayaran, channel_pembayaran, va_number, qris_data, total_bayar, status_pembayaran, keterangan)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending', ?)
+      `, [nomorTransaksi, santri_id, metode, channel, vaNumber, qrisData, finalTotalBayar, `Pembayaran ${itemsValid.length} item tagihan (Fee Midtrans ditanggung pengirim)`]);
+      trxResult = resFallback;
+    }
 
     const transaksiId = trxResult.insertId;
 
@@ -366,6 +396,47 @@ export const buatTransaksiPembayaran = async (req, res) => {
   } catch (err) {
     await connection.rollback();
     return sendError(res, `Gagal membuat transaksi: ${err.message}`, 500);
+  } finally {
+    connection.release();
+  }
+};
+
+/**
+ * Batalkan Transaksi Pembayaran Pending (Agar Wali Santri Bisa Ganti Metode Pembayaran)
+ */
+export const batalkanTransaksiPembayaran = async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { transaksi_id, nomor_transaksi } = req.body;
+    if (!transaksi_id && !nomor_transaksi) {
+      return sendError(res, 'ID atau Nomor Transaksi wajib diisi', 400);
+    }
+
+    const [trx] = await connection.query(`
+      SELECT id, nomor_transaksi, status_pembayaran 
+      FROM keuangan_transaksi_pembayaran 
+      WHERE ${transaksi_id ? 'id = ?' : 'nomor_transaksi = ?'} LIMIT 1
+    `, [transaksi_id || nomor_transaksi]);
+
+    if (!trx || trx.length === 0) {
+      return sendError(res, 'Transaksi tidak ditemukan', 404);
+    }
+
+    if (trx[0].status_pembayaran === 'Berhasil') {
+      return sendError(res, 'Transaksi sudah berhasil dibayar dan tidak dapat dibatalkan', 400);
+    }
+
+    await connection.query(`
+      UPDATE keuangan_transaksi_pembayaran 
+      SET status_pembayaran = 'Batal',
+          keterangan = CONCAT(COALESCE(keterangan, ''), ' [Dibatalkan Wali / Ganti Metode]'),
+          updated_at = NOW()
+      WHERE id = ?
+    `, [trx[0].id]);
+
+    return sendSuccess(res, 'Transaksi berhasil dibatalkan. Anda dapat memilih metode pembayaran baru.');
+  } catch (err) {
+    return sendError(res, `Gagal membatalkan transaksi: ${err.message}`, 500);
   } finally {
     connection.release();
   }

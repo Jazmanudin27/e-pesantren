@@ -95,6 +95,16 @@ export async function ensureSantriCredentialsColumns() {
       } catch (alterErr) {
         // Abaikan jika tabel belum ada
       }
+
+      // 6. Pastikan kolom snap_token tersedia untuk menyimpan token Midtrans pending
+      try {
+        await pool.query(`
+          ALTER TABLE keuangan_transaksi_pembayaran 
+          ADD COLUMN snap_token VARCHAR(255) NULL AFTER total_bayar
+        `);
+      } catch (colErr) {
+        // Abaikan jika sudah ada
+      }
     } catch (syncErr) {
       console.warn('[E-PESANTREN DB] Sinkronisasi NISN & Kredensial santri:', syncErr.message);
     }

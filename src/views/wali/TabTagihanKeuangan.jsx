@@ -171,6 +171,53 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
     }
   };
 
+  // Lanjutkan Pembayaran yang masih Pending
+  const handleLanjutkanBayar = (pendingTrx) => {
+    if (pendingTrx?.snap_token && window.snap) {
+      window.snap.pay(pendingTrx.snap_token, {
+        onSuccess: function () {
+          toastSuccess('Pembayaran Berhasil!', 'Pembayaran via Midtrans berhasil diverifikasi.');
+          setSelectedItems({});
+          fetchKeuangan();
+        },
+        onPending: function () {
+          toastSuccess('Menunggu Pembayaran', 'Selesaikan pembayaran sebelum batas waktu berakhir.');
+          fetchKeuangan();
+        },
+        onError: function (result) {
+          showError('Pembayaran Gagal', result?.status_message || 'Transaksi gagal.');
+        },
+        onClose: function () {
+          fetchKeuangan();
+        }
+      });
+    } else if (pendingTrx?.payment_url) {
+      window.open(pendingTrx.payment_url, '_blank');
+    } else {
+      showError('Gagal', 'Token transaksi tidak ditemukan.');
+    }
+  };
+
+  // Batalkan Transaksi Pending agar bisa Ganti Metode / Mulai Ulang
+  const handleBatalkanTransaksi = async (pendingTrx) => {
+    if (!window.confirm('Batalkan transaksi pending ini untuk mengganti metode pembayaran?')) return;
+    try {
+      setProcessing(true);
+      const res = await axios.post('/api/keuangan/wali/batal', {
+        nomor_transaksi: pendingTrx.nomor_transaksi,
+        transaksi_id: pendingTrx.id
+      });
+      if (res.data?.success) {
+        toastSuccess('Transaksi Dibatalkan', 'Silakan pilih tagihan dan bayar kembali.');
+        fetchKeuangan();
+      }
+    } catch (err) {
+      showError('Gagal Membatalkan', err.response?.data?.message || err.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   // Open Receipt
   const handleBukaKuitansi = async (kuitansiNomor, trxId = null) => {
     try {
@@ -321,6 +368,97 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
       {/* SUB-TAB 1: TAGIHAN AKTIF */}
       {activeSubTab === 'tagihan' && (
         <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          
+          {/* BANNER TRANSAKSI PENDING (MENUNGGU PEMBAYARAN) */}
+          {data?.transaksiPending && (
+            <div style={{
+              background: 'linear-gradient(135deg, #0f172a, #1e293b)',
+              color: '#fff',
+              borderRadius: '20px',
+              padding: '16px',
+              boxShadow: '0 10px 25px rgba(15, 23, 42, 0.25)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{
+                  background: '#fef3c7',
+                  color: '#b45309',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  padding: '4px 10px',
+                  borderRadius: '999px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}>
+                  <Clock size={13} /> Menunggu Pembayaran
+                </span>
+                <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontFamily: 'monospace' }}>
+                  #{data.transaksiPending.nomor_transaksi}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '2px' }}>
+                <div>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Total yang Harus Ditransfer:</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#38bdf8', marginTop: '2px' }}>
+                    {formatRp(data.transaksiPending.total_bayar)}
+                  </div>
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#cbd5e1', textAlign: 'right', maxWidth: '170px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {data.transaksiPending.item_dibayar || 'Tagihan Santri'}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => handleLanjutkanBayar(data.transaksiPending)}
+                  disabled={processing}
+                  style={{
+                    flex: 1,
+                    background: 'linear-gradient(135deg, #059669, #047857)',
+                    color: '#fff',
+                    border: 'none',
+                    padding: '11px 14px',
+                    borderRadius: '12px',
+                    fontWeight: 800,
+                    fontSize: '0.84rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 12px rgba(5, 150, 105, 0.4)'
+                  }}
+                >
+                  <CreditCard size={15} /> Lanjutkan Bayar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleBatalkanTransaksi(data.transaksiPending)}
+                  disabled={processing}
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    color: '#f87171',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    padding: '11px 14px',
+                    borderRadius: '12px',
+                    fontWeight: 700,
+                    fontSize: '0.78rem',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  Ganti Metode / Batal
+                </button>
+              </div>
+            </div>
+          )}
           
           {/* SECTION 1: ADMINISTRASI BULANAN (SPP / SYAHRIAH) */}
           <div style={{
@@ -502,21 +640,6 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
               })}
             </div>
           </div>
-
-          <div style={{
-            background: '#ecfdf5',
-            borderRadius: '14px',
-            border: '1px solid #a7f3d0',
-            padding: '12px 14px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px'
-          }}>
-            <ShieldCheck size={24} color="#059669" />
-            <div style={{ fontSize: '0.74rem', color: '#065f46', lineHeight: 1.4 }}>
-              <strong>Verifikasi Pembayaran Otomatis:</strong> Orang tua tidak perlu mengirimkan bukti transfer via WhatsApp lagi karena sistem akan memverifikasi secara langsung dan real-time.
-            </div>
-          </div>
         </div>
       )}
 
@@ -602,7 +725,7 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
       )}
 
       {/* FLOATING BOTTOM CHECKOUT ACTION BAR */}
-      {activeSubTab === 'tagihan' && countSelected > 0 && (
+      {activeSubTab === 'tagihan' && countSelected > 0 && !data?.transaksiPending && (
         <div style={{
           position: 'fixed',
           bottom: '70px',

@@ -2,6 +2,7 @@ import express from 'express';
 import { 
   getDashboardKeuanganWali, 
   buatTransaksiPembayaran, 
+  batalkanTransaksiPembayaran,
   konfirmasiPembayaranBerhasil, 
   getKuitansiPembayaran,
   getRekapKeuanganAdmin,
@@ -35,6 +36,7 @@ router.get('/webhook/bni', (req, res) => res.json({ status: '000', message: 'BNI
 // Endpoint Khusus Wali Santri (Mobile)
 router.get('/wali/dashboard', getDashboardKeuanganWali);
 router.post('/wali/bayar', buatTransaksiPembayaran);
+router.post('/wali/batal', batalkanTransaksiPembayaran);
 router.post('/wali/verifikasi', konfirmasiPembayaranBerhasil);
 router.get('/wali/kuitansi', getKuitansiPembayaran);
 
