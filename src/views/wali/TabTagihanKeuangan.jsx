@@ -152,12 +152,64 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
           }
         }
 
-        setIsCheckoutOpen(true);
+        // Jika Snap Token Midtrans tersedia dan Snap JS sudah termuat, langsung luncurkan popup Midtrans
+        if (trx.snap_token && window.snap) {
+          window.snap.pay(trx.snap_token, {
+            onSuccess: function (result) {
+              toastSuccess('Pembayaran Berhasil!', 'Pembayaran via Midtrans berhasil.');
+              setIsCheckoutOpen(false);
+              setSelectedItems({});
+              fetchKeuangan();
+            },
+            onPending: function (result) {
+              toastSuccess('Menunggu Pembayaran', 'Silakan selesaikan pembayaran sesuai petunjuk Midtrans.');
+              setIsCheckoutOpen(true);
+              fetchKeuangan();
+            },
+            onError: function (result) {
+              showError('Pembayaran Gagal', result?.status_message || 'Transaksi gagal.');
+              setIsCheckoutOpen(true);
+            },
+            onClose: function () {
+              // Jika popup ditutup tanpa bayar, buka modal lokal sebagai fallback
+              setIsCheckoutOpen(true);
+            }
+          });
+        } else if (trx.payment_url) {
+          // Buka link snap jika script snap popup terhalang
+          window.open(trx.payment_url, '_blank');
+          setIsCheckoutOpen(true);
+        } else {
+          setIsCheckoutOpen(true);
+        }
       }
     } catch (err) {
       showError('Gagal Membuat Transaksi', err.response?.data?.message || err.message);
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const triggerSnapPay = (trx) => {
+    if (window.snap && trx?.snap_token) {
+      window.snap.pay(trx.snap_token, {
+        onSuccess: function () {
+          toastSuccess('Pembayaran Berhasil!', 'Pembayaran via Midtrans berhasil.');
+          setIsCheckoutOpen(false);
+          setSelectedItems({});
+          fetchKeuangan();
+        },
+        onPending: function () {
+          toastSuccess('Menunggu Pembayaran', 'Selesaikan pembayaran di Midtrans.');
+          fetchKeuangan();
+        },
+        onError: function (res) {
+          showError('Pembayaran Gagal', res?.status_message || 'Transaksi gagal.');
+        },
+        onClose: function () {}
+      });
+    } else if (trx?.payment_url) {
+      window.open(trx.payment_url, '_blank');
     }
   };
 
@@ -787,6 +839,32 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
                     • Nominal transfer harus tepat {formatRp(activeTrx.total_bayar)}.
                   </div>
                 </div>
+              )}
+
+              {/* Tombol Buka Popup / Link Midtrans jika ada snap_token */}
+              {activeTrx.snap_token && (
+                <button
+                  type="button"
+                  onClick={() => triggerSnapPay(activeTrx)}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontWeight: 800,
+                    fontSize: '0.86rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 12px rgba(3, 105, 161, 0.3)'
+                  }}
+                >
+                  <ExternalLink size={16} /> Buka Pop-up Midtrans Snap
+                </button>
               )}
 
               {/* Tombol Simulasi Pembayaran Sukses (Otomatis Sesuai Spesifikasi) */}
