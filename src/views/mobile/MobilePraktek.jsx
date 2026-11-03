@@ -1967,23 +1967,22 @@ export default function MobilePraktek() {
               <button
                 type="button"
                 onClick={toggleFaceFacingMode}
+                title={faceFacingMode === 'user' ? 'Kamera Belakang' : 'Kamera Depan'}
                 style={{
                   background: 'rgba(255, 255, 255, 0.15)',
                   backdropFilter: 'blur(10px)',
                   color: '#ffffff',
                   border: '1px solid rgba(255, 255, 255, 0.25)',
-                  borderRadius: '20px',
-                  padding: '7px 12px',
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
+                  justifyContent: 'center',
                   cursor: 'pointer'
                 }}
               >
-                <RefreshCw size={13} />
-                <span>{faceFacingMode === 'user' ? 'Kamera Belakang' : 'Kamera Depan'}</span>
+                <RefreshCw size={17} />
               </button>
 
               <button
@@ -2042,24 +2041,6 @@ export default function MobilePraktek() {
                 pointerEvents: 'none'
               }}
             />
-
-            {/* Frame Reticle Face HUD Biometrik */}
-            <div
-              style={{
-                position: 'absolute',
-                width: '230px',
-                height: '270px',
-                pointerEvents: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <div style={{ position: 'absolute', top: 0, left: 0, width: '28px', height: '28px', borderTop: '3.5px solid #10b981', borderLeft: '3.5px solid #10b981', borderTopLeftRadius: '14px' }} />
-              <div style={{ position: 'absolute', top: 0, right: 0, width: '28px', height: '28px', borderTop: '3.5px solid #10b981', borderRight: '3.5px solid #10b981', borderTopRightRadius: '14px' }} />
-              <div style={{ position: 'absolute', bottom: 0, left: 0, width: '28px', height: '28px', borderBottom: '3.5px solid #10b981', borderLeft: '3.5px solid #10b981', borderBottomLeftRadius: '14px' }} />
-              <div style={{ position: 'absolute', bottom: 0, right: 0, width: '28px', height: '28px', borderBottom: '3.5px solid #10b981', borderRight: '3.5px solid #10b981', borderBottomRightRadius: '14px' }} />
-            </div>
 
             {/* Status Badge floating */}
             <div style={{
