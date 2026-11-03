@@ -287,7 +287,7 @@ export default function MobileLogin({ onLoginSuccess, onBackToOnboarding }) {
               />
               <input 
                 type="text"
-                placeholder="Username, NIS Santri, atau NIK..."
+                placeholder="NISN / NIS Santri, Username, atau NIK..."
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 onFocus={() => setFocusedField('user')}

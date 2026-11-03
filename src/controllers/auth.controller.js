@@ -164,9 +164,9 @@ export const login = async (req, res, next) => {
 
         if (strRows && strRows.length > 0) {
           account = strRows[0];
-          // Default password jika di database masih kosong: gunakan NIS santri
+          // Default password jika di database masih kosong: gunakan NIS / NISN santri
           if (!account.password || String(account.password).trim() === '') {
-            account.password = account.nis || '123456';
+            account.password = account.nis || account.nisn || '123456';
           }
           userType = 'Wali Santri';
         }

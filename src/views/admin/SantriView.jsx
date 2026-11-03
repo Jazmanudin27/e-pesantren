@@ -1724,11 +1724,11 @@ export default function SantriView() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <div>
                         <label style={{ fontSize: '0.68rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
-                          USERNAME WALI
+                          USERNAME WALI (NISN / NIS / Custom)
                         </label>
                         <input 
                           type="text" 
-                          placeholder={formData.nis || 'Default: NIS Santri'} 
+                          placeholder={formData.nisn || formData.nis || 'Default: NISN / NIS Santri'} 
                           className="filter-select" 
                           style={{ width: '100%', padding: '6px 10px', background: '#ffffff', fontSize: '0.82rem' }} 
                           value={formData.username}
@@ -1741,7 +1741,7 @@ export default function SantriView() {
                         </label>
                         <input 
                           type="text" 
-                          placeholder={formData.nis || 'Default: NIS Santri'} 
+                          placeholder={formData.nis || formData.nisn || 'Default: Password / NIS Santri'} 
                           className="filter-select" 
                           style={{ width: '100%', padding: '6px 10px', background: '#ffffff', fontSize: '0.82rem' }} 
                           value={formData.password}
@@ -1750,7 +1750,7 @@ export default function SantriView() {
                       </div>
                     </div>
                     <div style={{ fontSize: '0.66rem', color: '#0d9488', marginTop: '6px', lineHeight: 1.3 }}>
-                      * Jika dikosongkan, username & password login wali otomatis menggunakan Nomor Induk Santri (NIS).
+                      * Wali Santri bisa login langsung menggunakan <strong>NISN</strong> atau <strong>NIS</strong> santri. Jika password dikosongkan, default password otomatis menggunakan NIS / NISN santri.
                     </div>
                   </div>
 

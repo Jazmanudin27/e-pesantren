@@ -46,20 +46,20 @@ export async function ensureSantriCredentialsColumns() {
       }
     }
 
-    // 4. Sinkronisasi username & password default dari NIS untuk data santri yang masih kosong
+    // 4. Sinkronisasi username & password default dari NISN / NIS untuk data santri yang masih kosong
     try {
       await pool.query(`
         UPDATE santri 
-        SET username = nis 
+        SET username = COALESCE(NULLIF(TRIM(nisn), ''), NULLIF(TRIM(nis), ''))
         WHERE (username IS NULL OR TRIM(username) = '') 
-          AND nis IS NOT NULL AND TRIM(nis) != ''
+          AND (nis IS NOT NULL OR nisn IS NOT NULL)
       `);
 
       await pool.query(`
         UPDATE santri 
-        SET password = nis 
+        SET password = COALESCE(NULLIF(TRIM(nis), ''), NULLIF(TRIM(nisn), ''), '123456')
         WHERE (password IS NULL OR TRIM(password) = '') 
-          AND nis IS NOT NULL AND TRIM(nis) != ''
+          AND (nis IS NOT NULL OR nisn IS NOT NULL)
       `);
     } catch (syncErr) {
       console.warn('[E-PESANTREN DB] Sinkronisasi kredensial santri:', syncErr.message);
