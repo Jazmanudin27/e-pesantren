@@ -51,7 +51,7 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
           bottom: 0,
           backgroundImage: "url('/onboarding-santri.jpg')",
           backgroundSize: 'cover',
-          backgroundPosition: 'center 22%',
+          backgroundPosition: 'center 10%',
           backgroundRepeat: 'no-repeat',
           zIndex: 1
         }} />
@@ -62,20 +62,20 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
           top: 0,
           left: 0,
           right: 0,
-          height: '140px',
-          background: 'linear-gradient(to bottom, rgba(2, 21, 31, 0.65) 0%, rgba(2, 21, 31, 0.25) 55%, transparent 100%)',
+          height: '110px',
+          background: 'linear-gradient(to bottom, rgba(2, 21, 31, 0.6) 0%, rgba(2, 21, 31, 0.15) 60%, transparent 100%)',
           zIndex: 2,
           pointerEvents: 'none'
         }} />
 
-        {/* BOTTOM GRADIENT OVERLAY (Matching user screenshot style: deep gradient starting from santri waist down) */}
+        {/* BOTTOM GRADIENT OVERLAY (Hanya di bagian bawah agar wajah & karakter santri tidak tertutup) */}
         <div style={{
           position: 'absolute',
           bottom: 0,
           left: 0,
           right: 0,
-          height: '62%',
-          background: 'linear-gradient(to bottom, rgba(2, 21, 31, 0) 0%, rgba(2, 25, 37, 0.42) 20%, rgba(2, 28, 42, 0.88) 45%, #021a27 75%, #01121b 100%)',
+          height: '48%',
+          background: 'linear-gradient(to bottom, rgba(2, 21, 31, 0) 0%, rgba(2, 25, 37, 0.45) 25%, rgba(2, 28, 42, 0.92) 55%, #021a27 80%, #01121b 100%)',
           zIndex: 2,
           pointerEvents: 'none'
         }} />
@@ -156,92 +156,77 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
           </div>
         </div>
 
-        {/* ----------------- CENTER FLOATING CHIP ----------------- */}
-        <div style={{
-          position: 'relative',
-          zIndex: 10,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          marginTop: 'auto',
-          marginBottom: '16px'
-        }}>
-          <div style={{
-            background: 'rgba(6, 78, 59, 0.85)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            border: '1.5px solid rgba(52, 211, 153, 0.45)',
-            borderRadius: '999px',
-            padding: '7px 18px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            boxShadow: '0 8px 24px rgba(5, 150, 105, 0.35)',
-            animation: 'pulse 3s ease-in-out infinite'
-          }}>
-            <Sparkles size={15} color="#34d399" />
-            <span style={{
-              color: '#ffffff',
-              fontSize: '0.76rem',
-              fontWeight: 800,
-              letterSpacing: '0.04em'
-            }}>
-              Santri Berakhlak & Terampil Digital
-            </span>
-          </div>
-        </div>
-
         {/* ----------------- BOTTOM CONTENT SHEET ----------------- */}
         <div style={{
           position: 'relative',
           zIndex: 10,
-          padding: '0 24px 34px',
+          padding: '0 20px 22px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '12px',
+          gap: '6px',
           boxSizing: 'border-box'
         }}>
+          {/* Tag Pill */}
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <span style={{
+              background: 'rgba(6, 78, 59, 0.85)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              border: '1px solid rgba(52, 211, 153, 0.45)',
+              borderRadius: '999px',
+              padding: '3px 10px',
+              color: '#34d399',
+              fontSize: '0.68rem',
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}>
+              <Sparkles size={11} color="#34d399" />
+              <span>Santri Berakhlak & Terampil Digital</span>
+            </span>
+          </div>
+
           {/* Main Headline */}
           <h1 style={{
             margin: 0,
-            fontSize: '1.75rem',
+            fontSize: '1.35rem',
             fontWeight: 900,
             color: '#ffffff',
             lineHeight: 1.22,
             letterSpacing: '-0.02em',
-            textShadow: '0 2px 10px rgba(0, 0, 0, 0.65)'
+            textShadow: '0 2px 8px rgba(0, 0, 0, 0.7)'
           }}>
-            Melaju Lebih Percaya Diri Bersama Santri
+            Tumbuh Percaya Diri Bersama Santri
           </h1>
 
           {/* Subtitle / Tagline */}
           <div style={{
-            color: '#34d399',
-            fontSize: '0.92rem',
-            fontWeight: 800,
-            letterSpacing: '0.01em',
+            color: '#6ee7b7',
+            fontSize: '0.78rem',
+            fontWeight: 700,
             display: 'flex',
             alignItems: 'center',
-            gap: '6px'
+            gap: '5px'
           }}>
-            <GraduationCap size={18} color="#34d399" />
+            <GraduationCap size={14} color="#34d399" />
             <span>Pendidikan Terpadu & Kualitas Terbaik</span>
           </div>
 
           {/* Description Paragraph */}
           <p style={{
-            margin: 0,
-            fontSize: '0.8rem',
+            margin: '2px 0 4px 0',
+            fontSize: '0.72rem',
             color: '#cbd5e1',
-            lineHeight: 1.55,
+            lineHeight: 1.4,
             fontWeight: 500,
-            textShadow: '0 1px 4px rgba(0, 0, 0, 0.6)'
+            textShadow: '0 1px 3px rgba(0, 0, 0, 0.6)'
           }}>
-            Rasakan ekosistem digital pesantren terdepan. Pantau presensi santri, setoran tahfidz Qur'an, mutaba'ah asrama, dan syahriah dengan mudah, transparan, dan terpercaya.
+            Pantau presensi santri, setoran tahfidz Qur'an, mutaba'ah asrama, dan syahriah dengan mudah & transparan.
           </p>
 
           {/* Action Buttons */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {/* Big Primary Button ("Mulai Sekarang ->") */}
             <button
               id="btn-onboarding-start"
@@ -251,38 +236,37 @@ export default function MobileOnboarding({ onStart, onOpenWali }) {
                 background: '#ffffff',
                 color: '#064e3b',
                 border: 'none',
-                padding: '15px 22px',
+                padding: '11px 18px',
                 borderRadius: '999px',
-                fontSize: '0.98rem',
+                fontSize: '0.9rem',
                 fontWeight: 900,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '10px',
+                gap: '8px',
                 cursor: 'pointer',
-                boxShadow: '0 10px 25px -4px rgba(255, 255, 255, 0.35), 0 4px 12px rgba(0, 0, 0, 0.4)',
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: '0 8px 20px -3px rgba(255, 255, 255, 0.35)',
+                transition: 'all 0.2s ease',
                 userSelect: 'none'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 14px 30px -4px rgba(255, 255, 255, 0.45)';
+                e.currentTarget.style.boxShadow = '0 12px 24px -3px rgba(255, 255, 255, 0.45)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 10px 25px -4px rgba(255, 255, 255, 0.35)';
+                e.currentTarget.style.boxShadow = '0 8px 20px -3px rgba(255, 255, 255, 0.35)';
               }}
             >
               <span>Mulai Sekarang</span>
-              <ArrowRight size={19} color="#064e3b" strokeWidth={3} />
+              <ArrowRight size={17} color="#064e3b" strokeWidth={3} />
             </button>
 
             {/* Quick Secondary Links */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
-              gap: '8px',
-              marginTop: '4px'
+              gap: '8px'
             }}>
               {/* Button Portal Wali */}
               <button
