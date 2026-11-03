@@ -478,21 +478,24 @@ export default function SantriView() {
       });
 
       if (res.data && res.data.success) {
-        const payload = res.data.data;
-        if (payload && Array.isArray(payload.data)) {
-          setSantriList(payload.data);
-          if (payload.pagination) {
-            setPage(payload.pagination.page);
-            setLimit(payload.pagination.limit);
-            setTotalPages(payload.pagination.totalPages);
-            setTotalRecords(payload.pagination.total);
-          }
-          if (payload.stats) {
-            setStats(payload.stats);
-          }
-        } else if (Array.isArray(payload)) {
-          setSantriList(payload);
-          setTotalRecords(payload.length);
+        const rows = Array.isArray(res.data.data) 
+          ? res.data.data 
+          : (Array.isArray(res.data.data?.data) ? res.data.data.data : []);
+        setSantriList(rows);
+
+        const pagination = res.data.pagination || res.data.data?.pagination;
+        if (pagination) {
+          setLimit(pagination.limit);
+          setTotalPages(pagination.totalPages);
+          setTotalRecords(pagination.total);
+        } else {
+          setTotalRecords(rows.length);
+          setTotalPages(Math.ceil(rows.length / targetLimit) || 1);
+        }
+
+        const serverStats = res.data.stats || res.data.data?.stats;
+        if (serverStats) {
+          setStats(serverStats);
         }
       } else {
         setSantriList([]);
