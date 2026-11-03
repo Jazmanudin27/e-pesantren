@@ -13,6 +13,8 @@ export const getAllSantri = async (req, res) => {
       status, 
       tingkat, 
       tahun,
+      kelas_id,
+      kelas,
       all = 'false'
     } = req.query;
 
@@ -76,6 +78,15 @@ export const getAllSantri = async (req, res) => {
     if (tahun && tahun !== 'Semua Tahun' && !String(tahun).includes('Tahun 2026/2027')) {
       whereConditions.push("s.tahun_masuk LIKE ?");
       params.push(`%${String(tahun).replace('Tahun ', '').trim()}%`);
+    }
+
+    // Kelas filter
+    if (kelas_id && kelas_id !== 'Semua') {
+      whereConditions.push("(s.kelas_id = ? OR s.nama_kelas = ?)");
+      params.push(kelas_id, kelas_id);
+    } else if (kelas && kelas !== 'Semua Kelas' && kelas !== 'Semua') {
+      whereConditions.push("(s.nama_kelas LIKE ? OR kl.nama_kelas LIKE ?)");
+      params.push(`%${kelas}%`, `%${kelas}%`);
     }
 
     const whereClause = whereConditions.length > 0 ? ` WHERE ${whereConditions.join(' AND ')} ` : '';

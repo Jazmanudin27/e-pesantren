@@ -211,7 +211,7 @@ export default function ScanBarcodeView() {
   const fetchSantriData = async () => {
     try {
       const [resSantri, resAbs, resSesi] = await Promise.all([
-        axios.get("/api/santri"),
+        axios.get("/api/santri?all=true"),
         axios
           .get("/api/absensi/fingerprint")
           .catch(() => ({ data: { data: [] } })),

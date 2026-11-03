@@ -416,7 +416,7 @@ export default function MobilePraktek() {
 
       const [resPraktek, resSantri, resKat] = await Promise.all([
         axios.get('/api/praktek').catch(() => ({ data: { data: [] } })),
-        axios.get('/api/santri').catch(() => ({ data: { data: [] } })),
+        axios.get('/api/santri?all=true').catch(() => ({ data: { data: [] } })),
         axios.get('/api/praktek/kategori').catch(() => ({ data: { data: [] } }))
       ]);
 

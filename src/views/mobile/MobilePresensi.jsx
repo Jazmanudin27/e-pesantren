@@ -271,7 +271,7 @@ export default function MobilePresensi() {
     try {
       setLoading(true);
       const [resSantri, resAbs, resIzin] = await Promise.all([
-        axios.get('/api/santri'),
+        axios.get('/api/santri?all=true'),
         axios.get('/api/absensi/fingerprint').catch(() => ({ data: { data: [] } })),
         axios.get('/api/perizinan').catch(() => ({ data: { data: [] } }))
       ]);

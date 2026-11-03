@@ -105,7 +105,7 @@ export default function MobileIzin() {
       setLoading(true);
       const [resIzin, resSantri] = await Promise.all([
         axios.get('/api/perizinan').catch(() => ({ data: { data: [] } })),
-        axios.get('/api/santri').catch(() => ({ data: { data: [] } }))
+        axios.get('/api/santri?all=true').catch(() => ({ data: { data: [] } }))
       ]);
 
       const sanitizeItems = (arr) => {

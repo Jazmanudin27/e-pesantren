@@ -61,7 +61,7 @@ export default function MobileDaftarWajah() {
     try {
       setLoading(true);
       const [resSantri, resKelas] = await Promise.all([
-        axios.get('/api/santri'),
+        axios.get('/api/santri?all=true'),
         axios.get('/api/kelas').catch(() => ({ data: { data: [] } }))
       ]);
 
@@ -75,7 +75,7 @@ export default function MobileDaftarWajah() {
         // Sinkronisasi otomatis data foto yang sudah ada di database ke registeredFaces
         const updated = { ...registeredFaces };
         let changed = false;
-        res.data.data.forEach((s) => {
+        resSantri.data.data.forEach((s) => {
           const photo = s.foto || s.foto_santri;
           if (photo && (!updated[s.id] || !updated[s.id].foto)) {
             updated[s.id] = {
@@ -378,14 +378,22 @@ export default function MobileDaftarWajah() {
     return list;
   }, [kelasList, santriList]);
 
-  const filteredSantri = santriList.filter((s) => {
+  // Saring santri berdasarkan kelas
+  const classFilteredSantri = santriList.filter((s) => {
     if (selectedKelas !== 'Semua') {
       const matchKelas =
         String(s.kelas_id) === String(selectedKelas) ||
         String(s.nama_kelas) === String(selectedKelas);
       if (!matchKelas) return false;
     }
+    return true;
+  });
 
+  const totalRegisteredInClass = classFilteredSantri.filter(
+    (s) => !!(registeredFaces[s.id]?.foto || s.foto || s.foto_santri)
+  ).length;
+
+  const filteredSantri = classFilteredSantri.filter((s) => {
     const q = search.toLowerCase();
     const matchSearch =
       s.nama_santri?.toLowerCase().includes(q) ||
@@ -437,7 +445,9 @@ export default function MobileDaftarWajah() {
             fontSize: '0.72rem',
             fontWeight: 800
           }}>
-            {totalRegistered} / {santriList.length} Terdaftar
+            {selectedKelas === 'Semua' 
+              ? `${totalRegistered} / ${santriList.length} Terdaftar`
+              : `${totalRegisteredInClass} / ${classFilteredSantri.length} Terdaftar`}
           </span>
         </div>
         <p style={{ margin: 0, fontSize: '0.74rem', color: '#e0f2fe', lineHeight: 1.4 }}>
@@ -521,7 +531,7 @@ export default function MobileDaftarWajah() {
               cursor: 'pointer'
             }}
           >
-            Semua ({santriList.length})
+            Semua ({classFilteredSantri.length})
           </button>
           <button
             onClick={() => setFilterMode('unregistered')}
@@ -537,7 +547,7 @@ export default function MobileDaftarWajah() {
               cursor: 'pointer'
             }}
           >
-            Belum Foto ({santriList.length - totalRegistered})
+            Belum Foto ({classFilteredSantri.length - totalRegisteredInClass})
           </button>
           <button
             onClick={() => setFilterMode('registered')}
@@ -553,7 +563,7 @@ export default function MobileDaftarWajah() {
               cursor: 'pointer'
             }}
           >
-            Sudah Ada ({totalRegistered})
+            Sudah Ada ({totalRegisteredInClass})
           </button>
         </div>
       </div>

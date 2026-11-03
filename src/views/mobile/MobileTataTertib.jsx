@@ -35,7 +35,7 @@ export default function MobileTataTertib() {
       setLoading(true);
       const [resP, resS] = await Promise.all([
         axios.get('/api/pelanggaran'),
-        axios.get('/api/santri')
+        axios.get('/api/santri?all=true')
       ]);
 
       if (resS.data && resS.data.data) {

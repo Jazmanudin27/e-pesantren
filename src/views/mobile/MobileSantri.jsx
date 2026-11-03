@@ -47,7 +47,7 @@ export default function MobileSantri() {
   const fetchSantri = async () => {
     try {
       setLoading(true);
-      const url = (isAsramaUser && userAsramaId) ? `/api/santri?asrama_id=${userAsramaId}` : '/api/santri';
+      const url = (isAsramaUser && userAsramaId) ? `/api/santri?all=true&asrama_id=${userAsramaId}` : '/api/santri?all=true';
       const res = await axios.get(url);
       if (res.data && res.data.success && Array.isArray(res.data.data)) {
         let list = res.data.data;

@@ -68,7 +68,7 @@ export default function MobileTahfidz() {
       setMateriOptions(getMasterKitabOptions());
       const [resSetoran, resSantri] = await Promise.all([
         axios.get('/api/dashboard/stats'),
-        axios.get('/api/santri')
+        axios.get('/api/santri?all=true')
       ]);
 
       if (resSantri.data && resSantri.data.data) {

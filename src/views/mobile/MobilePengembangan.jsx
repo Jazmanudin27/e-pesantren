@@ -126,7 +126,7 @@ export default function MobilePengembangan() {
     try {
       const [resMaster, resSantri, resRekap, resKelas] = await Promise.all([
         axios.get('/api/perkembangan-ikhwan/master?gender=Semua').catch(() => ({ data: { data: [] } })),
-        axios.get('/api/santri').catch(() => ({ data: { data: [] } })),
+        axios.get('/api/santri?all=true').catch(() => ({ data: { data: [] } })),
         axios.get('/api/perkembangan-ikhwan/rekap?limit=200').catch(() => ({ data: { data: [] } })),
         axios.get('/api/kelas').catch(() => ({ data: { data: [] } }))
       ]);
