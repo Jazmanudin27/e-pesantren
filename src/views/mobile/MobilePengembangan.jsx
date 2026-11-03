@@ -1270,171 +1270,280 @@ export default function MobilePengembangan() {
       </button>
 
       {/* =========================================================================
-          MODAL 1: KAMERA SCAN WAJAH SANTRI (STEP 1)
+          MODAL 1: KAMERA SCAN WAJAH SANTRI (FULL SCREEN & ELEGAN)
       ========================================================================= */}
       {isFaceScanOpen && (
         <div
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(15, 23, 42, 0.85)',
-            backdropFilter: 'blur(6px)',
-            zIndex: 9999,
+            background: '#090d16',
+            zIndex: 99999,
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '14px'
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            overflow: 'hidden'
           }}
         >
+          {/* Header Full-Screen Glass Translucent */}
           <div
             style={{
-              background: '#ffffff',
-              width: '100%',
-              maxWidth: '410px',
-              borderRadius: '22px',
-              overflow: 'hidden',
-              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)'
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 30,
+              background: 'linear-gradient(to bottom, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0))',
+              backdropFilter: 'blur(8px)',
+              padding: '16px 18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              color: '#ffffff'
             }}
           >
-            {/* Header Kamera */}
-            <div
-              style={{
-                background: 'linear-gradient(135deg, #0f172a, #1e293b)',
-                color: '#ffffff',
-                padding: '14px 16px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Camera size={18} color="#38bdf8" />
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.88rem' }}>Scan Wajah Santri</div>
-                  <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
-                    Otomatis buka form bidang pengembangan setelah wajah dikenali
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={closeFaceScanner}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div
                 style={{
-                  background: 'rgba(255,255,255,0.15)',
-                  border: 'none',
-                  color: '#ffffff',
-                  width: '30px',
-                  height: '30px',
-                  borderRadius: '50%',
-                  cursor: 'pointer',
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '12px',
+                  background: 'rgba(56, 189, 248, 0.2)',
+                  border: '1.5px solid rgba(56, 189, 248, 0.4)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  color: '#38bdf8'
                 }}
               >
-                <X size={16} />
-              </button>
+                <Camera size={20} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '0.94rem', color: '#ffffff', letterSpacing: '-0.01em' }}>
+                  Scan Wajah Santri
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                  Arahkan kamera ke wajah santri diuji
+                </div>
+              </div>
             </div>
 
-            {/* Viewport Kamera */}
-            <div style={{ position: 'relative', background: '#000000', height: '310px', overflow: 'hidden' }}>
-              <video
-                ref={faceVideoRef}
-                autoPlay
-                playsInline
-                muted
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  transform: faceFacingMode === 'user' ? 'scaleX(-1)' : 'none'
-                }}
-              />
-              <canvas
-                ref={faceCanvasRef}
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  width: '100%',
-                  height: '100%',
-                  pointerEvents: 'none'
-                }}
-              />
-
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {/* Tombol Putar Kamera */}
               <button
                 type="button"
                 onClick={toggleFaceFacingMode}
                 style={{
-                  position: 'absolute',
-                  top: '12px',
-                  right: '12px',
-                  background: 'rgba(15, 23, 42, 0.7)',
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  backdropFilter: 'blur(10px)',
                   color: '#ffffff',
-                  border: '1px solid rgba(255,255,255,0.3)',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
                   borderRadius: '20px',
-                  padding: '6px 12px',
+                  padding: '7px 12px',
                   fontSize: '0.72rem',
                   fontWeight: 700,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '5px',
+                  gap: '6px',
                   cursor: 'pointer'
                 }}
               >
-                <RefreshCw size={13} /> {faceFacingMode === 'user' ? 'Kamera Depan' : 'Kamera Belakang'}
+                <RefreshCw size={13} />
+                <span>{faceFacingMode === 'user' ? 'Kamera Belakang' : 'Kamera Depan'}</span>
               </button>
 
-              {/* Status Overlay */}
-              <div
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={closeFaceScanner}
                 style={{
-                  position: 'absolute',
-                  bottom: '12px',
-                  left: '12px',
-                  right: '12px',
-                  background: matchedSantriPreview
-                    ? 'rgba(16, 185, 129, 0.92)'
-                    : isFaceDetected
-                    ? 'rgba(2, 132, 199, 0.9)'
-                    : 'rgba(15, 23, 42, 0.82)',
+                  background: 'rgba(239, 68, 68, 0.85)',
+                  border: 'none',
                   color: '#ffffff',
-                  padding: '9px 12px',
-                  borderRadius: '12px',
-                  fontSize: '0.76rem',
-                  fontWeight: 700,
-                  textAlign: 'center'
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.4)'
                 }}
               >
-                {faceCameraError || faceStatusText}
-              </div>
+                <X size={18} strokeWidth={2.5} />
+              </button>
+            </div>
+          </div>
+
+          {/* Viewport Kamera Imersif & Luas */}
+          <div
+            style={{
+              position: 'relative',
+              flex: 1,
+              width: '100%',
+              minHeight: 0,
+              background: '#000000',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden'
+            }}
+          >
+            <video
+              ref={faceVideoRef}
+              autoPlay
+              playsInline
+              muted
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                transform: faceFacingMode === 'user' ? 'scaleX(-1)' : 'none'
+              }}
+            />
+            <canvas
+              ref={faceCanvasRef}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                pointerEvents: 'none'
+              }}
+            />
+
+            {/* Frame Reticle Face HUD Biometrik */}
+            <div
+              style={{
+                position: 'absolute',
+                width: '230px',
+                height: '270px',
+                pointerEvents: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <div style={{ position: 'absolute', top: 0, left: 0, width: '28px', height: '28px', borderTop: '3.5px solid #38bdf8', borderLeft: '3.5px solid #38bdf8', borderTopLeftRadius: '14px' }} />
+              <div style={{ position: 'absolute', top: 0, right: 0, width: '28px', height: '28px', borderTop: '3.5px solid #38bdf8', borderRight: '3.5px solid #38bdf8', borderTopRightRadius: '14px' }} />
+              <div style={{ position: 'absolute', bottom: 0, left: 0, width: '28px', height: '28px', borderBottom: '3.5px solid #38bdf8', borderLeft: '3.5px solid #38bdf8', borderBottomLeftRadius: '14px' }} />
+              <div style={{ position: 'absolute', bottom: 0, right: 0, width: '28px', height: '28px', borderBottom: '3.5px solid #38bdf8', borderRight: '3.5px solid #38bdf8', borderBottomRightRadius: '14px' }} />
             </div>
 
-            {/* Fallback Pilih Santri Cepat bila wajah belum terdaftar */}
-            <div style={{ padding: '14px 16px', background: '#f8fafc' }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
-                Atau pilih santri langsung jika wajah belum didaftarkan:
+            {/* Realtime Status Floating Pill */}
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '16px',
+                left: '16px',
+                right: '16px',
+                zIndex: 10,
+                background: matchedSantriPreview
+                  ? 'rgba(16, 185, 129, 0.95)'
+                  : isFaceDetected
+                  ? 'rgba(2, 132, 199, 0.92)'
+                  : 'rgba(15, 23, 42, 0.85)',
+                backdropFilter: 'blur(8px)',
+                color: '#ffffff',
+                padding: '10px 14px',
+                borderRadius: '14px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                textAlign: 'center',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                transition: 'all 0.25s ease'
+              }}
+            >
+              {faceCameraError || faceStatusText}
+            </div>
+          </div>
+
+          {/* Bottom Card / Drawer Elegan ("Atau Pilih Santri Langsung") */}
+          <div
+            style={{
+              position: 'relative',
+              zIndex: 40,
+              background: '#ffffff',
+              borderRadius: '26px 26px 0 0',
+              padding: '16px 18px 22px',
+              boxShadow: '0 -10px 30px rgba(0,0,0,0.35)',
+              overflow: 'visible'
+            }}
+          >
+            {/* Header Box */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+              <div
+                style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '10px',
+                  background: '#f0f9ff',
+                  border: '1px solid #bae6fd',
+                  color: '#0284c7',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}
+              >
+                <UserCheck size={18} />
               </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <div style={{ flex: 1 }}>
-                  <SearchableSelect
-                    options={santriList.map((s) => ({
-                      value: s.id,
-                      label: `${s.nama_santri} (${s.nis || '-'}) - ${String(s.jk || 'L').toUpperCase().startsWith('P') ? 'Akhwat' : 'Ikhwan'}`
-                    }))}
-                    value={manualSantriIdInScanner}
-                    onChange={(val) => {
-                      setManualSantriIdInScanner(val);
-                      const found = santriList.find((s) => String(s.id) === String(val));
-                      if (found) {
-                        closeFaceScanner();
-                        openEvaluationForSantri(found);
-                      }
-                    }}
-                    placeholder="Ketik nama / NIS santri..."
-                  />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a' }}>
+                  Atau Pilih Santri Langsung
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                  Jika wajah santri belum didaftarkan di sistem
                 </div>
               </div>
+              <span
+                style={{
+                  fontSize: '0.66rem',
+                  fontWeight: 800,
+                  padding: '3px 9px',
+                  borderRadius: '20px',
+                  background: '#eff6ff',
+                  color: '#1d4ed8'
+                }}
+              >
+                {santriList.length} Santri
+              </span>
             </div>
+
+            {/* Dropdown Select yang Membuka ke Atas (placement="top") agar Tidak Terpotong */}
+            <SearchableSelect
+              placement="top"
+              options={santriList.map((s) => ({
+                value: s.id,
+                label: s.nama_santri,
+                sublabel: `NIS: ${s.nis || '-'} • ${String(s.jk || 'L').toUpperCase().startsWith('P') ? 'Akhwat' : 'Ikhwan'} • ${s.nama_asrama || 'Asrama'}`
+              }))}
+              value={manualSantriIdInScanner}
+              onChange={(val) => {
+                setManualSantriIdInScanner(val);
+                const found = santriList.find((s) => String(s.id) === String(val));
+                if (found) {
+                  closeFaceScanner();
+                  openEvaluationForSantri(found);
+                }
+              }}
+              placeholder="Cari atau pilih nama / NIS santri..."
+              searchPlaceholder="Ketik nama atau NIS santri..."
+              triggerStyle={{
+                padding: '11px 14px',
+                borderRadius: '12px',
+                fontSize: '0.84rem',
+                border: '1.5px solid #cbd5e1',
+                background: '#f8fafc',
+                fontWeight: 600
+              }}
+              dropdownStyle={{
+                borderRadius: '16px',
+                maxHeight: '320px',
+                border: '2px solid #0284c7'
+              }}
+            />
           </div>
         </div>
       )}

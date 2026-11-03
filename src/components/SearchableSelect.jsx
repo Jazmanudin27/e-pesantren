@@ -10,7 +10,9 @@ export default function SearchableSelect({
   required = false,
   disabled = false,
   style = {},
-  triggerStyle = {}
+  triggerStyle = {},
+  placement = 'bottom',
+  dropdownStyle = {}
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -170,19 +172,22 @@ export default function SearchableSelect({
         <div
           style={{
             position: 'absolute',
-            top: 'calc(100% + 4px)',
+            ...(placement === 'top'
+              ? { bottom: 'calc(100% + 6px)', top: 'auto' }
+              : { top: 'calc(100% + 4px)', bottom: 'auto' }),
             left: 0,
             width: '100%',
             boxSizing: 'border-box',
             zIndex: 99999,
             background: '#ffffff',
             border: '1px solid #cbd5e1',
-            borderRadius: '8px',
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+            borderRadius: '12px',
+            boxShadow: '0 12px 32px -4px rgba(0, 0, 0, 0.22), 0 4px 12px rgba(0, 0, 0, 0.08)',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
-            maxHeight: '260px'
+            maxHeight: '280px',
+            ...dropdownStyle
           }}
         >
           {/* Search Box */}

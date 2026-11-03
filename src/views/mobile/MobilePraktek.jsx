@@ -1892,181 +1892,73 @@ export default function MobilePraktek() {
       )}
 
       {/* Modal Kamera Face Scanner AI untuk Ujian Santri */}
+      {/* =========================================================================
+          MODAL SCANNER WAJAH FULL SCREEN (FACE RECOGNITION AI)
+      ========================================================================= */}
       {isFaceScanOpen && (
         <div style={{
           position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(4px)',
+          inset: 0,
+          background: '#090d16',
+          zIndex: 99999,
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '16px',
-          zIndex: 1000
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          overflow: 'hidden'
         }}>
+          {/* Top Bar Glass Translucent */}
           <div style={{
-            background: '#ffffff',
-            width: '100%',
-            maxWidth: '440px',
-            borderRadius: '24px',
-            overflow: 'hidden',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-            position: 'relative'
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 30,
+            background: 'linear-gradient(to bottom, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0))',
+            backdropFilter: 'blur(8px)',
+            padding: '16px 18px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            color: '#ffffff'
           }}>
-            
-            {/* Header Scanner Modal */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '14px 18px',
-              borderBottom: '1px solid #f1f5f9'
-            }}>
-              <div>
-                <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
-                  Scan Wajah Santri
-                </h4>
-                <p style={{ margin: '2px 0 0 0', fontSize: '0.72rem', color: '#64748b' }}>
-                  Arahkan kamera ke santri yang akan diuji
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={closeFaceScanner}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div
                 style={{
-                  background: '#f1f5f9',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: '32px',
-                  height: '32px',
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '12px',
+                  background: 'rgba(16, 185, 129, 0.2)',
+                  border: '1.5px solid rgba(16, 185, 129, 0.4)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  cursor: 'pointer',
-                  color: '#64748b'
+                  color: '#10b981'
                 }}
               >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Video Viewport Container */}
-            <div style={{
-              position: 'relative',
-              width: '100%',
-              height: '340px',
-              background: '#090d16',
-              overflow: 'hidden'
-            }}>
-              <video
-                ref={faceVideoRef}
-                playsInline
-                muted
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  transform: faceFacingMode === 'user' ? 'scaleX(-1)' : 'none'
-                }}
-              />
-              <canvas
-                ref={faceCanvasRef}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  pointerEvents: 'none'
-                }}
-              />
-
-              {/* Status Badge floating */}
-              <div style={{
-                position: 'absolute',
-                top: '12px',
-                left: '12px',
-                right: '12px',
-                display: 'flex',
-                justifyContent: 'center',
-                pointerEvents: 'none'
-              }}>
-                <div style={{
-                  background: 'rgba(0, 0, 0, 0.65)',
-                  backdropFilter: 'blur(4px)',
-                  color: '#ffffff',
-                  padding: '6px 14px',
-                  borderRadius: '20px',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  textAlign: 'center'
-                }}>
-                  {faceStatusText}
+                <Camera size={20} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '0.94rem', color: '#ffffff' }}>
+                  Scan Wajah Santri
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                  Ujian Praktek &amp; Ibadah
                 </div>
               </div>
-
-              {/* Error Warning */}
-              {faceCameraError && (
-                <div style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: 'rgba(15, 23, 42, 0.95)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '24px',
-                  textAlign: 'center',
-                  color: '#ffffff'
-                }}>
-                  <AlertCircle size={36} color="#ef4444" style={{ marginBottom: '10px' }} />
-                  <div style={{ fontSize: '0.88rem', fontWeight: 700, marginBottom: '6px' }}>
-                    Akses Kamera Gagal
-                  </div>
-                  <div style={{ fontSize: '0.74rem', color: '#cbd5e1', marginBottom: '16px', lineHeight: 1.4 }}>
-                    {faceCameraError}
-                  </div>
-                  <button
-                    onClick={() => startFaceCamera(faceFacingMode)}
-                    style={{
-                      background: '#059669',
-                      color: '#ffffff',
-                      border: 'none',
-                      padding: '8px 16px',
-                      borderRadius: '10px',
-                      fontSize: '0.78rem',
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Coba Lagi
-                  </button>
-                </div>
-              )}
             </div>
 
-            {/* Bottom Controls: Switch Camera & Close */}
-            <div style={{
-              padding: '14px 18px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              background: '#ffffff'
-            }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <button
                 type="button"
                 onClick={toggleFaceFacingMode}
                 style={{
-                  background: '#f8fafc',
-                  border: '1.5px solid #cbd5e1',
-                  borderRadius: '12px',
-                  padding: '9px 14px',
-                  color: '#334155',
-                  fontSize: '0.76rem',
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  backdropFilter: 'blur(10px)',
+                  color: '#ffffff',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  borderRadius: '20px',
+                  padding: '7px 12px',
+                  fontSize: '0.72rem',
                   fontWeight: 700,
                   display: 'flex',
                   alignItems: 'center',
@@ -2074,28 +1966,245 @@ export default function MobilePraktek() {
                   cursor: 'pointer'
                 }}
               >
-                <RefreshCw size={14} />
-                <span>Kamera {faceFacingMode === 'user' ? 'Depan' : 'Belakang'}</span>
+                <RefreshCw size={13} />
+                <span>{faceFacingMode === 'user' ? 'Kamera Belakang' : 'Kamera Depan'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={closeFaceScanner}
                 style={{
-                  background: '#fee2e2',
-                  border: '1px solid #fecaca',
-                  borderRadius: '12px',
-                  padding: '9px 16px',
-                  color: '#dc2626',
-                  fontSize: '0.76rem',
-                  fontWeight: 700,
-                  cursor: 'pointer'
+                  background: 'rgba(239, 68, 68, 0.85)',
+                  border: 'none',
+                  color: '#ffffff',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.4)'
                 }}
               >
-                Tutup
+                <X size={18} strokeWidth={2.5} />
               </button>
             </div>
+          </div>
 
+          {/* Video Viewport Container */}
+          <div style={{
+            position: 'relative',
+            flex: 1,
+            width: '100%',
+            minHeight: 0,
+            background: '#000000',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden'
+          }}>
+            <video
+              ref={faceVideoRef}
+              playsInline
+              muted
+              autoPlay
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                transform: faceFacingMode === 'user' ? 'scaleX(-1)' : 'none'
+              }}
+            />
+            <canvas
+              ref={faceCanvasRef}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                pointerEvents: 'none'
+              }}
+            />
+
+            {/* Frame Reticle Face HUD Biometrik */}
+            <div
+              style={{
+                position: 'absolute',
+                width: '230px',
+                height: '270px',
+                pointerEvents: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <div style={{ position: 'absolute', top: 0, left: 0, width: '28px', height: '28px', borderTop: '3.5px solid #10b981', borderLeft: '3.5px solid #10b981', borderTopLeftRadius: '14px' }} />
+              <div style={{ position: 'absolute', top: 0, right: 0, width: '28px', height: '28px', borderTop: '3.5px solid #10b981', borderRight: '3.5px solid #10b981', borderTopRightRadius: '14px' }} />
+              <div style={{ position: 'absolute', bottom: 0, left: 0, width: '28px', height: '28px', borderBottom: '3.5px solid #10b981', borderLeft: '3.5px solid #10b981', borderBottomLeftRadius: '14px' }} />
+              <div style={{ position: 'absolute', bottom: 0, right: 0, width: '28px', height: '28px', borderBottom: '3.5px solid #10b981', borderRight: '3.5px solid #10b981', borderBottomRightRadius: '14px' }} />
+            </div>
+
+            {/* Status Badge floating */}
+            <div style={{
+              position: 'absolute',
+              bottom: '16px',
+              left: '16px',
+              right: '16px',
+              zIndex: 10,
+              background: matchedSantriPreview
+                ? 'rgba(16, 185, 129, 0.95)'
+                : isFaceDetected
+                ? 'rgba(2, 132, 199, 0.92)'
+                : 'rgba(15, 23, 42, 0.85)',
+              backdropFilter: 'blur(8px)',
+              color: '#ffffff',
+              padding: '10px 14px',
+              borderRadius: '14px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              textAlign: 'center',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+              transition: 'all 0.25s ease'
+            }}>
+              {faceCameraError || faceStatusText}
+            </div>
+
+            {/* Error Warning */}
+            {faceCameraError && (
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'rgba(15, 23, 42, 0.95)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '24px',
+                textAlign: 'center',
+                color: '#ffffff',
+                zIndex: 25
+              }}>
+                <AlertCircle size={36} color="#ef4444" style={{ marginBottom: '10px' }} />
+                <div style={{ fontSize: '0.88rem', fontWeight: 700, marginBottom: '6px' }}>
+                  Akses Kamera Gagal
+                </div>
+                <div style={{ fontSize: '0.74rem', color: '#cbd5e1', marginBottom: '16px', lineHeight: 1.4 }}>
+                  {faceCameraError}
+                </div>
+                <button
+                  onClick={() => startFaceCamera(faceFacingMode)}
+                  style={{
+                    background: '#059669',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Coba Lagi
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Card / Drawer Elegan ("Atau Pilih Santri Langsung") */}
+          <div
+            style={{
+              position: 'relative',
+              zIndex: 40,
+              background: '#ffffff',
+              borderRadius: '26px 26px 0 0',
+              padding: '16px 18px 22px',
+              boxShadow: '0 -10px 30px rgba(0,0,0,0.35)',
+              overflow: 'visible'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+              <div
+                style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '10px',
+                  background: '#ecfdf5',
+                  border: '1px solid #a7f3d0',
+                  color: '#059669',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}
+              >
+                <UserCheck size={18} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a' }}>
+                  Atau Pilih Santri Langsung
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                  Jika santri belum terdaftar di face recognition
+                </div>
+              </div>
+              <span
+                style={{
+                  fontSize: '0.66rem',
+                  fontWeight: 800,
+                  padding: '3px 9px',
+                  borderRadius: '20px',
+                  background: '#f1f5f9',
+                  color: '#475569'
+                }}
+              >
+                {santriList.length} Santri
+              </span>
+            </div>
+
+            <SearchableSelect
+              placement="top"
+              options={santriList.map((s) => ({
+                value: s.id,
+                label: s.nama_santri,
+                sublabel: `NIS: ${s.nis || '-'} • ${s.nama_asrama || 'Asrama'}`
+              }))}
+              value={formData.santri_id}
+              onChange={(val) => {
+                const found = santriList.find((s) => String(s.id) === String(val));
+                if (found) {
+                  stopFaceCamera();
+                  setIsFaceScanOpen(false);
+                  const defaultKategori = selectedKategori !== 'Semua' ? selectedKategori : (kategoriList[0]?.nama_kategori || 'Sholat Fardhu');
+                  setFormData({
+                    ...initialForm,
+                    santri_id: found.id,
+                    kategori: defaultKategori,
+                    nama_penguji: currentPenguji,
+                    status: 'Lulus',
+                    tanggal_ujian: new Date().toISOString().split('T')[0]
+                  });
+                  setFormMode('add');
+                  setIsModalOpen(true);
+                }
+              }}
+              placeholder="Cari atau pilih nama / NIS santri..."
+              searchPlaceholder="Ketik nama atau NIS santri..."
+              triggerStyle={{
+                padding: '11px 14px',
+                borderRadius: '12px',
+                fontSize: '0.84rem',
+                border: '1.5px solid #cbd5e1',
+                background: '#f8fafc',
+                fontWeight: 600
+              }}
+              dropdownStyle={{
+                borderRadius: '16px',
+                maxHeight: '320px',
+                border: '2px solid #059669'
+              }}
+            />
           </div>
         </div>
       )}
