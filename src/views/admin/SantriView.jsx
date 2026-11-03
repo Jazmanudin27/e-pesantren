@@ -425,6 +425,7 @@ export default function SantriView() {
     tahun_masuk: '2026/2027',
     capaian_hafalan_juz: 0,
     tingkat_diniyah: 'Wustho',
+    nisn: '',
     username: '',
     password: ''
   });
@@ -573,6 +574,7 @@ export default function SantriView() {
       capaian_hafalan_juz: 0,
       tingkat_diniyah: 'Wustho',
       foto: '',
+      nisn: '',
       username: '',
       password: ''
     });
@@ -585,6 +587,7 @@ export default function SantriView() {
       id: santri.id,
       nama_santri: santri.nama_santri || '',
       nis: santri.nis || '',
+      nisn: santri.nisn || '',
       kode_santri: santri.kode_santri || '',
       jk: santri.jk || 'L',
       status_santri: santri.status_santri || 'Mukim',
@@ -1661,18 +1664,33 @@ export default function SantriView() {
                           onChange={(e) => setFormData({ ...formData, nama_santri: e.target.value })}
                         />
                       </div>
-                      <div>
-                        <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                          NIS (NOMOR INDUK SANTRI)
-                        </label>
-                        <input 
-                          type="text" 
-                          placeholder="Contoh: 2601001"
-                          className="filter-select" 
-                          style={{ width: '100%', padding: '7px 10px', fontSize: '0.84rem' }} 
-                          value={formData.nis}
-                          onChange={(e) => setFormData({ ...formData, nis: e.target.value })}
-                        />
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                        <div>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                            NIS (NOMOR INDUK)
+                          </label>
+                          <input 
+                            type="text" 
+                            placeholder="Contoh: 2601001"
+                            className="filter-select" 
+                            style={{ width: '100%', padding: '7px 10px', fontSize: '0.84rem' }} 
+                            value={formData.nis}
+                            onChange={(e) => setFormData({ ...formData, nis: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                            NISN (10 DIGIT)
+                          </label>
+                          <input 
+                            type="text" 
+                            placeholder="Contoh: 0081234567"
+                            className="filter-select" 
+                            style={{ width: '100%', padding: '7px 10px', fontSize: '0.84rem' }} 
+                            value={formData.nisn}
+                            onChange={(e) => setFormData({ ...formData, nisn: e.target.value })}
+                          />
+                        </div>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                         <div>

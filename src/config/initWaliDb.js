@@ -16,6 +16,21 @@ export async function ensureSantriCredentialsColumns() {
 
     const colNames = (columns || []).map(c => c.COLUMN_NAME.toLowerCase());
 
+    // 1.5 Tambahkan kolom nisn jika belum ada
+    if (!colNames.includes('nisn')) {
+      try {
+        await pool.query(`
+          ALTER TABLE santri 
+          ADD COLUMN nisn VARCHAR(50) NULL AFTER nis
+        `);
+        console.log('[E-PESANTREN DB] Kolom santri.nisn berhasil ditambahkan');
+      } catch (err) {
+        if (!err.message.includes('Duplicate column')) {
+          console.warn('[E-PESANTREN DB] Gagal tambah santri.nisn:', err.message);
+        }
+      }
+    }
+
     // 2. Tambahkan kolom username jika belum ada
     if (!colNames.includes('username')) {
       try {
@@ -46,22 +61,31 @@ export async function ensureSantriCredentialsColumns() {
       }
     }
 
-    // 4. Sinkronisasi username (NISN/NIS) & password default 123456 untuk data santri yang masih kosong
+    // 4. Generate NISN Random 10-Digit & Sinkronisasi Username = NISN, Password = 123456
     try {
+      // Isi NISN acak 10 digit (format 00 + 8 digit acak unik) untuk santri yang masih kosong
       await pool.query(`
         UPDATE santri 
-        SET username = COALESCE(NULLIF(TRIM(nisn), ''), NULLIF(TRIM(nis), ''))
-        WHERE (username IS NULL OR TRIM(username) = '') 
-          AND (nis IS NOT NULL OR nisn IS NOT NULL)
+        SET nisn = CONCAT('00', LPAD(FLOOR(10000000 + (id * 13749) % 89999999), 8, '0'))
+        WHERE nisn IS NULL OR TRIM(nisn) = ''
       `);
 
+      // Set username = NISN untuk semua santri
+      await pool.query(`
+        UPDATE santri 
+        SET username = nisn
+        WHERE (username IS NULL OR TRIM(username) = '' OR username = nis) 
+          AND nisn IS NOT NULL AND TRIM(nisn) != ''
+      `);
+
+      // Set default password = 123456 untuk semua santri yang masih kosong
       await pool.query(`
         UPDATE santri 
         SET password = '123456'
         WHERE (password IS NULL OR TRIM(password) = '')
       `);
     } catch (syncErr) {
-      console.warn('[E-PESANTREN DB] Sinkronisasi kredensial santri:', syncErr.message);
+      console.warn('[E-PESANTREN DB] Sinkronisasi NISN & Kredensial santri:', syncErr.message);
     }
 
     return true;
