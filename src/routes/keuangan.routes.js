@@ -14,10 +14,15 @@ import {
   generateAutoTagihanAdmin,
   bayarTagihanLangsungAdmin,
   webhookBniHandler,
-  webhookIpaymuHandler
+  webhookIpaymuHandler,
+  webhookMidtransHandler
 } from '../controllers/keuangan.controller.js';
 
 const router = express.Router();
+
+// Webhook Resmi Midtrans Payment Callback (Notification URL)
+router.post('/webhook/midtrans', webhookMidtransHandler);
+router.get('/webhook/midtrans', (req, res) => res.json({ status: 'OK', message: 'Midtrans Webhook Endpoint Ready' }));
 
 // Webhook Resmi iPaymu Payment Callback (Live Production)
 router.post('/webhook/ipaymu', webhookIpaymuHandler);

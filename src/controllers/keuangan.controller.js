@@ -3,6 +3,7 @@ import { sendSuccess, sendError } from '../utils/response.util.js';
 import { canAccessKeuangan } from '../utils/authRole.util.js';
 import { createBniVirtualAccount } from '../services/bni.service.js';
 import { createIpaymuTransaction } from '../services/ipaymu.service.js';
+import { chargeMidtransDirect, createMidtransSnapToken } from '../services/midtrans.service.js';
 
 /**
  * Helper Internal: Generate Auto Tagihan (SPP Bulanan Okt 2026 - Jun 2027 + Tagihan Bebas Non-Bulanan) untuk 1 Santri
@@ -278,27 +279,55 @@ export const buatTransaksiPembayaran = async (req, res) => {
       }
     } catch (e) {}
 
-    // Panggil iPaymu Direct Payment untuk VA & QRIS Resmi Live
-    const ipaymuRes = await createIpaymuTransaction({
+    let snapToken = null;
+    let paymentUrl = null;
+
+    // Prioritaskan Midtrans Direct Core API & Snap Token
+    const midtransRes = await chargeMidtransDirect({
       nomorTransaksi,
+      totalBayar,
       santriId: santri_id,
       santriNama,
-      noWa: noWaWali,
-      totalBayar,
+      noWaWali,
       metode,
       channel
     });
 
-    if (ipaymuRes?.va_number) {
-      vaNumber = ipaymuRes.va_number;
-    }
-    if (ipaymuRes?.qris_data) {
-      qrisData = ipaymuRes.qris_data;
+    if (midtransRes && midtransRes.success) {
+      if (midtransRes.va_number) vaNumber = midtransRes.va_number;
+      if (midtransRes.qris_data) qrisData = midtransRes.qris_data;
+    } else {
+      // Coba generate snap token
+      const snapRes = await createMidtransSnapToken({
+        nomorTransaksi,
+        totalBayar,
+        santriNama,
+        noWaWali,
+        items: itemsValid
+      });
+      if (snapRes && snapRes.success) {
+        snapToken = snapRes.token;
+        paymentUrl = snapRes.redirect_url;
+      }
     }
 
-    // Fallback jika bukan QRIS dan VA masih kosong
+    // Fallback nomor VA jika offline simulasi
     if (metode === 'Virtual Account' && !vaNumber) {
-      vaNumber = `117900${String(santri_id).padStart(4, '0')}${Math.floor(1000 + Math.random() * 9000)}`;
+      const prefixMap = {
+        'BCA': '80777',
+        'Mandiri': '88908',
+        'BNI': '98812',
+        'BRI': '12800',
+        'BSI': '90022'
+      };
+      let bankCode = '98812';
+      for (const [key, val] of Object.entries(prefixMap)) {
+        if (channel.toUpperCase().includes(key)) {
+          bankCode = val;
+          break;
+        }
+      }
+      vaNumber = `${bankCode}${String(santri_id).padStart(4, '0')}${Math.floor(10000 + Math.random() * 90000)}`;
     } else if (metode !== 'Virtual Account' && !qrisData) {
       // Dynamic QRIS String Mock (NMID Pesantren Nurul Wafa)
       qrisData = `00020101021226590014ID.LINKAJA.WWW01189360099900000100010208${nomorTransaksi}520458125303360540${totalBayar}5802ID5925PP NURUL WAFA TASIKMALAYA6011TASIKMALAYA61054611162230119${nomorTransaksi}6304`;
@@ -332,6 +361,8 @@ export const buatTransaksiPembayaran = async (req, res) => {
       formatted_total: `Rp ${totalBayar.toLocaleString('id-ID')}`,
       va_number: vaNumber,
       qris_data: qrisData,
+      snap_token: snapToken,
+      payment_url: paymentUrl,
       status: 'Pending',
       items: itemsValid,
       expired_at: new Date(Date.now() + 24 * 3600 * 1000).toISOString()
@@ -1351,6 +1382,107 @@ export const webhookIpaymuHandler = async (req, res) => {
     await connection.rollback();
     console.error('[IPAYMU WEBHOOK ERROR]', err);
     return res.status(500).send(`Error: ${err.message}`);
+  } finally {
+    connection.release();
+  }
+};
+
+/**
+ * Webhook Callback Resmi Midtrans (HTTP Notification)
+ * Menangani notifikasi status pembayaran settlement/capture secara real-time
+ */
+export const webhookMidtransHandler = async (req, res) => {
+  const payload = req.body || {};
+  console.log('[MIDTRANS NOTIFICATION RECEIVED]', JSON.stringify(payload));
+
+  const orderId = payload.order_id;
+  const transactionStatus = String(payload.transaction_status || '').toLowerCase();
+  const fraudStatus = String(payload.fraud_status || '').toLowerCase();
+
+  if (!orderId) {
+    return res.status(400).json({ status: 'BAD_REQUEST', message: 'Missing order_id' });
+  }
+
+  // Tentukan apakah pembayaran sukses
+  const isSettled = transactionStatus === 'settlement' || 
+                    (transactionStatus === 'capture' && (fraudStatus === 'accept' || !fraudStatus));
+
+  if (!isSettled) {
+    console.log(`[MIDTRANS WEBHOOK] Status order ${orderId} adalah: ${transactionStatus} (Belum settlement)`);
+    return res.status(200).json({ status: 'OK', message: `Order status is ${transactionStatus}` });
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const [trxRows] = await connection.query(`
+      SELECT * FROM keuangan_transaksi_pembayaran 
+      WHERE nomor_transaksi = ? 
+      ORDER BY id DESC LIMIT 1 FOR UPDATE
+    `, [orderId]);
+
+    if (!trxRows || trxRows.length === 0) {
+      await connection.rollback();
+      console.warn('[MIDTRANS WEBHOOK] Transaksi tidak ditemukan untuk Order ID:', orderId);
+      return res.status(200).json({ status: 'OK', message: 'Order not found in DB' });
+    }
+
+    const trx = trxRows[0];
+
+    // Cek idempoten
+    if (trx.status_pembayaran === 'Berhasil') {
+      await connection.rollback();
+      return res.status(200).json({ status: 'OK', message: 'Already marked as Berhasil' });
+    }
+
+    const kuitansiNomor = `KWT-MID-${new Date().toISOString().slice(0,7).replace(/-/g,'')}-${String(trx.id).padStart(4, '0')}`;
+    const tanggalBayar = new Date();
+
+    // Lunasi tagihan di keuangan_tagihan
+    const [detailRows] = await connection.query(`
+      SELECT * FROM keuangan_transaksi_detail WHERE transaksi_id = ?
+    `, [trx.id]);
+
+    for (const d of detailRows) {
+      const [tghRows] = await connection.query(`
+        SELECT id, total_tagihan, sudah_dibayar, sisa_tagihan 
+        FROM keuangan_tagihan WHERE id = ? FOR UPDATE
+      `, [d.tagihan_id]);
+
+      if (tghRows && tghRows.length > 0) {
+        const t = tghRows[0];
+        const newSudah = parseFloat(t.sudah_dibayar) + parseFloat(d.nominal_alokasi);
+        const newSisa = Math.max(0, parseFloat(t.total_tagihan) - newSudah);
+        const newStatus = newSisa <= 0 ? 'Lunas' : 'Sebagian';
+
+        await connection.query(`
+          UPDATE keuangan_tagihan 
+          SET sudah_dibayar = ?, sisa_tagihan = ?, status = ?, updated_at = NOW()
+          WHERE id = ?
+        `, [newSudah, newSisa, newStatus, t.id]);
+      }
+    }
+
+    // Update status transaksi pembayaran jadi Berhasil
+    await connection.query(`
+      UPDATE keuangan_transaksi_pembayaran 
+      SET status_pembayaran = 'Berhasil', 
+          tanggal_bayar = ?, 
+          kuitansi_nomor = ?,
+          keterangan = CONCAT(COALESCE(keterangan, ''), ' [Midtrans Auto-Settled: ', ?, ']'),
+          updated_at = NOW()
+      WHERE id = ?
+    `, [tanggalBayar, kuitansiNomor, payload.payment_type || 'Payment', trx.id]);
+
+    await connection.commit();
+    console.log(`[MIDTRANS WEBHOOK SUCCESS] Transaksi ${orderId} otomatis lunas!`);
+
+    return res.status(200).json({ status: 'OK', message: 'Payment successfully settled' });
+  } catch (err) {
+    await connection.rollback();
+    console.error('[MIDTRANS WEBHOOK ERROR]', err);
+    return res.status(500).json({ status: 'ERROR', message: err.message });
   } finally {
     connection.release();
   }
