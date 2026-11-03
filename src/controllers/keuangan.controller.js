@@ -281,8 +281,9 @@ export const buatTransaksiPembayaran = async (req, res) => {
 
     let snapToken = null;
     let paymentUrl = null;
+    let finalTotalBayar = totalBayar;
 
-    // 1. Buat Snap Token Midtrans
+    // 1. Buat Snap Token Midtrans (Otomatis dinamis per channel, dengan fallback flat fee)
     try {
       const snapRes = await createMidtransSnapToken({
         nomorTransaksi,
@@ -294,6 +295,9 @@ export const buatTransaksiPembayaran = async (req, res) => {
       if (snapRes && snapRes.success) {
         snapToken = snapRes.token;
         paymentUrl = snapRes.redirect_url;
+        if (snapRes.total_gross) {
+          finalTotalBayar = snapRes.total_gross;
+        }
       } else {
         await connection.rollback();
         return sendError(res, `Gagal memuat gateway Midtrans: ${snapRes?.error || 'Kredensial atau parameter tidak valid'}`, 400);
@@ -322,7 +326,7 @@ export const buatTransaksiPembayaran = async (req, res) => {
       vaNumber = `${bankCode}${String(santri_id).padStart(4, '0')}${Math.floor(10000 + Math.random() * 90000)}`;
     } else if (metode !== 'Virtual Account' && !qrisData) {
       // Dynamic QRIS String Mock (NMID Pesantren Nurul Wafa)
-      qrisData = `00020101021226590014ID.LINKAJA.WWW01189360099900000100010208${nomorTransaksi}520458125303360540${totalBayar}5802ID5925PP NURUL WAFA TASIKMALAYA6011TASIKMALAYA61054611162230119${nomorTransaksi}6304`;
+      qrisData = `00020101021226590014ID.LINKAJA.WWW01189360099900000100010208${nomorTransaksi}520458125303360540${finalTotalBayar}5802ID5925PP NURUL WAFA TASIKMALAYA6011TASIKMALAYA61054611162230119${nomorTransaksi}6304`;
     }
 
     // Simpan Transaksi Induk
@@ -330,7 +334,7 @@ export const buatTransaksiPembayaran = async (req, res) => {
       INSERT INTO keuangan_transaksi_pembayaran 
       (nomor_transaksi, santri_id, metode_pembayaran, channel_pembayaran, va_number, qris_data, total_bayar, status_pembayaran, keterangan)
       VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending', ?)
-    `, [nomorTransaksi, santri_id, metode, channel, vaNumber, qrisData, totalBayar, `Pembayaran ${itemsValid.length} item tagihan (Fee Midtrans ditanggung pengirim)`]);
+    `, [nomorTransaksi, santri_id, metode, channel, vaNumber, qrisData, finalTotalBayar, `Pembayaran ${itemsValid.length} item tagihan (Fee Midtrans ditanggung pengirim)`]);
 
     const transaksiId = trxResult.insertId;
 
@@ -349,8 +353,8 @@ export const buatTransaksiPembayaran = async (req, res) => {
       nomor_transaksi: nomorTransaksi,
       metode_pembayaran: metode,
       channel_pembayaran: channel,
-      total_bayar: totalBayar,
-      formatted_total: `Rp ${totalBayar.toLocaleString('id-ID')}`,
+      total_bayar: finalTotalBayar,
+      formatted_total: `Rp ${finalTotalBayar.toLocaleString('id-ID')}`,
       va_number: vaNumber,
       qris_data: qrisData,
       snap_token: snapToken,

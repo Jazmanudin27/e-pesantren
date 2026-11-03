@@ -32,11 +32,11 @@ export async function createMidtransSnapToken({
   const config = getMidtransConfig();
   const authHeader = Buffer.from(`${config.serverKey}:`).toString('base64');
 
-  let itemDetails = [];
+  let baseItemDetails = [];
   let sum = 0;
 
   if (items && items.length > 0) {
-    itemDetails = items.map((it, idx) => {
+    baseItemDetails = items.map((it, idx) => {
       const price = Math.round(Number(it.nominal_alokasi || 0));
       sum += price;
       const cleanName = String(it.judul_tagihan || `Item ${idx + 1}`)
@@ -54,7 +54,7 @@ export async function createMidtransSnapToken({
     });
 
     if (sum !== Math.round(totalBayar)) {
-      itemDetails = [{
+      baseItemDetails = [{
         id: nomorTransaksi,
         price: Math.round(totalBayar),
         quantity: 1,
@@ -63,7 +63,7 @@ export async function createMidtransSnapToken({
     }
   } else {
     sum = Math.round(totalBayar);
-    itemDetails = [{
+    baseItemDetails = [{
       id: nomorTransaksi,
       price: sum,
       quantity: 1,
@@ -80,24 +80,91 @@ export async function createMidtransSnapToken({
     .replace(/[^0-9]/g, '')
     .slice(0, 15) || '081234567890';
 
-  const payload = {
+  // Percobaan 1: Fitur Resmi Midtrans Dynamic Fee (Otomatis beda-beda per channel: QRIS 0.7%, VA flat)
+  const dynamicPayload = {
     transaction_details: {
       order_id: nomorTransaksi,
       gross_amount: Math.round(totalBayar)
+    },
+    customer_imposed_payment_fee: {
+      enable: true,
+      payment_fee_configs: [
+        { payment_type: 'gopay', customer_percentage: 100 },
+        { payment_type: 'qris', customer_percentage: 100 },
+        { payment_type: 'shopeepay', customer_percentage: 100 },
+        { payment_type: 'bca_va', customer_percentage: 100 },
+        { payment_type: 'bni_va', customer_percentage: 100 },
+        { payment_type: 'bri_va', customer_percentage: 100 },
+        { payment_type: 'echannel', customer_percentage: 100 },
+        { payment_type: 'permata_va', customer_percentage: 100 },
+        { payment_type: 'cimb_va', customer_percentage: 100 },
+        { payment_type: 'other_va', customer_percentage: 100 }
+      ]
     },
     customer_details: {
       first_name: cleanFirstName,
       phone: cleanPhone,
       email: 'wali@nurulwafa.sch.id'
     },
-    item_details: itemDetails,
+    item_details: baseItemDetails,
     callbacks: {
       finish: 'https://mnurulwafa.ruangtech.com/#tagihan'
     }
   };
 
   try {
-    const res = await axios.post(config.snapUrl, payload, {
+    const res = await axios.post(config.snapUrl, dynamicPayload, {
+      headers: {
+        'Authorization': `Basic ${authHeader}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      timeout: 10000
+    });
+
+    if (res.data?.token) {
+      return {
+        success: true,
+        token: res.data?.token,
+        redirect_url: res.data?.redirect_url,
+        fee_mode: 'dynamic'
+      };
+    }
+  } catch (dynErr) {
+    console.warn('[MIDTRANS DYNAMIC FEE UNAVAILABLE IN THIS ACCOUNT, APPLYING FLAT ADMIN FEE ITEM]');
+  }
+
+  // Percobaan 2 (Fallback): Pasang Biaya Admin ke Item Details agar pasti muncul di Midtrans
+  const biayaAdminFlat = parseInt(process.env.MIDTRANS_BIAYA_ADMIN || '4000', 10);
+  const fallbackItems = [
+    ...baseItemDetails,
+    {
+      id: 'FEE-ADMIN',
+      price: biayaAdminFlat,
+      quantity: 1,
+      name: 'Biaya Admin Gateway'
+    }
+  ];
+  const grossWithAdmin = Math.round(totalBayar) + biayaAdminFlat;
+
+  const fallbackPayload = {
+    transaction_details: {
+      order_id: nomorTransaksi,
+      gross_amount: grossWithAdmin
+    },
+    customer_details: {
+      first_name: cleanFirstName,
+      phone: cleanPhone,
+      email: 'wali@nurulwafa.sch.id'
+    },
+    item_details: fallbackItems,
+    callbacks: {
+      finish: 'https://mnurulwafa.ruangtech.com/#tagihan'
+    }
+  };
+
+  try {
+    const res = await axios.post(config.snapUrl, fallbackPayload, {
       headers: {
         'Authorization': `Basic ${authHeader}`,
         'Content-Type': 'application/json',
@@ -109,7 +176,10 @@ export async function createMidtransSnapToken({
     return {
       success: true,
       token: res.data?.token,
-      redirect_url: res.data?.redirect_url
+      redirect_url: res.data?.redirect_url,
+      fee_mode: 'flat',
+      biaya_admin: biayaAdminFlat,
+      total_gross: grossWithAdmin
     };
   } catch (err) {
     const errMsg = err.response?.data?.error_messages?.join(', ') || err.response?.data?.message || err.message;

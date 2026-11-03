@@ -627,7 +627,7 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
           }}>
             <div>
               <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
-                {countSelected} tagihan dipilih
+                {countSelected} tagihan (+ Biaya Admin)
               </div>
               <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#34d399' }}>
                 {formatRp(totalSelectedBayar)}
