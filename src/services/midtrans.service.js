@@ -32,19 +32,51 @@ export async function createMidtransSnapToken({
   const config = getMidtransConfig();
   const authHeader = Buffer.from(`${config.serverKey}:`).toString('base64');
 
-  const itemDetails = (items && items.length > 0)
-    ? items.map(it => ({
-        id: String(it.tagihan_id || 'item'),
-        price: Math.round(it.nominal_alokasi || totalBayar),
+  let itemDetails = [];
+  if (items && items.length > 0) {
+    let sum = 0;
+    itemDetails = items.map((it, idx) => {
+      const price = Math.round(Number(it.nominal_alokasi || 0));
+      sum += price;
+      const cleanName = String(it.judul_tagihan || `Item ${idx + 1}`)
+        .replace(/[^\w\s.,\-()&]/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .substring(0, 45) || 'Tagihan Santri';
+
+      return {
+        id: String(it.tagihan_id || idx + 1),
+        price: price,
         quantity: 1,
-        name: String(it.judul_tagihan || 'Tagihan Santri').substring(0, 45)
-      }))
-    : [{
+        name: cleanName
+      };
+    });
+
+    if (sum !== Math.round(totalBayar)) {
+      itemDetails = [{
         id: nomorTransaksi,
         price: Math.round(totalBayar),
         quantity: 1,
         name: 'Pembayaran Tagihan Santri'
       }];
+    }
+  } else {
+    itemDetails = [{
+      id: nomorTransaksi,
+      price: Math.round(totalBayar),
+      quantity: 1,
+      name: 'Pembayaran Tagihan Santri'
+    }];
+  }
+
+  const cleanFirstName = String(santriNama || 'Santri')
+    .replace(/[^\w\s]/gi, '')
+    .trim()
+    .substring(0, 25) || 'Santri';
+
+  const cleanPhone = String(noWaWali || '081234567890')
+    .replace(/[^0-9]/g, '')
+    .slice(0, 15) || '081234567890';
 
   const payload = {
     transaction_details: {
@@ -52,8 +84,8 @@ export async function createMidtransSnapToken({
       gross_amount: Math.round(totalBayar)
     },
     customer_details: {
-      first_name: santriNama.substring(0, 25),
-      phone: String(noWaWali || '081234567890').replace(/[^0-9]/g, ''),
+      first_name: cleanFirstName,
+      phone: cleanPhone,
       email: 'wali@nurulwafa.sch.id'
     },
     item_details: itemDetails,

@@ -282,7 +282,7 @@ export const buatTransaksiPembayaran = async (req, res) => {
     let snapToken = null;
     let paymentUrl = null;
 
-    // Selalu buat Snap Token Midtrans agar frontend bisa memunculkan popup resmi Midtrans Snap
+    // 1. Buat Snap Token Midtrans agar frontend memunculkan popup resmi Midtrans Snap
     try {
       const snapRes = await createMidtransSnapToken({
         nomorTransaksi,
@@ -299,24 +299,26 @@ export const buatTransaksiPembayaran = async (req, res) => {
       console.warn('[MIDTRANS SNAP GENERATE ERROR]', snapErr.message);
     }
 
-    // Coba juga Direct Core API jika metode VA/QRIS tertentu dipilih
-    try {
-      const midtransRes = await chargeMidtransDirect({
-        nomorTransaksi,
-        totalBayar,
-        santriId: santri_id,
-        santriNama,
-        noWaWali,
-        metode,
-        channel
-      });
+    // 2. Jika Snap gagal dibuat, baru fallback ke Direct Core API
+    if (!snapToken) {
+      try {
+        const midtransRes = await chargeMidtransDirect({
+          nomorTransaksi,
+          totalBayar,
+          santriId: santri_id,
+          santriNama,
+          noWaWali,
+          metode,
+          channel
+        });
 
-      if (midtransRes && midtransRes.success) {
-        if (midtransRes.va_number) vaNumber = midtransRes.va_number;
-        if (midtransRes.qris_data) qrisData = midtransRes.qris_data;
+        if (midtransRes && midtransRes.success) {
+          if (midtransRes.va_number) vaNumber = midtransRes.va_number;
+          if (midtransRes.qris_data) qrisData = midtransRes.qris_data;
+        }
+      } catch (chargeErr) {
+        console.warn('[MIDTRANS DIRECT CHARGE ERROR]', chargeErr.message);
       }
-    } catch (chargeErr) {
-      console.warn('[MIDTRANS DIRECT CHARGE ERROR]', chargeErr.message);
     }
 
     // Fallback nomor VA jika offline simulasi
