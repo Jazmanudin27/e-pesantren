@@ -933,7 +933,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                   </span>
                   <span>
                     {Number(
-                      keuanganData.summary?.total_terbayar || 0,
+                      keuanganData.summary?.total_kas_masuk_sah || keuanganData.summary?.total_terbayar || 0,
                     ).toLocaleString("id-ID")}
                   </span>
                 </div>
@@ -1293,11 +1293,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               style={{ display: "flex", flexDirection: "column", gap: "8px" }}
             >
               {(keuanganData.transaksiTerakhir || [])
+                .filter(
+                  (trx) =>
+                    trx.status_pembayaran === "Berhasil" ||
+                    trx.status_pembayaran === "settlement"
+                )
                 .slice(0, 4)
                 .map((trx, idx) => {
-                  const isLunas =
-                    trx.status_pembayaran === "Berhasil" ||
-                    trx.status_pembayaran === "settlement";
                   return (
                     <div
                       key={trx.id || idx}
@@ -1340,7 +1342,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                           style={{
                             fontWeight: 800,
                             fontSize: "0.84rem",
-                            color: isLunas ? "#059669" : "#d97706",
+                            color: "#059669",
                           }}
                         >
                           Rp{" "}
@@ -1354,11 +1356,11 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                             padding: "2px 6px",
                             borderRadius: "6px",
                             marginTop: "2px",
-                            background: isLunas ? "#dcfce7" : "#fef3c7",
-                            color: isLunas ? "#15803d" : "#b45309",
+                            background: "#dcfce7",
+                            color: "#15803d",
                           }}
                         >
-                          {trx.status_pembayaran || "Pending"}
+                          Lunas
                         </span>
                       </div>
                     </div>
@@ -1366,7 +1368,11 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 })}
 
               {(!keuanganData.transaksiTerakhir ||
-                keuanganData.transaksiTerakhir.length === 0) && (
+                keuanganData.transaksiTerakhir.filter(
+                  (t) =>
+                    t.status_pembayaran === "Berhasil" ||
+                    t.status_pembayaran === "settlement"
+                ).length === 0) && (
                 <div
                   style={{
                     padding: "20px",
@@ -1378,7 +1384,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                     fontSize: "0.78rem",
                   }}
                 >
-                  Belum ada riwayat transaksi pembayaran tercatat
+                  Belum ada pembayaran kas masuk yang lunas/berhasil
                 </div>
               )}
             </div>
