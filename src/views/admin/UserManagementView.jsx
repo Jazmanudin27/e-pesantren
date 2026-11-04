@@ -381,7 +381,17 @@ export default function UserManagementView() {
       (user.email && user.email.toLowerCase().includes(s)) ||
       (user.phone && user.phone.includes(s));
 
-    const matchRole = filterRole === "Semua" || user.role === filterRole;
+    let matchRole = true;
+    if (filterRole === "Semua") {
+      matchRole = true;
+    } else if (filterRole === "ADMIN_GROUP") {
+      matchRole = ["Super Admin", "Admin", "Pengasuh", "Admin Keuangan", "Admin Absen"].includes(user.role);
+    } else if (filterRole === "USTADZ_GROUP") {
+      matchRole = ["Ustadz", "Musyrif"].includes(user.role);
+    } else {
+      matchRole = user.role === filterRole;
+    }
+
     const matchStatus =
       filterStatus === "Semua" || user.status === filterStatus;
 
@@ -469,417 +479,115 @@ export default function UserManagementView() {
   const activeCount = usersList.filter((u) => u.status === "Active").length;
 
   return (
-    <div
-      className="view-container"
-      style={{ padding: "20px", maxWidth: "100%", boxSizing: "border-box" }}
-    >
-      {/* ================= PAGE HEADER ================= */}
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "16px",
-          marginBottom: "20px",
-          background:
-            "linear-gradient(135deg, #064e3b 0%, #047857 50%, #059669 100%)",
-          padding: "20px 24px",
-          borderRadius: "14px",
-          color: "#ffffff",
-          boxShadow: "0 4px 15px rgba(6, 78, 59, 0.2)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-          <div
-            style={{
-              width: "46px",
-              height: "46px",
-              borderRadius: "12px",
-              background: "rgba(255, 255, 255, 0.18)",
-              backdropFilter: "blur(8px)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              border: "1px solid rgba(255, 255, 255, 0.25)",
-            }}
-          >
-            <Users size={24} color="#ffffff" />
-          </div>
+    <div>
+      {/* 1. TOP 4 COLORED STATS CARDS (SEPERTI MASTER SANTRI) */}
+      <div className="top-stats-grid">
+        <div className="stat-card-colored stat-card-blue">
           <div>
-            <h1
-              style={{
-                fontSize: "1.35rem",
-                fontWeight: 800,
-                margin: 0,
-                letterSpacing: "-0.02em",
-              }}
-            >
-              Manajemen Pengguna & Hak Akses
-            </h1>
-            <p
-              style={{
-                fontSize: "0.82rem",
-                margin: "4px 0 0",
-                color: "rgba(255, 255, 255, 0.88)",
-              }}
-            >
-              Kelola data akun login administrator, pengasuh, ustadz, musyrif,
-              dan wali santri.
-            </p>
+            <div className="stat-colored-title">TOTAL AKUN PENGGUNA</div>
+            <div className="stat-colored-number">{totalCount}</div>
           </div>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <button
-            onClick={fetchUsers}
-            disabled={loading}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "9px 15px",
-              background: "rgba(255, 255, 255, 0.15)",
-              border: "1px solid rgba(255, 255, 255, 0.3)",
-              borderRadius: "8px",
-              color: "#ffffff",
-              fontSize: "0.82rem",
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: "all 0.2s",
-            }}
-            title="Refresh Data Pengguna"
-          >
-            <RotateCw size={15} className={loading ? "spin-animation" : ""} />
-            <span>Segarkan</span>
-          </button>
-
-          <button
-            onClick={openAddForm}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "9px 18px",
-              background: "#f59e0b",
-              border: "none",
-              borderRadius: "8px",
-              color: "#ffffff",
-              fontSize: "0.82rem",
-              fontWeight: 700,
-              cursor: "pointer",
-              boxShadow: "0 2px 8px rgba(245, 158, 11, 0.4)",
-              transition: "transform 0.15s",
-            }}
-          >
-            <Plus size={16} />
-            <span>Tambah Pengguna Baru</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ================= METRIC CARDS ================= */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "16px",
-          marginBottom: "22px",
-        }}
-      >
-        {/* Total Pengguna */}
-        <div
-          style={{
-            background: "#ffffff",
-            borderRadius: "12px",
-            padding: "16px 18px",
-            border: "1px solid #e2e8f0",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontSize: "0.74rem",
-                color: "#64748b",
-                fontWeight: 700,
-                textTransform: "uppercase",
-              }}
-            >
-              Total Akun Pengguna
-            </div>
-            <div
-              style={{
-                fontSize: "1.6rem",
-                fontWeight: 800,
-                color: "#0f172a",
-                marginTop: "2px",
-              }}
-            >
-              {totalCount}
-            </div>
-            <div
-              style={{
-                fontSize: "0.72rem",
-                color: "#10b981",
-                marginTop: "4px",
-              }}
-            >
-              Terdaftar dalam sistem
-            </div>
-          </div>
-          <div
-            style={{
-              width: "44px",
-              height: "44px",
-              borderRadius: "10px",
-              background: "#ecfdf5",
-              color: "#059669",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
+          <div className="stat-colored-icon-box">
             <Users size={22} />
           </div>
         </div>
 
-        {/* Super Admin & Pengasuh */}
-        <div
-          style={{
-            background: "#ffffff",
-            borderRadius: "12px",
-            padding: "16px 18px",
-            border: "1px solid #e2e8f0",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
+        <div className="stat-card-colored stat-card-purple">
           <div>
-            <div
-              style={{
-                fontSize: "0.74rem",
-                color: "#64748b",
-                fontWeight: 700,
-                textTransform: "uppercase",
-              }}
-            >
-              Admin & Pengasuh
-            </div>
-            <div
-              style={{
-                fontSize: "1.6rem",
-                fontWeight: 800,
-                color: "#7e22ce",
-                marginTop: "2px",
-              }}
-            >
-              {adminPengasuhCount}
-            </div>
-            <div
-              style={{
-                fontSize: "0.72rem",
-                color: "#9333ea",
-                marginTop: "4px",
-              }}
-            >
-              Hak akses otoritas penuh
-            </div>
+            <div className="stat-colored-title">ADMIN &amp; PENGASUH</div>
+            <div className="stat-colored-number">{adminPengasuhCount}</div>
           </div>
-          <div
-            style={{
-              width: "44px",
-              height: "44px",
-              borderRadius: "10px",
-              background: "#f3e8ff",
-              color: "#7e22ce",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
+          <div className="stat-colored-icon-box">
             <Shield size={22} />
           </div>
         </div>
 
-        {/* Asatidz & Musyrif */}
-        <div
-          style={{
-            background: "#ffffff",
-            borderRadius: "12px",
-            padding: "16px 18px",
-            border: "1px solid #e2e8f0",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
+        <div className="stat-card-colored stat-card-amber">
           <div>
-            <div
-              style={{
-                fontSize: "0.74rem",
-                color: "#64748b",
-                fontWeight: 700,
-                textTransform: "uppercase",
-              }}
-            >
-              Ustadz & Musyrif
-            </div>
-            <div
-              style={{
-                fontSize: "1.6rem",
-                fontWeight: 800,
-                color: "#0284c7",
-                marginTop: "2px",
-              }}
-            >
-              {asatidzMusyrifCount}
-            </div>
-            <div
-              style={{
-                fontSize: "0.72rem",
-                color: "#0284c7",
-                marginTop: "4px",
-              }}
-            >
-              Akses presensi & pembinaan
-            </div>
+            <div className="stat-colored-title">USTADZ &amp; MUSYRIF</div>
+            <div className="stat-colored-number">{asatidzMusyrifCount}</div>
           </div>
-          <div
-            style={{
-              width: "44px",
-              height: "44px",
-              borderRadius: "10px",
-              background: "#e0f2fe",
-              color: "#0284c7",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
+          <div className="stat-colored-icon-box">
             <UserCheck size={22} />
           </div>
         </div>
 
-        {/* Akun Aktif */}
-        <div
-          style={{
-            background: "#ffffff",
-            borderRadius: "12px",
-            padding: "16px 18px",
-            border: "1px solid #e2e8f0",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
+        <div className="stat-card-colored stat-card-green">
           <div>
-            <div
-              style={{
-                fontSize: "0.74rem",
-                color: "#64748b",
-                fontWeight: 700,
-                textTransform: "uppercase",
-              }}
-            >
-              Akun Aktif (Status)
-            </div>
-            <div
-              style={{
-                fontSize: "1.6rem",
-                fontWeight: 800,
-                color: "#15803d",
-                marginTop: "2px",
-              }}
-            >
-              {activeCount}{" "}
-              <span
-                style={{
-                  fontSize: "0.9rem",
-                  color: "#64748b",
-                  fontWeight: 500,
-                }}
-              >
-                / {totalCount}
-              </span>
-            </div>
-            <div
-              style={{
-                fontSize: "0.72rem",
-                color: "#16a34a",
-                marginTop: "4px",
-              }}
-            >
-              Siap login desktop & mobile
-            </div>
+            <div className="stat-colored-title">AKUN AKTIF (STATUS)</div>
+            <div className="stat-colored-number">{activeCount} / {totalCount}</div>
           </div>
-          <div
-            style={{
-              width: "44px",
-              height: "44px",
-              borderRadius: "10px",
-              background: "#dcfce7",
-              color: "#15803d",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
+          <div className="stat-colored-icon-box">
             <Power size={22} />
           </div>
         </div>
       </div>
 
-      {/* ================= FILTER & SEARCH BAR ================= */}
-      <div
-        style={{
-          background: "#ffffff",
-          borderRadius: "12px",
-          padding: "14px 18px",
-          border: "1px solid #e2e8f0",
-          marginBottom: "16px",
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "12px",
-        }}
-      >
-        {/* Search Input */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            background: "#f8fafc",
-            border: "1px solid #cbd5e1",
-            borderRadius: "8px",
-            padding: "7px 12px",
-            minWidth: "280px",
-            flex: "1 1 300px",
-          }}
+      {/* 2. TITLE STRIP (SEPERTI MASTER SANTRI) */}
+      <div className="page-title-strip">
+        <div className="page-title-left">
+          <Users size={22} className="page-title-icon" style={{ color: '#0284c7' }} />
+          <div>
+            <h2>Manajemen Pengguna &amp; Hak Akses</h2>
+            <p>Kelola data akun login administrator, pengasuh, ustadz, musyrif, dan wali santri</p>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button 
+            type="button" 
+            className="btn btn-outline" 
+            onClick={fetchUsers} 
+            disabled={loading}
+          >
+            <RotateCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
+          </button>
+          <button 
+            type="button" 
+            className="btn btn-primary" 
+            onClick={openAddForm}
+          >
+            <Plus size={14} /> Tambah Pengguna Baru
+          </button>
+        </div>
+      </div>
+
+      {/* 3. TAB FILTER BAR (SEPERTI MASTER SANTRI) */}
+      <div className="tab-filter-bar">
+        <button 
+          className={`tab-btn ${filterRole === 'Semua' ? 'active' : ''}`}
+          onClick={() => setFilterRole('Semua')}
         >
-          <Search size={16} color="#64748b" />
+          <Users size={14} /> Semua Pengguna ({totalCount})
+        </button>
+        <button 
+          className={`tab-btn ${filterRole === 'ADMIN_GROUP' ? 'active' : ''}`}
+          onClick={() => setFilterRole(filterRole === 'ADMIN_GROUP' ? 'Semua' : 'ADMIN_GROUP')}
+        >
+          <Shield size={14} /> Admin &amp; Pengasuh ({adminPengasuhCount})
+        </button>
+        <button 
+          className={`tab-btn ${filterRole === 'USTADZ_GROUP' ? 'active' : ''}`}
+          onClick={() => setFilterRole(filterRole === 'USTADZ_GROUP' ? 'Semua' : 'USTADZ_GROUP')}
+        >
+          <UserCheck size={14} /> Ustadz &amp; Musyrif ({asatidzMusyrifCount})
+        </button>
+        <button 
+          className={`tab-btn ${filterRole === 'Wali Santri' ? 'active' : ''}`}
+          onClick={() => setFilterRole(filterRole === 'Wali Santri' ? 'Semua' : 'Wali Santri')}
+        >
+          <Users size={14} /> Wali Santri ({usersList.filter(u => u.role === 'Wali Santri').length})
+        </button>
+      </div>
+
+      {/* 4. FILTER SEARCH BAR STRIP (SEPERTI MASTER SANTRI) */}
+      <div className="filter-search-box">
+        <div className="filter-search-input">
+          <Search size={15} color="#94a3b8" />
           <input
             type="text"
-            placeholder="Cari berdasarkan nama, username, email..."
+            placeholder="Cari semua pengguna (nama, username, email, WhatsApp)..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{
-              border: "none",
-              background: "transparent",
-              outline: "none",
-              width: "100%",
-              fontSize: "0.84rem",
-              color: "#0f172a",
-            }}
           />
           {search && (
             <button
@@ -889,130 +597,64 @@ export default function UserManagementView() {
                 border: "none",
                 cursor: "pointer",
                 color: "#94a3b8",
+                padding: 0,
+                display: "flex",
+                alignItems: "center",
               }}
             >
               <X size={14} />
             </button>
           )}
         </div>
-
-        {/* Dropdowns Filter */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            flexWrap: "wrap",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <span
-              style={{ fontSize: "0.78rem", color: "#64748b", fontWeight: 600 }}
-            >
-              Role:
-            </span>
-            <SearchableSelect
-              style={{ minWidth: "150px" }}
-              value={filterRole}
-              onChange={(val) => setFilterRole(val || "Semua")}
-              placeholder="Semua Role"
-              options={[
-                { value: "Semua", label: "Semua Role" },
-                { value: "Super Admin", label: "Super Admin" },
-                { value: "Admin Keuangan", label: "Admin Keuangan (Bendahara)" },
-                { value: "Admin Absen", label: "Admin Absen (Presensi)" },
-                { value: "Pengasuh", label: "Pengasuh" },
-                { value: "Ustadz", label: "Ustadz" },
-                { value: "Musyrif", label: "Musyrif" },
-                { value: "Keamanan", label: "Keamanan" },
-                { value: "Wali Santri", label: "Wali Santri" },
-              ]}
-            />
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <span
-              style={{ fontSize: "0.78rem", color: "#64748b", fontWeight: 600 }}
-            >
-              Status:
-            </span>
-            <SearchableSelect
-              style={{ minWidth: "150px" }}
-              value={filterStatus}
-              onChange={(val) => setFilterStatus(val || "Semua")}
-              placeholder="Semua Status"
-              options={[
-                { value: "Semua", label: "Semua Status" },
-                { value: "Active", label: "Active (Aktif)" },
-                { value: "Inactive", label: "Inactive (Nonaktif)" },
-                { value: "Suspended", label: "Suspended" },
-              ]}
-            />
-          </div>
-        </div>
+        <SearchableSelect
+          style={{ minWidth: "150px", flex: "1 1 140px", maxWidth: "200px" }}
+          value={filterRole}
+          onChange={(val) => setFilterRole(val || "Semua")}
+          placeholder="Semua Role"
+          options={[
+            { value: "Semua", label: "Semua Role" },
+            { value: "Super Admin", label: "Super Admin" },
+            { value: "Admin Keuangan", label: "Admin Keuangan (Bendahara)" },
+            { value: "Admin Absen", label: "Admin Absen (Presensi)" },
+            { value: "Pengasuh", label: "Pengasuh" },
+            { value: "Ustadz", label: "Ustadz" },
+            { value: "Musyrif", label: "Musyrif" },
+            { value: "Keamanan", label: "Keamanan" },
+            { value: "Wali Santri", label: "Wali Santri" },
+          ]}
+        />
+        <SearchableSelect
+          style={{ minWidth: "130px", flex: "1 1 120px", maxWidth: "180px" }}
+          value={filterStatus}
+          onChange={(val) => setFilterStatus(val || "Semua")}
+          placeholder="Semua Status"
+          options={[
+            { value: "Semua", label: "Semua Status" },
+            { value: "Active", label: "Active (Aktif)" },
+            { value: "Inactive", label: "Inactive (Nonaktif)" },
+            { value: "Suspended", label: "Suspended" },
+          ]}
+        />
       </div>
 
-      {/* ================= DATA TABLE CONTAINER ================= */}
-      <div
-        style={{
-          background: "#ffffff",
-          borderRadius: "12px",
-          border: "1px solid #e2e8f0",
-          overflow: "hidden",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-        }}
-      >
-        <div style={{ overflowX: "auto" }}>
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              textAlign: "left",
-              fontSize: "0.84rem",
-            }}
-          >
+      {/* 5. DATA TABLE (SEPERTI MASTER SANTRI) */}
+      <div className="table-container-card">
+        {loading ? (
+          <div style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>
+            <RotateCw size={26} className="animate-spin" style={{ margin: "0 auto 8px" }} />
+            <div>Memuat data pengguna dari database...</div>
+          </div>
+        ) : (
+          <table className="data-table">
             <thead>
-              <tr
-                style={{
-                  background: "#f8fafc",
-                  borderBottom: "1px solid #e2e8f0",
-                  color: "#475569",
-                }}
-              >
-                <th
-                  style={{
-                    padding: "12px 16px",
-                    fontWeight: 700,
-                    width: "45px",
-                  }}
-                >
-                  No
-                </th>
-                <th style={{ padding: "12px 16px", fontWeight: 700 }}>
-                  Pengguna
-                </th>
-                <th style={{ padding: "12px 16px", fontWeight: 700 }}>
-                  Username & Kontak
-                </th>
-                <th style={{ padding: "12px 16px", fontWeight: 700 }}>
-                  Hak Akses / Role
-                </th>
-                <th style={{ padding: "12px 16px", fontWeight: 700 }}>
-                  Status
-                </th>
-                <th style={{ padding: "12px 16px", fontWeight: 700 }}>
-                  Terakhir Update
-                </th>
-                <th
-                  style={{
-                    padding: "12px 16px",
-                    fontWeight: 700,
-                    textAlign: "center",
-                    width: "160px",
-                  }}
-                >
-                  Aksi
-                </th>
+              <tr>
+                <th className="td-center" style={{ width: "45px" }}>NO</th>
+                <th>PENGGUNA</th>
+                <th>USERNAME &amp; KONTAK</th>
+                <th className="td-center">HAK AKSES / ROLE</th>
+                <th className="td-center">STATUS</th>
+                <th className="td-center">TERAKHIR UPDATE</th>
+                <th className="td-center" style={{ width: "160px" }}>AKSI</th>
               </tr>
             </thead>
             <tbody>
@@ -1070,18 +712,12 @@ export default function UserManagementView() {
                         (e.currentTarget.style.backgroundColor = "#ffffff")
                       }
                     >
-                      <td
-                        style={{
-                          padding: "12px 16px",
-                          color: "#64748b",
-                          fontWeight: 600,
-                        }}
-                      >
+                      <td className="td-center" style={{ color: "#64748b", fontWeight: 600 }}>
                         {idx + 1}
                       </td>
 
                       {/* Nama & Avatar */}
-                      <td style={{ padding: "12px 16px" }}>
+                      <td>
                         <div
                           style={{
                             display: "flex",
@@ -1135,7 +771,7 @@ export default function UserManagementView() {
                       </td>
 
                       {/* Username & Kontak */}
-                      <td style={{ padding: "12px 16px" }}>
+                      <td>
                         <div
                           style={{
                             display: "flex",
@@ -1170,7 +806,7 @@ export default function UserManagementView() {
                       </td>
 
                       {/* Role Badge */}
-                      <td style={{ padding: "12px 16px" }}>
+                      <td className="td-center">
                         <span
                           style={{
                             display: "inline-flex",
@@ -1190,7 +826,7 @@ export default function UserManagementView() {
                       </td>
 
                       {/* Status */}
-                      <td style={{ padding: "12px 16px" }}>
+                      <td className="td-center">
                         <span
                           style={{
                             display: "inline-flex",
@@ -1231,8 +867,8 @@ export default function UserManagementView() {
 
                       {/* Update Time */}
                       <td
+                        className="td-center"
                         style={{
-                          padding: "12px 16px",
                           color: "#64748b",
                           fontSize: "0.76rem",
                         }}
@@ -1250,7 +886,7 @@ export default function UserManagementView() {
                       </td>
 
                       {/* Actions */}
-                      <td style={{ padding: "12px 16px", textAlign: "center" }}>
+                      <td className="td-center">
                         <div
                           style={{
                             display: "flex",
@@ -1366,7 +1002,7 @@ export default function UserManagementView() {
               )}
             </tbody>
           </table>
-        </div>
+        )}
       </div>
 
       {/* ================= MODAL TAMBAH / EDIT PENGGUNA ================= */}
