@@ -570,7 +570,7 @@ export default function AdminLayout() {
             >
               <div className="nav-link-left">
                 <CreditCard size={15} style={{ color: '#059669' }} />
-                <span>Keuangan & Tagihan</span>
+                <span>Keuangan</span>
               </div>
               <span style={{ fontSize: '0.62rem', background: '#059669', color: '#fff', padding: '1px 6px', borderRadius: '10px', fontWeight: 800 }}>QRIS/VA</span>
             </button>
