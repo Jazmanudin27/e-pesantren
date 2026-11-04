@@ -768,138 +768,218 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       {isBendahara ? (
         <>
           {/* =========================================================================
-              REKAP KEUANGAN: KAS MASUK, TUNGGAKAN, LUNAS, TERTUNGGAK (KHUSUS BENDAHARA)
+              DIGITAL VAULT CARD: KAS UTAMA PESANTREN (SUPER ELEGAN & MEWAH)
           ========================================================================= */}
-          <div style={{ padding: "0 16px", marginTop: "-20px" }}>
+          <div style={{ padding: "0 16px", marginTop: "-22px" }}>
             <div
               style={{
-                background: "#ffffff",
-                borderRadius: "24px",
-                border: "2px solid #059669",
-                padding: "16px 14px",
-                boxShadow:
-                  "0 12px 28px -6px rgba(5, 150, 105, 0.22), 0 2px 8px rgba(0, 0, 0, 0.04)",
+                background: "linear-gradient(145deg, #022c22 0%, #064e3b 50%, #065f46 100%)",
+                borderRadius: "26px",
+                border: "1.5px solid rgba(52, 211, 153, 0.35)",
+                padding: "20px 18px",
+                boxShadow: "0 16px 36px -8px rgba(6, 78, 59, 0.45), 0 4px 12px rgba(0, 0, 0, 0.12)",
                 position: "relative",
                 zIndex: 10,
+                color: "#ffffff",
+                overflow: "hidden",
               }}
             >
+              {/* Background Geometric Texture Glow */}
+              <div
+                style={{
+                  position: "absolute",
+                  top: "-40px",
+                  right: "-40px",
+                  width: "140px",
+                  height: "140px",
+                  borderRadius: "50%",
+                  background:
+                    "radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, rgba(6, 78, 59, 0) 70%)",
+                  pointerEvents: "none",
+                }}
+              />
+
+              {/* Card Top Row: Chip EMV Gold & Label Kas */}
               <div
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  marginBottom: "12px",
+                  marginBottom: "16px",
                 }}
               >
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-                >
-                  <Wallet size={16} color="#059669" />
-                  <span
-                    style={{
-                      fontSize: "0.8rem",
-                      fontWeight: 800,
-                      color: "#0f172a",
-                    }}
-                  >
-                    Ringkasan Kas & SPP
-                  </span>
-                </div>
-                <button
-                  onClick={() => onChangeTab("keuangan-rekap")}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#059669",
-                    fontSize: "0.72rem",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "2px",
-                  }}
-                >
-                  Laporan Lengkap <ArrowRight size={12} />
-                </button>
-              </div>
-
-              <div
-                className="mobile-rekap-grid"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(2, 1fr)",
-                  gap: "10px",
-                }}
-              >
-                {/* 1. KAS MASUK */}
-                <div
-                  onClick={() => onChangeTab("keuangan-rekap")}
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)",
-                    borderRadius: "16px",
-                    padding: "12px",
-                    border: "1px solid #a7f3d0",
-                    cursor: "pointer",
-                  }}
-                >
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  {/* Gold EMV Chip Simulation */}
                   <div
                     style={{
+                      width: "36px",
+                      height: "26px",
+                      borderRadius: "6px",
+                      background:
+                        "linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #d97706 100%)",
+                      border: "1px solid #fef3c7",
+                      boxShadow: "0 2px 6px rgba(217, 119, 6, 0.4)",
                       display: "flex",
                       alignItems: "center",
-                      gap: "6px",
-                      color: "#047857",
-                      fontSize: "0.7rem",
-                      fontWeight: 700,
+                      justifyContent: "center",
                     }}
                   >
-                    <CheckCircle2 size={14} /> Total Kas Masuk
+                    <div
+                      style={{
+                        width: "20px",
+                        height: "1px",
+                        background: "rgba(0,0,0,0.25)",
+                      }}
+                    />
                   </div>
-                  <div
+
+                  <div>
+                    <span
+                      style={{
+                        fontSize: "0.68rem",
+                        fontWeight: 800,
+                        letterSpacing: "0.08em",
+                        color: "#a7f3d0",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      KAS UTAMA PESANTREN
+                    </span>
+                    <div
+                      style={{
+                        fontSize: "0.6rem",
+                        color: "#6ee7b7",
+                        opacity: 0.85,
+                      }}
+                    >
+                      Rekening Operasional & SPP
+                    </div>
+                  </div>
+                </div>
+
+                {/* Badge Status Online */}
+                <div
+                  style={{
+                    background: "rgba(16, 185, 129, 0.2)",
+                    border: "1px solid rgba(52, 211, 153, 0.4)",
+                    color: "#34d399",
+                    padding: "3px 10px",
+                    borderRadius: "999px",
+                    fontSize: "0.65rem",
+                    fontWeight: 800,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "5px",
+                  }}
+                >
+                  <span
                     style={{
-                      fontSize: "1rem",
-                      fontWeight: 800,
-                      color: "#065f46",
-                      marginTop: "4px",
+                      width: "6px",
+                      height: "6px",
+                      borderRadius: "50%",
+                      background: "#34d399",
+                      boxShadow: "0 0 6px #34d399",
+                    }}
+                  />
+                  REALTIME
+                </div>
+              </div>
+
+              {/* Saldo Pemasukan Kas Masuk Utama */}
+              <div style={{ marginBottom: "18px" }}>
+                <div
+                  style={{
+                    fontSize: "0.74rem",
+                    color: "#d1fae5",
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <span>Total Penerimaan Kas (Pemasukan)</span>
+                  <span
+                    style={{
+                      background: "rgba(255,255,255,0.15)",
+                      padding: "1px 6px",
+                      borderRadius: "4px",
+                      fontSize: "0.6rem",
                     }}
                   >
-                    Rp{" "}
+                    Bulan Berjalan
+                  </span>
+                </div>
+                <div
+                  style={{
+                    fontSize: "1.75rem",
+                    fontWeight: 900,
+                    letterSpacing: "-0.5px",
+                    color: "#ffffff",
+                    marginTop: "4px",
+                    display: "flex",
+                    alignItems: "baseline",
+                    gap: "6px",
+                    textShadow: "0 2px 10px rgba(0,0,0,0.3)",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "1.1rem",
+                      fontWeight: 700,
+                      color: "#34d399",
+                    }}
+                  >
+                    Rp
+                  </span>
+                  <span>
                     {Number(
                       keuanganData.summary?.total_terbayar || 0,
                     ).toLocaleString("id-ID")}
-                  </div>
+                  </span>
                 </div>
+              </div>
 
-                {/* 2. TUNGGAKAN */}
+              {/* Sub-Metrics Inside Card: Tunggakan & Status Tagihan */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "10px",
+                  background: "rgba(0, 20, 15, 0.55)",
+                  backdropFilter: "blur(12px)",
+                  borderRadius: "18px",
+                  padding: "12px 14px",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                }}
+              >
+                {/* Tunggakan Piutang */}
                 <div
                   onClick={() => onChangeTab("keuangan-tunggakan")}
                   style={{
-                    background:
-                      "linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)",
-                    borderRadius: "16px",
-                    padding: "12px",
-                    border: "1px solid #fecdd3",
                     cursor: "pointer",
+                    borderRight: "1px solid rgba(255, 255, 255, 0.12)",
+                    paddingRight: "8px",
                   }}
                 >
                   <div
                     style={{
+                      fontSize: "0.66rem",
+                      color: "#fca5a5",
+                      fontWeight: 700,
                       display: "flex",
                       alignItems: "center",
-                      gap: "6px",
-                      color: "#be123c",
-                      fontSize: "0.7rem",
-                      fontWeight: 700,
+                      gap: "4px",
                     }}
                   >
-                    <AlertTriangle size={14} /> Total Tunggakan
+                    <AlertTriangle size={12} color="#f87171" />
+                    <span>Total Piutang Santri</span>
                   </div>
                   <div
                     style={{
-                      fontSize: "1rem",
+                      fontSize: "0.95rem",
                       fontWeight: 800,
-                      color: "#9f1239",
-                      marginTop: "4px",
+                      color: "#fecdd3",
+                      marginTop: "3px",
                     }}
                   >
                     Rp{" "}
@@ -909,133 +989,103 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                   </div>
                 </div>
 
-                {/* 3. TAGIHAN LUNAS */}
+                {/* Progress Status Tagihan */}
                 <div
                   onClick={() => onChangeTab("keuangan-rekap")}
-                  style={{
-                    background: "#f8fafc",
-                    borderRadius: "14px",
-                    padding: "10px 12px",
-                    border: "1px solid #e2e8f0",
-                    cursor: "pointer",
-                  }}
+                  style={{ cursor: "pointer", paddingLeft: "4px" }}
                 >
                   <div
                     style={{
-                      fontSize: "0.68rem",
-                      color: "#64748b",
-                      fontWeight: 600,
+                      fontSize: "0.66rem",
+                      color: "#93c5fd",
+                      fontWeight: 700,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
                     }}
                   >
-                    Tagihan Lunas
+                    <CheckCircle2 size={12} color="#60a5fa" />
+                    <span>Realisasi SPP</span>
                   </div>
                   <div
                     style={{
-                      fontSize: "0.88rem",
+                      fontSize: "0.85rem",
                       fontWeight: 800,
-                      color: "#0284c7",
-                      marginTop: "2px",
+                      color: "#ffffff",
+                      marginTop: "3px",
                     }}
                   >
-                    {keuanganData.summary?.jumlah_tagihan_lunas || 0} Lunas
-                  </div>
-                </div>
-
-                {/* 4. BELUM LUNAS */}
-                <div
-                  onClick={() => onChangeTab("keuangan-tunggakan")}
-                  style={{
-                    background: "#f8fafc",
-                    borderRadius: "14px",
-                    padding: "10px 12px",
-                    border: "1px solid #e2e8f0",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "0.68rem",
-                      color: "#64748b",
-                      fontWeight: 600,
-                    }}
-                  >
-                    Belum Lunas
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "0.88rem",
-                      fontWeight: 800,
-                      color: "#d97706",
-                      marginTop: "2px",
-                    }}
-                  >
-                    {keuanganData.summary?.jumlah_tagihan_tertunggak || 0}{" "}
-                    Tagihan
+                    <span style={{ color: "#34d399" }}>
+                      {keuanganData.summary?.jumlah_tagihan_lunas || 0} Lunas
+                    </span>
+                    <span
+                      style={{
+                        color: "#94a3b8",
+                        fontSize: "0.72rem",
+                        margin: "0 4px",
+                      }}
+                    >
+                      •
+                    </span>
+                    <span style={{ color: "#f87171", fontSize: "0.75rem" }}>
+                      {keuanganData.summary?.jumlah_tagihan_tertunggak || 0} Nunggak
+                    </span>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Quick Action: Buka Loket Kasir Pembayaran */}
-          <div style={{ padding: "14px 16px 0" }}>
-            <div
-              onClick={() => onChangeTab("keuangan-kasir")}
-              style={{
-                background: "linear-gradient(135deg, #047857 0%, #065f46 100%)",
-                borderRadius: "20px",
-                padding: "16px",
-                color: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                cursor: "pointer",
-                boxShadow: "0 8px 20px -4px rgba(4, 120, 87, 0.4)",
-              }}
-            >
+              {/* 2 Action Buttons Integrated Inside Card */}
               <div
-                style={{ display: "flex", alignItems: "center", gap: "12px" }}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1.4fr 1fr",
+                  gap: "10px",
+                  marginTop: "14px",
+                }}
               >
-                <div
+                <button
+                  onClick={() => onChangeTab("keuangan-kasir")}
                   style={{
-                    width: "44px",
-                    height: "44px",
-                    borderRadius: "12px",
-                    background: "rgba(255, 255, 255, 0.2)",
+                    background:
+                      "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                    border: "none",
+                    color: "#ffffff",
+                    padding: "10px 14px",
+                    borderRadius: "14px",
+                    fontWeight: 800,
+                    fontSize: "0.78rem",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    border: "1px solid rgba(255, 255, 255, 0.3)",
+                    gap: "6px",
+                    cursor: "pointer",
+                    boxShadow: "0 4px 14px rgba(16, 185, 129, 0.4)",
                   }}
                 >
-                  <CreditCard size={24} color="#ffffff" />
-                </div>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: "0.96rem" }}>
-                    Loket Kasir Santri
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "0.72rem",
-                      opacity: 0.9,
-                      marginTop: "2px",
-                    }}
-                  >
-                    Input pembayaran SPP, cicilan uang masuk, kuitansi
-                  </div>
-                </div>
-              </div>
-              <div
-                style={{
-                  background: "#ffffff",
-                  color: "#065f46",
-                  fontWeight: 800,
-                  fontSize: "0.75rem",
-                  padding: "7px 14px",
-                  borderRadius: "10px",
-                }}
-              >
-                Buka Kasir &gt;
+                  <CreditCard size={15} />
+                  <span>Buka Kasir Bayar &gt;</span>
+                </button>
+
+                <button
+                  onClick={() => onChangeTab("keuangan-rekap")}
+                  style={{
+                    background: "rgba(255, 255, 255, 0.12)",
+                    border: "1px solid rgba(255, 255, 255, 0.2)",
+                    color: "#ffffff",
+                    padding: "10px 12px",
+                    borderRadius: "14px",
+                    fontWeight: 700,
+                    fontSize: "0.75rem",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    cursor: "pointer",
+                  }}
+                >
+                  <BarChart3 size={15} color="#a7f3d0" />
+                  <span>Laporan &gt;</span>
+                </button>
               </div>
             </div>
           </div>
