@@ -19,11 +19,15 @@ import {
   User,
   HeartHandshake,
   Smile,
-  Award
+  Award,
+  CreditCard,
+  Wallet,
+  DollarSign
 } from 'lucide-react';
 import MobileHome from '../views/mobile/MobileHome';
 import MobileTahfidz from '../views/mobile/MobileTahfidz';
 import MobileSyahriah from '../views/mobile/MobileSyahriah';
+import KeuanganAdminView from '../views/admin/KeuanganAdminView';
 import MobileIzin from '../views/mobile/MobileIzin';
 import MobileDashboard from '../views/mobile/MobileDashboard';
 import MobilePresensi from '../views/mobile/MobilePresensi';
@@ -164,6 +168,12 @@ export default function MobileLayout() {
     );
   }
 
+  const isBendahara = (() => {
+    const role = String(session?.role || '').toLowerCase();
+    const uName = String(session?.username || '').toLowerCase();
+    return role.includes('keuangan') || role.includes('bendahara') || uName === 'bendahara' || uName === 'keuangan';
+  })();
+
   const getSubmenuTitle = () => {
     switch (mobileTab) {
       case 'dashboard': return 'Dashboard System';
@@ -188,8 +198,17 @@ export default function MobileLayout() {
       case 'tata-tertib': return 'Tata Tertib & Ta\'zir';
       case 'laporan-presensi': return 'Rekap Presensi Harian';
       case 'laporan-tahfidz': return 'Laporan Tahfidz & Tasmi\'';
-      case 'syahriah': return 'Syahriah & Uang Saku';
-      case 'profil': return 'Profil Asatidz & Admin';
+      case 'syahriah':
+      case 'keuangan':
+      case 'keuangan-kasir': return 'Kasir Pembayaran Santri';
+      case 'keuangan-rekap': return 'Laporan Kas & Rekap SPP';
+      case 'keuangan-spp': return 'Tagihan SPP Bulanan';
+      case 'keuangan-masuk': return 'Biaya Awal Masuk';
+      case 'keuangan-transaksi': return 'Transaksi QRIS & VA Midtrans';
+      case 'keuangan-tunggakan': return 'Daftar Tunggakan Santri';
+      case 'keuangan-komponen': return 'Tarif Komponen Biaya';
+      case 'keuangan-generate': return 'Generate Tagihan SPP';
+      case 'profil': return isBendahara ? 'Profil Bendahara' : 'Profil Asatidz & Admin';
       case 'portal-wali': return 'Portal Orang Tua (Wali)';
       default: return '';
     }
@@ -198,7 +217,9 @@ export default function MobileLayout() {
   const isOtherMenuActive = [
     'dashboard', 'master-santri', 'master-asrama', 'master-kelas', 
     'master-asatidz', 'master-materi', 'kitab', 'master-device', 'tata-tertib', 
-    'laporan-presensi', 'laporan-tahfidz', 'syahriah', 'praktek-ibadah', 'praktek', 'portal-wali'
+    'laporan-presensi', 'laporan-tahfidz', 'syahriah', 'praktek-ibadah', 'praktek', 'portal-wali',
+    'keuangan', 'keuangan-kasir', 'keuangan-rekap', 'keuangan-spp', 'keuangan-masuk', 
+    'keuangan-transaksi', 'keuangan-tunggakan', 'keuangan-komponen', 'keuangan-generate'
   ].includes(mobileTab);
 
   const renderContent = () => {
@@ -248,6 +269,7 @@ export default function MobileLayout() {
         return <MobileLaporanTahfidz />;
       case 'syahriah':
       case 'keuangan':
+      case 'keuangan-kasir':
         if (!canAccessKeuangan(session)) {
           return (
             <div style={{ padding: '36px 20px', textAlign: 'center', background: '#fff', borderRadius: '20px', margin: '20px 14px', border: '1px solid #fee2e2' }}>
@@ -269,7 +291,26 @@ export default function MobileLayout() {
             </div>
           );
         }
-        return <MobileSyahriah />;
+        return <KeuanganAdminView initialMode="kasir" />;
+      case 'keuangan-rekap':
+        if (!canAccessKeuangan(session)) return renderContent(handleSelectTab('home'));
+        return <KeuanganAdminView initialMode="rekap" initialRekapTab="semua" />;
+      case 'keuangan-spp':
+        if (!canAccessKeuangan(session)) return renderContent(handleSelectTab('home'));
+        return <KeuanganAdminView initialMode="kasir" />;
+      case 'keuangan-masuk':
+        if (!canAccessKeuangan(session)) return renderContent(handleSelectTab('home'));
+        return <KeuanganAdminView initialMode="kasir" />;
+      case 'keuangan-transaksi':
+        if (!canAccessKeuangan(session)) return renderContent(handleSelectTab('home'));
+        return <KeuanganAdminView initialMode="rekap" initialRekapTab="transaksi" />;
+      case 'keuangan-tunggakan':
+        if (!canAccessKeuangan(session)) return renderContent(handleSelectTab('home'));
+        return <KeuanganAdminView initialMode="rekap" initialRekapTab="tunggakan" />;
+      case 'keuangan-komponen':
+      case 'keuangan-generate':
+        if (!canAccessKeuangan(session)) return renderContent(handleSelectTab('home'));
+        return <KeuanganAdminView initialMode="rekap" initialRekapTab="komponen" />;
       case 'profil':
         return <MobileProfil onChangeTab={handleSelectTab} onLogout={handleLogout} />;
       default:
@@ -381,82 +422,113 @@ export default function MobileLayout() {
 
               {/* Menu Categories */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#059669', textTransform: 'uppercase', marginBottom: '8px' }}>
-                    MAIN MENU
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-                    <button onClick={() => handleSelectTab('dashboard')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'dashboard' ? '#e0f2fe' : '#f8fafc', border: mobileTab === 'dashboard' ? '1px solid #0284c7' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
-                      <LayoutDashboard size={16} color="#0284c7" /> Dashboard
-                    </button>
-                    <button onClick={() => handleSelectTab('presensi')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'presensi' ? '#f3e8ff' : '#f8fafc', border: mobileTab === 'presensi' ? '1px solid #7c3aed' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
-                      <Fingerprint size={16} color="#7c3aed" /> Presensi
-                    </button>
-                    <button onClick={() => handleSelectTab('tahfidz')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'tahfidz' ? '#dcfce7' : '#f8fafc', border: mobileTab === 'tahfidz' ? '1px solid #059669' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
-                      <BookOpen size={16} color="#059669" /> Tahfidz & Kitab
-                    </button>
-                    <button onClick={() => handleSelectTab('perizinan')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: (mobileTab === 'perizinan' || mobileTab === 'izin') ? '#dbeafe' : '#f8fafc', border: (mobileTab === 'perizinan' || mobileTab === 'izin') ? '1px solid #2563eb' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
-                      <DoorOpen size={16} color="#2563eb" /> Perizinan
-                    </button>
-                    <button onClick={() => handleSelectTab('praktek-ibadah')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: (mobileTab === 'praktek-ibadah' || mobileTab === 'praktek') ? '#d1fae5' : '#f8fafc', border: (mobileTab === 'praktek-ibadah' || mobileTab === 'praktek') ? '1px solid #059669' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
-                      <HeartHandshake size={16} color="#059669" /> Praktek
-                    </button>
-                    <button onClick={() => handleSelectTab('pengembangan')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'pengembangan' ? '#e0f2fe' : '#f8fafc', border: mobileTab === 'pengembangan' ? '1px solid #0284c7' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
-                      <Award size={16} color="#0284c7" /> Pengembangan
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#059669', textTransform: 'uppercase', marginBottom: '8px' }}>
-                    DATA MASTER
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-                    <button onClick={() => handleSelectTab('master-santri')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-santri' ? '#ccfbf1' : '#f8fafc', border: mobileTab === 'master-santri' ? '1px solid #0d9488' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
-                      <Users size={16} color="#0d9488" /> Data Santri
-                    </button>
-                    <button onClick={() => handleSelectTab('daftar-wajah')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'daftar-wajah' ? '#e0f2fe' : '#f8fafc', border: mobileTab === 'daftar-wajah' ? '1px solid #0284c7' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
-                      <Smile size={16} color="#0284c7" /> Daftar Wajah
-                    </button>
-                    <button onClick={() => handleSelectTab('master-asrama')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-asrama' ? '#fef3c7' : '#f8fafc', border: mobileTab === 'master-asrama' ? '1px solid #d97706' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
-                      <Building size={16} color="#d97706" /> Data Asrama
-                    </button>
-                    <button onClick={() => handleSelectTab('master-kelas')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-kelas' ? '#cffaff' : '#f8fafc', border: mobileTab === 'master-kelas' ? '1px solid #0891b2' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
-                      <GraduationCap size={16} color="#0891b2" /> Data Kelas
-                    </button>
-                    <button onClick={() => handleSelectTab('master-asatidz')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-asatidz' ? '#f3e8ff' : '#f8fafc', border: mobileTab === 'master-asatidz' ? '1px solid #9333ea' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
-                      <Users size={16} color="#9333ea" /> Data Asatidz
-                    </button>
-                    <button onClick={() => handleSelectTab('master-materi')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-materi' ? '#ecfdf5' : '#f8fafc', border: mobileTab === 'master-materi' ? '1px solid #059669' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
-                      <BookOpen size={16} color="#059669" /> Materi & Kitab
-                    </button>
-                    <button onClick={() => handleSelectTab('master-device')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-device' ? '#e2e8f0' : '#f8fafc', border: mobileTab === 'master-device' ? '1px solid #475569' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
-                      <HardDrive size={16} color="#475569" /> Fingerprint
-                    </button>
-                    <button onClick={() => handleSelectTab('tata-tertib')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'tata-tertib' ? '#ffe4e6' : '#f8fafc', border: mobileTab === 'tata-tertib' ? '1px solid #be123c' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
-                      <ShieldAlert size={16} color="#be123c" /> Tata Tertib
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#059669', textTransform: 'uppercase', marginBottom: '8px' }}>
-                    {canAccessKeuangan(session) ? 'LAPORAN & KEUANGAN' : 'LAPORAN REKAP'}
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-                    <button onClick={() => handleSelectTab('laporan-presensi')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'laporan-presensi' ? '#ffedd5' : '#f8fafc', border: mobileTab === 'laporan-presensi' ? '1px solid #ea580c' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
-                      <BarChart3 size={16} color="#ea580c" /> Rekap Absen
-                    </button>
-                    <button onClick={() => handleSelectTab('laporan-tahfidz')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'laporan-tahfidz' ? '#e0f2fe' : '#f8fafc', border: mobileTab === 'laporan-tahfidz' ? '1px solid #0284c7' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
-                      <FileText size={16} color="#0284c7" /> Laporan Tahfidz
-                    </button>
-                    {canAccessKeuangan(session) && (
-                      <button onClick={() => handleSelectTab('syahriah')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'syahriah' ? '#fef3c7' : '#f8fafc', border: mobileTab === 'syahriah' ? '1px solid #d97706' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
-                        <Wallet size={16} color="#d97706" /> Keuangan & SPP
+                {isBendahara ? (
+                  <div>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#059669', textTransform: 'uppercase', marginBottom: '8px' }}>
+                      MENU KEUANGAN & KASIR
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                      <button onClick={() => handleSelectTab('keuangan-kasir')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'keuangan-kasir' ? '#dcfce7' : '#f8fafc', border: mobileTab === 'keuangan-kasir' ? '1px solid #059669' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                        <CreditCard size={16} color="#059669" /> Kasir Santri
                       </button>
-                    )}
+                      <button onClick={() => handleSelectTab('keuangan-rekap')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'keuangan-rekap' ? '#e0f2fe' : '#f8fafc', border: mobileTab === 'keuangan-rekap' ? '1px solid #0284c7' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                        <BarChart3 size={16} color="#0284c7" /> Laporan Kas
+                      </button>
+                      <button onClick={() => handleSelectTab('keuangan-spp')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'keuangan-spp' ? '#f3e8ff' : '#f8fafc', border: mobileTab === 'keuangan-spp' ? '1px solid #7c3aed' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                        <FileText size={16} color="#7c3aed" /> Tagihan SPP
+                      </button>
+                      <button onClick={() => handleSelectTab('keuangan-masuk')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'keuangan-masuk' ? '#fef3c7' : '#f8fafc', border: mobileTab === 'keuangan-masuk' ? '1px solid #d97706' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                        <Building size={16} color="#d97706" /> Biaya Masuk
+                      </button>
+                      <button onClick={() => handleSelectTab('keuangan-transaksi')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'keuangan-transaksi' ? '#cffaff' : '#f8fafc', border: mobileTab === 'keuangan-transaksi' ? '1px solid #0891b2' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                        <Zap size={16} color="#0891b2" /> QRIS & VA Midtrans
+                      </button>
+                      <button onClick={() => handleSelectTab('keuangan-tunggakan')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'keuangan-tunggakan' ? '#ffe4e6' : '#f8fafc', border: mobileTab === 'keuangan-tunggakan' ? '1px solid #e11d48' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                        <ShieldAlert size={16} color="#e11d48" /> Rekap Tunggakan
+                      </button>
+                      <button onClick={() => handleSelectTab('keuangan-komponen')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'keuangan-komponen' ? '#e0e7ff' : '#f8fafc', border: mobileTab === 'keuangan-komponen' ? '1px solid #4f46e5' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                        <Layers size={16} color="#4f46e5" /> Tarif Pos Biaya
+                      </button>
+                      <button onClick={() => handleSelectTab('keuangan-generate')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'keuangan-generate' ? '#ccfbf1' : '#f8fafc', border: mobileTab === 'keuangan-generate' ? '1px solid #0f766e' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                        <RotateCw size={16} color="#0f766e" /> Generate SPP
+                      </button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    <div>
+                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#059669', textTransform: 'uppercase', marginBottom: '8px' }}>
+                        MAIN MENU
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                        <button onClick={() => handleSelectTab('dashboard')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'dashboard' ? '#e0f2fe' : '#f8fafc', border: mobileTab === 'dashboard' ? '1px solid #0284c7' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                          <LayoutDashboard size={16} color="#0284c7" /> Dashboard
+                        </button>
+                        <button onClick={() => handleSelectTab('presensi')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'presensi' ? '#f3e8ff' : '#f8fafc', border: mobileTab === 'presensi' ? '1px solid #7c3aed' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                          <Fingerprint size={16} color="#7c3aed" /> Presensi
+                        </button>
+                        <button onClick={() => handleSelectTab('tahfidz')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'tahfidz' ? '#dcfce7' : '#f8fafc', border: mobileTab === 'tahfidz' ? '1px solid #059669' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                          <BookOpen size={16} color="#059669" /> Tahfidz & Kitab
+                        </button>
+                        <button onClick={() => handleSelectTab('perizinan')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: (mobileTab === 'perizinan' || mobileTab === 'izin') ? '#dbeafe' : '#f8fafc', border: (mobileTab === 'perizinan' || mobileTab === 'izin') ? '1px solid #2563eb' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                          <DoorOpen size={16} color="#2563eb" /> Perizinan
+                        </button>
+                        <button onClick={() => handleSelectTab('praktek-ibadah')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: (mobileTab === 'praktek-ibadah' || mobileTab === 'praktek') ? '#d1fae5' : '#f8fafc', border: (mobileTab === 'praktek-ibadah' || mobileTab === 'praktek') ? '1px solid #059669' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                          <HeartHandshake size={16} color="#059669" /> Praktek
+                        </button>
+                        <button onClick={() => handleSelectTab('pengembangan')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'pengembangan' ? '#e0f2fe' : '#f8fafc', border: mobileTab === 'pengembangan' ? '1px solid #0284c7' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                          <Award size={16} color="#0284c7" /> Pengembangan
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#059669', textTransform: 'uppercase', marginBottom: '8px' }}>
+                        DATA MASTER
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                        <button onClick={() => handleSelectTab('master-santri')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-santri' ? '#ccfbf1' : '#f8fafc', border: mobileTab === 'master-santri' ? '1px solid #0d9488' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                          <Users size={16} color="#0d9488" /> Data Santri
+                        </button>
+                        <button onClick={() => handleSelectTab('daftar-wajah')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'daftar-wajah' ? '#e0f2fe' : '#f8fafc', border: mobileTab === 'daftar-wajah' ? '1px solid #0284c7' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                          <Smile size={16} color="#0284c7" /> Daftar Wajah
+                        </button>
+                        <button onClick={() => handleSelectTab('master-asrama')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-asrama' ? '#fef3c7' : '#f8fafc', border: mobileTab === 'master-asrama' ? '1px solid #d97706' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                          <Building size={16} color="#d97706" /> Data Asrama
+                        </button>
+                        <button onClick={() => handleSelectTab('master-kelas')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-kelas' ? '#cffaff' : '#f8fafc', border: mobileTab === 'master-kelas' ? '1px solid #0891b2' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                          <GraduationCap size={16} color="#0891b2" /> Data Kelas
+                        </button>
+                        <button onClick={() => handleSelectTab('master-asatidz')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-asatidz' ? '#f3e8ff' : '#f8fafc', border: mobileTab === 'master-asatidz' ? '1px solid #9333ea' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                          <Users size={16} color="#9333ea" /> Data Asatidz
+                        </button>
+                        <button onClick={() => handleSelectTab('master-materi')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-materi' ? '#ecfdf5' : '#f8fafc', border: mobileTab === 'master-materi' ? '1px solid #059669' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                          <BookOpen size={16} color="#059669" /> Materi & Kitab
+                        </button>
+                        <button onClick={() => handleSelectTab('master-device')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-device' ? '#e2e8f0' : '#f8fafc', border: mobileTab === 'master-device' ? '1px solid #475569' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                          <HardDrive size={16} color="#475569" /> Fingerprint
+                        </button>
+                        <button onClick={() => handleSelectTab('tata-tertib')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'tata-tertib' ? '#ffe4e6' : '#f8fafc', border: mobileTab === 'tata-tertib' ? '1px solid #be123c' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                          <ShieldAlert size={16} color="#be123c" /> Tata Tertib
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#059669', textTransform: 'uppercase', marginBottom: '8px' }}>
+                        LAPORAN REKAP
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                        <button onClick={() => handleSelectTab('laporan-presensi')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'laporan-presensi' ? '#ffedd5' : '#f8fafc', border: mobileTab === 'laporan-presensi' ? '1px solid #ea580c' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                          <BarChart3 size={16} color="#ea580c" /> Rekap Absen
+                        </button>
+                        <button onClick={() => handleSelectTab('laporan-tahfidz')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'laporan-tahfidz' ? '#e0f2fe' : '#f8fafc', border: mobileTab === 'laporan-tahfidz' ? '1px solid #0284c7' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                          <FileText size={16} color="#0284c7" /> Laporan Tahfidz
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #e2e8f0' }}>
                   <a 
@@ -498,36 +570,77 @@ export default function MobileLayout() {
             <span>Beranda</span>
           </button>
 
-          <button 
-            className={`mobile-nav-item ${(mobileTab === 'perizinan' || mobileTab === 'izin') ? 'active' : ''}`}
-            onClick={() => handleSelectTab('perizinan')}
-          >
-            <div className={`nav-icon-wrapper ${(mobileTab === 'perizinan' || mobileTab === 'izin') ? 'active' : ''}`}>
-              <DoorOpen size={20} />
-            </div>
-            <span>Izin</span>
-          </button>
+          {isBendahara ? (
+            <>
+              <button 
+                className={`mobile-nav-item ${(mobileTab === 'keuangan-spp' || mobileTab === 'keuangan-masuk') ? 'active' : ''}`}
+                onClick={() => handleSelectTab('keuangan-spp')}
+              >
+                <div className={`nav-icon-wrapper ${(mobileTab === 'keuangan-spp' || mobileTab === 'keuangan-masuk') ? 'active' : ''}`}>
+                  <FileText size={20} />
+                </div>
+                <span>SPP</span>
+              </button>
 
-          {/* Prominent Center Floating Fingerprint Action Button */}
-          <button 
-            className="mobile-fab-center"
-            onClick={() => handleSelectTab('presensi')}
-            title="Presensi Barcode & Wajah"
-          >
-            <div className="fab-inner-glow">
-              <Fingerprint size={28} color="#ffffff" strokeWidth={2.4} />
-            </div>
-          </button>
+              {/* Center Floating Action Button: Loket Kasir Bayar */}
+              <button 
+                className="mobile-fab-center"
+                onClick={() => handleSelectTab('keuangan-kasir')}
+                title="Buka Loket Kasir Pembayaran"
+                style={{
+                  background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                  boxShadow: '0 10px 24px -4px rgba(5, 150, 105, 0.5)'
+                }}
+              >
+                <div className="fab-inner-glow">
+                  <CreditCard size={26} color="#ffffff" strokeWidth={2.4} />
+                </div>
+              </button>
 
-          <button 
-            className={`mobile-nav-item ${mobileTab === 'tahfidz' ? 'active' : ''}`}
-            onClick={() => handleSelectTab('tahfidz')}
-          >
-            <div className={`nav-icon-wrapper ${mobileTab === 'tahfidz' ? 'active' : ''}`}>
-              <BookOpen size={20} />
-            </div>
-            <span>Tahfidz</span>
-          </button>
+              <button 
+                className={`mobile-nav-item ${(mobileTab === 'keuangan-rekap' || mobileTab === 'keuangan-transaksi' || mobileTab === 'keuangan-tunggakan') ? 'active' : ''}`}
+                onClick={() => handleSelectTab('keuangan-rekap')}
+              >
+                <div className={`nav-icon-wrapper ${(mobileTab === 'keuangan-rekap' || mobileTab === 'keuangan-transaksi' || mobileTab === 'keuangan-tunggakan') ? 'active' : ''}`}>
+                  <BarChart3 size={20} />
+                </div>
+                <span>Laporan</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <button 
+                className={`mobile-nav-item ${(mobileTab === 'perizinan' || mobileTab === 'izin') ? 'active' : ''}`}
+                onClick={() => handleSelectTab('perizinan')}
+              >
+                <div className={`nav-icon-wrapper ${(mobileTab === 'perizinan' || mobileTab === 'izin') ? 'active' : ''}`}>
+                  <DoorOpen size={20} />
+                </div>
+                <span>Izin</span>
+              </button>
+
+              {/* Prominent Center Floating Fingerprint Action Button */}
+              <button 
+                className="mobile-fab-center"
+                onClick={() => handleSelectTab('presensi')}
+                title="Presensi Barcode & Wajah"
+              >
+                <div className="fab-inner-glow">
+                  <Fingerprint size={28} color="#ffffff" strokeWidth={2.4} />
+                </div>
+              </button>
+
+              <button 
+                className={`mobile-nav-item ${mobileTab === 'tahfidz' ? 'active' : ''}`}
+                onClick={() => handleSelectTab('tahfidz')}
+              >
+                <div className={`nav-icon-wrapper ${mobileTab === 'tahfidz' ? 'active' : ''}`}>
+                  <BookOpen size={20} />
+                </div>
+                <span>Tahfidz</span>
+              </button>
+            </>
+          )}
 
           <button 
             className={`mobile-nav-item ${mobileTab === 'profil' ? 'active' : ''}`}

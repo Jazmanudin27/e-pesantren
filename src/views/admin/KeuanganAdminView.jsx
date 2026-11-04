@@ -26,11 +26,19 @@ import {
 import { toastSuccess, showError, showConfirm } from '../../utils/alert.util';
 import SearchableSelect from '../../components/SearchableSelect';
 
-export default function KeuanganAdminView() {
+export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapTab = 'semua' }) {
   // Mode Utama: 'kasir' (Tampilan Input Pembayaran per Santri seperti Artanita) | 'rekap' (Tabel Rekap Semua Santri & Master Pos Biaya)
-  const [viewMode, setViewMode] = useState('kasir');
+  const [viewMode, setViewMode] = useState(initialMode);
   const [santriSubTab, setSantriSubTab] = useState('tagihan'); // 'tagihan' | 'riwayat'
-  const [rekapTab, setRekapTab] = useState('semua'); // 'semua' | 'tunggakan' | 'transaksi' | 'komponen'
+  const [rekapTab, setRekapTab] = useState(initialRekapTab); // 'semua' | 'tunggakan' | 'transaksi' | 'komponen'
+
+  useEffect(() => {
+    if (initialMode) setViewMode(initialMode);
+  }, [initialMode]);
+
+  useEffect(() => {
+    if (initialRekapTab) setRekapTab(initialRekapTab);
+  }, [initialRekapTab]);
 
   const [santriList, setSantriList] = useState([]);
   const [selectedSantriId, setSelectedSantriId] = useState('');

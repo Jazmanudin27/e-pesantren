@@ -33,7 +33,15 @@ import {
   ExternalLink,
   ChevronDown,
   Filter,
-  Smile
+  Smile,
+  CreditCard,
+  DollarSign,
+  Wallet,
+  Zap,
+  RotateCw,
+  ArrowRight,
+  Receipt,
+  CheckCircle2
 } from 'lucide-react';
 import { showSuccess, showConfirm } from '../../utils/alert.util';
 
@@ -60,6 +68,20 @@ export default function MobileHome({ onChangeTab, onLogout }) {
   const [todayAbsensiList, setTodayAbsensiList] = useState([]);
   const [searchModalText, setSearchModalText] = useState('');
 
+  // Khusus Akun Bendahara / Admin Keuangan
+  const [keuanganData, setKeuanganData] = useState({
+    summary: {
+      total_nominal_tagihan: 0,
+      total_terbayar: 0,
+      total_tunggakan: 0,
+      jumlah_tagihan_tertunggak: 0,
+      jumlah_tagihan_lunas: 0
+    },
+    transaksiTerakhir: [],
+    tunggakanSantri: []
+  });
+  const [loadingKeuangan, setLoadingKeuangan] = useState(false);
+
   const [currentTimeStr, setCurrentTimeStr] = useState('');
   const [currentDateStr, setCurrentDateStr] = useState('');
   const [greeting, setGreeting] = useState('Selamat Pagi,');
@@ -72,9 +94,15 @@ export default function MobileHome({ onChangeTab, onLogout }) {
     }
   })();
 
-  const rawName = sessionData.nama || sessionData.username || 'Dina Saparinda, S.Kom';
+  const isBendahara = (() => {
+    const role = String(sessionData?.role || '').toLowerCase();
+    const uName = String(sessionData?.username || '').toLowerCase();
+    return role.includes('keuangan') || role.includes('bendahara') || uName === 'bendahara' || uName === 'keuangan';
+  })();
+
+  const rawName = sessionData.nama || sessionData.username || (isBendahara ? 'Hj. Siti Fatimah (Bendahara)' : 'Dina Saparinda, S.Kom');
   const displayName = rawName.includes('_') ? rawName.replace('_', ' ') : rawName;
-  const initial = displayName.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase() || 'DS';
+  const initial = displayName.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase() || (isBendahara ? 'HJ' : 'DS');
 
   // Live Clock & Greeting
   useEffect(() => {
@@ -133,9 +161,30 @@ export default function MobileHome({ onChangeTab, onLogout }) {
     return 'Hadir';
   };
 
-  // Fetch real data (Dashboard Stats & Absensi Hari Ini)
+  // Fetch real data (Dashboard Stats & Absensi Hari Ini ATAU Rekap Keuangan untuk Bendahara)
   useEffect(() => {
     const loadData = async () => {
+      // 1. Jika Akun Bendahara: Ambil Rekap Keuangan Spesifik
+      if (isBendahara) {
+        setLoadingKeuangan(true);
+        try {
+          const res = await axios.get('/api/keuangan/admin/rekap');
+          if (res?.data?.success && res.data.data) {
+            setKeuanganData({
+              summary: res.data.data.summary || {},
+              transaksiTerakhir: res.data.data.transaksiTerakhir || [],
+              tunggakanSantri: res.data.data.tunggakanSantri || []
+            });
+          }
+        } catch (err) {
+          console.warn('Gagal memuat rekap keuangan:', err);
+        } finally {
+          setLoadingKeuangan(false);
+        }
+        return;
+      }
+
+      // 2. Jika Akun Asatidz / Operator Umum: Ambil Absensi & Kegiatan Santri
       try {
         const [resStats, resAbs, resSesi, resIzin] = await Promise.all([
           axios.get('/api/dashboard/stats').catch(() => null),
@@ -342,10 +391,12 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
     }}>
       {/* =========================================================================
-          TOP ROYAL BLUE GRADIENT BANNER
+          TOP BANNER HEADER (EMERALD KHUSUS BENDAHARA / ROYAL BLUE UNTUK ASATIDZ)
       ========================================================================= */}
       <div style={{
-        background: 'linear-gradient(180deg, #0284c7 0%, #0369a1 40%, #1e40af 100%)',
+        background: isBendahara 
+          ? 'linear-gradient(180deg, #065f46 0%, #047857 40%, #064e3b 100%)'
+          : 'linear-gradient(180deg, #0284c7 0%, #0369a1 40%, #1e40af 100%)',
         padding: '16px 16px 36px',
         color: '#ffffff',
         borderBottomLeftRadius: '28px',
@@ -484,7 +535,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               width: '60px',
               height: '60px',
               borderRadius: '20px',
-              background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)',
+              background: isBendahara 
+                ? 'linear-gradient(135deg, #064e3b 0%, #047857 100%)'
+                : 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)',
               border: '2.5px solid rgba(255, 255, 255, 0.85)',
               display: 'flex',
               alignItems: 'center',
@@ -512,9 +565,14 @@ export default function MobileHome({ onChangeTab, onLogout }) {
 
           {/* User Details & Date Pill */}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: '0.82rem', color: '#e0f2fe', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div style={{ fontSize: '0.82rem', color: isBendahara ? '#d1fae5' : '#e0f2fe', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
               <span>🌅</span>
               <span>{greeting}</span>
+              {isBendahara && (
+                <span style={{ fontSize: '0.62rem', background: '#f59e0b', color: '#78350f', padding: '1px 7px', borderRadius: '6px', fontWeight: 800, marginLeft: '4px' }}>
+                  BENDAHARA
+                </span>
+              )}
             </div>
             <div style={{
               fontSize: '1.22rem',
@@ -555,241 +613,553 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       </div>
 
       {/* =========================================================================
-          REKAP ABSENSI SANTRI: HADIR, SAKIT, IZIN, ALFA (ELEVATED WHITE CARD)
-          (Mirip Screenshot E-Sekolah, tanpa banner Absen Masuk/Pulang)
+          KONDISIONAL: TAMPILAN BENDAHARA VS TAMPILAN OPERASIONAL ASATIDZ
       ========================================================================= */}
-      <div style={{ padding: '0 16px', marginTop: '-20px' }}>
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '24px',
-          border: '2px solid #0284c7',
-          padding: '16px 14px',
-          boxShadow: '0 12px 28px -6px rgba(2, 132, 199, 0.22), 0 2px 8px rgba(0, 0, 0, 0.04)',
-          position: 'relative',
-          zIndex: 10
-        }}>
-          {/* 4 Status Badges (Hadir, Sakit, Izin, Alfa) */}
-          <div className="mobile-rekap-grid" style={{
+      {isBendahara ? (
+        <>
+          {/* =========================================================================
+              REKAP KEUANGAN: KAS MASUK, TUNGGAKAN, LUNAS, TERTUNGGAK (KHUSUS BENDAHARA)
+          ========================================================================= */}
+          <div style={{ padding: '0 16px', marginTop: '-20px' }}>
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '24px',
+              border: '2px solid #059669',
+              padding: '16px 14px',
+              boxShadow: '0 12px 28px -6px rgba(5, 150, 105, 0.22), 0 2px 8px rgba(0, 0, 0, 0.04)',
+              position: 'relative',
+              zIndex: 10
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Wallet size={16} color="#059669" />
+                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a' }}>Ringkasan Kas & SPP</span>
+                </div>
+                <button 
+                  onClick={() => onChangeTab('keuangan-rekap')}
+                  style={{ background: 'none', border: 'none', color: '#059669', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
+                >
+                  Laporan Lengkap <ArrowRight size={12} />
+                </button>
+              </div>
+
+              <div className="mobile-rekap-grid" style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '10px'
+              }}>
+                {/* 1. KAS MASUK */}
+                <div 
+                  onClick={() => onChangeTab('keuangan-rekap')}
+                  style={{
+                    background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+                    borderRadius: '16px',
+                    padding: '12px',
+                    border: '1px solid #a7f3d0',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#047857', fontSize: '0.7rem', fontWeight: 700 }}>
+                    <CheckCircle2 size={14} /> Total Kas Masuk
+                  </div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: '#065f46', marginTop: '4px' }}>
+                    Rp {Number(keuanganData.summary?.total_terbayar || 0).toLocaleString('id-ID')}
+                  </div>
+                </div>
+
+                {/* 2. TUNGGAKAN */}
+                <div 
+                  onClick={() => onChangeTab('keuangan-tunggakan')}
+                  style={{
+                    background: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)',
+                    borderRadius: '16px',
+                    padding: '12px',
+                    border: '1px solid #fecdd3',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#be123c', fontSize: '0.7rem', fontWeight: 700 }}>
+                    <AlertTriangle size={14} /> Total Tunggakan
+                  </div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: '#9f1239', marginTop: '4px' }}>
+                    Rp {Number(keuanganData.summary?.total_tunggakan || 0).toLocaleString('id-ID')}
+                  </div>
+                </div>
+
+                {/* 3. TAGIHAN LUNAS */}
+                <div 
+                  onClick={() => onChangeTab('keuangan-rekap')}
+                  style={{
+                    background: '#f8fafc',
+                    borderRadius: '14px',
+                    padding: '10px 12px',
+                    border: '1px solid #e2e8f0',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>Tagihan Lunas</div>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0284c7', marginTop: '2px' }}>
+                    {keuanganData.summary?.jumlah_tagihan_lunas || 0} Lunas
+                  </div>
+                </div>
+
+                {/* 4. BELUM LUNAS */}
+                <div 
+                  onClick={() => onChangeTab('keuangan-tunggakan')}
+                  style={{
+                    background: '#f8fafc',
+                    borderRadius: '14px',
+                    padding: '10px 12px',
+                    border: '1px solid #e2e8f0',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>Belum Lunas</div>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#d97706', marginTop: '2px' }}>
+                    {keuanganData.summary?.jumlah_tagihan_tertunggak || 0} Tagihan
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Action: Buka Loket Kasir Pembayaran */}
+          <div style={{ padding: '14px 16px 0' }}>
+            <div 
+              onClick={() => onChangeTab('keuangan-kasir')}
+              style={{
+                background: 'linear-gradient(135deg, #047857 0%, #065f46 100%)',
+                borderRadius: '20px',
+                padding: '16px',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                boxShadow: '0 8px 20px -4px rgba(4, 120, 87, 0.4)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '12px',
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid rgba(255, 255, 255, 0.3)'
+                }}>
+                  <CreditCard size={24} color="#ffffff" />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '0.96rem' }}>Loket Kasir Santri</div>
+                  <div style={{ fontSize: '0.72rem', opacity: 0.9, marginTop: '2px' }}>
+                    Input pembayaran SPP, cicilan uang masuk, kuitansi
+                  </div>
+                </div>
+              </div>
+              <div style={{
+                background: '#ffffff',
+                color: '#065f46',
+                fontWeight: 800,
+                fontSize: '0.75rem',
+                padding: '7px 14px',
+                borderRadius: '10px'
+              }}>
+                Buka Kasir &gt;
+              </div>
+            </div>
+          </div>
+
+          {/* =========================================================================
+              8 MENU KHUSUS KEUANGAN & BENDAHARA
+          ========================================================================= */}
+          <div style={{ padding: '18px 14px 6px' }}>
+            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px', paddingLeft: '4px' }}>
+              Menu Layanan Keuangan
+            </div>
+            <div className="mobile-squircle-grid" style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: '16px 8px'
+            }}>
+              {/* 1. Kasir & Pembayaran */}
+              <div onClick={() => onChangeTab('keuangan-kasir')} className="mobile-menu-interactive">
+                <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #059669, #047857)', boxShadow: '0 8px 16px -2px rgba(5, 150, 105, 0.35)' }}>
+                  <CreditCard size={26} />
+                </div>
+                <span style={menuLabelStyle}>Kasir Santri</span>
+              </div>
+
+              {/* 2. Laporan Rekap */}
+              <div onClick={() => onChangeTab('keuangan-rekap')} className="mobile-menu-interactive">
+                <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #0284c7, #0369a1)', boxShadow: '0 8px 16px -2px rgba(2, 132, 199, 0.35)' }}>
+                  <BarChart3 size={26} />
+                </div>
+                <span style={menuLabelStyle}>Laporan Kas</span>
+              </div>
+
+              {/* 3. Tagihan SPP */}
+              <div onClick={() => onChangeTab('keuangan-spp')} className="mobile-menu-interactive">
+                <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', boxShadow: '0 8px 16px -2px rgba(124, 58, 237, 0.35)' }}>
+                  <FileText size={26} />
+                </div>
+                <span style={menuLabelStyle}>Tagihan SPP</span>
+              </div>
+
+              {/* 4. Biaya Awal Masuk */}
+              <div onClick={() => onChangeTab('keuangan-masuk')} className="mobile-menu-interactive">
+                <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #d97706, #b45309)', boxShadow: '0 8px 16px -2px rgba(217, 119, 6, 0.35)' }}>
+                  <Building2 size={26} />
+                </div>
+                <span style={menuLabelStyle}>Biaya Masuk</span>
+              </div>
+
+              {/* 5. Midtrans QRIS & VA */}
+              <div onClick={() => onChangeTab('keuangan-transaksi')} className="mobile-menu-interactive">
+                <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #0891b2, #0e7490)', boxShadow: '0 8px 16px -2px rgba(8, 145, 178, 0.35)' }}>
+                  <Zap size={26} />
+                </div>
+                <span style={menuLabelStyle}>QRIS & VA</span>
+              </div>
+
+              {/* 6. Daftar Tunggakan */}
+              <div onClick={() => onChangeTab('keuangan-tunggakan')} className="mobile-menu-interactive">
+                <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #e11d48, #be123c)', boxShadow: '0 8px 16px -2px rgba(225, 29, 72, 0.35)' }}>
+                  <AlertTriangle size={26} />
+                </div>
+                <span style={menuLabelStyle}>Tunggakan</span>
+              </div>
+
+              {/* 7. Tarif Komponen Biaya */}
+              <div onClick={() => onChangeTab('keuangan-komponen')} className="mobile-menu-interactive">
+                <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #4f46e5, #4338ca)', boxShadow: '0 8px 16px -2px rgba(79, 70, 229, 0.35)' }}>
+                  <Layers size={26} />
+                </div>
+                <span style={menuLabelStyle}>Tarif Biaya</span>
+              </div>
+
+              {/* 8. Generate Tagihan */}
+              <div onClick={() => onChangeTab('keuangan-generate')} className="mobile-menu-interactive">
+                <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #0f766e, #115e59)', boxShadow: '0 8px 16px -2px rgba(15, 118, 110, 0.35)' }}>
+                  <RotateCw size={26} />
+                </div>
+                <span style={menuLabelStyle}>Generate SPP</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Transaksi Pembayaran Terkini */}
+          <div style={{ padding: '16px 16px 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Transaksi Masuk Terakhir
+              </div>
+              <button 
+                onClick={() => onChangeTab('keuangan-transaksi')}
+                style={{ background: 'none', border: 'none', color: '#059669', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Lihat Semua
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {(keuanganData.transaksiTerakhir || []).slice(0, 4).map((trx, idx) => {
+                const isLunas = trx.status_pembayaran === 'Berhasil' || trx.status_pembayaran === 'settlement';
+                return (
+                  <div 
+                    key={trx.id || idx}
+                    onClick={() => onChangeTab('keuangan-transaksi')}
+                    style={{
+                      background: '#ffffff',
+                      borderRadius: '14px',
+                      padding: '12px 14px',
+                      border: '1px solid #e2e8f0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '0.84rem', color: '#0f172a' }}>
+                        {trx.nama_santri || 'Santri'}
+                      </div>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
+                        #{trx.nomor_transaksi} • {trx.metode_pembayaran || 'Tunai'}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontWeight: 800, fontSize: '0.84rem', color: isLunas ? '#059669' : '#d97706' }}>
+                        Rp {Number(trx.total_bayar || 0).toLocaleString('id-ID')}
+                      </div>
+                      <span style={{
+                        display: 'inline-block',
+                        fontSize: '0.6rem',
+                        fontWeight: 800,
+                        padding: '2px 6px',
+                        borderRadius: '6px',
+                        marginTop: '2px',
+                        background: isLunas ? '#dcfce7' : '#fef3c7',
+                        color: isLunas ? '#15803d' : '#b45309'
+                      }}>
+                        {trx.status_pembayaran || 'Pending'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {(!keuanganData.transaksiTerakhir || keuanganData.transaksiTerakhir.length === 0) && (
+                <div style={{ padding: '20px', textAlign: 'center', background: '#ffffff', borderRadius: '14px', border: '1px dashed #cbd5e1', color: '#94a3b8', fontSize: '0.78rem' }}>
+                  Belum ada riwayat transaksi pembayaran tercatat
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* =========================================================================
+              REKAP ABSENSI SANTRI: HADIR, SAKIT, IZIN, ALFA (ELEVATED WHITE CARD)
+              (Mirip Screenshot E-Sekolah, tanpa banner Absen Masuk/Pulang)
+          ========================================================================= */}
+          <div style={{ padding: '0 16px', marginTop: '-20px' }}>
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '24px',
+              border: '2px solid #0284c7',
+              padding: '16px 14px',
+              boxShadow: '0 12px 28px -6px rgba(2, 132, 199, 0.22), 0 2px 8px rgba(0, 0, 0, 0.04)',
+              position: 'relative',
+              zIndex: 10
+            }}>
+              {/* 4 Status Badges (Hadir, Sakit, Izin, Alfa) */}
+              <div className="mobile-rekap-grid" style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gap: '8px'
+              }}>
+                {/* 1. HADIR */}
+                <div
+                  className="rekap-card-interactive"
+                  onClick={() => handleOpenStatusModal('Hadir')}
+                >
+                  <div
+                    className="rekap-icon-animated"
+                    style={{
+                      background: '#10b981',
+                      boxShadow: '0 8px 18px -4px rgba(16, 185, 129, 0.45)',
+                      animationDelay: '0s'
+                    }}
+                  >
+                    <Check size={28} strokeWidth={2.8} />
+                    {/* Count badge top-right */}
+                    {rekapAbsensi.hadir > 0 && (
+                      <span style={countBadgeStyle}>
+                        {rekapAbsensi.hadir}
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#1e293b' }}>
+                    Hadir
+                  </span>
+                </div>
+
+                {/* 2. SAKIT */}
+                <div
+                  className="rekap-card-interactive"
+                  onClick={() => handleOpenStatusModal('Sakit')}
+                >
+                  <div
+                    className="rekap-icon-animated"
+                    style={{
+                      background: '#ef4444',
+                      boxShadow: '0 8px 20px -2px rgba(239, 68, 68, 0.45)',
+                      animationDelay: '0.4s'
+                    }}
+                  >
+                    <Building2 size={26} strokeWidth={2.4} />
+                    {rekapAbsensi.sakit > 0 && (
+                      <span style={countBadgeStyle}>
+                        {rekapAbsensi.sakit}
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#1e293b' }}>
+                    Sakit
+                  </span>
+                </div>
+
+                {/* 3. IZIN */}
+                <div
+                  className="rekap-card-interactive"
+                  onClick={() => handleOpenStatusModal('Izin')}
+                >
+                  <div
+                    className="rekap-icon-animated"
+                    style={{
+                      background: '#f59e0b',
+                      boxShadow: '0 8px 18px -4px rgba(245, 158, 11, 0.45)',
+                      animationDelay: '0.8s'
+                    }}
+                  >
+                    <FileText size={26} strokeWidth={2.2} />
+                    {rekapAbsensi.izin > 0 && (
+                      <span style={countBadgeStyle}>
+                        {rekapAbsensi.izin}
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#1e293b' }}>
+                    Izin
+                  </span>
+                </div>
+
+                {/* 4. ALFA */}
+                <div
+                  className="rekap-card-interactive"
+                  onClick={() => handleOpenStatusModal('Alfa')}
+                >
+                  <div
+                    className="rekap-icon-animated"
+                    style={{
+                      background: '#0d9488',
+                      boxShadow: '0 8px 18px -4px rgba(13, 148, 136, 0.45)',
+                      animationDelay: '1.2s'
+                    }}
+                  >
+                    <Clock size={26} strokeWidth={2.4} />
+                    {rekapAbsensi.alfa > 0 && (
+                      <span style={countBadgeStyle}>
+                        {rekapAbsensi.alfa}
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#1e293b' }}>
+                    Alfa
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* =========================================================================
+              SQUIRCLE GRID MENU: FITUR RESMI RUANG SANTRI
+              (Santri, Asrama, Kelas, Kitab, Guru, Perizinan, Pelanggaran, Absensi Kegiatan, Hafalan)
+              4 Kolom responsif, tema pesantren elegan & dinamis
+          ========================================================================= */}
+          <div className="mobile-squircle-grid" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: '8px'
+            gap: '16px 8px',
+            padding: '24px 14px 14px'
           }}>
-            {/* 1. HADIR */}
-            <div
-              className="rekap-card-interactive"
-              onClick={() => handleOpenStatusModal('Hadir')}
-            >
-              <div
-                className="rekap-icon-animated"
-                style={{
-                  background: '#10b981',
-                  boxShadow: '0 8px 18px -4px rgba(16, 185, 129, 0.45)',
-                  animationDelay: '0s'
-                }}
-              >
-                <Check size={28} strokeWidth={2.8} />
-                {/* Count badge top-right */}
-                {rekapAbsensi.hadir > 0 && (
-                  <span style={countBadgeStyle}>
-                    {rekapAbsensi.hadir}
-                  </span>
-                )}
+            {/* 1. Santri */}
+            <div onClick={() => onChangeTab('master-santri')} className="mobile-menu-interactive">
+              <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', boxShadow: '0 8px 16px -2px rgba(37, 99, 235, 0.35)', animationDelay: '0s' }}>
+                <Users size={26} />
               </div>
-              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#1e293b' }}>
-                Hadir
-              </span>
+              <span style={menuLabelStyle}>Santri</span>
             </div>
 
-            {/* 2. SAKIT */}
-            <div
-              className="rekap-card-interactive"
-              onClick={() => handleOpenStatusModal('Sakit')}
-            >
-              <div
-                className="rekap-icon-animated"
-                style={{
-                  background: '#ef4444',
-                  boxShadow: '0 8px 20px -2px rgba(239, 68, 68, 0.45)',
-                  animationDelay: '0.4s'
-                }}
-              >
-                <Building2 size={26} strokeWidth={2.4} />
-                {rekapAbsensi.sakit > 0 && (
-                  <span style={countBadgeStyle}>
-                    {rekapAbsensi.sakit}
-                  </span>
-                )}
+            {/* 2. Asrama */}
+            <div onClick={() => onChangeTab('master-asrama')} className="mobile-menu-interactive">
+              <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', boxShadow: '0 8px 16px -2px rgba(99, 102, 241, 0.35)', animationDelay: '0.2s' }}>
+                <Building size={26} />
               </div>
-              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#1e293b' }}>
-                Sakit
-              </span>
+              <span style={menuLabelStyle}>Asrama</span>
             </div>
 
-            {/* 3. IZIN */}
-            <div
-              className="rekap-card-interactive"
-              onClick={() => handleOpenStatusModal('Izin')}
-            >
-              <div
-                className="rekap-icon-animated"
-                style={{
-                  background: '#f59e0b',
-                  boxShadow: '0 8px 18px -4px rgba(245, 158, 11, 0.45)',
-                  animationDelay: '0.8s'
-                }}
-              >
-                <FileText size={26} strokeWidth={2.2} />
-                {rekapAbsensi.izin > 0 && (
-                  <span style={countBadgeStyle}>
-                    {rekapAbsensi.izin}
-                  </span>
-                )}
+            {/* 3. Kelas */}
+            <div onClick={() => onChangeTab('master-kelas')} className="mobile-menu-interactive">
+              <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', boxShadow: '0 8px 16px -2px rgba(245, 158, 11, 0.35)', animationDelay: '0.4s' }}>
+                <Layers size={26} />
               </div>
-              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#1e293b' }}>
-                Izin
-              </span>
+              <span style={menuLabelStyle}>Kelas</span>
             </div>
 
-            {/* 4. ALFA */}
-            <div
-              className="rekap-card-interactive"
-              onClick={() => handleOpenStatusModal('Alfa')}
-            >
-              <div
-                className="rekap-icon-animated"
-                style={{
-                  background: '#0d9488',
-                  boxShadow: '0 8px 18px -4px rgba(13, 148, 136, 0.45)',
-                  animationDelay: '1.2s'
-                }}
-              >
-                <Clock size={26} strokeWidth={2.4} />
-                {rekapAbsensi.alfa > 0 && (
-                  <span style={countBadgeStyle}>
-                    {rekapAbsensi.alfa}
-                  </span>
-                )}
+            {/* 4. Kitab */}
+            <div onClick={() => onChangeTab('kitab')} className="mobile-menu-interactive">
+              <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #059669, #047857)', boxShadow: '0 8px 16px -2px rgba(5, 150, 105, 0.35)', animationDelay: '0.6s' }}>
+                <BookOpen size={26} />
               </div>
-              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#1e293b' }}>
-                Alfa
-              </span>
+              <span style={menuLabelStyle}>Kitab</span>
+            </div>
+
+            {/* 5. Guru (Asatidz) */}
+            <div onClick={() => onChangeTab('master-asatidz')} className="mobile-menu-interactive">
+              <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #0d9488, #0f766e)', boxShadow: '0 8px 16px -2px rgba(13, 148, 136, 0.35)', animationDelay: '0.8s' }}>
+                <UserCheck size={26} />
+              </div>
+              <span style={menuLabelStyle}>Guru</span>
+            </div>
+
+            {/* 6. Perizinan */}
+            <div onClick={() => onChangeTab('perizinan')} className="mobile-menu-interactive">
+              <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #ea580c, #c2410c)', boxShadow: '0 8px 16px -2px rgba(234, 88, 12, 0.35)', animationDelay: '1.0s' }}>
+                <DoorOpen size={26} />
+              </div>
+              <span style={menuLabelStyle}>Perizinan</span>
+            </div>
+
+            {/* 7. Pelanggaran (Tata Tertib & Ta'zir) */}
+            <div onClick={() => onChangeTab('tata-tertib')} className="mobile-menu-interactive">
+              <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #e11d48, #be123c)', boxShadow: '0 8px 16px -2px rgba(225, 29, 72, 0.35)', animationDelay: '1.2s' }}>
+                <ShieldAlert size={26} />
+              </div>
+              <span style={menuLabelStyle}>Pelanggaran</span>
+            </div>
+
+            {/* 8. Absensi (Berjamaah, Mengaji, dll) */}
+            <div onClick={() => onChangeTab('presensi')} className="mobile-menu-interactive">
+              <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #0284c7, #0369a1)', boxShadow: '0 8px 16px -2px rgba(2, 132, 199, 0.35)', animationDelay: '1.4s' }}>
+                <Fingerprint size={26} />
+              </div>
+              <span style={menuLabelStyle}>Absensi</span>
+            </div>
+
+            {/* 9. Hafalan (Tahfidz & Muroja'ah) */}
+            <div onClick={() => onChangeTab('tahfidz')} className="mobile-menu-interactive">
+              <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', boxShadow: '0 8px 16px -2px rgba(139, 92, 246, 0.35)', animationDelay: '0.3s' }}>
+                <Sparkles size={26} />
+              </div>
+              <span style={menuLabelStyle}>Hafalan</span>
+            </div>
+
+            {/* 10. Praktek (Sholat, Wudhu, Doa) */}
+            <div onClick={() => onChangeTab('praktek-ibadah')} className="mobile-menu-interactive">
+              <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #10b981, #059669)', boxShadow: '0 8px 16px -2px rgba(16, 185, 129, 0.35)', animationDelay: '0.7s' }}>
+                <HeartHandshake size={26} />
+              </div>
+              <span style={menuLabelStyle}>Praktek</span>
+            </div>
+
+            {/* 11. Pengembangan (Ikhwan & Akhwat - Scan Wajah + Diagnostik) */}
+            <div onClick={() => onChangeTab('pengembangan')} className="mobile-menu-interactive">
+              <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #0284c7, #2563eb)', boxShadow: '0 8px 16px -2px rgba(37, 99, 235, 0.35)', animationDelay: '1.1s' }}>
+                <Award size={26} />
+              </div>
+              <span style={menuLabelStyle}>Pengembangan</span>
+            </div>
+
+            {/* 12. Daftar Wajah (Face AI Registration) */}
+            <div onClick={() => onChangeTab('daftar-wajah')} className="mobile-menu-interactive">
+              <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', boxShadow: '0 8px 16px -2px rgba(14, 165, 233, 0.35)', animationDelay: '1.5s' }}>
+                <Smile size={26} />
+              </div>
+              <span style={menuLabelStyle}>Daftar Wajah</span>
             </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
 
       {/* =========================================================================
-          SQUIRCLE GRID MENU: FITUR RESMI RUANG SANTRI
-          (Santri, Asrama, Kelas, Kitab, Guru, Perizinan, Pelanggaran, Absensi Kegiatan, Hafalan)
-          4 Kolom responsif, tema pesantren elegan & dinamis
+          MODAL DETAIL PRESENSI SANTRI HARI INI (KHUSUS ASATIDZ / NON-BENDAHARA)
       ========================================================================= */}
-      <div className="mobile-squircle-grid" style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '16px 8px',
-        padding: '24px 14px 14px'
-      }}>
-        {/* 1. Santri */}
-        <div onClick={() => onChangeTab('master-santri')} className="mobile-menu-interactive">
-          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', boxShadow: '0 8px 16px -2px rgba(37, 99, 235, 0.35)', animationDelay: '0s' }}>
-            <Users size={26} />
-          </div>
-          <span style={menuLabelStyle}>Santri</span>
-        </div>
-
-        {/* 2. Asrama */}
-        <div onClick={() => onChangeTab('master-asrama')} className="mobile-menu-interactive">
-          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', boxShadow: '0 8px 16px -2px rgba(99, 102, 241, 0.35)', animationDelay: '0.2s' }}>
-            <Building size={26} />
-          </div>
-          <span style={menuLabelStyle}>Asrama</span>
-        </div>
-
-        {/* 3. Kelas */}
-        <div onClick={() => onChangeTab('master-kelas')} className="mobile-menu-interactive">
-          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', boxShadow: '0 8px 16px -2px rgba(245, 158, 11, 0.35)', animationDelay: '0.4s' }}>
-            <Layers size={26} />
-          </div>
-          <span style={menuLabelStyle}>Kelas</span>
-        </div>
-
-        {/* 4. Kitab */}
-        <div onClick={() => onChangeTab('kitab')} className="mobile-menu-interactive">
-          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #059669, #047857)', boxShadow: '0 8px 16px -2px rgba(5, 150, 105, 0.35)', animationDelay: '0.6s' }}>
-            <BookOpen size={26} />
-          </div>
-          <span style={menuLabelStyle}>Kitab</span>
-        </div>
-
-        {/* 5. Guru (Asatidz) */}
-        <div onClick={() => onChangeTab('master-asatidz')} className="mobile-menu-interactive">
-          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #0d9488, #0f766e)', boxShadow: '0 8px 16px -2px rgba(13, 148, 136, 0.35)', animationDelay: '0.8s' }}>
-            <UserCheck size={26} />
-          </div>
-          <span style={menuLabelStyle}>Guru</span>
-        </div>
-
-        {/* 6. Perizinan */}
-        <div onClick={() => onChangeTab('perizinan')} className="mobile-menu-interactive">
-          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #ea580c, #c2410c)', boxShadow: '0 8px 16px -2px rgba(234, 88, 12, 0.35)', animationDelay: '1.0s' }}>
-            <DoorOpen size={26} />
-          </div>
-          <span style={menuLabelStyle}>Perizinan</span>
-        </div>
-
-        {/* 7. Pelanggaran (Tata Tertib & Ta'zir) */}
-        <div onClick={() => onChangeTab('tata-tertib')} className="mobile-menu-interactive">
-          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #e11d48, #be123c)', boxShadow: '0 8px 16px -2px rgba(225, 29, 72, 0.35)', animationDelay: '1.2s' }}>
-            <ShieldAlert size={26} />
-          </div>
-          <span style={menuLabelStyle}>Pelanggaran</span>
-        </div>
-
-        {/* 8. Absensi (Berjamaah, Mengaji, dll) */}
-        <div onClick={() => onChangeTab('presensi')} className="mobile-menu-interactive">
-          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #0284c7, #0369a1)', boxShadow: '0 8px 16px -2px rgba(2, 132, 199, 0.35)', animationDelay: '1.4s' }}>
-            <Fingerprint size={26} />
-          </div>
-          <span style={menuLabelStyle}>Absensi</span>
-        </div>
-
-        {/* 9. Hafalan (Tahfidz & Muroja'ah) */}
-        <div onClick={() => onChangeTab('tahfidz')} className="mobile-menu-interactive">
-          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', boxShadow: '0 8px 16px -2px rgba(139, 92, 246, 0.35)', animationDelay: '0.3s' }}>
-            <Sparkles size={26} />
-          </div>
-          <span style={menuLabelStyle}>Hafalan</span>
-        </div>
-
-        {/* 10. Praktek (Sholat, Wudhu, Doa) */}
-        <div onClick={() => onChangeTab('praktek-ibadah')} className="mobile-menu-interactive">
-          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #10b981, #059669)', boxShadow: '0 8px 16px -2px rgba(16, 185, 129, 0.35)', animationDelay: '0.7s' }}>
-            <HeartHandshake size={26} />
-          </div>
-          <span style={menuLabelStyle}>Praktek</span>
-        </div>
-
-        {/* 11. Pengembangan (Ikhwan & Akhwat - Scan Wajah + Diagnostik) */}
-        <div onClick={() => onChangeTab('pengembangan')} className="mobile-menu-interactive">
-          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #0284c7, #2563eb)', boxShadow: '0 8px 16px -2px rgba(37, 99, 235, 0.35)', animationDelay: '1.1s' }}>
-            <Award size={26} />
-          </div>
-          <span style={menuLabelStyle}>Pengembangan</span>
-        </div>
-
-        {/* 12. Daftar Wajah (Face AI Registration) */}
-        <div onClick={() => onChangeTab('daftar-wajah')} className="mobile-menu-interactive">
-          <div className="squircle-icon-animated" style={{ background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', boxShadow: '0 8px 16px -2px rgba(14, 165, 233, 0.35)', animationDelay: '1.5s' }}>
-            <Smile size={26} />
-          </div>
-          <span style={menuLabelStyle}>Daftar Wajah</span>
-        </div>
-      </div>
-
-      {/* =========================================================================
-          MODAL DETAIL PRESENSI SANTRI HARI INI (HADIR, SAKIT, IZIN, ALFA)
-      ========================================================================= */}
-      {isDetailModalOpen && (
+      {!isBendahara && isDetailModalOpen && (
         <div style={{
           position: 'fixed',
           inset: 0,
