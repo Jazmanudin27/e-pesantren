@@ -58,6 +58,7 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
   const [metodeBayarKasir, setMetodeBayarKasir] = useState('Tunai / Kasir');
   const [processingPay, setProcessingPay] = useState(false);
   const [generatingAuto, setGeneratingAuto] = useState(false);
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
 
   // State Form Auto-Generate Tagihan SPP Bulanan (Persis Artanita)
   const [autoGenForm, setAutoGenForm] = useState({
@@ -373,8 +374,8 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
     }
   };
 
-  // Handler Buka Halaman Auto-Generate Tagihan SPP Bulanan (Persis Artanita)
-  const openAutoGeneratePage = () => {
+  // Handler Buka Modal Generate Tagihan SPP Bulanan
+  const openGenerateModal = () => {
     const defaultKomp =
       (dataRekap.komponenBiaya || []).find((k) => k.kategori === 'Bulanan') ||
       dataRekap.komponenBiaya?.[0];
@@ -382,10 +383,10 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
       ...prev,
       komponen_id: prev.komponen_id || (defaultKomp ? String(defaultKomp.id) : '')
     }));
-    setViewMode('generate');
+    setIsGenerateModalOpen(true);
   };
 
-  // Handler Submit Form Auto-Generate Tagihan SPP Bulanan
+  // Handler Submit Form Generate Tagihan SPP Bulanan
   const handleSubmitAutoGenerate = async (e) => {
     e.preventDefault();
     if (!autoGenForm.komponen_id) {
@@ -408,7 +409,7 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
       : `Kamar/Asrama: ${autoGenForm.filter_kamar}`;
 
     const ok = await showConfirm(
-      'Konfirmasi Auto-Generate Tagihan',
+      'Konfirmasi Generate Tagihan',
       `Buat tagihan "${selKomp?.nama_komponen || 'SPP'}" (${formatRupiah(selKomp?.nominal_default || 0)}) periode ${rentangLabel} untuk ${filterLabel}? Tagihan yang sudah ada akan dilewati (tidak duplikat).`,
       'Ya, Generate Sekarang',
       'Batal'
@@ -428,13 +429,13 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
       });
 
       if (res.data?.success) {
-        toastSuccess('Auto-Generate Berhasil!', res.data.message);
+        toastSuccess('Generate Berhasil!', res.data.message);
         if (selectedSantriId) await fetchSantriTagihan(selectedSantriId);
         await fetchRekap();
-        setViewMode('kasir');
+        setIsGenerateModalOpen(false);
       }
     } catch (err) {
-      showError('Gagal Auto-Generate', err.response?.data?.message || err.message);
+      showError('Gagal Generate Tagihan', err.response?.data?.message || err.message);
     } finally {
       setGeneratingAuto(false);
     }
@@ -636,9 +637,9 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
               fontWeight: 700,
               cursor: 'pointer'
             }}
-            onClick={openAutoGeneratePage}
+            onClick={openGenerateModal}
           >
-            <RotateCw size={14} /> Auto-Generate Tagihan SPP
+            <RotateCw size={14} /> Generate Tagihan
           </button>
           <button
             type="button"
@@ -669,7 +670,7 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
           className={`tab-btn ${viewMode === 'kasir' ? 'active' : ''}`}
           onClick={() => setViewMode('kasir')}
         >
-          <CreditCard size={14} /> Kasir Pembayaran Santri
+          <CreditCard size={14} /> Pembayaran
         </button>
         <button
           className={`tab-btn ${viewMode === 'rekap' ? 'active' : ''}`}
@@ -678,60 +679,79 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
             fetchRekap();
           }}
         >
-          <Layers size={14} /> Rekap Tunggakan & Transaksi
-        </button>
-        <button
-          className={`tab-btn ${viewMode === 'generate' ? 'active' : ''}`}
-          onClick={openAutoGeneratePage}
-        >
-          <RotateCw size={14} /> Auto-Generate Tagihan SPP
+          <Layers size={14} /> Rekap Tagihan
         </button>
       </div>
 
       {/* =========================================================================
-          VIEW 0: AUTO-GENERATE TAGIHAN SPP BULANAN (MODERN & SIMPLE)
+          MODAL: GENERATE TAGIHAN SPP BULANAN (MODAL POPUP)
       ========================================================================= */}
-      {viewMode === 'generate' && (
-        <div
-          style={{
-            background: '#ffffff',
-            borderRadius: '16px',
-            border: '1px solid #e2e8f0',
-            maxWidth: '680px',
-            margin: '0 auto',
-            overflow: 'hidden',
-            boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.06)'
-          }}
-        >
-          {/* Header Banner Gradient */}
+      {isGenerateModalOpen && (
+        <div className="modal-overlay" style={{ zIndex: 1100 }}>
           <div
+            className="modal-card"
             style={{
-              padding: '24px 28px',
-              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-              color: '#ffffff'
+              maxWidth: '660px',
+              width: '100%',
+              maxHeight: '92vh',
+              overflowY: 'auto',
+              padding: 0,
+              border: '1px solid #cbd5e1'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div
+            {/* Header Modal Gradient */}
+            <div
+              style={{
+                padding: '20px 24px',
+                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                color: '#ffffff',
+                borderTopLeftRadius: '12px',
+                borderTopRightRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    borderRadius: '10px',
+                    padding: '8px',
+                    display: 'flex'
+                  }}
+                >
+                  <RotateCw size={22} color="#ffffff" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>
+                    Generate Tagihan
+                  </h3>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#e0f2fe' }}>
+                    Terbitkan tagihan SPP serentak tanpa perlu input satu per satu
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsGenerateModalOpen(false)}
                 style={{
                   background: 'rgba(255, 255, 255, 0.2)',
-                  borderRadius: '10px',
-                  padding: '10px',
-                  display: 'flex'
+                  border: 'none',
+                  color: '#ffffff',
+                  borderRadius: '8px',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
                 }}
+                title="Tutup Modal"
               >
-                <RotateCw size={24} color="#ffffff" />
-              </div>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>
-                  Auto-Generate Tagihan SPP
-                </h3>
-                <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#e0f2fe' }}>
-                  Terbitkan tagihan SPP serentak tanpa perlu input satu per satu
-                </p>
-              </div>
+                <X size={18} />
+              </button>
             </div>
-          </div>
 
           <form onSubmit={handleSubmitAutoGenerate} style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {/* 1. Pilih Pos Biaya */}
@@ -968,7 +988,7 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
               </button>
               <button
                 type="button"
-                onClick={() => setViewMode('kasir')}
+                onClick={() => setIsGenerateModalOpen(false)}
                 style={{
                   padding: '12px 18px',
                   borderRadius: '10px',
@@ -980,11 +1000,12 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
                   cursor: 'pointer'
                 }}
               >
-                Kembali ke Kasir
+                Batal
               </button>
             </div>
           </form>
         </div>
+      </div>
       )}
 
       {/* =========================================================================

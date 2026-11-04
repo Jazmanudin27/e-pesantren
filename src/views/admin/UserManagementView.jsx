@@ -889,83 +889,53 @@ export default function UserManagementView() {
                       <td className="td-center">
                         <div
                           style={{
-                            display: "flex",
+                            display: "inline-flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            gap: "6px",
+                            gap: "5px",
                           }}
                         >
                           {/* Detail */}
                           <button
+                            className="btn-action btn-action-view"
                             onClick={() => {
                               setSelectedUser(user);
                               setIsDetailOpen(true);
                             }}
-                            style={{
-                              padding: "5px",
-                              background: "#f1f5f9",
-                              border: "1px solid #cbd5e1",
-                              borderRadius: "6px",
-                              cursor: "pointer",
-                              color: "#334155",
-                            }}
                             title="Lihat Detail Profil Akun"
                           >
-                            <Eye size={14} />
+                            <Eye size={13} />
                           </button>
 
                           {/* Edit */}
                           <button
+                            className="btn-action btn-action-edit"
                             onClick={() => openEditForm(user)}
-                            style={{
-                              padding: "5px",
-                              background: "#eff6ff",
-                              border: "1px solid #bfdbfe",
-                              borderRadius: "6px",
-                              cursor: "pointer",
-                              color: "#1d4ed8",
-                            }}
                             title="Edit Data Pengguna"
                           >
-                            <Edit3 size={14} />
+                            <Edit3 size={13} />
                           </button>
 
                           {/* Reset Password */}
                           <button
+                            className="btn-action btn-action-warning"
                             onClick={() => openResetPasswordModal(user)}
-                            style={{
-                              padding: "5px",
-                              background: "#fffbeb",
-                              border: "1px solid #fde68a",
-                              borderRadius: "6px",
-                              cursor: "pointer",
-                              color: "#d97706",
-                            }}
                             title="Reset Password Akun"
                           >
-                            <Key size={14} />
+                            <Key size={13} />
                           </button>
 
                           {/* Toggle Active / Inactive */}
                           {!isRoot && (
                             <button
+                              className="btn-action"
                               onClick={() => handleToggleStatus(user)}
                               style={{
-                                padding: "5px",
                                 background:
                                   user.status === "Active"
-                                    ? "#fef2f2"
-                                    : "#ecfdf5",
-                                border:
-                                  user.status === "Active"
-                                    ? "1px solid #fecaca"
-                                    : "1px solid #a7f3d0",
-                                borderRadius: "6px",
-                                cursor: "pointer",
-                                color:
-                                  user.status === "Active"
-                                    ? "#dc2626"
+                                    ? "#8b5cf6"
                                     : "#059669",
+                                color: "#ffffff",
                               }}
                               title={
                                 user.status === "Active"
@@ -973,25 +943,18 @@ export default function UserManagementView() {
                                   : "Aktifkan Akun"
                               }
                             >
-                              <Power size={14} />
+                              <Power size={13} />
                             </button>
                           )}
 
                           {/* Delete */}
                           {!isRoot && (
                             <button
+                              className="btn-action btn-action-delete"
                               onClick={() => handleDeleteUser(user)}
-                              style={{
-                                padding: "5px",
-                                background: "#fef2f2",
-                                border: "1px solid #fecaca",
-                                borderRadius: "6px",
-                                cursor: "pointer",
-                                color: "#b91c1c",
-                              }}
                               title="Hapus Pengguna"
                             >
-                              <Trash2 size={14} />
+                              <Trash2 size={13} />
                             </button>
                           )}
                         </div>
