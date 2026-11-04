@@ -41,7 +41,10 @@ import {
   CheckCircle,
   MessageCircle,
   GraduationCap,
-  CreditCard
+  CreditCard,
+  Plus,
+  XCircle,
+  AlertTriangle
 } from 'lucide-react';
 import TabTagihanKeuangan from './TabTagihanKeuangan';
 import TabLaporanPerkembangan from './TabLaporanPerkembangan';
@@ -79,6 +82,19 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   });
   const [showPass, setShowPass] = useState(false);
   const [updatingPass, setUpdatingPass] = useState(false);
+
+  // Form Pengajuan Izin Santri oleh Orang Tua / Wali
+  const [isAjukanIzinOpen, setIsAjukanIzinOpen] = useState(false);
+  const [submittingIzin, setSubmittingIzin] = useState(false);
+  const [formIzin, setFormIzin] = useState({
+    jenis_izin: 'Izin Pulang',
+    tgl_keluar_rencana: '',
+    tgl_kembali_rencana: '',
+    keperluan: '',
+    nama_penjemput_mahrom: '',
+    no_hp_penjemput: '',
+    hubungan_mahrom: 'Orang Tua (Wali)'
+  });
 
   // Live Clock & Greeting
   const [currentTimeStr, setCurrentTimeStr] = useState('');
@@ -308,6 +324,56 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
         window.location.reload();
       }
     });
+  };
+
+  const openModalAjukanIzin = () => {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const nowStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const returnDate = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+    const returnStr = `${returnDate.getFullYear()}-${pad(returnDate.getMonth() + 1)}-${pad(returnDate.getDate())}T17:00`;
+
+    setFormIzin({
+      jenis_izin: 'Izin Pulang',
+      tgl_keluar_rencana: nowStr,
+      tgl_kembali_rencana: returnStr,
+      keperluan: '',
+      nama_penjemput_mahrom: santri?.nama_wali || '',
+      no_hp_penjemput: santri?.no_wa_wali || '',
+      hubungan_mahrom: santri?.hubungan_wali || 'Orang Tua'
+    });
+    setIsAjukanIzinOpen(true);
+  };
+
+  const handleSubmitIzin = async (e) => {
+    e.preventDefault();
+    if (!formIzin.keperluan.trim()) {
+      showError('Alasan Izin Wajib Diisi', 'Silakan cantumkan keperluan / alasan santri mengajukan izin.');
+      return;
+    }
+    if (!formIzin.tgl_keluar_rencana || !formIzin.tgl_kembali_rencana) {
+      showError('Jadwal Tidak Lengkap', 'Pilih perkiraan tanggal keluar dan tanggal kembali santri.');
+      return;
+    }
+    try {
+      setSubmittingIzin(true);
+      const res = await axios.post('/api/perizinan', {
+        ...formIzin,
+        santri_id: selectedSantriId || santri?.id,
+        status: 'Menunggu Persetujuan'
+      });
+      if (res.data?.success) {
+        showSuccess('Pengajuan Terkirim!', 'Permohonan izin santri berhasil dikirim. Menunggu verifikasi dari pengasuh.');
+        setIsAjukanIzinOpen(false);
+        fetchWaliData(selectedSantriId || santri?.id);
+      } else {
+        showError('Gagal', res.data?.message || 'Terjadi kesalahan saat menyimpan pengajuan izin.');
+      }
+    } catch (err) {
+      showError('Gagal Mengajukan Izin', err.response?.data?.message || err.message);
+    } finally {
+      setSubmittingIzin(false);
+    }
   };
 
   const santri = data?.santri || {};
@@ -1626,8 +1692,8 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
         ========================================================================= */}
         {currentTab === 'perizinan' && (
           <div style={{ display: 'flex', flexDirection: 'column', padding: '16px 16px 24px' }}>
-            {/* Header with Back */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+            {/* Header with Back & Action */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '8px' }}>
               <button
                 onClick={() => setCurrentTab('beranda')}
                 style={{
@@ -1636,9 +1702,9 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   gap: '4px',
                   background: '#ffffff',
                   border: '1px solid #e2e8f0',
-                  padding: '6px 12px',
+                  padding: '7px 12px',
                   borderRadius: '12px',
-                  fontSize: '0.76rem',
+                  fontSize: '0.78rem',
                   fontWeight: 700,
                   color: '#475569',
                   cursor: 'pointer'
@@ -1647,39 +1713,196 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 <ChevronLeft size={16} /> Beranda
               </button>
               <h2 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
-                Riwayat Perizinan
+                Perizinan Santri
               </h2>
-              <div style={{ width: '40px' }} />
+              <button
+                onClick={openModalAjukanIzin}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '7px 14px',
+                  borderRadius: '12px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 10px rgba(16, 185, 129, 0.25)'
+                }}
+              >
+                <Plus size={15} /> Ajukan Izin
+              </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {/* Info Banner */}
+            <div style={{
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '14px',
+              padding: '12px 14px',
+              marginBottom: '14px',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '10px'
+            }}>
+              <Shield size={18} color="#16a34a" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div style={{ fontSize: '0.74rem', color: '#166534', lineHeight: 1.45 }}>
+                <strong>Prosedur Perizinan:</strong> Pengajuan izin dari orang tua/wali santri akan diverifikasi oleh Dewan Pengasuh. Santri wajib lapor ke Pos Keamanan gerbang saat keluar dan kembali ke pondok.
+              </div>
+            </div>
+
+            {/* List Perizinan */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {perizinan.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 16px', background: '#ffffff', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
-                  <DoorOpen size={36} color="#94a3b8" style={{ margin: '0 auto 8px' }} />
-                  <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155' }}>Belum Ada Riwayat Perizinan</div>
-                  <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px' }}>Santri saat ini berada di dalam lingkungan pondok pesantren.</div>
+                <div style={{ textAlign: 'center', padding: '44px 16px', background: '#ffffff', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
+                  <DoorOpen size={38} color="#94a3b8" style={{ margin: '0 auto 10px' }} />
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#334155' }}>Belum Ada Riwayat Izin</div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px', maxWidth: '300px', marginInline: 'auto' }}>
+                    Santri saat ini berada di lingkungan pesantren. Klik tombol <strong>+ Ajukan Izin</strong> jika ingin mengajukan izin pulang atau berobat.
+                  </div>
+                  <button
+                    onClick={openModalAjukanIzin}
+                    style={{
+                      marginTop: '16px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: '#059669',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '8px 16px',
+                      borderRadius: '10px',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Plus size={15} /> Ajukan Izin Sekarang
+                  </button>
                 </div>
               ) : (
-                perizinan.map((row, idx) => (
-                  <div key={row.id || idx} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '14px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                      <div>
-                        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0284c7' }}>{row.kode_izin || `IZN-${idx + 1}`}</div>
-                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{row.jenis_izin || 'Izin Pulang'}</div>
+                perizinan.map((row, idx) => {
+                  const st = row.status || 'Menunggu Persetujuan';
+                  let badgeBg = '#f1f5f9';
+                  let badgeColor = '#475569';
+                  let badgeBorder = '#e2e8f0';
+                  let badgeIcon = <Clock size={12} />;
+
+                  if (st === 'Menunggu Persetujuan') {
+                    badgeBg = '#fffbeb';
+                    badgeColor = '#b45309';
+                    badgeBorder = '#fde68a';
+                    badgeIcon = <Clock size={12} />;
+                  } else if (st === 'Disetujui Pengasuh') {
+                    badgeBg = '#eff6ff';
+                    badgeColor = '#1d4ed8';
+                    badgeBorder = '#bfdbfe';
+                    badgeIcon = <CheckCircle size={12} />;
+                  } else if (st === 'Aktif Keluar') {
+                    badgeBg = '#f5f3ff';
+                    badgeColor = '#6d28d9';
+                    badgeBorder = '#ddd6fe';
+                    badgeIcon = <DoorOpen size={12} />;
+                  } else if (st === 'Kembali Tepat Waktu') {
+                    badgeBg = '#f0fdf4';
+                    badgeColor = '#15803d';
+                    badgeBorder = '#bbf7d0';
+                    badgeIcon = <Check size={12} />;
+                  } else if (st === 'Terlambat Kembali') {
+                    badgeBg = '#fef2f2';
+                    badgeColor = '#b91c1c';
+                    badgeBorder = '#fecaca';
+                    badgeIcon = <AlertTriangle size={12} />;
+                  } else if (st === 'Ditolak') {
+                    badgeBg = '#fef2f2';
+                    badgeColor = '#991b1b';
+                    badgeBorder = '#fecaca';
+                    badgeIcon = <XCircle size={12} />;
+                  }
+
+                  const formatDateStr = (d) => {
+                    if (!d) return '-';
+                    try {
+                      const dt = new Date(d);
+                      if (isNaN(dt.getTime())) return String(d).split('T')[0];
+                      return dt.toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      });
+                    } catch (e) {
+                      return String(d).split('T')[0];
+                    }
+                  };
+
+                  return (
+                    <div key={row.id || idx} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                      {/* Top Header */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', gap: '8px' }}>
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0284c7' }}>
+                            {row.kode_izin || `IZN-${idx + 1}`}
+                          </div>
+                          <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#334155', marginTop: '2px' }}>
+                            {row.jenis_izin || 'Izin Pulang'}
+                          </div>
+                        </div>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          background: badgeBg,
+                          color: badgeColor,
+                          border: `1px solid ${badgeBorder}`,
+                          padding: '4px 10px',
+                          borderRadius: '20px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700
+                        }}>
+                          {badgeIcon}
+                          {st}
+                        </span>
                       </div>
-                      <span className={`badge ${row.status === 'Kembali Tepat Waktu' ? 'badge-success' : (row.status === 'Aktif Keluar' ? 'badge-warning' : 'badge-info')}`}>
-                        {row.status || 'Disetujui'}
-                      </span>
+
+                      {/* Keperluan */}
+                      <div style={{ fontSize: '0.8rem', color: '#1e293b', marginBottom: '10px', background: '#f8fafc', padding: '10px 12px', borderRadius: '10px', borderLeft: '3px solid #0284c7' }}>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', marginBottom: '2px' }}>Alasan / Keperluan:</div>
+                        {row.keperluan || 'Keperluan keluarga'}
+                      </div>
+
+                      {/* Dates */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+                        <div style={{ background: '#f8fafc', border: '1px solid #f1f5f9', padding: '8px 10px', borderRadius: '10px' }}>
+                          <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Rencana Keluar:</div>
+                          <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#0f172a', marginTop: '2px' }}>
+                            {formatDateStr(row.tgl_keluar_rencana)}
+                          </div>
+                        </div>
+                        <div style={{ background: '#f8fafc', border: '1px solid #f1f5f9', padding: '8px 10px', borderRadius: '10px' }}>
+                          <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Rencana Kembali:</div>
+                          <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#0f172a', marginTop: '2px' }}>
+                            {formatDateStr(row.tgl_kembali_rencana)}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Penjemput & Petugas */}
+                      <div style={{ fontSize: '0.72rem', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '4px', paddingTop: '6px', borderTop: '1px solid #f1f5f9' }}>
+                        <div>Penjemput: <strong style={{ color: '#334155' }}>{row.nama_penjemput_mahrom || santri?.nama_wali || 'Orang Tua / Wali'}</strong> ({row.hubungan_mahrom || 'Mahrom'})</div>
+                        {row.no_hp_penjemput && (
+                          <div>Kontak Penjemput: <strong style={{ color: '#334155' }}>{row.no_hp_penjemput}</strong></div>
+                        )}
+                        {row.disetujui_oleh && (
+                          <div>Verifikator: <strong style={{ color: '#0284c7' }}>{row.disetujui_oleh}</strong></div>
+                        )}
+                      </div>
                     </div>
-                    <div style={{ fontSize: '0.76rem', color: '#334155', marginBottom: '6px' }}>
-                      <strong>Keperluan:</strong> {row.keperluan || 'Keperluan keluarga'}
-                    </div>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', background: '#f8fafc', padding: '8px 10px', borderRadius: '8px' }}>
-                      <div>Keluar: <strong>{row.tgl_keluar_rencana ? String(row.tgl_keluar_rencana).split('T')[0] : '-'}</strong></div>
-                      <div>Kembali: <strong>{row.tgl_kembali_rencana ? String(row.tgl_kembali_rencana).split('T')[0] : '-'}</strong></div>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -2063,6 +2286,323 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
           <TabInformasiKegiatan 
             onBack={() => setCurrentTab('beranda')} 
           />
+        )}
+
+        {/* =========================================================================
+            MODAL AJUKAN IZIN SANTRI (WALI SANTRI)
+        ========================================================================= */}
+        {isAjukanIzinOpen && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            padding: 0
+          }}>
+            <div style={{
+              background: '#ffffff',
+              width: '100%',
+              maxWidth: '480px',
+              borderTopLeftRadius: '24px',
+              borderTopRightRadius: '24px',
+              maxHeight: '92vh',
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 -10px 25px rgba(0,0,0,0.15)',
+              animation: 'slideUp 0.25s ease-out'
+            }}>
+              {/* Modal Header */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '16px 20px',
+                borderBottom: '1px solid #f1f5f9',
+                position: 'sticky',
+                top: 0,
+                background: '#ffffff',
+                zIndex: 10
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '10px',
+                    background: '#ecfdf5',
+                    color: '#059669',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <DoorOpen size={18} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
+                      Ajukan Izin Santri
+                    </h3>
+                    <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748b' }}>
+                      {santri?.nama_santri} ({santri?.nis || 'Santri'})
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAjukanIzinOpen(false)}
+                  style={{
+                    background: '#f1f5f9',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#64748b'
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Form Body */}
+              <form onSubmit={handleSubmitIzin} style={{ padding: '16px 20px 28px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                    Kategori / Jenis Izin <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <select
+                    value={formIzin.jenis_izin}
+                    onChange={(e) => setFormIzin({ ...formIzin, jenis_izin: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.84rem',
+                      color: '#0f172a',
+                      background: '#ffffff',
+                      outline: 'none'
+                    }}
+                  >
+                    <option value="Izin Pulang">Izin Pulang (Keluarga)</option>
+                    <option value="Izin Berobat">Izin Berobat (Kesehatan / Rumah Sakit)</option>
+                    <option value="Izin Keluar Komplek">Izin Keluar Komplek Pondok</option>
+                    <option value="Izin Khusus">Izin Khusus (Lomba / Acara Luar)</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                      Rencana Keluar <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      type="datetime-local"
+                      required
+                      value={formIzin.tgl_keluar_rencana}
+                      onChange={(e) => setFormIzin({ ...formIzin, tgl_keluar_rencana: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '9px 10px',
+                        borderRadius: '12px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '0.78rem',
+                        color: '#0f172a',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                      Rencana Kembali <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      type="datetime-local"
+                      required
+                      value={formIzin.tgl_kembali_rencana}
+                      onChange={(e) => setFormIzin({ ...formIzin, tgl_kembali_rencana: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '9px 10px',
+                        borderRadius: '12px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '0.78rem',
+                        color: '#0f172a',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                    Alasan / Keperluan Izin <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    required
+                    placeholder="Contoh: Menghadiri acara pernikahan keluarga di kampung / kontrol ke dokter..."
+                    value={formIzin.keperluan}
+                    onChange={(e) => setFormIzin({ ...formIzin, keperluan: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.82rem',
+                      color: '#0f172a',
+                      outline: 'none',
+                      resize: 'none'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                    Nama Penjemput (Mahrom)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Nama orang tua atau wali penjemput"
+                    value={formIzin.nama_penjemput_mahrom}
+                    onChange={(e) => setFormIzin({ ...formIzin, nama_penjemput_mahrom: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '12px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.82rem',
+                      color: '#0f172a',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                      Hubungan Mahrom
+                    </label>
+                    <select
+                      value={formIzin.hubungan_mahrom}
+                      onChange={(e) => setFormIzin({ ...formIzin, hubungan_mahrom: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '9px 10px',
+                        borderRadius: '12px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '0.78rem',
+                        color: '#0f172a',
+                        background: '#ffffff',
+                        outline: 'none'
+                      }}
+                    >
+                      <option value="Orang Tua">Orang Tua</option>
+                      <option value="Kakak Kandung">Kakak Kandung</option>
+                      <option value="Paman / Bibi">Paman / Bibi</option>
+                      <option value="Kakek / Nenek">Kakek / Nenek</option>
+                      <option value="Wali Mahrom">Wali Mahrom Lain</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                      No. WhatsApp Penjemput
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="08xxxxxxxxxx"
+                      value={formIzin.no_hp_penjemput}
+                      onChange={(e) => setFormIzin({ ...formIzin, no_hp_penjemput: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '9px 10px',
+                        borderRadius: '12px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '0.78rem',
+                        color: '#0f172a',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Info Note */}
+                <div style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '10px',
+                  padding: '10px',
+                  fontSize: '0.72rem',
+                  color: '#64748b',
+                  lineHeight: 1.4
+                }}>
+                  ℹ️ Permohonan izin akan diverifikasi oleh Dewan Pengasuh. Santri wajib melapor ke Pos Keamanan saat keluar gerbang pesantren dan kembali tepat waktu.
+                </div>
+
+                {/* Submit buttons */}
+                <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsAjukanIzinOpen(false)}
+                    disabled={submittingIzin}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      borderRadius: '12px',
+                      border: '1px solid #cbd5e1',
+                      background: '#ffffff',
+                      color: '#475569',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submittingIzin}
+                    style={{
+                      flex: 2,
+                      padding: '12px',
+                      borderRadius: '12px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                      color: '#ffffff',
+                      fontSize: '0.84rem',
+                      fontWeight: 800,
+                      cursor: submittingIzin ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
+                    }}
+                  >
+                    {submittingIzin ? (
+                      <>
+                        <RotateCw size={16} className="animate-spin" />
+                        Mengirim...
+                      </>
+                    ) : (
+                      <>
+                        <Check size={16} />
+                        Kirim Permohonan Izin
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         )}
 
         {/* =========================================================================

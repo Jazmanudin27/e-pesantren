@@ -211,8 +211,41 @@ export default function PerizinanView() {
     }
   };
 
+  const handleAccIzin = async (id, nama) => {
+    const ok = await showConfirm('ACC Izin Santri', `Setujui pengajuan izin untuk ${nama || 'santri ini'}?`, 'Ya, Setujui (ACC)', 'Batal');
+    if (ok) {
+      try {
+        await axios.put(`/api/perizinan/${id}`, {
+          status: 'Disetujui Pengasuh',
+          disetujui_oleh: 'Dewan Pengasuh (ACC)'
+        });
+        fetchData();
+        toastSuccess('Pengajuan izin santri berhasil disetujui (ACC).');
+      } catch (err) {
+        showError('Gagal ACC Izin', err.message);
+      }
+    }
+  };
+
+  const handleTolakIzin = async (id, nama) => {
+    const ok = await showConfirm('Tolak Izin Santri', `Apakah yakin ingin menolak permohonan izin untuk ${nama || 'santri ini'}?`, 'Ya, Tolak', 'Batal');
+    if (ok) {
+      try {
+        await axios.put(`/api/perizinan/${id}`, {
+          status: 'Ditolak',
+          disetujui_oleh: 'Dewan Pengasuh (Ditolak)'
+        });
+        fetchData();
+        toastSuccess('Pengajuan izin santri telah ditolak.');
+      } catch (err) {
+        showError('Gagal Menolak Izin', err.message);
+      }
+    }
+  };
+
   // Stats calculation
   const totalIzin = izinList.length;
+  const countMenunggu = izinList.filter(i => i.status === 'Menunggu Persetujuan').length;
   const countAktifKeluar = izinList.filter(i => i.status === 'Aktif Keluar').length;
   const countTepatWaktu = izinList.filter(i => i.status === 'Kembali Tepat Waktu').length;
   const countTerlambat = izinList.filter(i => i.status === 'Terlambat Kembali' || i.status === 'Menunggu Persetujuan').length;
@@ -230,6 +263,7 @@ export default function PerizinanView() {
 
     const matchTab = 
       activeFilterTab === 'semua' ? true :
+      activeFilterTab === 'menunggu' ? row.status === 'Menunggu Persetujuan' :
       activeFilterTab === 'disetujui' ? row.status === 'Disetujui Pengasuh' :
       activeFilterTab === 'keluar' ? row.status === 'Aktif Keluar' :
       activeFilterTab === 'selesai' ? (row.status === 'Kembali Tepat Waktu' || row.status === 'Terlambat Kembali') : true;
@@ -258,7 +292,8 @@ export default function PerizinanView() {
     { value: 'Menunggu Persetujuan', label: 'Menunggu Persetujuan' },
     { value: 'Aktif Keluar', label: 'Aktif Keluar (Sudah di Luar)' },
     { value: 'Kembali Tepat Waktu', label: 'Kembali Tepat Waktu' },
-    { value: 'Terlambat Kembali', label: 'Terlambat Kembali' }
+    { value: 'Terlambat Kembali', label: 'Terlambat Kembali' },
+    { value: 'Ditolak', label: 'Ditolak' }
   ];
 
   const hubunganMahromOptions = [
@@ -343,6 +378,26 @@ export default function PerizinanView() {
           <DoorOpen size={14} /> Semua Permohonan ({izinList.length})
         </button>
         <button 
+          className={`tab-btn ${activeFilterTab === 'menunggu' ? 'active' : ''}`}
+          onClick={() => setActiveFilterTab('menunggu')}
+          style={{ position: 'relative' }}
+        >
+          <Clock size={14} color="#d97706" /> Menunggu ACC ({countMenunggu})
+          {countMenunggu > 0 && (
+            <span style={{
+              background: '#ef4444',
+              color: '#ffffff',
+              fontSize: '0.62rem',
+              fontWeight: 800,
+              padding: '1px 6px',
+              borderRadius: '999px',
+              marginLeft: '4px'
+            }}>
+              BARU
+            </span>
+          )}
+        </button>
+        <button 
           className={`tab-btn ${activeFilterTab === 'disetujui' ? 'active' : ''}`}
           onClick={() => setActiveFilterTab('disetujui')}
         >
@@ -383,7 +438,7 @@ export default function PerizinanView() {
         </div>
         <div style={{ minWidth: '170px' }}>
           <SearchableSelect
-            options={['Semua Status', 'Disetujui Pengasuh', 'Menunggu Persetujuan', 'Aktif Keluar', 'Kembali Tepat Waktu', 'Terlambat Kembali']}
+            options={['Semua Status', 'Disetujui Pengasuh', 'Menunggu Persetujuan', 'Aktif Keluar', 'Kembali Tepat Waktu', 'Terlambat Kembali', 'Ditolak']}
             value={filterStatus}
             onChange={(val) => setFilterStatus(val || 'Semua Status')}
             placeholder="Semua Status"
@@ -463,6 +518,7 @@ export default function PerizinanView() {
                     <span className={`badge ${
                       row.status === 'Kembali Tepat Waktu' ? 'badge-success' :
                       row.status === 'Aktif Keluar' ? 'badge-danger' :
+                      row.status === 'Ditolak' ? 'badge-danger' :
                       row.status === 'Disetujui Pengasuh' ? 'badge-info' : 'badge-warning'
                     }`}>
                       {row.status}
@@ -498,8 +554,29 @@ export default function PerizinanView() {
                     )}
 
                     {row.status === 'Menunggu Persetujuan' && (
-                      <span style={{ fontSize: '0.7rem', color: '#d97706', fontWeight: 600 }}>
-                        Menunggu ACC
+                      <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
+                        <button
+                          className="btn btn-sm btn-primary"
+                          style={{ fontSize: '0.68rem', padding: '3px 8px', background: '#059669', borderColor: '#059669', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                          onClick={() => handleAccIzin(row.id, row.nama_santri)}
+                          title="ACC / Setujui Izin Santri"
+                        >
+                          <CheckCircle2 size={11} /> ACC
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline"
+                          style={{ fontSize: '0.68rem', padding: '3px 8px', color: '#dc2626', borderColor: '#fca5a5', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                          onClick={() => handleTolakIzin(row.id, row.nama_santri)}
+                          title="Tolak Pengajuan Izin"
+                        >
+                          <X size={11} /> Tolak
+                        </button>
+                      </div>
+                    )}
+
+                    {row.status === 'Ditolak' && (
+                      <span style={{ fontSize: '0.7rem', color: '#dc2626', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                        <X size={12} /> Ditolak
                       </span>
                     )}
                   </td>
@@ -683,6 +760,31 @@ export default function PerizinanView() {
               justifyContent: 'flex-end',
               gap: '8px'
             }}>
+              {selectedItem.status === 'Menunggu Persetujuan' && (
+                <>
+                  <button 
+                    className="btn btn-primary"
+                    style={{ background: '#059669', borderColor: '#059669' }}
+                    onClick={() => {
+                      handleAccIzin(selectedItem.id, selectedItem.nama_santri);
+                      closeModal();
+                    }}
+                  >
+                    <CheckCircle2 size={13} /> ACC / Setujui Izin
+                  </button>
+                  <button 
+                    className="btn btn-outline"
+                    style={{ color: '#dc2626', borderColor: '#fca5a5' }}
+                    onClick={() => {
+                      handleTolakIzin(selectedItem.id, selectedItem.nama_santri);
+                      closeModal();
+                    }}
+                  >
+                    <X size={13} /> Tolak Permohonan
+                  </button>
+                </>
+              )}
+
               {selectedItem.status === 'Disetujui Pengasuh' && (
                 <button 
                   className="btn btn-warning"

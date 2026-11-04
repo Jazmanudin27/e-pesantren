@@ -123,16 +123,24 @@ export const createPerizinan = async (req, res) => {
 export const updatePerizinan = async (req, res) => {
   try {
     const { id } = req.params;
-    const {
-      santri_id, jenis_izin, keperluan, tgl_keluar_rencana, tgl_kembali_rencana,
-      nama_penjemput_mahrom, no_hp_penjemput, hubungan_mahrom, status, disetujui_oleh,
-      satpam_keluar, satpam_kembali
-    } = req.body;
+    const [existingRows] = await pool.query('SELECT * FROM santri_perizinan WHERE id = ?', [id]);
+    if (!existingRows || existingRows.length === 0) {
+      return sendError(res, 'Data perizinan tidak ditemukan', 404);
+    }
+    const existing = existingRows[0];
 
-    const cleanJenis = normalizeJenis(jenis_izin);
-    const cleanStatus = normalizeStatus(status);
-    const sqlKeluarRencana = formatSqlDate(tgl_keluar_rencana);
-    const sqlKembaliRencana = formatSqlDate(tgl_kembali_rencana);
+    const santri_id = req.body.santri_id !== undefined ? req.body.santri_id : existing.santri_id;
+    const cleanJenis = req.body.jenis_izin ? normalizeJenis(req.body.jenis_izin) : existing.jenis_izin;
+    const cleanStatus = req.body.status ? normalizeStatus(req.body.status) : existing.status;
+    const sqlKeluarRencana = req.body.tgl_keluar_rencana ? formatSqlDate(req.body.tgl_keluar_rencana) : existing.tgl_keluar_rencana;
+    const sqlKembaliRencana = req.body.tgl_kembali_rencana ? formatSqlDate(req.body.tgl_kembali_rencana) : existing.tgl_kembali_rencana;
+    const nama_penjemput_mahrom = req.body.nama_penjemput_mahrom !== undefined ? req.body.nama_penjemput_mahrom : existing.nama_penjemput_mahrom;
+    const no_hp_penjemput = req.body.no_hp_penjemput !== undefined ? req.body.no_hp_penjemput : existing.no_hp_penjemput;
+    const hubungan_mahrom = req.body.hubungan_mahrom !== undefined ? req.body.hubungan_mahrom : existing.hubungan_mahrom;
+    const keperluan = req.body.keperluan !== undefined ? req.body.keperluan : existing.keperluan;
+    const disetujui_oleh = req.body.disetujui_oleh !== undefined ? req.body.disetujui_oleh : existing.disetujui_oleh;
+    const satpam_keluar = req.body.satpam_keluar !== undefined ? req.body.satpam_keluar : existing.satpam_keluar;
+    const satpam_kembali = req.body.satpam_kembali !== undefined ? req.body.satpam_kembali : existing.satpam_kembali;
 
     await pool.query(`
       UPDATE santri_perizinan SET
@@ -146,6 +154,17 @@ export const updatePerizinan = async (req, res) => {
       keperluan || '', cleanStatus, disetujui_oleh || 'Dewan Pengasuh',
       satpam_keluar || null, satpam_kembali || null, id
     ]);
+
+    // Send WA Notification if status changed
+    try {
+      const [[santri]] = await pool.query('SELECT nama_santri, no_wa_wali FROM santri WHERE id = ?', [santri_id]);
+      if (santri && santri.no_wa_wali) {
+        const msg = `[RUANG PONPES NOTIFIKASI IZIN]\n\nYth. Wali Santri ${santri.nama_santri},\nStatus izin santri telah diperbarui menjadi: *${cleanStatus}*.\nDisetujui/Diproses oleh: ${disetujui_oleh || 'Dewan Pengasuh'}.\n\nTerima kasih.`;
+        sendWANotification(santri.no_wa_wali, msg);
+      }
+    } catch (e) {
+      console.warn('Gagal kirim WA update status perizinan:', e.message);
+    }
 
     return sendSuccess(res, 'Data perizinan berhasil diperbarui');
   } catch (err) {
