@@ -1330,7 +1330,6 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                   key={f.id}
                   onClick={() => setMidtransFilter(f.id)}
                   style={{
-                    border: 'none',
                     padding: '6px 12px',
                     borderRadius: '10px',
                     fontSize: '0.72rem',
