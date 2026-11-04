@@ -254,18 +254,23 @@ export const handleAdmsDeviceCmd = async (req, res) => {
 export const queuePushSantriToDevice = async (req, res) => {
   try {
     await ensureAdmsTables();
-    const { sn_device, santri_id, jenis_kelamin } = req.body;
+    const { sn_device, santri_id, jk } = req.body;
 
-    // Filter santri aktif (bisa filter per gender jika mesin dipisah Ikhwan / Akhwat)
-    let query = `SELECT id, nis, nama_santri, fingerprint_pin, jenis_kelamin FROM santri WHERE status_santri = 'Aktif'`;
+    // Filter santri aktif (kolom jenis kelamin di database adalah 'jk' (L/P), status aktif adalah status != 'Alumni'/'Boyong')
+    let query = `
+      SELECT id, nis, nama_santri, fingerprint_pin, jk 
+      FROM santri 
+      WHERE (status = 'Aktif' OR status IS NULL OR status = '')
+        AND (status NOT IN ('Alumni', 'Boyong'))
+    `;
     const params = [];
     if (santri_id) {
       query += ` AND id = ?`;
       params.push(santri_id);
     }
-    if (jenis_kelamin) {
-      query += ` AND jenis_kelamin = ?`;
-      params.push(jenis_kelamin);
+    if (jk) {
+      query += ` AND jk = ?`;
+      params.push(jk);
     }
 
     const [santriList] = await pool.query(query, params);
@@ -273,20 +278,26 @@ export const queuePushSantriToDevice = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Tidak ada data santri aktif untuk dikirim' });
     }
 
-    // Tentukan target Serial Number mesin (bisa spesifik 1 mesin, atau semua mesin yang terdaftar)
+    // Tentukan target Serial Number mesin (prioritaskan mesin yang berstatus Online)
     let targetSNs = [];
     if (sn_device) {
       targetSNs = [sn_device];
     } else {
-      const [devs] = await pool.query(`
+      const [onlineDevs] = await pool.query(`
         SELECT DISTINCT sn_device 
         FROM fingerprint_device 
         WHERE sn_device IS NOT NULL AND sn_device != ''
+          AND status_koneksi = 'Online'
       `);
-      if (devs && devs.length > 0) {
-        targetSNs = devs.map(d => d.sn_device);
+      if (onlineDevs && onlineDevs.length > 0) {
+        targetSNs = onlineDevs.map(d => d.sn_device);
       } else {
-        targetSNs = [null]; // Broadcast jika belum ada SN terdaftar
+        const [allDevs] = await pool.query(`
+          SELECT DISTINCT sn_device 
+          FROM fingerprint_device 
+          WHERE sn_device IS NOT NULL AND sn_device != ''
+        `);
+        targetSNs = allDevs.length > 0 ? allDevs.map(d => d.sn_device) : [null];
       }
     }
 
