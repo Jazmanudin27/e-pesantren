@@ -784,7 +784,7 @@ export const getRekapKeuanganAdmin = async (req, res) => {
     return sendSuccess(res, 'Rekap keuangan admin berhasil dimuat', {
       summary: {
         ...summary[0],
-        total_kas_masuk_sah: kasMasukRiil[0]?.total_kas_masuk_sah || summary[0]?.total_terbayar || 0
+        total_kas_masuk_sah: kasMasukRiil[0]?.total_kas_masuk_sah != null ? Number(kasMasukRiil[0].total_kas_masuk_sah) : 0
       },
       transaksiTerakhir: transaksiTerakhir || [],
       transaksiPending: transaksiPending || [],
