@@ -30,6 +30,7 @@ import MobileHome from '../views/mobile/MobileHome';
 import MobileTahfidz from '../views/mobile/MobileTahfidz';
 import MobileSyahriah from '../views/mobile/MobileSyahriah';
 import KeuanganAdminView from '../views/admin/KeuanganAdminView';
+import MobileKeuangan from '../views/mobile/MobileKeuangan';
 import MobileIzin from '../views/mobile/MobileIzin';
 import MobileDashboard from '../views/mobile/MobileDashboard';
 import MobilePresensi from '../views/mobile/MobilePresensi';
@@ -292,27 +293,15 @@ export default function MobileLayout() {
       case 'syahriah':
       case 'keuangan':
       case 'keuangan-kasir':
-        if (!canAccessKeuangan(session)) return renderAksesDibatasi();
-        return <KeuanganAdminView initialMode="kasir" />;
       case 'keuangan-rekap':
-        if (!canAccessKeuangan(session)) return renderAksesDibatasi();
-        return <KeuanganAdminView initialMode="rekap" initialRekapTab="semua" />;
       case 'keuangan-spp':
-        if (!canAccessKeuangan(session)) return renderAksesDibatasi();
-        return <KeuanganAdminView initialMode="kasir" />;
       case 'keuangan-masuk':
-        if (!canAccessKeuangan(session)) return renderAksesDibatasi();
-        return <KeuanganAdminView initialMode="kasir" />;
       case 'keuangan-transaksi':
-        if (!canAccessKeuangan(session)) return renderAksesDibatasi();
-        return <KeuanganAdminView initialMode="rekap" initialRekapTab="transaksi" />;
       case 'keuangan-tunggakan':
-        if (!canAccessKeuangan(session)) return renderAksesDibatasi();
-        return <KeuanganAdminView initialMode="rekap" initialRekapTab="tunggakan" />;
       case 'keuangan-komponen':
       case 'keuangan-generate':
         if (!canAccessKeuangan(session)) return renderAksesDibatasi();
-        return <KeuanganAdminView initialMode="rekap" initialRekapTab="komponen" />;
+        return <MobileKeuangan initialSubTab={mobileTab} onBackToHome={() => handleSelectTab('home')} />;
       case 'profil':
         return <MobileProfil onChangeTab={handleSelectTab} onLogout={handleLogout} />;
       default:
@@ -320,11 +309,13 @@ export default function MobileLayout() {
     }
   };
 
+  const isFinancialTab = mobileTab === 'syahriah' || mobileTab.startsWith('keuangan');
+
   return (
     <div className="mobile-wrapper">
       <div className="mobile-app-container">
-        {/* Sub-Menu Top Navigation Header (Excludes Beranda/Home) */}
-        {mobileTab !== 'home' && (
+        {/* Sub-Menu Top Navigation Header (Excludes Beranda/Home and MobileKeuangan which has integrated header) */}
+        {mobileTab !== 'home' && !isFinancialTab && (
           <div style={{
             background: 'linear-gradient(135deg, #064e3b 0%, #047857 60%, #059669 100%)',
             color: '#ffffff',
