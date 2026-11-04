@@ -242,23 +242,6 @@ export const handleAdmsPushData = async (req, res) => {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   return res.status(200).send(`OK: ${processedCount}\n`);
 };
-        await pool.query(`
-          INSERT INTO absensi_jamaah_mengaji 
-          (tanggal, sesi_id, santri_id, waktu_scan, status, device_id, metode_presensi, keterangan)
-          VALUES (?, ?, ?, ?, ?, ?, 'Fingerprint', ?)
-        `, [tanggalScan, sesiId, santri.id, waktuScan, statusKehadiran, deviceId, keterangan]);
-      }
-
-      processedCount++;
-      console.log(`[ADMS SUCCESS] ${santri.nama_santri} (PIN: ${pin}) berhasil presensi jam ${waktuScan}!`);
-    } catch (lineErr) {
-      console.error(`[ADMS ERROR] Gagal proses baris "${line}":`, lineErr.message);
-    }
-  }
-
-  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-  return res.status(200).send(`OK: ${processedCount}\n`);
-};
 
 // 3. Heartbeat & Polling Perintah Mesin (Server kirim perintah / data santri ke mesin)
 export const handleAdmsGetRequest = async (req, res) => {
