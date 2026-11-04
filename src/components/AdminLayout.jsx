@@ -61,8 +61,8 @@ import { canAccessKeuangan } from '../utils/authRole.util';
 import { showConfirm, toastSuccess } from '../utils/alert.util';
 
 export default function AdminLayout() {
-  const isMasterTab = (tab) => ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-materi'].includes(tab);
-  const isSettingsTab = (tab) => ['master-device', 'setting-kegiatan', 'master-kegiatan', 'manajemen-user', 'users'].includes(tab);
+  const isMasterTab = (tab) => ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-materi', 'setting-shalat', 'setting-kegiatan', 'master-kegiatan'].includes(tab);
+  const isSettingsTab = (tab) => ['master-device', 'manajemen-user', 'users'].includes(tab);
   const isLaporanTab = (tab) => ['laporan-presensi', 'laporan-tahfidz'].includes(tab);
 
   // Get initial tab from URL hash
@@ -318,6 +318,7 @@ export default function AdminLayout() {
         return <KurikulumPengajianView />;
       case 'master-device':
         return <FingerprintDeviceView />;
+      case 'setting-shalat':
       case 'setting-kegiatan':
       case 'master-kegiatan':
         return <SettingKegiatanView />;
@@ -377,8 +378,8 @@ export default function AdminLayout() {
     }
   };
 
-  const isMasterActive = ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-materi', 'kurikulum-pengajian', 'jadwal-mengajar'].includes(activeTab);
-  const isSettingsActive = ['master-device', 'setting-kegiatan', 'master-kegiatan', 'manajemen-user', 'users'].includes(activeTab);
+  const isMasterActive = ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-materi', 'kurikulum-pengajian', 'jadwal-mengajar', 'setting-shalat', 'setting-kegiatan', 'master-kegiatan'].includes(activeTab);
+  const isSettingsActive = ['master-device', 'manajemen-user', 'users'].includes(activeTab);
   const isLaporanActive = ['laporan-presensi', 'laporan-tahfidz'].includes(activeTab);
 
   const renderNavMenu = (isMobile = false) => {
@@ -494,6 +495,14 @@ export default function AdminLayout() {
             >
               <BookOpen size={13} style={{ marginRight: '6px', color: '#059669' }} />
               <span>Kegiatan</span>
+            </button>
+
+            <button 
+              className={`nav-sublink ${activeTab === 'setting-shalat' || activeTab === 'setting-kegiatan' || activeTab === 'master-kegiatan' ? 'active' : ''}`}
+              onClick={() => handleTabClick('setting-shalat')}
+            >
+              <CalendarCheck size={13} style={{ marginRight: '6px', color: '#0284c7' }} />
+              <span>Setting Shalat</span>
             </button>
           </div>
         )}
@@ -631,14 +640,6 @@ export default function AdminLayout() {
             >
               <HardDrive size={13} style={{ marginRight: '6px' }} />
               <span>Data Mesin Fingerprint</span>
-            </button>
-
-            <button 
-              className={`nav-sublink ${activeTab === 'setting-kegiatan' || activeTab === 'master-kegiatan' ? 'active' : ''}`}
-              onClick={() => handleTabClick('setting-kegiatan')}
-            >
-              <CalendarCheck size={13} style={{ marginRight: '6px' }} />
-              <span>Setting Kegiatan</span>
             </button>
 
             <button 

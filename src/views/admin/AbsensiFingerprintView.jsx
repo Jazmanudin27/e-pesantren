@@ -229,11 +229,11 @@ export default function AbsensiFingerprintView() {
           <button
             className="btn btn-primary"
             onClick={() => {
-              window.location.hash = "setting-kegiatan";
+              window.location.hash = "setting-shalat";
             }}
             style={{ display: "flex", alignItems: "center", gap: "6px" }}
           >
-            <CalendarCheck size={13} /> Setting Kegiatan
+            <CalendarCheck size={13} /> Setting Shalat
           </button>
         </div>
       </div>

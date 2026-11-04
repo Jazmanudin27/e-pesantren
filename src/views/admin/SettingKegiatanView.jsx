@@ -497,7 +497,7 @@ export default function SettingKegiatanView() {
       <div className="top-stats-grid">
         <div className="stat-card-colored stat-card-blue">
           <div>
-            <div className="stat-colored-title">TOTAL KEGIATAN DATABASE</div>
+            <div className="stat-colored-title">TOTAL SHALAT BERJAMAAH</div>
             <div className="stat-colored-number">{totalKegiatan}</div>
           </div>
           <div className="stat-colored-icon-box">
@@ -527,7 +527,7 @@ export default function SettingKegiatanView() {
 
         <div className="stat-card-colored stat-card-amber">
           <div>
-            <div className="stat-colored-title">KEGIATAN AKTIF</div>
+            <div className="stat-colored-title">JADWAL SHALAT AKTIF</div>
             <div className="stat-colored-number">{totalAktif}</div>
           </div>
           <div className="stat-colored-icon-box">
@@ -542,12 +542,12 @@ export default function SettingKegiatanView() {
           <CalendarCheck size={22} className="page-title-icon" style={{ color: '#0284c7' }} />
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h2>Setting &amp; Jadwal Kegiatan Santri Per Hari</h2>
+              <h2>Setting Shalat Berjamaah</h2>
               <span className={`badge ${dbStatus === 'connected' ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.68rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                 <Database size={10} /> {dbStatus === 'connected' ? 'Database Realtime' : 'Database Offline'}
               </span>
             </div>
-            <p>Data jadwal kegiatan presensi santri langsung dari database MySQL (tabel kegiatan_sesi)</p>
+            <p>Konfigurasi jadwal waktu shalat 5 waktu dan batas toleransi scan presensi santri</p>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -555,7 +555,7 @@ export default function SettingKegiatanView() {
             <RotateCw size={13} /> Refresh DB
           </button>
           <button className="btn btn-primary" onClick={() => openAddForm()} style={{ fontWeight: 700 }}>
-            <Plus size={15} /> Tambah Kegiatan
+            <Plus size={15} /> Tambah Jadwal Shalat
           </button>
         </div>
       </div>
@@ -649,13 +649,10 @@ export default function SettingKegiatanView() {
           style={{ minWidth: '180px', flex: '1 1 160px', maxWidth: '240px' }}
           value={filterKategori}
           onChange={(val) => setFilterKategori(val || 'semua')}
-          placeholder="Semua Kategori"
+          placeholder="Kategori Shalat"
           options={[
             { value: 'semua', label: 'Semua Kategori' },
-            { value: 'Shalat Berjamaah', label: 'Shalat Berjamaah' },
-            { value: "Halaqah Qur'an", label: "Halaqah Qur'an / Tahfidz" },
-            { value: 'Pengajian / Taklim', label: 'Pengajian / Taklim' },
-            { value: 'Kegiatan Asrama', label: 'Kegiatan Asrama' }
+            { value: 'Shalat Berjamaah', label: 'Shalat Berjamaah' }
           ]}
         />
 
@@ -950,7 +947,7 @@ export default function SettingKegiatanView() {
                       type="text" 
                       className="filter-select"
                       style={{ width: '100%', fontWeight: 600 }}
-                      placeholder="Contoh: Shalat Shubuh, Mengaji Pagi, Apel Santri, dll"
+                      placeholder="Contoh: Shalat Subuh, Shalat Dzuhur, Shalat Ashar, Shalat Maghrib, Shalat Isya"
                       value={formData.nama_sesi}
                       onChange={(e) => setFormData({ ...formData, nama_sesi: e.target.value })}
                       required
@@ -961,18 +958,15 @@ export default function SettingKegiatanView() {
                 {/* KATEGORI */}
                 <div className="form-group">
                   <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '4px', display: 'block' }}>
-                    Kategori Kegiatan
+                    Kategori
                   </label>
                   <SearchableSelect 
                     options={[
-                      { value: 'Shalat Berjamaah', label: 'Shalat Berjamaah' },
-                      { value: "Halaqah Qur'an", label: "Halaqah Qur'an / Tahfidz" },
-                      { value: 'Pengajian / Taklim', label: 'Pengajian / Taklim' },
-                      { value: 'Kegiatan Asrama', label: 'Kegiatan Asrama' }
+                      { value: 'Shalat Berjamaah', label: 'Shalat Berjamaah' }
                     ]}
-                    value={formData.kategori}
+                    value={formData.kategori || 'Shalat Berjamaah'}
                     onChange={(val) => setFormData({ ...formData, kategori: val })}
-                    placeholder="-- Pilih Kategori --"
+                    placeholder="Shalat Berjamaah"
                   />
                 </div>
 
