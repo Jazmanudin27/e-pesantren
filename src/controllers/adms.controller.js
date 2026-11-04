@@ -196,6 +196,9 @@ export const handleAdmsGetRequest = async (req, res) => {
   const sn = req.query.SN || req.query.sn || '';
   try {
     await ensureAdmsTables();
+    if (sn) {
+      await pool.query("UPDATE fingerprint_device SET status_koneksi = 'Online', updated_at = NOW() WHERE sn_device = ?", [sn]).catch(() => {});
+    }
     // Ambil antrean perintah pending untuk SN ini atau broadcast
     const [pendingCmds] = await pool.query(`
       SELECT id, command FROM adms_command_queue 
@@ -347,6 +350,10 @@ export const handleAdmsRegistry = async (req, res) => {
 
 // 6. Ping / Keep-Alive
 export const handleAdmsPing = async (req, res) => {
+  const sn = req.query.SN || req.query.sn || '';
+  if (sn) {
+    await pool.query("UPDATE fingerprint_device SET status_koneksi = 'Online', updated_at = NOW() WHERE sn_device = ?", [sn]).catch(() => {});
+  }
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   return res.status(200).send('OK\n');
 };
