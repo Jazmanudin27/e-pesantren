@@ -53,6 +53,9 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   const [data, setData] = useState(null);
   const [santriList, setSantriList] = useState([]);
   const [keuanganSummary, setKeuanganSummary] = useState(null);
+  const [transaksiPending, setTransaksiPending] = useState(null);
+  const [isPendingModalOpen, setIsPendingModalOpen] = useState(true);
+  const [processingPending, setProcessingPending] = useState(false);
   const [latestFeed, setLatestFeed] = useState([]);
   const [selectedSantriId, setSelectedSantriId] = useState(() => {
     try {
@@ -143,14 +146,93 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
     } catch (e) {}
   };
 
+  const formatRp = (num) => 'Rp ' + Number(num || 0).toLocaleString('id-ID');
+
   const fetchKeuanganOverview = async (targetId = selectedSantriId) => {
     try {
       const url = targetId ? `/api/keuangan/wali/dashboard?santri_id=${targetId}` : '/api/keuangan/wali/dashboard';
       const res = await axios.get(url);
       if (res.data?.success) {
         setKeuanganSummary(res.data.data.summary);
+        const pending = res.data.data.transaksiPending || null;
+        setTransaksiPending(pending);
+        if (pending) {
+          setIsPendingModalOpen(true);
+        }
       }
     } catch (e) {}
+  };
+
+  const handleLanjutkanBayar = async (pendingTrx) => {
+    if (!pendingTrx) return;
+    try {
+      setProcessingPending(true);
+      let snapToken = pendingTrx.snap_token;
+      let paymentUrl = pendingTrx.payment_url;
+
+      if (!snapToken) {
+        const res = await axios.post('/api/keuangan/wali/lanjutkan', {
+          nomor_transaksi: pendingTrx.nomor_transaksi,
+          transaksi_id: pendingTrx.id
+        });
+        if (res.data?.success && res.data?.data?.snap_token) {
+          snapToken = res.data.data.snap_token;
+          paymentUrl = res.data.data.payment_url;
+        } else {
+          showError('Gagal Memuat Transaksi', res.data?.message || 'Token pembayaran tidak tersedia.');
+          return;
+        }
+      }
+
+      if (snapToken && window.snap) {
+        window.snap.pay(snapToken, {
+          onSuccess: function () {
+            toastSuccess('Pembayaran Berhasil!', 'Pembayaran via Midtrans berhasil diverifikasi.');
+            fetchKeuanganOverview();
+          },
+          onPending: function () {
+            toastSuccess('Menunggu Pembayaran', 'Selesaikan pembayaran sebelum batas waktu berakhir.');
+            fetchKeuanganOverview();
+          },
+          onError: function (result) {
+            showError('Pembayaran Gagal', result?.status_message || 'Transaksi gagal.');
+          },
+          onClose: function () {
+            fetchKeuanganOverview();
+          }
+        });
+      } else if (paymentUrl) {
+        window.open(paymentUrl, '_blank');
+      } else {
+        showError('Gagal', 'Sistem pop-up Midtrans belum siap.');
+      }
+    } catch (err) {
+      showError('Gagal Melanjutkan Pembayaran', err.response?.data?.message || err.message);
+    } finally {
+      setProcessingPending(false);
+    }
+  };
+
+  const handleBatalkanTransaksi = async (pendingTrx) => {
+    if (!pendingTrx) return;
+    if (!window.confirm('Batalkan transaksi pending ini untuk mengganti metode pembayaran?')) return;
+    try {
+      setProcessingPending(true);
+      const res = await axios.post('/api/keuangan/wali/batal', {
+        nomor_transaksi: pendingTrx.nomor_transaksi,
+        transaksi_id: pendingTrx.id
+      });
+      if (res.data?.success) {
+        toastSuccess('Transaksi Dibatalkan', 'Silakan pilih tagihan dan bayar kembali.');
+        setTransaksiPending(null);
+        setIsPendingModalOpen(false);
+        fetchKeuanganOverview();
+      }
+    } catch (err) {
+      showError('Gagal Membatalkan', err.response?.data?.message || err.message);
+    } finally {
+      setProcessingPending(false);
+    }
   };
 
   const fetchLatestFeed = async () => {
@@ -656,6 +738,36 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
+            {/* REMINDER PILL JIKA POPUP DITUTUP SEMENTARA */}
+            {transaksiPending && !isPendingModalOpen && (
+              <div style={{ padding: '16px 16px 0' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsPendingModalOpen(true)}
+                  style={{
+                    width: '100%',
+                    background: '#fef3c7',
+                    border: '1px solid #fcd34d',
+                    color: '#b45309',
+                    borderRadius: '14px',
+                    padding: '10px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    fontSize: '0.78rem',
+                    boxShadow: '0 2px 6px rgba(180, 83, 9, 0.1)'
+                  }}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Clock size={14} /> 1 Transaksi Menunggu Pembayaran
+                  </span>
+                  <span style={{ fontWeight: 800, color: '#92400e' }}>Buka Pop-up &gt;</span>
+                </button>
+              </div>
+            )}
+
             {/* CARD RINGKASAN TAGIHAN & KEUANGAN SESUAI SPESIFIKASI */}
             <div style={{ padding: '16px 16px 0' }}>
               <div style={{
@@ -930,6 +1042,149 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 ))}
               </div>
             </div>
+
+            {/* POPUP MODAL TRANSAKSI PENDING DI BERANDA */}
+            {isPendingModalOpen && transaksiPending && (
+              <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(15, 23, 42, 0.72)',
+                backdropFilter: 'blur(5px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 99999,
+                padding: '16px'
+              }}>
+                <div style={{
+                  background: '#ffffff',
+                  borderRadius: '24px',
+                  width: '100%',
+                  maxWidth: '380px',
+                  boxShadow: '0 25px 50px -12px rgba(0,0,0,0.3)',
+                  overflow: 'hidden',
+                  boxSizing: 'border-box'
+                }}>
+                  {/* Header Popup */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, #0f172a, #1e293b)',
+                    color: '#fff',
+                    padding: '16px 20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Clock size={18} color="#f59e0b" />
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: '0.92rem' }}>Menunggu Pembayaran</div>
+                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontFamily: 'monospace' }}>
+                          #{transaksiPending.nomor_transaksi}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsPendingModalOpen(false)}
+                      style={{
+                        background: 'rgba(255,255,255,0.12)',
+                        border: 'none',
+                        color: '#fff',
+                        width: '30px',
+                        height: '30px',
+                        borderRadius: '50%',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1rem',
+                        fontWeight: 700
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* Content Body */}
+                  <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{
+                      background: '#f8fafc',
+                      borderRadius: '16px',
+                      padding: '16px',
+                      border: '1px solid #e2e8f0',
+                      textAlign: 'center'
+                    }}>
+                      <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, letterSpacing: '0.5px' }}>TOTAL YANG HARUS DIBAYAR</div>
+                      <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0284c7', marginTop: '2px' }}>
+                        {formatRp(transaksiPending.total_bayar)}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#475569', marginTop: '6px', fontWeight: 600 }}>
+                        {transaksiPending.item_dibayar || 'Tagihan Santri'}
+                      </div>
+                    </div>
+
+                    <div style={{ fontSize: '0.74rem', color: '#64748b', textAlign: 'center', lineHeight: 1.4 }}>
+                      Transaksi pembayaran ini masih aktif. Anda dapat melanjutkan pembayaran atau membatalkannya untuk memilih metode lain.
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleLanjutkanBayar(transaksiPending)}
+                        disabled={processingPending}
+                        style={{
+                          width: '100%',
+                          background: 'linear-gradient(135deg, #059669, #047857)',
+                          color: '#fff',
+                          border: 'none',
+                          padding: '12px',
+                          borderRadius: '12px',
+                          fontWeight: 800,
+                          fontSize: '0.88rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          boxShadow: '0 4px 12px rgba(5, 150, 105, 0.35)',
+                          opacity: processingPending ? 0.7 : 1
+                        }}
+                      >
+                        <CreditCard size={16} /> {processingPending ? 'Memproses...' : 'Lanjutkan Bayar'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleBatalkanTransaksi(transaksiPending)}
+                        disabled={processingPending}
+                        style={{
+                          width: '100%',
+                          background: '#fee2e2',
+                          color: '#dc2626',
+                          border: '1px solid #fca5a5',
+                          padding: '11px',
+                          borderRadius: '12px',
+                          fontWeight: 700,
+                          fontSize: '0.82rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          opacity: processingPending ? 0.7 : 1
+                        }}
+                      >
+                        <RotateCw size={14} /> Ganti Metode / Batal
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
           </div>
         )}
@@ -1784,7 +2039,10 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
         {currentTab === 'tagihan' && (
           <TabTagihanKeuangan 
             santriId={selectedSantriId} 
-            onBack={() => setCurrentTab('beranda')} 
+            onBack={() => {
+              setCurrentTab('beranda');
+              fetchKeuanganOverview();
+            }} 
           />
         )}
 
@@ -1814,7 +2072,10 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
           {/* 1. Beranda */}
           <button 
             className={`mobile-nav-item ${['beranda', 'praktek', 'pelanggaran', 'notifikasi'].includes(currentTab) ? 'active' : ''}`}
-            onClick={() => setCurrentTab('beranda')}
+            onClick={() => {
+              setCurrentTab('beranda');
+              fetchKeuanganOverview();
+            }}
           >
             <div className={`nav-icon-wrapper ${['beranda', 'praktek', 'pelanggaran', 'notifikasi'].includes(currentTab) ? 'active' : ''}`}>
               <Home size={20} />

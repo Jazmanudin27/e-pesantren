@@ -35,6 +35,7 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
   // Checkout State
   const [processing, setProcessing] = useState(false);
   const [activeTrx, setActiveTrx] = useState(null);
+  const [isPendingModalOpen, setIsPendingModalOpen] = useState(true);
 
   // Kuitansi Modal State
   const [isKuitansiOpen, setIsKuitansiOpen] = useState(false);
@@ -48,6 +49,9 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
       const res = await axios.get(url);
       if (res.data?.success) {
         setData(res.data.data);
+        if (res.data.data?.transaksiPending) {
+          setIsPendingModalOpen(true);
+        }
       }
     } catch (err) {
       console.warn('Gagal memuat keuangan:', err.message);
@@ -394,93 +398,168 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
       {activeSubTab === 'tagihan' && (
         <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
           
-          {/* BANNER TRANSAKSI PENDING (MENUNGGU PEMBAYARAN) */}
-          {data?.transaksiPending && (
+          {/* REMINDER PILL JIKA POPUP DITUTUP SEMENTARA */}
+          {data?.transaksiPending && !isPendingModalOpen && (
+            <button
+              onClick={() => setIsPendingModalOpen(true)}
+              style={{
+                width: '100%',
+                background: '#fef3c7',
+                border: '1px solid #fcd34d',
+                color: '#b45309',
+                borderRadius: '14px',
+                padding: '10px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                fontWeight: 700,
+                fontSize: '0.78rem'
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Clock size={14} /> 1 Transaksi Menunggu Pembayaran
+              </span>
+              <span style={{ fontWeight: 800, color: '#92400e' }}>Buka Pop-up &gt;</span>
+            </button>
+          )}
+
+          {/* POPUP MODAL TRANSAKSI PENDING */}
+          {isPendingModalOpen && data?.transaksiPending && (
             <div style={{
-              background: 'linear-gradient(135deg, #0f172a, #1e293b)',
-              color: '#fff',
-              borderRadius: '20px',
-              padding: '16px',
-              boxShadow: '0 10px 25px rgba(15, 23, 42, 0.25)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(15, 23, 42, 0.72)',
+              backdropFilter: 'blur(5px)',
               display: 'flex',
-              flexDirection: 'column',
-              gap: '12px'
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 99999,
+              padding: '16px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{
-                  background: '#fef3c7',
-                  color: '#b45309',
-                  fontSize: '0.72rem',
-                  fontWeight: 800,
-                  padding: '4px 10px',
-                  borderRadius: '999px',
+              <div style={{
+                background: '#ffffff',
+                borderRadius: '24px',
+                width: '100%',
+                maxWidth: '380px',
+                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.3)',
+                overflow: 'hidden',
+                boxSizing: 'border-box'
+              }}>
+                {/* Header Popup */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #0f172a, #1e293b)',
+                  color: '#fff',
+                  padding: '16px 20px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '5px'
+                  justifyContent: 'space-between'
                 }}>
-                  <Clock size={13} /> Menunggu Pembayaran
-                </span>
-                <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontFamily: 'monospace' }}>
-                  #{data.transaksiPending.nomor_transaksi}
-                </span>
-              </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Clock size={18} color="#f59e0b" />
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '0.92rem' }}>Menunggu Pembayaran</div>
+                      <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontFamily: 'monospace' }}>
+                        #{data.transaksiPending.nomor_transaksi}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsPendingModalOpen(false)}
+                    style={{
+                      background: 'rgba(255,255,255,0.12)',
+                      border: 'none',
+                      color: '#fff',
+                      width: '30px',
+                      height: '30px',
+                      borderRadius: '50%',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1rem',
+                      fontWeight: 700
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '2px' }}>
-                <div>
-                  <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Total yang Harus Ditransfer:</div>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#38bdf8', marginTop: '2px' }}>
-                    {formatRp(data.transaksiPending.total_bayar)}
+                {/* Content Body */}
+                <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{
+                    background: '#f8fafc',
+                    borderRadius: '16px',
+                    padding: '16px',
+                    border: '1px solid #e2e8f0',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, letterSpacing: '0.5px' }}>TOTAL YANG HARUS DIBAYAR</div>
+                    <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0284c7', marginTop: '2px' }}>
+                      {formatRp(data.transaksiPending.total_bayar)}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#475569', marginTop: '6px', fontWeight: 600 }}>
+                      {data.transaksiPending.item_dibayar || 'Tagihan Santri'}
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', textAlign: 'center', lineHeight: 1.4 }}>
+                    Transaksi pembayaran ini masih aktif. Anda dapat melanjutkan pembayaran atau membatalkannya untuk memilih metode lain.
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleLanjutkanBayar(data.transaksiPending)}
+                      disabled={processing}
+                      style={{
+                        width: '100%',
+                        background: 'linear-gradient(135deg, #059669, #047857)',
+                        color: '#fff',
+                        border: 'none',
+                        padding: '12px',
+                        borderRadius: '12px',
+                        fontWeight: 800,
+                        fontSize: '0.88rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        boxShadow: '0 4px 12px rgba(5, 150, 105, 0.35)'
+                      }}
+                    >
+                      <CreditCard size={16} /> Lanjutkan Bayar
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleBatalkanTransaksi(data.transaksiPending)}
+                      disabled={processing}
+                      style={{
+                        width: '100%',
+                        background: '#fef2f2',
+                        color: '#dc2626',
+                        border: '1px solid #fecaca',
+                        padding: '11px',
+                        borderRadius: '12px',
+                        fontWeight: 700,
+                        fontSize: '0.82rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      Ganti Metode / Batal
+                    </button>
                   </div>
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#cbd5e1', textAlign: 'right', maxWidth: '170px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {data.transaksiPending.item_dibayar || 'Tagihan Santri'}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                <button
-                  type="button"
-                  onClick={() => handleLanjutkanBayar(data.transaksiPending)}
-                  disabled={processing}
-                  style={{
-                    flex: 1,
-                    background: 'linear-gradient(135deg, #059669, #047857)',
-                    color: '#fff',
-                    border: 'none',
-                    padding: '11px 14px',
-                    borderRadius: '12px',
-                    fontWeight: 800,
-                    fontSize: '0.84rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    boxShadow: '0 4px 12px rgba(5, 150, 105, 0.4)'
-                  }}
-                >
-                  <CreditCard size={15} /> Lanjutkan Bayar
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleBatalkanTransaksi(data.transaksiPending)}
-                  disabled={processing}
-                  style={{
-                    background: 'rgba(239, 68, 68, 0.15)',
-                    color: '#f87171',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    padding: '11px 14px',
-                    borderRadius: '12px',
-                    fontWeight: 700,
-                    fontSize: '0.78rem',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  Ganti Metode / Batal
-                </button>
               </div>
             </div>
           )}
