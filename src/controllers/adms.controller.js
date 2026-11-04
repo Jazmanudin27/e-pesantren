@@ -75,13 +75,26 @@ Encrypt=0
 // 2. Menerima Log Absensi Realtime dari Mesin (Tabel ATTLOG)
 export const handleAdmsPushData = async (req, res) => {
   const sn = req.query.SN || req.query.sn || 'UNKNOWN';
-  const table = (req.query.table || '').toUpperCase();
-  const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+  const table = (req.query.table || req.query.tablename || req.query.TableName || '').toUpperCase();
 
-  console.log(`[ADMS PUSH] Mesin ${sn} mengirim data tabel: ${table || 'DEFAULT'}`);
+  let rawBody = '';
+  if (typeof req.body === 'string') {
+    rawBody = req.body;
+  } else if (Buffer.isBuffer(req.body)) {
+    rawBody = req.body.toString('utf8');
+  } else if (req.body && typeof req.body === 'object') {
+    const keys = Object.keys(req.body);
+    if (keys.length > 0 && req.body[keys[0]] === '') {
+      rawBody = keys.join('\n');
+    } else {
+      rawBody = Object.entries(req.body).map(([k, v]) => v ? `${k}\t${v}` : k).join('\n');
+    }
+  }
 
-  // Jika bukan ATTLOG (misal OPERLOG atau config), balas OK
-  if (table && table !== 'ATTLOG') {
+  console.log(`[ADMS PUSH] Mesin ${sn} mengirim data (Tabel: ${table || 'DEFAULT'}, Length: ${rawBody.length})`);
+
+  // Jika eksplisit bukan ATTLOG (misal OPERLOG/config), balas OK
+  if (table && !table.includes('ATTLOG')) {
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     return res.status(200).send('OK\n');
   }
@@ -98,22 +111,35 @@ export const handleAdmsPushData = async (req, res) => {
     if (devRows && devRows.length > 0) {
       deviceId = devRows[0].id;
     }
+    // Update status mesin jadi Online
+    await pool.query("UPDATE fingerprint_device SET status_koneksi = 'Online', updated_at = NOW() WHERE sn_device = ?", [sn]).catch(() => {});
   } catch (eDev) {}
 
   // Parse baris log absensi
-  // Format baris tab-separated: PIN \t YYYY-MM-DD HH:mm:ss \t VerifyMode \t InOutStatus \t WorkCode
   const lines = rawBody.split(/\r?\n/).filter(l => l.trim().length > 0);
   let processedCount = 0;
 
   for (const line of lines) {
-    const cols = line.split('\t');
-    if (cols.length < 2) continue;
+    let pin = '';
+    let tanggalScan = '';
+    let waktuScan = '';
 
-    const pin = cols[0].trim();
-    const timestampStr = cols[1].trim(); // contoh: '2026-11-04 18:35:12'
-    const parts = timestampStr.split(' ');
-    const tanggalScan = parts[0] || new Date().toISOString().split('T')[0];
-    const waktuScan = parts[1] || '00:00:00';
+    // Regex mencocokkan format: PIN (angka/teks) lalu Tanggal (YYYY-MM-DD) lalu Jam (HH:mm:ss)
+    const match = line.match(/(\S+)\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})/);
+    if (match) {
+      pin = match[1].trim();
+      tanggalScan = match[2].trim();
+      waktuScan = match[3].trim();
+    } else {
+      const cols = line.split(/[\t\s]+/);
+      if (cols.length >= 3 && cols[1].includes('-') && cols[2].includes(':')) {
+        pin = cols[0].trim();
+        tanggalScan = cols[1].trim();
+        waktuScan = cols[2].trim();
+      } else {
+        continue;
+      }
+    }
 
     if (!pin) continue;
 
@@ -127,37 +153,47 @@ export const handleAdmsPushData = async (req, res) => {
       `, [pin, pin, pin]);
 
       if (!santriRows || santriRows.length === 0) {
-        console.warn(`[ADMS] PIN ${pin} dari mesin ${sn} tidak cocok dengan santri manapun.`);
+        console.warn(`[ADMS] PIN ${pin} dari mesin ${sn} tidak cocok dengan santri manapun di database.`);
         continue;
       }
 
       const santri = santriRows[0];
 
       // 2. Tentukan Sesi Kegiatan Berdasarkan Jam Scan
-      const [sesiRows] = await pool.query(`
-        SELECT id, nama_sesi, jam_target, jam_toleransi_telat, jam_mulai_presensi, jam_tutup_presensi
-        FROM kegiatan_sesi 
-        WHERE is_active = 1
-        ORDER BY 
-          (CASE 
-            WHEN ? BETWEEN jam_mulai_presensi AND jam_tutup_presensi THEN 0 
-            WHEN ? <= jam_tutup_presensi THEN 1
-            ELSE 2 
-          END),
-          jam_mulai_presensi ASC
-        LIMIT 1
-      `, [waktuScan, waktuScan]);
-
-      const sesi = (sesiRows && sesiRows.length > 0) ? sesiRows[0] : null;
-      const sesiId = sesi ? sesi.id : 1;
-
-      // Hitung status: Hadir atau Terlambat
+      let sesiId = 1;
       let statusKehadiran = 'Hadir';
-      if (sesi && sesi.jam_toleransi_telat && waktuScan > sesi.jam_toleransi_telat) {
-        statusKehadiran = 'Terlambat';
+
+      try {
+        const [sesiRows] = await pool.query(`
+          SELECT id, nama_sesi, jam_target, jam_toleransi_telat, jam_mulai_presensi, jam_tutup_presensi
+          FROM kegiatan_sesi 
+          WHERE is_active = 1
+          ORDER BY 
+            (CASE 
+              WHEN ? BETWEEN jam_mulai_presensi AND jam_tutup_presensi THEN 0 
+              WHEN ? <= jam_tutup_presensi THEN 1
+              ELSE 2 
+            END),
+            jam_mulai_presensi ASC
+          LIMIT 1
+        `, [waktuScan, waktuScan]);
+
+        if (sesiRows && sesiRows.length > 0) {
+          sesiId = sesiRows[0].id;
+          if (sesiRows[0].jam_toleransi_telat && waktuScan > sesiRows[0].jam_toleransi_telat) {
+            statusKehadiran = 'Terlambat';
+          }
+        } else {
+          const [anySesi] = await pool.query('SELECT id FROM kegiatan_sesi LIMIT 1');
+          if (anySesi && anySesi.length > 0) {
+            sesiId = anySesi[0].id;
+          }
+        }
+      } catch (eSesi) {
+        console.warn('[ADMS] Cari sesi notice:', eSesi.message);
       }
 
-      // 3. Simpan atau Update ke Tabel absensi_jamaah_mengaji (Idempoten / Cegah Duplikat)
+      // 3. Simpan atau Update ke Tabel absensi_jamaah_mengaji (Idempoten)
       const [existingLog] = await pool.query(`
         SELECT id FROM absensi_jamaah_mengaji 
         WHERE tanggal = ? AND sesi_id = ? AND santri_id = ? 
@@ -167,12 +203,45 @@ export const handleAdmsPushData = async (req, res) => {
       const keterangan = `Scan Fingerprint Mesin MP340 (SN: ${sn})`;
 
       if (existingLog && existingLog.length > 0) {
-        await pool.query(`
-          UPDATE absensi_jamaah_mengaji 
-          SET status = ?, waktu_scan = ?, device_id = ?, metode_presensi = 'Fingerprint', keterangan = ?
-          WHERE id = ?
-        `, [statusKehadiran, waktuScan, deviceId, keterangan, existingLog[0].id]);
+        try {
+          await pool.query(`
+            UPDATE absensi_jamaah_mengaji 
+            SET status = ?, waktu_scan = ?, device_id = ?, metode_presensi = 'Fingerprint', keterangan = ?
+            WHERE id = ?
+          `, [statusKehadiran, waktuScan, deviceId, keterangan, existingLog[0].id]);
+        } catch (errUp) {
+          await pool.query(`
+            UPDATE absensi_jamaah_mengaji 
+            SET status = ?, waktu_scan = ?, device_id = ?, keterangan = ?
+            WHERE id = ?
+          `, [statusKehadiran, waktuScan, deviceId, keterangan, existingLog[0].id]);
+        }
       } else {
+        try {
+          await pool.query(`
+            INSERT INTO absensi_jamaah_mengaji 
+            (tanggal, sesi_id, santri_id, waktu_scan, status, device_id, metode_presensi, keterangan)
+            VALUES (?, ?, ?, ?, ?, ?, 'Fingerprint', ?)
+          `, [tanggalScan, sesiId, santri.id, waktuScan, statusKehadiran, deviceId, keterangan]);
+        } catch (errIns) {
+          await pool.query(`
+            INSERT INTO absensi_jamaah_mengaji 
+            (tanggal, sesi_id, santri_id, waktu_scan, status, device_id, keterangan)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+          `, [tanggalScan, sesiId, santri.id, waktuScan, statusKehadiran, deviceId, keterangan]);
+        }
+      }
+
+      processedCount++;
+      console.log(`[ADMS SUCCESS] ${santri.nama_santri} (PIN: ${pin}) berhasil presensi jam ${waktuScan}!`);
+    } catch (lineErr) {
+      console.error(`[ADMS ERROR] Gagal proses baris "${line}":`, lineErr.message);
+    }
+  }
+
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  return res.status(200).send(`OK: ${processedCount}\n`);
+};
         await pool.query(`
           INSERT INTO absensi_jamaah_mengaji 
           (tanggal, sesi_id, santri_id, waktu_scan, status, device_id, metode_presensi, keterangan)

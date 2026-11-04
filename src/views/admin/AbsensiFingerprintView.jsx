@@ -21,7 +21,7 @@ export default function AbsensiFingerprintView() {
   const [absensiList, setAbsensiList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [selectedKegiatan, setSelectedKegiatan] = useState("Presensi Santri");
+  const [selectedKegiatan, setSelectedKegiatan] = useState("semua");
   const [selectedSantri, setSelectedSantri] = useState("semua");
   const [selectedDate, setSelectedDate] = useState(() => {
     return new Date().toISOString().split("T")[0];
