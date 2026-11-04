@@ -581,11 +581,19 @@ export default function MobileLayout() {
                 onClick={() => handleSelectTab('keuangan-kasir')}
                 title="Buka Loket Kasir Pembayaran"
                 style={{
-                  background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-                  boxShadow: '0 10px 24px -4px rgba(5, 150, 105, 0.5)'
+                  background: 'transparent',
+                  border: 'none',
+                  padding: 0
                 }}
               >
-                <div className="fab-inner-glow">
+                <div 
+                  className="fab-inner-glow"
+                  style={{
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%)',
+                    boxShadow: '0 10px 24px -2px rgba(5, 150, 105, 0.6), 0 0 16px rgba(16, 185, 129, 0.5)',
+                    border: '4px solid #ffffff'
+                  }}
+                >
                   <CreditCard size={26} color="#ffffff" strokeWidth={2.4} />
                 </div>
               </button>
