@@ -280,10 +280,21 @@ export default function MobilePresensi() {
         const fetchedSantris = resSantri.data.data;
         setSantriList(fetchedSantris);
 
-        // Sinkronisasi otomatis data foto santri dari database ke profile AI wajah lokal
+        // Sinkronisasi otomatis data foto santri dari database & bersihkan data dummy lawas
         try {
           const currentLocalProfiles = { ...(registeredFacesRef.current || {}) };
-          let hasNewProfiles = false;
+          const validIds = new Set(fetchedSantris.map((s) => String(s.id)));
+          let profileChanged = false;
+
+          // Hapus profil wajah lama/dummy yang tidak ada di tabel santri database
+          Object.keys(currentLocalProfiles).forEach((idKey) => {
+            const prof = currentLocalProfiles[idKey];
+            const pId = String(prof?.santri_id || idKey);
+            if (!validIds.has(pId)) {
+              delete currentLocalProfiles[idKey];
+              profileChanged = true;
+            }
+          });
 
           for (const s of fetchedSantris) {
             const photoUrl = s.foto || s.foto_santri;
@@ -300,11 +311,11 @@ export default function MobilePresensi() {
                 biometricFeature: null,
                 registered_at: new Date().toISOString()
               };
-              hasNewProfiles = true;
+              profileChanged = true;
             }
           }
 
-          if (hasNewProfiles) {
+          if (profileChanged) {
             setRegisteredFaces(currentLocalProfiles);
             localStorage.setItem('epesantren_face_profiles', JSON.stringify(currentLocalProfiles));
           }
@@ -905,11 +916,13 @@ export default function MobilePresensi() {
                 setFaceDetected(true);
                 const matched = matchFaceDescriptor(faceRes.descriptor, registeredList, 0.52);
                 if (matched) {
-                  matchedSantri =
-                    (santriListRef.current || []).find(
-                      (s) => String(s.id) === String(matched.santri_id)
-                    ) || matched;
-                  displayName = matchedSantri.nama_santri || matched.nama;
+                  const dbSantri = (santriListRef.current || []).find(
+                    (s) => String(s.id) === String(matched.santri_id)
+                  );
+                  if (dbSantri) {
+                    matchedSantri = dbSantri;
+                    displayName = dbSantri.nama_santri;
+                  }
                 }
               } else {
                 // FALLBACK NATIVE CANVAS MATRIX (SEBELUM MODEL SELESAI DIUNDUH)
@@ -952,11 +965,13 @@ export default function MobilePresensi() {
                 });
 
                 if (bestM) {
-                  matchedSantri =
-                    (santriListRef.current || []).find(
-                      (s) => String(s.id) === String(bestM.santri_id)
-                    ) || bestM;
-                  displayName = matchedSantri.nama_santri || bestM.nama;
+                  const dbSantri = (santriListRef.current || []).find(
+                    (s) => String(s.id) === String(bestM.santri_id)
+                  );
+                  if (dbSantri) {
+                    matchedSantri = dbSantri;
+                    displayName = dbSantri.nama_santri;
+                  }
                 }
               }
 

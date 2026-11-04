@@ -25,6 +25,8 @@ import {
   Check,
   ShieldCheck,
   Power,
+  CreditCard,
+  Clock,
 } from "lucide-react";
 import { showConfirm, toastSuccess, showError } from "../../utils/alert.util";
 import SearchableSelect from "../../components/SearchableSelect";
@@ -395,6 +397,21 @@ export default function UserManagementView() {
           color: "#7e22ce",
           border: "#d8b4fe",
           icon: <Shield size={12} style={{ marginRight: "4px" }} />,
+        };
+      case "Admin Keuangan":
+      case "Bendahara":
+        return {
+          bg: "#ecfdf5",
+          color: "#059669",
+          border: "#6ee7b7",
+          icon: <CreditCard size={12} style={{ marginRight: "4px" }} />,
+        };
+      case "Admin Absen":
+        return {
+          bg: "#fef3c7",
+          color: "#d97706",
+          border: "#fde68a",
+          icon: <Clock size={12} style={{ marginRight: "4px" }} />,
         };
       case "Pengasuh":
         return {
@@ -902,6 +919,8 @@ export default function UserManagementView() {
               options={[
                 { value: "Semua", label: "Semua Role" },
                 { value: "Super Admin", label: "Super Admin" },
+                { value: "Admin Keuangan", label: "Admin Keuangan (Bendahara)" },
+                { value: "Admin Absen", label: "Admin Absen (Presensi)" },
                 { value: "Pengasuh", label: "Pengasuh" },
                 { value: "Ustadz", label: "Ustadz" },
                 { value: "Musyrif", label: "Musyrif" },
@@ -1561,6 +1580,14 @@ export default function UserManagementView() {
                       {
                         value: "Super Admin",
                         label: "Super Admin (Akses Penuh)",
+                      },
+                      {
+                        value: "Admin Keuangan",
+                        label: "Admin Keuangan (Khusus Tagihan & SPP)",
+                      },
+                      {
+                        value: "Admin Absen",
+                        label: "Admin Absen (Petugas Presensi)",
                       },
                       { value: "Pengasuh", label: "Pengasuh (Dewan Pengasuh)" },
                       { value: "Ustadz", label: "Ustadz (Guru & Pengajar)" },

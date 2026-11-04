@@ -253,9 +253,50 @@ export default function ScanBarcodeView() {
         }
       }
 
-      // 2. Data Santri
+      // 2. Data Santri & Sinkronisasi Profil Wajah
       if (resSantri.data?.success && Array.isArray(resSantri.data.data)) {
-        setSantriList(resSantri.data.data);
+        const fetchedSantris = resSantri.data.data;
+        setSantriList(fetchedSantris);
+
+        try {
+          const currentLocalProfiles = { ...(registeredFacesRef.current || {}) };
+          const validIds = new Set(fetchedSantris.map((s) => String(s.id)));
+          let profileChanged = false;
+
+          // Hapus profil wajah lawas/dummy yang tidak ada di tabel santri database
+          Object.keys(currentLocalProfiles).forEach((idKey) => {
+            const prof = currentLocalProfiles[idKey];
+            const pId = String(prof?.santri_id || idKey);
+            if (!validIds.has(pId)) {
+              delete currentLocalProfiles[idKey];
+              profileChanged = true;
+            }
+          });
+
+          for (const s of fetchedSantris) {
+            const photoUrl = s.foto || s.foto_santri;
+            if (photoUrl && (!currentLocalProfiles[s.id] || !currentLocalProfiles[s.id].foto)) {
+              currentLocalProfiles[s.id] = {
+                santri_id: s.id,
+                nama: s.nama_santri,
+                nis: s.nis,
+                asrama: s.nama_asrama || '',
+                kamar: s.nama_kamar || '',
+                foto: photoUrl,
+                descriptor: null,
+                biometricGrid: [],
+                biometricFeature: null,
+                registered_at: new Date().toISOString()
+              };
+              profileChanged = true;
+            }
+          }
+
+          if (profileChanged) {
+            setRegisteredFaces(currentLocalProfiles);
+            localStorage.setItem("epesantren_face_profiles", JSON.stringify(currentLocalProfiles));
+          }
+        } catch (eSync) {}
       } else {
         setSantriList([]);
       }
@@ -892,11 +933,13 @@ export default function ScanBarcodeView() {
               0.52,
             );
             if (matched) {
-              matchedSantri =
-                (santriListRef.current || []).find(
-                  (s) => String(s.id) === String(matched.santri_id),
-                ) || matched;
-              displayName = matchedSantri.nama_santri || matched.nama;
+              const dbSantri = (santriListRef.current || []).find(
+                (s) => String(s.id) === String(matched.santri_id),
+              );
+              if (dbSantri) {
+                matchedSantri = dbSantri;
+                displayName = dbSantri.nama_santri;
+              }
             }
           } else {
             // FALLBACK NATIVE CANVAS MATRIX (SEBELUM MODEL SELESAI DIUNDUH)
@@ -939,11 +982,13 @@ export default function ScanBarcodeView() {
             });
 
             if (bestM) {
-              matchedSantri =
-                (santriListRef.current || []).find(
-                  (s) => String(s.id) === String(bestM.santri_id),
-                ) || bestM;
-              displayName = matchedSantri.nama_santri || bestM.nama;
+              const dbSantri = (santriListRef.current || []).find(
+                (s) => String(s.id) === String(bestM.santri_id),
+              );
+              if (dbSantri) {
+                matchedSantri = dbSantri;
+                displayName = dbSantri.nama_santri;
+              }
             }
           }
 

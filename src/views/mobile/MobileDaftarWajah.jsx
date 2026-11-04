@@ -75,9 +75,21 @@ export default function MobileDaftarWajah() {
       if (resSantri.data?.data && Array.isArray(resSantri.data.data)) {
         setSantriList(resSantri.data.data);
 
-        // Sinkronisasi otomatis data foto yang sudah ada di database ke registeredFaces
+        // Sinkronisasi otomatis data foto yang sudah ada di database & bersihkan data dummy lawas
         const updated = { ...registeredFaces };
+        const validIds = new Set(resSantri.data.data.map((s) => String(s.id)));
         let changed = false;
+
+        // Hapus profil wajah lama yang tidak ada di database santri
+        Object.keys(updated).forEach((idKey) => {
+          const prof = updated[idKey];
+          const pId = String(prof?.santri_id || idKey);
+          if (!validIds.has(pId)) {
+            delete updated[idKey];
+            changed = true;
+          }
+        });
+
         resSantri.data.data.forEach((s) => {
           const photo = s.foto || s.foto_santri;
           if (photo && (!updated[s.id] || !updated[s.id].foto)) {
