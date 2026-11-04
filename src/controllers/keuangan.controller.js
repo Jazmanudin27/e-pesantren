@@ -479,6 +479,9 @@ export const lanjutkanPembayaran = async (req, res) => {
     }
 
     // 2. Jika snap_token kosong (transaksi lama sebelum migrasi kolom), buat token baru on-the-fly
+    // Tambahkan suffix baru agar tidak bentrok 'order_id has already been taken' di Midtrans
+    const newOrderId = `${trx.nomor_transaksi.split('-R')[0]}-R${Date.now().toString().slice(-4)}`;
+
     const [detailRows] = await connection.query(`
       SELECT d.tagihan_id, d.nominal_alokasi, t.judul_tagihan 
       FROM keuangan_transaksi_detail d
@@ -493,7 +496,7 @@ export const lanjutkanPembayaran = async (req, res) => {
     }));
 
     const snapRes = await createMidtransSnapToken({
-      nomorTransaksi: trx.nomor_transaksi,
+      nomorTransaksi: newOrderId,
       totalBayar: trx.total_bayar,
       santriNama: trx.nama_santri || 'Santri',
       noWaWali: trx.no_wa_wali || '081234567890',
@@ -502,13 +505,13 @@ export const lanjutkanPembayaran = async (req, res) => {
 
     if (snapRes && snapRes.success && snapRes.token) {
       try {
-        await connection.query('UPDATE keuangan_transaksi_pembayaran SET snap_token = ? WHERE id = ?', [snapRes.token, trx.id]);
+        await connection.query('UPDATE keuangan_transaksi_pembayaran SET nomor_transaksi = ?, snap_token = ? WHERE id = ?', [newOrderId, snapRes.token, trx.id]);
       } catch (upErr) {}
 
       return sendSuccess(res, 'Token transaksi berhasil dimuat', {
         snap_token: snapRes.token,
         payment_url: snapRes.redirect_url,
-        nomor_transaksi: trx.nomor_transaksi,
+        nomor_transaksi: newOrderId,
         total_bayar: trx.total_bayar
       });
     } else {
@@ -1564,9 +1567,9 @@ export const webhookMidtransHandler = async (req, res) => {
 
     const [trxRows] = await connection.query(`
       SELECT * FROM keuangan_transaksi_pembayaran 
-      WHERE nomor_transaksi = ? 
+      WHERE nomor_transaksi = ? OR ? LIKE CONCAT(nomor_transaksi, '%')
       ORDER BY id DESC LIMIT 1 FOR UPDATE
-    `, [orderId]);
+    `, [orderId, orderId]);
 
     if (!trxRows || trxRows.length === 0) {
       await connection.rollback();
