@@ -1173,9 +1173,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
         </div>
       )}
 
-      {/* =========================================================================
-          TAB 5: MUTASI & TRANSAKSI TERAKHIR (DIPISAH SAH & PENDING)
-      ========================================================================= */}
+      {/* TAB 5: Mutasi & Transaksi Terakhir */}
       {activeTab === 'transaksi' && (
         <div style={{ padding: '16px 14px' }}>
           <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#334155', textTransform: 'uppercase', marginBottom: '10px' }}>
