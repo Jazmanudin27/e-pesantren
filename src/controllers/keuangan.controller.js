@@ -692,7 +692,14 @@ export const getRekapKeuanganAdmin = async (req, res) => {
       FROM keuangan_tagihan
     `);
 
-    // 2. Transaksi Terakhir
+    // 1b. Kas Masuk Riil dari Transaksi Berhasil (Hanya Pembayaran Sah)
+    const [kasMasukRiil] = await pool.query(`
+      SELECT COALESCE(SUM(total_bayar), 0) as total_kas_masuk_sah
+      FROM keuangan_transaksi_pembayaran
+      WHERE status_pembayaran = 'Berhasil'
+    `);
+
+    // 2. Transaksi Kas Masuk Terakhir (Hanya yang BERHASIL / LUNAS, PENDING TIDAK MASUK LAPORAN KAS)
     const [transaksiTerakhir] = await pool.query(`
       SELECT 
         p.*,
@@ -704,8 +711,26 @@ export const getRekapKeuanganAdmin = async (req, res) => {
       JOIN santri s ON p.santri_id = s.id
       LEFT JOIN asrama a ON s.asrama_id = a.id
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
-      ORDER BY p.created_at DESC
+      WHERE p.status_pembayaran = 'Berhasil'
+      ORDER BY p.tanggal_bayar DESC, p.id DESC
       LIMIT 50
+    `);
+
+    // 2b. Transaksi Menunggu Pembayaran (Pending) - Terpisah dari Laporan Kas
+    const [transaksiPending] = await pool.query(`
+      SELECT 
+        p.*,
+        s.nama_santri,
+        s.nis,
+        a.nama_asrama,
+        k.nama_kamar
+      FROM keuangan_transaksi_pembayaran p
+      JOIN santri s ON p.santri_id = s.id
+      LEFT JOIN asrama a ON s.asrama_id = a.id
+      LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+      WHERE p.status_pembayaran = 'Pending'
+      ORDER BY p.created_at DESC
+      LIMIT 20
     `);
 
     // 3. Daftar Santri dengan Rekap Tunggakan
@@ -757,8 +782,12 @@ export const getRekapKeuanganAdmin = async (req, res) => {
     `);
 
     return sendSuccess(res, 'Rekap keuangan admin berhasil dimuat', {
-      summary: summary[0],
+      summary: {
+        ...summary[0],
+        total_kas_masuk_sah: kasMasukRiil[0]?.total_kas_masuk_sah || summary[0]?.total_terbayar || 0
+      },
       transaksiTerakhir: transaksiTerakhir || [],
+      transaksiPending: transaksiPending || [],
       tunggakanSantri: tunggakanSantri || [],
       komponenBiaya: komponenBiaya || [],
       semuaTagihan: semuaTagihan || []
