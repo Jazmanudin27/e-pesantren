@@ -19,9 +19,11 @@ import laporanRoutes from './laporan.routes.js';
 import informasiRoutes from './informasi.routes.js';
 import perkembanganIkhwanRoutes from './perkembanganIkhwan.routes.js';
 import kurikulumRoutes from './kurikulum.routes.js';
+import admsRoutes from './adms.routes.js';
 
 const router = express.Router();
 
+router.use('/iclock', admsRoutes); // Endpoint Resmi ADMS Cloud Server Mesin Fingerprint (MP340/ZKTeco)
 router.use('/', authRoutes); // /api/login, /api/profile
 router.use('/dashboard', dashboardRoutes); // /api/dashboard/stats
 router.use('/santri', santriRoutes); // /api/santri

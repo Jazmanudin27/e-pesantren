@@ -44,6 +44,11 @@ export default function MobileDaftarWajah() {
   const [snapshot, setSnapshot] = useState(null);
   const [saving, setSaving] = useState(false);
   const [detectedExistingSantri, setDetectedExistingSantri] = useState(null); // Real-time duplicate detected
+  const [isFaceDetected, setIsFaceDetected] = useState(false); // Valid human face currently in frame
+  const [faceScore, setFaceScore] = useState(0); // Detection confidence score (0-100)
+  const [isCheckingFace, setIsCheckingFace] = useState(false); // Loading state during snapshot capture
+  const [capturedDescriptor, setCapturedDescriptor] = useState(null); // Cached valid biometric vector
+  const [aiModelStatus, setAiModelStatus] = useState('loading'); // 'loading' | 'ready' | 'error'
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -120,7 +125,12 @@ export default function MobileDaftarWajah() {
 
   useEffect(() => {
     fetchSantri();
-    initFaceApiModels().catch(() => {});
+    initFaceApiModels()
+      .then(() => setAiModelStatus('ready'))
+      .catch((e) => {
+        console.warn('Face models load error:', e);
+        setAiModelStatus('error');
+      });
   }, []);
 
   const startCamera = async (facing = facingMode) => {
@@ -128,6 +138,9 @@ export default function MobileDaftarWajah() {
     setIsCameraActive(true);
     setSnapshot(null);
     setDetectedExistingSantri(null);
+    setIsFaceDetected(false);
+    setFaceScore(0);
+    setCapturedDescriptor(null);
 
     try {
       if (streamRef.current) {
@@ -167,9 +180,11 @@ export default function MobileDaftarWajah() {
     }
     setIsCameraActive(false);
     setDetectedExistingSantri(null);
+    setIsFaceDetected(false);
+    setFaceScore(0);
   };
 
-  // Real-time live detection saat kamera aktif: Deteksi jika wajah sudah milik santri lain
+  // Real-time live detection saat kamera aktif: Deteksi apakah ADA WAJAH MANUSIA & anti-duplikasi
   const startLiveDuplicateCheck = () => {
     if (detectIntervalRef.current) clearInterval(detectIntervalRef.current);
 
@@ -182,9 +197,17 @@ export default function MobileDaftarWajah() {
       try {
         const faceRes = await detectFaceDescriptor(video);
         if (!faceRes) {
+          // BUKAN WAJAH (Meja, Lantai, Benda mati, dll)
+          setIsFaceDetected(false);
+          setFaceScore(0);
           setDetectedExistingSantri(null);
           return;
         }
+
+        // WAJAH VALID TERDETEKSI
+        setIsFaceDetected(true);
+        const score = Math.round((faceRes.score || 0.88) * 100);
+        setFaceScore(score);
 
         const otherProfiles = Object.values(registeredFaces).filter(
           (p) => String(p.santri_id) !== String(selectedSantri?.id) && (p.descriptor || p.foto)
@@ -197,12 +220,15 @@ export default function MobileDaftarWajah() {
           } else {
             setDetectedExistingSantri(null);
           }
+        } else {
+          setDetectedExistingSantri(null);
         }
       } catch (e) {
+        setIsFaceDetected(false);
       } finally {
         isDetectingRef.current = false;
       }
-    }, 400);
+    }, 350);
   };
 
   useEffect(() => {
@@ -220,29 +246,53 @@ export default function MobileDaftarWajah() {
     }
   };
 
-  const captureSnapshot = () => {
+  // Ambil Foto dengan Validasi AI Mutlak (Foto Meja/Benda DITOLAK)
+  const captureSnapshot = async () => {
     const video = videoRef.current;
     if (!video || video.readyState < 2 || !video.videoWidth) return null;
 
-    const canvas = document.createElement('canvas');
-    const vW = video.videoWidth || 640;
-    const vH = video.videoHeight || 480;
-    const size = Math.min(vW, vH);
-    const sX = (vW - size) / 2;
-    const sY = (vH - size) / 2;
+    setIsCheckingFace(true);
+    try {
+      // 1. Double Verification langsung pada frame kamera real-time
+      const liveFace = await detectFaceDescriptor(video);
+      if (!liveFace) {
+        setIsCheckingFace(false);
+        showError(
+          'Wajah Tidak Terdeteksi!',
+          'Kamera mendeteksi benda/meja dan bukan wajah manusia. Harap hadapkan kamera tepat ke wajah santri di tempat yang cukup terang.'
+        );
+        return null;
+      }
 
-    canvas.width = 300;
-    canvas.height = 300;
-    const ctx = canvas.getContext('2d');
-    if (facingMode === 'user') {
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
+      // 2. Render frame kamera ke canvas ukuran persegi presisi
+      const canvas = document.createElement('canvas');
+      const vW = video.videoWidth || 640;
+      const vH = video.videoHeight || 480;
+      const size = Math.min(vW, vH);
+      const sX = (vW - size) / 2;
+      const sY = (vH - size) / 2;
+
+      canvas.width = 320;
+      canvas.height = 320;
+      const ctx = canvas.getContext('2d');
+      if (facingMode === 'user') {
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+      }
+      ctx.drawImage(video, sX, sY, size, size, 0, 0, 320, 320);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.90);
+
+      // 3. Simpan snapshot dan descriptor yang sudah terverifikasi AI
+      setCapturedDescriptor(liveFace.descriptor);
+      setSnapshot(dataUrl);
+      stopCamera();
+      return dataUrl;
+    } catch (err) {
+      showError('Gagal Mengambil Foto', err.message);
+      return null;
+    } finally {
+      setIsCheckingFace(false);
     }
-    ctx.drawImage(video, sX, sY, size, size, 0, 0, 300, 300);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
-    setSnapshot(dataUrl);
-    stopCamera();
-    return dataUrl;
   };
 
   const handleOpenEnrollModal = (santri) => {
@@ -267,8 +317,8 @@ export default function MobileDaftarWajah() {
     setSaving(true);
     try {
       // 1. Ekstraksi descriptor wajah yang baru dipotret
-      let descriptor = null;
-      if (isFaceModelReady()) {
+      let descriptor = capturedDescriptor;
+      if (!descriptor && isFaceModelReady()) {
         try {
           descriptor = await extractDescriptorFromDataUrl(snapshot);
         } catch (e) {}
@@ -276,8 +326,8 @@ export default function MobileDaftarWajah() {
 
       if (!descriptor) {
         showError(
-          'Wajah Tidak Terdeteksi Jelas',
-          'Pastikan santri menghadap tegak ke kamera di tempat terang, lalu ambil foto ulang.'
+          'Wajah Tidak Terdeteksi!',
+          'Sistem AI menolak foto ini karena bukan wajah manusia (terdeteksi benda/meja). Silakan klik "Ambil Ulang" dan pastikan wajah santri menghadap kamera.'
         );
         setSaving(false);
         return;
@@ -1040,44 +1090,79 @@ export default function MobileDaftarWajah() {
                   />
                 )}
 
-                {/* Reticle guide frame */}
+                {/* Reticle guide frame dengan status warna real-time */}
                 {!snapshot && (
                   <div style={{
                     position: 'absolute',
                     width: '68%',
                     height: '68%',
-                    border: detectedExistingSantri
-                      ? '3px solid #ef4444'
-                      : '2px dashed rgba(255,255,255,0.7)',
                     borderRadius: '50%',
                     pointerEvents: 'none',
-                    boxShadow: detectedExistingSantri ? '0 0 16px rgba(239, 68, 68, 0.8)' : 'none',
-                    transition: 'all 0.2s ease'
+                    border: detectedExistingSantri
+                      ? '3.5px solid #ef4444'
+                      : isFaceDetected
+                      ? '3.5px solid #22c55e'
+                      : '2.5px dashed rgba(245, 158, 11, 0.85)',
+                    boxShadow: detectedExistingSantri
+                      ? '0 0 22px rgba(239, 68, 68, 0.9)'
+                      : isFaceDetected
+                      ? '0 0 22px rgba(34, 197, 94, 0.85)'
+                      : 'none',
+                    transition: 'all 0.25s ease'
                   }} />
                 )}
 
-                {/* Banner Peringatan Wajah Sudah Terdaftar (Real-Time) */}
-                {detectedExistingSantri && !snapshot && (
+                {/* Floating Status Guide Pill (Real-Time Wajah vs Meja/Benda) */}
+                {!snapshot && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '12px',
+                    left: '12px',
+                    right: '12px',
+                    padding: '7px 12px',
+                    borderRadius: '20px',
+                    textAlign: 'center',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    backdropFilter: 'blur(8px)',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+                    background: detectedExistingSantri
+                      ? 'rgba(239, 68, 68, 0.94)'
+                      : isFaceDetected
+                      ? 'rgba(21, 128, 61, 0.94)'
+                      : 'rgba(217, 119, 6, 0.92)',
+                    color: '#ffffff',
+                    zIndex: 10,
+                    transition: 'all 0.2s ease'
+                  }}>
+                    {detectedExistingSantri ? (
+                      `⛔ Wajah Terdaftar: ${detectedExistingSantri.nama || detectedExistingSantri.nama_santri} (Duplikat)`
+                    ) : isFaceDetected ? (
+                      `🟢 Wajah Pas & Terdeteksi (${faceScore}%)`
+                    ) : (
+                      `⚠️ Bukan Wajah / Belum Pas (Arahkan ke Wajah Santri)`
+                    )}
+                  </div>
+                )}
+
+                {/* Badge saat Snapshot Berhasil Terverifikasi */}
+                {snapshot && (
                   <div style={{
                     position: 'absolute',
                     bottom: '12px',
-                    left: '12px',
-                    right: '12px',
-                    background: 'rgba(239, 68, 68, 0.95)',
+                    left: '14px',
+                    right: '14px',
+                    background: 'rgba(5, 150, 105, 0.92)',
+                    backdropFilter: 'blur(6px)',
                     color: '#ffffff',
-                    padding: '8px 12px',
+                    padding: '6px 12px',
                     borderRadius: '12px',
                     textAlign: 'center',
-                    fontSize: '0.74rem',
+                    fontSize: '0.72rem',
                     fontWeight: 800,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                    backdropFilter: 'blur(4px)',
-                    zIndex: 10
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.25)'
                   }}>
-                    ⛔ Wajah Terdaftar: {detectedExistingSantri.nama || detectedExistingSantri.nama_santri}
-                    <div style={{ fontSize: '0.66rem', fontWeight: 600, color: '#fee2e2' }}>
-                      Wajah sudah terdaftar. Tidak dapat didaftarkan lagi!
-                    </div>
+                    ✓ Wajah Manusia Terverifikasi AI Biometrik
                   </div>
                 )}
               </div>
@@ -1105,7 +1190,15 @@ export default function MobileDaftarWajah() {
                       <RotateCcw size={14} /> Putar Kamera
                     </button>
                     <button
+                      disabled={!isFaceDetected || !!detectedExistingSantri || isCheckingFace}
                       onClick={() => {
+                        if (!isFaceDetected) {
+                          showError(
+                            'Wajah Tidak Terdeteksi!',
+                            'Kamera belum mendeteksi wajah manusia (meja/lantai/benda tidak diizinkan). Silakan arahkan kamera tepat ke wajah santri di tempat yang cukup terang.'
+                          );
+                          return;
+                        }
                         if (detectedExistingSantri) {
                           showError(
                             'Wajah Sudah Terdaftar!',
@@ -1117,21 +1210,34 @@ export default function MobileDaftarWajah() {
                       }}
                       style={{
                         flex: 1,
-                        padding: '9px 16px',
+                        padding: '10px 16px',
                         borderRadius: '10px',
                         border: 'none',
-                        background: detectedExistingSantri ? '#94a3b8' : '#0284c7',
+                        background: (!isFaceDetected || detectedExistingSantri)
+                          ? '#94a3b8'
+                          : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
                         color: '#ffffff',
                         fontSize: '0.8rem',
                         fontWeight: 800,
-                        cursor: detectedExistingSantri ? 'not-allowed' : 'pointer',
+                        cursor: (!isFaceDetected || detectedExistingSantri || isCheckingFace) ? 'not-allowed' : 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '6px'
+                        gap: '6px',
+                        boxShadow: (isFaceDetected && !detectedExistingSantri) ? '0 4px 12px rgba(5, 150, 105, 0.4)' : 'none',
+                        transition: 'all 0.2s ease'
                       }}
                     >
-                      <Camera size={16} /> Ambil Foto
+                      <Camera size={16} />
+                      <span>
+                        {isCheckingFace
+                          ? 'Memeriksa Wajah...'
+                          : detectedExistingSantri
+                          ? 'Wajah Sudah Ada'
+                          : isFaceDetected
+                          ? 'Ambil Foto Wajah'
+                          : 'Arahkan ke Wajah'}
+                      </span>
                     </button>
                   </>
                 ) : (

@@ -15,6 +15,7 @@ const PORT = process.env.PORT || 5011;
 
 // Global Middlewares
 app.use(cors());
+app.use(express.text({ type: ['text/*', 'application/octet-stream', 'text/plain'], limit: '10mb' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

@@ -15,7 +15,9 @@ import {
   Activity, 
   X, 
   Radio, 
-  Save 
+  Save,
+  Users,
+  Send
 } from 'lucide-react';
 import { showConfirm, toastSuccess } from '../../utils/alert.util';
 import SearchableSelect from '../../components/SearchableSelect';
@@ -23,6 +25,7 @@ import SearchableSelect from '../../components/SearchableSelect';
 export default function FingerprintDeviceView() {
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [activeFilterTab, setActiveFilterTab] = useState('semua');
   const [search, setSearch] = useState('');
   const [filterPeruntukan, setFilterPeruntukan] = useState('Semua Peruntukan');
@@ -78,6 +81,25 @@ export default function FingerprintDeviceView() {
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedDevice(null);
+  };
+
+  const handleSyncSantriToDevice = async () => {
+    const confirmed = await showConfirm(
+      'Kirim Data Santri ke Mesin Fingerprint?',
+      `Sistem akan mengirimkan data Nama dan NIS seluruh santri aktif ke antrean Cloud ADMS seluruh mesin yang terhubung (${devices.length} mesin).`
+    );
+    if (!confirmed) return;
+
+    try {
+      setSyncing(true);
+      const res = await axios.post('/api/iclock/sync-santri');
+      toastSuccess(res.data.message || 'Data santri berhasil diantrekan ke mesin!');
+      fetchDevices();
+    } catch (err) {
+      alert('Gagal mengirim data santri: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const openAddForm = () => {
@@ -249,6 +271,16 @@ export default function FingerprintDeviceView() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
+          <button 
+            className="btn btn-outline" 
+            onClick={handleSyncSantriToDevice} 
+            disabled={syncing}
+            style={{ color: '#0284c7', borderColor: '#38bdf8' }}
+            title="Kirim nama & NIS santri aktif ke mesin melalui koneksi Cloud ADMS"
+          >
+            {syncing ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+            {syncing ? ' Mengirim...' : ' Kirim Santri ke Mesin (ADMS)'}
+          </button>
           <button className="btn btn-outline" onClick={fetchDevices}>
             <RotateCw size={13} /> Refresh Status
           </button>
