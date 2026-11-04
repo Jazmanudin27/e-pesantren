@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import apiRoutes from './src/routes/index.js';
+import { ensureSantriCredentialsColumns } from './src/config/initWaliDb.js';
+import { ensurePraktekTables } from './src/controllers/praktek.controller.js';
 
 dotenv.config();
 
@@ -40,9 +42,6 @@ app.use((err, req, res, next) => {
     message: err.message || 'Internal Server Error'
   });
 });
-
-import { ensureSantriCredentialsColumns } from './src/config/initWaliDb.js';
-import { ensurePraktekTables } from './src/controllers/praktek.controller.js';
 
 // Start HTTP Server
 app.listen(PORT, '0.0.0.0', async () => {
