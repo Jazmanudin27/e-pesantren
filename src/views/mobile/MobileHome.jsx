@@ -773,11 +773,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
           <div style={{ padding: "0 16px", marginTop: "-22px" }}>
             <div
               style={{
-                background: "linear-gradient(145deg, #022c22 0%, #064e3b 50%, #065f46 100%)",
+                background:
+                  "linear-gradient(145deg, #022c22 0%, #064e3b 50%, #065f46 100%)",
                 borderRadius: "26px",
                 border: "1.5px solid rgba(52, 211, 153, 0.35)",
                 padding: "20px 18px",
-                boxShadow: "0 16px 36px -8px rgba(6, 78, 59, 0.45), 0 4px 12px rgba(0, 0, 0, 0.12)",
+                boxShadow:
+                  "0 16px 36px -8px rgba(6, 78, 59, 0.45), 0 4px 12px rgba(0, 0, 0, 0.12)",
                 position: "relative",
                 zIndex: 10,
                 color: "#ffffff",
@@ -808,7 +810,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                   marginBottom: "16px",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "10px" }}
+                >
                   {/* Gold EMV Chip Simulation */}
                   <div
                     style={{
@@ -933,7 +937,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                   </span>
                   <span>
                     {Number(
-                      keuanganData.summary?.total_kas_masuk_sah || keuanganData.summary?.total_terbayar || 0,
+                      keuanganData.summary?.total_kas_masuk_sah ||
+                        keuanganData.summary?.total_terbayar ||
+                        0,
                     ).toLocaleString("id-ID")}
                   </span>
                 </div>
@@ -1028,7 +1034,8 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                       •
                     </span>
                     <span style={{ color: "#f87171", fontSize: "0.75rem" }}>
-                      {keuanganData.summary?.jumlah_tagihan_tertunggak || 0} Nunggak
+                      {keuanganData.summary?.jumlah_tagihan_tertunggak || 0}{" "}
+                      Nunggak
                     </span>
                   </div>
                 </div>
@@ -1185,7 +1192,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
 
               {/* 5. Midtrans QRIS & VA */}
               <div
-                onClick={() => onChangeTab("keuangan-transaksi")}
+                onClick={() => onChangeTab("keuangan-midtrans")}
                 className="mobile-menu-interactive"
               >
                 <div
@@ -1296,7 +1303,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 .filter(
                   (trx) =>
                     trx.status_pembayaran === "Berhasil" ||
-                    trx.status_pembayaran === "settlement"
+                    trx.status_pembayaran === "settlement",
                 )
                 .slice(0, 4)
                 .map((trx, idx) => {
@@ -1371,7 +1378,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 keuanganData.transaksiTerakhir.filter(
                   (t) =>
                     t.status_pembayaran === "Berhasil" ||
-                    t.status_pembayaran === "settlement"
+                    t.status_pembayaran === "settlement",
                 ).length === 0) && (
                 <div
                   style={{

@@ -3,7 +3,7 @@ import { sendSuccess, sendError } from '../utils/response.util.js';
 import { canAccessKeuangan } from '../utils/authRole.util.js';
 import { createBniVirtualAccount } from '../services/bni.service.js';
 import { createIpaymuTransaction } from '../services/ipaymu.service.js';
-import { chargeMidtransDirect, createMidtransSnapToken } from '../services/midtrans.service.js';
+import { chargeMidtransDirect, createMidtransSnapToken, checkMidtransTransactionStatus } from '../services/midtrans.service.js';
 
 /**
  * Helper Internal: Generate Auto Tagihan (SPP Bulanan Okt 2026 - Jun 2027 + Tagihan Bebas Non-Bulanan) untuk 1 Santri
@@ -730,7 +730,28 @@ export const getRekapKeuanganAdmin = async (req, res) => {
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
       WHERE p.status_pembayaran = 'Pending'
       ORDER BY p.created_at DESC
-      LIMIT 20
+      LIMIT 50
+    `);
+
+    // 2c. Seluruh Histori Transaksi Gateway Midtrans (Selesai, Pending, Batal/Expired)
+    const [transaksiMidtrans] = await pool.query(`
+      SELECT 
+        p.*,
+        s.nama_santri,
+        s.nis,
+        s.nama_wali,
+        s.no_wa_wali,
+        a.nama_asrama,
+        k.nama_kamar
+      FROM keuangan_transaksi_pembayaran p
+      JOIN santri s ON p.santri_id = s.id
+      LEFT JOIN asrama a ON s.asrama_id = a.id
+      LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+      WHERE p.snap_token IS NOT NULL 
+         OR p.nomor_transaksi LIKE 'TRX-%' 
+         OR p.metode_pembayaran IN ('QRIS', 'Virtual Account')
+      ORDER BY p.id DESC
+      LIMIT 100
     `);
 
     // 3. Daftar Santri dengan Rekap Tunggakan
@@ -788,6 +809,7 @@ export const getRekapKeuanganAdmin = async (req, res) => {
       },
       transaksiTerakhir: transaksiTerakhir || [],
       transaksiPending: transaksiPending || [],
+      transaksiMidtrans: transaksiMidtrans || [],
       tunggakanSantri: tunggakanSantri || [],
       komponenBiaya: komponenBiaya || [],
       semuaTagihan: semuaTagihan || []
@@ -1665,5 +1687,114 @@ export const webhookMidtransHandler = async (req, res) => {
     connection.release();
   }
 };
+
+/**
+ * Admin: Cek & Sinkronkan Status Transaksi Midtrans ke Database
+ */
+export const cekStatusMidtransAdmin = async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { nomor_transaksi, transaksi_id } = req.body;
+    if (!nomor_transaksi && !transaksi_id) {
+      return sendError(res, 'Nomor atau ID transaksi diperlukan', 400);
+    }
+
+    const [trxRows] = await connection.query(`
+      SELECT * FROM keuangan_transaksi_pembayaran 
+      WHERE ${transaksi_id ? 'id = ?' : 'nomor_transaksi = ?'} LIMIT 1
+    `, [transaksi_id || nomor_transaksi]);
+
+    if (!trxRows || trxRows.length === 0) {
+      return sendError(res, 'Transaksi tidak ditemukan di database lokal', 404);
+    }
+
+    const trx = trxRows[0];
+    const midRes = await checkMidtransTransactionStatus(trx.nomor_transaksi);
+
+    if (!midRes.success) {
+      return sendError(res, `Gagal cek status ke Midtrans: ${midRes.error}`, 400);
+    }
+
+    const midData = midRes.data;
+    const trxStatus = String(midData.transaction_status || '').toLowerCase();
+    const fraudStatus = String(midData.fraud_status || '').toLowerCase();
+
+    const isSettled = trxStatus === 'settlement' || 
+                      (trxStatus === 'capture' && (fraudStatus === 'accept' || !fraudStatus));
+
+    if (isSettled && trx.status_pembayaran !== 'Berhasil') {
+      await connection.beginTransaction();
+
+      const kuitansiNomor = `KWT-MID-${new Date().toISOString().slice(0,7).replace(/-/g,'')}-${String(trx.id).padStart(4, '0')}`;
+      const tanggalBayar = new Date();
+
+      const [detailRows] = await connection.query(`
+        SELECT * FROM keuangan_transaksi_detail WHERE transaksi_id = ?
+      `, [trx.id]);
+
+      for (const d of detailRows) {
+        const [tghRows] = await connection.query(`
+          SELECT id, total_tagihan, sudah_dibayar, sisa_tagihan 
+          FROM keuangan_tagihan WHERE id = ? FOR UPDATE
+        `, [d.tagihan_id]);
+
+        if (tghRows && tghRows.length > 0) {
+          const t = tghRows[0];
+          const newSudah = parseFloat(t.sudah_dibayar) + parseFloat(d.nominal_alokasi);
+          const newSisa = Math.max(0, parseFloat(t.total_tagihan) - newSudah);
+          const newStatus = newSisa <= 0 ? 'Lunas' : 'Sebagian';
+
+          await connection.query(`
+            UPDATE keuangan_tagihan 
+            SET sudah_dibayar = ?, sisa_tagihan = ?, status = ?, updated_at = NOW()
+            WHERE id = ?
+          `, [newSudah, newSisa, newStatus, t.id]);
+        }
+      }
+
+      await connection.query(`
+        UPDATE keuangan_transaksi_pembayaran 
+        SET status_pembayaran = 'Berhasil', 
+            tanggal_bayar = ?, 
+            kuitansi_nomor = ?,
+            keterangan = CONCAT(COALESCE(keterangan, ''), ' [Manual Check Settled: ', ?, ']'),
+            updated_at = NOW()
+        WHERE id = ?
+      `, [tanggalBayar, kuitansiNomor, midData.payment_type || 'Midtrans', trx.id]);
+
+      await connection.commit();
+
+      return sendSuccess(res, 'Status Midtrans terverifikasi: Pembayaran Berhasil & Tagihan Lunas!', {
+        status: 'Berhasil',
+        midtrans_status: trxStatus,
+        kuitansi_nomor: kuitansiNomor,
+        total_bayar: trx.total_bayar
+      });
+    } else if (['expire', 'cancel', 'deny'].includes(trxStatus)) {
+      await connection.query(`
+        UPDATE keuangan_transaksi_pembayaran 
+        SET status_pembayaran = 'Batal', updated_at = NOW() 
+        WHERE id = ?
+      `, [trx.id]);
+
+      return sendSuccess(res, `Status transaksi di Midtrans: ${trxStatus.toUpperCase()} (Telah dibatalkan/kadaluarsa)`, {
+        status: 'Batal',
+        midtrans_status: trxStatus
+      });
+    }
+
+    return sendSuccess(res, `Status di Midtrans saat ini: ${trxStatus.toUpperCase()} (Menunggu pembayaran)`, {
+      status: trx.status_pembayaran,
+      midtrans_status: trxStatus,
+      raw: midData
+    });
+  } catch (err) {
+    await connection.rollback();
+    return sendError(res, `Gagal memproses sinkronisasi Midtrans: ${err.message}`, 500);
+  } finally {
+    connection.release();
+  }
+};
+
 
 

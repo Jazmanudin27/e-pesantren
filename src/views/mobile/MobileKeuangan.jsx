@@ -62,6 +62,8 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
   const [sppFilter, setSppFilter] = useState('semua'); // 'semua' | 'nunggak' | 'lunas'
   const [sppSearch, setSppSearch] = useState('');
   const [filterTrxTab, setFilterTrxTab] = useState('Berhasil'); // 'Berhasil' | 'Pending'
+  const [midtransFilter, setMidtransFilter] = useState('semua'); // 'semua' | 'Berhasil' | 'Pending' | 'Batal'
+  const [checkingMidtransId, setCheckingMidtransId] = useState(null);
 
   // Sync initial tab jika berubah dari luar
   useEffect(() => {
@@ -71,6 +73,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
       else if (initialSubTab === 'keuangan-spp' || initialSubTab === 'spp') setActiveTab('spp');
       else if (initialSubTab === 'keuangan-tunggakan' || initialSubTab === 'tunggakan') setActiveTab('tunggakan');
       else if (initialSubTab === 'keuangan-transaksi' || initialSubTab === 'transaksi') setActiveTab('transaksi');
+      else if (initialSubTab === 'keuangan-midtrans' || initialSubTab === 'midtrans') setActiveTab('midtrans');
       else setActiveTab(initialSubTab);
     }
   }, [initialSubTab]);
@@ -264,6 +267,27 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
       }).slice(0, 8)
     : [];
 
+  // Cek Status Transaksi Langsung ke Gateway Midtrans
+  const handleCekStatusMidtrans = async (trx) => {
+    setCheckingMidtransId(trx.id);
+    try {
+      const res = await axios.post('/api/keuangan/admin/cek-status-midtrans', {
+        nomor_transaksi: trx.nomor_transaksi,
+        transaksi_id: trx.id
+      });
+      if (res.data?.success) {
+        toastSuccess('Status Midtrans', res.data.message || 'Status berhasil diperbarui');
+        fetchRekapAndSantri();
+      } else {
+        showError('Midtrans Notice', res.data?.message || 'Gagal cek status');
+      }
+    } catch (e) {
+      showError('Gagal Cek Status', e.response?.data?.message || e.message);
+    } finally {
+      setCheckingMidtransId(null);
+    }
+  };
+
   return (
     <div style={{
       minHeight: '100%',
@@ -364,7 +388,8 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
             { id: 'laporan', label: 'Laporan Kas', icon: BarChart3 },
             { id: 'spp', label: 'Tagihan SPP', icon: FileText },
             { id: 'tunggakan', label: 'Tunggakan', icon: AlertTriangle },
-            { id: 'transaksi', label: 'Mutasi Trx', icon: Receipt }
+            { id: 'transaksi', label: 'Histori Selesai', icon: Receipt },
+            { id: 'midtrans', label: 'Histori Midtrans', icon: Zap }
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -1173,70 +1198,170 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
         </div>
       )}
 
-      {/* TAB 5: Mutasi & Transaksi Terakhir */}
+      {/* TAB 5: Histori Pembayaran Selesai (Semua Selesai: Offline & Online, Bukan Pending) */}
       {activeTab === 'transaksi' && (
         <div style={{ padding: '16px 14px' }}>
-          <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#334155', textTransform: 'uppercase', marginBottom: '10px' }}>
-            Riwayat Mutasi & Pembayaran
+          <div style={{ marginBottom: '14px' }}>
+            <div style={{ fontSize: '0.82rem', fontWeight: 900, color: '#0f172a', textTransform: 'uppercase' }}>
+              Histori Pembayaran Selesai
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
+              Semua transaksi kas masuk yang sah & lunas (Tunai Kasir & Midtrans Selesai)
+            </div>
           </div>
 
-          {/* Sub-Tab Filter: Berhasil vs Pending */}
+          {/* List Transaksi Selesai */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {(!rekapData.transaksiTerakhir || rekapData.transaksiTerakhir.length === 0) ? (
+              <div style={{
+                padding: '36px 16px',
+                textAlign: 'center',
+                background: '#ffffff',
+                borderRadius: '16px',
+                border: '1px dashed #cbd5e1',
+                color: '#64748b',
+                fontSize: '0.8rem'
+              }}>
+                <Receipt size={32} color="#94a3b8" style={{ margin: '0 auto 8px' }} />
+                <div>Belum ada transaksi kas masuk yang berstatus lunas/berhasil.</div>
+              </div>
+            ) : (
+              rekapData.transaksiTerakhir.map((trx, idx) => (
+                <div
+                  key={trx.id || idx}
+                  style={{
+                    background: '#ffffff',
+                    borderRadius: '16px',
+                    padding: '14px 16px',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
+                        {trx.nama_santri || 'Santri'}
+                      </div>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '1px' }}>
+                        NIS: {trx.nis || '-'} • #{trx.nomor_transaksi}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#059669' }}>
+                        Rp {Number(trx.total_bayar || 0).toLocaleString('id-ID')}
+                      </div>
+                      <span style={{
+                        display: 'inline-block',
+                        fontSize: '0.6rem',
+                        fontWeight: 800,
+                        padding: '2px 7px',
+                        borderRadius: '6px',
+                        background: '#dcfce7',
+                        color: '#15803d',
+                        marginTop: '2px'
+                      }}>
+                        ✓ SELESAI
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingTop: '8px',
+                    borderTop: '1px dashed #f1f5f9',
+                    fontSize: '0.68rem',
+                    color: '#64748b'
+                  }}>
+                    <span style={{ background: '#f8fafc', padding: '2px 8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontWeight: 600 }}>
+                      💳 {trx.metode_pembayaran || 'Tunai / Kasir'}
+                    </span>
+                    <span>
+                      {trx.tanggal_bayar ? new Date(trx.tanggal_bayar).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 6: Histori Gateway Midtrans Lengkap (QRIS & VA - Selesai, Pending, Batal) */}
+      {activeTab === 'midtrans' && (
+        <div style={{ padding: '16px 14px' }}>
+          <div style={{ marginBottom: '14px' }}>
+            <div style={{ fontSize: '0.82rem', fontWeight: 900, color: '#0f172a', textTransform: 'uppercase' }}>
+              Histori Gateway Midtrans (QRIS & VA)
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
+              Status real-time seluruh transaksi pembayaran digital online
+            </div>
+          </div>
+
+          {/* Filter Status Pills */}
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '8px',
-            background: '#f1f5f9',
-            padding: '4px',
-            borderRadius: '12px',
-            marginBottom: '14px'
+            display: 'flex',
+            gap: '6px',
+            overflowX: 'auto',
+            paddingBottom: '4px',
+            marginBottom: '14px',
+            scrollbarWidth: 'none'
           }}>
-            <button
-              onClick={() => setFilterTrxTab('Berhasil')}
-              style={{
-                border: 'none',
-                padding: '8px 10px',
-                borderRadius: '9px',
-                fontSize: '0.74rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                background: filterTrxTab === 'Berhasil' ? '#ffffff' : 'transparent',
-                color: filterTrxTab === 'Berhasil' ? '#059669' : '#64748b',
-                boxShadow: filterTrxTab === 'Berhasil' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-              }}
-            >
-              ✅ Kas Masuk Sah ({rekapData.transaksiTerakhir?.length || 0})
-            </button>
-            <button
-              onClick={() => setFilterTrxTab('Pending')}
-              style={{
-                border: 'none',
-                padding: '8px 10px',
-                borderRadius: '9px',
-                fontSize: '0.74rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                background: filterTrxTab === 'Pending' ? '#ffffff' : 'transparent',
-                color: filterTrxTab === 'Pending' ? '#d97706' : '#64748b',
-                boxShadow: filterTrxTab === 'Pending' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-              }}
-            >
-              ⏳ Pending ({rekapData.transaksiPending?.length || 0})
-            </button>
+            {[
+              { id: 'semua', label: 'Semua' },
+              { id: 'Berhasil', label: 'Selesai' },
+              { id: 'Pending', label: 'Pending' },
+              { id: 'Batal', label: 'Batal / Expire' }
+            ].map(f => {
+              const isSelected = midtransFilter === f.id;
+              const count = (rekapData.transaksiMidtrans || []).filter(t => {
+                if (f.id === 'semua') return true;
+                if (f.id === 'Batal') return t.status_pembayaran === 'Batal' || t.status_pembayaran === 'Expired';
+                return t.status_pembayaran === f.id;
+              }).length;
+
+              return (
+                <button
+                  key={f.id}
+                  onClick={() => setMidtransFilter(f.id)}
+                  style={{
+                    border: 'none',
+                    padding: '6px 12px',
+                    borderRadius: '10px',
+                    fontSize: '0.72rem',
+                    fontWeight: isSelected ? 800 : 600,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    background: isSelected ? '#0891b2' : '#ffffff',
+                    color: isSelected ? '#ffffff' : '#64748b',
+                    border: isSelected ? 'none' : '1px solid #e2e8f0',
+                    boxShadow: isSelected ? '0 2px 6px rgba(8, 145, 178, 0.3)' : 'none'
+                  }}
+                >
+                  {f.label} ({count})
+                </button>
+              );
+            })}
           </div>
 
-          {/* List Transaksi */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {/* List Transaksi Midtrans */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {(() => {
-              const currentList = filterTrxTab === 'Berhasil' 
-                ? (rekapData.transaksiTerakhir || [])
-                : (rekapData.transaksiPending || []);
+              const filteredList = (rekapData.transaksiMidtrans || []).filter(t => {
+                if (midtransFilter === 'semua') return true;
+                if (midtransFilter === 'Batal') return t.status_pembayaran === 'Batal' || t.status_pembayaran === 'Expired';
+                return t.status_pembayaran === midtransFilter;
+              });
 
-              if (currentList.length === 0) {
+              if (filteredList.length === 0) {
                 return (
                   <div style={{
-                    padding: '30px 16px',
+                    padding: '36px 16px',
                     textAlign: 'center',
                     background: '#ffffff',
                     borderRadius: '16px',
@@ -1244,60 +1369,119 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                     color: '#64748b',
                     fontSize: '0.8rem'
                   }}>
-                    {filterTrxTab === 'Berhasil' 
-                      ? 'Belum ada transaksi kas masuk yang berstatus lunas/berhasil.'
-                      : 'Bersih! Tidak ada antrean pembayaran yang pending.'}
+                    <Zap size={32} color="#94a3b8" style={{ margin: '0 auto 8px' }} />
+                    <div>Tidak ada histori transaksi Midtrans pada kategori ini.</div>
                   </div>
                 );
               }
 
-              return currentList.map((trx, idx) => {
-                const isLunas = trx.status_pembayaran === 'Berhasil' || trx.status_pembayaran === 'settlement';
+              return filteredList.map((trx, idx) => {
+                const isSuccess = trx.status_pembayaran === 'Berhasil' || trx.status_pembayaran === 'settlement';
+                const isPending = trx.status_pembayaran === 'Pending';
+                const isChecking = checkingMidtransId === trx.id;
+
+                let statusBg = '#fee2e2';
+                let statusColor = '#991b1b';
+                let statusText = trx.status_pembayaran || 'Batal';
+
+                if (isSuccess) {
+                  statusBg = '#dcfce7';
+                  statusColor = '#15803d';
+                  statusText = 'Selesai (Settled)';
+                } else if (isPending) {
+                  statusBg = '#fef3c7';
+                  statusColor = '#b45309';
+                  statusText = 'Pending (Menunggu)';
+                }
+
                 return (
                   <div
                     key={trx.id || idx}
                     style={{
                       background: '#ffffff',
-                      borderRadius: '14px',
-                      padding: '12px 14px',
-                      border: isLunas ? '1px solid #e2e8f0' : '1px dashed #fcd34d',
+                      borderRadius: '16px',
+                      padding: '14px 16px',
+                      border: isPending ? '1.5px dashed #fcd34d' : '1px solid #e2e8f0',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
+                          {trx.nama_santri || 'Santri'}
+                        </div>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '1px' }}>
+                          #{trx.nomor_transaksi}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: 900, fontSize: '0.92rem', color: isSuccess ? '#059669' : (isPending ? '#d97706' : '#64748b') }}>
+                          Rp {Number(trx.total_bayar || 0).toLocaleString('id-ID')}
+                        </div>
+                        <span style={{
+                          display: 'inline-block',
+                          fontSize: '0.62rem',
+                          fontWeight: 800,
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          background: statusBg,
+                          color: statusColor,
+                          marginTop: '2px'
+                        }}>
+                          {statusText}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontWeight: 800, fontSize: '0.84rem', color: '#0f172a' }}>
-                        {trx.nama_santri || 'Santri'}
+                      paddingTop: '8px',
+                      borderTop: '1px dashed #f1f5f9',
+                      fontSize: '0.68rem',
+                      color: '#64748b'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ background: '#ecfeff', border: '1px solid #a5f3fc', color: '#0891b2', padding: '2px 6px', borderRadius: '5px', fontWeight: 700 }}>
+                          ⚡ {trx.channel_pembayaran || trx.metode_pembayaran || 'Midtrans'}
+                        </span>
                       </div>
-                      <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
-                        #{trx.nomor_transaksi} • {trx.metode_pembayaran || 'QRIS / Online'}
-                      </div>
-                      {trx.tanggal_bayar && (
-                        <div style={{ fontSize: '0.62rem', color: '#94a3b8', marginTop: '2px' }}>
-                          {new Date(trx.tanggal_bayar).toLocaleString('id-ID')}
-                        </div>
-                      )}
-                    </div>
-
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontWeight: 800, fontSize: '0.85rem', color: isLunas ? '#059669' : '#d97706' }}>
-                        Rp {Number(trx.total_bayar || 0).toLocaleString('id-ID')}
-                      </div>
-                      <span style={{
-                        display: 'inline-block',
-                        fontSize: '0.62rem',
-                        fontWeight: 800,
-                        padding: '2px 8px',
-                        borderRadius: '6px',
-                        marginTop: '3px',
-                        background: isLunas ? '#dcfce7' : '#fef3c7',
-                        color: isLunas ? '#15803d' : '#b45309'
-                      }}>
-                        {isLunas ? 'Lunas / Sah' : 'Menunggu Bayar'}
+                      <span>
+                        {trx.created_at ? new Date(trx.created_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'}
                       </span>
                     </div>
+
+                    {/* Action Khusus Transaksi Pending: Cek Status Langsung ke Midtrans */}
+                    {isPending && (
+                      <div style={{ marginTop: '4px', paddingTop: '6px', borderTop: '1px solid #f8fafc' }}>
+                        <button
+                          onClick={() => handleCekStatusMidtrans(trx)}
+                          disabled={isChecking}
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            borderRadius: '10px',
+                            border: '1px solid #fed7aa',
+                            background: '#fff7ed',
+                            color: '#c2410c',
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            cursor: isChecking ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          <RotateCw size={13} className={isChecking ? 'spin' : ''} />
+                          <span>{isChecking ? 'Mengecek ke Midtrans...' : 'Cek Status Pembayaran ke Midtrans'}</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               });

@@ -297,6 +297,7 @@ export default function MobileLayout() {
       case 'keuangan-spp':
       case 'keuangan-masuk':
       case 'keuangan-transaksi':
+      case 'keuangan-midtrans':
       case 'keuangan-tunggakan':
       case 'keuangan-komponen':
       case 'keuangan-generate':

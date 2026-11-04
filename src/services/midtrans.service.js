@@ -304,3 +304,28 @@ export function verifyMidtransSignature(payload) {
   return calculated.toLowerCase() === String(payload.signature_key || '').toLowerCase();
 }
 
+/**
+ * Cek Status Transaksi Langsung ke Server Midtrans
+ */
+export async function checkMidtransTransactionStatus(orderId) {
+  const config = getMidtransConfig();
+  const authHeader = Buffer.from(`${config.serverKey}:`).toString('base64');
+  try {
+    const res = await axios.get(`${config.coreApiUrl}/${orderId}/status`, {
+      headers: {
+        'Authorization': `Basic ${authHeader}`,
+        'Accept': 'application/json'
+      },
+      timeout: 10000
+    });
+    return { success: true, data: res.data };
+  } catch (err) {
+    return {
+      success: false,
+      error: err.response?.data?.status_message || err.message,
+      statusCode: err.response?.status
+    };
+  }
+}
+
+
