@@ -59,49 +59,28 @@ export default function AbsensiFingerprintView() {
 
       if (fetched && Array.isArray(fetched) && fetched.length > 0) {
         const normalized = fetched.map((item, idx) => {
-          let keg = "Presensi Santri";
-          const kat = (
-            item.kategori ||
-            item.nama_sesi ||
-            item.kegiatan ||
-            ""
-          ).toLowerCase();
-          if (
-            kat.includes("tahfidz") ||
-            kat.includes("halaqah") ||
-            kat.includes("ngaji") ||
-            kat.includes("qur")
-          ) {
-            keg = "Absensi Halaqah Tahfidz";
-          } else if (
-            kat.includes("shalat") ||
-            kat.includes("jamaah") ||
-            kat.includes("subuh") ||
-            kat.includes("dzuhur") ||
-            kat.includes("ashar") ||
-            kat.includes("maghrib") ||
-            kat.includes("isya")
-          ) {
-            keg = "Shalat Berjamaah";
-          }
+          // Tampilkan nama kegiatan spesifik (contoh: Shalat Isya, Shalat Subuh, Halaqah, dll)
+          const namaKegiatan = item.nama_sesi || item.kegiatan || item.kategori || "Shalat Berjamaah";
+
           return {
             id: item.id || idx + 1,
             nama_santri: item.nama_santri || "Santri",
             nis: item.nis || "-",
-            kegiatan: item.kegiatan || keg,
+            kegiatan: namaKegiatan,
             tanggal: item.tanggal
               ? typeof item.tanggal === "string" && item.tanggal.includes("T")
                 ? item.tanggal.split("T")[0]
                 : item.tanggal
               : todayStr,
-            jam_masuk: item.jam_masuk || item.waktu_scan || "04:42:15",
-            jam_pulang: item.jam_pulang || "Belum Scan",
-            status: item.status || item.status_kehadiran || "Hadir Tepat Waktu",
+            jam_scan: item.waktu_scan || item.jam_masuk || "-",
+            status: item.status || item.status_kehadiran || "Hadir",
             nama_asrama: item.nama_asrama || "-",
             nama_kamar: item.nama_kamar || "-",
             tipe_santri:
               item.tipe_santri || item.status_santri || "Santri Mukim",
             lat_lng: item.lat_lng || "-7.325374, 108.208331",
+            metode_scan: item.metode_scan || item.metode_presensi || "Fingerprint",
+            nama_device: item.nama_device || "Mesin MP340"
           };
         });
         setAbsensiList(normalized);
@@ -134,24 +113,8 @@ export default function AbsensiFingerprintView() {
     // 2. Filter Kegiatan
     if (selectedKegiatan && selectedKegiatan !== "semua") {
       const keg = (item.kegiatan || "").toLowerCase();
-      if (selectedKegiatan === "Presensi Santri") {
-        const isSantri =
-          keg.includes("santri") ||
-          keg.includes("harian") ||
-          (!keg.includes("tahfidz") &&
-            !keg.includes("halaqah") &&
-            !keg.includes("shalat"));
-        if (!isSantri) return false;
-      } else if (selectedKegiatan === "Absensi Halaqah Tahfidz") {
-        const isHalaqah =
-          keg.includes("tahfidz") ||
-          keg.includes("halaqah") ||
-          keg.includes("ngaji") ||
-          keg.includes("qur");
-        if (!isHalaqah) return false;
-      } else if (selectedKegiatan === "Shalat Berjamaah") {
-        const isShalat = keg.includes("shalat") || keg.includes("jamaah");
-        if (!isShalat) return false;
+      if (!keg.includes(selectedKegiatan.toLowerCase())) {
+        return false;
       }
     }
 
@@ -175,31 +138,28 @@ export default function AbsensiFingerprintView() {
     // 5. Filter Status
     if (selectedStatus && selectedStatus !== "semua") {
       const st = (item.status || "").toLowerCase();
-      if (selectedStatus === "Hadir Tepat Waktu" && !st.includes("tepat"))
+      if (selectedStatus === "Hadir Tepat Waktu" && st.includes("terlambat"))
         return false;
       if (selectedStatus === "Terlambat" && !st.includes("terlambat"))
-        return false;
-      if (
-        selectedStatus === "Belum Scan" &&
-        !st.includes("belum") &&
-        item.jam_pulang !== "Belum Scan"
-      )
         return false;
     }
 
     return true;
   });
 
+  // Ambil daftar nama kegiatan unik untuk filter dropdown
+  const distinctKegiatan = Array.from(
+    new Set(absensiList.map((a) => a.kegiatan).filter(Boolean))
+  );
+
   const totalLog = filteredList.length;
-  const presensiLengkap = filteredList.filter(
-    (x) => x.jam_pulang && x.jam_pulang !== "Belum Scan",
-  ).length;
-  const belumScan = filteredList.filter(
-    (x) => !x.jam_pulang || x.jam_pulang === "Belum Scan",
+  const hadirTepat = filteredList.filter(
+    (x) => !((x.status || "").toLowerCase().includes("terlambat")),
   ).length;
   const terlambat = filteredList.filter((x) =>
     (x.status || "").toLowerCase().includes("terlambat"),
   ).length;
+  const totalSantriHadir = new Set(filteredList.map((x) => x.nis || x.nama_santri)).size;
 
   return (
     <div>
@@ -217,8 +177,8 @@ export default function AbsensiFingerprintView() {
 
         <div className="stat-card-colored stat-card-green">
           <div>
-            <div className="stat-colored-title">PRESENSI LENGKAP</div>
-            <div className="stat-colored-number">{presensiLengkap}</div>
+            <div className="stat-colored-title">HADIR TEPAT WAKTU</div>
+            <div className="stat-colored-number">{hadirTepat}</div>
           </div>
           <div className="stat-colored-icon-box">
             <CheckCircle size={22} />
@@ -227,21 +187,21 @@ export default function AbsensiFingerprintView() {
 
         <div className="stat-card-colored stat-card-amber">
           <div>
-            <div className="stat-colored-title">BELUM SCAN PULANG</div>
-            <div className="stat-colored-number">{belumScan}</div>
-          </div>
-          <div className="stat-colored-icon-box">
-            <Clock size={22} />
-          </div>
-        </div>
-
-        <div className="stat-card-colored stat-card-purple">
-          <div>
             <div className="stat-colored-title">TERLAMBAT</div>
             <div className="stat-colored-number">{terlambat}</div>
           </div>
           <div className="stat-colored-icon-box">
             <AlertCircle size={22} />
+          </div>
+        </div>
+
+        <div className="stat-card-colored stat-card-purple">
+          <div>
+            <div className="stat-colored-title">TOTAL SANTRI HADIR</div>
+            <div className="stat-colored-number">{totalSantriHadir}</div>
+          </div>
+          <div className="stat-colored-icon-box">
+            <Users size={22} />
           </div>
         </div>
       </div>
@@ -298,12 +258,12 @@ export default function AbsensiFingerprintView() {
           title="Pilih Kegiatan Santri"
           style={{ fontWeight: 600, color: "#0369a1" }}
         >
-          <option value="Presensi Santri">Presensi Santri</option>
-          <option value="Absensi Halaqah Tahfidz">
-            Absensi Halaqah Tahfidz
-          </option>
-          <option value="Shalat Berjamaah">Shalat Berjamaah</option>
           <option value="semua">Semua Kegiatan</option>
+          {distinctKegiatan.map((kegName) => (
+            <option key={kegName} value={kegName}>
+              {kegName}
+            </option>
+          ))}
         </select>
 
         {/* SELECT SANTRI MUKIM / KALONG */}
@@ -392,9 +352,8 @@ export default function AbsensiFingerprintView() {
                 <th>NAMA SANTRI &amp; NIS</th>
                 <th>KEGIATAN</th>
                 <th className="td-center">TANGGAL</th>
-                <th className="td-center">JAM MASUK</th>
-                <th className="td-center">JAM PULANG</th>
-                <th>LOKASI PRESENSI</th>
+                <th className="td-center">JAM SCAN</th>
+                <th>LOKASI / DEVICE</th>
                 <th className="td-center" style={{ width: "90px" }}>
                   DETAIL
                 </th>
@@ -404,7 +363,7 @@ export default function AbsensiFingerprintView() {
               {filteredList.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="8"
+                    colSpan="7"
                     style={{
                       textAlign: "center",
                       padding: "30px",
@@ -437,17 +396,17 @@ export default function AbsensiFingerprintView() {
                     </td>
                     <td>
                       <span
-                        className={`badge ${
-                          row.kegiatan?.includes("Tahfidz") ||
-                          row.kegiatan?.includes("Halaqah")
-                            ? "badge-purple"
-                            : row.kegiatan?.includes("Shalat")
-                              ? "badge-info"
-                              : "badge-primary"
-                        }`}
-                        style={{ fontSize: "0.7rem", padding: "3px 8px" }}
+                        className="badge badge-primary"
+                        style={{
+                          fontSize: "0.74rem",
+                          padding: "4px 10px",
+                          fontWeight: 700,
+                          background: "#ecfdf5",
+                          color: "#047857",
+                          border: "1px solid #a7f3d0",
+                        }}
                       >
-                        {row.kegiatan || "Presensi Santri"}
+                        {row.kegiatan || "Shalat Berjamaah"}
                       </span>
                     </td>
                     <td
@@ -462,27 +421,35 @@ export default function AbsensiFingerprintView() {
                         : "-"}
                     </td>
                     <td className="td-center">
-                      <span style={{ fontWeight: 600, marginRight: "6px" }}>
-                        {row.jam_masuk || row.waktu_scan || "-"}
-                      </span>
-                      <span
-                        className={`badge ${row.status === "Hadir Tepat Waktu" || row.status?.includes("Tepat") ? "badge-success" : "badge-danger"}`}
+                      <div
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                        }}
                       >
-                        {row.status?.includes("Tepat")
-                          ? "Tepat Waktu"
-                          : "Terlambat"}
-                      </span>
-                    </td>
-                    <td className="td-center">
-                      {row.jam_pulang === "Belum Scan" || !row.jam_pulang ? (
-                        <span style={{ color: "#d97706", fontWeight: 600 }}>
-                          Belum Scan
+                        <span
+                          style={{
+                            fontWeight: 700,
+                            color: "#0f172a",
+                            fontSize: "0.85rem",
+                          }}
+                        >
+                          {row.jam_scan || "-"}
                         </span>
-                      ) : (
-                        <span style={{ color: "#0284c7", fontWeight: 600 }}>
-                          {row.jam_pulang}
+                        <span
+                          className={`badge ${
+                            (row.status || "").toLowerCase().includes("terlambat")
+                              ? "badge-danger"
+                              : "badge-success"
+                          }`}
+                          style={{ fontSize: "0.66rem", padding: "2px 6px" }}
+                        >
+                          {(row.status || "").toLowerCase().includes("terlambat")
+                            ? "Terlambat"
+                            : "Tepat Waktu"}
                         </span>
-                      )}
+                      </div>
                     </td>
                     <td>
                       <div
@@ -495,7 +462,9 @@ export default function AbsensiFingerprintView() {
                         }}
                       >
                         <MapPin size={13} />
-                        <span>{row.lat_lng || "-7.325374, 108.208331"}</span>
+                        <span>
+                          {row.nama_device || row.metode_scan || "Mesin MP340"}
+                        </span>
                       </div>
                     </td>
                     <td className="td-center">
@@ -614,9 +583,9 @@ export default function AbsensiFingerprintView() {
                   paddingBottom: "6px",
                 }}
               >
-                <span style={{ color: "#64748b" }}>Jam Masuk / Scan</span>
-                <span style={{ fontWeight: 600, color: "#0284c7" }}>
-                  {selectedDetail.jam_masuk}
+                <span style={{ color: "#64748b" }}>Jam Scan</span>
+                <span style={{ fontWeight: 700, color: "#0284c7" }}>
+                  {selectedDetail.jam_scan || selectedDetail.jam_masuk || "-"}
                 </span>
               </div>
               <div
@@ -627,9 +596,9 @@ export default function AbsensiFingerprintView() {
                   paddingBottom: "6px",
                 }}
               >
-                <span style={{ color: "#64748b" }}>Jam Pulang</span>
-                <span style={{ fontWeight: 600 }}>
-                  {selectedDetail.jam_pulang}
+                <span style={{ color: "#64748b" }}>Perangkat / Mesin</span>
+                <span style={{ fontWeight: 600, color: "#0f172a" }}>
+                  {selectedDetail.nama_device || selectedDetail.metode_scan || "Mesin MP340"}
                 </span>
               </div>
               <div
