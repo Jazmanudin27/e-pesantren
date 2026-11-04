@@ -4,25 +4,27 @@ import {
   BookOpen, 
   Wallet, 
   DoorOpen, 
-  Users,
-  Building,
-  GraduationCap,
-  ShieldAlert,
-  HardDrive,
-  BarChart3,
-  FileText,
-  LayoutDashboard,
-  Fingerprint,
-  Grid,
-  X,
-  ArrowLeft,
-  User,
-  HeartHandshake,
-  Smile,
-  Award,
-  CreditCard,
-  Wallet,
-  DollarSign
+  Users, 
+  Building, 
+  GraduationCap, 
+  ShieldAlert, 
+  HardDrive, 
+  BarChart3, 
+  FileText, 
+  LayoutDashboard, 
+  Fingerprint, 
+  Grid, 
+  X, 
+  ArrowLeft, 
+  User, 
+  HeartHandshake, 
+  Smile, 
+  Award, 
+  CreditCard, 
+  DollarSign,
+  Zap,
+  Layers,
+  RotateCw
 } from 'lucide-react';
 import MobileHome from '../views/mobile/MobileHome';
 import MobileTahfidz from '../views/mobile/MobileTahfidz';
@@ -222,6 +224,26 @@ export default function MobileLayout() {
     'keuangan-transaksi', 'keuangan-tunggakan', 'keuangan-komponen', 'keuangan-generate'
   ].includes(mobileTab);
 
+  const renderAksesDibatasi = () => (
+    <div style={{ padding: '36px 20px', textAlign: 'center', background: '#fff', borderRadius: '20px', margin: '20px 14px', border: '1px solid #fee2e2' }}>
+      <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#fef2f2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+        <ShieldAlert size={30} />
+      </div>
+      <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>
+        Akses Dibatasi
+      </h3>
+      <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 16px', lineHeight: 1.4 }}>
+        Menu Keuangan hanya dapat diakses oleh Admin Keuangan / Bendahara. Admin Absensi dan operasional tidak memiliki hak akses.
+      </p>
+      <button 
+        onClick={() => handleSelectTab('home')}
+        style={{ background: '#059669', color: '#fff', border: 'none', padding: '9px 18px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+      >
+        Kembali ke Beranda
+      </button>
+    </div>
+  );
+
   const renderContent = () => {
     switch (mobileTab) {
       case 'home':
@@ -270,46 +292,26 @@ export default function MobileLayout() {
       case 'syahriah':
       case 'keuangan':
       case 'keuangan-kasir':
-        if (!canAccessKeuangan(session)) {
-          return (
-            <div style={{ padding: '36px 20px', textAlign: 'center', background: '#fff', borderRadius: '20px', margin: '20px 14px', border: '1px solid #fee2e2' }}>
-              <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#fef2f2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
-                <ShieldAlert size={30} />
-              </div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>
-                Akses Dibatasi
-              </h3>
-              <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 16px', lineHeight: 1.4 }}>
-                Menu Keuangan hanya dapat diakses oleh Admin Keuangan / Bendahara. Admin Absensi dan operasional tidak memiliki hak akses.
-              </p>
-              <button 
-                onClick={() => handleSelectTab('home')}
-                style={{ background: '#059669', color: '#fff', border: 'none', padding: '9px 18px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
-              >
-                Kembali ke Beranda
-              </button>
-            </div>
-          );
-        }
+        if (!canAccessKeuangan(session)) return renderAksesDibatasi();
         return <KeuanganAdminView initialMode="kasir" />;
       case 'keuangan-rekap':
-        if (!canAccessKeuangan(session)) return renderContent(handleSelectTab('home'));
+        if (!canAccessKeuangan(session)) return renderAksesDibatasi();
         return <KeuanganAdminView initialMode="rekap" initialRekapTab="semua" />;
       case 'keuangan-spp':
-        if (!canAccessKeuangan(session)) return renderContent(handleSelectTab('home'));
+        if (!canAccessKeuangan(session)) return renderAksesDibatasi();
         return <KeuanganAdminView initialMode="kasir" />;
       case 'keuangan-masuk':
-        if (!canAccessKeuangan(session)) return renderContent(handleSelectTab('home'));
+        if (!canAccessKeuangan(session)) return renderAksesDibatasi();
         return <KeuanganAdminView initialMode="kasir" />;
       case 'keuangan-transaksi':
-        if (!canAccessKeuangan(session)) return renderContent(handleSelectTab('home'));
+        if (!canAccessKeuangan(session)) return renderAksesDibatasi();
         return <KeuanganAdminView initialMode="rekap" initialRekapTab="transaksi" />;
       case 'keuangan-tunggakan':
-        if (!canAccessKeuangan(session)) return renderContent(handleSelectTab('home'));
+        if (!canAccessKeuangan(session)) return renderAksesDibatasi();
         return <KeuanganAdminView initialMode="rekap" initialRekapTab="tunggakan" />;
       case 'keuangan-komponen':
       case 'keuangan-generate':
-        if (!canAccessKeuangan(session)) return renderContent(handleSelectTab('home'));
+        if (!canAccessKeuangan(session)) return renderAksesDibatasi();
         return <KeuanganAdminView initialMode="rekap" initialRekapTab="komponen" />;
       case 'profil':
         return <MobileProfil onChangeTab={handleSelectTab} onLogout={handleLogout} />;
