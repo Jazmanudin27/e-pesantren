@@ -1,6 +1,5 @@
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
-import { initPerkembanganIkhwanDb } from '../config/initPerkembanganIkhwanDb.js';
 
 /**
  * 1. Mengambil Seluruh Kategori Perkembangan Santri (Laki-Laki / Perempuan) beserta Item Master
@@ -18,12 +17,7 @@ export const getMasterPerkembangan = async (req, res) => {
     }
     sqlKat += ` ORDER BY urutan ASC, id ASC `;
 
-    let [kategoriRows] = await pool.query(sqlKat, params);
-    if (!kategoriRows || kategoriRows.length === 0 || (gender === 'P' && kategoriRows.length < 7)) {
-      await initPerkembanganIkhwanDb();
-      const [recheck] = await pool.query(sqlKat, params);
-      kategoriRows = recheck;
-    }
+    const [kategoriRows] = await pool.query(sqlKat, params);
 
     const [itemRows] = await pool.query(`
       SELECT * FROM perkembangan_master_item 
