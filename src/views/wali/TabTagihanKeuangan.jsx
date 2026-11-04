@@ -172,29 +172,54 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
   };
 
   // Lanjutkan Pembayaran yang masih Pending
-  const handleLanjutkanBayar = (pendingTrx) => {
-    if (pendingTrx?.snap_token && window.snap) {
-      window.snap.pay(pendingTrx.snap_token, {
-        onSuccess: function () {
-          toastSuccess('Pembayaran Berhasil!', 'Pembayaran via Midtrans berhasil diverifikasi.');
-          setSelectedItems({});
-          fetchKeuangan();
-        },
-        onPending: function () {
-          toastSuccess('Menunggu Pembayaran', 'Selesaikan pembayaran sebelum batas waktu berakhir.');
-          fetchKeuangan();
-        },
-        onError: function (result) {
-          showError('Pembayaran Gagal', result?.status_message || 'Transaksi gagal.');
-        },
-        onClose: function () {
-          fetchKeuangan();
+  const handleLanjutkanBayar = async (pendingTrx) => {
+    try {
+      setProcessing(true);
+      let snapToken = pendingTrx?.snap_token;
+      let paymentUrl = pendingTrx?.payment_url;
+
+      // Jika snap_token belum ada di memori lokal, minta backend cari/buatkan tokennya
+      if (!snapToken) {
+        const res = await axios.post('/api/keuangan/wali/lanjutkan', {
+          nomor_transaksi: pendingTrx.nomor_transaksi,
+          transaksi_id: pendingTrx.id
+        });
+        if (res.data?.success && res.data?.data?.snap_token) {
+          snapToken = res.data.data.snap_token;
+          paymentUrl = res.data.data.payment_url;
+        } else {
+          showError('Gagal Memuat Transaksi', res.data?.message || 'Token pembayaran tidak tersedia.');
+          return;
         }
-      });
-    } else if (pendingTrx?.payment_url) {
-      window.open(pendingTrx.payment_url, '_blank');
-    } else {
-      showError('Gagal', 'Token transaksi tidak ditemukan.');
+      }
+
+      if (snapToken && window.snap) {
+        window.snap.pay(snapToken, {
+          onSuccess: function () {
+            toastSuccess('Pembayaran Berhasil!', 'Pembayaran via Midtrans berhasil diverifikasi.');
+            setSelectedItems({});
+            fetchKeuangan();
+          },
+          onPending: function () {
+            toastSuccess('Menunggu Pembayaran', 'Selesaikan pembayaran sebelum batas waktu berakhir.');
+            fetchKeuangan();
+          },
+          onError: function (result) {
+            showError('Pembayaran Gagal', result?.status_message || 'Transaksi gagal.');
+          },
+          onClose: function () {
+            fetchKeuangan();
+          }
+        });
+      } else if (paymentUrl) {
+        window.open(paymentUrl, '_blank');
+      } else {
+        showError('Gagal', 'Sistem pop-up Midtrans belum siap.');
+      }
+    } catch (err) {
+      showError('Gagal Melanjutkan Pembayaran', err.response?.data?.message || err.message);
+    } finally {
+      setProcessing(false);
     }
   };
 

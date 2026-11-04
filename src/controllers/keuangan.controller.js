@@ -443,6 +443,85 @@ export const batalkanTransaksiPembayaran = async (req, res) => {
 };
 
 /**
+ * Lanjutkan Pembayaran Pending (Ambil atau Buat Ulang Snap Token jika Belum Ada)
+ */
+export const lanjutkanPembayaran = async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { nomor_transaksi, transaksi_id } = req.body;
+    if (!nomor_transaksi && !transaksi_id) {
+      return sendError(res, 'Nomor atau ID transaksi wajib diisi', 400);
+    }
+
+    const [trxRows] = await connection.query(`
+      SELECT p.*, s.nama_santri, s.no_wa_wali 
+      FROM keuangan_transaksi_pembayaran p
+      LEFT JOIN santri s ON p.santri_id = s.id
+      WHERE ${transaksi_id ? 'p.id = ?' : 'p.nomor_transaksi = ?'} LIMIT 1
+    `, [transaksi_id || nomor_transaksi]);
+
+    if (!trxRows || trxRows.length === 0) {
+      return sendError(res, 'Transaksi tidak ditemukan', 404);
+    }
+
+    const trx = trxRows[0];
+    if (trx.status_pembayaran !== 'Pending') {
+      return sendError(res, `Status transaksi saat ini adalah ${trx.status_pembayaran}`, 400);
+    }
+
+    // 1. Jika snap_token sudah tersimpan, langsung kembalikan
+    if (trx.snap_token) {
+      return sendSuccess(res, 'Token transaksi ditemukan', {
+        snap_token: trx.snap_token,
+        nomor_transaksi: trx.nomor_transaksi,
+        total_bayar: trx.total_bayar
+      });
+    }
+
+    // 2. Jika snap_token kosong (transaksi lama sebelum migrasi kolom), buat token baru on-the-fly
+    const [detailRows] = await connection.query(`
+      SELECT d.tagihan_id, d.nominal_alokasi, t.judul_tagihan 
+      FROM keuangan_transaksi_detail d
+      JOIN keuangan_tagihan t ON d.tagihan_id = t.id
+      WHERE d.transaksi_id = ?
+    `, [trx.id]);
+
+    const itemsValid = detailRows.map(d => ({
+      tagihan_id: d.tagihan_id,
+      nominal_alokasi: d.nominal_alokasi,
+      judul_tagihan: d.judul_tagihan
+    }));
+
+    const snapRes = await createMidtransSnapToken({
+      nomorTransaksi: trx.nomor_transaksi,
+      totalBayar: trx.total_bayar,
+      santriNama: trx.nama_santri || 'Santri',
+      noWaWali: trx.no_wa_wali || '081234567890',
+      items: itemsValid
+    });
+
+    if (snapRes && snapRes.success && snapRes.token) {
+      try {
+        await connection.query('UPDATE keuangan_transaksi_pembayaran SET snap_token = ? WHERE id = ?', [snapRes.token, trx.id]);
+      } catch (upErr) {}
+
+      return sendSuccess(res, 'Token transaksi berhasil dimuat', {
+        snap_token: snapRes.token,
+        payment_url: snapRes.redirect_url,
+        nomor_transaksi: trx.nomor_transaksi,
+        total_bayar: trx.total_bayar
+      });
+    } else {
+      return sendError(res, `Gagal memuat token Midtrans: ${snapRes?.error || 'Tidak dapat membuat snap token'}`, 400);
+    }
+  } catch (err) {
+    return sendError(res, `Gagal melanjutkan pembayaran: ${err.message}`, 500);
+  } finally {
+    connection.release();
+  }
+};
+
+/**
  * Verifikasi / Simulasi Konfirmasi Pembayaran Berhasil
  * Dapat dipanggil oleh webhook payment gateway atau tombol bayar instant di prototype
  */
