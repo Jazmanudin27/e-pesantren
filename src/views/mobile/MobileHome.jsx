@@ -40,6 +40,7 @@ import {
   Zap,
   RotateCw,
   ArrowRight,
+  ArrowLeft,
   Receipt,
   CheckCircle2,
   ChevronRight,
@@ -582,26 +583,26 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       </div>
 
       {/* =========================================================================
-          SECTION: MENU (ALL 9 MENU ITEMS UNIFIED - BIGGER & VIBRANT ICONS)
+          SECTION: MENU (ALL 9 MENU ITEMS UNIFIED - EXPANDED WIDTH & TIGHT SPACING)
       ========================================================================= */}
-      <div style={{ padding: "18px 14px 6px" }}>
+      <div style={{ padding: "14px 10px 2px" }}>
         <div
           style={{
-            fontSize: "0.86rem",
+            fontSize: "0.84rem",
             fontWeight: 800,
             color: "#1e293b",
-            marginBottom: "14px",
+            marginBottom: "10px",
             display: "flex",
             alignItems: "center",
-            gap: "8px",
+            gap: "6px",
           }}
         >
           <span
             style={{
               width: "4px",
-              height: "16px",
+              height: "15px",
               background: "linear-gradient(180deg, #0d766e 0%, #10b981 100%)",
-              borderRadius: "4px",
+              borderRadius: "3px",
             }}
           />
           Menu
@@ -610,7 +611,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(4, 1fr)",
-            gap: "16px 8px",
+            gap: "10px 6px",
             justifyItems: "center",
           }}
         >
@@ -621,20 +622,21 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "8px",
+              gap: "4px",
               cursor: "pointer",
               width: "100%",
             }}
           >
             <div
               style={{
-                width: "66px",
-                height: "66px",
-                borderRadius: "20px",
+                width: "100%",
+                maxWidth: "78px",
+                height: "64px",
+                borderRadius: "18px",
                 background: "#ffffff",
                 border: "1px solid #edf2f7",
                 boxShadow:
-                  "0 6px 16px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.03)",
+                  "0 4px 12px -2px rgba(15, 23, 42, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.02)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -642,23 +644,23 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             >
               <div
                 style={{
-                  width: "46px",
-                  height: "46px",
-                  borderRadius: "14px",
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "13px",
                   background: "linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)",
                   border: "1px solid rgba(16, 185, 129, 0.25)",
-                  boxShadow: "0 4px 10px rgba(16, 185, 129, 0.18)",
+                  boxShadow: "0 3px 8px rgba(16, 185, 129, 0.16)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Users size={25} strokeWidth={2.4} color="#059669" />
+                <Users size={24} strokeWidth={2.4} color="#059669" />
               </div>
             </div>
             <span
               style={{
-                fontSize: "0.74rem",
+                fontSize: "0.72rem",
                 fontWeight: 700,
                 color: "#1e293b",
                 textAlign: "center",
@@ -676,20 +678,21 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "8px",
+              gap: "4px",
               cursor: "pointer",
               width: "100%",
             }}
           >
             <div
               style={{
-                width: "66px",
-                height: "66px",
-                borderRadius: "20px",
+                width: "100%",
+                maxWidth: "78px",
+                height: "64px",
+                borderRadius: "18px",
                 background: "#ffffff",
                 border: "1px solid #edf2f7",
                 boxShadow:
-                  "0 6px 16px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.03)",
+                  "0 4px 12px -2px rgba(15, 23, 42, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.02)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -697,23 +700,23 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             >
               <div
                 style={{
-                  width: "46px",
-                  height: "46px",
-                  borderRadius: "14px",
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "13px",
                   background: "linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)",
                   border: "1px solid rgba(14, 165, 233, 0.25)",
-                  boxShadow: "0 4px 10px rgba(14, 165, 233, 0.18)",
+                  boxShadow: "0 3px 8px rgba(14, 165, 233, 0.16)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <GraduationCap size={25} strokeWidth={2.4} color="#0284c7" />
+                <GraduationCap size={24} strokeWidth={2.4} color="#0284c7" />
               </div>
             </div>
             <span
               style={{
-                fontSize: "0.74rem",
+                fontSize: "0.72rem",
                 fontWeight: 700,
                 color: "#1e293b",
                 textAlign: "center",
@@ -731,20 +734,21 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "8px",
+              gap: "4px",
               cursor: "pointer",
               width: "100%",
             }}
           >
             <div
               style={{
-                width: "66px",
-                height: "66px",
-                borderRadius: "20px",
+                width: "100%",
+                maxWidth: "78px",
+                height: "64px",
+                borderRadius: "18px",
                 background: "#ffffff",
                 border: "1px solid #edf2f7",
                 boxShadow:
-                  "0 6px 16px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.03)",
+                  "0 4px 12px -2px rgba(15, 23, 42, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.02)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -752,23 +756,23 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             >
               <div
                 style={{
-                  width: "46px",
-                  height: "46px",
-                  borderRadius: "14px",
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "13px",
                   background: "linear-gradient(135deg, #f3e8ff 0%, #ddd6fe 100%)",
                   border: "1px solid rgba(139, 92, 246, 0.25)",
-                  boxShadow: "0 4px 10px rgba(139, 92, 246, 0.18)",
+                  boxShadow: "0 3px 8px rgba(139, 92, 246, 0.16)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Building size={25} strokeWidth={2.4} color="#7c3aed" />
+                <Building size={24} strokeWidth={2.4} color="#7c3aed" />
               </div>
             </div>
             <span
               style={{
-                fontSize: "0.74rem",
+                fontSize: "0.72rem",
                 fontWeight: 700,
                 color: "#1e293b",
                 textAlign: "center",
@@ -786,20 +790,21 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "8px",
+              gap: "4px",
               cursor: "pointer",
               width: "100%",
             }}
           >
             <div
               style={{
-                width: "66px",
-                height: "66px",
-                borderRadius: "20px",
+                width: "100%",
+                maxWidth: "78px",
+                height: "64px",
+                borderRadius: "18px",
                 background: "#ffffff",
                 border: "1px solid #edf2f7",
                 boxShadow:
-                  "0 6px 16px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.03)",
+                  "0 4px 12px -2px rgba(15, 23, 42, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.02)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -807,23 +812,23 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             >
               <div
                 style={{
-                  width: "46px",
-                  height: "46px",
-                  borderRadius: "14px",
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "13px",
                   background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
                   border: "1px solid rgba(245, 158, 11, 0.25)",
-                  boxShadow: "0 4px 10px rgba(245, 158, 11, 0.18)",
+                  boxShadow: "0 3px 8px rgba(245, 158, 11, 0.16)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Calendar size={25} strokeWidth={2.4} color="#d97706" />
+                <Calendar size={24} strokeWidth={2.4} color="#d97706" />
               </div>
             </div>
             <span
               style={{
-                fontSize: "0.74rem",
+                fontSize: "0.72rem",
                 fontWeight: 700,
                 color: "#1e293b",
                 textAlign: "center",
@@ -841,20 +846,21 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "8px",
+              gap: "4px",
               cursor: "pointer",
               width: "100%",
             }}
           >
             <div
               style={{
-                width: "66px",
-                height: "66px",
-                borderRadius: "20px",
+                width: "100%",
+                maxWidth: "78px",
+                height: "64px",
+                borderRadius: "18px",
                 background: "#ffffff",
                 border: "1px solid #edf2f7",
                 boxShadow:
-                  "0 6px 16px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.03)",
+                  "0 4px 12px -2px rgba(15, 23, 42, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.02)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -862,23 +868,23 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             >
               <div
                 style={{
-                  width: "46px",
-                  height: "46px",
-                  borderRadius: "14px",
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "13px",
                   background: "linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)",
                   border: "1px solid rgba(99, 102, 241, 0.25)",
-                  boxShadow: "0 4px 10px rgba(99, 102, 241, 0.18)",
+                  boxShadow: "0 3px 8px rgba(99, 102, 241, 0.16)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Clock size={25} strokeWidth={2.4} color="#4f46e5" />
+                <Clock size={24} strokeWidth={2.4} color="#4f46e5" />
               </div>
             </div>
             <span
               style={{
-                fontSize: "0.74rem",
+                fontSize: "0.72rem",
                 fontWeight: 700,
                 color: "#1e293b",
                 textAlign: "center",
@@ -896,20 +902,21 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "8px",
+              gap: "4px",
               cursor: "pointer",
               width: "100%",
             }}
           >
             <div
               style={{
-                width: "66px",
-                height: "66px",
-                borderRadius: "20px",
+                width: "100%",
+                maxWidth: "78px",
+                height: "64px",
+                borderRadius: "18px",
                 background: "#ffffff",
                 border: "1px solid #edf2f7",
                 boxShadow:
-                  "0 6px 16px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.03)",
+                  "0 4px 12px -2px rgba(15, 23, 42, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.02)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -917,23 +924,23 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             >
               <div
                 style={{
-                  width: "46px",
-                  height: "46px",
-                  borderRadius: "14px",
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "13px",
                   background: "linear-gradient(135deg, #ffe4e6 0%, #fecdd3 100%)",
                   border: "1px solid rgba(239, 68, 68, 0.25)",
-                  boxShadow: "0 4px 10px rgba(239, 68, 68, 0.18)",
+                  boxShadow: "0 3px 8px rgba(239, 68, 68, 0.16)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <ShieldAlert size={25} strokeWidth={2.4} color="#e11d48" />
+                <ShieldAlert size={24} strokeWidth={2.4} color="#e11d48" />
               </div>
             </div>
             <span
               style={{
-                fontSize: "0.74rem",
+                fontSize: "0.72rem",
                 fontWeight: 700,
                 color: "#1e293b",
                 textAlign: "center",
@@ -951,20 +958,21 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "8px",
+              gap: "4px",
               cursor: "pointer",
               width: "100%",
             }}
           >
             <div
               style={{
-                width: "66px",
-                height: "66px",
-                borderRadius: "20px",
+                width: "100%",
+                maxWidth: "78px",
+                height: "64px",
+                borderRadius: "18px",
                 background: "#ffffff",
                 border: "1px solid #edf2f7",
                 boxShadow:
-                  "0 6px 16px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.03)",
+                  "0 4px 12px -2px rgba(15, 23, 42, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.02)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -972,23 +980,23 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             >
               <div
                 style={{
-                  width: "46px",
-                  height: "46px",
-                  borderRadius: "14px",
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "13px",
                   background: "linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%)",
                   border: "1px solid rgba(13, 148, 136, 0.25)",
-                  boxShadow: "0 4px 10px rgba(13, 148, 136, 0.18)",
+                  boxShadow: "0 3px 8px rgba(13, 148, 136, 0.16)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Fingerprint size={25} strokeWidth={2.4} color="#0d9488" />
+                <Fingerprint size={24} strokeWidth={2.4} color="#0d9488" />
               </div>
             </div>
             <span
               style={{
-                fontSize: "0.74rem",
+                fontSize: "0.72rem",
                 fontWeight: 700,
                 color: "#1e293b",
                 textAlign: "center",
@@ -1006,20 +1014,21 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "8px",
+              gap: "4px",
               cursor: "pointer",
               width: "100%",
             }}
           >
             <div
               style={{
-                width: "66px",
-                height: "66px",
-                borderRadius: "20px",
+                width: "100%",
+                maxWidth: "78px",
+                height: "64px",
+                borderRadius: "18px",
                 background: "#ffffff",
                 border: "1px solid #edf2f7",
                 boxShadow:
-                  "0 6px 16px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.03)",
+                  "0 4px 12px -2px rgba(15, 23, 42, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.02)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -1027,23 +1036,23 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             >
               <div
                 style={{
-                  width: "46px",
-                  height: "46px",
-                  borderRadius: "14px",
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "13px",
                   background: "linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%)",
                   border: "1px solid rgba(6, 182, 212, 0.25)",
-                  boxShadow: "0 4px 10px rgba(6, 182, 212, 0.18)",
+                  boxShadow: "0 3px 8px rgba(6, 182, 212, 0.16)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Award size={25} strokeWidth={2.4} color="#0891b2" />
+                <Award size={24} strokeWidth={2.4} color="#0891b2" />
               </div>
             </div>
             <span
               style={{
-                fontSize: "0.74rem",
+                fontSize: "0.72rem",
                 fontWeight: 700,
                 color: "#1e293b",
                 textAlign: "center",
@@ -1061,20 +1070,21 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "8px",
+              gap: "4px",
               cursor: "pointer",
               width: "100%",
             }}
           >
             <div
               style={{
-                width: "66px",
-                height: "66px",
-                borderRadius: "20px",
+                width: "100%",
+                maxWidth: "78px",
+                height: "64px",
+                borderRadius: "18px",
                 background: "#ffffff",
                 border: "1px solid #edf2f7",
                 boxShadow:
-                  "0 6px 16px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.03)",
+                  "0 4px 12px -2px rgba(15, 23, 42, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.02)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -1082,23 +1092,23 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             >
               <div
                 style={{
-                  width: "46px",
-                  height: "46px",
-                  borderRadius: "14px",
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "13px",
                   background: "linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%)",
                   border: "1px solid rgba(234, 88, 12, 0.25)",
-                  boxShadow: "0 4px 10px rgba(234, 88, 12, 0.18)",
+                  boxShadow: "0 3px 8px rgba(234, 88, 12, 0.16)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <BookOpen size={25} strokeWidth={2.4} color="#ea580c" />
+                <BookOpen size={24} strokeWidth={2.4} color="#ea580c" />
               </div>
             </div>
             <span
               style={{
-                fontSize: "0.74rem",
+                fontSize: "0.72rem",
                 fontWeight: 700,
                 color: "#1e293b",
                 textAlign: "center",
@@ -1114,7 +1124,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       {/* =========================================================================
           SECTION 3: INFORMASI PESANTREN
       ========================================================================= */}
-      <div style={{ padding: "14px 14px 20px" }}>
+      <div style={{ padding: "8px 12px 20px" }}>
         <div
           style={{
             display: "flex",
@@ -1289,129 +1299,120 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       </div>
 
       {/* =========================================================================
-          MODAL DETAIL PRESENSI SANTRI HARI INI
+          MODAL DETAIL PRESENSI SANTRI HARI INI (FULL SCREEN)
       ========================================================================= */}
       {isDetailModalOpen && (
         <div
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(15, 23, 42, 0.65)",
-            backdropFilter: "blur(4px)",
-            zIndex: 9999,
+            background: "#f8fafc",
+            zIndex: 99999,
             display: "flex",
-            alignItems: "flex-end",
-            justifyContent: "center",
-            padding: 0,
+            flexDirection: "column",
+            height: "100%",
+            width: "100%",
+            overflow: "hidden",
           }}
         >
-          {/* Backdrop click to close */}
-          <div
-            onClick={() => setIsDetailModalOpen(false)}
-            style={{ position: "absolute", inset: 0 }}
-          />
-
-          {/* Modal Bottom Sheet Container */}
+          {/* Full Screen Top App Bar */}
           <div
             style={{
-              position: "relative",
-              zIndex: 10,
-              maxWidth: "430px",
-              width: "100%",
-              maxHeight: "86vh",
-              background: "#ffffff",
-              borderTopLeftRadius: "26px",
-              borderTopRightRadius: "26px",
+              background: "linear-gradient(135deg, #0d766e 0%, #042f2e 100%)",
+              color: "#ffffff",
+              padding: "14px 16px",
               display: "flex",
-              flexDirection: "column",
-              boxShadow: "0 -10px 40px rgba(0,0,0,0.25)",
-              overflow: "hidden",
+              alignItems: "center",
+              justifyContent: "space-between",
+              boxShadow: "0 2px 10px rgba(0, 0, 0, 0.15)",
+              flexShrink: 0,
             }}
           >
-            {/* Top Drag Handle */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                padding: "10px 0 4px",
-              }}
-            >
-              <div
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <button
+                onClick={() => setIsDetailModalOpen(false)}
                 style={{
-                  width: "40px",
-                  height: "4px",
-                  background: "#cbd5e1",
-                  borderRadius: "4px",
+                  width: "38px",
+                  height: "38px",
+                  borderRadius: "12px",
+                  border: "none",
+                  background: "rgba(255, 255, 255, 0.16)",
+                  color: "#ffffff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  padding: 0,
                 }}
-              />
-            </div>
-
-            {/* Modal Header */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "8px 18px 12px",
-                borderBottom: "1px solid #f1f5f9",
-              }}
-            >
+                title="Kembali"
+              >
+                <ArrowLeft size={20} />
+              </button>
               <div>
                 <h3
                   style={{
                     margin: 0,
                     fontSize: "1.05rem",
                     fontWeight: 800,
-                    color: "#0f172a",
+                    color: "#ffffff",
+                    letterSpacing: "-0.2px",
                   }}
                 >
-                  Santri {selectedStatusTab} Hari Ini
+                  Santri {selectedStatusTab === "Alfa" ? "Belum Absen" : selectedStatusTab}
                 </h3>
                 <div
                   style={{
-                    fontSize: "0.74rem",
-                    color: "#64748b",
+                    fontSize: "0.72rem",
+                    color: "#a7f3d0",
                     marginTop: "2px",
                     display: "flex",
                     alignItems: "center",
                     gap: "6px",
                   }}
                 >
-                  <Calendar size={13} color="#0284c7" />
+                  <Calendar size={12} color="#a7f3d0" />
                   <span>{currentDateStr || "Hari ini"}</span>
                   <span>•</span>
-                  <span style={{ fontWeight: 700, color: "#0284c7" }}>
+                  <span style={{ fontWeight: 700, color: "#ffffff" }}>
                     {filteredModalList.length} Santri
                   </span>
                 </div>
               </div>
-              <button
-                onClick={() => setIsDetailModalOpen(false)}
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  borderRadius: "50%",
-                  border: "none",
-                  background: "#f1f5f9",
-                  color: "#64748b",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                }}
-              >
-                <X size={18} />
-              </button>
             </div>
 
-            {/* Status Pills Selector inside modal */}
-            <div
+            <button
+              onClick={() => setIsDetailModalOpen(false)}
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
-                gap: "6px",
-                padding: "10px 16px",
-                background: "#f8fafc",
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                border: "none",
+                background: "rgba(255, 255, 255, 0.16)",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                padding: 0,
+              }}
+              title="Tutup"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Status Pills Selector inside modal */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(4, 1fr)",
+              gap: "8px",
+              padding: "10px 14px",
+              background: "#ffffff",
+              borderBottom: "1px solid #e2e8f0",
+              flexShrink: 0,
+            }}
+          >
                 borderBottom: "1px solid #e2e8f0",
               }}
             >
@@ -1674,8 +1675,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               )}
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* =========================================================================
           MODAL DETAIL KARTU ID ADMIN
