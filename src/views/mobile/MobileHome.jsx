@@ -229,7 +229,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
     <div
       style={{
         minHeight: "100%",
-        background: "#f8fafc",
+        background: "#eaeff5",
         paddingBottom: "32px",
         fontFamily:
           "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
