@@ -43,12 +43,20 @@ import {
   isFaceModelReady
 } from '../../utils/faceApi.util';
 
-const DAFTAR_KEGIATAN_DEFAULT = [
-  { id: 1, nama: "Mengaji Al-Qur'an / Halaqah Pagi", kategori: "Tajwid & Al-Qur'an", tempat: 'Aula Tahfidz' },
-  { id: 2, nama: 'Kajian Kitab Kuning / Sorogan', kategori: 'Fiqih & Kitab', tempat: 'Serambi Masjid' },
-  { id: 3, nama: 'Praktek Ibadah & Ubudiyah', kategori: 'Praktek & Ubudiyah', tempat: 'Masjid Jami' },
-  { id: 4, nama: 'Madrasah Diniyah & Muhafadzoh', kategori: 'Nahwu & Shorof', tempat: 'Gedung Kelas' },
-  { id: 5, nama: 'Halaqah Mengaji Malam', kategori: 'Muhafadzoh (Hafalan)', tempat: 'Kamar Asrama & Aula' }
+const DAFTAR_BERJAMAAH_DEFAULT = [
+  { id: 1, nama: 'Shalat Shubuh', kategori: 'Shalat Berjamaah', tempat: 'Masjid Jami', tipe: 'Berjamaah' },
+  { id: 2, nama: 'Shalat Dzuhur', kategori: 'Shalat Berjamaah', tempat: 'Masjid Jami', tipe: 'Berjamaah' },
+  { id: 3, nama: 'Shalat Ashar', kategori: 'Shalat Berjamaah', tempat: 'Masjid Jami', tipe: 'Berjamaah' },
+  { id: 4, nama: 'Shalat Maghrib', kategori: 'Shalat Berjamaah', tempat: 'Masjid Jami', tipe: 'Berjamaah' },
+  { id: 5, nama: 'Shalat Isya', kategori: 'Shalat Berjamaah', tempat: 'Masjid Jami', tipe: 'Berjamaah' }
+];
+
+const DAFTAR_MENGAJI_DEFAULT = [
+  { id: 'm-1', nama: 'Pegon', kategori: 'Bahasa & Penulisan', tempat: 'Gedung Madrasah', tipe: 'Kegiatan' },
+  { id: 'm-2', nama: "Halaqah Al-Qur'an / Tahfidz", kategori: "Tajwid & Al-Qur'an", tempat: 'Aula Tahfidz', tipe: 'Kegiatan' },
+  { id: 'm-3', nama: 'Kajian Kitab Kuning / Sorogan', kategori: 'Fiqih & Kitab', tempat: 'Serambi Masjid', tipe: 'Kegiatan' },
+  { id: 'm-4', nama: 'Madrasah Diniyah & Muhafadzoh', kategori: 'Nahwu & Shorof', tempat: 'Gedung Kelas', tipe: 'Kegiatan' },
+  { id: 'm-5', nama: 'Halaqah Mengaji Malam', kategori: 'Muhafadzoh (Hafalan)', tempat: 'Kamar Asrama & Aula', tipe: 'Kegiatan' }
 ];
 
 const getTodayDateStr = () => {
@@ -84,9 +92,16 @@ const parseTimeToMinutes = (timeStr) => {
 export default function MobilePresensi() {
   // Mode Utama: 'face' (Wajah AI), 'qr' (Scan Barcode/QR), 'manual', atau 'riwayat'
   const [activeMode, setActiveMode] = useState('face');
-  // Daftar Kegiatan dinamis diambil dari database Master Kegiatan (materi_hafalan & kegiatan_sesi non-shalat)
-  const [daftarKegiatan, setDaftarKegiatan] = useState(DAFTAR_KEGIATAN_DEFAULT);
-  const [selectedKegiatan, setSelectedKegiatan] = useState(DAFTAR_KEGIATAN_DEFAULT[0]);
+  
+  // 2 Kategori Tab: 'berjamaah' (Shalat 5 Waktu) & 'mengaji' (Pegon & Master Kegiatan)
+  const [activeKategori, setActiveKategori] = useState('berjamaah');
+  const [daftarBerjamaah, setDaftarBerjamaah] = useState(DAFTAR_BERJAMAAH_DEFAULT);
+  const [daftarMengaji, setDaftarMengaji] = useState(DAFTAR_MENGAJI_DEFAULT);
+  const [selectedBerjamaah, setSelectedBerjamaah] = useState(DAFTAR_BERJAMAAH_DEFAULT[0]);
+  const [selectedMengaji, setSelectedMengaji] = useState(DAFTAR_MENGAJI_DEFAULT[0]);
+
+  const selectedKegiatan = activeKategori === 'berjamaah' ? selectedBerjamaah : selectedMengaji;
+  const currentDaftarKegiatan = activeKategori === 'berjamaah' ? daftarBerjamaah : daftarMengaji;
   
   // Data State
   const [santriList, setSantriList] = useState([]);
@@ -233,55 +248,78 @@ export default function MobilePresensi() {
         axios.get('/api/absensi/sesi').catch(() => ({ data: { data: [] } }))
       ]);
 
-      // Filter: BUKAN dari kegiatan shalat (Shalat sudah otomatis lewat mesin Fingerprint)
+      // Filter kata shalat untuk memisahkan Berjamaah vs Mengaji
       const isShalatWord = (str) => /shalat|sholat|subuh|dzuhur|ashar|maghrib|isya/i.test(String(str || ''));
 
       const rawMateri = resMateri.data?.data || [];
       const rawSesi = resSesi.data?.data || [];
-      let listKegiatan = [];
 
-      // 1. Ambil dari Master Kegiatan (materi_hafalan)
+      // 1. Kategori Berjamaah: Shalat 5 Waktu dari kegiatan_sesi
+      let listBerjamaah = [];
+      if (Array.isArray(rawSesi) && rawSesi.length > 0) {
+        rawSesi.forEach((s) => {
+          if (isShalatWord(s.nama_sesi) || isShalatWord(s.kategori)) {
+            listBerjamaah.push({
+              id: s.id,
+              nama: s.nama_sesi,
+              kategori: 'Shalat Berjamaah',
+              tempat: s.keterangan || 'Masjid Jami',
+              tipe: 'Berjamaah'
+            });
+          }
+        });
+      }
+      if (listBerjamaah.length === 0) listBerjamaah = DAFTAR_BERJAMAAH_DEFAULT;
+      setDaftarBerjamaah(listBerjamaah);
+      setSelectedBerjamaah((prev) => {
+        if (!prev || !listBerjamaah.some(k => String(k.id) === String(prev.id))) {
+          return listBerjamaah[0];
+        }
+        return prev;
+      });
+
+      // 2. Kategori Mengaji: Pegon & Master Kegiatan dari materi_hafalan
+      let listMengaji = [];
       if (Array.isArray(rawMateri) && rawMateri.length > 0) {
         rawMateri.forEach((m, idx) => {
           if (!isShalatWord(m.nama_materi) && !isShalatWord(m.kategori)) {
-            listKegiatan.push({
+            listMengaji.push({
               id: m.id || `m-${idx + 1}`,
               nama: m.nama_materi,
-              kategori: m.kategori || 'Kegiatan Pesantren',
-              tempat: m.deskripsi || m.target_hafalan || 'Aula & Serambi Pesantren'
+              kategori: m.kategori || 'Kegiatan Mengaji',
+              tempat: m.deskripsi || m.target_hafalan || 'Gedung Madrasah & Aula',
+              tipe: 'Kegiatan'
             });
           }
         });
       }
 
-      // 2. Ambil kegiatan non-shalat dari kegiatan_sesi jika ada
       if (Array.isArray(rawSesi) && rawSesi.length > 0) {
         rawSesi.forEach((s, idx) => {
           if (!isShalatWord(s.nama_sesi) && !isShalatWord(s.kategori)) {
-            const alreadyExists = listKegiatan.some(
+            const alreadyExists = listMengaji.some(
               (k) => k.nama.trim().toLowerCase() === (s.nama_sesi || '').trim().toLowerCase()
             );
             if (!alreadyExists && s.nama_sesi) {
-              listKegiatan.push({
+              listMengaji.push({
                 id: s.id || `s-${idx + 1}`,
                 nama: s.nama_sesi,
                 kategori: s.kategori || 'Kegiatan Sesi',
-                tempat: s.keterangan || 'Komplek Pesantren'
+                tempat: s.keterangan || 'Komplek Pesantren',
+                tipe: 'Kegiatan'
               });
             }
           }
         });
       }
-
-      if (listKegiatan.length > 0) {
-        setDaftarKegiatan(listKegiatan);
-        setSelectedKegiatan((prev) => {
-          if (!prev || isShalatWord(prev.nama) || !listKegiatan.some(k => String(k.id) === String(prev.id))) {
-            return listKegiatan[0];
-          }
-          return prev;
-        });
-      }
+      if (listMengaji.length === 0) listMengaji = DAFTAR_MENGAJI_DEFAULT;
+      setDaftarMengaji(listMengaji);
+      setSelectedMengaji((prev) => {
+        if (!prev || !listMengaji.some(k => String(k.id) === String(prev.id))) {
+          return listMengaji[0];
+        }
+        return prev;
+      });
 
       if (resSantri.data && resSantri.data.data) {
         const fetchedSantris = resSantri.data.data;
@@ -353,11 +391,13 @@ export default function MobilePresensi() {
       }
       try {
         const localLogs = JSON.parse(localStorage.getItem('mobile_presensi_logs') || '[]');
-        if (Array.isArray(localLogs)) {
+        if (Array.isArray(localLogs) && localLogs.length > 0) {
           localLogs.forEach(item => {
-            const exists = combinedLogs.some(ex => ex.id === item.id || (ex.santri_id === item.santri_id && ex.tanggal === item.tanggal && ex.sesi_id === item.sesi_id));
+            const exists = combinedLogs.some(ex => ex.id === item.id || (ex.santri_id === item.santri_id && ex.tanggal === item.tanggal && (ex.kegiatan === item.kegiatan || ex.sesi_id === item.sesi_id)));
             if (!exists) combinedLogs.push(item);
           });
+          // Otomatis sinkronkan riwayat presensi mobile ke database MySQL agar Desktop langsung terisi
+          axios.post('/api/absensi/sync-mobile', { items: localLogs }).catch(() => {});
         }
       } catch (e) {}
       setPresensiLogs(combinedLogs);
@@ -1388,6 +1428,7 @@ export default function MobilePresensi() {
       nama_santri: santri.nama_santri,
       nama_sesi: selectedKegiatan.nama,
       kegiatan: selectedKegiatan.nama,
+      tipe_presensi: activeKategori === 'berjamaah' ? 'Berjamaah' : 'Kegiatan',
       tempat: selectedKegiatan.tempat,
       foto_bukti: snapshot || santri.foto || null
     };
@@ -1703,14 +1744,77 @@ export default function MobilePresensi() {
     }}>
 
 
+      {/* 2 TAB KATEGORI: BERJAMAAH (SHALAT 5 WAKTU) VS MENGAJI (PEGON & MASTER KEGIATAN) */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '8px',
+        background: '#e2e8f0',
+        padding: '5px',
+        borderRadius: '18px',
+        marginBottom: '14px'
+      }}>
+        <button
+          type="button"
+          onClick={() => setActiveKategori('berjamaah')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            padding: '11px 14px',
+            borderRadius: '14px',
+            border: 'none',
+            background: activeKategori === 'berjamaah' ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : 'transparent',
+            color: activeKategori === 'berjamaah' ? '#ffffff' : '#64748b',
+            fontWeight: 800,
+            fontSize: '0.88rem',
+            cursor: 'pointer',
+            boxShadow: activeKategori === 'berjamaah' ? '0 4px 14px rgba(2, 132, 199, 0.4)' : 'none',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          <span>🕌</span>
+          <span>Berjamaah</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveKategori('mengaji')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            padding: '11px 14px',
+            borderRadius: '14px',
+            border: 'none',
+            background: activeKategori === 'mengaji' ? 'linear-gradient(135deg, #059669 0%, #047857 100%)' : 'transparent',
+            color: activeKategori === 'mengaji' ? '#ffffff' : '#64748b',
+            fontWeight: 800,
+            fontSize: '0.88rem',
+            cursor: 'pointer',
+            boxShadow: activeKategori === 'mengaji' ? '0 4px 14px rgba(5, 150, 105, 0.4)' : 'none',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          <span>📖</span>
+          <span>Mengaji</span>
+        </button>
+      </div>
+
       {/* HEADER: Sesi Kegiatan Pesantren Modern Card */}
       <div style={{
-        background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 40%, #1e40af 100%)',
+        background: activeKategori === 'berjamaah'
+          ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 40%, #1e40af 100%)'
+          : 'linear-gradient(135deg, #065f46 0%, #047857 40%, #064e3b 100%)',
         borderRadius: '24px',
         padding: '16px 18px',
         color: '#ffffff',
         marginBottom: '14px',
-        boxShadow: '0 10px 25px -4px rgba(2, 132, 199, 0.38)',
+        boxShadow: activeKategori === 'berjamaah'
+          ? '0 10px 25px -4px rgba(2, 132, 199, 0.38)'
+          : '0 10px 25px -4px rgba(5, 150, 105, 0.38)',
         position: 'relative'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -1731,7 +1835,7 @@ export default function MobilePresensi() {
               borderRadius: '999px',
               letterSpacing: '0.04em'
             }}>
-              SESI KEGIATAN AKTIF
+              {activeKategori === 'berjamaah' ? 'SESI SHALAT BERJAMAAH' : 'SESI KEGIATAN MENGAJI'}
             </span>
           </div>
 
@@ -1755,8 +1859,11 @@ export default function MobilePresensi() {
           <select
             value={selectedKegiatan?.id || ''}
             onChange={(e) => {
-              const k = daftarKegiatan.find(x => String(x.id) === String(e.target.value));
-              if (k) setSelectedKegiatan(k);
+              const k = currentDaftarKegiatan.find(x => String(x.id) === String(e.target.value));
+              if (k) {
+                if (activeKategori === 'berjamaah') setSelectedBerjamaah(k);
+                else setSelectedMengaji(k);
+              }
             }}
             style={{
               width: '100%',
@@ -1773,7 +1880,7 @@ export default function MobilePresensi() {
               cursor: 'pointer'
             }}
           >
-            {daftarKegiatan.map(k => (
+            {currentDaftarKegiatan.map(k => (
               <option key={k.id} value={k.id} style={{ color: '#0f172a', fontWeight: 700 }}>
                 {k.nama}
               </option>

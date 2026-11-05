@@ -293,8 +293,12 @@ export default function AdminLayout() {
       case 'dashboard':
         return <DashboardAdmin />;
       case 'presensi':
+      case 'presensi-berjamaah':
+        return <AbsensiFingerprintView initialType="berjamaah" />;
+      case 'presensi-kegiatan':
+        return <AbsensiFingerprintView initialType="kegiatan" />;
       case 'laporan-presensi':
-        return <AbsensiFingerprintView />;
+        return <AbsensiFingerprintView initialType="berjamaah" />;
       case 'tahfidz':
       case 'laporan-tahfidz':
         return <TahfidzView />;
@@ -402,13 +406,25 @@ export default function AdminLayout() {
         </button>
 
         <button 
-          className={`nav-link ${activeTab === 'presensi' ? 'active' : ''}`}
-          onClick={() => handleTabClick('presensi')}
+          className={`nav-link ${(activeTab === 'presensi-berjamaah' || activeTab === 'presensi') ? 'active' : ''}`}
+          onClick={() => handleTabClick('presensi-berjamaah')}
         >
           <div className="nav-link-left">
-            <Fingerprint size={15} />
-            <span>Presensi & Absensi</span>
+            <Fingerprint size={15} style={{ color: '#0284c7' }} />
+            <span>Presensi Berjamaah</span>
           </div>
+          <span style={{ fontSize: '0.62rem', background: '#0284c7', color: '#fff', padding: '1px 6px', borderRadius: '10px', fontWeight: 800 }}>Shalat</span>
+        </button>
+
+        <button 
+          className={`nav-link ${activeTab === 'presensi-kegiatan' ? 'active' : ''}`}
+          onClick={() => handleTabClick('presensi-kegiatan')}
+        >
+          <div className="nav-link-left">
+            <BookOpen size={15} style={{ color: '#059669' }} />
+            <span>Presensi Kegiatan</span>
+          </div>
+          <span style={{ fontSize: '0.62rem', background: '#059669', color: '#fff', padding: '1px 6px', borderRadius: '10px', fontWeight: 800 }}>NWF Mobile</span>
         </button>
 
         <button 

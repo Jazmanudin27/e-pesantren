@@ -19,7 +19,15 @@ import {
 } from "lucide-react";
 import { showConfirm, toastSuccess, showError } from "../../utils/alert.util";
 
-export default function AbsensiFingerprintView() {
+export default function AbsensiFingerprintView({ initialType }) {
+  const getInitialTabType = () => {
+    if (initialType) return initialType;
+    const hash = (typeof window !== "undefined" ? window.location.hash : "").toLowerCase();
+    if (hash.includes("kegiatan")) return "kegiatan";
+    return "berjamaah";
+  };
+
+  const [activeTabType, setActiveTabType] = useState(getInitialTabType);
   const [absensiList, setAbsensiList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -30,6 +38,13 @@ export default function AbsensiFingerprintView() {
   });
   const [selectedStatus, setSelectedStatus] = useState("semua");
   const [selectedDetail, setSelectedDetail] = useState(null);
+
+  useEffect(() => {
+    if (initialType) {
+      setActiveTabType(initialType);
+      setSelectedKegiatan("semua");
+    }
+  }, [initialType]);
 
   const getNamaHari = (dateStr) => {
     if (!dateStr) return "";
@@ -61,14 +76,18 @@ export default function AbsensiFingerprintView() {
 
       if (fetched && Array.isArray(fetched) && fetched.length > 0) {
         const normalized = fetched.map((item, idx) => {
-          // Tampilkan nama kegiatan spesifik (contoh: Shalat Isya, Shalat Subuh, Halaqah, dll)
-          const namaKegiatan = item.nama_sesi || item.kegiatan || item.kategori || "Shalat Berjamaah";
+          // Tampilkan nama kegiatan spesifik (contoh: Shalat Shubuh vs Pegon)
+          const namaKegiatan = item.nama_kegiatan || item.kegiatan || item.nama_sesi || item.kategori || "Shalat Berjamaah";
+          const isShalat = /shalat|sholat|subuh|dzuhur|ashar|maghrib|isya/i.test(namaKegiatan);
+          const rawTipe = item.tipe_presensi || (isShalat ? "Berjamaah" : "Kegiatan");
+          const tipePresensi = rawTipe === "Semua" ? "Semua" : (isShalat ? "Berjamaah" : "Kegiatan");
 
           return {
             id: item.id || idx + 1,
             nama_santri: item.nama_santri || "Santri",
             nis: item.nis || "-",
             kegiatan: namaKegiatan,
+            tipe_presensi: tipePresensi,
             tanggal: item.tanggal
               ? typeof item.tanggal === "string" && item.tanggal.includes("T")
                 ? item.tanggal.split("T")[0]
@@ -81,8 +100,8 @@ export default function AbsensiFingerprintView() {
             tipe_santri:
               item.tipe_santri || item.status_santri || "Santri Mukim",
             lat_lng: item.lat_lng || "-7.325374, 108.208331",
-            metode_scan: item.metode_scan || item.metode_presensi || "Fingerprint",
-            nama_device: item.nama_device || "Mesin MP340",
+            metode_scan: item.metode_scan || item.metode_presensi || (tipePresensi === "Berjamaah" ? "Fingerprint" : "Wajah AI"),
+            nama_device: item.nama_device || (tipePresensi === "Berjamaah" ? "Mesin MP340" : "NWF Mobile"),
             is_perizinan_auto: item.is_perizinan_auto || false,
           };
         });
@@ -141,6 +160,13 @@ export default function AbsensiFingerprintView() {
   }, []);
 
   const filteredList = absensiList.filter((item) => {
+    // 0. Filter Kategori Tab: Presensi Berjamaah (Shalat 5 Waktu) VS Presensi Kegiatan (NWF Mobile)
+    if (activeTabType === "berjamaah") {
+      if (item.tipe_presensi !== "Berjamaah" && item.tipe_presensi !== "Semua" && !item.is_perizinan_auto) return false;
+    } else if (activeTabType === "kegiatan") {
+      if (item.tipe_presensi !== "Kegiatan" && item.tipe_presensi !== "Semua" && !item.is_perizinan_auto) return false;
+    }
+
     // 1. Filter Search
     const q = search.toLowerCase();
     if (q) {
@@ -188,9 +214,15 @@ export default function AbsensiFingerprintView() {
     return true;
   });
 
-  // Ambil daftar nama kegiatan unik untuk filter dropdown
+  // Ambil daftar nama kegiatan unik untuk filter dropdown SESUAI TAB YANG AKTIF
+  const listForActiveTab = absensiList.filter((item) => {
+    if (activeTabType === "berjamaah") return item.tipe_presensi === "Berjamaah" || item.tipe_presensi === "Semua";
+    if (activeTabType === "kegiatan") return item.tipe_presensi === "Kegiatan" || item.tipe_presensi === "Semua";
+    return true;
+  });
+
   const distinctKegiatan = Array.from(
-    new Set(absensiList.map((a) => a.kegiatan).filter(Boolean))
+    new Set(listForActiveTab.map((a) => a.kegiatan).filter(Boolean))
   );
 
   const totalLog = filteredList.length;
@@ -204,6 +236,64 @@ export default function AbsensiFingerprintView() {
 
   return (
     <div>
+      {/* 0. TAB SEGMENTED: PRESENSI BERJAMAAH VS PRESENSI KEGIATAN */}
+      <div style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "10px",
+        background: "#e2e8f0",
+        padding: "6px",
+        borderRadius: "16px",
+        marginBottom: "20px",
+        width: "fit-content"
+      }}>
+        <button
+          type="button"
+          onClick={() => { setActiveTabType("berjamaah"); setSelectedKegiatan("semua"); }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "10px 22px",
+            borderRadius: "12px",
+            border: "none",
+            background: activeTabType === "berjamaah" ? "#0284c7" : "transparent",
+            color: activeTabType === "berjamaah" ? "#ffffff" : "#475569",
+            fontWeight: 800,
+            fontSize: "0.9rem",
+            cursor: "pointer",
+            boxShadow: activeTabType === "berjamaah" ? "0 4px 14px rgba(2, 132, 199, 0.35)" : "none",
+            transition: "all 0.2s ease"
+          }}
+        >
+          <Fingerprint size={18} />
+          <span>Presensi Berjamaah (Shalat 5 Waktu)</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { setActiveTabType("kegiatan"); setSelectedKegiatan("semua"); }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "10px 22px",
+            borderRadius: "12px",
+            border: "none",
+            background: activeTabType === "kegiatan" ? "#059669" : "transparent",
+            color: activeTabType === "kegiatan" ? "#ffffff" : "#475569",
+            fontWeight: 800,
+            fontSize: "0.9rem",
+            cursor: "pointer",
+            boxShadow: activeTabType === "kegiatan" ? "0 4px 14px rgba(5, 150, 105, 0.35)" : "none",
+            transition: "all 0.2s ease"
+          }}
+        >
+          <BookOpen size={18} />
+          <span>Presensi Kegiatan (Barcode & Wajah)</span>
+        </button>
+      </div>
+
       {/* 1. TOP 4 COLORED STATS CARDS */}
       <div className="top-stats-grid">
         <div className="stat-card-colored stat-card-blue">
@@ -250,16 +340,21 @@ export default function AbsensiFingerprintView() {
       {/* 2. TITLE STRIP */}
       <div className="page-title-strip">
         <div className="page-title-left">
-          <Fingerprint
-            size={22}
-            className="page-title-icon"
-            style={{ color: "#0284c7" }}
-          />
+          {activeTabType === "berjamaah" ? (
+            <Fingerprint size={22} className="page-title-icon" style={{ color: "#0284c7" }} />
+          ) : (
+            <BookOpen size={22} className="page-title-icon" style={{ color: "#059669" }} />
+          )}
           <div>
-            <h2>Presensi Kegiatan Santri</h2>
+            <h2>
+              {activeTabType === "berjamaah"
+                ? "Presensi Shalat Berjamaah (Fingerprint MP340)"
+                : "Presensi Kegiatan Santri (NWF Mobile)"}
+            </h2>
             <p>
-              Pemantauan waktu check-in, check-out, geolocation, dan foto scan
-              presensi per kegiatan &amp; tanggal
+              {activeTabType === "berjamaah"
+                ? "Pemantauan waktu scan shalat 5 waktu santri otomatis dari mesin fingerprint Solution MP340 & ADMS"
+                : "Pemantauan presensi kegiatan non-shalat (Pegon, Tahfidz, Sorogan, dll) dari scan Barcode & Wajah AI Mobile"}
             </p>
           </div>
         </div>
@@ -267,15 +362,33 @@ export default function AbsensiFingerprintView() {
           <button className="btn btn-outline" onClick={fetchAbsensi}>
             <RotateCw size={13} /> Refresh
           </button>
-          <button
-            className="btn btn-primary"
-            onClick={() => {
-              window.location.hash = "setting-shalat";
-            }}
-            style={{ display: "flex", alignItems: "center", gap: "6px" }}
-          >
-            <CalendarCheck size={13} /> Setting Shalat
-          </button>
+          {activeTabType === "berjamaah" ? (
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                window.location.hash = "setting-shalat";
+              }}
+              style={{ display: "flex", alignItems: "center", gap: "6px" }}
+            >
+              <CalendarCheck size={13} /> Setting Shalat
+            </button>
+          ) : (
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                window.location.hash = "master-materi";
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                background: "#059669",
+                borderColor: "#059669"
+              }}
+            >
+              <BookOpen size={13} /> Data Master Kegiatan
+            </button>
+          )}
         </div>
       </div>
 

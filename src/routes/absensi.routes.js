@@ -2,13 +2,15 @@ import express from 'express';
 import {
   getAbsensiFingerprint, createAbsensiFingerprint, updateAbsensiFingerprint, deleteAbsensiFingerprint,
   getFingerprintDevices, createFingerprintDevice, updateFingerprintDevice, deleteFingerprintDevice,
-  getFingerprintSesi, createFingerprintSesi, updateFingerprintSesi, deleteFingerprintSesi
+  getFingerprintSesi, createFingerprintSesi, updateFingerprintSesi, deleteFingerprintSesi,
+  syncMobileAbsensi
 } from '../controllers/absensi.controller.js';
 
 const router = express.Router();
 
 router.get('/fingerprint', getAbsensiFingerprint);
 router.post('/fingerprint', createAbsensiFingerprint);
+router.post('/sync-mobile', syncMobileAbsensi);
 router.put('/fingerprint/:id', updateAbsensiFingerprint);
 router.delete('/fingerprint/:id', deleteAbsensiFingerprint);
 
