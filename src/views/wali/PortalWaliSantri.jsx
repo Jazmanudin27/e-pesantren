@@ -1392,132 +1392,78 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
             TABUNGAN SANTRI (BUKU TABUNGAN & RIWAYAT MUTASI UNTUK ORANG TUA)
         ========================================================================= */}
         {currentTab === 'tabungan' && (
-          <div style={{ display: 'flex', flexDirection: 'column', padding: '16px 16px 24px' }}>
-            {/* Top Navigation Bar */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <button
-                onClick={() => setCurrentTab('beranda')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  padding: '6px 12px',
-                  borderRadius: '12px',
-                  fontSize: '0.76rem',
-                  fontWeight: 700,
-                  color: '#475569',
-                  cursor: 'pointer'
-                }}
-              >
-                <ChevronLeft size={16} /> Kembali
-              </button>
-              <h2 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
-                Buku Tabungan Santri
-              </h2>
-              <button
-                onClick={() => fetchSantriTabungan(selectedSantriId)}
-                style={{
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  padding: '6px',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  color: '#0d766e',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-                title="Refresh Saldo"
-              >
-                <RotateCw size={15} />
-              </button>
-            </div>
-
-            {/* Santri Card */}
+          <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: '90px' }}>
+            {/* Top Header Bar Terpadu Emerald Green */}
             <div style={{
-              background: '#ffffff',
-              borderRadius: '16px',
-              padding: '12px 14px',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              marginBottom: '14px'
-            }}>
-              <div style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '12px',
-                background: santri.jk === 'P' ? '#fdf2f8' : '#eff6ff',
-                color: santri.jk === 'P' ? '#db2777' : '#0284c7',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 900,
-                fontSize: '1rem',
-                flexShrink: 0
-              }}>
-                {initial}
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f172a' }}>
-                  {rawSantriName}
-                </div>
-                <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
-                  NISN: {displayNisn} • {santri.nama_kelas || 'Santri'} • {santri.nama_asrama || 'Asrama'}
-                </div>
-              </div>
-            </div>
-
-            {/* Big Saldo Card */}
-            <div style={{
-              background: 'linear-gradient(135deg, #0d766e 0%, #064e3b 100%)',
-              borderRadius: '20px',
-              padding: '18px 20px',
+              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+              padding: '16px 16px 24px',
               color: '#ffffff',
-              boxShadow: '0 8px 24px -4px rgba(13, 118, 110, 0.35)',
+              borderBottomLeftRadius: '24px',
+              borderBottomRightRadius: '24px',
+              boxShadow: '0 8px 20px rgba(5, 150, 105, 0.25)',
               marginBottom: '16px'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#a7f3d0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Saldo Tabungan Santri
-                  </div>
-                  <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#ffffff', marginTop: '4px', letterSpacing: '-0.5px' }}>
-                    {formatRp(tabunganData?.saldo_saat_ini || 0)}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button 
+                    onClick={() => setCurrentTab('beranda')}
+                    style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+                  <div>
+                    <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
+                      Buku Tabungan Santri
+                    </h2>
+                    <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '2px' }}>
+                      Santri: {rawSantriName} (NISN: {displayNisn})
+                    </div>
                   </div>
                 </div>
-                <div style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '12px',
-                  background: 'rgba(255, 255, 255, 0.16)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <Wallet size={24} color="#a7f3d0" />
-                </div>
+
+                <button 
+                  onClick={() => fetchSantriTabungan(selectedSantriId)}
+                  style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', width: '34px', height: '34px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  title="Refresh Saldo"
+                >
+                  <RotateCw size={16} />
+                </button>
               </div>
 
+              {/* 3 SUMMARY CARDS PERSIS CONTOH */}
               <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '8px',
-                marginTop: '16px',
-                paddingTop: '12px',
-                borderTop: '1px solid rgba(255, 255, 255, 0.15)'
+                background: 'rgba(255, 255, 255, 0.16)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '18px',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                padding: '16px'
               }}>
-                <div>
-                  <div style={{ fontSize: '0.62rem', color: '#a7f3d0', fontWeight: 700 }}>TOTAL UANG MASUK</div>
-                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#ecfdf5', marginTop: '2px' }}>
-                    +{formatRp(tabunganData?.total_masuk || 0)}
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#e6fffa', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  TOTAL SALDO TABUNGAN SAAT INI
+                </div>
+                <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#ffffff', margin: '4px 0 12px', letterSpacing: '-0.5px' }}>
+                  {formatRp(tabunganData?.saldo_saat_ini || 0)}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
+                  <div style={{ background: 'rgba(0,0,0,0.15)', padding: '10px', borderRadius: '12px' }}>
+                    <div style={{ fontSize: '0.68rem', color: '#a7f3d0', fontWeight: 600 }}>Total Uang Masuk</div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff', marginTop: '2px' }}>
+                      +{formatRp(tabunganData?.total_masuk || 0)}
+                    </div>
+                  </div>
+
+                  <div style={{ background: 'rgba(0,0,0,0.15)', padding: '10px', borderRadius: '12px' }}>
+                    <div style={{ fontSize: '0.68rem', color: '#a7f3d0', fontWeight: 600 }}>Total Pengambilan</div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff', marginTop: '2px' }}>
+                      -{formatRp(tabunganData?.total_keluar || 0)}
+                    </div>
                   </div>
                 </div>
-                <div>
+              </div>
+            </div>
+
+            <div style={{ padding: '0 16px 24px' }}>
                   <div style={{ fontSize: '0.62rem', color: '#fecaca', fontWeight: 700 }}>TOTAL PENGAMBILAN</div>
                   <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#fee2e2', marginTop: '2px' }}>
                     -{formatRp(tabunganData?.total_keluar || 0)}
@@ -1650,33 +1596,46 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
             2. PROFILE TAB (HALAMAN LENGKAP: BIODATA, ASRAMA, KELAS, KITAB, GURU, KEAMANAN)
         ========================================================================= */}
         {currentTab === 'profile' && (
-          <div style={{ display: 'flex', flexDirection: 'column', padding: '16px 16px 24px' }}>
-            
-            {/* Top Navigation Bar */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <button
-                onClick={() => setCurrentTab('beranda')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  padding: '6px 12px',
-                  borderRadius: '12px',
-                  fontSize: '0.76rem',
-                  fontWeight: 700,
-                  color: '#475569',
-                  cursor: 'pointer'
-                }}
-              >
-                <ChevronLeft size={16} /> Kembali
-              </button>
-              <h2 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
-                Profil Lengkap Santri
-              </h2>
-              <div style={{ width: '40px' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: '90px' }}>
+            {/* Top Header Bar Terpadu Emerald Green */}
+            <div style={{
+              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+              padding: '16px 16px 20px',
+              color: '#ffffff',
+              borderBottomLeftRadius: '24px',
+              borderBottomRightRadius: '24px',
+              boxShadow: '0 8px 20px rgba(5, 150, 105, 0.25)',
+              marginBottom: '16px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button 
+                    onClick={() => setCurrentTab('beranda')}
+                    style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+                  <div>
+                    <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
+                      Profil Lengkap Santri
+                    </h2>
+                    <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '2px' }}>
+                      Santri: {rawSantriName} (NISN: {displayNisn})
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={handleLogoutAction}
+                  style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', width: '34px', height: '34px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  title="Keluar Akun"
+                >
+                  <LogOut size={16} />
+                </button>
+              </div>
             </div>
+
+            <div style={{ padding: '0 16px 24px' }}>
 
             {/* Profile Santri Hero Card */}
             <div style={{
@@ -2073,50 +2032,58 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
             3. PERIZINAN TAB
         ========================================================================= */}
         {currentTab === 'perizinan' && (
-          <div style={{ display: 'flex', flexDirection: 'column', padding: '16px 16px 24px' }}>
-            {/* Header with Back & Action */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '8px' }}>
-              <button
-                onClick={() => setCurrentTab('beranda')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  padding: '7px 12px',
-                  borderRadius: '12px',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  color: '#475569',
-                  cursor: 'pointer'
-                }}
-              >
-                <ChevronLeft size={16} /> Beranda
-              </button>
-              <h2 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
-                Perizinan Santri
-              </h2>
-              <button
-                onClick={openModalAjukanIzin}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '7px 14px',
-                  borderRadius: '12px',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 10px rgba(16, 185, 129, 0.25)'
-                }}
-              >
-                <Plus size={15} /> Ajukan Izin
-              </button>
+          <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: '90px' }}>
+            {/* Top Header Bar Terpadu Emerald Green */}
+            <div style={{
+              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+              padding: '16px 16px 20px',
+              color: '#ffffff',
+              borderBottomLeftRadius: '24px',
+              borderBottomRightRadius: '24px',
+              boxShadow: '0 8px 20px rgba(5, 150, 105, 0.25)',
+              marginBottom: '16px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button 
+                    onClick={() => setCurrentTab('beranda')}
+                    style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+                  <div>
+                    <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
+                      Perizinan Santri
+                    </h2>
+                    <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '2px' }}>
+                      Santri: {rawSantriName} (NISN: {displayNisn})
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={openModalAjukanIzin}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: '#ffffff',
+                    color: '#047857',
+                    border: 'none',
+                    padding: '8px 14px',
+                    borderRadius: '12px',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  <Plus size={15} /> Ajukan Izin
+                </button>
+              </div>
             </div>
+
+            <div style={{ padding: '0 16px 24px' }}>
 
             {/* Info Banner */}
             <div style={{
@@ -2294,32 +2261,51 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
             4. ABSENSI TAB (FINGERPRINT PRESENSI SHOLAT)
         ========================================================================= */}
         {currentTab === 'absensi' && (
-          <div style={{ display: 'flex', flexDirection: 'column', padding: '16px 16px 24px' }}>
-            {/* Header with Back */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <button
-                onClick={() => setCurrentTab('beranda')}
-                style={{
+          <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: '90px' }}>
+            {/* Top Header Bar Terpadu Emerald Green */}
+            <div style={{
+              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+              padding: '16px 16px 20px',
+              color: '#ffffff',
+              borderBottomLeftRadius: '24px',
+              borderBottomRightRadius: '24px',
+              boxShadow: '0 8px 20px rgba(5, 150, 105, 0.25)',
+              marginBottom: '16px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button 
+                    onClick={() => setCurrentTab('beranda')}
+                    style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+                  <div>
+                    <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
+                      Presensi Sholat & Jamaah
+                    </h2>
+                    <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '2px' }}>
+                      Santri: {rawSantriName} (NISN: {displayNisn})
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.2)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  padding: '6px 12px',
-                  borderRadius: '12px',
-                  fontSize: '0.76rem',
-                  fontWeight: 700,
-                  color: '#475569',
-                  cursor: 'pointer'
-                }}
-              >
-                <ChevronLeft size={16} /> Beranda
-              </button>
-              <h2 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
-                Presensi Sholat & Jamaah
-              </h2>
-              <div style={{ width: '40px' }} />
+                  justifyContent: 'center',
+                  color: '#ffffff'
+                }}>
+                  <Fingerprint size={18} />
+                </div>
+              </div>
             </div>
+
+            <div style={{ padding: '0 16px 24px' }}>
 
             {/* Filter Pills */}
             <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '6px', marginBottom: '12px' }}>
@@ -2382,32 +2368,51 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
             5. TAHFIDZ TAB (HAFALAN AL-QUR'AN)
         ========================================================================= */}
         {currentTab === 'hafalan' && (
-          <div style={{ display: 'flex', flexDirection: 'column', padding: '16px 16px 24px' }}>
-            {/* Header with Back */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <button
-                onClick={() => setCurrentTab('beranda')}
-                style={{
+          <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: '90px' }}>
+            {/* Top Header Bar Terpadu Emerald Green */}
+            <div style={{
+              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+              padding: '16px 16px 20px',
+              color: '#ffffff',
+              borderBottomLeftRadius: '24px',
+              borderBottomRightRadius: '24px',
+              boxShadow: '0 8px 20px rgba(5, 150, 105, 0.25)',
+              marginBottom: '16px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button 
+                    onClick={() => setCurrentTab('beranda')}
+                    style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+                  <div>
+                    <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
+                      Capaian Tahfidz Al-Qur'an
+                    </h2>
+                    <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '2px' }}>
+                      Santri: {rawSantriName} (NISN: {displayNisn})
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.2)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  padding: '6px 12px',
-                  borderRadius: '12px',
-                  fontSize: '0.76rem',
-                  fontWeight: 700,
-                  color: '#475569',
-                  cursor: 'pointer'
-                }}
-              >
-                <ChevronLeft size={16} /> Beranda
-              </button>
-              <h2 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
-                Capaian Tahfidz Al-Qur'an
-              </h2>
-              <div style={{ width: '40px' }} />
+                  justifyContent: 'center',
+                  color: '#ffffff'
+                }}>
+                  <BookOpen size={18} />
+                </div>
+              </div>
             </div>
+
+            <div style={{ padding: '0 16px 24px' }}>
 
             {/* Total Capaian Banner */}
             <div style={{
@@ -2467,31 +2472,51 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
             6. PRAKTEK IBADAH TAB
         ========================================================================= */}
         {currentTab === 'praktek' && (
-          <div style={{ display: 'flex', flexDirection: 'column', padding: '16px 16px 24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <button
-                onClick={() => setCurrentTab('beranda')}
-                style={{
+          <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: '90px' }}>
+            {/* Top Header Bar Terpadu Emerald Green */}
+            <div style={{
+              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+              padding: '16px 16px 20px',
+              color: '#ffffff',
+              borderBottomLeftRadius: '24px',
+              borderBottomRightRadius: '24px',
+              boxShadow: '0 8px 20px rgba(5, 150, 105, 0.25)',
+              marginBottom: '16px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button 
+                    onClick={() => setCurrentTab('beranda')}
+                    style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+                  <div>
+                    <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
+                      Ujian Praktek Ibadah
+                    </h2>
+                    <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '2px' }}>
+                      Santri: {rawSantriName} (NISN: {displayNisn})
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.2)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  padding: '6px 12px',
-                  borderRadius: '12px',
-                  fontSize: '0.76rem',
-                  fontWeight: 700,
-                  color: '#475569',
-                  cursor: 'pointer'
-                }}
-              >
-                <ChevronLeft size={16} /> Beranda
-              </button>
-              <h2 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
-                Ujian Praktek Ibadah
-              </h2>
-              <div style={{ width: '40px' }} />
+                  justifyContent: 'center',
+                  color: '#ffffff'
+                }}>
+                  <HeartHandshake size={18} />
+                </div>
+              </div>
             </div>
+
+            <div style={{ padding: '0 16px 24px' }}>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {praktek.length === 0 ? (
@@ -2529,31 +2554,51 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
             7. PELANGGARAN TAB (KEDISIPLINAN)
         ========================================================================= */}
         {currentTab === 'pelanggaran' && (
-          <div style={{ display: 'flex', flexDirection: 'column', padding: '16px 16px 24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <button
-                onClick={() => setCurrentTab('beranda')}
-                style={{
+          <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: '90px' }}>
+            {/* Top Header Bar Terpadu Emerald Green */}
+            <div style={{
+              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+              padding: '16px 16px 20px',
+              color: '#ffffff',
+              borderBottomLeftRadius: '24px',
+              borderBottomRightRadius: '24px',
+              boxShadow: '0 8px 20px rgba(5, 150, 105, 0.25)',
+              marginBottom: '16px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button 
+                    onClick={() => setCurrentTab('beranda')}
+                    style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+                  <div>
+                    <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
+                      Catatan Kedisiplinan & Tata Tertib
+                    </h2>
+                    <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '2px' }}>
+                      Santri: {rawSantriName} (NISN: {displayNisn})
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.2)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  padding: '6px 12px',
-                  borderRadius: '12px',
-                  fontSize: '0.76rem',
-                  fontWeight: 700,
-                  color: '#475569',
-                  cursor: 'pointer'
-                }}
-              >
-                <ChevronLeft size={16} /> Beranda
-              </button>
-              <h2 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
-                Catatan Kedisiplinan
-              </h2>
-              <div style={{ width: '40px' }} />
+                  justifyContent: 'center',
+                  color: '#ffffff'
+                }}>
+                  <ShieldAlert size={18} />
+                </div>
+              </div>
             </div>
+
+            <div style={{ padding: '0 16px 24px' }}>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {pelanggaran.length === 0 ? (
@@ -2592,31 +2637,51 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
             8. NOTIFIKASI TAB (PEMBERITAHUAN PESANTREN)
         ========================================================================= */}
         {currentTab === 'notifikasi' && (
-          <div style={{ display: 'flex', flexDirection: 'column', padding: '16px 16px 24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <button
-                onClick={() => setCurrentTab('beranda')}
-                style={{
+          <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: '90px' }}>
+            {/* Top Header Bar Terpadu Emerald Green */}
+            <div style={{
+              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+              padding: '16px 16px 20px',
+              color: '#ffffff',
+              borderBottomLeftRadius: '24px',
+              borderBottomRightRadius: '24px',
+              boxShadow: '0 8px 20px rgba(5, 150, 105, 0.25)',
+              marginBottom: '16px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button 
+                    onClick={() => setCurrentTab('beranda')}
+                    style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+                  <div>
+                    <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
+                      Pemberitahuan Pesantren
+                    </h2>
+                    <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '2px' }}>
+                      Santri: {rawSantriName} (NISN: {displayNisn})
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.2)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  padding: '6px 12px',
-                  borderRadius: '12px',
-                  fontSize: '0.76rem',
-                  fontWeight: 700,
-                  color: '#475569',
-                  cursor: 'pointer'
-                }}
-              >
-                <ChevronLeft size={16} /> Beranda
-              </button>
-              <h2 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
-                Pemberitahuan Pesantren
-              </h2>
-              <div style={{ width: '40px' }} />
+                  justifyContent: 'center',
+                  color: '#ffffff'
+                }}>
+                  <Bell size={18} />
+                </div>
+              </div>
             </div>
+
+            <div style={{ padding: '0 16px 24px' }}>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {[

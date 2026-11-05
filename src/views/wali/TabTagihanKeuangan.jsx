@@ -302,7 +302,7 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
                 Tagihan & Pembayaran
               </h2>
               <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '2px' }}>
-                Santri: {data?.santri?.nama_santri || 'Santri Nurul Wafa'} (NIS: {data?.santri?.nis || '-'})
+                Santri: {data?.santri?.nama_santri || 'Santri Nurul Wafa'} (NISN: {data?.santri?.nisn || data?.santri?.nis || '-'})
               </div>
             </div>
           </div>

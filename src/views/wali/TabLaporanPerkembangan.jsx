@@ -67,12 +67,12 @@ export default function TabLaporanPerkembangan({ santriId, onBack }) {
       
       {/* Top Header Bar */}
       <div style={{
-        background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
         padding: '16px 16px 24px',
         color: '#ffffff',
         borderBottomLeftRadius: '24px',
         borderBottomRightRadius: '24px',
-        boxShadow: '0 8px 20px rgba(2, 132, 199, 0.25)'
+        boxShadow: '0 8px 20px rgba(5, 150, 105, 0.25)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -88,8 +88,8 @@ export default function TabLaporanPerkembangan({ santriId, onBack }) {
               <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
                 Laporan Perkembangan Santri
               </h2>
-              <div style={{ fontSize: '0.74rem', color: '#bae6fd', marginTop: '2px' }}>
-                Rapor Akademik, Hafalan, Disiplin & Ibadah
+              <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '2px' }}>
+                Santri: {santri.nama_santri || 'Santri'} (NISN: {santri.nisn || santri.nis || '-'})
               </div>
             </div>
           </div>

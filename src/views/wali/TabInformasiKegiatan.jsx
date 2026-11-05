@@ -56,12 +56,12 @@ export default function TabInformasiKegiatan({ onBack }) {
       
       {/* Top Header Bar */}
       <div style={{
-        background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
         padding: '16px 16px 20px',
         color: '#ffffff',
         borderBottomLeftRadius: '24px',
         borderBottomRightRadius: '24px',
-        boxShadow: '0 8px 20px rgba(217, 119, 6, 0.25)'
+        boxShadow: '0 8px 20px rgba(5, 150, 105, 0.25)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -77,7 +77,7 @@ export default function TabInformasiKegiatan({ onBack }) {
               <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
                 Informasi & Kegiatan
               </h2>
-              <div style={{ fontSize: '0.74rem', color: '#fef3c7', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '2px' }}>
                 Dokumentasi Harian & Pengumuman Pesantren
               </div>
             </div>
