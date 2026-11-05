@@ -1013,7 +1013,6 @@ export default function MobileHome({ onChangeTab, onLogout }) {
         </div>
       )}
 
-
       {/* =========================================================================
           KONDISIONAL: TAMPILAN BENDAHARA VS TAMPILAN OPERASIONAL ASATIDZ
       ========================================================================= */}
@@ -1733,7 +1732,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                   color: "#ffffff",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
+                >
                   <Sparkles size={14} color="#67e8f9" />
                   <span
                     style={{
@@ -1980,7 +1981,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                       </span>
                     </div>
 
-                    {/* 6. Daftar Wajah */}
+                    {/* 6. Daftar  */}
                     <div
                       onClick={() => onChangeTab("daftar-wajah")}
                       style={{
