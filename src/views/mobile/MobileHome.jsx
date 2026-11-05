@@ -1148,9 +1148,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             </span>
           </div>
 
-          {/* 4. Jadwal / Informasi (Purple) */}
+          {/* 4. Kitab Kuning / Info (Purple) */}
           <div
-            onClick={handleOpenNotice}
+            onClick={() => onChangeTab(isBendahara ? "keuangan-masuk" : "kitab")}
             style={{
               display: "flex",
               flexDirection: "column",
@@ -1172,7 +1172,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 boxShadow: "0 6px 14px -2px rgba(139, 92, 246, 0.35)",
               }}
             >
-              <Calendar size={24} />
+              {isBendahara ? <DollarSign size={24} /> : <Layers size={24} />}
             </div>
             <span
               style={{
@@ -1182,13 +1182,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 textAlign: "center",
               }}
             >
-              Jadwal
+              {isBendahara ? "Biaya Masuk" : "Kitab"}
             </span>
           </div>
 
-          {/* 5. Tagihan SPP (Sky Blue) */}
+          {/* 5. Data Santri (Sky Blue) */}
           <div
-            onClick={() => onChangeTab("keuangan-spp")}
+            onClick={() => onChangeTab(isBendahara ? "keuangan-spp" : "master-santri")}
             style={{
               display: "flex",
               flexDirection: "column",
@@ -1210,7 +1210,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 boxShadow: "0 6px 14px -2px rgba(2, 132, 199, 0.35)",
               }}
             >
-              <Receipt size={24} />
+              {isBendahara ? <Receipt size={24} /> : <Users size={24} />}
             </div>
             <span
               style={{
@@ -1220,14 +1220,14 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 textAlign: "center",
               }}
             >
-              Tagihan SPP
+              {isBendahara ? "Tagihan SPP" : "Data Santri"}
             </span>
           </div>
 
-          {/* 6. Uang Saku / Kasir (Amber / Orange) */}
+          {/* 6. Data Asrama (Amber / Orange) */}
           <div
             onClick={() =>
-              onChangeTab(isBendahara ? "keuangan-kasir" : "keuangan-spp")
+              onChangeTab(isBendahara ? "keuangan-kasir" : "master-asrama")
             }
             style={{
               display: "flex",
@@ -1250,7 +1250,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 boxShadow: "0 6px 14px -2px rgba(245, 158, 11, 0.35)",
               }}
             >
-              <Wallet size={24} />
+              {isBendahara ? <Wallet size={24} /> : <Building size={24} />}
             </div>
             <span
               style={{
@@ -1260,7 +1260,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 textAlign: "center",
               }}
             >
-              {isBendahara ? "Kasir SPP" : "Uang Saku"}
+              {isBendahara ? "Kasir SPP" : "Asrama"}
             </span>
           </div>
 
