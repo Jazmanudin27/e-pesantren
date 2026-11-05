@@ -614,7 +614,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
                 border: "1px solid rgba(16, 185, 129, 0.3)",
                 borderRadius: "14px",
-                padding: "7px 10px",
+                padding: "8px 10px",
                 cursor: "pointer",
                 boxShadow: "0 2px 6px rgba(16, 185, 129, 0.08)",
                 display: "flex",
@@ -627,42 +627,28 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "space-between",
+                  gap: "5px",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                  <span
-                    style={{
-                      width: "6px",
-                      height: "6px",
-                      borderRadius: "50%",
-                      background: "#16a34a",
-                      boxShadow: "0 0 5px #16a34a",
-                    }}
-                  />
-                  <span
-                    style={{
-                      fontSize: "0.62rem",
-                      fontWeight: 800,
-                      color: "#166534",
-                      letterSpacing: "0.02em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Presensi
-                  </span>
-                </div>
                 <span
                   style={{
-                    fontSize: "0.58rem",
-                    fontWeight: 700,
-                    color: "#059669",
-                    background: "rgba(255, 255, 255, 0.75)",
-                    padding: "1px 6px",
-                    borderRadius: "6px",
+                    width: "6px",
+                    height: "6px",
+                    borderRadius: "50%",
+                    background: "#16a34a",
+                    boxShadow: "0 0 5px #16a34a",
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: "0.62rem",
+                    fontWeight: 800,
+                    color: "#166534",
+                    letterSpacing: "0.02em",
+                    textTransform: "uppercase",
                   }}
                 >
-                  Detail &rarr;
+                  Presensi
                 </span>
               </div>
 
@@ -677,7 +663,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 }}
               >
                 {/* Left: Hadir */}
-                <div style={{ display: "flex", flexDirection: "column" }}>
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenStatusModal("Hadir");
+                  }}
+                  style={{ display: "flex", flexDirection: "column" }}
+                >
                   <span
                     style={{
                       fontSize: "0.56rem",
@@ -710,7 +702,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 />
 
                 {/* Right: Belum */}
-                <div style={{ display: "flex", flexDirection: "column" }}>
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenStatusModal("Alfa");
+                  }}
+                  style={{ display: "flex", flexDirection: "column" }}
+                >
                   <span
                     style={{
                       fontSize: "0.56rem",
@@ -742,7 +740,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
                 border: "1px solid rgba(245, 158, 11, 0.3)",
                 borderRadius: "14px",
-                padding: "7px 10px",
+                padding: "8px 10px",
                 cursor: "pointer",
                 boxShadow: "0 2px 6px rgba(245, 158, 11, 0.08)",
                 display: "flex",
@@ -755,42 +753,28 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "space-between",
+                  gap: "5px",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                  <span
-                    style={{
-                      width: "6px",
-                      height: "6px",
-                      borderRadius: "50%",
-                      background: "#d97706",
-                      boxShadow: "0 0 5px #d97706",
-                    }}
-                  />
-                  <span
-                    style={{
-                      fontSize: "0.62rem",
-                      fontWeight: 800,
-                      color: "#92400e",
-                      letterSpacing: "0.02em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Kondisi
-                  </span>
-                </div>
                 <span
                   style={{
-                    fontSize: "0.58rem",
-                    fontWeight: 700,
-                    color: "#b45309",
-                    background: "rgba(255, 255, 255, 0.75)",
-                    padding: "1px 6px",
-                    borderRadius: "6px",
+                    width: "6px",
+                    height: "6px",
+                    borderRadius: "50%",
+                    background: "#d97706",
+                    boxShadow: "0 0 5px #d97706",
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: "0.62rem",
+                    fontWeight: 800,
+                    color: "#92400e",
+                    letterSpacing: "0.02em",
+                    textTransform: "uppercase",
                   }}
                 >
-                  Detail &rarr;
+                  Kondisi
                 </span>
               </div>
 
@@ -805,7 +789,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 }}
               >
                 {/* Left: Sakit */}
-                <div style={{ display: "flex", flexDirection: "column" }}>
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenStatusModal("Sakit");
+                  }}
+                  style={{ display: "flex", flexDirection: "column" }}
+                >
                   <span
                     style={{
                       fontSize: "0.56rem",
@@ -838,7 +828,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 />
 
                 {/* Right: Izin */}
-                <div style={{ display: "flex", flexDirection: "column" }}>
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenStatusModal("Izin");
+                  }}
+                  style={{ display: "flex", flexDirection: "column" }}
+                >
                   <span
                     style={{
                       fontSize: "0.56rem",
