@@ -844,8 +844,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                       display: 'grid',
                       gridTemplateColumns: '1fr 1fr',
                       gap: '8px',
-                      paddingTop: '10px',
-                      borderTop: '1px solid #f1f5f9'
+                      paddingTop: '6px'
                     }}>
                       <div style={{
                         background: '#f0fdf4',
