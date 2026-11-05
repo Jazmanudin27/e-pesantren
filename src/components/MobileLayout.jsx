@@ -77,12 +77,13 @@ export default function MobileLayout() {
     const hash = window.location.hash.replace('#', '');
     if (hash.includes('/')) {
       const sub = hash.split('/')[1];
-      if (sub) return sub;
+      if (sub && sub !== 'home') return sub;
     }
-    if (hash && hash !== 'mobile') {
+    if (hash && hash !== 'mobile' && hash !== 'home') {
       return hash;
     }
-    return localStorage.getItem('mobileTab') || 'home';
+    // Jika buka domain utama tanpa hash tertentu, selalu buka Beranda (home)
+    return 'home';
   };
 
   const [mobileTab, setMobileTab] = useState(getInitialTab);
@@ -111,12 +112,9 @@ export default function MobileLayout() {
         setMobileTab(hash);
         localStorage.setItem('mobileTab', hash);
       } else if (hash === 'mobile' || (!hash && isMobileDomain)) {
-        const saved = localStorage.getItem('mobileTab');
-        if (saved) {
-          setMobileTab(saved);
-        } else {
-          setMobileTab('home');
-        }
+        // Root domain mobile selalu buka Beranda
+        setMobileTab('home');
+        localStorage.setItem('mobileTab', 'home');
       }
     };
 
@@ -150,7 +148,11 @@ export default function MobileLayout() {
     }
     localStorage.setItem('mobileTab', 'home');
     setMobileTab('home');
-    window.location.hash = 'mobile';
+    if (isMobileDomain) {
+      window.location.hash = '';
+    } else {
+      window.location.hash = 'mobile';
+    }
     setSession(userSession);
   };
 
@@ -651,7 +653,7 @@ export default function MobileLayout() {
             <div className={`nav-icon-wrapper ${mobileTab === 'profil' ? 'active' : ''}`}>
               <User size={20} />
             </div>
-            <span>Profile</span>
+            <span>Profil</span>
           </button>
         </nav>
       </div>

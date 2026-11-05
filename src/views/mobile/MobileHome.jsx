@@ -42,6 +42,7 @@ import {
   ArrowRight,
   Receipt,
   CheckCircle2,
+  ChevronRight,
 } from "lucide-react";
 import { showSuccess, showConfirm } from "../../utils/alert.util";
 
@@ -484,13 +485,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       }}
     >
       {/* =========================================================================
-          TOP BANNER HEADER (EMERALD KHUSUS BENDAHARA / ROYAL BLUE UNTUK ASATIDZ)
+          TOP BANNER HEADER (EMERALD KHUSUS BENDAHARA / EXECUTIVE NAVY SLATE UNTUK ASATIDZ)
       ========================================================================= */}
       <div
         style={{
           background: isBendahara
             ? "linear-gradient(180deg, #065f46 0%, #047857 40%, #064e3b 100%)"
-            : "linear-gradient(180deg, #0284c7 0%, #0369a1 40%, #1e40af 100%)",
+            : "linear-gradient(180deg, #0f172a 0%, #1e293b 45%, #0369a1 100%)",
           padding: "16px 16px 36px",
           color: "#ffffff",
           borderBottomLeftRadius: "28px",
@@ -1400,25 +1401,99 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       ) : (
         <>
           {/* =========================================================================
-              REKAP ABSENSI SANTRI: HADIR, SAKIT, IZIN, ALFA (ELEVATED WHITE CARD)
-              (Mirip Screenshot E-Sekolah, tanpa banner Absen Masuk/Pulang)
+              CARD 1: RINGKASAN PRESENSI & KEHADIRAN HARI INI (MODERN CARD UI)
           ========================================================================= */}
-          <div style={{ padding: "0 16px", marginTop: "-20px" }}>
+          <div style={{ padding: "0 16px", marginTop: "-22px" }}>
             <div
               style={{
                 background: "#ffffff",
-                borderRadius: "24px",
-                border: "2px solid #0284c7",
-                padding: "16px 14px",
-                boxShadow:
-                  "0 12px 28px -6px rgba(2, 132, 199, 0.22), 0 2px 8px rgba(0, 0, 0, 0.04)",
+                borderRadius: "22px",
+                border: "1px solid #e2e8f0",
+                padding: "16px 16px 14px",
+                boxShadow: "0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(0, 0, 0, 0.03)",
                 position: "relative",
                 zIndex: 10,
               }}
             >
-              {/* 4 Status Badges (Hadir, Sakit, Izin, Alfa) */}
+              {/* Header Card Status */}
               <div
-                className="mobile-rekap-grid"
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "12px",
+                  paddingBottom: "10px",
+                  borderBottom: "1px solid #f1f5f9",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      borderRadius: "10px",
+                      background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#ffffff",
+                    }}
+                  >
+                    <CheckCircle2 size={18} strokeWidth={2.4} />
+                  </div>
+                  <div>
+                    <h3
+                      style={{
+                        margin: 0,
+                        fontSize: "0.88rem",
+                        fontWeight: 800,
+                        color: "#0f172a",
+                        letterSpacing: "-0.01em",
+                      }}
+                    >
+                      Presensi Santri Hari Ini
+                    </h3>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: "0.68rem",
+                        color: "#64748b",
+                        fontWeight: 500,
+                      }}
+                    >
+                      Pantauan kehadiran shalat & kegiatan
+                    </p>
+                  </div>
+                </div>
+
+                <span
+                  style={{
+                    background: "#f0fdf4",
+                    color: "#166534",
+                    border: "1px solid #bbf7d0",
+                    fontSize: "0.65rem",
+                    fontWeight: 700,
+                    padding: "3px 8px",
+                    borderRadius: "999px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: "6px",
+                      height: "6px",
+                      borderRadius: "50%",
+                      background: "#22c55e",
+                    }}
+                  />
+                  Realtime
+                </span>
+              </div>
+
+              {/* 4 Interactive Status Metric Cards */}
+              <div
                 style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(4, 1fr)",
@@ -1427,28 +1502,34 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               >
                 {/* 1. HADIR */}
                 <div
-                  className="rekap-card-interactive"
                   onClick={() => handleOpenStatusModal("Hadir")}
+                  style={{
+                    background: "#f0fdf4",
+                    border: "1px solid #bbf7d0",
+                    borderRadius: "14px",
+                    padding: "10px 4px",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    transition: "transform 0.15s ease",
+                  }}
                 >
                   <div
-                    className="rekap-icon-animated"
                     style={{
-                      background: "#10b981",
-                      boxShadow: "0 8px 18px -4px rgba(16, 185, 129, 0.45)",
-                      animationDelay: "0s",
+                      fontSize: "1.15rem",
+                      fontWeight: 800,
+                      color: "#15803d",
+                      lineHeight: 1.1,
+                      marginBottom: "4px",
                     }}
                   >
-                    <Check size={28} strokeWidth={2.8} />
-                    {/* Count badge top-right */}
-                    {rekapAbsensi.hadir > 0 && (
-                      <span style={countBadgeStyle}>{rekapAbsensi.hadir}</span>
-                    )}
+                    {rekapAbsensi.hadir || 0}
                   </div>
                   <span
                     style={{
-                      fontSize: "0.74rem",
-                      fontWeight: 800,
-                      color: "#1e293b",
+                      fontSize: "0.68rem",
+                      fontWeight: 700,
+                      color: "#166534",
+                      display: "block",
                     }}
                   >
                     Hadir
@@ -1457,27 +1538,34 @@ export default function MobileHome({ onChangeTab, onLogout }) {
 
                 {/* 2. SAKIT */}
                 <div
-                  className="rekap-card-interactive"
                   onClick={() => handleOpenStatusModal("Sakit")}
+                  style={{
+                    background: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    borderRadius: "14px",
+                    padding: "10px 4px",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    transition: "transform 0.15s ease",
+                  }}
                 >
                   <div
-                    className="rekap-icon-animated"
                     style={{
-                      background: "#ef4444",
-                      boxShadow: "0 8px 20px -2px rgba(239, 68, 68, 0.45)",
-                      animationDelay: "0.4s",
+                      fontSize: "1.15rem",
+                      fontWeight: 800,
+                      color: "#b91c1c",
+                      lineHeight: 1.1,
+                      marginBottom: "4px",
                     }}
                   >
-                    <Building2 size={26} strokeWidth={2.4} />
-                    {rekapAbsensi.sakit > 0 && (
-                      <span style={countBadgeStyle}>{rekapAbsensi.sakit}</span>
-                    )}
+                    {rekapAbsensi.sakit || 0}
                   </div>
                   <span
                     style={{
-                      fontSize: "0.74rem",
-                      fontWeight: 800,
-                      color: "#1e293b",
+                      fontSize: "0.68rem",
+                      fontWeight: 700,
+                      color: "#991b1b",
+                      display: "block",
                     }}
                   >
                     Sakit
@@ -1486,293 +1574,907 @@ export default function MobileHome({ onChangeTab, onLogout }) {
 
                 {/* 3. IZIN */}
                 <div
-                  className="rekap-card-interactive"
                   onClick={() => handleOpenStatusModal("Izin")}
+                  style={{
+                    background: "#fffbeb",
+                    border: "1px solid #fde68a",
+                    borderRadius: "14px",
+                    padding: "10px 4px",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    transition: "transform 0.15s ease",
+                  }}
                 >
                   <div
-                    className="rekap-icon-animated"
                     style={{
-                      background: "#f59e0b",
-                      boxShadow: "0 8px 18px -4px rgba(245, 158, 11, 0.45)",
-                      animationDelay: "0.8s",
+                      fontSize: "1.15rem",
+                      fontWeight: 800,
+                      color: "#b45309",
+                      lineHeight: 1.1,
+                      marginBottom: "4px",
                     }}
                   >
-                    <FileText size={26} strokeWidth={2.2} />
-                    {rekapAbsensi.izin > 0 && (
-                      <span style={countBadgeStyle}>{rekapAbsensi.izin}</span>
-                    )}
+                    {rekapAbsensi.izin || 0}
                   </div>
                   <span
                     style={{
-                      fontSize: "0.74rem",
-                      fontWeight: 800,
-                      color: "#1e293b",
+                      fontSize: "0.68rem",
+                      fontWeight: 700,
+                      color: "#92400e",
+                      display: "block",
                     }}
                   >
                     Izin
                   </span>
                 </div>
 
-                {/* 4. ALFA */}
+                {/* 4. ALFA / BELUM */}
                 <div
-                  className="rekap-card-interactive"
                   onClick={() => handleOpenStatusModal("Alfa")}
+                  style={{
+                    background: "#f8fafc",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "14px",
+                    padding: "10px 4px",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    transition: "transform 0.15s ease",
+                  }}
                 >
                   <div
-                    className="rekap-icon-animated"
                     style={{
-                      background: "#0d9488",
-                      boxShadow: "0 8px 18px -4px rgba(13, 148, 136, 0.45)",
-                      animationDelay: "1.2s",
+                      fontSize: "1.15rem",
+                      fontWeight: 800,
+                      color: "#475569",
+                      lineHeight: 1.1,
+                      marginBottom: "4px",
                     }}
                   >
-                    <Clock size={26} strokeWidth={2.4} />
-                    {rekapAbsensi.alfa > 0 && (
-                      <span style={countBadgeStyle}>{rekapAbsensi.alfa}</span>
-                    )}
+                    {rekapAbsensi.alfa || 0}
                   </div>
                   <span
                     style={{
-                      fontSize: "0.74rem",
-                      fontWeight: 800,
-                      color: "#1e293b",
+                      fontSize: "0.68rem",
+                      fontWeight: 700,
+                      color: "#334155",
+                      display: "block",
                     }}
                   >
-                    Alfa
+                    Belum
                   </span>
+                </div>
+              </div>
+
+              {/* Tap to View Details Bar */}
+              <div
+                onClick={() => handleOpenStatusModal("Hadir")}
+                style={{
+                  marginTop: "10px",
+                  padding: "8px 10px",
+                  background: "#f8fafc",
+                  borderRadius: "10px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  cursor: "pointer",
+                  fontSize: "0.72rem",
+                  color: "#0369a1",
+                  fontWeight: 700,
+                }}
+              >
+                <span>Lihat rincian nama santri & sesi filter</span>
+                <ChevronRight size={15} />
+              </div>
+            </div>
+          </div>
+
+          {/* =========================================================================
+              CARD 2: KATEGORI LAYANAN PRESENSI & IBADAH (CARD UI)
+          ========================================================================= */}
+          <div style={{ padding: "0 16px", marginTop: "16px" }}>
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: "20px",
+                border: "1px solid #e2e8f0",
+                padding: "16px",
+                boxShadow: "0 4px 16px -2px rgba(15, 23, 42, 0.04)",
+              }}
+            >
+              {/* Category Title */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  marginBottom: "12px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "28px",
+                    height: "28px",
+                    borderRadius: "8px",
+                    background: "#e0f2fe",
+                    color: "#0284c7",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Fingerprint size={17} strokeWidth={2.4} />
+                </div>
+                <div>
+                  <h4
+                    style={{
+                      margin: 0,
+                      fontSize: "0.85rem",
+                      fontWeight: 800,
+                      color: "#0f172a",
+                    }}
+                  >
+                    Layanan Presensi & Ibadah
+                  </h4>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: "0.66rem",
+                      color: "#64748b",
+                    }}
+                  >
+                    Pencatatan kehadiran ibadah & izin santri
+                  </p>
+                </div>
+              </div>
+
+              {/* Items List */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {/* 1. Presensi Digital (Wajah & Barcode) */}
+                <div
+                  onClick={() => onChangeTab("presensi")}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "12px 14px",
+                    background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
+                    border: "1px solid #bae6fd",
+                    borderRadius: "14px",
+                    cursor: "pointer",
+                    transition: "all 0.18s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div
+                      style={{
+                        width: "42px",
+                        height: "42px",
+                        borderRadius: "12px",
+                        background: "linear-gradient(135deg, #0284c7 0%, #1e40af 100%)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#ffffff",
+                        boxShadow: "0 4px 10px rgba(2, 132, 199, 0.3)",
+                      }}
+                    >
+                      <Fingerprint size={22} />
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: "0.84rem",
+                          fontWeight: 800,
+                          color: "#0c4a6e",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                        }}
+                      >
+                        Presensi Digital Santri
+                        <span
+                          style={{
+                            fontSize: "0.58rem",
+                            fontWeight: 800,
+                            padding: "2px 6px",
+                            borderRadius: "6px",
+                            background: "#0284c7",
+                            color: "#ffffff",
+                          }}
+                        >
+                          Face & QR
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "0.68rem",
+                          color: "#0369a1",
+                          marginTop: "2px",
+                        }}
+                      >
+                        Shalat 5 Waktu, Mengaji & Riwayat
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} color="#0284c7" />
+                </div>
+
+                {/* 2. Praktek Ibadah */}
+                <div
+                  onClick={() => onChangeTab("praktek-ibadah")}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "12px 14px",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "14px",
+                    cursor: "pointer",
+                    transition: "all 0.18s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div
+                      style={{
+                        width: "42px",
+                        height: "42px",
+                        borderRadius: "12px",
+                        background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#ffffff",
+                        boxShadow: "0 4px 10px rgba(5, 150, 105, 0.25)",
+                      }}
+                    >
+                      <HeartHandshake size={22} />
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: "0.84rem",
+                          fontWeight: 800,
+                          color: "#1e293b",
+                        }}
+                      >
+                        Praktek Ibadah & Doa
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "0.68rem",
+                          color: "#64748b",
+                          marginTop: "2px",
+                        }}
+                      >
+                        Penilaian shalat fardhu, wudhu & wirid
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} color="#94a3b8" />
+                </div>
+
+                {/* 3. Perizinan Santri */}
+                <div
+                  onClick={() => onChangeTab("perizinan")}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "12px 14px",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "14px",
+                    cursor: "pointer",
+                    transition: "all 0.18s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div
+                      style={{
+                        width: "42px",
+                        height: "42px",
+                        borderRadius: "12px",
+                        background: "linear-gradient(135deg, #d97706 0%, #b45309 100%)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#ffffff",
+                        boxShadow: "0 4px 10px rgba(217, 119, 6, 0.25)",
+                      }}
+                    >
+                      <DoorOpen size={22} />
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: "0.84rem",
+                          fontWeight: 800,
+                          color: "#1e293b",
+                        }}
+                      >
+                        Perizinan Santri
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "0.68rem",
+                          color: "#64748b",
+                          marginTop: "2px",
+                        }}
+                      >
+                        Surat izin pulang, izin sakit & sambangan
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} color="#94a3b8" />
                 </div>
               </div>
             </div>
           </div>
 
           {/* =========================================================================
-              SQUIRCLE GRID MENU: FITUR RESMI RUANG SANTRI
-              (Santri, Asrama, Kelas, Kitab, Guru, Perizinan, Pelanggaran, Absensi Kegiatan, Hafalan)
-              4 Kolom responsif, tema pesantren elegan & dinamis
+              CARD 3: KATEGORI AKADEMIK & PEMBELAJARAN (CARD UI)
           ========================================================================= */}
-          <div
-            className="mobile-squircle-grid"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
-              gap: "16px 8px",
-              padding: "24px 14px 14px",
-            }}
-          >
-            {/* 1. Santri */}
+          <div style={{ padding: "0 16px", marginTop: "16px" }}>
             <div
-              onClick={() => onChangeTab("master-santri")}
-              className="mobile-menu-interactive"
+              style={{
+                background: "#ffffff",
+                borderRadius: "20px",
+                border: "1px solid #e2e8f0",
+                padding: "16px",
+                boxShadow: "0 4px 16px -2px rgba(15, 23, 42, 0.04)",
+              }}
             >
+              {/* Category Title */}
               <div
-                className="squircle-icon-animated"
                 style={{
-                  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-                  boxShadow: "0 8px 16px -2px rgba(37, 99, 235, 0.35)",
-                  animationDelay: "0s",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  marginBottom: "12px",
                 }}
               >
-                <Users size={26} />
+                <div
+                  style={{
+                    width: "28px",
+                    height: "28px",
+                    borderRadius: "8px",
+                    background: "#f3e8ff",
+                    color: "#7c3aed",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <BookOpen size={17} strokeWidth={2.4} />
+                </div>
+                <div>
+                  <h4
+                    style={{
+                      margin: 0,
+                      fontSize: "0.85rem",
+                      fontWeight: 800,
+                      color: "#0f172a",
+                    }}
+                  >
+                    Akademik & Pembelajaran
+                  </h4>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: "0.66rem",
+                      color: "#64748b",
+                    }}
+                  >
+                    Hafalan Al-Qur'an, pengajian kitab & evaluasi
+                  </p>
+                </div>
               </div>
-              <span style={menuLabelStyle}>Santri</span>
-            </div>
 
-            {/* 2. Asrama */}
-            <div
-              onClick={() => onChangeTab("master-asrama")}
-              className="mobile-menu-interactive"
-            >
-              <div
-                className="squircle-icon-animated"
-                style={{
-                  background: "linear-gradient(135deg, #6366f1, #4f46e5)",
-                  boxShadow: "0 8px 16px -2px rgba(99, 102, 241, 0.35)",
-                  animationDelay: "0.2s",
-                }}
-              >
-                <Building size={26} />
-              </div>
-              <span style={menuLabelStyle}>Asrama</span>
-            </div>
+              {/* Items List */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {/* 1. Tahfidz & Muroja'ah */}
+                <div
+                  onClick={() => onChangeTab("tahfidz")}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "12px 14px",
+                    background: "linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)",
+                    border: "1px solid #e9d5ff",
+                    borderRadius: "14px",
+                    cursor: "pointer",
+                    transition: "all 0.18s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div
+                      style={{
+                        width: "42px",
+                        height: "42px",
+                        borderRadius: "12px",
+                        background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#ffffff",
+                        boxShadow: "0 4px 10px rgba(124, 58, 237, 0.3)",
+                      }}
+                    >
+                      <Sparkles size={22} />
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: "0.84rem",
+                          fontWeight: 800,
+                          color: "#4c1d95",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                        }}
+                      >
+                        Tahfidz & Muroja'ah
+                        <span
+                          style={{
+                            fontSize: "0.58rem",
+                            fontWeight: 800,
+                            padding: "2px 6px",
+                            borderRadius: "6px",
+                            background: "#7c3aed",
+                            color: "#ffffff",
+                          }}
+                        >
+                          Al-Qur'an
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "0.68rem",
+                          color: "#6d28d9",
+                          marginTop: "2px",
+                        }}
+                      >
+                        Target ziyadah, setoran & capaian hafalan
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} color="#7c3aed" />
+                </div>
 
-            {/* 3. Kelas */}
-            <div
-              onClick={() => onChangeTab("master-kelas")}
-              className="mobile-menu-interactive"
-            >
-              <div
-                className="squircle-icon-animated"
-                style={{
-                  background: "linear-gradient(135deg, #f59e0b, #d97706)",
-                  boxShadow: "0 8px 16px -2px rgba(245, 158, 11, 0.35)",
-                  animationDelay: "0.4s",
-                }}
-              >
-                <Layers size={26} />
-              </div>
-              <span style={menuLabelStyle}>Kelas</span>
-            </div>
+                {/* 2. Kitab Kuning */}
+                <div
+                  onClick={() => onChangeTab("kitab")}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "12px 14px",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "14px",
+                    cursor: "pointer",
+                    transition: "all 0.18s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div
+                      style={{
+                        width: "42px",
+                        height: "42px",
+                        borderRadius: "12px",
+                        background: "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#ffffff",
+                        boxShadow: "0 4px 10px rgba(13, 148, 136, 0.25)",
+                      }}
+                    >
+                      <BookOpen size={22} />
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: "0.84rem",
+                          fontWeight: 800,
+                          color: "#1e293b",
+                        }}
+                      >
+                        Kajian Kitab Kuning
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "0.68rem",
+                          color: "#64748b",
+                          marginTop: "2px",
+                        }}
+                      >
+                        Sorogan, bandongan & muhafadzoh santri
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} color="#94a3b8" />
+                </div>
 
-            {/* 4. Kitab */}
-            <div
-              onClick={() => onChangeTab("kitab")}
-              className="mobile-menu-interactive"
-            >
-              <div
-                className="squircle-icon-animated"
-                style={{
-                  background: "linear-gradient(135deg, #059669, #047857)",
-                  boxShadow: "0 8px 16px -2px rgba(5, 150, 105, 0.35)",
-                  animationDelay: "0.6s",
-                }}
-              >
-                <BookOpen size={26} />
+                {/* 3. Catatan Perkembangan */}
+                <div
+                  onClick={() => onChangeTab("pengembangan")}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "12px 14px",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "14px",
+                    cursor: "pointer",
+                    transition: "all 0.18s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div
+                      style={{
+                        width: "42px",
+                        height: "42px",
+                        borderRadius: "12px",
+                        background: "linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#ffffff",
+                        boxShadow: "0 4px 10px rgba(79, 70, 229, 0.25)",
+                      }}
+                    >
+                      <Award size={22} />
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: "0.84rem",
+                          fontWeight: 800,
+                          color: "#1e293b",
+                        }}
+                      >
+                        Catatan Perkembangan
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "0.68rem",
+                          color: "#64748b",
+                          marginTop: "2px",
+                        }}
+                      >
+                        Evaluasi berkala karakter Ikhwan & Akhwat
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} color="#94a3b8" />
+                </div>
               </div>
-              <span style={menuLabelStyle}>Kitab</span>
             </div>
+          </div>
 
-            {/* 5. Guru (Asatidz) */}
+          {/* =========================================================================
+              CARD 4: KATEGORI DATA MASTER & FASILITAS PESANTREN (CARD UI)
+          ========================================================================= */}
+          <div style={{ padding: "0 16px", marginTop: "16px" }}>
             <div
-              onClick={() => onChangeTab("master-asatidz")}
-              className="mobile-menu-interactive"
+              style={{
+                background: "#ffffff",
+                borderRadius: "20px",
+                border: "1px solid #e2e8f0",
+                padding: "16px",
+                boxShadow: "0 4px 16px -2px rgba(15, 23, 42, 0.04)",
+              }}
             >
+              {/* Category Title */}
               <div
-                className="squircle-icon-animated"
                 style={{
-                  background: "linear-gradient(135deg, #0d9488, #0f766e)",
-                  boxShadow: "0 8px 16px -2px rgba(13, 148, 136, 0.35)",
-                  animationDelay: "0.8s",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  marginBottom: "12px",
                 }}
               >
-                <UserCheck size={26} />
+                <div
+                  style={{
+                    width: "28px",
+                    height: "28px",
+                    borderRadius: "8px",
+                    background: "#f1f5f9",
+                    color: "#334155",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Building size={17} strokeWidth={2.4} />
+                </div>
+                <div>
+                  <h4
+                    style={{
+                      margin: 0,
+                      fontSize: "0.85rem",
+                      fontWeight: 800,
+                      color: "#0f172a",
+                    }}
+                  >
+                    Data Master & Fasilitas
+                  </h4>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: "0.66rem",
+                      color: "#64748b",
+                    }}
+                  >
+                    Kelola data santri, asrama, kelas & tata tertib
+                  </p>
+                </div>
               </div>
-              <span style={menuLabelStyle}>Guru</span>
-            </div>
 
-            {/* 6. Perizinan */}
-            <div
-              onClick={() => onChangeTab("perizinan")}
-              className="mobile-menu-interactive"
-            >
+              {/* 6 Grid Tiles (3 Columns x 2 Rows) */}
               <div
-                className="squircle-icon-animated"
                 style={{
-                  background: "linear-gradient(135deg, #ea580c, #c2410c)",
-                  boxShadow: "0 8px 16px -2px rgba(234, 88, 12, 0.35)",
-                  animationDelay: "1.0s",
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gap: "10px",
                 }}
               >
-                <DoorOpen size={26} />
-              </div>
-              <span style={menuLabelStyle}>Perizinan</span>
-            </div>
+                {/* 1. Santri */}
+                <div
+                  onClick={() => onChangeTab("master-santri")}
+                  style={{
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "14px",
+                    padding: "12px 6px",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "6px",
+                    transition: "transform 0.15s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "38px",
+                      height: "38px",
+                      borderRadius: "10px",
+                      background: "#eff6ff",
+                      color: "#2563eb",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Users size={20} />
+                  </div>
+                  <span
+                    style={{
+                      fontSize: "0.72rem",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                    }}
+                  >
+                    Santri
+                  </span>
+                </div>
 
-            {/* 7. Pelanggaran (Tata Tertib & Ta'zir) */}
-            <div
-              onClick={() => onChangeTab("tata-tertib")}
-              className="mobile-menu-interactive"
-            >
-              <div
-                className="squircle-icon-animated"
-                style={{
-                  background: "linear-gradient(135deg, #e11d48, #be123c)",
-                  boxShadow: "0 8px 16px -2px rgba(225, 29, 72, 0.35)",
-                  animationDelay: "1.2s",
-                }}
-              >
-                <ShieldAlert size={26} />
-              </div>
-              <span style={menuLabelStyle}>Pelanggaran</span>
-            </div>
+                {/* 2. Asrama */}
+                <div
+                  onClick={() => onChangeTab("master-asrama")}
+                  style={{
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "14px",
+                    padding: "12px 6px",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "6px",
+                    transition: "transform 0.15s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "38px",
+                      height: "38px",
+                      borderRadius: "10px",
+                      background: "#fef3c7",
+                      color: "#d97706",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Building size={20} />
+                  </div>
+                  <span
+                    style={{
+                      fontSize: "0.72rem",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                    }}
+                  >
+                    Asrama
+                  </span>
+                </div>
 
-            {/* 8. Absensi (Berjamaah, Mengaji, dll) */}
-            <div
-              onClick={() => onChangeTab("presensi")}
-              className="mobile-menu-interactive"
-            >
-              <div
-                className="squircle-icon-animated"
-                style={{
-                  background: "linear-gradient(135deg, #0284c7, #0369a1)",
-                  boxShadow: "0 8px 16px -2px rgba(2, 132, 199, 0.35)",
-                  animationDelay: "1.4s",
-                }}
-              >
-                <Fingerprint size={26} />
-              </div>
-              <span style={menuLabelStyle}>Absensi</span>
-            </div>
+                {/* 3. Kelas */}
+                <div
+                  onClick={() => onChangeTab("master-kelas")}
+                  style={{
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "14px",
+                    padding: "12px 6px",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "6px",
+                    transition: "transform 0.15s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "38px",
+                      height: "38px",
+                      borderRadius: "10px",
+                      background: "#e0e7ff",
+                      color: "#4f46e5",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Layers size={20} />
+                  </div>
+                  <span
+                    style={{
+                      fontSize: "0.72rem",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                    }}
+                  >
+                    Kelas
+                  </span>
+                </div>
 
-            {/* 9. Hafalan (Tahfidz & Muroja'ah) */}
-            <div
-              onClick={() => onChangeTab("tahfidz")}
-              className="mobile-menu-interactive"
-            >
-              <div
-                className="squircle-icon-animated"
-                style={{
-                  background: "linear-gradient(135deg, #8b5cf6, #7c3aed)",
-                  boxShadow: "0 8px 16px -2px rgba(139, 92, 246, 0.35)",
-                  animationDelay: "0.3s",
-                }}
-              >
-                <Sparkles size={26} />
-              </div>
-              <span style={menuLabelStyle}>Hafalan</span>
-            </div>
+                {/* 4. Asatidz / Guru */}
+                <div
+                  onClick={() => onChangeTab("master-asatidz")}
+                  style={{
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "14px",
+                    padding: "12px 6px",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "6px",
+                    transition: "transform 0.15s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "38px",
+                      height: "38px",
+                      borderRadius: "10px",
+                      background: "#ccfbf1",
+                      color: "#0f766e",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <UserCheck size={20} />
+                  </div>
+                  <span
+                    style={{
+                      fontSize: "0.72rem",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                    }}
+                  >
+                    Asatidz
+                  </span>
+                </div>
 
-            {/* 10. Praktek (Sholat, Wudhu, Doa) */}
-            <div
-              onClick={() => onChangeTab("praktek-ibadah")}
-              className="mobile-menu-interactive"
-            >
-              <div
-                className="squircle-icon-animated"
-                style={{
-                  background: "linear-gradient(135deg, #10b981, #059669)",
-                  boxShadow: "0 8px 16px -2px rgba(16, 185, 129, 0.35)",
-                  animationDelay: "0.7s",
-                }}
-              >
-                <HeartHandshake size={26} />
-              </div>
-              <span style={menuLabelStyle}>Praktek</span>
-            </div>
+                {/* 5. Tata Tertib & Ta'zir */}
+                <div
+                  onClick={() => onChangeTab("tata-tertib")}
+                  style={{
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "14px",
+                    padding: "12px 6px",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "6px",
+                    transition: "transform 0.15s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "38px",
+                      height: "38px",
+                      borderRadius: "10px",
+                      background: "#ffe4e6",
+                      color: "#e11d48",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <ShieldAlert size={20} />
+                  </div>
+                  <span
+                    style={{
+                      fontSize: "0.72rem",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                    }}
+                  >
+                    Tata Tertib
+                  </span>
+                </div>
 
-            {/* 11. Pengembangan (Ikhwan & Akhwat - Scan Wajah + Diagnostik) */}
-            <div
-              onClick={() => onChangeTab("pengembangan")}
-              className="mobile-menu-interactive"
-            >
-              <div
-                className="squircle-icon-animated"
-                style={{
-                  background: "linear-gradient(135deg, #0284c7, #2563eb)",
-                  boxShadow: "0 8px 16px -2px rgba(37, 99, 235, 0.35)",
-                  animationDelay: "1.1s",
-                }}
-              >
-                <Award size={26} />
+                {/* 6. Perekaman Wajah */}
+                <div
+                  onClick={() => onChangeTab("daftar-wajah")}
+                  style={{
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "14px",
+                    padding: "12px 6px",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "6px",
+                    transition: "transform 0.15s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "38px",
+                      height: "38px",
+                      borderRadius: "10px",
+                      background: "#e0f2fe",
+                      color: "#0284c7",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Smile size={20} />
+                  </div>
+                  <span
+                    style={{
+                      fontSize: "0.72rem",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                    }}
+                  >
+                    Daftar Wajah
+                  </span>
+                </div>
               </div>
-              <span style={menuLabelStyle}>Pengembangan</span>
-            </div>
-
-            {/* 12. Daftar Wajah (Face AI Registration) */}
-            <div
-              onClick={() => onChangeTab("daftar-wajah")}
-              className="mobile-menu-interactive"
-            >
-              <div
-                className="squircle-icon-animated"
-                style={{
-                  background: "linear-gradient(135deg, #0ea5e9, #0284c7)",
-                  boxShadow: "0 8px 16px -2px rgba(14, 165, 233, 0.35)",
-                  animationDelay: "1.5s",
-                }}
-              >
-                <Smile size={26} />
-              </div>
-              <span style={menuLabelStyle}>Daftar Wajah</span>
             </div>
           </div>
         </>
