@@ -511,60 +511,30 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             marginBottom: "16px",
           }}
         >
-          {/* Logo Brand: NWF Mobile (NWF Gede, Mobile Sedang) */}
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "10px",
-            }}
-          >
-            <div
+          {/* Brand Typography: NWF Mobile (Gaya myBCA Text Only) */}
+          <div style={{ display: "flex", alignItems: "baseline", gap: "5px" }}>
+            <span
               style={{
-                width: "36px",
-                height: "36px",
-                borderRadius: "11px",
-                background: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "3px",
-                boxShadow: "0 3px 10px rgba(0, 0, 0, 0.18)",
+                fontWeight: 900,
+                fontSize: "1.55rem",
+                letterSpacing: "-0.6px",
+                color: "#ffffff",
+                lineHeight: 1,
               }}
             >
-              <img
-                src="/nwf.png"
-                alt="Logo"
-                style={{ width: "30px", height: "30px", objectFit: "contain" }}
-                onError={(e) => {
-                  e.target.src = "/nwf.png";
-                }}
-              />
-            </div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "5px" }}>
-              <span
-                style={{
-                  fontWeight: 900,
-                  fontSize: "1.45rem",
-                  letterSpacing: "-0.6px",
-                  color: "#ffffff",
-                  lineHeight: 1,
-                }}
-              >
-                NWF
-              </span>
-              <span
-                style={{
-                  fontWeight: 700,
-                  fontSize: "0.95rem",
-                  letterSpacing: "0.3px",
-                  color: "rgba(255, 255, 255, 0.95)",
-                  lineHeight: 1,
-                }}
-              >
-                Mobile
-              </span>
-            </div>
+              NWF
+            </span>
+            <span
+              style={{
+                fontWeight: 700,
+                fontSize: "1rem",
+                letterSpacing: "0.3px",
+                color: "rgba(255, 255, 255, 0.95)",
+                lineHeight: 1,
+              }}
+            >
+              Mobile
+            </span>
           </div>
 
           {/* Top 3 Action Buttons (Settings, Bell, Logout) */}
@@ -1865,605 +1835,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       ) : (
         <>
           {/* =========================================================================
-              CARD 2: KATEGORI LAYANAN PRESENSI & IBADAH (CARD UI)
-          ========================================================================= */}
-          <div style={{ padding: "0 16px", marginTop: "18px" }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "8px",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "0.82rem",
-                  fontWeight: 800,
-                  color: "#005baa",
-                  letterSpacing: "0.04em",
-                  textTransform: "uppercase",
-                }}
-              >
-                LAYANAN & IBADAH SANTRI
-              </span>
-              <span
-                onClick={() => onChangeTab("presensi")}
-                style={{
-                  fontSize: "0.74rem",
-                  fontWeight: 700,
-                  color: "#005baa",
-                  cursor: "pointer",
-                }}
-              >
-                Selengkapnya &gt;
-              </span>
-            </div>
-            <div
-              style={{
-                background: "#ffffff",
-                borderRadius: "20px",
-                border: "1px solid #e2e8f0",
-                padding: "16px",
-                boxShadow: "0 4px 16px -2px rgba(15, 23, 42, 0.04)",
-              }}
-            >
-              {/* Category Title */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  marginBottom: "12px",
-                }}
-              >
-                <div
-                  style={{
-                    width: "28px",
-                    height: "28px",
-                    borderRadius: "8px",
-                    background: "#e0f2fe",
-                    color: "#0284c7",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Fingerprint size={17} strokeWidth={2.4} />
-                </div>
-                <div>
-                  <h4
-                    style={{
-                      margin: 0,
-                      fontSize: "0.85rem",
-                      fontWeight: 800,
-                      color: "#0f172a",
-                    }}
-                  >
-                    Layanan Presensi & Ibadah
-                  </h4>
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: "0.66rem",
-                      color: "#64748b",
-                    }}
-                  >
-                    Pencatatan kehadiran ibadah & izin santri
-                  </p>
-                </div>
-              </div>
-
-              {/* Items List */}
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: "8px" }}
-              >
-                {/* 1. Presensi Digital (Wajah & Barcode) */}
-                <div
-                  onClick={() => onChangeTab("presensi")}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "12px 14px",
-                    background:
-                      "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
-                    border: "1px solid #bae6fd",
-                    borderRadius: "14px",
-                    cursor: "pointer",
-                    transition: "all 0.18s ease",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "12px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "42px",
-                        height: "42px",
-                        borderRadius: "12px",
-                        background:
-                          "linear-gradient(135deg, #0284c7 0%, #1e40af 100%)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#ffffff",
-                        boxShadow: "0 4px 10px rgba(2, 132, 199, 0.3)",
-                      }}
-                    >
-                      <Fingerprint size={22} />
-                    </div>
-                    <div>
-                      <div
-                        style={{
-                          fontSize: "0.84rem",
-                          fontWeight: 800,
-                          color: "#0c4a6e",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                        }}
-                      >
-                        Presensi Digital Santri
-                        <span
-                          style={{
-                            fontSize: "0.58rem",
-                            fontWeight: 800,
-                            padding: "2px 6px",
-                            borderRadius: "6px",
-                            background: "#0284c7",
-                            color: "#ffffff",
-                          }}
-                        >
-                          Face & QR
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "0.68rem",
-                          color: "#0369a1",
-                          marginTop: "2px",
-                        }}
-                      >
-                        Shalat 5 Waktu, Mengaji & Riwayat
-                      </div>
-                    </div>
-                  </div>
-                  <ChevronRight size={18} color="#0284c7" />
-                </div>
-
-                {/* 2. Praktek Ibadah */}
-                <div
-                  onClick={() => onChangeTab("praktek-ibadah")}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "12px 14px",
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "14px",
-                    cursor: "pointer",
-                    transition: "all 0.18s ease",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "12px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "42px",
-                        height: "42px",
-                        borderRadius: "12px",
-                        background:
-                          "linear-gradient(135deg, #059669 0%, #047857 100%)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#ffffff",
-                        boxShadow: "0 4px 10px rgba(5, 150, 105, 0.25)",
-                      }}
-                    >
-                      <HeartHandshake size={22} />
-                    </div>
-                    <div>
-                      <div
-                        style={{
-                          fontSize: "0.84rem",
-                          fontWeight: 800,
-                          color: "#1e293b",
-                        }}
-                      >
-                        Praktek Ibadah & Doa
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "0.68rem",
-                          color: "#64748b",
-                          marginTop: "2px",
-                        }}
-                      >
-                        Penilaian shalat fardhu, wudhu & wirid
-                      </div>
-                    </div>
-                  </div>
-                  <ChevronRight size={18} color="#94a3b8" />
-                </div>
-
-                {/* 3. Perizinan Santri */}
-                <div
-                  onClick={() => onChangeTab("perizinan")}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "12px 14px",
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "14px",
-                    cursor: "pointer",
-                    transition: "all 0.18s ease",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "12px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "42px",
-                        height: "42px",
-                        borderRadius: "12px",
-                        background:
-                          "linear-gradient(135deg, #d97706 0%, #b45309 100%)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#ffffff",
-                        boxShadow: "0 4px 10px rgba(217, 119, 6, 0.25)",
-                      }}
-                    >
-                      <DoorOpen size={22} />
-                    </div>
-                    <div>
-                      <div
-                        style={{
-                          fontSize: "0.84rem",
-                          fontWeight: 800,
-                          color: "#1e293b",
-                        }}
-                      >
-                        Perizinan Santri
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "0.68rem",
-                          color: "#64748b",
-                          marginTop: "2px",
-                        }}
-                      >
-                        Surat izin pulang, izin sakit & sambangan
-                      </div>
-                    </div>
-                  </div>
-                  <ChevronRight size={18} color="#94a3b8" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* =========================================================================
-              CARD 3: KATEGORI AKADEMIK & PEMBELAJARAN (CARD UI)
-          ========================================================================= */}
-          <div style={{ padding: "0 16px", marginTop: "18px" }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "8px",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "0.82rem",
-                  fontWeight: 800,
-                  color: "#005baa",
-                  letterSpacing: "0.04em",
-                  textTransform: "uppercase",
-                }}
-              >
-                AKADEMIK & TAHFIDZ QUR'AN
-              </span>
-              <span
-                onClick={() => onChangeTab("tahfidz")}
-                style={{
-                  fontSize: "0.74rem",
-                  fontWeight: 700,
-                  color: "#005baa",
-                  cursor: "pointer",
-                }}
-              >
-                Selengkapnya &gt;
-              </span>
-            </div>
-            <div
-              style={{
-                background: "#ffffff",
-                borderRadius: "20px",
-                border: "1px solid #e2e8f0",
-                padding: "16px",
-                boxShadow: "0 4px 16px -2px rgba(15, 23, 42, 0.04)",
-              }}
-            >
-              {/* Category Title */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  marginBottom: "12px",
-                }}
-              >
-                <div
-                  style={{
-                    width: "28px",
-                    height: "28px",
-                    borderRadius: "8px",
-                    background: "#f3e8ff",
-                    color: "#7c3aed",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <BookOpen size={17} strokeWidth={2.4} />
-                </div>
-                <div>
-                  <h4
-                    style={{
-                      margin: 0,
-                      fontSize: "0.85rem",
-                      fontWeight: 800,
-                      color: "#0f172a",
-                    }}
-                  >
-                    Akademik & Pembelajaran
-                  </h4>
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: "0.66rem",
-                      color: "#64748b",
-                    }}
-                  >
-                    Hafalan Al-Qur'an, pengajian kitab & evaluasi
-                  </p>
-                </div>
-              </div>
-
-              {/* Items List */}
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: "8px" }}
-              >
-                {/* 1. Tahfidz & Muroja'ah */}
-                <div
-                  onClick={() => onChangeTab("tahfidz")}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "12px 14px",
-                    background:
-                      "linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)",
-                    border: "1px solid #e9d5ff",
-                    borderRadius: "14px",
-                    cursor: "pointer",
-                    transition: "all 0.18s ease",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "12px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "42px",
-                        height: "42px",
-                        borderRadius: "12px",
-                        background:
-                          "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#ffffff",
-                        boxShadow: "0 4px 10px rgba(124, 58, 237, 0.3)",
-                      }}
-                    >
-                      <Sparkles size={22} />
-                    </div>
-                    <div>
-                      <div
-                        style={{
-                          fontSize: "0.84rem",
-                          fontWeight: 800,
-                          color: "#4c1d95",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                        }}
-                      >
-                        Tahfidz & Muroja'ah
-                        <span
-                          style={{
-                            fontSize: "0.58rem",
-                            fontWeight: 800,
-                            padding: "2px 6px",
-                            borderRadius: "6px",
-                            background: "#7c3aed",
-                            color: "#ffffff",
-                          }}
-                        >
-                          Al-Qur'an
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "0.68rem",
-                          color: "#6d28d9",
-                          marginTop: "2px",
-                        }}
-                      >
-                        Target ziyadah, setoran & capaian hafalan
-                      </div>
-                    </div>
-                  </div>
-                  <ChevronRight size={18} color="#7c3aed" />
-                </div>
-
-                {/* 2. Kitab Kuning */}
-                <div
-                  onClick={() => onChangeTab("kitab")}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "12px 14px",
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "14px",
-                    cursor: "pointer",
-                    transition: "all 0.18s ease",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "12px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "42px",
-                        height: "42px",
-                        borderRadius: "12px",
-                        background:
-                          "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#ffffff",
-                        boxShadow: "0 4px 10px rgba(13, 148, 136, 0.25)",
-                      }}
-                    >
-                      <BookOpen size={22} />
-                    </div>
-                    <div>
-                      <div
-                        style={{
-                          fontSize: "0.84rem",
-                          fontWeight: 800,
-                          color: "#1e293b",
-                        }}
-                      >
-                        Kajian Kitab Kuning
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "0.68rem",
-                          color: "#64748b",
-                          marginTop: "2px",
-                        }}
-                      >
-                        Sorogan, bandongan & muhafadzoh santri
-                      </div>
-                    </div>
-                  </div>
-                  <ChevronRight size={18} color="#94a3b8" />
-                </div>
-
-                {/* 3. Catatan Perkembangan */}
-                <div
-                  onClick={() => onChangeTab("pengembangan")}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "12px 14px",
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "14px",
-                    cursor: "pointer",
-                    transition: "all 0.18s ease",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "12px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "42px",
-                        height: "42px",
-                        borderRadius: "12px",
-                        background:
-                          "linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#ffffff",
-                        boxShadow: "0 4px 10px rgba(79, 70, 229, 0.25)",
-                      }}
-                    >
-                      <Award size={22} />
-                    </div>
-                    <div>
-                      <div
-                        style={{
-                          fontSize: "0.84rem",
-                          fontWeight: 800,
-                          color: "#1e293b",
-                        }}
-                      >
-                        Catatan Perkembangan
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "0.68rem",
-                          color: "#64748b",
-                          marginTop: "2px",
-                        }}
-                      >
-                        Evaluasi berkala karakter Ikhwan & Akhwat
-                      </div>
-                    </div>
-                  </div>
-                  <ChevronRight size={18} color="#94a3b8" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* =========================================================================
-              CARD 4: KATEGORI DATA MASTER & FASILITAS PESANTREN (CARD UI)
+              CARD 1: KATEGORI DATA MASTER & FASILITAS PESANTREN (CARD UI)
           ========================================================================= */}
           <div style={{ padding: "0 16px", marginTop: "18px" }}>
             <div
@@ -2810,6 +2182,305 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                   >
                     Daftar Wajah
                   </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* =========================================================================
+              CARD 2: KATEGORI LAYANAN PRESENSI & IBADAH (CARD UI)
+          ========================================================================= */}
+          <div style={{ padding: "0 16px", marginTop: "18px" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "8px",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "0.82rem",
+                  fontWeight: 800,
+                  color: "#005baa",
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                }}
+              >
+                LAYANAN & IBADAH SANTRI
+              </span>
+              <span
+                onClick={() => onChangeTab("presensi")}
+                style={{
+                  fontSize: "0.74rem",
+                  fontWeight: 700,
+                  color: "#005baa",
+                  cursor: "pointer",
+                }}
+              >
+                Selengkapnya &gt;
+              </span>
+            </div>
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: "20px",
+                border: "1px solid #e2e8f0",
+                padding: "16px",
+                boxShadow: "0 4px 16px -2px rgba(15, 23, 42, 0.04)",
+              }}
+            >
+              {/* Category Title */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  marginBottom: "12px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "28px",
+                    height: "28px",
+                    borderRadius: "8px",
+                    background: "#e0f2fe",
+                    color: "#0284c7",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Fingerprint size={17} strokeWidth={2.4} />
+                </div>
+                <div>
+                  <h4
+                    style={{
+                      margin: 0,
+                      fontSize: "0.85rem",
+                      fontWeight: 800,
+                      color: "#0f172a",
+                    }}
+                  >
+                    Layanan Presensi & Ibadah
+                  </h4>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: "0.66rem",
+                      color: "#64748b",
+                    }}
+                  >
+                    Pencatatan kehadiran ibadah & izin santri
+                  </p>
+                </div>
+              </div>
+
+              {/* Items List */}
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+              >
+                {/* 1. Presensi Digital (Wajah & Barcode) */}
+                <div
+                  onClick={() => onChangeTab("presensi")}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "12px 14px",
+                    background:
+                      "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
+                    border: "1px solid #bae6fd",
+                    borderRadius: "14px",
+                    cursor: "pointer",
+                    transition: "all 0.18s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "42px",
+                        height: "42px",
+                        borderRadius: "12px",
+                        background:
+                          "linear-gradient(135deg, #0284c7 0%, #1e40af 100%)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#ffffff",
+                        boxShadow: "0 4px 10px rgba(2, 132, 199, 0.3)",
+                      }}
+                    >
+                      <Fingerprint size={22} />
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: "0.84rem",
+                          fontWeight: 800,
+                          color: "#0c4a6e",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                        }}
+                      >
+                        Presensi Digital Santri
+                        <span
+                          style={{
+                            fontSize: "0.58rem",
+                            fontWeight: 800,
+                            padding: "2px 6px",
+                            borderRadius: "6px",
+                            background: "#0284c7",
+                            color: "#ffffff",
+                          }}
+                        >
+                          Face & QR
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "0.68rem",
+                          color: "#0369a1",
+                          marginTop: "2px",
+                        }}
+                      >
+                        Shalat 5 Waktu, Mengaji & Riwayat
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} color="#0284c7" />
+                </div>
+
+                {/* 2. Praktek Ibadah */}
+                <div
+                  onClick={() => onChangeTab("praktek-ibadah")}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "12px 14px",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "14px",
+                    cursor: "pointer",
+                    transition: "all 0.18s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "42px",
+                        height: "42px",
+                        borderRadius: "12px",
+                        background:
+                          "linear-gradient(135deg, #059669 0%, #047857 100%)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#ffffff",
+                        boxShadow: "0 4px 10px rgba(5, 150, 105, 0.25)",
+                      }}
+                    >
+                      <HeartHandshake size={22} />
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: "0.84rem",
+                          fontWeight: 800,
+                          color: "#1e293b",
+                        }}
+                      >
+                        Praktek Ibadah & Doa
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "0.68rem",
+                          color: "#64748b",
+                          marginTop: "2px",
+                        }}
+                      >
+                        Penilaian shalat fardhu, wudhu & wirid
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} color="#94a3b8" />
+                </div>
+
+                {/* 3. Perizinan Santri */}
+                <div
+                  onClick={() => onChangeTab("perizinan")}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "12px 14px",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "14px",
+                    cursor: "pointer",
+                    transition: "all 0.18s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "42px",
+                        height: "42px",
+                        borderRadius: "12px",
+                        background:
+                          "linear-gradient(135deg, #d97706 0%, #b45309 100%)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#ffffff",
+                        boxShadow: "0 4px 10px rgba(217, 119, 6, 0.25)",
+                      }}
+                    >
+                      <DoorOpen size={22} />
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: "0.84rem",
+                          fontWeight: 800,
+                          color: "#1e293b",
+                        }}
+                      >
+                        Perizinan Santri
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "0.68rem",
+                          color: "#64748b",
+                          marginTop: "2px",
+                        }}
+                      >
+                        Surat izin pulang, izin sakit & sambangan
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} color="#94a3b8" />
                 </div>
               </div>
             </div>
