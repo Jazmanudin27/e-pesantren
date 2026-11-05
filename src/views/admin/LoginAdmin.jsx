@@ -55,7 +55,11 @@ export default function LoginAdmin({ onLoginSuccess }) {
           token: res.data.token || '',
           role: detectedRole,
           userType: detectedType,
-          nama: res.data.nama || userObj.nama_asatidz || userObj.nama || cleanU,
+          santri_id: res.data.santri_id || userObj.santri_id,
+          nama: res.data.nama || userObj.nama_santri || userObj.nama_asatidz || userObj.nama || cleanU,
+          nama_santri: res.data.nama_santri || userObj.nama_santri || res.data.nama || cleanU,
+          nis: res.data.nis || userObj.nis || '',
+          nisn: res.data.nisn || userObj.nisn || '',
           username: cleanU,
           loginTime: new Date().toISOString()
         };

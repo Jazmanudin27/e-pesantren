@@ -118,14 +118,17 @@ export default function MobileLogin({ onLoginSuccess, onBackToOnboarding }) {
           token: res.data.token,
           role: detectedRole,
           userType: detectedType,
-          santri_id: res.data.santri_id || userObj.santri_id || userObj.id,
+          santri_id: res.data.santri_id || userObj.santri_id,
           nama:
             res.data.nama ||
-            userObj.nama_asatidz ||
             userObj.nama_santri ||
+            userObj.nama_asatidz ||
             userObj.nama ||
             userObj.name ||
             cleanUser,
+          nama_santri: res.data.nama_santri || userObj.nama_santri || res.data.nama || cleanUser,
+          nis: res.data.nis || userObj.nis || '',
+          nisn: res.data.nisn || userObj.nisn || '',
           nama_asatidz:
             res.data.nama_asatidz || userObj.nama_asatidz || cleanUser,
           asrama_id: res.data.asrama_id || userObj.asrama_id || 1,
@@ -137,6 +140,7 @@ export default function MobileLogin({ onLoginSuccess, onBackToOnboarding }) {
         };
 
         localStorage.setItem("mobile_session", JSON.stringify(sessionData));
+        localStorage.setItem("desktop_session", JSON.stringify(sessionData));
         if (detectedRole === "wali") {
           localStorage.setItem("wali_session", JSON.stringify(sessionData));
         }

@@ -150,7 +150,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
       try {
         const sess = JSON.parse(localStorage.getItem('desktop_session') || localStorage.getItem('mobile_session') || '{}');
         sessionNisn = sess.nisn || sess.username || '';
-        sessionNama = sess.nama_santri || sess.nama || '';
+        sessionNama = cleanSantriName(sess.nama_santri || sess.nama || '');
       } catch (e) {}
 
       let url = '/api/wali/santri';
@@ -1770,10 +1770,10 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
 
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#ffffff' }}>
-                {santri.nama_santri || '-'}
+                {santri.nama_santri || rawSantriName}
               </h3>
               <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#bae6fd' }}>
-                NIS: <strong>{santri.nis || '-'}</strong> • Kode: <strong>{santri.kode_santri || '-'}</strong>
+                NISN: <strong>{santri.nisn || '-'}</strong> • NIS: <strong>{santri.nis || '-'}</strong>
               </p>
 
               <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '10px' }}>
@@ -1859,7 +1859,11 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 </div>
                 <div style={infoRow}>
                   <span style={infoLabel}>Nama Lengkap:</span>
-                  <span style={infoValue}>{santri.nama_santri || '-'}</span>
+                  <span style={infoValue}>{santri.nama_santri || rawSantriName}</span>
+                </div>
+                <div style={infoRow}>
+                  <span style={infoLabel}>NISN:</span>
+                  <span style={{ ...infoValue, fontWeight: 800, color: '#0369a1' }}>{santri.nisn || '-'}</span>
                 </div>
                 <div style={infoRow}>
                   <span style={infoLabel}>NIS / Kode:</span>

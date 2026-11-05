@@ -8,11 +8,23 @@ import bcrypt from 'bcryptjs';
 export const getWaliSantriData = async (req, res) => {
   try {
     let santriId = null;
-    const searchParam = req.query.nisn || req.query.nis || req.query.nama || req.query.username || (req.user && (req.user.nama_santri || req.user.username || req.user.nama));
+    let rawSearch = req.query.nisn || req.query.nis || req.query.nama || req.query.username || (req.user && (req.user.nama_santri || req.user.username || req.user.nama));
 
-    // Prioritas 1: Cari tepat berdasarkan NISN / NIS / username / nama_santri dari akun login
-    if (searchParam) {
-      const cleanSearch = String(searchParam).trim();
+    // Bersihkan format pembungkus jika ada "(Wali ...)" atau "Orang Tua Santri"
+    let cleanSearch = '';
+    if (rawSearch) {
+      cleanSearch = String(rawSearch).trim();
+      if (cleanSearch.includes('(Wali ')) {
+        const m = cleanSearch.match(/\(Wali\s+([^)]+)\)/i);
+        if (m && m[1]) cleanSearch = m[1].trim();
+      }
+      if (cleanSearch.toLowerCase().startsWith('wali santri ')) cleanSearch = cleanSearch.substring(12).trim();
+      if (cleanSearch.toLowerCase().startsWith('wali ')) cleanSearch = cleanSearch.substring(5).trim();
+      if (cleanSearch.toLowerCase().startsWith('orang tua santri')) cleanSearch = cleanSearch.replace(/^orang tua santri/i, '').replace(/^[^\w]+/, '').trim();
+    }
+
+    // Prioritas 1: Cari tepat berdasarkan cleanSearch (NISN / NIS / username / nama_santri) dari akun login
+    if (cleanSearch) {
       const [bySearch] = await pool.query(
         `SELECT id FROM santri 
          WHERE LOWER(TRIM(nisn)) = LOWER(TRIM(?)) 
@@ -29,9 +41,9 @@ export const getWaliSantriData = async (req, res) => {
       }
     }
 
-    // Prioritas 2: Jika query santri_id eksplisit atau dari token santri_id
-    if (!santriId) {
-      santriId = req.query.santri_id || (req.user && (req.user.santri_id || (req.user.role === 'wali' ? req.user.id : null)));
+    // Prioritas 2: Jika belum dapat dari cleanSearch, gunakan santri_id dari token login
+    if (!santriId && req.user && req.user.santri_id) {
+      santriId = req.user.santri_id;
     }
 
     // Prioritas 2.5: Cek jika di tabel users ada relasi santri_id
@@ -42,6 +54,11 @@ export const getWaliSantriData = async (req, res) => {
           santriId = uRow[0].santri_id;
         }
       } catch (e) {}
+    }
+
+    // Prioritas 2.8: Jika query santri_id eksplisit diberikan
+    if (!santriId && req.query.santri_id) {
+      santriId = req.query.santri_id;
     }
 
     // Prioritas 3: Fallback jika belum ada

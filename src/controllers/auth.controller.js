@@ -263,6 +263,9 @@ export const login = async (req, res, next) => {
       id: account.id,
       santri_id: santriRealId || (isWali ? account.id : undefined),
       username: account.username || account.kode_asrama || account.nik_niy || nisDb || nisnDb || cleanUser,
+      nama_santri: namaSantriDb || account.nama_santri || undefined,
+      nisn: nisnDb || account.nisn || undefined,
+      nis: nisDb || account.nis || undefined,
       role: isWali ? 'wali' : (account.role || (userType === 'Asatidz' ? 'asatidz' : userType) || 'asrama').toLowerCase(),
       userType: isWali ? 'Wali Santri' : (userType === 'Asatidz' ? 'Ustadz / Guru' : userType),
       asrama_id: account.asrama_id || account.id || 1
