@@ -1032,7 +1032,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       </div>
 
       {/* =========================================================================
-          MYBCA 8-ITEM QUICK ACTION GRID (4 COLUMNS X 2 ROWS)
+          MYBCA QUICK ACTION GRID (4 UTAMA: PRESENSI, PERIZINAN, PERKEMBANGAN, PRAKTEK)
       ========================================================================= */}
       <div style={{ padding: "18px 16px 8px" }}>
         <div
@@ -1080,45 +1080,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             </span>
           </div>
 
-          {/* 2. Tahfidz (Emerald Green) */}
-          <div
-            onClick={() => onChangeTab("tahfidz")}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "6px",
-              cursor: "pointer",
-            }}
-          >
-            <div
-              style={{
-                width: "54px",
-                height: "54px",
-                borderRadius: "18px",
-                background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                color: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 6px 14px -2px rgba(16, 185, 129, 0.35)",
-              }}
-            >
-              <BookOpen size={24} />
-            </div>
-            <span
-              style={{
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#334155",
-                textAlign: "center",
-              }}
-            >
-              Tahfidz
-            </span>
-          </div>
-
-          {/* 3. Perizinan (Teal / Cyan) */}
+          {/* 2. Perizinan (Teal / Cyan) */}
           <div
             onClick={() => onChangeTab("perizinan")}
             style={{
@@ -1156,123 +1118,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             </span>
           </div>
 
-          {/* 4. Kitab Kuning / Info (Purple) */}
-          <div
-            onClick={() => onChangeTab(isBendahara ? "keuangan-masuk" : "kitab")}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "6px",
-              cursor: "pointer",
-            }}
-          >
-            <div
-              style={{
-                width: "54px",
-                height: "54px",
-                borderRadius: "18px",
-                background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
-                color: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 6px 14px -2px rgba(139, 92, 246, 0.35)",
-              }}
-            >
-              {isBendahara ? <DollarSign size={24} /> : <Layers size={24} />}
-            </div>
-            <span
-              style={{
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#334155",
-                textAlign: "center",
-              }}
-            >
-              {isBendahara ? "Biaya Masuk" : "Kitab"}
-            </span>
-          </div>
-
-          {/* 5. Data Santri (Sky Blue) */}
-          <div
-            onClick={() => onChangeTab(isBendahara ? "keuangan-spp" : "master-santri")}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "6px",
-              cursor: "pointer",
-            }}
-          >
-            <div
-              style={{
-                width: "54px",
-                height: "54px",
-                borderRadius: "18px",
-                background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
-                color: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 6px 14px -2px rgba(2, 132, 199, 0.35)",
-              }}
-            >
-              {isBendahara ? <Receipt size={24} /> : <Users size={24} />}
-            </div>
-            <span
-              style={{
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#334155",
-                textAlign: "center",
-              }}
-            >
-              {isBendahara ? "Tagihan SPP" : "Data Santri"}
-            </span>
-          </div>
-
-          {/* 6. Data Asrama (Amber / Orange) */}
-          <div
-            onClick={() =>
-              onChangeTab(isBendahara ? "keuangan-kasir" : "master-asrama")
-            }
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "6px",
-              cursor: "pointer",
-            }}
-          >
-            <div
-              style={{
-                width: "54px",
-                height: "54px",
-                borderRadius: "18px",
-                background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-                color: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 6px 14px -2px rgba(245, 158, 11, 0.35)",
-              }}
-            >
-              {isBendahara ? <Wallet size={24} /> : <Building size={24} />}
-            </div>
-            <span
-              style={{
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#334155",
-                textAlign: "center",
-              }}
-            >
-              {isBendahara ? "Kasir SPP" : "Asrama"}
-            </span>
-          </div>
-
-          {/* 7. Perkembangan / Rapor (Indigo) */}
+          {/* 3. Perkembangan / Rapor (Indigo) */}
           <div
             onClick={() => onChangeTab("pengembangan")}
             style={{
@@ -1310,7 +1156,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             </span>
           </div>
 
-          {/* 8. Semua Menu / Praktek (Slate / Navy) */}
+          {/* 4. Praktek Ibadah (Slate / Navy) */}
           <div
             onClick={() => onChangeTab("praktek-ibadah")}
             style={{
