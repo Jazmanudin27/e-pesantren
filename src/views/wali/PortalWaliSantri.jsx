@@ -466,34 +466,43 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 alignItems: 'center',
                 marginBottom: '16px'
               }}>
-                {/* Brand Logo: NWF MOBILE */}
+                {/* Brand Logo: NWF Mobile (NWF Gede, Mobile Sedang) */}
                 <div style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '8px'
+                  gap: '10px'
                 }}>
                   <div style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '10px',
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '11px',
                     background: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     padding: '3px',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+                    boxShadow: '0 3px 10px rgba(0, 0, 0, 0.18)'
                   }}>
-                    <img src="/nwf.png" alt="Logo" style={{ width: '26px', height: '26px', objectFit: 'contain' }} onError={(e) => { e.target.src = '/nwf.png'; }} />
+                    <img src="/nwf.png" alt="Logo" style={{ width: '30px', height: '30px', objectFit: 'contain' }} onError={(e) => { e.target.src = '/nwf.png'; }} />
                   </div>
-                  <div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
                     <span style={{
                       fontWeight: 900,
-                      fontSize: '1.15rem',
-                      letterSpacing: '-0.5px',
+                      fontSize: '1.45rem',
+                      letterSpacing: '-0.6px',
                       color: '#ffffff',
-                      fontStyle: 'italic'
+                      lineHeight: 1
                     }}>
-                      nwf<span style={{ fontStyle: 'normal', fontWeight: 800 }}>MOBILE</span>
+                      NWF
+                    </span>
+                    <span style={{
+                      fontWeight: 700,
+                      fontSize: '0.95rem',
+                      letterSpacing: '0.3px',
+                      color: 'rgba(255, 255, 255, 0.95)',
+                      lineHeight: 1
+                    }}>
+                      Mobile
                     </span>
                   </div>
                 </div>
