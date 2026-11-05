@@ -75,6 +75,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
   const [selectedKegiatan, setSelectedKegiatan] = useState("Semua"); // 'Semua' | nama_sesi
   const [sesiList, setSesiList] = useState([]);
   const [todayAbsensiList, setTodayAbsensiList] = useState([]);
+  const [santriMasterList, setSantriMasterList] = useState([]);
   const [searchModalText, setSearchModalText] = useState("");
 
   const [currentTimeStr, setCurrentTimeStr] = useState("");
@@ -133,42 +134,159 @@ export default function MobileHome({ onChangeTab, onLogout }) {
   // Load Realtime Data: Santri & Rekap Absensi
   const loadData = async () => {
     try {
-      const [resSantri, resRekap, resSesi, resAbsensi] =
+      const [resSantri, resAbsensi, resIzin, resSesi] =
         await Promise.allSettled([
-          axios.get("/api/santri"),
-          axios.get("/api/absensi/rekap-harian"),
+          axios.get("/api/santri?all=true"),
+          axios.get("/api/absensi/fingerprint"),
+          axios.get("/api/perizinan"),
           axios.get("/api/absensi/sesi"),
-          axios.get("/api/absensi/hari-ini"),
         ]);
 
+      let allSantri = [];
       if (resSantri.status === "fulfilled" && resSantri.value.data?.success) {
-        const santriArr = resSantri.value.data.data || [];
+        allSantri =
+          resSantri.value.data.data?.data ||
+          resSantri.value.data.data ||
+          [];
+        const totalCount =
+          resSantri.value.data.data?.total ||
+          resSantri.value.data.total ||
+          allSantri.length;
+
+        setSantriMasterList(allSantri);
         setStats((prev) => ({
           ...prev,
-          total_santri: santriArr.length,
+          total_santri: totalCount || allSantri.length,
         }));
       }
 
-      if (resRekap.status === "fulfilled" && resRekap.value.data?.success) {
-        const r = resRekap.value.data.data;
-        if (r) {
-          setRekapAbsensi({
-            hadir: Number(r.hadir || 0),
-            sakit: Number(r.sakit || 0),
-            izin: Number(r.izin || 0),
-            alfa: Number(r.alfa || 0),
-            total: Number(r.total || 0),
-          });
-        }
-      }
-
       if (resSesi.status === "fulfilled" && resSesi.value.data?.success) {
-        setSesiList(resSesi.value.data.data || []);
+        setSesiList(
+          resSesi.value.data.data?.data ||
+          resSesi.value.data.data ||
+          []
+        );
       }
 
-      if (resAbsensi.status === "fulfilled" && resAbsensi.value.data?.success) {
-        setTodayAbsensiList(resAbsensi.value.data.data || []);
+      // Hitung log hari ini
+      const now = new Date();
+      const todayDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+      const rawLogs =
+        resAbsensi.status === "fulfilled" && resAbsensi.value.data?.success
+          ? resAbsensi.value.data.data?.data || resAbsensi.value.data.data || []
+          : [];
+
+      // Filter presensi yang tanggal hari ini
+      const todayLogs = rawLogs.filter((l) => {
+        const tgl = (l.tanggal || "").split("T")[0];
+        return !tgl || tgl === todayDateStr;
+      });
+
+      // Filter unik per santri
+      const loggedSantriMap = new Map();
+      todayLogs.forEach((l) => {
+        const sid = l.santri_id || l.id;
+        if (sid && !loggedSantriMap.has(sid)) {
+          loggedSantriMap.set(sid, l);
+        }
+      });
+
+      let hadir = 0;
+      let sakit = 0;
+      let izin = 0;
+
+      loggedSantriMap.forEach((l) => {
+        const st = (l.status_kehadiran || l.status || "").toLowerCase();
+        if (st.includes("hadir")) hadir++;
+        else if (st.includes("sakit")) sakit++;
+        else if (st.includes("izin")) izin++;
+      });
+
+      // Sinkronkan perizinan aktif (keluar pondok)
+      if (resIzin.status === "fulfilled" && resIzin.value.data?.success) {
+        const izinArr =
+          resIzin.value.data.data?.data || resIzin.value.data.data || [];
+        const activeIzin = izinArr.filter((i) => {
+          const st = String(i.status || "").toLowerCase();
+          return st.includes("aktif") || st.includes("luar");
+        });
+
+        setStats((prev) => ({ ...prev, total_izin_aktif: activeIzin.length }));
+
+        activeIzin.forEach((iz) => {
+          const sid = iz.santri_id;
+          if (sid && !loggedSantriMap.has(sid)) {
+            izin++;
+            loggedSantriMap.set(sid, {
+              id: `izin-${iz.id}`,
+              santri_id: sid,
+              nama_santri: iz.nama_santri,
+              nis: iz.nis,
+              status: "Izin",
+              status_kehadiran: "Izin",
+              nama_sesi: "Izin Keluar / Pulang",
+              waktu_scan: iz.tgl_keluar_rencana ? String(iz.tgl_keluar_rencana).slice(11, 16) : "-",
+            });
+          }
+        });
       }
+
+      // RUMUS: Total santri dikurangi yang sudah input/absen (Hadir + Sakit + Izin)
+      const totalSantriCount =
+        (resSantri.status === "fulfilled" &&
+          (resSantri.value.data.data?.total || resSantri.value.data.total)) ||
+        allSantri.length;
+      const sudahInputCount = hadir + sakit + izin;
+      const belumAbsen =
+        totalSantriCount > 0
+          ? Math.max(0, totalSantriCount - sudahInputCount)
+          : 0;
+
+      setRekapAbsensi({
+        hadir,
+        sakit,
+        izin,
+        alfa: belumAbsen,
+        total: totalSantriCount,
+      });
+
+      // Siapkan list santri yang sudah presensi
+      const mappedLogged = Array.from(loggedSantriMap.values()).map((l) => {
+        const st = (l.status_kehadiran || l.status || "Hadir").toLowerCase();
+        let cleanStatus = "Hadir";
+        if (st.includes("sakit")) cleanStatus = "Sakit";
+        else if (st.includes("izin")) cleanStatus = "Izin";
+
+        return {
+          id: l.id || `log-${l.santri_id}`,
+          santri_id: l.santri_id,
+          nama_santri: l.nama_santri,
+          nis: l.nis,
+          nama_asrama: l.nama_asrama,
+          nama_kamar: l.nama_kamar,
+          nama_sesi: l.nama_sesi || l.kegiatan || "Presensi",
+          status: cleanStatus,
+          jam_absen: l.waktu_scan || l.waktu || "-",
+        };
+      });
+
+      // Siapkan list santri yang BELUM absen (belum input)
+      const mappedBelum = allSantri
+        .filter((s) => !loggedSantriMap.has(s.id))
+        .map((s) => ({
+          id: `belum-${s.id}`,
+          santri_id: s.id,
+          nama_santri: s.nama_santri,
+          nis: s.nis,
+          nama_asrama: s.nama_asrama,
+          nama_kamar: s.nama_kamar,
+          nama_sesi: "Semua Sesi",
+          status: "Alfa",
+          jam_absen: "Belum Absen",
+        }));
+
+      setTodayAbsensiList([...mappedLogged, ...mappedBelum]);
     } catch (err) {
       console.warn("Notice loading mobile home data:", err.message);
     }
