@@ -1413,10 +1413,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               flexShrink: 0,
             }}
           >
-                borderBottom: "1px solid #e2e8f0",
-              }}
-            >
-              {[
+            {[
                 {
                   key: "Hadir",
                   count: modalHadirCount,
