@@ -127,6 +127,16 @@ export default function MobileLayout() {
     return () => window.removeEventListener('hashchange', syncTabFromHash);
   }, [isMobileDomain]);
 
+  // Scroll to top saat ganti tab atau refresh (Cegah header ketutup)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
+    const c = document.querySelector('.mobile-content');
+    if (c) c.scrollTop = 0;
+  }, [mobileTab]);
+
   const handleSelectTab = (tab) => {
     setMobileTab(tab);
     localStorage.setItem('mobileTab', tab);

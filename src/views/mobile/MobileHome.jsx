@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import axios from "axios";
 import {
-  Home,
+  Fingerprint,
   BookOpen,
-  Wallet,
   DoorOpen,
   Users,
   Building,
@@ -11,1450 +11,1997 @@ import {
   HardDrive,
   BarChart3,
   FileText,
-  LayoutDashboard,
-  Fingerprint,
-  Grid,
-  X,
-  ArrowLeft,
-  User,
-  HeartHandshake,
-  Smile,
+  Clock,
+  Key,
+  Bell,
+  LogOut,
+  Check,
+  Building2,
+  Calendar,
+  Send,
+  UserCheck,
   Award,
+  Layers,
+  Sparkles,
+  PieChart,
+  User,
+  HeartPulse,
+  AlertTriangle,
+  HeartHandshake,
+  X,
+  Search,
+  ExternalLink,
+  ChevronDown,
+  Filter,
+  Smile,
   CreditCard,
   DollarSign,
+  Wallet,
   Zap,
-  Layers,
   RotateCw,
-  Calendar,
+  ArrowRight,
+  Receipt,
+  CheckCircle2,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Settings,
+  Activity,
+  Headphones,
 } from "lucide-react";
-import MobileHome from "../views/mobile/MobileHome";
-import MobileTahfidz from "../views/mobile/MobileTahfidz";
-import MobileSyahriah from "../views/mobile/MobileSyahriah";
-import KeuanganAdminView from "../views/keuangan/KeuanganAdminView";
-import MobileKeuangan from "../views/mobile/MobileKeuangan";
-import MobileIzin from "../views/mobile/MobileIzin";
-import MobileDashboard from "../views/mobile/MobileDashboard";
-import MobilePresensi from "../views/mobile/MobilePresensi";
-import MobileSantri from "../views/mobile/MobileSantri";
-import MobileAsrama from "../views/mobile/MobileAsrama";
-import MobileKelas from "../views/mobile/MobileKelas";
-import MobileAsatidz from "../views/mobile/MobileAsatidz";
-import MobileDevice from "../views/mobile/MobileDevice";
-import MobileTataTertib from "../views/mobile/MobileTataTertib";
-import MobileLaporanPresensi from "../views/mobile/MobileLaporanPresensi";
-import MobileLaporanTahfidz from "../views/mobile/MobileLaporanTahfidz";
-import MobileKitab from "../views/mobile/MobileKitab";
-import MobileProfil from "../views/mobile/MobileProfil";
-import MobileDaftarWajah from "../views/mobile/MobileDaftarWajah";
-import MobileLogin from "../views/mobile/MobileLogin";
-import MobileOnboarding from "../views/mobile/MobileOnboarding";
-import MobilePraktek from "../views/mobile/MobilePraktek";
-import MobilePengembangan from "../views/mobile/MobilePengembangan";
-import MobileMateriHafalan from "../views/mobile/MobileMateriHafalan";
-import MobileKegiatan from "../views/mobile/MobileKegiatan";
-import SettingKegiatanView from "../views/admin/SettingKegiatanView";
-import InformasiKegiatanAdminView from "../views/admin/InformasiKegiatanAdminView";
-import PortalWaliSantri from "../views/wali/PortalWaliSantri";
-import { canAccessKeuangan } from "../utils/authRole.util";
+import { showSuccess, showConfirm } from "../../utils/alert.util";
 
-export default function MobileLayout() {
-  const [session, setSession] = useState(() => {
+export default function MobileHome({ onChangeTab, onLogout }) {
+  const [showBalanceEye, setShowBalanceEye] = useState(true);
+  const [stats, setStats] = useState({
+    total_santri: 0,
+    total_halaqah: 0,
+    total_izin_aktif: 0,
+  });
+
+  const [rekapAbsensi, setRekapAbsensi] = useState({
+    hadir: 0,
+    sakit: 0,
+    izin: 0,
+    alfa: 0,
+    total: 0,
+  });
+
+  // Modal State untuk Detail Absensi Hari Ini
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isDetailCardOpen, setIsDetailCardOpen] = useState(false);
+  const [selectedStatusTab, setSelectedStatusTab] = useState("Hadir"); // 'Hadir' | 'Sakit' | 'Izin' | 'Alfa'
+  const [selectedKegiatan, setSelectedKegiatan] = useState("Semua"); // 'Semua' | nama_sesi
+  const [sesiList, setSesiList] = useState([]);
+  const [todayAbsensiList, setTodayAbsensiList] = useState([]);
+  const [searchModalText, setSearchModalText] = useState("");
+
+  const [currentTimeStr, setCurrentTimeStr] = useState("");
+  const [currentDateStr, setCurrentDateStr] = useState("");
+
+  const sessionData = (() => {
     try {
-      const saved = localStorage.getItem("mobile_session");
-      return saved ? JSON.parse(saved) : null;
+      return JSON.parse(localStorage.getItem("mobile_session") || "{}");
     } catch (e) {
-      return null;
+      return {};
     }
-  });
-
-  const isMobileDomain =
-    typeof window !== "undefined" &&
-    (window.location.hostname === "mnurulwafa.ruangtech.com" ||
-      window.location.hostname === "m.nurulwafa.ruangtech.com" ||
-      window.location.hostname.startsWith("mnurulwafa.") ||
-      window.location.hostname.startsWith("m.") ||
-      window.location.hostname === "mpesantren.aspartech.com" ||
-      window.location.hostname.startsWith("mpesantren.") ||
-      window.location.hostname.includes("mpesantren"));
-
-  const getInitialTab = () => {
-    const hash = window.location.hash.replace("#", "");
-    if (hash.includes("/")) {
-      const sub = hash.split("/")[1];
-      if (sub && sub !== "home") return sub;
-    }
-    if (hash && hash !== "mobile" && hash !== "home") {
-      return hash;
-    }
-    // Jika buka domain utama tanpa hash tertentu, selalu buka Beranda (home)
-    return "home";
-  };
-
-  const [mobileTab, setMobileTab] = useState(getInitialTab);
-  const [authView, setAuthView] = useState(() => {
-    const hash = (
-      typeof window !== "undefined" ? window.location.hash : ""
-    ).toLowerCase();
-    if (hash.includes("login")) return "login";
-    return "onboarding";
-  });
-  const [isMenuDrawerOpen, setIsMenuDrawerOpen] = useState(false);
-
-  useEffect(() => {
-    const syncTabFromHash = () => {
-      const hash = window.location.hash.replace("#", "");
-      if (hash.toLowerCase().includes("login")) {
-        setAuthView("login");
-      } else if (
-        hash.toLowerCase().includes("welcome") ||
-        hash.toLowerCase().includes("onboarding")
-      ) {
-        setAuthView("onboarding");
-      }
-      if (hash.includes("/")) {
-        const sub = hash.split("/")[1];
-        if (sub) {
-          setMobileTab(sub);
-          localStorage.setItem("mobileTab", sub);
-        }
-      } else if (hash && hash !== "mobile") {
-        setMobileTab(hash);
-        localStorage.setItem("mobileTab", hash);
-      } else if (hash === "mobile" || (!hash && isMobileDomain)) {
-        // Root domain mobile selalu buka Beranda
-        setMobileTab("home");
-        localStorage.setItem("mobileTab", "home");
-      }
-    };
-
-    syncTabFromHash();
-    window.addEventListener("hashchange", syncTabFromHash);
-    return () => window.removeEventListener("hashchange", syncTabFromHash);
-  }, [isMobileDomain]);
-
-  const handleSelectTab = (tab) => {
-    setMobileTab(tab);
-    localStorage.setItem("mobileTab", tab);
-    if (isMobileDomain) {
-      window.location.hash = tab === "home" ? "" : tab;
-    } else {
-      window.location.hash = tab === "home" ? "mobile" : `mobile/${tab}`;
-    }
-    setIsMenuDrawerOpen(false);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("mobile_session");
-    setSession(null);
-  };
-
-  const handleLoginSuccess = (userSession) => {
-    const role = String(userSession?.role || "").toLowerCase();
-    if (role === "wali" || role === "wali santri") {
-      window.location.hash = "#wali";
-      window.location.reload();
-      return;
-    }
-    localStorage.setItem("mobileTab", "home");
-    setMobileTab("home");
-    if (isMobileDomain) {
-      window.location.hash = "";
-    } else {
-      window.location.hash = "mobile";
-    }
-    setSession(userSession);
-  };
-
-  // If user is not logged in on mobile app, display MobileOnboarding or MobileLogin screen!
-  if (!session) {
-    if (authView === "login") {
-      return (
-        <MobileLogin
-          onLoginSuccess={handleLoginSuccess}
-          onBackToOnboarding={() => setAuthView("onboarding")}
-        />
-      );
-    }
-    return <MobileOnboarding onStart={() => setAuthView("login")} />;
-  }
-
-  const isBendahara = (() => {
-    const role = String(session?.role || "").toLowerCase();
-    const uName = String(session?.username || "").toLowerCase();
-    return (
-      role.includes("keuangan") ||
-      role.includes("bendahara") ||
-      uName === "bendahara" ||
-      uName === "keuangan"
-    );
   })();
 
-  const getSubmenuTitle = () => {
-    switch (mobileTab) {
-      case "dashboard":
-        return "Dashboard System";
-      case "presensi":
-        return "Presensi Barcode & Wajah";
-      case "tahfidz":
-        return "Tahfidz & Muroja'ah";
-      case "praktek-ibadah":
-      case "praktek":
-        return "Praktek";
-      case "pengembangan":
-      case "perkembangan-ikhwan":
-      case "perkembangan-akhwat":
-        return "Pengembangan (Ikhwan & Akhwat)";
-      case "perizinan":
-      case "izin":
-        return "Perizinan";
-      case "master-santri":
-        return "Data Santri";
-      case "daftar-wajah":
-      case "wajah":
-        return "Daftar Wajah Santri";
-      case "master-asrama":
-        return "Data Asrama & Kobong";
-      case "master-kelas":
-        return "Data Kelas & Halaqah";
-      case "master-asatidz":
-        return "Data Asatidz & Musyrif";
-      case "master-materi":
-        return "Master Materi & Kitab";
-      case "setting-shalat":
-      case "setting-kegiatan":
-      case "master-kegiatan":
-      case "kegiatan":
-        return "Jadwal & Master Kegiatan";
-      case "informasi":
-      case "informasi-kegiatan":
-        return "Informasi & Pengumuman";
-      case "kitab":
-        return "Kajian Kitab Kuning";
-      case "master-device":
-        return "Data Mesin Fingerprint";
-      case "tata-tertib":
-        return "Tata Tertib & Ta'zir";
-      case "laporan-presensi":
-        return "Rekap Presensi Harian";
-      case "laporan-tahfidz":
-        return "Laporan Tahfidz & Tasmi'";
-      case "syahriah":
-      case "keuangan":
-      case "keuangan-kasir":
-        return "Kasir Pembayaran Santri";
-      case "keuangan-rekap":
-        return "Laporan Kas & Rekap SPP";
-      case "keuangan-spp":
-        return "Tagihan SPP Bulanan";
-      case "keuangan-masuk":
-        return "Biaya Awal Masuk";
-      case "keuangan-transaksi":
-        return "Transaksi QRIS & VA Midtrans";
-      case "keuangan-tunggakan":
-        return "Daftar Tunggakan Santri";
-      case "keuangan-komponen":
-        return "Tarif Komponen Biaya";
-      case "keuangan-generate":
-        return "Generate Tagihan SPP";
-      case "profil":
-        return isBendahara ? "Profil Bendahara" : "Profil Asatidz & Admin";
-      case "portal-wali":
-        return "Portal Orang Tua (Wali)";
-      default:
-        return "";
+  const rawName =
+    sessionData.nama ||
+    sessionData.username ||
+    "Admin";
+  const displayName = rawName.split(" ")[0];
+
+  // Auto reset scroll to top on mount (cegah header ketutup/terpotong saat refresh)
+  useEffect(() => {
+    if (typeof window !== "undefined" && "scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+    window.scrollTo(0, 0);
+    const container = document.querySelector(".mobile-content");
+    if (container) {
+      container.scrollTop = 0;
+    }
+  }, []);
+
+  // Update clock & date
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTimeStr(
+        now.toLocaleTimeString("id-ID", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      );
+      setCurrentDateStr(
+        now.toLocaleDateString("id-ID", {
+          weekday: "long",
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })
+      );
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Load Realtime Data: Santri & Rekap Absensi
+  const loadData = async () => {
+    try {
+      const [resSantri, resRekap, resSesi, resAbsensi] = await Promise.allSettled([
+        axios.get("/api/santri"),
+        axios.get("/api/absensi/rekap-harian"),
+        axios.get("/api/absensi/sesi"),
+        axios.get("/api/absensi/hari-ini"),
+      ]);
+
+      if (resSantri.status === "fulfilled" && resSantri.value.data?.success) {
+        const santriArr = resSantri.value.data.data || [];
+        setStats((prev) => ({
+          ...prev,
+          total_santri: santriArr.length,
+        }));
+      }
+
+      if (resRekap.status === "fulfilled" && resRekap.value.data?.success) {
+        const r = resRekap.value.data.data;
+        if (r) {
+          setRekapAbsensi({
+            hadir: Number(r.hadir || 0),
+            sakit: Number(r.sakit || 0),
+            izin: Number(r.izin || 0),
+            alfa: Number(r.alfa || 0),
+            total: Number(r.total || 0),
+          });
+        }
+      }
+
+      if (resSesi.status === "fulfilled" && resSesi.value.data?.success) {
+        setSesiList(resSesi.value.data.data || []);
+      }
+
+      if (resAbsensi.status === "fulfilled" && resAbsensi.value.data?.success) {
+        setTodayAbsensiList(resAbsensi.value.data.data || []);
+      }
+    } catch (err) {
+      console.warn("Notice loading mobile home data:", err.message);
     }
   };
 
-  const isOtherMenuActive = [
-    "dashboard",
-    "master-santri",
-    "master-asrama",
-    "master-kelas",
-    "master-asatidz",
-    "master-materi",
-    "kitab",
-    "master-device",
-    "tata-tertib",
-    "laporan-presensi",
-    "laporan-tahfidz",
-    "syahriah",
-    "praktek-ibadah",
-    "praktek",
-    "portal-wali",
-    "setting-shalat",
-    "setting-kegiatan",
-    "master-kegiatan",
-    "kegiatan",
-    "informasi",
-    "informasi-kegiatan",
-    "keuangan",
-    "keuangan-kasir",
-    "keuangan-rekap",
-    "keuangan-spp",
-    "keuangan-masuk",
-    "keuangan-transaksi",
-    "keuangan-tunggakan",
-    "keuangan-komponen",
-    "keuangan-generate",
-  ].includes(mobileTab);
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  const renderAksesDibatasi = () => (
-    <div
-      style={{
-        padding: "36px 20px",
-        textAlign: "center",
-        background: "#fff",
-        borderRadius: "20px",
-        margin: "20px 14px",
-        border: "1px solid #fee2e2",
-      }}
-    >
-      <div
-        style={{
-          width: "56px",
-          height: "56px",
-          borderRadius: "50%",
-          background: "#fef2f2",
-          color: "#dc2626",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          margin: "0 auto 14px",
-        }}
-      >
-        <ShieldAlert size={30} />
-      </div>
-      <h3
-        style={{
-          fontSize: "1.1rem",
-          fontWeight: 800,
-          color: "#0f172a",
-          margin: "0 0 6px",
-        }}
-      >
-        Akses Dibatasi
-      </h3>
-      <p
-        style={{
-          fontSize: "0.8rem",
-          color: "#64748b",
-          margin: "0 0 16px",
-          lineHeight: 1.4,
-        }}
-      >
-        Menu Keuangan hanya dapat diakses oleh Admin Keuangan / Bendahara. Admin
-        Absensi dan operasional tidak memiliki hak akses.
-      </p>
-      <button
-        onClick={() => handleSelectTab("home")}
-        style={{
-          background: "#059669",
-          color: "#fff",
-          border: "none",
-          padding: "9px 18px",
-          borderRadius: "10px",
-          fontSize: "0.8rem",
-          fontWeight: 700,
-          cursor: "pointer",
-        }}
-      >
-        Kembali ke Beranda
-      </button>
-    </div>
-  );
-
-  const renderContent = () => {
-    switch (mobileTab) {
-      case "home":
-        return (
-          <MobileHome onChangeTab={handleSelectTab} onLogout={handleLogout} />
-        );
-      case "portal-wali":
-        return <PortalWaliSantri onLogout={handleLogout} />;
-      case "dashboard":
-        return <MobileDashboard />;
-      case "presensi":
-        return <MobilePresensi />;
-      case "tahfidz":
-        return <MobileTahfidz />;
-      case "praktek-ibadah":
-      case "praktek":
-        return <MobilePraktek />;
-      case "pengembangan":
-      case "perkembangan-ikhwan":
-      case "perkembangan-akhwat":
-        return <MobilePengembangan />;
-      case "perizinan":
-      case "izin":
-        return <MobileIzin />;
-      case "master-santri":
-        return <MobileSantri />;
-      case "daftar-wajah":
-      case "wajah":
-        return <MobileDaftarWajah />;
-      case "master-asrama":
-        return <MobileAsrama />;
-      case "master-kelas":
-        return <MobileKelas />;
-      case "master-asatidz":
-        return <MobileAsatidz />;
-      case "master-materi":
-        return <MobileMateriHafalan />;
-      case "setting-shalat":
-      case "setting-kegiatan":
-      case "master-kegiatan":
-      case "kegiatan":
-        return <MobileKegiatan />;
-      case "informasi":
-      case "informasi-kegiatan":
-        return <InformasiKegiatanAdminView />;
-      case "kitab":
-        return <MobileKitab />;
-      case "master-device":
-        return <MobileDevice />;
-      case "tata-tertib":
-        return <MobileTataTertib />;
-      case "laporan-presensi":
-        return <MobileLaporanPresensi />;
-      case "laporan-tahfidz":
-        return <MobileLaporanTahfidz />;
-      case "syahriah":
-      case "keuangan":
-      case "keuangan-kasir":
-      case "keuangan-rekap":
-      case "keuangan-spp":
-      case "keuangan-masuk":
-      case "keuangan-transaksi":
-      case "keuangan-midtrans":
-      case "keuangan-tunggakan":
-      case "keuangan-komponen":
-      case "keuangan-generate":
-        if (!canAccessKeuangan(session)) return renderAksesDibatasi();
-        return (
-          <MobileKeuangan
-            initialSubTab={mobileTab}
-            onBackToHome={() => handleSelectTab("home")}
-          />
-        );
-      case "profil":
-        return (
-          <MobileProfil onChangeTab={handleSelectTab} onLogout={handleLogout} />
-        );
-      default:
-        return <MobileHome onChangeTab={handleSelectTab} />;
-    }
+  const handleOpenStatusModal = (statusKey) => {
+    setSelectedStatusTab(statusKey);
+    setIsDetailModalOpen(true);
   };
 
-  const isFinancialTab =
-    mobileTab === "syahriah" || mobileTab.startsWith("keuangan");
+  const handleOpenAccountInfo = () => {
+    setIsDetailCardOpen(true);
+  };
+
+  // Filter santri list in modal
+  const filteredModalList = todayAbsensiList.filter((item) => {
+    const stMatch =
+      !selectedStatusTab ||
+      (item.status || "").toLowerCase() === selectedStatusTab.toLowerCase();
+    const qMatch =
+      !searchModalText ||
+      (item.nama_santri || "").toLowerCase().includes(searchModalText.toLowerCase()) ||
+      (item.nis || "").toLowerCase().includes(searchModalText.toLowerCase()) ||
+      (item.nama_asrama || "").toLowerCase().includes(searchModalText.toLowerCase()) ||
+      (item.nama_kamar || "").toLowerCase().includes(searchModalText.toLowerCase());
+    const sesMatch =
+      selectedKegiatan === "Semua" ||
+      (item.nama_sesi || "").toLowerCase() === selectedKegiatan.toLowerCase();
+    return stMatch && qMatch && sesMatch;
+  });
+
+  const modalHadirCount = todayAbsensiList.filter(
+    (x) => (x.status || "").toLowerCase() === "hadir"
+  ).length;
+  const modalSakitCount = todayAbsensiList.filter(
+    (x) => (x.status || "").toLowerCase() === "sakit"
+  ).length;
+  const modalIzinCount = todayAbsensiList.filter(
+    (x) => (x.status || "").toLowerCase() === "izin"
+  ).length;
+  const modalAlfaCount = todayAbsensiList.filter(
+    (x) =>
+      (x.status || "").toLowerCase() === "alfa" ||
+      (x.status || "").toLowerCase() === "belum"
+  ).length;
 
   return (
-    <div className="mobile-wrapper">
-      <div className="mobile-app-container">
-        {/* Sub-Menu Top Navigation Header (Excludes Beranda/Home and MobileKeuangan which has integrated header) */}
-        {mobileTab !== "home" && !isFinancialTab && (
+    <div
+      style={{
+        minHeight: "100%",
+        background: "#f8fafc",
+        paddingBottom: "32px",
+        fontFamily:
+          "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      }}
+    >
+      {/* =========================================================================
+          TOP BANNER HEADER (CURVED TEAL LUXURY HEADER)
+      ========================================================================= */}
+      <div
+        style={{
+          background:
+            "linear-gradient(180deg, #0b6b60 0%, #0d766e 70%, #095c53 100%)",
+          padding: "16px 16px 46px",
+          color: "#ffffff",
+          borderBottomLeftRadius: "28px",
+          borderBottomRightRadius: "28px",
+          position: "relative",
+        }}
+      >
+        {/* Top App Header Row */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          {/* Brand Application: NWF Mobile (Mobile Miring & Menarik) */}
           <div
+            onClick={handleOpenAccountInfo}
             style={{
-              background:
-                "linear-gradient(135deg, #064e3b 0%, #047857 60%, #059669 100%)",
-              color: "#ffffff",
-              padding: "15px 16px",
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between",
-              borderBottom: "1px solid rgba(255, 255, 255, 0.15)",
-              borderBottomLeftRadius: "20px",
-              borderBottomRightRadius: "20px",
-              boxShadow: "0 8px 20px -4px rgba(6, 78, 59, 0.35)",
-              position: "sticky",
-              top: 0,
-              zIndex: 20,
+              gap: "10px",
+              cursor: "pointer",
+              userSelect: "none",
             }}
           >
-            <button
-              onClick={() => handleSelectTab("home")}
+            {/* Glossy Brand Emblem Icon */}
+            <div
               style={{
-                background: "rgba(255, 255, 255, 0.2)",
+                width: "40px",
+                height: "40px",
+                borderRadius: "14px",
+                background:
+                  "linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.08) 100%)",
+                border: "1.5px solid rgba(255, 255, 255, 0.35)",
                 backdropFilter: "blur(8px)",
                 WebkitBackdropFilter: "blur(8px)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 6px 16px -2px rgba(0, 0, 0, 0.18)",
+                flexShrink: 0,
+              }}
+            >
+              <img
+                src="/nwf.png"
+                alt="NWF"
+                onError={(e) => {
+                  e.target.style.display = "none";
+                  if (e.target.nextSibling) e.target.nextSibling.style.display = "block";
+                }}
+                style={{ width: "26px", height: "26px", objectFit: "contain" }}
+              />
+              <span
+                style={{
+                  display: "none",
+                  fontWeight: 900,
+                  fontSize: "0.95rem",
+                  color: "#ffffff",
+                  letterSpacing: "-0.5px",
+                }}
+              >
+                NWF
+              </span>
+            </div>
+
+            {/* Typography NWF Mobile */}
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
+                <span
+                  style={{
+                    fontWeight: 900,
+                    fontSize: "1.42rem",
+                    letterSpacing: "-0.6px",
+                    color: "#ffffff",
+                    lineHeight: 1,
+                    textShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
+                  }}
+                >
+                  NWF
+                </span>
+                <span
+                  style={{
+                    fontWeight: 800,
+                    fontSize: "1.1rem",
+                    fontStyle: "italic",
+                    letterSpacing: "0.2px",
+                    color: "#a7f3d0",
+                    lineHeight: 1,
+                    textShadow: "0 2px 6px rgba(11, 107, 96, 0.35)",
+                  }}
+                >
+                  Mobile
+                </span>
+              </div>
+              <span
+                style={{
+                  fontSize: "0.62rem",
+                  fontWeight: 700,
+                  color: "rgba(255, 255, 255, 0.8)",
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                  marginTop: "3px",
+                  lineHeight: 1,
+                }}
+              >
+                Pondok Pesantren Nurul Wafa
+              </span>
+            </div>
+          </div>
+
+          {/* Top 3 Action Icons (Card / Support / Notification) */}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {/* 1. Detail Card Icon */}
+            <button
+              onClick={handleOpenAccountInfo}
+              style={{
+                background: "rgba(255, 255, 255, 0.16)",
                 border: "1px solid rgba(255, 255, 255, 0.25)",
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
                 color: "#ffffff",
-                width: "38px",
-                height: "38px",
-                borderRadius: "10px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 cursor: "pointer",
-                transition: "transform 0.15s ease",
+                padding: 0,
               }}
-              title="Kembali ke Beranda"
+              title="Detail Kartu Pesantren"
             >
-              <ArrowLeft size={20} />
+              <CreditCard size={18} />
             </button>
 
-            <span
+            {/* 2. Customer Care / Bantuan */}
+            <button
+              onClick={() => onChangeTab("informasi")}
               style={{
-                fontWeight: 800,
-                fontSize: "0.98rem",
+                background: "rgba(255, 255, 255, 0.16)",
+                border: "1px solid rgba(255, 255, 255, 0.25)",
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
                 color: "#ffffff",
-                textAlign: "center",
-                flex: 1,
-                margin: "0 12px",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                letterSpacing: "0.01em",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                padding: 0,
               }}
+              title="Layanan Bantuan"
             >
-              {getSubmenuTitle()}
-            </span>
+              <Headphones size={18} />
+            </button>
 
-            <div style={{ width: "38px" }} />
+            {/* 3. Notifikasi Bell */}
+            <button
+              onClick={() => onChangeTab("informasi")}
+              style={{
+                background: "rgba(255, 255, 255, 0.16)",
+                border: "1px solid rgba(255, 255, 255, 0.25)",
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                position: "relative",
+                padding: 0,
+              }}
+              title="Notifikasi"
+            >
+              <Bell size={18} />
+              <span
+                style={{
+                  position: "absolute",
+                  top: "6px",
+                  right: "6px",
+                  width: "7px",
+                  height: "7px",
+                  borderRadius: "50%",
+                  background: "#ef4444",
+                  border: "1.5px solid #0d766e",
+                }}
+              />
+            </button>
           </div>
-        )}
+        </div>
+      </div>
 
-        {/* Dynamic Mobile Content */}
-        <div className="mobile-content">{renderContent()}</div>
-
-        {/* Mobile Menu Sheet Drawer */}
-        {isMenuDrawerOpen && (
+      {/* =========================================================================
+          CARD 1: FLOATING WHITE CARD (ADMIN ID CARD + PRESENSI STATUS PILLS)
+      ========================================================================= */}
+      <div
+        style={{
+          padding: "0 14px",
+          marginTop: "-34px",
+          position: "relative",
+          zIndex: 10,
+        }}
+      >
+        <div
+          style={{
+            background: "#ffffff",
+            borderRadius: "22px",
+            padding: "12px",
+            boxShadow:
+              "0 12px 28px -4px rgba(11, 107, 96, 0.18), 0 3px 10px rgba(0, 0, 0, 0.04)",
+            border: "1px solid #e6f0ed",
+            display: "flex",
+            gap: "10px",
+            alignItems: "stretch",
+          }}
+        >
+          {/* Left 58%: Mini Blue Smart ID Card */}
           <div
+            onClick={handleOpenAccountInfo}
             style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: "rgba(15, 23, 42, 0.75)",
-              backdropFilter: "blur(4px)",
-              zIndex: 999,
+              flex: "1 1 58%",
+              background: "linear-gradient(135deg, #0284c7 0%, #1e40af 100%)",
+              borderRadius: "16px",
+              padding: "10px 12px",
+              color: "#ffffff",
+              position: "relative",
+              overflow: "hidden",
+              cursor: "pointer",
               display: "flex",
               flexDirection: "column",
-              justifyContent: "flex-end",
-              alignItems: "center",
+              justifyContent: "space-between",
+              minHeight: "92px",
+              boxShadow: "0 4px 14px rgba(2, 132, 199, 0.35)",
             }}
-            onClick={() => setIsMenuDrawerOpen(false)}
+          >
+            {/* Top row: Brand & Star emblem */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: "0.6rem",
+                    fontWeight: 700,
+                    letterSpacing: "0.02em",
+                    color: "#f0f9ff",
+                    lineHeight: 1.1,
+                  }}
+                >
+                  Pondok Pesantren
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.74rem",
+                    fontWeight: 900,
+                    color: "#ffffff",
+                    letterSpacing: "0.02em",
+                  }}
+                >
+                  Nurul Wafa
+                </div>
+              </div>
+              <span
+                style={{
+                  fontSize: "1.1rem",
+                  lineHeight: 1,
+                  color: "#ffffff",
+                  opacity: 0.9,
+                }}
+              >
+                ✱
+              </span>
+            </div>
+
+            {/* Bottom row: Cardholder details */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                marginTop: "8px",
+              }}
+            >
+              <div
+                style={{
+                  width: "28px",
+                  height: "34px",
+                  borderRadius: "5px",
+                  background: "#dc2626",
+                  border: "1.5px solid #ffffff",
+                  overflow: "hidden",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <User size={20} color="#ffffff" />
+              </div>
+              <div style={{ minWidth: 0, overflow: "hidden" }}>
+                <div
+                  style={{
+                    fontSize: "0.74rem",
+                    fontWeight: 800,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    color: "#ffffff",
+                  }}
+                >
+                  {displayName || sessionData.nama || "Admin Nurul Wafa"}
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.6rem",
+                    color: "#bae6fd",
+                    fontWeight: 600,
+                    letterSpacing: "0.03em",
+                  }}
+                >
+                  NWF-2026-ADM
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right 42%: Info Stats Pills (Sudah Absen & Belum Absen) */}
+          <div
+            style={{
+              flex: "1 1 42%",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              gap: "6px",
+            }}
+          >
+            {/* Pill 1: Sudah Absen */}
+            <div
+              onClick={() => handleOpenStatusModal("Hadir")}
+              style={{
+                background: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                borderRadius: "12px",
+                padding: "6px 8px",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "4px" }}
+              >
+                <CheckCircle2 size={11} color="#16a34a" />
+                <span
+                  style={{
+                    fontSize: "0.62rem",
+                    fontWeight: 700,
+                    color: "#166534",
+                  }}
+                >
+                  Sudah Absen
+                </span>
+              </div>
+              <div
+                style={{
+                  fontSize: "0.82rem",
+                  fontWeight: 900,
+                  color: "#14532d",
+                  marginTop: "2px",
+                }}
+              >
+                {rekapAbsensi.hadir} <span style={{ fontSize: "0.62rem", fontWeight: 600 }}>Santri</span>
+              </div>
+            </div>
+
+            {/* Pill 2: Belum Absen */}
+            <div
+              onClick={() => handleOpenStatusModal("Alfa")}
+              style={{
+                background: "#fff1f2",
+                border: "1px solid #fecdd3",
+                borderRadius: "12px",
+                padding: "6px 8px",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "4px" }}
+              >
+                <AlertTriangle size={11} color="#e11d48" />
+                <span
+                  style={{
+                    fontSize: "0.62rem",
+                    fontWeight: 700,
+                    color: "#9f1239",
+                  }}
+                >
+                  Belum Absen
+                </span>
+              </div>
+              <div
+                style={{
+                  fontSize: "0.82rem",
+                  fontWeight: 900,
+                  color: "#881337",
+                  marginTop: "2px",
+                }}
+              >
+                {rekapAbsensi.alfa} <span style={{ fontSize: "0.62rem", fontWeight: 600 }}>Santri</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================================
+          CARD 2: DARK TEAL PILL BAR (PRESENSI SANTRI HARI INI & QUICK STATUS PILLS)
+      ========================================================================= */}
+      <div style={{ padding: "0 14px", marginTop: "10px" }}>
+        <div
+          style={{
+            background: "linear-gradient(135deg, #0d7a6e 0%, #095c53 100%)",
+            borderRadius: "18px",
+            padding: "10px 14px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            color: "#ffffff",
+            boxShadow: "0 6px 18px rgba(13, 122, 110, 0.25)",
+          }}
+        >
+          {/* Left: Total Presensi Santri */}
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span
+                style={{
+                  width: "6px",
+                  height: "6px",
+                  borderRadius: "50%",
+                  background: "#4ade80",
+                  display: "inline-block",
+                  boxShadow: "0 0 6px #4ade80",
+                }}
+              />
+              <span
+                style={{
+                  fontSize: "0.66rem",
+                  color: "#a7f3d0",
+                  fontWeight: 700,
+                  letterSpacing: "0.02em",
+                }}
+              >
+                Presensi Hari Ini
+              </span>
+            </div>
+            <div
+              style={{
+                fontSize: "1.05rem",
+                fontWeight: 900,
+                color: "#ffffff",
+                letterSpacing: "-0.3px",
+                marginTop: "1px",
+                display: "flex",
+                alignItems: "baseline",
+                gap: "4px",
+              }}
+            >
+              <span>{rekapAbsensi.hadir}</span>
+              <span style={{ fontSize: "0.72rem", color: "#a7f3d0", fontWeight: 700 }}>
+                / {rekapAbsensi.total || stats.total_santri || 0}
+              </span>
+            </div>
+          </div>
+
+          {/* Right: 4 Quick Status Badges for instant filtering */}
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            {/* Hadir */}
+            <div
+              onClick={() => handleOpenStatusModal("Hadir")}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                cursor: "pointer",
+                background: "rgba(255, 255, 255, 0.12)",
+                padding: "4px 8px",
+                borderRadius: "10px",
+                minWidth: "38px",
+              }}
+              title="Lihat Santri Hadir"
+            >
+              <span style={{ fontSize: "0.78rem", fontWeight: 900, color: "#86efac" }}>
+                {rekapAbsensi.hadir}
+              </span>
+              <span style={{ fontSize: "0.54rem", color: "#e6fffa", fontWeight: 700 }}>
+                Hadir
+              </span>
+            </div>
+
+            {/* Izin */}
+            <div
+              onClick={() => handleOpenStatusModal("Izin")}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                cursor: "pointer",
+                background: "rgba(255, 255, 255, 0.12)",
+                padding: "4px 8px",
+                borderRadius: "10px",
+                minWidth: "38px",
+              }}
+              title="Lihat Santri Izin"
+            >
+              <span style={{ fontSize: "0.78rem", fontWeight: 900, color: "#fde047" }}>
+                {rekapAbsensi.izin}
+              </span>
+              <span style={{ fontSize: "0.54rem", color: "#e6fffa", fontWeight: 700 }}>
+                Izin
+              </span>
+            </div>
+
+            {/* Sakit */}
+            <div
+              onClick={() => handleOpenStatusModal("Sakit")}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                cursor: "pointer",
+                background: "rgba(255, 255, 255, 0.12)",
+                padding: "4px 8px",
+                borderRadius: "10px",
+                minWidth: "38px",
+              }}
+              title="Lihat Santri Sakit"
+            >
+              <span style={{ fontSize: "0.78rem", fontWeight: 900, color: "#cbd5e1" }}>
+                {rekapAbsensi.sakit}
+              </span>
+              <span style={{ fontSize: "0.54rem", color: "#e6fffa", fontWeight: 700 }}>
+                Sakit
+              </span>
+            </div>
+
+            {/* Belum / Alfa */}
+            <div
+              onClick={() => handleOpenStatusModal("Alfa")}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                cursor: "pointer",
+                background: "rgba(239, 68, 68, 0.25)",
+                padding: "4px 8px",
+                borderRadius: "10px",
+                minWidth: "38px",
+                border: "1px solid rgba(239, 68, 68, 0.35)",
+              }}
+              title="Lihat Santri Belum Absen"
+            >
+              <span style={{ fontSize: "0.78rem", fontWeight: 900, color: "#fca5a5" }}>
+                {rekapAbsensi.alfa}
+              </span>
+              <span style={{ fontSize: "0.54rem", color: "#fef2f2", fontWeight: 700 }}>
+                Belum
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================================
+          SECTION 1: DATA MASTER (4 PRIMARY BIG SQUIRCLES)
+      ========================================================================= */}
+      <div style={{ padding: "16px 14px 4px" }}>
+        <div
+          style={{
+            fontSize: "0.82rem",
+            fontWeight: 800,
+            color: "#1e293b",
+            marginBottom: "10px",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+          }}
+        >
+          <span
+            style={{
+              width: "4px",
+              height: "14px",
+              background: "#0d766e",
+              borderRadius: "2px",
+            }}
+          />
+          Data Master
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: "10px",
+          }}
+        >
+          {/* 1. Santri (Emerald Green) */}
+          <div
+            onClick={() => onChangeTab("master-santri")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+            }}
           >
             <div
               style={{
-                background: "#ffffff",
-                borderTopLeftRadius: "24px",
-                borderTopRightRadius: "24px",
-                padding: "20px 16px 30px",
-                maxHeight: "80vh",
-                overflowY: "auto",
-                boxShadow: "0 -10px 25px rgba(0,0,0,0.2)",
-                width: "100%",
-                maxWidth: "430px",
-                boxSizing: "border-box",
+                width: "56px",
+                height: "56px",
+                borderRadius: "18px",
+                background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                boxShadow: "0 8px 18px -2px rgba(16, 185, 129, 0.35)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#ffffff",
               }}
-              onClick={(e) => e.stopPropagation()}
+            >
+              <Users size={26} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: "#334155",
+              }}
+            >
+              Santri
+            </span>
+          </div>
+
+          {/* 2. Kelas (Sky Blue) */}
+          <div
+            onClick={() => onChangeTab("master-kelas")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "56px",
+                height: "56px",
+                borderRadius: "18px",
+                background: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
+                boxShadow: "0 8px 18px -2px rgba(14, 165, 233, 0.35)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#ffffff",
+              }}
+            >
+              <GraduationCap size={26} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: "#334155",
+              }}
+            >
+              Kelas
+            </span>
+          </div>
+
+          {/* 3. Asrama (Purple) */}
+          <div
+            onClick={() => onChangeTab("master-asrama")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "56px",
+                height: "56px",
+                borderRadius: "18px",
+                background: "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)",
+                boxShadow: "0 8px 18px -2px rgba(139, 92, 246, 0.35)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#ffffff",
+              }}
+            >
+              <Building size={26} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: "#334155",
+              }}
+            >
+              Asrama
+            </span>
+          </div>
+
+          {/* 4. Kegiatan (Amber / Gold) */}
+          <div
+            onClick={() => onChangeTab("setting-shalat")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "56px",
+                height: "56px",
+                borderRadius: "18px",
+                background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+                boxShadow: "0 8px 18px -2px rgba(245, 158, 11, 0.35)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#ffffff",
+              }}
+            >
+              <Calendar size={26} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: "#334155",
+              }}
+            >
+              Kegiatan
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================================
+          SECTION 2: TRANSAKSI SANTRI (5 SOFT PASTEL SQUIRCLES)
+      ========================================================================= */}
+      <div style={{ padding: "14px 14px 6px" }}>
+        <div
+          style={{
+            fontSize: "0.82rem",
+            fontWeight: 800,
+            color: "#1e293b",
+            marginBottom: "10px",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+          }}
+        >
+          <span
+            style={{
+              width: "4px",
+              height: "14px",
+              background: "#6366f1",
+              borderRadius: "2px",
+            }}
+          />
+          Transaksi Santri
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(5, 1fr)",
+            gap: "8px",
+          }}
+        >
+          {/* 1. Perizinan */}
+          <div
+            onClick={() => onChangeTab("perizinan")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "5px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "50px",
+                height: "50px",
+                borderRadius: "16px",
+                background: "#ede9fe",
+                border: "1px solid #ddd6fe",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#6366f1",
+                boxShadow: "0 2px 8px rgba(99, 102, 241, 0.12)",
+              }}
+            >
+              <Clock size={22} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.66rem",
+                fontWeight: 700,
+                color: "#334155",
+                textAlign: "center",
+                lineHeight: 1.1,
+              }}
+            >
+              Perizinan
+            </span>
+          </div>
+
+          {/* 2. Teguran / Tata Tertib */}
+          <div
+            onClick={() => onChangeTab("tata-tertib")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "5px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "50px",
+                height: "50px",
+                borderRadius: "16px",
+                background: "#ffe4e6",
+                border: "1px solid #fecdd3",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#e11d48",
+                boxShadow: "0 2px 8px rgba(225, 29, 72, 0.12)",
+              }}
+            >
+              <ShieldAlert size={22} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.66rem",
+                fontWeight: 700,
+                color: "#334155",
+                textAlign: "center",
+                lineHeight: 1.1,
+              }}
+            >
+              Teguran
+            </span>
+          </div>
+
+          {/* 3. Absensi */}
+          <div
+            onClick={() => onChangeTab("presensi")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "5px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "50px",
+                height: "50px",
+                borderRadius: "16px",
+                background: "#ecfdf5",
+                border: "1px solid #a7f3d0",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#059669",
+                boxShadow: "0 2px 8px rgba(5, 150, 105, 0.12)",
+              }}
+            >
+              <Fingerprint size={22} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.66rem",
+                fontWeight: 700,
+                color: "#334155",
+                textAlign: "center",
+                lineHeight: 1.1,
+              }}
+            >
+              Absensi
+            </span>
+          </div>
+
+          {/* 4. Perkembangan */}
+          <div
+            onClick={() => onChangeTab("pengembangan")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "5px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "50px",
+                height: "50px",
+                borderRadius: "16px",
+                background: "#e0f2fe",
+                border: "1px solid #bae6fd",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#0284c7",
+                boxShadow: "0 2px 8px rgba(2, 132, 199, 0.12)",
+              }}
+            >
+              <Award size={22} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.64rem",
+                fontWeight: 700,
+                color: "#334155",
+                textAlign: "center",
+                lineHeight: 1.1,
+              }}
+            >
+              Perkembangan
+            </span>
+          </div>
+
+          {/* 5. Praktek */}
+          <div
+            onClick={() => onChangeTab("praktek-ibadah")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "5px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "50px",
+                height: "50px",
+                borderRadius: "16px",
+                background: "#fef3c7",
+                border: "1px solid #fde68a",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#d97706",
+                boxShadow: "0 2px 8px rgba(217, 119, 6, 0.12)",
+              }}
+            >
+              <BookOpen size={22} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.66rem",
+                fontWeight: 700,
+                color: "#334155",
+                textAlign: "center",
+                lineHeight: 1.1,
+              }}
+            >
+              Praktek
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================================
+          SECTION 3: INFORMASI PESANTREN
+      ========================================================================= */}
+      <div style={{ padding: "14px 14px 20px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "12px",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "0.84rem",
+              fontWeight: 800,
+              color: "#1e293b",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            <span
+              style={{
+                width: "4px",
+                height: "14px",
+                background: "#0ea5e9",
+                borderRadius: "2px",
+              }}
+            />
+            Informasi & Pengumuman
+          </div>
+          <button
+            onClick={() => onChangeTab("informasi")}
+            style={{
+              background: "#0d766e",
+              border: "none",
+              color: "#ffffff",
+              fontSize: "0.68rem",
+              fontWeight: 700,
+              padding: "4px 12px",
+              borderRadius: "999px",
+              cursor: "pointer",
+            }}
+          >
+            Lihat Semua
+          </button>
+        </div>
+
+        {/* 2 Realtime Information Cards */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
+          }}
+        >
+          {/* Card 1 */}
+          <div
+            onClick={() => onChangeTab("informasi")}
+            style={{
+              background: "#ffffff",
+              borderRadius: "16px",
+              padding: "12px 14px",
+              border: "1px solid #e2e8f0",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "6px",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "0.62rem",
+                  fontWeight: 800,
+                  color: "#0d766e",
+                  background: "#ccfbf1",
+                  padding: "2px 8px",
+                  borderRadius: "6px",
+                }}
+              >
+                Kedisiplinan & Presensi
+              </span>
+              <span style={{ fontSize: "0.62rem", color: "#94a3b8" }}>
+                Hari ini
+              </span>
+            </div>
+            <div
+              style={{
+                fontSize: "0.78rem",
+                fontWeight: 800,
+                color: "#0f172a",
+                lineHeight: 1.3,
+                marginBottom: "4px",
+              }}
+            >
+              Perekaman Fingerprint Jamaah & Penutupan Sesi Otomatis
+            </div>
+            <div
+              style={{
+                fontSize: "0.7rem",
+                color: "#64748b",
+                lineHeight: 1.4,
+              }}
+            >
+              Sesi presensi shalat ditutup tepat waktu. Santri yang belum hadir otomatis masuk daftar Belum Absen.
+            </div>
+          </div>
+
+          {/* Card 2 */}
+          <div
+            onClick={() => onChangeTab("informasi")}
+            style={{
+              background: "#ffffff",
+              borderRadius: "16px",
+              padding: "12px 14px",
+              border: "1px solid #e2e8f0",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "6px",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "0.62rem",
+                  fontWeight: 800,
+                  color: "#6366f1",
+                  background: "#ede9fe",
+                  padding: "2px 8px",
+                  borderRadius: "6px",
+                }}
+              >
+                Pengasuhan Santri
+              </span>
+              <span style={{ fontSize: "0.62rem", color: "#94a3b8" }}>
+                Kemarin
+              </span>
+            </div>
+            <div
+              style={{
+                fontSize: "0.78rem",
+                fontWeight: 800,
+                color: "#0f172a",
+                lineHeight: 1.3,
+                marginBottom: "4px",
+              }}
+            >
+              Alur Verifikasi Perizinan Pulang & Jam Kunjungan Santri
+            </div>
+            <div
+              style={{
+                fontSize: "0.7rem",
+                color: "#64748b",
+                lineHeight: 1.4,
+              }}
+            >
+              Perizinan santri wajib melalui persetujuan wali asrama dan tercatat dalam sistem perizinan.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================================
+          MODAL DETAIL PRESENSI SANTRI HARI INI
+      ========================================================================= */}
+      {isDetailModalOpen && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.65)",
+            backdropFilter: "blur(4px)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "center",
+            padding: 0,
+          }}
+        >
+          {/* Backdrop click to close */}
+          <div
+            onClick={() => setIsDetailModalOpen(false)}
+            style={{ position: "absolute", inset: 0 }}
+          />
+
+          {/* Modal Bottom Sheet Container */}
+          <div
+            style={{
+              position: "relative",
+              zIndex: 10,
+              maxWidth: "430px",
+              width: "100%",
+              maxHeight: "86vh",
+              background: "#ffffff",
+              borderTopLeftRadius: "26px",
+              borderTopRightRadius: "26px",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 -10px 40px rgba(0,0,0,0.25)",
+              overflow: "hidden",
+            }}
+          >
+            {/* Top Drag Handle */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                padding: "10px 0 4px",
+              }}
+            >
+              <div
+                style={{
+                  width: "40px",
+                  height: "4px",
+                  background: "#cbd5e1",
+                  borderRadius: "4px",
+                }}
+              />
+            </div>
+
+            {/* Modal Header */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "8px 18px 12px",
+                borderBottom: "1px solid #f1f5f9",
+              }}
+            >
+              <div>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: "1.05rem",
+                    fontWeight: 800,
+                    color: "#0f172a",
+                  }}
+                >
+                  Santri {selectedStatusTab} Hari Ini
+                </h3>
+                <div
+                  style={{
+                    fontSize: "0.74rem",
+                    color: "#64748b",
+                    marginTop: "2px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <Calendar size={13} color="#0284c7" />
+                  <span>{currentDateStr || "Hari ini"}</span>
+                  <span>•</span>
+                  <span style={{ fontWeight: 700, color: "#0284c7" }}>
+                    {filteredModalList.length} Santri
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsDetailModalOpen(false)}
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  borderRadius: "50%",
+                  border: "none",
+                  background: "#f1f5f9",
+                  color: "#64748b",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Status Pills Selector inside modal */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, 1fr)",
+                gap: "6px",
+                padding: "10px 16px",
+                background: "#f8fafc",
+                borderBottom: "1px solid #e2e8f0",
+              }}
+            >
+              {[
+                {
+                  key: "Hadir",
+                  count: modalHadirCount,
+                  color: "#10b981",
+                  bg: "#ecfdf5",
+                },
+                {
+                  key: "Sakit",
+                  count: modalSakitCount,
+                  color: "#ef4444",
+                  bg: "#fef2f2",
+                },
+                {
+                  key: "Izin",
+                  count: modalIzinCount,
+                  color: "#f59e0b",
+                  bg: "#fffbeb",
+                },
+                {
+                  key: "Alfa",
+                  label: "Belum",
+                  count: modalAlfaCount,
+                  color: "#0d9488",
+                  bg: "#f0fdfa",
+                },
+              ].map((st) => {
+                const isActive = selectedStatusTab === st.key;
+                return (
+                  <button
+                    key={st.key}
+                    onClick={() => setSelectedStatusTab(st.key)}
+                    style={{
+                      padding: "8px 4px",
+                      borderRadius: "12px",
+                      border: isActive
+                        ? `2px solid ${st.color}`
+                        : "1px solid #e2e8f0",
+                      background: isActive ? st.bg : "#ffffff",
+                      color: isActive ? st.color : "#64748b",
+                      fontSize: "0.74rem",
+                      fontWeight: isActive ? 800 : 600,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "2px",
+                      cursor: "pointer",
+                      boxShadow: isActive
+                        ? "0 2px 8px rgba(0,0,0,0.06)"
+                        : "none",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <span>{st.label || st.key}</span>
+                    <span
+                      style={{
+                        fontSize: "0.85rem",
+                        fontWeight: 900,
+                      }}
+                    >
+                      {st.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Filter Search & Sesi Kegiatan */}
+            <div
+              style={{
+                padding: "10px 16px",
+                display: "flex",
+                gap: "8px",
+                borderBottom: "1px solid #f1f5f9",
+              }}
+            >
+              <div
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  background: "#f1f5f9",
+                  borderRadius: "10px",
+                  padding: "0 10px",
+                  gap: "6px",
+                }}
+              >
+                <Search size={14} color="#64748b" />
+                <input
+                  type="text"
+                  placeholder="Cari santri / NIS / asrama..."
+                  value={searchModalText}
+                  onChange={(e) => setSearchModalText(e.target.value)}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    padding: "8px 0",
+                    fontSize: "0.76rem",
+                    color: "#0f172a",
+                    outline: "none",
+                    width: "100%",
+                  }}
+                />
+              </div>
+
+              {sesiList.length > 0 && (
+                <select
+                  value={selectedKegiatan}
+                  onChange={(e) => setSelectedKegiatan(e.target.value)}
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: "10px",
+                    border: "1px solid #cbd5e1",
+                    background: "#ffffff",
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    color: "#334155",
+                    outline: "none",
+                    maxWidth: "130px",
+                  }}
+                >
+                  <option value="Semua">Semua Sesi</option>
+                  {sesiList.map((s) => (
+                    <option key={s.id || s.kode_sesi} value={s.nama_sesi}>
+                      {s.nama_sesi}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* List Santri */}
+            <div
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                padding: "12px 16px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px",
+              }}
+            >
+              {filteredModalList.length > 0 ? (
+                filteredModalList.map((item, idx) => (
+                  <div
+                    key={item.id || idx}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "10px 12px",
+                      background: "#ffffff",
+                      borderRadius: "12px",
+                      border: "1px solid #e2e8f0",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <div
+                        style={{
+                          width: "36px",
+                          height: "36px",
+                          borderRadius: "50%",
+                          background: "#e0f2fe",
+                          color: "#0284c7",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontWeight: 800,
+                          fontSize: "0.85rem",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {(item.nama_santri || "S").charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div
+                          style={{
+                            fontSize: "0.82rem",
+                            fontWeight: 800,
+                            color: "#0f172a",
+                          }}
+                        >
+                          {item.nama_santri || "Santri"}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.68rem",
+                            color: "#64748b",
+                            marginTop: "2px",
+                          }}
+                        >
+                          NIS: {item.nis || "-"} • {item.nama_asrama || "Asrama"} / {item.nama_kamar || "-"}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: "right" }}>
+                      <span
+                        style={{
+                          fontSize: "0.65rem",
+                          fontWeight: 800,
+                          padding: "3px 8px",
+                          borderRadius: "6px",
+                          background:
+                            (item.status || "").toLowerCase() === "hadir"
+                              ? "#dcfce7"
+                              : (item.status || "").toLowerCase() === "izin"
+                              ? "#fef3c7"
+                              : (item.status || "").toLowerCase() === "sakit"
+                              ? "#fee2e2"
+                              : "#f1f5f9",
+                          color:
+                            (item.status || "").toLowerCase() === "hadir"
+                              ? "#15803d"
+                              : (item.status || "").toLowerCase() === "izin"
+                              ? "#b45309"
+                              : (item.status || "").toLowerCase() === "sakit"
+                              ? "#b91c1c"
+                              : "#64748b",
+                        }}
+                      >
+                        {item.status || selectedStatusTab}
+                      </span>
+                      <div
+                        style={{
+                          fontSize: "0.62rem",
+                          color: "#94a3b8",
+                          marginTop: "3px",
+                        }}
+                      >
+                        {item.jam_absen || item.waktu || "-"}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div
+                  style={{
+                    padding: "36px 16px",
+                    textAlign: "center",
+                    color: "#94a3b8",
+                    fontSize: "0.82rem",
+                  }}
+                >
+                  Tidak ada data santri dengan status{" "}
+                  <strong>{selectedStatusTab}</strong>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL DETAIL KARTU ID ADMIN
+      ========================================================================= */}
+      {isDetailCardOpen && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.7)",
+            backdropFilter: "blur(5px)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "center",
+            padding: 0,
+          }}
+        >
+          <div
+            onClick={() => setIsDetailCardOpen(false)}
+            style={{ position: "absolute", inset: 0 }}
+          />
+          <div
+            style={{
+              position: "relative",
+              zIndex: 10,
+              maxWidth: "430px",
+              width: "100%",
+              maxHeight: "86vh",
+              background: "#ffffff",
+              borderTopLeftRadius: "26px",
+              borderTopRightRadius: "26px",
+              padding: "20px 18px 30px",
+              overflowY: "auto",
+              boxShadow: "0 -10px 40px rgba(0,0,0,0.3)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "16px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <CreditCard size={18} color="#0d766e" />
+                <span
+                  style={{
+                    fontWeight: 800,
+                    fontSize: "0.95rem",
+                    color: "#0f172a",
+                  }}
+                >
+                  Detail Kartu Digital Pesantren
+                </span>
+              </div>
+              <button
+                onClick={() => setIsDetailCardOpen(false)}
+                style={{
+                  width: "30px",
+                  height: "30px",
+                  borderRadius: "50%",
+                  border: "none",
+                  background: "#f1f5f9",
+                  color: "#64748b",
+                  cursor: "pointer",
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Big Smart ID Card Preview */}
+            <div
+              style={{
+                background: "linear-gradient(135deg, #0284c7 0%, #1e40af 100%)",
+                borderRadius: "20px",
+                padding: "20px",
+                color: "#ffffff",
+                boxShadow: "0 10px 25px -4px rgba(2, 132, 199, 0.4)",
+                marginBottom: "16px",
+              }}
             >
               <div
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "16px",
-                  borderBottom: "1px solid #f1f5f9",
-                  paddingBottom: "10px",
+                  alignItems: "flex-start",
+                  marginBottom: "20px",
                 }}
               >
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
-                >
-                  <Grid size={18} color="#059669" />
-                  <span
-                    style={{
-                      fontWeight: 800,
-                      fontSize: "0.95rem",
-                      color: "#0f172a",
-                    }}
-                  >
-                    Daftar Semua Menu Mobile
-                  </span>
-                </div>
-                <button
-                  onClick={() => setIsMenuDrawerOpen(false)}
-                  style={{
-                    background: "#f1f5f9",
-                    border: "none",
-                    padding: "4px",
-                    borderRadius: "50%",
-                    cursor: "pointer",
-                    color: "#64748b",
-                  }}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              {/* Menu Categories */}
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "14px",
-                }}
-              >
-                {isBendahara ? (
-                  <div>
-                    <div
-                      style={{
-                        fontSize: "0.68rem",
-                        fontWeight: 800,
-                        color: "#059669",
-                        textTransform: "uppercase",
-                        marginBottom: "8px",
-                      }}
-                    >
-                      MENU KEUANGAN & KASIR
-                    </div>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(2, 1fr)",
-                        gap: "8px",
-                      }}
-                    >
-                      <button
-                        onClick={() => handleSelectTab("keuangan-kasir")}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          padding: "10px",
-                          background:
-                            mobileTab === "keuangan-kasir"
-                              ? "#dcfce7"
-                              : "#f8fafc",
-                          border:
-                            mobileTab === "keuangan-kasir"
-                              ? "1px solid #059669"
-                              : "1px solid #e2e8f0",
-                          borderRadius: "10px",
-                          fontSize: "0.78rem",
-                          fontWeight: 700,
-                          color: "#1e293b",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <CreditCard size={16} color="#059669" /> Kasir Santri
-                      </button>
-                      <button
-                        onClick={() => handleSelectTab("keuangan-rekap")}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          padding: "10px",
-                          background:
-                            mobileTab === "keuangan-rekap"
-                              ? "#e0f2fe"
-                              : "#f8fafc",
-                          border:
-                            mobileTab === "keuangan-rekap"
-                              ? "1px solid #0284c7"
-                              : "1px solid #e2e8f0",
-                          borderRadius: "10px",
-                          fontSize: "0.78rem",
-                          fontWeight: 700,
-                          color: "#1e293b",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <BarChart3 size={16} color="#0284c7" /> Laporan Kas
-                      </button>
-                      <button
-                        onClick={() => handleSelectTab("keuangan-spp")}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          padding: "10px",
-                          background:
-                            mobileTab === "keuangan-spp"
-                              ? "#f3e8ff"
-                              : "#f8fafc",
-                          border:
-                            mobileTab === "keuangan-spp"
-                              ? "1px solid #7c3aed"
-                              : "1px solid #e2e8f0",
-                          borderRadius: "10px",
-                          fontSize: "0.78rem",
-                          fontWeight: 700,
-                          color: "#1e293b",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <FileText size={16} color="#7c3aed" /> Tagihan SPP
-                      </button>
-                      <button
-                        onClick={() => handleSelectTab("keuangan-masuk")}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          padding: "10px",
-                          background:
-                            mobileTab === "keuangan-masuk"
-                              ? "#fef3c7"
-                              : "#f8fafc",
-                          border:
-                            mobileTab === "keuangan-masuk"
-                              ? "1px solid #d97706"
-                              : "1px solid #e2e8f0",
-                          borderRadius: "10px",
-                          fontSize: "0.78rem",
-                          fontWeight: 700,
-                          color: "#1e293b",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <Building size={16} color="#d97706" /> Biaya Masuk
-                      </button>
-                      <button
-                        onClick={() => handleSelectTab("keuangan-transaksi")}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          padding: "10px",
-                          background:
-                            mobileTab === "keuangan-transaksi"
-                              ? "#cffaff"
-                              : "#f8fafc",
-                          border:
-                            mobileTab === "keuangan-transaksi"
-                              ? "1px solid #0891b2"
-                              : "1px solid #e2e8f0",
-                          borderRadius: "10px",
-                          fontSize: "0.78rem",
-                          fontWeight: 700,
-                          color: "#1e293b",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <Zap size={16} color="#0891b2" /> QRIS & VA Midtrans
-                      </button>
-                      <button
-                        onClick={() => handleSelectTab("keuangan-tunggakan")}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          padding: "10px",
-                          background:
-                            mobileTab === "keuangan-tunggakan"
-                              ? "#ffe4e6"
-                              : "#f8fafc",
-                          border:
-                            mobileTab === "keuangan-tunggakan"
-                              ? "1px solid #e11d48"
-                              : "1px solid #e2e8f0",
-                          borderRadius: "10px",
-                          fontSize: "0.78rem",
-                          fontWeight: 700,
-                          color: "#1e293b",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <ShieldAlert size={16} color="#e11d48" /> Rekap
-                        Tunggakan
-                      </button>
-                      <button
-                        onClick={() => handleSelectTab("keuangan-komponen")}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          padding: "10px",
-                          background:
-                            mobileTab === "keuangan-komponen"
-                              ? "#e0e7ff"
-                              : "#f8fafc",
-                          border:
-                            mobileTab === "keuangan-komponen"
-                              ? "1px solid #4f46e5"
-                              : "1px solid #e2e8f0",
-                          borderRadius: "10px",
-                          fontSize: "0.78rem",
-                          fontWeight: 700,
-                          color: "#1e293b",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <Layers size={16} color="#4f46e5" /> Tarif Pos Biaya
-                      </button>
-                      <button
-                        onClick={() => handleSelectTab("keuangan-generate")}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          padding: "10px",
-                          background:
-                            mobileTab === "keuangan-generate"
-                              ? "#ccfbf1"
-                              : "#f8fafc",
-                          border:
-                            mobileTab === "keuangan-generate"
-                              ? "1px solid #0f766e"
-                              : "1px solid #e2e8f0",
-                          borderRadius: "10px",
-                          fontSize: "0.78rem",
-                          fontWeight: 700,
-                          color: "#1e293b",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <RotateCw size={16} color="#0f766e" /> Generate SPP
-                      </button>
-                    </div>
+                <div>
+                  <div style={{ fontSize: "0.72rem", color: "#bae6fd", fontWeight: 700 }}>
+                    Pondok Pesantren
                   </div>
-                ) : (
-                  <>
-                    <div>
-                      <div
-                        style={{
-                          fontSize: "0.68rem",
-                          fontWeight: 800,
-                          color: "#059669",
-                          textTransform: "uppercase",
-                          marginBottom: "8px",
-                        }}
-                      >
-                        MAIN MENU
-                      </div>
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "repeat(2, 1fr)",
-                          gap: "8px",
-                        }}
-                      >
-                        <button
-                          onClick={() => handleSelectTab("dashboard")}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            padding: "10px",
-                            background:
-                              mobileTab === "dashboard" ? "#e0f2fe" : "#f8fafc",
-                            border:
-                              mobileTab === "dashboard"
-                                ? "1px solid #0284c7"
-                                : "1px solid #e2e8f0",
-                            borderRadius: "10px",
-                            fontSize: "0.78rem",
-                            fontWeight: 700,
-                            color: "#1e293b",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <LayoutDashboard size={16} color="#0284c7" />{" "}
-                          Dashboard
-                        </button>
-                        <button
-                          onClick={() => handleSelectTab("presensi")}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            padding: "10px",
-                            background:
-                              mobileTab === "presensi" ? "#f3e8ff" : "#f8fafc",
-                            border:
-                              mobileTab === "presensi"
-                                ? "1px solid #7c3aed"
-                                : "1px solid #e2e8f0",
-                            borderRadius: "10px",
-                            fontSize: "0.78rem",
-                            fontWeight: 700,
-                            color: "#1e293b",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <Fingerprint size={16} color="#7c3aed" /> Presensi
-                        </button>
-                        <button
-                          onClick={() => handleSelectTab("tahfidz")}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            padding: "10px",
-                            background:
-                              mobileTab === "tahfidz" ? "#dcfce7" : "#f8fafc",
-                            border:
-                              mobileTab === "tahfidz"
-                                ? "1px solid #059669"
-                                : "1px solid #e2e8f0",
-                            borderRadius: "10px",
-                            fontSize: "0.78rem",
-                            fontWeight: 700,
-                            color: "#1e293b",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <BookOpen size={16} color="#059669" /> Tahfidz & Kitab
-                        </button>
-                        <button
-                          onClick={() => handleSelectTab("perizinan")}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            padding: "10px",
-                            background:
-                              mobileTab === "perizinan" || mobileTab === "izin"
-                                ? "#dbeafe"
-                                : "#f8fafc",
-                            border:
-                              mobileTab === "perizinan" || mobileTab === "izin"
-                                ? "1px solid #2563eb"
-                                : "1px solid #e2e8f0",
-                            borderRadius: "10px",
-                            fontSize: "0.78rem",
-                            fontWeight: 700,
-                            color: "#1e293b",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <DoorOpen size={16} color="#2563eb" /> Perizinan
-                        </button>
-                        <button
-                          onClick={() => handleSelectTab("praktek-ibadah")}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            padding: "10px",
-                            background:
-                              mobileTab === "praktek-ibadah" ||
-                              mobileTab === "praktek"
-                                ? "#d1fae5"
-                                : "#f8fafc",
-                            border:
-                              mobileTab === "praktek-ibadah" ||
-                              mobileTab === "praktek"
-                                ? "1px solid #059669"
-                                : "1px solid #e2e8f0",
-                            borderRadius: "10px",
-                            fontSize: "0.78rem",
-                            fontWeight: 700,
-                            color: "#1e293b",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <HeartHandshake size={16} color="#059669" /> Praktek
-                        </button>
-                        <button
-                          onClick={() => handleSelectTab("pengembangan")}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            padding: "10px",
-                            background:
-                              mobileTab === "pengembangan"
-                                ? "#e0f2fe"
-                                : "#f8fafc",
-                            border:
-                              mobileTab === "pengembangan"
-                                ? "1px solid #0284c7"
-                                : "1px solid #e2e8f0",
-                            borderRadius: "10px",
-                            fontSize: "0.78rem",
-                            fontWeight: 700,
-                            color: "#1e293b",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <Award size={16} color="#0284c7" /> Pengembangan
-                        </button>
-                      </div>
-                    </div>
+                  <div style={{ fontSize: "1.1rem", fontWeight: 900 }}>
+                    Nurul Wafa
+                  </div>
+                </div>
+                <span style={{ fontSize: "1.4rem" }}>✱</span>
+              </div>
 
-                    <div>
-                      <div
-                        style={{
-                          fontSize: "0.68rem",
-                          fontWeight: 800,
-                          color: "#059669",
-                          textTransform: "uppercase",
-                          marginBottom: "8px",
-                        }}
-                      >
-                        DATA MASTER
-                      </div>
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "repeat(2, 1fr)",
-                          gap: "8px",
-                        }}
-                      >
-                        <button
-                          onClick={() => handleSelectTab("master-santri")}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            padding: "10px",
-                            background:
-                              mobileTab === "master-santri"
-                                ? "#ccfbf1"
-                                : "#f8fafc",
-                            border:
-                              mobileTab === "master-santri"
-                                ? "1px solid #0d9488"
-                                : "1px solid #e2e8f0",
-                            borderRadius: "10px",
-                            fontSize: "0.78rem",
-                            fontWeight: 700,
-                            color: "#1e293b",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <Users size={16} color="#0d9488" /> Data Santri
-                        </button>
-                        <button
-                          onClick={() => handleSelectTab("daftar-wajah")}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            padding: "10px",
-                            background:
-                              mobileTab === "daftar-wajah"
-                                ? "#e0f2fe"
-                                : "#f8fafc",
-                            border:
-                              mobileTab === "daftar-wajah"
-                                ? "1px solid #0284c7"
-                                : "1px solid #e2e8f0",
-                            borderRadius: "10px",
-                            fontSize: "0.78rem",
-                            fontWeight: 700,
-                            color: "#1e293b",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <Smile size={16} color="#0284c7" /> Daftar Wajah
-                        </button>
-                        <button
-                          onClick={() => handleSelectTab("master-asrama")}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            padding: "10px",
-                            background:
-                              mobileTab === "master-asrama"
-                                ? "#fef3c7"
-                                : "#f8fafc",
-                            border:
-                              mobileTab === "master-asrama"
-                                ? "1px solid #d97706"
-                                : "1px solid #e2e8f0",
-                            borderRadius: "10px",
-                            fontSize: "0.78rem",
-                            fontWeight: 700,
-                            color: "#1e293b",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <Building size={16} color="#d97706" /> Data Asrama
-                        </button>
-                        <button
-                          onClick={() => handleSelectTab("master-kelas")}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            padding: "10px",
-                            background:
-                              mobileTab === "master-kelas"
-                                ? "#cffaff"
-                                : "#f8fafc",
-                            border:
-                              mobileTab === "master-kelas"
-                                ? "1px solid #0891b2"
-                                : "1px solid #e2e8f0",
-                            borderRadius: "10px",
-                            fontSize: "0.78rem",
-                            fontWeight: 700,
-                            color: "#1e293b",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <GraduationCap size={16} color="#0891b2" /> Data Kelas
-                        </button>
-                        <button
-                          onClick={() => handleSelectTab("master-asatidz")}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            padding: "10px",
-                            background:
-                              mobileTab === "master-asatidz"
-                                ? "#f3e8ff"
-                                : "#f8fafc",
-                            border:
-                              mobileTab === "master-asatidz"
-                                ? "1px solid #9333ea"
-                                : "1px solid #e2e8f0",
-                            borderRadius: "10px",
-                            fontSize: "0.78rem",
-                            fontWeight: 700,
-                            color: "#1e293b",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <Users size={16} color="#9333ea" /> Data Asatidz
-                        </button>
-                        <button
-                          onClick={() => handleSelectTab("master-materi")}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            padding: "10px",
-                            background:
-                              mobileTab === "master-materi"
-                                ? "#ecfdf5"
-                                : "#f8fafc",
-                            border:
-                              mobileTab === "master-materi"
-                                ? "1px solid #059669"
-                                : "1px solid #e2e8f0",
-                            borderRadius: "10px",
-                            fontSize: "0.78rem",
-                            fontWeight: 700,
-                            color: "#1e293b",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <BookOpen size={16} color="#059669" /> Materi & Kitab
-                        </button>
-                        <button
-                          onClick={() => handleSelectTab("setting-shalat")}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            padding: "10px",
-                            background:
-                              mobileTab === "setting-shalat" ||
-                              mobileTab === "kegiatan"
-                                ? "#fef3c7"
-                                : "#f8fafc",
-                            border:
-                              mobileTab === "setting-shalat" ||
-                              mobileTab === "kegiatan"
-                                ? "1px solid #d97706"
-                                : "1px solid #e2e8f0",
-                            borderRadius: "10px",
-                            fontSize: "0.78rem",
-                            fontWeight: 700,
-                            color: "#1e293b",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <Calendar size={16} color="#d97706" /> Jadwal Kegiatan
-                        </button>
-                        <button
-                          onClick={() => handleSelectTab("master-device")}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            padding: "10px",
-                            background:
-                              mobileTab === "master-device"
-                                ? "#e2e8f0"
-                                : "#f8fafc",
-                            border:
-                              mobileTab === "master-device"
-                                ? "1px solid #475569"
-                                : "1px solid #e2e8f0",
-                            borderRadius: "10px",
-                            fontSize: "0.78rem",
-                            fontWeight: 700,
-                            color: "#1e293b",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <HardDrive size={16} color="#475569" /> Fingerprint
-                        </button>
-                        <button
-                          onClick={() => handleSelectTab("tata-tertib")}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            padding: "10px",
-                            background:
-                              mobileTab === "tata-tertib"
-                                ? "#ffe4e6"
-                                : "#f8fafc",
-                            border:
-                              mobileTab === "tata-tertib"
-                                ? "1px solid #be123c"
-                                : "1px solid #e2e8f0",
-                            borderRadius: "10px",
-                            fontSize: "0.78rem",
-                            fontWeight: 700,
-                            color: "#1e293b",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <ShieldAlert size={16} color="#be123c" /> Tata Tertib
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div
-                        style={{
-                          fontSize: "0.68rem",
-                          fontWeight: 800,
-                          color: "#059669",
-                          textTransform: "uppercase",
-                          marginBottom: "8px",
-                        }}
-                      >
-                        LAPORAN REKAP
-                      </div>
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "repeat(2, 1fr)",
-                          gap: "8px",
-                        }}
-                      >
-                        <button
-                          onClick={() => handleSelectTab("laporan-presensi")}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            padding: "10px",
-                            background:
-                              mobileTab === "laporan-presensi"
-                                ? "#ffedd5"
-                                : "#f8fafc",
-                            border:
-                              mobileTab === "laporan-presensi"
-                                ? "1px solid #ea580c"
-                                : "1px solid #e2e8f0",
-                            borderRadius: "10px",
-                            fontSize: "0.78rem",
-                            fontWeight: 700,
-                            color: "#1e293b",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <BarChart3 size={16} color="#ea580c" /> Rekap Absen
-                        </button>
-                        <button
-                          onClick={() => handleSelectTab("laporan-tahfidz")}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            padding: "10px",
-                            background:
-                              mobileTab === "laporan-tahfidz"
-                                ? "#e0f2fe"
-                                : "#f8fafc",
-                            border:
-                              mobileTab === "laporan-tahfidz"
-                                ? "1px solid #0284c7"
-                                : "1px solid #e2e8f0",
-                            borderRadius: "10px",
-                            fontSize: "0.78rem",
-                            fontWeight: 700,
-                            color: "#1e293b",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <FileText size={16} color="#0284c7" /> Laporan Tahfidz
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
-
+              <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
                 <div
                   style={{
-                    marginTop: "14px",
-                    paddingTop: "14px",
-                    borderTop: "1px solid #e2e8f0",
+                    width: "50px",
+                    height: "60px",
+                    borderRadius: "8px",
+                    background: "#dc2626",
+                    border: "2px solid #ffffff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
-                  <a
-                    href={
-                      typeof window !== "undefined" &&
-                      window.location.hostname.includes("ruangtech.com")
-                        ? "https://nurulwafa.ruangtech.com"
-                        : typeof window !== "undefined" &&
-                            window.location.hostname.includes("aspartech.com")
-                          ? "https://pesantren.aspartech.com"
-                          : "#dashboard"
-                    }
-                    target={
-                      typeof window !== "undefined" &&
-                      (window.location.hostname.includes("ruangtech.com") ||
-                        window.location.hostname.includes("aspartech.com"))
-                        ? "_blank"
-                        : "_self"
-                    }
-                    rel="noreferrer"
+                  <User size={34} color="#ffffff" />
+                </div>
+                <div>
+                  <div style={{ fontSize: "0.98rem", fontWeight: 900 }}>
+                    {displayName || "Admin Nurul Wafa"}
+                  </div>
+                  <div style={{ fontSize: "0.75rem", color: "#bae6fd", marginTop: "2px" }}>
+                    ID: NWF-2026-ADM
+                  </div>
+                  <div
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "8px",
-                      padding: "10px 14px",
-                      background: "linear-gradient(135deg, #0f172a, #1e293b)",
-                      color: "#ffffff",
-                      borderRadius: "10px",
-                      fontSize: "0.78rem",
-                      fontWeight: 700,
-                      textDecoration: "none",
-                      boxShadow: "0 2px 6px rgba(15, 23, 42, 0.2)",
+                      display: "inline-block",
+                      marginTop: "6px",
+                      background: "rgba(255, 255, 255, 0.2)",
+                      padding: "2px 8px",
+                      borderRadius: "6px",
+                      fontSize: "0.64rem",
+                      fontWeight: 800,
                     }}
                   >
-                    🖥️ Buka Portal Desktop (Admin)
-                  </a>
+                    ADMINISTRATOR PORTAL
+                  </div>
                 </div>
               </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <button
+                onClick={() => {
+                  setIsDetailCardOpen(false);
+                  onChangeTab("master-santri");
+                }}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "12px",
+                  fontSize: "0.8rem",
+                  fontWeight: 700,
+                  color: "#0f172a",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <span>Kelola Data Santri</span>
+                <ChevronRight size={16} color="#64748b" />
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsDetailCardOpen(false);
+                  onChangeTab("presensi");
+                }}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "12px",
+                  fontSize: "0.8rem",
+                  fontWeight: 700,
+                  color: "#0f172a",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <span>Buka Presensi Fingerprint</span>
+                <ChevronRight size={16} color="#64748b" />
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsDetailCardOpen(false);
+                  if (onLogout) onLogout();
+                }}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  background: "#fef2f2",
+                  border: "1px solid #fecdd3",
+                  borderRadius: "12px",
+                  fontSize: "0.8rem",
+                  fontWeight: 700,
+                  color: "#dc2626",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                  marginTop: "6px",
+                }}
+              >
+                <LogOut size={16} />
+                <span>Keluar dari Akun</span>
+              </button>
             </div>
           </div>
-        )}
-
-        {/* Elevated Floating White Bottom Navigation Bar */}
-        <nav className="mobile-bottom-nav">
-          <button
-            className={`mobile-nav-item ${mobileTab === "home" ? "active" : ""}`}
-            onClick={() => handleSelectTab("home")}
-          >
-            <div
-              className={`nav-icon-wrapper ${mobileTab === "home" ? "active" : ""}`}
-            >
-              <Home size={20} />
-            </div>
-            <span>Beranda</span>
-          </button>
-
-          {isBendahara ? (
-            <>
-              <button
-                className={`mobile-nav-item ${mobileTab === "keuangan-spp" || mobileTab === "keuangan-masuk" ? "active" : ""}`}
-                onClick={() => handleSelectTab("keuangan-spp")}
-              >
-                <div
-                  className={`nav-icon-wrapper ${mobileTab === "keuangan-spp" || mobileTab === "keuangan-masuk" ? "active" : ""}`}
-                >
-                  <FileText size={20} />
-                </div>
-                <span>SPP</span>
-              </button>
-
-              {/* Center Floating Action Button: Loket Kasir Bayar */}
-              <button
-                className="mobile-fab-center"
-                onClick={() => handleSelectTab("keuangan-kasir")}
-                title="Buka Loket Kasir Pembayaran"
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  padding: 0,
-                }}
-              >
-                <div
-                  className="fab-inner-glow"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%)",
-                    boxShadow:
-                      "0 10px 24px -2px rgba(5, 150, 105, 0.6), 0 0 16px rgba(16, 185, 129, 0.5)",
-                    border: "4px solid #ffffff",
-                  }}
-                >
-                  <CreditCard size={26} color="#ffffff" strokeWidth={2.4} />
-                </div>
-              </button>
-
-              <button
-                className={`mobile-nav-item ${mobileTab === "keuangan-rekap" || mobileTab === "keuangan-transaksi" || mobileTab === "keuangan-tunggakan" ? "active" : ""}`}
-                onClick={() => handleSelectTab("keuangan-rekap")}
-              >
-                <div
-                  className={`nav-icon-wrapper ${mobileTab === "keuangan-rekap" || mobileTab === "keuangan-transaksi" || mobileTab === "keuangan-tunggakan" ? "active" : ""}`}
-                >
-                  <BarChart3 size={20} />
-                </div>
-                <span>Laporan</span>
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                className={`mobile-nav-item ${mobileTab === "perizinan" || mobileTab === "izin" ? "active" : ""}`}
-                onClick={() => handleSelectTab("perizinan")}
-              >
-                <div
-                  className={`nav-icon-wrapper ${mobileTab === "perizinan" || mobileTab === "izin" ? "active" : ""}`}
-                >
-                  <DoorOpen size={20} />
-                </div>
-                <span>Izin</span>
-              </button>
-
-              {/* Prominent Center Floating Fingerprint Action Button */}
-              <button
-                className="mobile-fab-center"
-                onClick={() => handleSelectTab("presensi")}
-                title="Presensi Barcode & Wajah"
-              >
-                <div className="fab-inner-glow">
-                  <Fingerprint size={28} color="#ffffff" strokeWidth={2.4} />
-                </div>
-              </button>
-
-              <button
-                className={`mobile-nav-item ${mobileTab === "tahfidz" ? "active" : ""}`}
-                onClick={() => handleSelectTab("tahfidz")}
-              >
-                <div
-                  className={`nav-icon-wrapper ${mobileTab === "tahfidz" ? "active" : ""}`}
-                >
-                  <BookOpen size={20} />
-                </div>
-                <span>Tahfidz</span>
-              </button>
-            </>
-          )}
-
-          <button
-            className={`mobile-nav-item ${mobileTab === "profil" ? "active" : ""}`}
-            onClick={() => handleSelectTab("profil")}
-          >
-            <div
-              className={`nav-icon-wrapper ${mobileTab === "profil" ? "active" : ""}`}
-            >
-              <User size={20} />
-            </div>
-            <span>Profil</span>
-          </button>
-        </nav>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
