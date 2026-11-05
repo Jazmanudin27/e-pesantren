@@ -104,6 +104,7 @@ export default function MobilePengembangan() {
   const santriListRef = useRef(santriList);
   const masterKategoriRef = useRef(masterKategoriAll);
   const isMatchedCooldownRef = useRef(false);
+  const matchedStreakRef = useRef({ id: null, count: 0 });
 
   useEffect(() => {
     santriListRef.current = santriList;
@@ -379,21 +380,35 @@ export default function MobilePengembangan() {
         if (isFaceModelReady()) {
           const faceRes = await detectFaceDescriptor(video);
           if (!faceRes) {
+            matchedStreakRef.current = { id: null, count: 0 };
             setIsFaceDetected(false);
             setFaceStatusText('Arahkan wajah santri ke kamera...');
             return;
           }
 
           setIsFaceDetected(true);
-          const matched = matchFaceDescriptor(faceRes.descriptor, registeredList, 0.52);
+          // Ambang batas ketat 0.40
+          const matched = matchFaceDescriptor(faceRes.descriptor, registeredList, 0.40);
 
           if (matched) {
             const fullSantri =
               (santriListRef.current || []).find((s) => String(s.id) === String(matched.santri_id)) ||
               matched;
             const displayName = fullSantri.nama_santri || matched.nama;
-            handleFaceRecognized(fullSantri, displayName);
+
+            if (matchedStreakRef.current.id === fullSantri.id) {
+              matchedStreakRef.current.count += 1;
+            } else {
+              matchedStreakRef.current = { id: fullSantri.id, count: 1 };
+            }
+
+            if (matchedStreakRef.current.count >= 2) {
+              handleFaceRecognized(fullSantri, displayName);
+            } else {
+              setFaceStatusText(`Memverifikasi: ${displayName}...`);
+            }
           } else {
+            matchedStreakRef.current = { id: null, count: 0 };
             setFaceStatusText('⛔ Wajah Belum Terdaftar di Sistem');
           }
         } else {

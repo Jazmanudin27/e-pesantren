@@ -85,9 +85,10 @@ export const detectFaceDescriptor = async (mediaElement) => {
 
   try {
     const faceapi = window.faceapi;
+    // InputSize 320 menghasilkan deteksi landmark wajah jauh lebih presisi dibanding 224
     const options = new faceapi.TinyFaceDetectorOptions({
-      inputSize: 224, // 224x224 ideal untuk mobile FPS dan akurasi tinggi
-      scoreThreshold: 0.45
+      inputSize: 320,
+      scoreThreshold: 0.55
     });
 
     const detection = await faceapi
@@ -95,7 +96,7 @@ export const detectFaceDescriptor = async (mediaElement) => {
       .withFaceLandmarks()
       .withFaceDescriptor();
 
-    if (!detection) return null;
+    if (!detection || !detection.detection || detection.detection.score < 0.55) return null;
 
     return {
       box: detection.detection.box, // { x, y, width, height }
@@ -107,6 +108,24 @@ export const detectFaceDescriptor = async (mediaElement) => {
     console.warn('Detect descriptor error:', e);
     return null;
   }
+};
+
+// 4b. Validasi apakah array merupakan vektor biometrik L2-normalized 128-D yang valid
+export const isValidDescriptor = (arr) => {
+  if (!arr) return false;
+  if (!Array.isArray(arr) && !(arr instanceof Float32Array)) return false;
+  if (arr.length !== 128) return false;
+  let sumSq = 0;
+  let allZero = true;
+  for (let i = 0; i < 128; i++) {
+    const v = arr[i];
+    if (typeof v !== 'number' || isNaN(v)) return false;
+    if (v !== 0) allZero = false;
+    sumSq += v * v;
+  }
+  if (allZero) return false;
+  // Unit vector ter-normalisasi face-api memiliki panjang kuadrat ~ 1.0 (antara 0.6 s/d 1.4)
+  return sumSq > 0.6 && sumSq < 1.4;
 };
 
 // 5. Ekstraksi Descriptor dari Image Data URL (Untuk Foto Terdaftar)
@@ -128,10 +147,11 @@ export const extractDescriptorFromDataUrl = (dataUrl) => {
   });
 };
 
-// 6. Pencocokan Vektor Biometrik (Euclidean Distance)
-// Standar face-api.js: distance < 0.52 = orang yang sama; distance > 0.55 = orang berbeda
-export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, threshold = 0.52) => {
+// 6. Pencocokan Vektor Biometrik (Euclidean Distance Ketat)
+// Ambang batas ketat: distance < 0.40 = orang yang sama; distance >= 0.40 = orang berbeda / tolak
+export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, threshold = 0.40) => {
   if (!liveDescriptor || !registeredProfilesList || !window.faceapi) return null;
+  if (!isValidDescriptor(liveDescriptor)) return null;
 
   const faceapi = window.faceapi;
   let bestMatch = null;
@@ -139,14 +159,14 @@ export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, thre
 
   for (const prof of registeredProfilesList) {
     const targetDescriptor = prof.descriptor || prof.faceDescriptor;
-    if (targetDescriptor && (targetDescriptor.length === 128 || targetDescriptor.length === 68)) {
+    if (isValidDescriptor(targetDescriptor)) {
       const dist = faceapi.euclideanDistance(liveDescriptor, targetDescriptor);
       if (dist < threshold && dist < minDistance) {
         minDistance = dist;
         bestMatch = {
           ...prof,
           distance: dist,
-          confidence: Math.round((1 - dist) * 100)
+          confidence: Math.round(Math.max(0, (1 - dist / threshold) * 100))
         };
       }
     }

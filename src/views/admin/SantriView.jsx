@@ -699,6 +699,10 @@ export default function SantriView() {
       // Update sinkronisasi profil wajah lokal untuk Presensi Wajah AI
       if (formData.foto) {
         try {
+          let preDesc = null;
+          if (isFaceModelReady()) {
+            preDesc = await extractDescriptorFromDataUrl(formData.foto);
+          }
           const localProfiles = JSON.parse(localStorage.getItem('epesantren_face_profiles') || '{}');
           const targetId = formData.id || Date.now();
           localProfiles[targetId] = {
@@ -708,7 +712,7 @@ export default function SantriView() {
             asrama: formData.nama_asrama || '',
             kamar: formData.nama_kamar || '',
             foto: formData.foto,
-            descriptor: null,
+            descriptor: preDesc || null,
             biometricGrid: [],
             biometricFeature: null,
             registered_at: new Date().toISOString()

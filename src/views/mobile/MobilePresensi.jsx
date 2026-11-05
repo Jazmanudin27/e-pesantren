@@ -189,6 +189,7 @@ export default function MobilePresensi() {
   const faceCooldownRef = useRef(false);
   const autoDetectFaceTickRef = useRef(0);
   const isDetectingRef = useRef(false);
+  const matchedStreakRef = useRef({ id: null, count: 0 });
 
   const registeredFacesRef = useRef(registeredFaces);
   useEffect(() => {
@@ -914,7 +915,8 @@ export default function MobilePresensi() {
                 }
 
                 setFaceDetected(true);
-                const matched = matchFaceDescriptor(faceRes.descriptor, registeredList, 0.52);
+                // Ambang batas ketat 0.40 (mencegah false-positive / kebocoran wajah asing)
+                const matched = matchFaceDescriptor(faceRes.descriptor, registeredList, 0.40);
                 if (matched) {
                   const dbSantri = (santriListRef.current || []).find(
                     (s) => String(s.id) === String(matched.santri_id)
@@ -932,6 +934,7 @@ export default function MobilePresensi() {
 
               // 1. TOLAK JIKA WAJAH BEDA / TIDAK COCOK DENGAN DATA SANTRI
               if (!matchedSantri) {
+                matchedStreakRef.current = { id: null, count: 0 };
                 ctx.fillStyle = 'rgba(239, 68, 68, 0.95)';
                 ctx.roundRect
                   ? ctx.roundRect(boxX, boxY - 30, boxW, 26, 6)
@@ -943,6 +946,19 @@ export default function MobilePresensi() {
                 ctx.fillText('⛔ Wajah Belum Terdaftar', boxX + boxW / 2, boxY - 12);
 
                 setFaceStatusText('⛔ Wajah Belum Terdaftar di Sistem');
+                return;
+              }
+
+              // Verifikasi 2-Frame Konsekutif untuk Mencegah False-Positive
+              if (matchedStreakRef.current.id === matchedSantri.id) {
+                matchedStreakRef.current.count += 1;
+              } else {
+                matchedStreakRef.current = { id: matchedSantri.id, count: 1 };
+              }
+
+              // Wajib cocok 2 frame berurutan agar tidak bocor akibat noise kamera
+              if (matchedStreakRef.current.count < 2) {
+                setFaceStatusText(`Memverifikasi: ${displayName}...`);
                 return;
               }
 
@@ -1171,7 +1187,8 @@ export default function MobilePresensi() {
         return;
       }
 
-      const matched = matchFaceDescriptor(faceRes.descriptor, registeredList, 0.52);
+      // Ambang batas ketat 0.40
+      const matched = matchFaceDescriptor(faceRes.descriptor, registeredList, 0.40);
       if (matched) {
         const matchedSantri = (santriListRef.current || []).find(
           (s) => String(s.id) === String(matched.santri_id)
