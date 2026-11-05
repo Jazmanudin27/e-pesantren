@@ -1775,7 +1775,7 @@ export default function MobilePresensi() {
           >
             {daftarKegiatan.map(k => (
               <option key={k.id} value={k.id} style={{ color: '#0f172a', fontWeight: 700 }}>
-                {getActivityIcon(k.kategori)} {k.nama} {k.kategori ? `• ${k.kategori}` : ''}
+                {k.nama}
               </option>
             ))}
           </select>
