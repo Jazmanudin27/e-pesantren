@@ -493,7 +493,8 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       ========================================================================= */}
       <div
         style={{
-          background: "linear-gradient(180deg, #005baa 0%, #004b91 65%, #003870 100%)",
+          background:
+            "linear-gradient(180deg, #005baa 0%, #004b91 65%, #003870 100%)",
           padding: "16px 16px 42px",
           color: "#ffffff",
           borderBottomLeftRadius: "28px",
@@ -535,7 +536,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 src="/nwf.png"
                 alt="Logo"
                 style={{ width: "26px", height: "26px", objectFit: "contain" }}
-                onError={(e) => { e.target.src = "/nwf.png"; }}
+                onError={(e) => {
+                  e.target.src = "/nwf.png";
+                }}
               />
             </div>
             <div>
@@ -548,7 +551,10 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                   fontStyle: "italic",
                 }}
               >
-                nwf<span style={{ fontStyle: "normal", fontWeight: 800 }}>MOBILE</span>
+                nwf
+                <span style={{ fontStyle: "normal", fontWeight: 800 }}>
+                  MOBILE
+                </span>
               </span>
             </div>
           </div>
@@ -622,150 +628,399 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             </button>
           </div>
         </div>
-
-        {/* Clean Greeting: HALO, [NAMA] */}
-        <div style={{ marginTop: "4px", marginBottom: "8px" }}>
-          <div
-            style={{
-              fontSize: "0.82rem",
-              fontWeight: 800,
-              letterSpacing: "0.08em",
-              color: "rgba(255, 255, 255, 0.9)",
-              textTransform: "uppercase",
-            }}
-          >
-            HALO, {displayName.toUpperCase()}
-          </div>
-        </div>
       </div>
 
       {/* =========================================================================
-          FLOATING HERO WHITE CARD (myBCA SANTRI / REKENING SUMMARY WITH EYE TOGGLE)
+          HERO CARD: PRESENSI SANTRI HARI INI (KHUSUS ADMIN)
       ========================================================================= */}
-      <div style={{ padding: "0 16px", marginTop: "-30px", position: "relative", zIndex: 10 }}>
-        <div
-          style={{
-            background: "#ffffff",
-            borderRadius: "20px",
-            padding: "16px 18px",
-            boxShadow: "0 10px 25px -4px rgba(0, 91, 170, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04)",
-            border: "1px solid #e2e8f0",
-          }}
-        >
-          {/* Top Row: Dropdown selector like "Rekening 123-456-XXX ∨" */}
+      <div
+        style={{
+          padding: "0 16px",
+          marginTop: "-30px",
+          position: "relative",
+          zIndex: 10,
+        }}
+      >
+        {isBendahara ? (
           <div
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "8px",
+              background: "#ffffff",
+              borderRadius: "20px",
+              padding: "16px 18px",
+              boxShadow:
+                "0 10px 25px -4px rgba(0, 91, 170, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04)",
+              border: "1px solid #e2e8f0",
             }}
           >
             <div
               style={{
-                display: "inline-flex",
+                display: "flex",
+                justifyContent: "space-between",
                 alignItems: "center",
-                gap: "5px",
-                color: "#005baa",
-                fontWeight: 700,
-                fontSize: "0.84rem",
-                cursor: "pointer",
+                marginBottom: "8px",
               }}
-              onClick={() => onChangeTab("master-santri")}
             >
-              <span>{isBendahara ? "Kas Rekening Operasional" : "Santri: PP. Nurul Wafa"}</span>
-              <ChevronDown size={16} color="#005baa" />
-            </div>
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  color: "#005baa",
+                  fontWeight: 700,
+                  fontSize: "0.84rem",
+                  cursor: "pointer",
+                }}
+                onClick={() => onChangeTab("keuangan-rekap")}
+              >
+                <span>Kas Rekening Operasional</span>
+                <ChevronDown size={16} color="#005baa" />
+              </div>
 
-            <span
-              style={{
-                fontSize: "0.65rem",
-                fontWeight: 700,
-                color: "#16a34a",
-                background: "#f0fdf4",
-                border: "1px solid #bbf7d0",
-                padding: "2px 8px",
-                borderRadius: "999px",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "4px",
-              }}
-            >
               <span
                 style={{
-                  width: "5px",
-                  height: "5px",
-                  borderRadius: "50%",
-                  background: "#22c55e",
+                  fontSize: "0.65rem",
+                  fontWeight: 700,
+                  color: "#16a34a",
+                  background: "#f0fdf4",
+                  border: "1px solid #bbf7d0",
+                  padding: "2px 8px",
+                  borderRadius: "999px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
                 }}
-              />
-              Online Realtime
-            </span>
-          </div>
+              >
+                <span
+                  style={{
+                    width: "5px",
+                    height: "5px",
+                    borderRadius: "50%",
+                    background: "#22c55e",
+                  }}
+                />
+                Online Realtime
+              </span>
+            </div>
 
-          {/* Main Metric Row: IDR [Amount] with Eye Toggle */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: "1.35rem",
+                    fontWeight: 900,
+                    color: "#0f172a",
+                    letterSpacing: "-0.5px",
+                  }}
+                >
+                  {showBalanceEye
+                    ? `IDR ${Number(keuanganData.summary?.total_terbayar || 0).toLocaleString("id-ID")}`
+                    : "IDR ••••••••••"}
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.72rem",
+                    color: "#64748b",
+                    marginTop: "2px",
+                    fontWeight: 500,
+                  }}
+                >
+                  Penerimaan Kas & SPP Bulan Berjalan
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowBalanceEye(!showBalanceEye)}
+                style={{
+                  background: "#f1f5f9",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: "36px",
+                  height: "36px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#64748b",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                }}
+                title={showBalanceEye ? "Sembunyikan Saldo" : "Tampilkan Saldo"}
+              >
+                {showBalanceEye ? <Eye size={18} /> : <EyeOff size={18} />}
+              </button>
+            </div>
+          </div>
+        ) : (
           <div
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
+              background: "#ffffff",
+              borderRadius: "22px",
+              border: "1px solid #e2e8f0",
+              padding: "16px 16px 14px",
+              boxShadow:
+                "0 10px 25px -4px rgba(0, 91, 170, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04)",
             }}
           >
-            <div>
+            {/* Header Card Status */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "12px",
+                paddingBottom: "10px",
+                borderBottom: "1px solid #f1f5f9",
+              }}
+            >
               <div
-                style={{
-                  fontSize: "1.35rem",
-                  fontWeight: 900,
-                  color: "#0f172a",
-                  letterSpacing: "-0.5px",
-                }}
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
               >
-                {showBalanceEye ? (
-                  isBendahara ? (
-                    `IDR ${Number(keuanganData.summary?.total_terbayar || 0).toLocaleString("id-ID")}`
-                  ) : (
-                    `Hadir: ${rekapAbsensi.hadir || 0} Santri`
-                  )
-                ) : (
-                  "IDR ••••••••••"
-                )}
+                <div
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "10px",
+                    background:
+                      "linear-gradient(135deg, #005baa 0%, #004b91 100%)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#ffffff",
+                  }}
+                >
+                  <CheckCircle2 size={18} strokeWidth={2.4} />
+                </div>
+                <div>
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: "0.88rem",
+                      fontWeight: 800,
+                      color: "#0f172a",
+                      letterSpacing: "-0.01em",
+                    }}
+                  >
+                    Presensi Santri Hari Ini
+                  </h3>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: "0.68rem",
+                      color: "#64748b",
+                      fontWeight: 500,
+                    }}
+                  >
+                    Pantauan kehadiran shalat & kegiatan
+                  </p>
+                </div>
               </div>
-              <div
+
+              <span
                 style={{
-                  fontSize: "0.72rem",
-                  color: "#64748b",
-                  marginTop: "2px",
-                  fontWeight: 500,
+                  background: "#f0fdf4",
+                  color: "#166534",
+                  border: "1px solid #bbf7d0",
+                  fontSize: "0.65rem",
+                  fontWeight: 700,
+                  padding: "3px 8px",
+                  borderRadius: "999px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
                 }}
               >
-                {isBendahara
-                  ? "Penerimaan Kas & SPP Bulan Berjalan"
-                  : `Total ${stats.total_santri || 0} Santri Terdata • Shalat 5 Waktu`}
+                <span
+                  style={{
+                    width: "6px",
+                    height: "6px",
+                    borderRadius: "50%",
+                    background: "#22c55e",
+                  }}
+                />
+                Realtime
+              </span>
+            </div>
+
+            {/* 4 Interactive Status Metric Cards */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, 1fr)",
+                gap: "8px",
+              }}
+            >
+              {/* 1. HADIR */}
+              <div
+                onClick={() => handleOpenStatusModal("Hadir")}
+                style={{
+                  background: "#f0fdf4",
+                  border: "1px solid #bbf7d0",
+                  borderRadius: "14px",
+                  padding: "10px 4px",
+                  textAlign: "center",
+                  cursor: "pointer",
+                  transition: "transform 0.15s ease",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "1.15rem",
+                    fontWeight: 800,
+                    color: "#15803d",
+                    lineHeight: 1.1,
+                    marginBottom: "4px",
+                  }}
+                >
+                  {rekapAbsensi.hadir || 0}
+                </div>
+                <span
+                  style={{
+                    fontSize: "0.68rem",
+                    fontWeight: 700,
+                    color: "#166534",
+                    display: "block",
+                  }}
+                >
+                  Hadir
+                </span>
+              </div>
+
+              {/* 2. SAKIT */}
+              <div
+                onClick={() => handleOpenStatusModal("Sakit")}
+                style={{
+                  background: "#fef2f2",
+                  border: "1px solid #fecaca",
+                  borderRadius: "14px",
+                  padding: "10px 4px",
+                  textAlign: "center",
+                  cursor: "pointer",
+                  transition: "transform 0.15s ease",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "1.15rem",
+                    fontWeight: 800,
+                    color: "#b91c1c",
+                    lineHeight: 1.1,
+                    marginBottom: "4px",
+                  }}
+                >
+                  {rekapAbsensi.sakit || 0}
+                </div>
+                <span
+                  style={{
+                    fontSize: "0.68rem",
+                    fontWeight: 700,
+                    color: "#991b1b",
+                    display: "block",
+                  }}
+                >
+                  Sakit
+                </span>
+              </div>
+
+              {/* 3. IZIN */}
+              <div
+                onClick={() => handleOpenStatusModal("Izin")}
+                style={{
+                  background: "#fffbeb",
+                  border: "1px solid #fde68a",
+                  borderRadius: "14px",
+                  padding: "10px 4px",
+                  textAlign: "center",
+                  cursor: "pointer",
+                  transition: "transform 0.15s ease",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "1.15rem",
+                    fontWeight: 800,
+                    color: "#b45309",
+                    lineHeight: 1.1,
+                    marginBottom: "4px",
+                  }}
+                >
+                  {rekapAbsensi.izin || 0}
+                </div>
+                <span
+                  style={{
+                    fontSize: "0.68rem",
+                    fontWeight: 700,
+                    color: "#92400e",
+                    display: "block",
+                  }}
+                >
+                  Izin
+                </span>
+              </div>
+
+              {/* 4. ALFA / BELUM */}
+              <div
+                onClick={() => handleOpenStatusModal("Alfa")}
+                style={{
+                  background: "#f8fafc",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "14px",
+                  padding: "10px 4px",
+                  textAlign: "center",
+                  cursor: "pointer",
+                  transition: "transform 0.15s ease",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "1.15rem",
+                    fontWeight: 800,
+                    color: "#475569",
+                    lineHeight: 1.1,
+                    marginBottom: "4px",
+                  }}
+                >
+                  {rekapAbsensi.alfa || 0}
+                </div>
+                <span
+                  style={{
+                    fontSize: "0.68rem",
+                    fontWeight: 700,
+                    color: "#334155",
+                    display: "block",
+                  }}
+                >
+                  Belum
+                </span>
               </div>
             </div>
 
-            {/* Eye Toggle Button */}
-            <button
-              onClick={() => setShowBalanceEye(!showBalanceEye)}
+            {/* Tap to View Details Bar */}
+            <div
+              onClick={() => handleOpenStatusModal("Hadir")}
               style={{
-                background: "#f1f5f9",
-                border: "none",
-                borderRadius: "50%",
-                width: "36px",
-                height: "36px",
+                marginTop: "10px",
+                padding: "8px 10px",
+                background: "#f8fafc",
+                borderRadius: "10px",
                 display: "flex",
+                justifyContent: "space-between",
                 alignItems: "center",
-                justifyContent: "center",
-                color: "#64748b",
                 cursor: "pointer",
-                transition: "all 0.15s ease",
+                fontSize: "0.72rem",
+                color: "#005baa",
+                fontWeight: 700,
               }}
-              title={showBalanceEye ? "Sembunyikan Saldo" : "Tampilkan Saldo"}
             >
-              {showBalanceEye ? <Eye size={18} /> : <EyeOff size={18} />}
-            </button>
+              <span>Lihat rincian nama santri & sesi filter</span>
+              <ChevronRight size={15} />
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* =========================================================================
@@ -971,7 +1226,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
 
           {/* 6. Uang Saku / Kasir (Amber / Orange) */}
           <div
-            onClick={() => onChangeTab(isBendahara ? "keuangan-kasir" : "keuangan-spp")}
+            onClick={() =>
+              onChangeTab(isBendahara ? "keuangan-kasir" : "keuangan-spp")
+            }
             style={{
               display: "flex",
               flexDirection: "column",
@@ -1754,305 +2011,6 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       ) : (
         <>
           {/* =========================================================================
-              CARD 1: AKTIVITAS & PRESENSI HARI INI (myBCA CARD UI)
-          ========================================================================= */}
-          <div style={{ padding: "0 16px", marginTop: "14px" }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "8px",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "0.82rem",
-                  fontWeight: 800,
-                  color: "#005baa",
-                  letterSpacing: "0.04em",
-                  textTransform: "uppercase",
-                }}
-              >
-                AKTIVITAS & PRESENSI HARI INI
-              </span>
-              <span
-                onClick={() => onChangeTab("presensi")}
-                style={{
-                  fontSize: "0.74rem",
-                  fontWeight: 700,
-                  color: "#005baa",
-                  cursor: "pointer",
-                }}
-              >
-                Selengkapnya &gt;
-              </span>
-            </div>
-            <div
-              style={{
-                background: "#ffffff",
-                borderRadius: "22px",
-                border: "1px solid #e2e8f0",
-                padding: "16px 16px 14px",
-                boxShadow: "0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(0, 0, 0, 0.03)",
-                position: "relative",
-                zIndex: 10,
-              }}
-            >
-              {/* Header Card Status */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "12px",
-                  paddingBottom: "10px",
-                  borderBottom: "1px solid #f1f5f9",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <div
-                    style={{
-                      width: "32px",
-                      height: "32px",
-                      borderRadius: "10px",
-                      background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#ffffff",
-                    }}
-                  >
-                    <CheckCircle2 size={18} strokeWidth={2.4} />
-                  </div>
-                  <div>
-                    <h3
-                      style={{
-                        margin: 0,
-                        fontSize: "0.88rem",
-                        fontWeight: 800,
-                        color: "#0f172a",
-                        letterSpacing: "-0.01em",
-                      }}
-                    >
-                      Presensi Santri Hari Ini
-                    </h3>
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: "0.68rem",
-                        color: "#64748b",
-                        fontWeight: 500,
-                      }}
-                    >
-                      Pantauan kehadiran shalat & kegiatan
-                    </p>
-                  </div>
-                </div>
-
-                <span
-                  style={{
-                    background: "#f0fdf4",
-                    color: "#166534",
-                    border: "1px solid #bbf7d0",
-                    fontSize: "0.65rem",
-                    fontWeight: 700,
-                    padding: "3px 8px",
-                    borderRadius: "999px",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "4px",
-                  }}
-                >
-                  <span
-                    style={{
-                      width: "6px",
-                      height: "6px",
-                      borderRadius: "50%",
-                      background: "#22c55e",
-                    }}
-                  />
-                  Realtime
-                </span>
-              </div>
-
-              {/* 4 Interactive Status Metric Cards */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(4, 1fr)",
-                  gap: "8px",
-                }}
-              >
-                {/* 1. HADIR */}
-                <div
-                  onClick={() => handleOpenStatusModal("Hadir")}
-                  style={{
-                    background: "#f0fdf4",
-                    border: "1px solid #bbf7d0",
-                    borderRadius: "14px",
-                    padding: "10px 4px",
-                    textAlign: "center",
-                    cursor: "pointer",
-                    transition: "transform 0.15s ease",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "1.15rem",
-                      fontWeight: 800,
-                      color: "#15803d",
-                      lineHeight: 1.1,
-                      marginBottom: "4px",
-                    }}
-                  >
-                    {rekapAbsensi.hadir || 0}
-                  </div>
-                  <span
-                    style={{
-                      fontSize: "0.68rem",
-                      fontWeight: 700,
-                      color: "#166534",
-                      display: "block",
-                    }}
-                  >
-                    Hadir
-                  </span>
-                </div>
-
-                {/* 2. SAKIT */}
-                <div
-                  onClick={() => handleOpenStatusModal("Sakit")}
-                  style={{
-                    background: "#fef2f2",
-                    border: "1px solid #fecaca",
-                    borderRadius: "14px",
-                    padding: "10px 4px",
-                    textAlign: "center",
-                    cursor: "pointer",
-                    transition: "transform 0.15s ease",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "1.15rem",
-                      fontWeight: 800,
-                      color: "#b91c1c",
-                      lineHeight: 1.1,
-                      marginBottom: "4px",
-                    }}
-                  >
-                    {rekapAbsensi.sakit || 0}
-                  </div>
-                  <span
-                    style={{
-                      fontSize: "0.68rem",
-                      fontWeight: 700,
-                      color: "#991b1b",
-                      display: "block",
-                    }}
-                  >
-                    Sakit
-                  </span>
-                </div>
-
-                {/* 3. IZIN */}
-                <div
-                  onClick={() => handleOpenStatusModal("Izin")}
-                  style={{
-                    background: "#fffbeb",
-                    border: "1px solid #fde68a",
-                    borderRadius: "14px",
-                    padding: "10px 4px",
-                    textAlign: "center",
-                    cursor: "pointer",
-                    transition: "transform 0.15s ease",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "1.15rem",
-                      fontWeight: 800,
-                      color: "#b45309",
-                      lineHeight: 1.1,
-                      marginBottom: "4px",
-                    }}
-                  >
-                    {rekapAbsensi.izin || 0}
-                  </div>
-                  <span
-                    style={{
-                      fontSize: "0.68rem",
-                      fontWeight: 700,
-                      color: "#92400e",
-                      display: "block",
-                    }}
-                  >
-                    Izin
-                  </span>
-                </div>
-
-                {/* 4. ALFA / BELUM */}
-                <div
-                  onClick={() => handleOpenStatusModal("Alfa")}
-                  style={{
-                    background: "#f8fafc",
-                    border: "1px solid #cbd5e1",
-                    borderRadius: "14px",
-                    padding: "10px 4px",
-                    textAlign: "center",
-                    cursor: "pointer",
-                    transition: "transform 0.15s ease",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "1.15rem",
-                      fontWeight: 800,
-                      color: "#475569",
-                      lineHeight: 1.1,
-                      marginBottom: "4px",
-                    }}
-                  >
-                    {rekapAbsensi.alfa || 0}
-                  </div>
-                  <span
-                    style={{
-                      fontSize: "0.68rem",
-                      fontWeight: 700,
-                      color: "#334155",
-                      display: "block",
-                    }}
-                  >
-                    Belum
-                  </span>
-                </div>
-              </div>
-
-              {/* Tap to View Details Bar */}
-              <div
-                onClick={() => handleOpenStatusModal("Hadir")}
-                style={{
-                  marginTop: "10px",
-                  padding: "8px 10px",
-                  background: "#f8fafc",
-                  borderRadius: "10px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  cursor: "pointer",
-                  fontSize: "0.72rem",
-                  color: "#0369a1",
-                  fontWeight: 700,
-                }}
-              >
-                <span>Lihat rincian nama santri & sesi filter</span>
-                <ChevronRight size={15} />
-              </div>
-            </div>
-          </div>
-
-          {/* =========================================================================
               CARD 2: KATEGORI LAYANAN PRESENSI & IBADAH (CARD UI)
           ========================================================================= */}
           <div style={{ padding: "0 16px", marginTop: "18px" }}>
@@ -2143,7 +2101,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               </div>
 
               {/* Items List */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+              >
                 {/* 1. Presensi Digital (Wajah & Barcode) */}
                 <div
                   onClick={() => onChangeTab("presensi")}
@@ -2152,20 +2112,28 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                     alignItems: "center",
                     justifyContent: "space-between",
                     padding: "12px 14px",
-                    background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
+                    background:
+                      "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
                     border: "1px solid #bae6fd",
                     borderRadius: "14px",
                     cursor: "pointer",
                     transition: "all 0.18s ease",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                    }}
+                  >
                     <div
                       style={{
                         width: "42px",
                         height: "42px",
                         borderRadius: "12px",
-                        background: "linear-gradient(135deg, #0284c7 0%, #1e40af 100%)",
+                        background:
+                          "linear-gradient(135deg, #0284c7 0%, #1e40af 100%)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -2229,13 +2197,20 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                     transition: "all 0.18s ease",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                    }}
+                  >
                     <div
                       style={{
                         width: "42px",
                         height: "42px",
                         borderRadius: "12px",
-                        background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
+                        background:
+                          "linear-gradient(135deg, #059669 0%, #047857 100%)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -2284,13 +2259,20 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                     transition: "all 0.18s ease",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                    }}
+                  >
                     <div
                       style={{
                         width: "42px",
                         height: "42px",
                         borderRadius: "12px",
-                        background: "linear-gradient(135deg, #d97706 0%, #b45309 100%)",
+                        background:
+                          "linear-gradient(135deg, #d97706 0%, #b45309 100%)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -2418,7 +2400,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               </div>
 
               {/* Items List */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+              >
                 {/* 1. Tahfidz & Muroja'ah */}
                 <div
                   onClick={() => onChangeTab("tahfidz")}
@@ -2427,20 +2411,28 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                     alignItems: "center",
                     justifyContent: "space-between",
                     padding: "12px 14px",
-                    background: "linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)",
+                    background:
+                      "linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)",
                     border: "1px solid #e9d5ff",
                     borderRadius: "14px",
                     cursor: "pointer",
                     transition: "all 0.18s ease",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                    }}
+                  >
                     <div
                       style={{
                         width: "42px",
                         height: "42px",
                         borderRadius: "12px",
-                        background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)",
+                        background:
+                          "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -2504,13 +2496,20 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                     transition: "all 0.18s ease",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                    }}
+                  >
                     <div
                       style={{
                         width: "42px",
                         height: "42px",
                         borderRadius: "12px",
-                        background: "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)",
+                        background:
+                          "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -2559,13 +2558,20 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                     transition: "all 0.18s ease",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                    }}
+                  >
                     <div
                       style={{
                         width: "42px",
                         height: "42px",
                         borderRadius: "12px",
-                        background: "linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)",
+                        background:
+                          "linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
