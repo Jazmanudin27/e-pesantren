@@ -1464,15 +1464,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
             </div>
 
             <div style={{ padding: '0 16px 24px' }}>
-                  <div style={{ fontSize: '0.62rem', color: '#fecaca', fontWeight: 700 }}>TOTAL PENGAMBILAN</div>
-                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#fee2e2', marginTop: '2px' }}>
-                    -{formatRp(tabunganData?.total_keluar || 0)}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Petunjuk Pengiriman Uang Saku */}
+              {/* Petunjuk Pengiriman Uang Saku */}
             <div style={{
               background: '#f0fdf4',
               borderRadius: '14px',
@@ -1588,6 +1580,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   })}
                 </div>
               )}
+            </div>
             </div>
           </div>
         )}
