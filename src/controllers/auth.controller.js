@@ -225,38 +225,39 @@ export const login = async (req, res, next) => {
       return sendError(res, `Password untuk akun "${cleanUser}" salah!`, 401);
     }
 
-    // Generate JWT Token (E-Sekolah Architecture)
-    const isWali = userType === 'Wali Santri' || account.role === 'wali' || account.role === 'santri';
+    let isWali = userType === 'Wali Santri' || account.role === 'wali' || account.role === 'santri';
 
     // Cari data santri asli dari database MySQL
     let namaSantriDb = account.nama_santri || '';
     let nisnDb = account.nisn || '';
     let nisDb = account.nis || '';
-    let santriRealId = isWali ? account.id : account.santri_id;
+    let santriRealId = isWali ? account.id : (account.santri_id || null);
 
-    if (isWali || account.santri_id) {
-      try {
-        const [sRow] = await pool.query(
-          `SELECT id, nama_santri, nisn, nis, foto_url, foto FROM santri 
-           WHERE id = ? 
-              OR LOWER(TRIM(COALESCE(username, ''))) = LOWER(TRIM(?))
-              OR LOWER(TRIM(nis)) = LOWER(TRIM(?)) 
-              OR LOWER(TRIM(COALESCE(nisn, ''))) = LOWER(TRIM(?))
-              OR LOWER(TRIM(nama_santri)) = LOWER(TRIM(?))
-              OR LOWER(TRIM(nama_santri)) LIKE LOWER(?)
-           ORDER BY (LOWER(TRIM(nama_santri)) = LOWER(TRIM(?))) DESC, id ASC
-           LIMIT 1`,
-          [santriRealId || 0, cleanUser, cleanUser, cleanUser, cleanUser, `%${cleanUser}%`, cleanUser]
-        );
-        if (sRow && sRow.length > 0) {
-          namaSantriDb = sRow[0].nama_santri || namaSantriDb;
-          nisnDb = sRow[0].nisn || nisnDb;
-          nisDb = sRow[0].nis || nisDb;
-          santriRealId = sRow[0].id;
+    try {
+      const [sRow] = await pool.query(
+        `SELECT id, nama_santri, nisn, nis, foto_url, foto FROM santri 
+         WHERE id = ? 
+            OR LOWER(TRIM(COALESCE(username, ''))) = LOWER(TRIM(?))
+            OR LOWER(TRIM(nis)) = LOWER(TRIM(?)) 
+            OR LOWER(TRIM(COALESCE(nisn, ''))) = LOWER(TRIM(?))
+            OR LOWER(TRIM(nama_santri)) = LOWER(TRIM(?))
+            OR LOWER(TRIM(nama_santri)) LIKE LOWER(?)
+         ORDER BY (LOWER(TRIM(nama_santri)) = LOWER(TRIM(?))) DESC, id ASC
+         LIMIT 1`,
+        [santriRealId || 0, cleanUser, cleanUser, cleanUser, cleanUser, `%${cleanUser}%`, cleanUser]
+      );
+      if (sRow && sRow.length > 0) {
+        namaSantriDb = sRow[0].nama_santri || namaSantriDb;
+        nisnDb = sRow[0].nisn || nisnDb;
+        nisDb = sRow[0].nis || nisDb;
+        santriRealId = sRow[0].id;
+        if (account.role !== 'admin' && account.role !== 'asatidz' && account.role !== 'asrama') {
+          isWali = true;
+          userType = 'Wali Santri';
         }
-      } catch (e) {
-        console.warn('Gagal fetch nama santri database:', e.message);
       }
+    } catch (e) {
+      console.warn('Gagal fetch nama santri database:', e.message);
     }
 
     const tokenPayload = {

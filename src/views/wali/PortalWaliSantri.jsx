@@ -81,6 +81,14 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
     }
   });
 
+  const sessionData = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('desktop_session') || localStorage.getItem('mobile_session') || '{}');
+    } catch (e) {
+      return {};
+    }
+  })();
+
   // Tab State: 'beranda' | 'tagihan' | 'laporan' | 'informasi' | 'perizinan' | 'absensi' | 'hafalan' | 'profile' | 'praktek' | 'pelanggaran' | 'notifikasi'
   const [currentTab, setCurrentTab] = useState('beranda');
   const [absensiStatusFilter, setAbsensiStatusFilter] = useState('Semua'); // 'Semua' | 'Hadir' | 'Sakit' | 'Izin' | 'Alfa'
@@ -661,13 +669,19 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                     {rawSantriName}
                   </div>
                   <div style={{
-                    fontSize: '0.74rem',
+                    fontSize: '0.72rem',
                     fontWeight: 700,
                     color: '#a7f3d0',
                     letterSpacing: '0.03em',
-                    marginTop: '2px'
+                    marginTop: '2px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    flexWrap: 'wrap'
                   }}>
-                    NISN: {santri.nisn || santri.nis || '-'}
+                    <span>NIS: <strong style={{ color: '#ffffff' }}>{santri.nis || sessionData.nis || '-'}</strong></span>
+                    <span>•</span>
+                    <span>NISN: <strong style={{ color: '#ffffff' }}>{santri.nisn || sessionData.nisn || '-'}</strong></span>
                   </div>
                 </div>
               </div>
@@ -1773,7 +1787,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 {santri.nama_santri || rawSantriName}
               </h3>
               <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#bae6fd' }}>
-                NISN: <strong>{santri.nisn || '-'}</strong> • NIS: <strong>{santri.nis || '-'}</strong>
+                NIS: <strong>{santri.nis || sessionData.nis || '-'}</strong> • NISN: <strong>{santri.nisn || sessionData.nisn || '-'}</strong>
               </p>
 
               <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '10px' }}>
@@ -1862,12 +1876,16 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   <span style={infoValue}>{santri.nama_santri || rawSantriName}</span>
                 </div>
                 <div style={infoRow}>
-                  <span style={infoLabel}>NISN:</span>
-                  <span style={{ ...infoValue, fontWeight: 800, color: '#0369a1' }}>{santri.nisn || '-'}</span>
+                  <span style={infoLabel}>NIS (Nomor Induk Santri):</span>
+                  <span style={{ ...infoValue, fontWeight: 800, color: '#0f766e' }}>{santri.nis || sessionData.nis || '-'}</span>
                 </div>
                 <div style={infoRow}>
-                  <span style={infoLabel}>NIS / Kode:</span>
-                  <span style={infoValue}>{santri.nis || '-'} / {santri.kode_santri || '-'}</span>
+                  <span style={infoLabel}>NISN (Nasional):</span>
+                  <span style={{ ...infoValue, fontWeight: 800, color: '#0369a1' }}>{santri.nisn || sessionData.nisn || '-'}</span>
+                </div>
+                <div style={infoRow}>
+                  <span style={infoLabel}>Kode Santri:</span>
+                  <span style={infoValue}>{santri.kode_santri || '-'}</span>
                 </div>
                 <div style={infoRow}>
                   <span style={infoLabel}>Jenis Kelamin:</span>

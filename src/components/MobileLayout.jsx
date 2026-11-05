@@ -87,6 +87,14 @@ export default function MobileLayout() {
     if (hash && hash !== 'mobile' && hash !== 'home') {
       return hash;
     }
+    // Jika user login sebagai Wali Santri / Santri, arahkan ke portal-wali
+    try {
+      const sess = JSON.parse(localStorage.getItem('mobile_session') || '{}');
+      const r = String(sess.role || sess.userType || '').toLowerCase();
+      if (r.includes('wali') || r.includes('santri')) {
+        return 'portal-wali';
+      }
+    } catch (e) {}
     // Jika buka domain utama tanpa hash tertentu, selalu buka Beranda (home)
     return 'home';
   };
@@ -117,6 +125,15 @@ export default function MobileLayout() {
         setMobileTab(hash);
         localStorage.setItem('mobileTab', hash);
       } else if (hash === 'mobile' || (!hash && isMobileDomain)) {
+        try {
+          const sess = JSON.parse(localStorage.getItem('mobile_session') || '{}');
+          const r = String(sess.role || sess.userType || '').toLowerCase();
+          if (r.includes('wali') || r.includes('santri')) {
+            setMobileTab('portal-wali');
+            localStorage.setItem('mobileTab', 'portal-wali');
+            return;
+          }
+        } catch (e) {}
         // Root domain mobile selalu buka Beranda
         setMobileTab('home');
         localStorage.setItem('mobileTab', 'home');
@@ -271,8 +288,21 @@ export default function MobileLayout() {
   );
 
   const renderContent = () => {
+    const isWaliUser = (() => {
+      try {
+        const sess = JSON.parse(localStorage.getItem('mobile_session') || '{}');
+        const r = String(sess.role || sess.userType || '').toLowerCase();
+        return r.includes('wali') || r.includes('santri');
+      } catch (e) {
+        return false;
+      }
+    })();
+
     switch (mobileTab) {
       case 'home':
+        if (isWaliUser) {
+          return <PortalWaliSantri onLogout={handleLogout} />;
+        }
         return <MobileHome onChangeTab={handleSelectTab} onLogout={handleLogout} />;
       case 'portal-wali':
         return <PortalWaliSantri onLogout={handleLogout} />;

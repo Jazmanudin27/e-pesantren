@@ -604,7 +604,11 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                     letterSpacing: "0.03em",
                   }}
                 >
-                  NWF-2026-ADM
+                  {sessionData.nis || sessionData.nisn ? (
+                    `NIS: ${sessionData.nis || "-"} • NISN: ${sessionData.nisn || "-"}`
+                  ) : (
+                    "NWF-2026-ADM"
+                  )}
                 </div>
               </div>
             </div>
@@ -2012,7 +2016,11 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                       marginTop: "2px",
                     }}
                   >
-                    ID: NWF-2026-ADM
+                    {sessionData.nis || sessionData.nisn ? (
+                      `NIS: ${sessionData.nis || "-"} • NISN: ${sessionData.nisn || "-"}`
+                    ) : (
+                      "ID: NWF-2026-ADM"
+                    )}
                   </div>
                   <div
                     style={{
