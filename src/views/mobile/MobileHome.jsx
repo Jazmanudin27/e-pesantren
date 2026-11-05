@@ -46,6 +46,7 @@ import {
   Eye,
   EyeOff,
   Settings,
+  Activity,
 } from "lucide-react";
 import { showSuccess, showConfirm } from "../../utils/alert.util";
 
@@ -1671,50 +1672,36 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       ) : (
         <>
           {/* =========================================================================
-              CARD 1: KATEGORI DATA MASTER & FASILITAS PESANTREN (CARD UI)
+              CARD MENU: DATA MASTER & TRANSAKSI
           ========================================================================= */}
           <div style={{ padding: "0 16px", marginTop: "18px" }}>
             <div
               style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "8px",
+                marginBottom: "10px",
               }}
             >
               <span
                 style={{
-                  fontSize: "0.82rem",
-                  fontWeight: 800,
+                  fontSize: "0.85rem",
+                  fontWeight: 900,
                   color: "#005baa",
-                  letterSpacing: "0.04em",
+                  letterSpacing: "0.06em",
                   textTransform: "uppercase",
                 }}
               >
-                DATA MASTER & FASILITAS
-              </span>
-              <span
-                onClick={() => onChangeTab("master-santri")}
-                style={{
-                  fontSize: "0.74rem",
-                  fontWeight: 700,
-                  color: "#005baa",
-                  cursor: "pointer",
-                }}
-              >
-                Selengkapnya &gt;
+                MENU
               </span>
             </div>
             <div
               style={{
                 background: "#ffffff",
-                borderRadius: "20px",
+                borderRadius: "22px",
                 border: "1px solid #e2e8f0",
-                padding: "16px",
-                boxShadow: "0 4px 16px -2px rgba(15, 23, 42, 0.04)",
+                padding: "16px 16px 18px",
+                boxShadow: "0 4px 18px -2px rgba(15, 23, 42, 0.05)",
               }}
             >
-              {/* Category Title */}
+              {/* Category Subheader: Data Master */}
               <div
                 style={{
                   display: "flex",
@@ -1735,23 +1722,23 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                     justifyContent: "center",
                   }}
                 >
-                  <Building size={17} strokeWidth={2.4} />
+                  <Building size={16} strokeWidth={2.4} />
                 </div>
                 <div>
                   <h4
                     style={{
                       margin: 0,
-                      fontSize: "0.85rem",
+                      fontSize: "0.84rem",
                       fontWeight: 800,
                       color: "#0f172a",
                     }}
                   >
-                    Data Master & Fasilitas
+                    Data Master
                   </h4>
                   <p
                     style={{
                       margin: 0,
-                      fontSize: "0.66rem",
+                      fontSize: "0.65rem",
                       color: "#64748b",
                     }}
                   >
@@ -1760,7 +1747,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 </div>
               </div>
 
-              {/* 6 Grid Tiles (3 Columns x 2 Rows) */}
+              {/* 6 Grid Tiles Data Master (3 Columns x 2 Rows) */}
               <div
                 style={{
                   display: "grid",
@@ -2020,170 +2007,241 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                   </span>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* =========================================================================
-              QUICK ACTION MENU (PRESENSI, PERIZINAN, PERKEMBANGAN, PRAKTEK)
-          ========================================================================= */}
-          <div style={{ padding: "18px 16px 10px" }}>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
-                gap: "14px 10px",
-              }}
-            >
-              {/* 1. Presensi (Royal Blue) */}
+              {/* Elegant Divider between Data Master and Transaksi */}
               <div
-                onClick={() => onChangeTab("presensi")}
+                style={{
+                  height: "1px",
+                  background: "#f1f5f9",
+                  margin: "18px 0 14px",
+                }}
+              />
+
+              {/* Category Subheader: Transaksi */}
+              <div
                 style={{
                   display: "flex",
-                  flexDirection: "column",
                   alignItems: "center",
-                  gap: "6px",
-                  cursor: "pointer",
+                  gap: "8px",
+                  marginBottom: "12px",
                 }}
               >
                 <div
                   style={{
-                    width: "54px",
-                    height: "54px",
-                    borderRadius: "18px",
-                    background: "linear-gradient(135deg, #005baa 0%, #004b91 100%)",
-                    color: "#ffffff",
+                    width: "28px",
+                    height: "28px",
+                    borderRadius: "8px",
+                    background: "#eff6ff",
+                    color: "#005baa",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    boxShadow: "0 6px 14px -2px rgba(0, 91, 170, 0.35)",
                   }}
                 >
-                  <Fingerprint size={24} />
+                  <Activity size={16} strokeWidth={2.4} />
                 </div>
-                <span
-                  style={{
-                    fontSize: "0.72rem",
-                    fontWeight: 700,
-                    color: "#334155",
-                    textAlign: "center",
-                  }}
-                >
-                  Presensi
-                </span>
+                <div>
+                  <h4
+                    style={{
+                      margin: 0,
+                      fontSize: "0.84rem",
+                      fontWeight: 800,
+                      color: "#0f172a",
+                    }}
+                  >
+                    Transaksi
+                  </h4>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: "0.65rem",
+                      color: "#64748b",
+                    }}
+                  >
+                    Presensi harian, perizinan, evaluasi & praktek
+                  </p>
+                </div>
               </div>
 
-              {/* 2. Perizinan (Teal / Cyan) */}
+              {/* 4 Grid Tiles Transaksi (4 Columns) */}
               <div
-                onClick={() => onChangeTab("perizinan")}
                 style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "6px",
-                  cursor: "pointer",
+                  display: "grid",
+                  gridTemplateColumns: "repeat(4, 1fr)",
+                  gap: "8px",
                 }}
               >
+                {/* 1. Presensi (Royal Blue) */}
                 <div
+                  onClick={() => onChangeTab("presensi")}
                   style={{
-                    width: "54px",
-                    height: "54px",
-                    borderRadius: "18px",
-                    background: "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)",
-                    color: "#ffffff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    boxShadow: "0 6px 14px -2px rgba(6, 182, 212, 0.35)",
-                  }}
-                >
-                  <DoorOpen size={24} />
-                </div>
-                <span
-                  style={{
-                    fontSize: "0.72rem",
-                    fontWeight: 700,
-                    color: "#334155",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "14px",
+                    padding: "10px 4px",
                     textAlign: "center",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "6px",
+                    transition: "transform 0.15s ease",
                   }}
                 >
-                  Perizinan
-                </span>
-              </div>
+                  <div
+                    style={{
+                      width: "38px",
+                      height: "38px",
+                      borderRadius: "10px",
+                      background: "linear-gradient(135deg, #005baa 0%, #004b91 100%)",
+                      color: "#ffffff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      boxShadow: "0 3px 8px rgba(0, 91, 170, 0.25)",
+                    }}
+                  >
+                    <Fingerprint size={20} />
+                  </div>
+                  <span
+                    style={{
+                      fontSize: "0.69rem",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                    }}
+                  >
+                    Presensi
+                  </span>
+                </div>
 
-              {/* 3. Perkembangan / Rapor (Indigo) */}
-              <div
-                onClick={() => onChangeTab("pengembangan")}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "6px",
-                  cursor: "pointer",
-                }}
-              >
+                {/* 2. Perizinan (Teal) */}
                 <div
+                  onClick={() => onChangeTab("perizinan")}
                   style={{
-                    width: "54px",
-                    height: "54px",
-                    borderRadius: "18px",
-                    background: "linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)",
-                    color: "#ffffff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    boxShadow: "0 6px 14px -2px rgba(79, 70, 229, 0.35)",
-                  }}
-                >
-                  <Award size={24} />
-                </div>
-                <span
-                  style={{
-                    fontSize: "0.72rem",
-                    fontWeight: 700,
-                    color: "#334155",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "14px",
+                    padding: "10px 4px",
                     textAlign: "center",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "6px",
+                    transition: "transform 0.15s ease",
                   }}
                 >
-                  Perkembangan
-                </span>
-              </div>
+                  <div
+                    style={{
+                      width: "38px",
+                      height: "38px",
+                      borderRadius: "10px",
+                      background: "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)",
+                      color: "#ffffff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      boxShadow: "0 3px 8px rgba(6, 182, 212, 0.25)",
+                    }}
+                  >
+                    <DoorOpen size={20} />
+                  </div>
+                  <span
+                    style={{
+                      fontSize: "0.69rem",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                    }}
+                  >
+                    Perizinan
+                  </span>
+                </div>
 
-              {/* 4. Praktek Ibadah (Slate / Navy) */}
-              <div
-                onClick={() => onChangeTab("praktek-ibadah")}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "6px",
-                  cursor: "pointer",
-                }}
-              >
+                {/* 3. Perkembangan (Indigo) */}
                 <div
+                  onClick={() => onChangeTab("pengembangan")}
                   style={{
-                    width: "54px",
-                    height: "54px",
-                    borderRadius: "18px",
-                    background: "linear-gradient(135deg, #334155 0%, #1e293b 100%)",
-                    color: "#ffffff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    boxShadow: "0 6px 14px -2px rgba(51, 65, 85, 0.35)",
-                  }}
-                >
-                  <HeartHandshake size={24} />
-                </div>
-                <span
-                  style={{
-                    fontSize: "0.72rem",
-                    fontWeight: 700,
-                    color: "#334155",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "14px",
+                    padding: "10px 4px",
                     textAlign: "center",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "6px",
+                    transition: "transform 0.15s ease",
                   }}
                 >
-                  Praktek
-                </span>
+                  <div
+                    style={{
+                      width: "38px",
+                      height: "38px",
+                      borderRadius: "10px",
+                      background: "linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)",
+                      color: "#ffffff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      boxShadow: "0 3px 8px rgba(79, 70, 229, 0.25)",
+                    }}
+                  >
+                    <Award size={20} />
+                  </div>
+                  <span
+                    style={{
+                      fontSize: "0.67rem",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                    }}
+                  >
+                    Perkembangan
+                  </span>
+                </div>
+
+                {/* 4. Praktek (Slate / Navy) */}
+                <div
+                  onClick={() => onChangeTab("praktek-ibadah")}
+                  style={{
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "14px",
+                    padding: "10px 4px",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "6px",
+                    transition: "transform 0.15s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "38px",
+                      height: "38px",
+                      borderRadius: "10px",
+                      background: "linear-gradient(135deg, #334155 0%, #1e293b 100%)",
+                      color: "#ffffff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      boxShadow: "0 3px 8px rgba(51, 65, 85, 0.25)",
+                    }}
+                  >
+                    <HeartHandshake size={20} />
+                  </div>
+                  <span
+                    style={{
+                      fontSize: "0.69rem",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                    }}
+                  >
+                    Praktek
+                  </span>
+                </div>
               </div>
             </div>
           </div>
