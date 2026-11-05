@@ -676,7 +676,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       </div>
 
       {/* =========================================================================
-          CARD 1: FLOATING WHITE CARD (SMART ID CARD + INFO PILLS)
+          CARD 1: FLOATING WHITE CARD (ADMIN ID CARD + PRESENSI STATUS PILLS)
       ========================================================================= */}
       <div
         style={{
@@ -701,7 +701,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
         >
           {/* Left 58%: Mini Blue Smart ID Card */}
           <div
-            onClick={() => setIsDetailCardOpen(true)}
+            onClick={handleOpenAccountInfo}
             style={{
               flex: "1 1 58%",
               background: "linear-gradient(135deg, #0284c7 0%, #1e40af 100%)",
@@ -797,7 +797,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                     color: "#ffffff",
                   }}
                 >
-                  {displayName || "Icha Syahrizati"}
+                  {displayName || sessionData.nama || "Admin Nurul Wafa"}
                 </div>
                 <div
                   style={{
@@ -813,7 +813,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             </div>
           </div>
 
-          {/* Right 42%: Info Stats Pills */}
+          {/* Right 42%: Info Stats Pills (Sudah Absen & Belum Absen) */}
           <div
             style={{
               flex: "1 1 42%",
@@ -823,21 +823,22 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               gap: "6px",
             }}
           >
-            {/* Pill 1: Uang Jajan */}
+            {/* Pill 1: Sudah Absen */}
             <div
-              onClick={() => onChangeTab("keuangan-kasir")}
+              onClick={() => handleOpenStatusModal("Hadir")}
               style={{
                 background: "#f0fdf4",
                 border: "1px solid #bbf7d0",
                 borderRadius: "12px",
                 padding: "6px 8px",
                 cursor: "pointer",
+                transition: "all 0.15s ease",
               }}
             >
               <div
                 style={{ display: "flex", alignItems: "center", gap: "4px" }}
               >
-                <Wallet size={11} color="#16a34a" />
+                <CheckCircle2 size={11} color="#16a34a" />
                 <span
                   style={{
                     fontSize: "0.62rem",
@@ -845,55 +846,56 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                     color: "#166534",
                   }}
                 >
-                  Uang Jajan
+                  Sudah Absen
                 </span>
               </div>
               <div
                 style={{
-                  fontSize: "0.78rem",
+                  fontSize: "0.82rem",
                   fontWeight: 900,
                   color: "#14532d",
                   marginTop: "2px",
                 }}
               >
-                {showBalanceEye ? "Rp. 1.500.000,-" : "••••••"}
+                {rekapAbsensi.hadir} <span style={{ fontSize: "0.62rem", fontWeight: 600 }}>Santri</span>
               </div>
             </div>
 
-            {/* Pill 2: Limit Harian */}
+            {/* Pill 2: Belum Absen */}
             <div
-              onClick={() => handleOpenStatusModal("Hadir")}
+              onClick={() => handleOpenStatusModal("Alfa")}
               style={{
-                background: "#f0fdfa",
-                border: "1px solid #99f6e4",
+                background: "#fff1f2",
+                border: "1px solid #fecdd3",
                 borderRadius: "12px",
                 padding: "6px 8px",
                 cursor: "pointer",
+                transition: "all 0.15s ease",
               }}
             >
               <div
                 style={{ display: "flex", alignItems: "center", gap: "4px" }}
               >
-                <CreditCard size={11} color="#0d9488" />
+                <AlertTriangle size={11} color="#e11d48" />
                 <span
                   style={{
                     fontSize: "0.62rem",
                     fontWeight: 700,
-                    color: "#115e59",
+                    color: "#9f1239",
                   }}
                 >
-                  Limit Harian
+                  Belum Absen
                 </span>
               </div>
               <div
                 style={{
-                  fontSize: "0.78rem",
+                  fontSize: "0.82rem",
                   fontWeight: 900,
-                  color: "#134e4a",
+                  color: "#881337",
                   marginTop: "2px",
                 }}
               >
-                {showBalanceEye ? "Rp 50.000,-" : "••••••"}
+                {rekapAbsensi.alfa} <span style={{ fontSize: "0.62rem", fontWeight: 600 }}>Santri</span>
               </div>
             </div>
           </div>
@@ -901,7 +903,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       </div>
 
       {/* =========================================================================
-          CARD 2: DARK TEAL PILL BAR (SALDO CASHLESS + 3 QUICK ACTIONS)
+          CARD 2: DARK TEAL PILL BAR (PRESENSI SANTRI HARI INI & QUICK STATUS PILLS)
       ========================================================================= */}
       <div style={{ padding: "0 14px", marginTop: "10px" }}>
         <div
@@ -916,33 +918,29 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             boxShadow: "0 6px 18px rgba(13, 122, 110, 0.25)",
           }}
         >
-          {/* Left: Saldo Cashless & Nominal */}
+          {/* Left: Total Presensi Santri */}
           <div style={{ display: "flex", flexDirection: "column" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <span
                 style={{
+                  width: "6px",
+                  height: "6px",
+                  borderRadius: "50%",
+                  background: "#4ade80",
+                  display: "inline-block",
+                  boxShadow: "0 0 6px #4ade80",
+                }}
+              />
+              <span
+                style={{
                   fontSize: "0.66rem",
                   color: "#a7f3d0",
-                  fontWeight: 600,
+                  fontWeight: 700,
+                  letterSpacing: "0.02em",
                 }}
               >
-                Saldo Cashpoint
+                Presensi Hari Ini
               </span>
-              <button
-                onClick={() => setShowBalanceEye(!showBalanceEye)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#a7f3d0",
-                  padding: 0,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                }}
-                title={showBalanceEye ? "Sembunyikan" : "Tampilkan"}
-              >
-                {showBalanceEye ? <Eye size={13} /> : <EyeOff size={13} />}
-              </button>
             </div>
             <div
               style={{
@@ -951,123 +949,110 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 color: "#ffffff",
                 letterSpacing: "-0.3px",
                 marginTop: "1px",
+                display: "flex",
+                alignItems: "baseline",
+                gap: "4px",
               }}
             >
-              {showBalanceEye
-                ? isBendahara
-                  ? `Rp. ${Number(keuanganData.summary?.total_terbayar || 5000000).toLocaleString("id-ID")},-`
-                  : "Rp. 5.000.000,-"
-                : "Rp ••••••••"}
+              <span>{rekapAbsensi.hadir}</span>
+              <span style={{ fontSize: "0.72rem", color: "#a7f3d0", fontWeight: 700 }}>
+                / {rekapAbsensi.total || stats.total_santri || 0}
+              </span>
             </div>
           </div>
 
-          {/* Right: 3 Quick Action Buttons */}
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            {/* 1. Beli Poin / Topup */}
+          {/* Right: 4 Quick Status Badges for instant filtering */}
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            {/* Hadir */}
             <div
-              onClick={() => onChangeTab("keuangan-kasir")}
+              onClick={() => handleOpenStatusModal("Hadir")}
               style={{
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 cursor: "pointer",
-                gap: "3px",
+                background: "rgba(255, 255, 255, 0.12)",
+                padding: "4px 8px",
+                borderRadius: "10px",
+                minWidth: "38px",
               }}
+              title="Lihat Santri Hadir"
             >
-              <div
-                style={{
-                  width: "28px",
-                  height: "28px",
-                  borderRadius: "50%",
-                  background: "rgba(255, 255, 255, 0.15)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#ffffff",
-                }}
-              >
-                <Plus size={15} />
-              </div>
-              <span
-                style={{
-                  fontSize: "0.58rem",
-                  color: "#e6fffa",
-                  fontWeight: 600,
-                }}
-              >
-                Beli POIN
+              <span style={{ fontSize: "0.78rem", fontWeight: 900, color: "#86efac" }}>
+                {rekapAbsensi.hadir}
+              </span>
+              <span style={{ fontSize: "0.54rem", color: "#e6fffa", fontWeight: 700 }}>
+                Hadir
               </span>
             </div>
 
-            {/* 2. Limit / Kartu */}
+            {/* Izin */}
             <div
-              onClick={() => setIsDetailCardOpen(true)}
+              onClick={() => handleOpenStatusModal("Izin")}
               style={{
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 cursor: "pointer",
-                gap: "3px",
+                background: "rgba(255, 255, 255, 0.12)",
+                padding: "4px 8px",
+                borderRadius: "10px",
+                minWidth: "38px",
               }}
+              title="Lihat Santri Izin"
             >
-              <div
-                style={{
-                  width: "28px",
-                  height: "28px",
-                  borderRadius: "50%",
-                  background: "rgba(255, 255, 255, 0.15)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#ffffff",
-                }}
-              >
-                <CreditCard size={14} />
-              </div>
-              <span
-                style={{
-                  fontSize: "0.58rem",
-                  color: "#e6fffa",
-                  fontWeight: 600,
-                }}
-              >
-                Limit
+              <span style={{ fontSize: "0.78rem", fontWeight: 900, color: "#fde047" }}>
+                {rekapAbsensi.izin}
+              </span>
+              <span style={{ fontSize: "0.54rem", color: "#e6fffa", fontWeight: 700 }}>
+                Izin
               </span>
             </div>
 
-            {/* 3. Riwayat */}
+            {/* Sakit */}
             <div
-              onClick={() => onChangeTab("keuangan-rekap")}
+              onClick={() => handleOpenStatusModal("Sakit")}
               style={{
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 cursor: "pointer",
-                gap: "3px",
+                background: "rgba(255, 255, 255, 0.12)",
+                padding: "4px 8px",
+                borderRadius: "10px",
+                minWidth: "38px",
               }}
+              title="Lihat Santri Sakit"
             >
-              <div
-                style={{
-                  width: "28px",
-                  height: "28px",
-                  borderRadius: "50%",
-                  background: "rgba(255, 255, 255, 0.15)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#ffffff",
-                }}
-              >
-                <FileText size={14} />
-              </div>
-              <span
-                style={{
-                  fontSize: "0.58rem",
-                  color: "#e6fffa",
-                  fontWeight: 600,
-                }}
-              >
-                Riwayat
+              <span style={{ fontSize: "0.78rem", fontWeight: 900, color: "#cbd5e1" }}>
+                {rekapAbsensi.sakit}
+              </span>
+              <span style={{ fontSize: "0.54rem", color: "#e6fffa", fontWeight: 700 }}>
+                Sakit
+              </span>
+            </div>
+
+            {/* Belum / Alfa */}
+            <div
+              onClick={() => handleOpenStatusModal("Alfa")}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                cursor: "pointer",
+                background: "rgba(239, 68, 68, 0.25)",
+                padding: "4px 8px",
+                borderRadius: "10px",
+                minWidth: "38px",
+                border: "1px solid rgba(239, 68, 68, 0.35)",
+              }}
+              title="Lihat Santri Belum Absen"
+            >
+              <span style={{ fontSize: "0.78rem", fontWeight: 900, color: "#fca5a5" }}>
+                {rekapAbsensi.alfa}
+              </span>
+              <span style={{ fontSize: "0.54rem", color: "#fef2f2", fontWeight: 700 }}>
+                Belum
               </span>
             </div>
           </div>
@@ -1075,9 +1060,30 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       </div>
 
       {/* =========================================================================
-          SECTION 1: 4 BIG PRIMARY CATEGORY SQUIRCLES
+          SECTION 1: DATA MASTER (4 PRIMARY BIG SQUIRCLES)
       ========================================================================= */}
       <div style={{ padding: "16px 14px 4px" }}>
+        <div
+          style={{
+            fontSize: "0.82rem",
+            fontWeight: 800,
+            color: "#1e293b",
+            marginBottom: "10px",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+          }}
+        >
+          <span
+            style={{
+              width: "4px",
+              height: "14px",
+              background: "#0d766e",
+              borderRadius: "2px",
+            }}
+          />
+          Data Master
+        </div>
         <div
           style={{
             display: "grid",
@@ -1085,9 +1091,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             gap: "10px",
           }}
         >
-          {/* 1. Keuangan (Emerald Green) */}
+          {/* 1. Santri (Emerald Green) */}
           <div
-            onClick={() => onChangeTab("keuangan-kasir")}
+            onClick={() => onChangeTab("master-santri")}
             style={{
               display: "flex",
               flexDirection: "column",
@@ -1109,7 +1115,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 color: "#ffffff",
               }}
             >
-              <Wallet size={26} />
+              <Users size={26} />
             </div>
             <span
               style={{
@@ -1118,17 +1124,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 color: "#334155",
               }}
             >
-              Keuangan
+              Santri
             </span>
           </div>
 
-          {/* 2. Akademik (Sky Blue) */}
+          {/* 2. Kelas (Sky Blue) */}
           <div
-            onClick={() => {
-              setSheetTitle("Akademik");
-              setSheetCategory("akademik");
-              setIsCategorySheetOpen(true);
-            }}
+            onClick={() => onChangeTab("master-kelas")}
             style={{
               display: "flex",
               flexDirection: "column",
@@ -1159,17 +1161,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 color: "#334155",
               }}
             >
-              Akademik
+              Kelas
             </span>
           </div>
 
-          {/* 3. Kesiswaan (Purple / Indigo) -> Slide-up Bottom Sheet Modal */}
+          {/* 3. Asrama (Purple) */}
           <div
-            onClick={() => {
-              setSheetTitle("Kesiswaan");
-              setSheetCategory("kesiswaan");
-              setIsCategorySheetOpen(true);
-            }}
+            onClick={() => onChangeTab("master-asrama")}
             style={{
               display: "flex",
               flexDirection: "column",
@@ -1183,15 +1181,15 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 width: "56px",
                 height: "56px",
                 borderRadius: "18px",
-                background: "linear-gradient(135deg, #818cf8 0%, #6366f1 100%)",
-                boxShadow: "0 8px 18px -2px rgba(99, 102, 241, 0.35)",
+                background: "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)",
+                boxShadow: "0 8px 18px -2px rgba(139, 92, 246, 0.35)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 color: "#ffffff",
               }}
             >
-              <Award size={26} />
+              <Building size={26} />
             </div>
             <span
               style={{
@@ -1200,13 +1198,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 color: "#334155",
               }}
             >
-              Kesiswaan
+              Asrama
             </span>
           </div>
 
-          {/* 4. Atur Kartu (Coral / Rose Red) -> Detail Kartu Modal */}
+          {/* 4. Kegiatan (Amber / Gold) */}
           <div
-            onClick={() => setIsDetailCardOpen(true)}
+            onClick={() => onChangeTab("setting-shalat")}
             style={{
               display: "flex",
               flexDirection: "column",
@@ -1220,15 +1218,15 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 width: "56px",
                 height: "56px",
                 borderRadius: "18px",
-                background: "linear-gradient(135deg, #fb7185 0%, #e11d48 100%)",
-                boxShadow: "0 8px 18px -2px rgba(225, 29, 72, 0.35)",
+                background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+                boxShadow: "0 8px 18px -2px rgba(245, 158, 11, 0.35)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 color: "#ffffff",
               }}
             >
-              <CreditCard size={26} />
+              <Calendar size={26} />
             </div>
             <span
               style={{
@@ -1237,21 +1235,42 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 color: "#334155",
               }}
             >
-              Atur Kartu
+              Kegiatan
             </span>
           </div>
         </div>
       </div>
 
       {/* =========================================================================
-          SECTION 2: 4 SOFT PASTEL SQUIRCLES
+          SECTION 2: TRANSAKSI SANTRI (5 SOFT PASTEL SQUIRCLES)
       ========================================================================= */}
-      <div style={{ padding: "10px 14px 8px" }}>
+      <div style={{ padding: "14px 14px 6px" }}>
+        <div
+          style={{
+            fontSize: "0.82rem",
+            fontWeight: 800,
+            color: "#1e293b",
+            marginBottom: "10px",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+          }}
+        >
+          <span
+            style={{
+              width: "4px",
+              height: "14px",
+              background: "#6366f1",
+              borderRadius: "2px",
+            }}
+          />
+          Transaksi Santri
+        </div>
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: "10px",
+            gridTemplateColumns: "repeat(5, 1fr)",
+            gap: "8px",
           }}
         >
           {/* 1. Perizinan */}
@@ -1261,157 +1280,205 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "6px",
+              gap: "5px",
               cursor: "pointer",
             }}
           >
             <div
               style={{
-                width: "56px",
-                height: "56px",
-                borderRadius: "18px",
+                width: "50px",
+                height: "50px",
+                borderRadius: "16px",
                 background: "#ede9fe",
                 border: "1px solid #ddd6fe",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 color: "#6366f1",
+                boxShadow: "0 2px 8px rgba(99, 102, 241, 0.12)",
               }}
             >
-              <Clock size={24} />
+              <Clock size={22} />
             </div>
             <span
               style={{
-                fontSize: "0.72rem",
+                fontSize: "0.66rem",
                 fontWeight: 700,
                 color: "#334155",
+                textAlign: "center",
+                lineHeight: 1.1,
               }}
             >
               Perizinan
             </span>
           </div>
 
-          {/* 2. Perundungan / Tata Tertib */}
+          {/* 2. Teguran / Tata Tertib */}
           <div
             onClick={() => onChangeTab("tata-tertib")}
             style={{
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "6px",
+              gap: "5px",
               cursor: "pointer",
             }}
           >
             <div
               style={{
-                width: "56px",
-                height: "56px",
-                borderRadius: "18px",
-                background: "#ede9fe",
-                border: "1px solid #ddd6fe",
+                width: "50px",
+                height: "50px",
+                borderRadius: "16px",
+                background: "#ffe4e6",
+                border: "1px solid #fecdd3",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#6366f1",
+                color: "#e11d48",
+                boxShadow: "0 2px 8px rgba(225, 29, 72, 0.12)",
               }}
             >
-              <ShieldAlert size={24} />
+              <ShieldAlert size={22} />
             </div>
             <span
               style={{
-                fontSize: "0.72rem",
+                fontSize: "0.66rem",
                 fontWeight: 700,
                 color: "#334155",
+                textAlign: "center",
+                lineHeight: 1.1,
               }}
             >
-              Perundungan
+              Teguran
             </span>
           </div>
 
-          {/* 3. Kunjungan / Praktek */}
+          {/* 3. Absensi */}
+          <div
+            onClick={() => onChangeTab("presensi")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "5px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "50px",
+                height: "50px",
+                borderRadius: "16px",
+                background: "#ecfdf5",
+                border: "1px solid #a7f3d0",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#059669",
+                boxShadow: "0 2px 8px rgba(5, 150, 105, 0.12)",
+              }}
+            >
+              <Fingerprint size={22} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.66rem",
+                fontWeight: 700,
+                color: "#334155",
+                textAlign: "center",
+                lineHeight: 1.1,
+              }}
+            >
+              Absensi
+            </span>
+          </div>
+
+          {/* 4. Perkembangan */}
+          <div
+            onClick={() => onChangeTab("pengembangan")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "5px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "50px",
+                height: "50px",
+                borderRadius: "16px",
+                background: "#e0f2fe",
+                border: "1px solid #bae6fd",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#0284c7",
+                boxShadow: "0 2px 8px rgba(2, 132, 199, 0.12)",
+              }}
+            >
+              <Award size={22} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.64rem",
+                fontWeight: 700,
+                color: "#334155",
+                textAlign: "center",
+                lineHeight: 1.1,
+              }}
+            >
+              Perkembangan
+            </span>
+          </div>
+
+          {/* 5. Praktek */}
           <div
             onClick={() => onChangeTab("praktek-ibadah")}
             style={{
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "6px",
+              gap: "5px",
               cursor: "pointer",
             }}
           >
             <div
               style={{
-                width: "56px",
-                height: "56px",
-                borderRadius: "18px",
-                background: "#ede9fe",
-                border: "1px solid #ddd6fe",
+                width: "50px",
+                height: "50px",
+                borderRadius: "16px",
+                background: "#fef3c7",
+                border: "1px solid #fde68a",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#6366f1",
+                color: "#d97706",
+                boxShadow: "0 2px 8px rgba(217, 119, 6, 0.12)",
               }}
             >
-              <MapPin size={24} />
+              <BookOpen size={22} />
             </div>
             <span
               style={{
-                fontSize: "0.72rem",
+                fontSize: "0.66rem",
                 fontWeight: 700,
                 color: "#334155",
+                textAlign: "center",
+                lineHeight: 1.1,
               }}
             >
-              Kunjungan
-            </span>
-          </div>
-
-          {/* 4. Lihat Semua -> Opens All Modules Bottom Sheet */}
-          <div
-            onClick={() => {
-              setSheetTitle("Semua Layanan Pesantren");
-              setSheetCategory("semua");
-              setIsCategorySheetOpen(true);
-            }}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "6px",
-              cursor: "pointer",
-            }}
-          >
-            <div
-              style={{
-                width: "56px",
-                height: "56px",
-                borderRadius: "18px",
-                background: "#ede9fe",
-                border: "1px solid #ddd6fe",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#6366f1",
-              }}
-            >
-              <LayoutGrid size={24} />
-            </div>
-            <span
-              style={{
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#334155",
-              }}
-            >
-              Lihat Semua
+              Praktek
             </span>
           </div>
         </div>
       </div>
 
       {/* =========================================================================
-          SECTION 3: TOKO ONLINE (KANTIN / ATRIBUT SANTRI)
+          SECTION 3: INFORMASI PESANTREN (REPLACING TOKO ONLINE)
       ========================================================================= */}
-      <div style={{ padding: "14px 14px 18px" }}>
+      <div style={{ padding: "14px 14px 20px" }}>
         <div
           style={{
             display: "flex",
@@ -1420,17 +1487,28 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             marginBottom: "12px",
           }}
         >
-          <span
+          <div
             style={{
-              fontSize: "0.86rem",
+              fontSize: "0.84rem",
               fontWeight: 800,
               color: "#1e293b",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
             }}
           >
-            Toko Online
-          </span>
+            <span
+              style={{
+                width: "4px",
+                height: "14px",
+                background: "#0ea5e9",
+                borderRadius: "2px",
+              }}
+            />
+            Informasi & Pengumuman
+          </div>
           <button
-            onClick={() => onChangeTab("keuangan-kasir")}
+            onClick={() => onChangeTab("informasi")}
             style={{
               background: "#0d766e",
               border: "none",
@@ -1446,169 +1524,127 @@ export default function MobileHome({ onChangeTab, onLogout }) {
           </button>
         </div>
 
-        {/* 3 Product Cards */}
+        {/* 2 Realtime Information Cards */}
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
+            display: "flex",
+            flexDirection: "column",
             gap: "10px",
           }}
         >
-          {/* Product 1: Peci Hitam */}
+          {/* Card 1 */}
           <div
-            onClick={() => onChangeTab("keuangan-kasir")}
+            onClick={() => onChangeTab("informasi")}
             style={{
               background: "#ffffff",
-              borderRadius: "14px",
-              padding: "8px",
-              border: "1px solid #f1f5f9",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+              borderRadius: "16px",
+              padding: "12px 14px",
+              border: "1px solid #e2e8f0",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
               cursor: "pointer",
-              textAlign: "center",
             }}
           >
             <div
               style={{
-                height: "68px",
-                background: "#f8fafc",
-                borderRadius: "10px",
                 display: "flex",
+                justifyContent: "space-between",
                 alignItems: "center",
-                justifyContent: "center",
                 marginBottom: "6px",
               }}
             >
-              <div
+              <span
                 style={{
-                  width: "44px",
-                  height: "32px",
-                  background: "#0f172a",
-                  borderRadius: "8px 8px 4px 4px",
-                  boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
+                  fontSize: "0.62rem",
+                  fontWeight: 800,
+                  color: "#0d766e",
+                  background: "#ccfbf1",
+                  padding: "2px 8px",
+                  borderRadius: "6px",
                 }}
-              />
+              >
+                Kedisiplinan & Presensi
+              </span>
+              <span style={{ fontSize: "0.62rem", color: "#94a3b8" }}>
+                Hari ini
+              </span>
+            </div>
+            <div
+              style={{
+                fontSize: "0.78rem",
+                fontWeight: 800,
+                color: "#0f172a",
+                lineHeight: 1.3,
+                marginBottom: "4px",
+              }}
+            >
+              Perekaman Fingerprint Jamaah & Penutupan Sesi Otomatis
             </div>
             <div
               style={{
                 fontSize: "0.7rem",
-                fontWeight: 700,
-                color: "#1e293b",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
+                color: "#64748b",
+                lineHeight: 1.4,
               }}
             >
-              Peci Hitam
-            </div>
-            <div
-              style={{
-                fontSize: "0.62rem",
-                color: "#0d766e",
-                fontWeight: 800,
-                marginTop: "2px",
-              }}
-            >
-              Rp 75.000,-
+              Sesi presensi shalat ditutup tepat waktu. Santri yang belum hadir otomatis masuk daftar Belum Absen.
             </div>
           </div>
 
-          {/* Product 2: Kitab Tashrif */}
+          {/* Card 2 */}
           <div
-            onClick={() => onChangeTab("keuangan-kasir")}
+            onClick={() => onChangeTab("informasi")}
             style={{
               background: "#ffffff",
-              borderRadius: "14px",
-              padding: "8px",
-              border: "1px solid #f1f5f9",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+              borderRadius: "16px",
+              padding: "12px 14px",
+              border: "1px solid #e2e8f0",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
               cursor: "pointer",
-              textAlign: "center",
             }}
           >
             <div
               style={{
-                height: "68px",
-                background: "#fef9c3",
-                borderRadius: "10px",
                 display: "flex",
+                justifyContent: "space-between",
                 alignItems: "center",
-                justifyContent: "center",
                 marginBottom: "6px",
               }}
             >
-              <BookOpen size={28} color="#ca8a04" />
+              <span
+                style={{
+                  fontSize: "0.62rem",
+                  fontWeight: 800,
+                  color: "#6366f1",
+                  background: "#ede9fe",
+                  padding: "2px 8px",
+                  borderRadius: "6px",
+                }}
+              >
+                Pengasuhan Santri
+              </span>
+              <span style={{ fontSize: "0.62rem", color: "#94a3b8" }}>
+                Kemarin
+              </span>
+            </div>
+            <div
+              style={{
+                fontSize: "0.78rem",
+                fontWeight: 800,
+                color: "#0f172a",
+                lineHeight: 1.3,
+                marginBottom: "4px",
+              }}
+            >
+              Alur Verifikasi Perizinan Pulang & Jam Kunjungan Santri
             </div>
             <div
               style={{
                 fontSize: "0.7rem",
-                fontWeight: 700,
-                color: "#1e293b",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
+                color: "#64748b",
+                lineHeight: 1.4,
               }}
             >
-              Kitab Tashrif
-            </div>
-            <div
-              style={{
-                fontSize: "0.62rem",
-                color: "#0d766e",
-                fontWeight: 800,
-                marginTop: "2px",
-              }}
-            >
-              Rp 45.000,-
-            </div>
-          </div>
-
-          {/* Product 3: Parfum Sholat */}
-          <div
-            onClick={() => onChangeTab("keuangan-kasir")}
-            style={{
-              background: "#ffffff",
-              borderRadius: "14px",
-              padding: "8px",
-              border: "1px solid #f1f5f9",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-              cursor: "pointer",
-              textAlign: "center",
-            }}
-          >
-            <div
-              style={{
-                height: "68px",
-                background: "#ecfdf5",
-                borderRadius: "10px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: "6px",
-              }}
-            >
-              <Sparkles size={28} color="#059669" />
-            </div>
-            <div
-              style={{
-                fontSize: "0.7rem",
-                fontWeight: 700,
-                color: "#1e293b",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              Parfum
-            </div>
-            <div
-              style={{
-                fontSize: "0.62rem",
-                color: "#0d766e",
-                fontWeight: 800,
-                marginTop: "2px",
-              }}
-            >
-              Rp 30.000,-
+              Perizinan santri wajib melalui persetujuan wali asrama dan tercatat dalam sistem perizinan.
             </div>
           </div>
         </div>
@@ -2477,9 +2513,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       )}
 
       {/* =========================================================================
-          MODAL DETAIL PRESENSI SANTRI HARI INI (KHUSUS ASATIDZ / NON-BENDAHARA)
+          MODAL DETAIL PRESENSI SANTRI HARI INI
       ========================================================================= */}
-      {!isBendahara && isDetailModalOpen && (
+      {isDetailModalOpen && (
         <div
           style={{
             position: "fixed",

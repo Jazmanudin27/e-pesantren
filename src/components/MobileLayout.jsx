@@ -50,6 +50,8 @@ import MobileOnboarding from '../views/mobile/MobileOnboarding';
 import MobilePraktek from '../views/mobile/MobilePraktek';
 import MobilePengembangan from '../views/mobile/MobilePengembangan';
 import MobileMateriHafalan from '../views/mobile/MobileMateriHafalan';
+import SettingKegiatanView from '../views/admin/SettingKegiatanView';
+import InformasiKegiatanAdminView from '../views/admin/InformasiKegiatanAdminView';
 import PortalWaliSantri from '../views/wali/PortalWaliSantri';
 import { canAccessKeuangan } from '../utils/authRole.util';
 
@@ -223,6 +225,7 @@ export default function MobileLayout() {
     'dashboard', 'master-santri', 'master-asrama', 'master-kelas', 
     'master-asatidz', 'master-materi', 'kitab', 'master-device', 'tata-tertib', 
     'laporan-presensi', 'laporan-tahfidz', 'syahriah', 'praktek-ibadah', 'praktek', 'portal-wali',
+    'setting-shalat', 'setting-kegiatan', 'kegiatan', 'informasi', 'informasi-kegiatan',
     'keuangan', 'keuangan-kasir', 'keuangan-rekap', 'keuangan-spp', 'keuangan-masuk', 
     'keuangan-transaksi', 'keuangan-tunggakan', 'keuangan-komponen', 'keuangan-generate'
   ].includes(mobileTab);
@@ -282,6 +285,13 @@ export default function MobileLayout() {
         return <MobileAsatidz />;
       case 'master-materi':
         return <MobileMateriHafalan />;
+      case 'setting-shalat':
+      case 'setting-kegiatan':
+      case 'kegiatan':
+        return <SettingKegiatanView />;
+      case 'informasi':
+      case 'informasi-kegiatan':
+        return <InformasiKegiatanAdminView />;
       case 'kitab':
         return <MobileKitab />;
       case 'master-device':
