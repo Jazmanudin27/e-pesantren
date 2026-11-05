@@ -8,6 +8,7 @@ import {
   RotateCw,
   Search,
   Eye,
+  Trash2,
   MapPin,
   Users,
   BookOpen,
@@ -16,6 +17,7 @@ import {
   CalendarCheck,
   X,
 } from "lucide-react";
+import { showConfirm, toastSuccess, showError } from "../../utils/alert.util";
 
 export default function AbsensiFingerprintView() {
   const [absensiList, setAbsensiList] = useState([]);
@@ -80,7 +82,8 @@ export default function AbsensiFingerprintView() {
               item.tipe_santri || item.status_santri || "Santri Mukim",
             lat_lng: item.lat_lng || "-7.325374, 108.208331",
             metode_scan: item.metode_scan || item.metode_presensi || "Fingerprint",
-            nama_device: item.nama_device || "Mesin MP340"
+            nama_device: item.nama_device || "Mesin MP340",
+            is_perizinan_auto: item.is_perizinan_auto || false,
           };
         });
         setAbsensiList(normalized);
@@ -92,6 +95,44 @@ export default function AbsensiFingerprintView() {
       setAbsensiList([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (row) => {
+    if (!row || !row.id) return;
+    if (row.is_perizinan_auto || String(row.id).startsWith("izin-")) {
+      showError(
+        "Perizinan Otomatis",
+        "Data presensi ini tersambung otomatis dari modul Perizinan. Hapus data pada menu Perizinan jika ingin membatalkannya."
+      );
+      return;
+    }
+
+    const ok = await showConfirm(
+      "Hapus Data Presensi",
+      `Yakin ingin menghapus riwayat presensi ${row.nama_santri || "santri"} (${row.kegiatan || "kegiatan"}) pada tanggal ${row.tanggal || "-"}?`,
+      "Ya, Hapus",
+      "Batal"
+    );
+
+    if (ok) {
+      try {
+        const res = await axios.delete(`/api/absensi/fingerprint/${row.id}`);
+        if (res.data?.success) {
+          toastSuccess("Riwayat presensi berhasil dihapus");
+          if (selectedDetail && selectedDetail.id === row.id) {
+            setSelectedDetail(null);
+          }
+          fetchAbsensi();
+        } else {
+          showError("Gagal", res.data?.message || "Gagal menghapus riwayat presensi");
+        }
+      } catch (err) {
+        showError(
+          "Gagal Menghapus",
+          err.response?.data?.message || err.message || "Terjadi kesalahan saat menghapus data"
+        );
+      }
     }
   };
 
@@ -354,8 +395,8 @@ export default function AbsensiFingerprintView() {
                 <th className="td-center">TANGGAL</th>
                 <th className="td-center">JAM SCAN</th>
                 <th>LOKASI / DEVICE</th>
-                <th className="td-center" style={{ width: "90px" }}>
-                  DETAIL
+                <th className="td-center" style={{ width: "95px" }}>
+                  AKSI
                 </th>
               </tr>
             </thead>
@@ -468,13 +509,53 @@ export default function AbsensiFingerprintView() {
                       </div>
                     </td>
                     <td className="td-center">
-                      <button
-                        className="btn btn-success btn-sm"
-                        title="Detail Presensi"
-                        onClick={() => setSelectedDetail(row)}
+                      <div
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "5px",
+                        }}
                       >
-                        <Eye size={12} />
-                      </button>
+                        <button
+                          className="btn-action btn-action-view"
+                          style={{
+                            width: "30px",
+                            height: "30px",
+                            borderRadius: "6px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: "#ecfdf5",
+                            color: "#059669",
+                            border: "1px solid #a7f3d0",
+                            cursor: "pointer",
+                          }}
+                          title="Detail Presensi"
+                          onClick={() => setSelectedDetail(row)}
+                        >
+                          <Eye size={13} />
+                        </button>
+                        <button
+                          className="btn-action btn-action-delete"
+                          style={{
+                            width: "30px",
+                            height: "30px",
+                            borderRadius: "6px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: "#fef2f2",
+                            color: "#dc2626",
+                            border: "1px solid #fecaca",
+                            cursor: "pointer",
+                          }}
+                          title="Hapus Presensi"
+                          onClick={() => handleDelete(row)}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -641,10 +722,27 @@ export default function AbsensiFingerprintView() {
               style={{
                 padding: "10px 20px",
                 display: "flex",
-                justifyContent: "flex-end",
+                justifyContent: "space-between",
+                alignItems: "center",
                 borderTop: "1px solid #f1f5f9",
               }}
             >
+              <button
+                className="btn btn-outline"
+                style={{
+                  background: "#fef2f2",
+                  color: "#dc2626",
+                  borderColor: "#fecaca",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontSize: "0.8rem",
+                  cursor: "pointer",
+                }}
+                onClick={() => handleDelete(selectedDetail)}
+              >
+                <Trash2 size={13} /> Hapus Data
+              </button>
               <button
                 className="btn btn-outline"
                 onClick={() => setSelectedDetail(null)}

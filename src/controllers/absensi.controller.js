@@ -224,7 +224,16 @@ export const updateAbsensiFingerprint = async (req, res) => {
 export const deleteAbsensiFingerprint = async (req, res) => {
   try {
     const { id } = req.params;
-    await pool.query('DELETE FROM absensi_jamaah_mengaji WHERE id = ?', [id]);
+    if (!id) {
+      return sendError(res, 'ID presensi tidak valid', 400);
+    }
+    if (String(id).startsWith('izin-')) {
+      return sendError(res, 'Presensi ini sinkronisasi otomatis dari modul Perizinan. Hapus perizinan santri pada menu Perizinan.', 400);
+    }
+    const [result] = await pool.query('DELETE FROM absensi_jamaah_mengaji WHERE id = ?', [id]);
+    if (result.affectedRows === 0) {
+      return sendError(res, 'Data presensi tidak ditemukan atau sudah dihapus', 404);
+    }
     return sendSuccess(res, 'Presensi berhasil dihapus');
   } catch (err) {
     return sendError(res, err.message, 500);
