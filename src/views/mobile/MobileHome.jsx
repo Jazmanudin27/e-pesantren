@@ -680,20 +680,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                   border: "1px solid #bbf7d0",
                   padding: "2px 8px",
                   borderRadius: "999px",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "4px",
                 }}
               >
-                <span
-                  style={{
-                    width: "5px",
-                    height: "5px",
-                    borderRadius: "50%",
-                    background: "#22c55e",
-                  }}
-                />
-                Online Realtime
+                Aktif
               </span>
             </div>
 
@@ -775,33 +764,10 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               <div>
                 <div
                   style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    background: "rgba(255, 255, 255, 0.12)",
-                    padding: "3px 8px",
-                    borderRadius: "999px",
-                    fontSize: "0.64rem",
+                    fontSize: "0.78rem",
+                    color: "#f1f5f9",
                     fontWeight: 700,
-                    color: "#e2e8f0",
-                    marginBottom: "5px",
-                  }}
-                >
-                  <span
-                    style={{
-                      width: "6px",
-                      height: "6px",
-                      borderRadius: "50%",
-                      background: "#22c55e",
-                    }}
-                  />
-                  <span>Online Realtime</span>
-                </div>
-                <div
-                  style={{
-                    fontSize: "0.76rem",
-                    color: "#cbd5e1",
-                    fontWeight: 600,
+                    letterSpacing: "0.02em",
                   }}
                 >
                   ID Pesantren: NWF-2026-ADM
@@ -1685,20 +1651,6 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               CARD MENU: GAYA PERSIS myBCA (DATA MASTER & TRANSAKSI)
           ========================================================================= */}
           <div style={{ padding: "0 16px", marginTop: "16px" }}>
-            <div style={{ marginBottom: "10px" }}>
-              <span
-                style={{
-                  fontSize: "0.85rem",
-                  fontWeight: 900,
-                  color: "#005baa",
-                  letterSpacing: "0.05em",
-                  textTransform: "uppercase",
-                }}
-              >
-                MENU
-              </span>
-            </div>
-
             <div
               onTouchStart={(e) => {
                 touchStartX.current = e.touches[0].clientX;

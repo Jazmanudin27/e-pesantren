@@ -597,15 +597,6 @@ export default function AdminLayout() {
           </div>
         </button>
 
-        <button 
-          className={`nav-link ${activeTab === 'informasi-kegiatan' ? 'active' : ''}`}
-          onClick={() => handleTabClick('informasi-kegiatan')}
-        >
-          <div className="nav-link-left">
-            <Bell size={15} style={{ color: '#d97706' }} />
-            <span>Informasi & Kegiatan</span>
-          </div>
-        </button>
 
         {canAccessKeuangan(currentUser) && (
           <>
