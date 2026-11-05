@@ -43,15 +43,12 @@ import {
   isFaceModelReady
 } from '../../utils/faceApi.util';
 
-const DAFTAR_KEGIATAN = [
-  { id: 1, nama: 'Shalat Shubuh Berjamaah', kategori: 'shalat', tempat: 'Masjid Jami Utama' },
-  { id: 2, nama: "Mengaji Qur'an / Halaqah Pagi", kategori: 'mengaji', tempat: 'Aula Tahfidz' },
-  { id: 3, nama: 'Shalat Dzuhur Berjamaah', kategori: 'shalat', tempat: 'Masjid Jami Utama' },
-  { id: 4, nama: 'Shalat Ashar Berjamaah', kategori: 'shalat', tempat: 'Masjid Jami Utama' },
-  { id: 5, nama: 'Kajian Kitab Kuning Sore', kategori: 'mengaji', tempat: 'Serambi Masjid' },
-  { id: 6, nama: 'Shalat Maghrib Berjamaah', kategori: 'shalat', tempat: 'Masjid Jami Utama' },
-  { id: 7, nama: 'Shalat Isya Berjamaah', kategori: 'shalat', tempat: 'Masjid Jami Utama' },
-  { id: 8, nama: 'Halaqah Mengaji Malam', kategori: 'mengaji', tempat: 'Kamar Asrama & Aula' }
+const DAFTAR_KEGIATAN_DEFAULT = [
+  { id: 1, nama: "Mengaji Al-Qur'an / Halaqah Pagi", kategori: "Tajwid & Al-Qur'an", tempat: 'Aula Tahfidz' },
+  { id: 2, nama: 'Kajian Kitab Kuning / Sorogan', kategori: 'Fiqih & Kitab', tempat: 'Serambi Masjid' },
+  { id: 3, nama: 'Praktek Ibadah & Ubudiyah', kategori: 'Praktek & Ubudiyah', tempat: 'Masjid Jami' },
+  { id: 4, nama: 'Madrasah Diniyah & Muhafadzoh', kategori: 'Nahwu & Shorof', tempat: 'Gedung Kelas' },
+  { id: 5, nama: 'Halaqah Mengaji Malam', kategori: 'Muhafadzoh (Hafalan)', tempat: 'Kamar Asrama & Aula' }
 ];
 
 const getTodayDateStr = () => {
@@ -84,55 +81,12 @@ const parseTimeToMinutes = (timeStr) => {
   return h * 60 + m;
 };
 
-const getActiveKegiatanByTime = (list = DAFTAR_KEGIATAN) => {
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  const currentHour = now.getHours();
-
-  // 1. Cek kegiatan yang mulai pada jam yang sama (misal jam 18 -> Shalat Maghrib 18:00)
-  const exactHourMatch = list.find(item => {
-    if (item.waktu && item.waktu.includes('-')) {
-      const startH = parseInt(item.waktu.split('-')[0].split(':')[0], 10);
-      return startH === currentHour;
-    }
-    return false;
-  });
-  if (exactHourMatch) return exactHourMatch;
-
-  // 2. Cari kegiatan yang sedang aktif (rentang waktu: 30 menit sebelum sesi s/d 30 menit setelah sesi)
-  for (const item of list) {
-    if (item.waktu && item.waktu.includes('-')) {
-      const [startStr, endStr] = item.waktu.split('-');
-      const startMin = parseTimeToMinutes(startStr);
-      const endMin = parseTimeToMinutes(endStr);
-      if (currentMinutes >= startMin - 30 && currentMinutes <= endMin + 30) {
-        return item;
-      }
-    }
-  }
-
-  // 3. Jika jeda antar sesi, pilih kegiatan terdekat berdasarkan waktu mulai
-  let closest = list[0];
-  let minDiff = Infinity;
-  for (const item of list) {
-    if (item.waktu && item.waktu.includes('-')) {
-      const [startStr] = item.waktu.split('-');
-      const startMin = parseTimeToMinutes(startStr);
-      const diff = Math.abs(currentMinutes - startMin);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closest = item;
-      }
-    }
-  }
-  return closest;
-};
-
 export default function MobilePresensi() {
   // Mode Utama: 'face' (Wajah AI), 'qr' (Scan Barcode/QR), 'manual', atau 'riwayat'
   const [activeMode, setActiveMode] = useState('face');
-  // Otomatis pilih sesi kegiatan sesuai jam saat ini
-  const [selectedKegiatan, setSelectedKegiatan] = useState(() => getActiveKegiatanByTime(DAFTAR_KEGIATAN));
+  // Daftar Kegiatan dinamis diambil dari database Master Kegiatan (materi_hafalan & kegiatan_sesi non-shalat)
+  const [daftarKegiatan, setDaftarKegiatan] = useState(DAFTAR_KEGIATAN_DEFAULT);
+  const [selectedKegiatan, setSelectedKegiatan] = useState(DAFTAR_KEGIATAN_DEFAULT[0]);
   
   // Data State
   const [santriList, setSantriList] = useState([]);
@@ -267,15 +221,67 @@ export default function MobilePresensi() {
     } catch (e) {}
   };
 
-  // Fetch Santri & Presensi Logs & Perizinan
+  // Fetch Santri & Presensi Logs & Perizinan & Master Kegiatan
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [resSantri, resAbs, resIzin] = await Promise.all([
+      const [resSantri, resAbs, resIzin, resMateri, resSesi] = await Promise.all([
         axios.get('/api/santri?all=true'),
         axios.get('/api/absensi/fingerprint').catch(() => ({ data: { data: [] } })),
-        axios.get('/api/perizinan').catch(() => ({ data: { data: [] } }))
+        axios.get('/api/perizinan').catch(() => ({ data: { data: [] } })),
+        axios.get('/api/materi-hafalan').catch(() => ({ data: { data: [] } })),
+        axios.get('/api/absensi/sesi').catch(() => ({ data: { data: [] } }))
       ]);
+
+      // Filter: BUKAN dari kegiatan shalat (Shalat sudah otomatis lewat mesin Fingerprint)
+      const isShalatWord = (str) => /shalat|sholat|subuh|dzuhur|ashar|maghrib|isya/i.test(String(str || ''));
+
+      const rawMateri = resMateri.data?.data || [];
+      const rawSesi = resSesi.data?.data || [];
+      let listKegiatan = [];
+
+      // 1. Ambil dari Master Kegiatan (materi_hafalan)
+      if (Array.isArray(rawMateri) && rawMateri.length > 0) {
+        rawMateri.forEach((m, idx) => {
+          if (!isShalatWord(m.nama_materi) && !isShalatWord(m.kategori)) {
+            listKegiatan.push({
+              id: m.id || `m-${idx + 1}`,
+              nama: m.nama_materi,
+              kategori: m.kategori || 'Kegiatan Pesantren',
+              tempat: m.deskripsi || m.target_hafalan || 'Aula & Serambi Pesantren'
+            });
+          }
+        });
+      }
+
+      // 2. Ambil kegiatan non-shalat dari kegiatan_sesi jika ada
+      if (Array.isArray(rawSesi) && rawSesi.length > 0) {
+        rawSesi.forEach((s, idx) => {
+          if (!isShalatWord(s.nama_sesi) && !isShalatWord(s.kategori)) {
+            const alreadyExists = listKegiatan.some(
+              (k) => k.nama.trim().toLowerCase() === (s.nama_sesi || '').trim().toLowerCase()
+            );
+            if (!alreadyExists && s.nama_sesi) {
+              listKegiatan.push({
+                id: s.id || `s-${idx + 1}`,
+                nama: s.nama_sesi,
+                kategori: s.kategori || 'Kegiatan Sesi',
+                tempat: s.keterangan || 'Komplek Pesantren'
+              });
+            }
+          }
+        });
+      }
+
+      if (listKegiatan.length > 0) {
+        setDaftarKegiatan(listKegiatan);
+        setSelectedKegiatan((prev) => {
+          if (!prev || isShalatWord(prev.nama) || !listKegiatan.some(k => String(k.id) === String(prev.id))) {
+            return listKegiatan[0];
+          }
+          return prev;
+        });
+      }
 
       if (resSantri.data && resSantri.data.data) {
         const fetchedSantris = resSantri.data.data;
@@ -1455,10 +1461,16 @@ export default function MobilePresensi() {
     return (parts[0][0] + parts[1][0]).toUpperCase();
   };
 
-  const getActivityIcon = (kategori) => {
-    if (kategori === 'shalat') return '🕌';
-    if (kategori === 'mengaji') return '📖';
-    return '📚';
+  const getActivityIcon = (kategori = '') => {
+    const k = String(kategori).toLowerCase();
+    if (k.includes('qur') || k.includes('tajwid')) return '📖';
+    if (k.includes('kitab') || k.includes('nahwu') || k.includes('fiqih') || k.includes('tafsir')) return '📚';
+    if (k.includes('praktek') || k.includes('ubudiyah') || k.includes('ibadah')) return '🤲';
+    if (k.includes('muhafadzoh') || k.includes('hafalan')) return '📜';
+    if (k.includes('bahasa')) return '🗣️';
+    if (k.includes('doa') || k.includes('wirid') || k.includes('sholawat')) return '📿';
+    if (k.includes('diskusi') || k.includes('bahtsul')) return '👥';
+    return '📌';
   };
 
   // Helper cek apakah santri memiliki izin aktif (Izin Pulang / Sakit) dari menu perizinan
@@ -1500,9 +1512,9 @@ export default function MobilePresensi() {
         (l.nis && santri.nis && String(l.nis).trim() === String(santri.nis).trim()) ||
         (l.nama_santri && santri.nama_santri && l.nama_santri.trim().toLowerCase() === santri.nama_santri.trim().toLowerCase());
       const sameSesi =
-        (l.sesi_id != null && selectedKegiatan.id != null && String(l.sesi_id) === String(selectedKegiatan.id)) ||
-        (l.kegiatan && selectedKegiatan.nama && l.kegiatan.trim().toLowerCase() === selectedKegiatan.nama.trim().toLowerCase()) ||
-        (l.nama_sesi && selectedKegiatan.nama && l.nama_sesi.trim().toLowerCase() === selectedKegiatan.nama.trim().toLowerCase()) ||
+        (l.sesi_id != null && selectedKegiatan?.id != null && String(l.sesi_id) === String(selectedKegiatan.id)) ||
+        (l.kegiatan && selectedKegiatan?.nama && l.kegiatan.trim().toLowerCase() === selectedKegiatan.nama.trim().toLowerCase()) ||
+        (l.nama_sesi && selectedKegiatan?.nama && l.nama_sesi.trim().toLowerCase() === selectedKegiatan.nama.trim().toLowerCase()) ||
         (l.is_perizinan_auto && (l.status_kehadiran === 'Izin' || l.status_kehadiran === 'Sakit'));
       return isToday && sameSantri && sameSesi;
     });
@@ -1521,9 +1533,9 @@ export default function MobilePresensi() {
         santri_id: santri.id,
         nama_santri: santri.nama_santri,
         nis: santri.nis,
-        sesi_id: selectedKegiatan.id,
-        nama_sesi: selectedKegiatan.nama,
-        kegiatan: selectedKegiatan.nama,
+        sesi_id: selectedKegiatan?.id,
+        nama_sesi: selectedKegiatan?.nama || 'Kegiatan Pesantren',
+        kegiatan: selectedKegiatan?.nama || 'Kegiatan Pesantren',
         tanggal: today,
         waktu_scan: '00:00',
         status: st,
@@ -1734,16 +1746,16 @@ export default function MobilePresensi() {
             color: '#e0f2fe',
             fontWeight: 700
           }}>
-            <span>📍 {selectedKegiatan.tempat}</span>
+            <span>📍 {selectedKegiatan?.tempat || 'Komplek Pesantren'}</span>
           </div>
         </div>
 
-        {/* Dropdown Kegiatan Stylized */}
+        {/* Dropdown Kegiatan Stylized (Master Kegiatan Database) */}
         <div style={{ position: 'relative', marginBottom: '12px' }}>
           <select
-            value={selectedKegiatan.id}
+            value={selectedKegiatan?.id || ''}
             onChange={(e) => {
-              const k = DAFTAR_KEGIATAN.find(x => x.id === parseInt(e.target.value));
+              const k = daftarKegiatan.find(x => String(x.id) === String(e.target.value));
               if (k) setSelectedKegiatan(k);
             }}
             style={{
@@ -1761,9 +1773,9 @@ export default function MobilePresensi() {
               cursor: 'pointer'
             }}
           >
-            {DAFTAR_KEGIATAN.map(k => (
+            {daftarKegiatan.map(k => (
               <option key={k.id} value={k.id} style={{ color: '#0f172a', fontWeight: 700 }}>
-                {getActivityIcon(k.kategori)} {k.nama}
+                {getActivityIcon(k.kategori)} {k.nama} {k.kategori ? `• ${k.kategori}` : ''}
               </option>
             ))}
           </select>
@@ -1780,7 +1792,7 @@ export default function MobilePresensi() {
           gap: '6px'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: '#e0f2fe' }}>
-            <span>📍 {selectedKegiatan.tempat}</span>
+            <span>📍 {selectedKegiatan?.tempat || 'Komplek Pesantren'}</span>
             <span style={{ fontWeight: 800, color: '#fef08a' }}>
               {sessionSudahCount} / {sessionTotal} Santri ({sessionPercent}%)
             </span>
