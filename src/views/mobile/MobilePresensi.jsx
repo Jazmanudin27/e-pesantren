@@ -1700,8 +1700,23 @@ export default function MobilePresensi() {
     return list;
   })();
 
-  // Filter riwayat untuk tab riwayat (sesuai tanggal filter, search & status)
+  // Helper pengecekan kategori log: Berjamaah vs Mengaji
+  const isLogBerjamaah = (log) => {
+    const k = String(log.kegiatan || log.nama_sesi || '').toLowerCase();
+    const isShalat = /shalat|sholat|subuh|dzuhur|ashar|maghrib|isya/.test(k);
+    const tipe = String(log.tipe_presensi || '').toLowerCase();
+    return tipe === 'berjamaah' || isShalat;
+  };
+
+  // Filter riwayat untuk tab riwayat (Khusus Berjamaah vs Mengaji sesuai kategori aktif)
   const filteredRiwayat = riwayatLogsCombined.filter(log => {
+    // 1. Saring ketat berdasarkan Kategori Aktif (Berjamaah vs Mengaji)
+    if (activeKategori === 'berjamaah') {
+      if (!isLogBerjamaah(log) && !log.is_perizinan_auto) return false;
+    } else if (activeKategori === 'mengaji') {
+      if (isLogBerjamaah(log) && !log.is_perizinan_auto) return false;
+    }
+
     const q = searchRiwayat.toLowerCase();
     const matchSearch = (log.nama_santri || '').toLowerCase().includes(q) ||
       (log.kegiatan || '').toLowerCase().includes(q) ||
@@ -1723,16 +1738,31 @@ export default function MobilePresensi() {
   const sessionTotal = santriList.length;
   const sessionPercent = sessionTotal > 0 ? Math.round((sessionSudahCount / sessionTotal) * 100) : 0;
 
-  // Perhitungan statistik riwayat (sesuai tanggal filter yang dipilih)
-  const riwayatLogsForStats = riwayatLogsCombined.filter(l => !filterTanggalRiwayat || normalizeDateStr(l.tanggal) === filterTanggalRiwayat);
+  // Perhitungan statistik riwayat (sesuai tanggal filter yang dipilih & Kategori Aktif)
+  const riwayatLogsForStats = riwayatLogsCombined.filter(l => {
+    if (activeKategori === 'berjamaah') {
+      if (!isLogBerjamaah(l) && !l.is_perizinan_auto) return false;
+    } else if (activeKategori === 'mengaji') {
+      if (isLogBerjamaah(l) && !l.is_perizinan_auto) return false;
+    }
+    return !filterTanggalRiwayat || normalizeDateStr(l.tanggal) === filterTanggalRiwayat;
+  });
+
   const countTotalRiwayat = riwayatLogsForStats.length;
   const countHadir = riwayatLogsForStats.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('hadir')).length;
   const countSakit = riwayatLogsForStats.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('sakit')).length;
   const countIzin = riwayatLogsForStats.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('izin')).length;
   const countAlpa = riwayatLogsForStats.filter(l => (l.status_kehadiran || l.status || '').toLowerCase().includes('alpa') || (l.status_kehadiran || l.status || '').toLowerCase().includes('alpha')).length;
 
-  // Badge notifikasi tab riwayat: sinkron dengan data tanggal aktif
-  const todayPresensiCount = riwayatLogsCombined.filter(l => normalizeDateStr(l.tanggal) === getTodayDateStr()).length;
+  // Badge notifikasi tab riwayat: sinkron dengan data tanggal aktif & kategori aktif
+  const todayPresensiCount = riwayatLogsCombined.filter(l => {
+    if (activeKategori === 'berjamaah') {
+      if (!isLogBerjamaah(l) && !l.is_perizinan_auto) return false;
+    } else if (activeKategori === 'mengaji') {
+      if (isLogBerjamaah(l) && !l.is_perizinan_auto) return false;
+    }
+    return normalizeDateStr(l.tanggal) === getTodayDateStr();
+  }).length;
   const riwayatBadgeCount = activeMode === 'riwayat' ? filteredRiwayat.length : todayPresensiCount;
 
   return (
@@ -2824,6 +2854,46 @@ export default function MobilePresensi() {
       ========================================================================= */}
       {activeMode === 'riwayat' && (
         <div>
+          {/* Riwayat Category Indicator Banner */}
+          <div style={{
+            background: activeKategori === 'berjamaah' ? '#e0f2fe' : '#ecfdf5',
+            border: `1.5px solid ${activeKategori === 'berjamaah' ? '#7dd3fc' : '#a7f3d0'}`,
+            borderRadius: '16px',
+            padding: '10px 14px',
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '1.15rem' }}>{activeKategori === 'berjamaah' ? '🕌' : '📖'}</span>
+              <div>
+                <div style={{
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  color: activeKategori === 'berjamaah' ? '#0369a1' : '#047857'
+                }}>
+                  {activeKategori === 'berjamaah' ? 'Riwayat Khusus Shalat Berjamaah' : 'Riwayat Khusus Kegiatan Mengaji'}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                  {activeKategori === 'berjamaah' ? 'Hanya menampilkan absensi shalat 5 waktu' : 'Hanya menampilkan absensi mengaji & materi santri'}
+                </div>
+              </div>
+            </div>
+            <span style={{
+              fontSize: '0.72rem',
+              fontWeight: 800,
+              background: activeKategori === 'berjamaah' ? '#0284c7' : '#059669',
+              color: '#ffffff',
+              padding: '3px 9px',
+              borderRadius: '999px',
+              whiteSpace: 'nowrap'
+            }}>
+              {filteredRiwayat.length} Data
+            </span>
+          </div>
+
           {/* 4 Summary Mini Cards */}
           <div style={{
             display: 'grid',
