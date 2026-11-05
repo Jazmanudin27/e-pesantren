@@ -621,71 +621,176 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 </div>
               </div>
 
-              {/* Santri Profile Header (Foto Santri, Nama Santri, NISN) */}
+              {/* Santri Profile Header (Nama Santri & NISN, bulat inisial dihilangkan) */}
               <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                marginTop: '6px',
+                marginTop: '4px',
                 marginBottom: '10px'
               }}>
                 <div style={{
-                  width: '46px',
-                  height: '46px',
-                  borderRadius: '50%',
-                  border: '2px solid rgba(255, 255, 255, 0.9)',
-                  overflow: 'hidden',
-                  background: santri.jk === 'P' ? '#db2777' : '#0284c7',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.16)',
-                  color: '#ffffff',
+                  fontSize: '1.15rem',
                   fontWeight: 900,
-                  fontSize: '1.15rem'
+                  color: '#ffffff',
+                  letterSpacing: '-0.3px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
                 }}>
-                  {santri.foto_url ? (
-                    <img
-                      src={santri.foto_url}
-                      alt={rawSantriName}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                      }}
-                    />
-                  ) : (
-                    initial
-                  )}
+                  {rawSantriName}
+                </div>
+                <div style={{
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  color: '#a7f3d0',
+                  letterSpacing: '0.04em',
+                  marginTop: '3px'
+                }}>
+                  NISN: <strong style={{ color: '#ffffff' }}>{displayNisn}</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* 1. STATUS KEHADIRAN & IBADAH (PALING ATAS, FLOATING DI BAWAH HEADER) */}
+            <div style={{ padding: '0 14px', marginTop: '-24px', position: 'relative', zIndex: 12 }}>
+              <div style={{
+                background: '#ffffff',
+                borderRadius: '20px',
+                border: '1px solid #e2e8f0',
+                padding: '14px',
+                boxShadow: '0 8px 24px -4px rgba(13, 118, 110, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04)'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '10px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Fingerprint size={16} color="#0d9488" />
+                    <span style={{
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      color: '#0f172a',
+                      letterSpacing: '0.02em',
+                      textTransform: 'uppercase'
+                    }}>
+                      Status Kehadiran
+                    </span>
+                  </div>
+                  <span
+                    onClick={() => setCurrentTab('absensi')}
+                    style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      color: '#0d9488',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Detail &rarr;
+                  </span>
                 </div>
 
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{
-                    fontSize: '1.02rem',
-                    fontWeight: 800,
-                    color: '#ffffff',
-                    letterSpacing: '-0.2px',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                  }}>
-                    {rawSantriName}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: '8px'
+                }}>
+                  {/* Hadir */}
+                  <div
+                    onClick={() => openAbsensiWithFilter('Hadir')}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                  >
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '14px',
+                      background: '#10b981',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative',
+                      boxShadow: '0 4px 12px -2px rgba(16, 185, 129, 0.35)'
+                    }}>
+                      <Check size={22} strokeWidth={2.8} />
+                      {countHadir > 0 && <span style={countBadgeStyle}>{countHadir}</span>}
+                    </div>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e293b' }}>Hadir</span>
                   </div>
-                  <div style={{
-                    fontSize: '0.76rem',
-                    fontWeight: 700,
-                    color: '#a7f3d0',
-                    letterSpacing: '0.03em',
-                    marginTop: '2px'
-                  }}>
-                    NISN: <strong style={{ color: '#ffffff' }}>{displayNisn}</strong>
+
+                  {/* Sakit */}
+                  <div
+                    onClick={() => openAbsensiWithFilter('Sakit')}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                  >
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '14px',
+                      background: '#ef4444',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative',
+                      boxShadow: '0 4px 12px -2px rgba(239, 68, 68, 0.35)'
+                    }}>
+                      <Building2 size={21} strokeWidth={2.4} />
+                      {countSakit > 0 && <span style={countBadgeStyle}>{countSakit}</span>}
+                    </div>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e293b' }}>Sakit</span>
+                  </div>
+
+                  {/* Izin */}
+                  <div
+                    onClick={() => openAbsensiWithFilter('Izin')}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                  >
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '14px',
+                      background: '#f59e0b',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative',
+                      boxShadow: '0 4px 12px -2px rgba(245, 158, 11, 0.35)'
+                    }}>
+                      <FileText size={21} strokeWidth={2.2} />
+                      {countIzin > 0 && <span style={countBadgeStyle}>{countIzin}</span>}
+                    </div>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e293b' }}>Izin</span>
+                  </div>
+
+                  {/* Alfa */}
+                  <div
+                    onClick={() => openAbsensiWithFilter('Alfa')}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                  >
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '14px',
+                      background: '#0d9488',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative',
+                      boxShadow: '0 4px 12px -2px rgba(13, 148, 136, 0.35)'
+                    }}>
+                      <Clock size={21} strokeWidth={2.4} />
+                      {countAlfa > 0 && <span style={countBadgeStyle}>{countAlfa}</span>}
+                    </div>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e293b' }}>Alfa</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* CARD INFO SALDO TERSIMPAN (DI ATAS MENU LAYANAN SANTRI) */}
-            <div style={{ padding: '0 14px', marginTop: '-24px', position: 'relative', zIndex: 10 }}>
+            {/* 2. CARD INFO SALDO TERSIMPAN */}
+            <div style={{ padding: '12px 14px 0', position: 'relative', zIndex: 11 }}>
               <div
                 onClick={() => setCurrentTab('tabungan')}
                 style={{
@@ -693,7 +798,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   borderRadius: '20px',
                   border: '1px solid #e2e8f0',
                   padding: '16px',
-                  boxShadow: '0 8px 24px -4px rgba(13, 118, 110, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04)',
+                  boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.05)',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
@@ -755,6 +860,69 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* 3. CARD TAGIHAN KEUANGAN (DI BAWAH SALDO TERSIMPAN) */}
+            <div style={{ padding: '12px 14px 0', position: 'relative', zIndex: 10 }}>
+              <div style={{
+                background: '#ffffff',
+                borderRadius: '20px',
+                border: '1px solid #e2e8f0',
+                padding: '16px',
+                boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.05)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <CreditCard size={18} color="#005baa" />
+                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>
+                      Tagihan Keuangan
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.66rem', fontWeight: 800, background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: '999px' }}>
+                    QRIS & VA
+                  </span>
+                </div>
+
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                  Total Belum Dibayar:
+                </div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', margin: '2px 0 10px' }}>
+                  {keuanganSummary?.formattedTotalBelumBayar || 'Rp 0'}
+                </div>
+
+                <div style={{ background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px', fontSize: '0.74rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#64748b' }}>• Administrasi Bulanan:</span>
+                    <span style={{ fontWeight: 700, color: '#d97706' }}>{keuanganSummary?.formattedBulanan || 'Rp 0'}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#64748b' }}>• Sisa Biaya Masuk:</span>
+                    <span style={{ fontWeight: 700, color: '#005baa' }}>{keuanganSummary?.formattedSisaBiayaMasuk || 'Rp 0'}</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setCurrentTab('tagihan')}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, #005baa 0%, #004b91 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontWeight: 800,
+                    fontSize: '0.78rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 12px rgba(0, 91, 170, 0.25)'
+                  }}
+                >
+                  <CreditCard size={15} /> Bayar Tagihan (QRIS / VA) &rarr;
+                </button>
               </div>
             </div>
 
@@ -967,234 +1135,6 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 </button>
               </div>
             )}
-
-            {/* SECTION 1: STATUS KEHADIRAN & IBADAH (myBCA CARD UI) */}
-            <div style={{ padding: '16px 16px 0' }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '8px'
-              }}>
-                <span style={{
-                  fontSize: '0.82rem',
-                  fontWeight: 800,
-                  color: '#005baa',
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase'
-                }}>
-                  STATUS KEHADIRAN & IBADAH
-                </span>
-                <span
-                  onClick={() => setCurrentTab('absensi')}
-                  style={{
-                    fontSize: '0.74rem',
-                    fontWeight: 700,
-                    color: '#005baa',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Selengkapnya &gt;
-                </span>
-              </div>
-              <div style={{
-                background: '#ffffff',
-                borderRadius: '20px',
-                border: '1px solid #e2e8f0',
-                padding: '16px 14px',
-                boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)'
-              }}>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(4, 1fr)',
-                  gap: '8px'
-                }}>
-                  {/* Hadir */}
-                  <div
-                    onClick={() => openAbsensiWithFilter('Hadir')}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
-                  >
-                    <div style={{
-                      width: '54px',
-                      height: '54px',
-                      borderRadius: '16px',
-                      background: '#10b981',
-                      color: '#ffffff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      position: 'relative',
-                      boxShadow: '0 6px 14px -2px rgba(16, 185, 129, 0.4)'
-                    }}>
-                      <Check size={26} strokeWidth={2.8} />
-                      {countHadir > 0 && <span style={countBadgeStyle}>{countHadir}</span>}
-                    </div>
-                    <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#1e293b' }}>Hadir</span>
-                  </div>
-
-                  {/* Sakit */}
-                  <div
-                    onClick={() => openAbsensiWithFilter('Sakit')}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
-                  >
-                    <div style={{
-                      width: '54px',
-                      height: '54px',
-                      borderRadius: '16px',
-                      background: '#ef4444',
-                      color: '#ffffff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      position: 'relative',
-                      boxShadow: '0 6px 14px -2px rgba(239, 68, 68, 0.4)'
-                    }}>
-                      <Building2 size={24} strokeWidth={2.4} />
-                      {countSakit > 0 && <span style={countBadgeStyle}>{countSakit}</span>}
-                    </div>
-                    <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#1e293b' }}>Sakit</span>
-                  </div>
-
-                  {/* Izin */}
-                  <div
-                    onClick={() => openAbsensiWithFilter('Izin')}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
-                  >
-                    <div style={{
-                      width: '54px',
-                      height: '54px',
-                      borderRadius: '16px',
-                      background: '#f59e0b',
-                      color: '#ffffff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      position: 'relative',
-                      boxShadow: '0 6px 14px -2px rgba(245, 158, 11, 0.4)'
-                    }}>
-                      <FileText size={24} strokeWidth={2.2} />
-                      {countIzin > 0 && <span style={countBadgeStyle}>{countIzin}</span>}
-                    </div>
-                    <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#1e293b' }}>Izin</span>
-                  </div>
-
-                  {/* Alfa */}
-                  <div
-                    onClick={() => openAbsensiWithFilter('Alfa')}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
-                  >
-                    <div style={{
-                      width: '54px',
-                      height: '54px',
-                      borderRadius: '16px',
-                      background: '#0d9488',
-                      color: '#ffffff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      position: 'relative',
-                      boxShadow: '0 6px 14px -2px rgba(13, 148, 136, 0.4)'
-                    }}>
-                      <Clock size={24} strokeWidth={2.4} />
-                      {countAlfa > 0 && <span style={countBadgeStyle}>{countAlfa}</span>}
-                    </div>
-                    <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#1e293b' }}>Alfa</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-
-
-            {/* SECTION 2: BAYAR & TAGIHAN KEUANGAN (myBCA CARD UI) */}
-            <div style={{ padding: '16px 16px 0' }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '8px'
-              }}>
-                <span style={{
-                  fontSize: '0.82rem',
-                  fontWeight: 800,
-                  color: '#005baa',
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase'
-                }}>
-                  BAYAR & TAGIHAN KEUANGAN
-                </span>
-                <span
-                  onClick={() => setCurrentTab('tagihan')}
-                  style={{
-                    fontSize: '0.74rem',
-                    fontWeight: 700,
-                    color: '#005baa',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Selengkapnya &gt;
-                </span>
-              </div>
-              <div style={{
-                background: '#ffffff',
-                borderRadius: '20px',
-                border: '1px solid #e2e8f0',
-                padding: '16px',
-                boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CreditCard size={18} color="#005baa" />
-                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>
-                      Ringkasan Tagihan & Administrasi
-                    </span>
-                  </div>
-                  <span style={{ fontSize: '0.66rem', fontWeight: 800, background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: '999px' }}>
-                    QRIS & VA
-                  </span>
-                </div>
-
-                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                  Total Seluruh Tagihan Belum Dibayar:
-                </div>
-                <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0f172a', margin: '2px 0 10px' }}>
-                  {keuanganSummary?.formattedTotalBelumBayar || 'Rp 0'}
-                </div>
-
-                <div style={{ background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px', fontSize: '0.75rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#64748b' }}>• Tagihan Administrasi Bulanan:</span>
-                    <span style={{ fontWeight: 700, color: '#d97706' }}>{keuanganSummary?.formattedBulanan || 'Rp 0'}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#64748b' }}>• Sisa Biaya Awal Masuk:</span>
-                    <span style={{ fontWeight: 700, color: '#005baa' }}>{keuanganSummary?.formattedSisaBiayaMasuk || 'Rp 0'}</span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setCurrentTab('tagihan')}
-                  style={{
-                    width: '100%',
-                    padding: '11px',
-                    borderRadius: '12px',
-                    background: 'linear-gradient(135deg, #005baa 0%, #004b91 100%)',
-                    color: '#ffffff',
-                    border: 'none',
-                    fontWeight: 800,
-                    fontSize: '0.82rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    boxShadow: '0 4px 12px rgba(0, 91, 170, 0.35)'
-                  }}
-                >
-                  <CreditCard size={16} /> Bayar Tagihan Sekarang (QRIS / VA) &gt;
-                </button>
-              </div>
-            </div>
 
             {/* SECTION 3: CAPAIAN TAHFIDZ AL-QUR'AN (myBCA CARD UI) */}
             <div style={{ padding: '16px 16px 0' }}>
