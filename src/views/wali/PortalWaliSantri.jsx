@@ -730,73 +730,108 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
-            {/* 2. CARD INFO SALDO TERSIMPAN */}
+            {/* 2. CARD INFO SALDO TERSIMPAN (DESAIN MODERN BANKING / ELEGAN) */}
             <div style={{ padding: '12px 14px 0', position: 'relative', zIndex: 11 }}>
               <div
                 onClick={() => setCurrentTab('tabungan')}
                 style={{
-                  background: '#ffffff',
-                  borderRadius: '20px',
-                  border: '1px solid #e2e8f0',
-                  padding: '16px',
-                  boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.05)',
+                  background: 'linear-gradient(145deg, #0f766e 0%, #115e59 100%)',
+                  borderRadius: '22px',
+                  padding: '18px 16px',
+                  boxShadow: '0 10px 25px -5px rgba(15, 118, 110, 0.35), 0 4px 10px rgba(0, 0, 0, 0.05)',
                   cursor: 'pointer',
-                  transition: 'all 0.15s ease'
+                  position: 'relative',
+                  overflow: 'hidden',
+                  color: '#ffffff'
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {/* Accent glow circle */}
+                <div style={{
+                  position: 'absolute',
+                  top: '-20px',
+                  right: '-20px',
+                  width: '110px',
+                  height: '110px',
+                  borderRadius: '50%',
+                  background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 70%)',
+                  pointerEvents: 'none'
+                }} />
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', position: 'relative', zIndex: 2 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{
-                      width: '42px',
-                      height: '42px',
-                      borderRadius: '12px',
-                      background: '#ecfdf5',
-                      color: '#059669',
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '10px',
+                      background: 'rgba(255, 255, 255, 0.2)',
+                      backdropFilter: 'blur(4px)',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center'
+                      justifyContent: 'center',
+                      color: '#ffffff'
                     }}>
-                      <Wallet size={22} />
+                      <Wallet size={18} />
                     </div>
                     <div>
-                      <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Saldo Tersimpan</div>
-                      <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f766e', lineHeight: 1.1 }}>
-                        {formatRp(tabunganData?.saldo_saat_ini || 0)}
+                      <div style={{ fontSize: '0.68rem', color: '#ccfbf1', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                        Tabungan Santri
+                      </div>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#ffffff' }}>
+                        Saldo Tersimpan
                       </div>
                     </div>
                   </div>
                   <span style={{
                     fontSize: '0.72rem',
                     fontWeight: 700,
-                    color: '#059669',
-                    background: '#ecfdf5',
-                    padding: '4px 10px',
-                    borderRadius: '8px',
+                    color: '#0f766e',
+                    background: '#ffffff',
+                    padding: '5px 12px',
+                    borderRadius: '999px',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px'
+                    gap: '4px',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.12)'
                   }}>
-                    <span>Detail</span>
+                    <span>Buku Kas</span>
                     <span>&rarr;</span>
                   </span>
+                </div>
+
+                <div style={{ position: 'relative', zIndex: 2, marginBottom: '14px' }}>
+                  <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#ffffff', letterSpacing: '-0.5px', lineHeight: 1.1 }}>
+                    {formatRp(tabunganData?.saldo_saat_ini || 0)}
+                  </div>
                 </div>
 
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
                   gap: '8px',
-                  paddingTop: '10px',
-                  borderTop: '1px solid #f1f5f9'
+                  position: 'relative',
+                  zIndex: 2
                 }}>
-                  <div style={{ background: '#f0fdf4', borderRadius: '10px', padding: '8px 10px' }}>
-                    <div style={{ fontSize: '0.62rem', color: '#166534', fontWeight: 700 }}>TOTAL MASUK</div>
-                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.12)',
+                    backdropFilter: 'blur(6px)',
+                    borderRadius: '12px',
+                    padding: '8px 10px',
+                    border: '1px solid rgba(255, 255, 255, 0.15)'
+                  }}>
+                    <div style={{ fontSize: '0.62rem', color: '#a7f3d0', fontWeight: 700, letterSpacing: '0.03em' }}>TOTAL MASUK</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#ffffff', marginTop: '2px' }}>
                       +{formatRp(tabunganData?.total_masuk || 0)}
                     </div>
                   </div>
-                  <div style={{ background: '#fef2f2', borderRadius: '10px', padding: '8px 10px' }}>
-                    <div style={{ fontSize: '0.62rem', color: '#991b1b', fontWeight: 700 }}>PENGAMBILAN</div>
-                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#dc2626', marginTop: '2px' }}>
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.12)',
+                    backdropFilter: 'blur(6px)',
+                    borderRadius: '12px',
+                    padding: '8px 10px',
+                    border: '1px solid rgba(255, 255, 255, 0.15)'
+                  }}>
+                    <div style={{ fontSize: '0.62rem', color: '#fecaca', fontWeight: 700, letterSpacing: '0.03em' }}>PENGAMBILAN</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#ffffff', marginTop: '2px' }}>
                       -{formatRp(tabunganData?.total_keluar || 0)}
                     </div>
                   </div>
@@ -804,57 +839,116 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
-            {/* 3. CARD TAGIHAN KEUANGAN (DI BAWAH SALDO TERSIMPAN) */}
+            {/* 3. CARD TAGIHAN KEUANGAN (DESAIN MODERN GLASS & STATUS) */}
             <div style={{ padding: '12px 14px 0', position: 'relative', zIndex: 10 }}>
               <div
                 onClick={() => setCurrentTab('tagihan')}
                 style={{
                   background: '#ffffff',
-                  borderRadius: '20px',
-                  border: '1px solid #e2e8f0',
+                  borderRadius: '22px',
+                  border: '1px solid #e0f2fe',
                   padding: '16px',
-                  boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.05)',
-                  cursor: 'pointer'
+                  boxShadow: '0 8px 24px -4px rgba(2, 132, 199, 0.12), 0 2px 6px rgba(0, 0, 0, 0.03)',
+                  cursor: 'pointer',
+                  position: 'relative'
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CreditCard size={18} color="#005baa" />
-                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>
-                      Tagihan Keuangan
-                    </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '10px',
+                      background: '#e0f2fe',
+                      color: '#0284c7',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <CreditCard size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                        Keuangan & SPP
+                      </div>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>
+                        Tagihan Pembayaran
+                      </div>
+                    </div>
                   </div>
                   <span style={{
                     fontSize: '0.72rem',
                     fontWeight: 700,
-                    color: '#005baa',
+                    color: '#0284c7',
                     background: '#f0f9ff',
+                    border: '1px solid #bae6fd',
                     padding: '4px 10px',
-                    borderRadius: '8px',
+                    borderRadius: '999px',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px'
                   }}>
-                    <span>Detail</span>
+                    <span>Rincian</span>
                     <span>&rarr;</span>
                   </span>
                 </div>
 
-                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                  Total Belum Dibayar:
-                </div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', margin: '2px 0 10px' }}>
-                  {keuanganSummary?.formattedTotalBelumBayar || 'Rp 0'}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
+                  <div>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>
+                      Total Belum Lunas:
+                    </div>
+                    <div style={{ fontSize: '1.45rem', fontWeight: 900, color: (keuanganSummary?.totalBelumBayar || 0) > 0 ? '#dc2626' : '#059669', letterSpacing: '-0.3px', lineHeight: 1.15 }}>
+                      {keuanganSummary?.formattedTotalBelumBayar || 'Rp 0'}
+                    </div>
+                  </div>
+                  {(keuanganSummary?.totalBelumBayar || 0) > 0 ? (
+                    <span style={{
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      background: '#fef2f2',
+                      color: '#b91c1c',
+                      padding: '3px 8px',
+                      borderRadius: '8px',
+                      border: '1px solid #fecaca'
+                    }}>
+                      Belum Lunas
+                    </span>
+                  ) : (
+                    <span style={{
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      background: '#f0fdf4',
+                      color: '#15803d',
+                      padding: '3px 8px',
+                      borderRadius: '8px',
+                      border: '1px solid #bbf7d0'
+                    }}>
+                      Lunas
+                    </span>
+                  )}
                 </div>
 
-                <div style={{ background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.74rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#64748b' }}>• Administrasi Bulanan:</span>
-                    <span style={{ fontWeight: 700, color: '#d97706' }}>{keuanganSummary?.formattedBulanan || 'Rp 0'}</span>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '8px',
+                  background: '#f8fafc',
+                  borderRadius: '12px',
+                  border: '1px solid #e2e8f0',
+                  padding: '9px 10px'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '0.64rem', color: '#64748b', fontWeight: 600 }}>SPP Bulanan:</div>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#d97706', marginTop: '2px' }}>
+                      {keuanganSummary?.formattedBulanan || 'Rp 0'}
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#64748b' }}>• Sisa Biaya Masuk:</span>
-                    <span style={{ fontWeight: 700, color: '#005baa' }}>{keuanganSummary?.formattedSisaBiayaMasuk || 'Rp 0'}</span>
+                  <div>
+                    <div style={{ fontSize: '0.64rem', color: '#64748b', fontWeight: 600 }}>Sisa Biaya Masuk:</div>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0284c7', marginTop: '2px' }}>
+                      {keuanganSummary?.formattedSisaBiayaMasuk || 'Rp 0'}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1069,86 +1163,6 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 </button>
               </div>
             )}
-
-            {/* SECTION 3: CAPAIAN TAHFIDZ AL-QUR'AN (myBCA CARD UI) */}
-            <div style={{ padding: '16px 16px 0' }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '8px'
-              }}>
-                <span style={{
-                  fontSize: '0.82rem',
-                  fontWeight: 800,
-                  color: '#005baa',
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase'
-                }}>
-                  CAPAIAN TAHFIDZ AL-QUR'AN
-                </span>
-                <span
-                  onClick={() => setCurrentTab('hafalan')}
-                  style={{
-                    fontSize: '0.74rem',
-                    fontWeight: 700,
-                    color: '#005baa',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Selengkapnya &gt;
-                </span>
-              </div>
-              <div style={{
-                background: '#ffffff',
-                borderRadius: '20px',
-                border: '1px solid #e2e8f0',
-                padding: '16px',
-                boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <div style={{
-                    width: '46px',
-                    height: '46px',
-                    borderRadius: '14px',
-                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 4px 10px rgba(16, 185, 129, 0.3)'
-                  }}>
-                    <BookOpen size={24} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
-                      {santri.capaian_hafalan_juz || 0} Juz Al-Qur'an
-                    </div>
-                    <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
-                      {tahfidz[0] ? `Setoran: ${tahfidz[0].surat_mulai || 'Juz'} • Predikat ${tahfidz[0].predikat || 'Mumtaz'}` : 'Belum ada data setoran baru'}
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setCurrentTab('hafalan')}
-                  style={{
-                    border: 'none',
-                    background: '#f1f5f9',
-                    color: '#005baa',
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    fontSize: '0.75rem',
-                    fontWeight: 800,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Rincian &gt;
-                </button>
-              </div>
-            </div>
 
             {/* Quick Refresh Info Banner */}
             <div style={{ padding: '0 16px 16px' }}>
