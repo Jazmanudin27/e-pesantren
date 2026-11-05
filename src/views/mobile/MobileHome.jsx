@@ -597,103 +597,269 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             </div>
           </div>
 
-          {/* Right 42%: Info Stats Pills (Hadir & Belum, Sakit & Izin) */}
+          {/* Right 42%: Modern Dual-Metric Stats Cards (Hadir & Belum, Sakit & Izin) */}
           <div
             style={{
               flex: "1 1 42%",
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between",
-              gap: "6px",
+              gap: "8px",
             }}
           >
-            {/* Pill 1: Hadir & Belum */}
+            {/* Card 1: Hadir & Belum */}
             <div
               onClick={() => handleOpenStatusModal("Hadir")}
               style={{
-                background: "#f0fdf4",
-                border: "1px solid #bbf7d0",
-                borderRadius: "12px",
-                padding: "6px 8px",
+                background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
+                border: "1px solid rgba(16, 185, 129, 0.3)",
+                borderRadius: "14px",
+                padding: "7px 10px",
                 cursor: "pointer",
+                boxShadow: "0 2px 6px rgba(16, 185, 129, 0.08)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "4px",
                 transition: "all 0.15s ease",
               }}
             >
               <div
-                style={{ display: "flex", alignItems: "center", gap: "4px" }}
-              >
-                <CheckCircle2 size={11} color="#16a34a" />
-                <span
-                  style={{
-                    fontSize: "0.62rem",
-                    fontWeight: 700,
-                    color: "#166534",
-                  }}
-                >
-                  Hadir & Belum
-                </span>
-              </div>
-              <div
                 style={{
-                  fontSize: "0.78rem",
-                  fontWeight: 900,
-                  marginTop: "2px",
                   display: "flex",
-                  alignItems: "baseline",
-                  gap: "3px",
+                  alignItems: "center",
+                  justifyContent: "space-between",
                 }}
               >
-                <span style={{ color: "#15803d" }}>{rekapAbsensi.hadir}</span>
-                <span style={{ fontSize: "0.62rem", color: "#64748b" }}>/</span>
-                <span style={{ color: "#b91c1c" }}>{rekapAbsensi.alfa}</span>
-                <span style={{ fontSize: "0.6rem", fontWeight: 600, color: "#64748b" }}>
-                  Santri
+                <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                  <span
+                    style={{
+                      width: "6px",
+                      height: "6px",
+                      borderRadius: "50%",
+                      background: "#16a34a",
+                      boxShadow: "0 0 5px #16a34a",
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontSize: "0.62rem",
+                      fontWeight: 800,
+                      color: "#166534",
+                      letterSpacing: "0.02em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Presensi
+                  </span>
+                </div>
+                <span
+                  style={{
+                    fontSize: "0.58rem",
+                    fontWeight: 700,
+                    color: "#059669",
+                    background: "rgba(255, 255, 255, 0.75)",
+                    padding: "1px 6px",
+                    borderRadius: "6px",
+                  }}
+                >
+                  Detail &rarr;
                 </span>
+              </div>
+
+              {/* 2 Distinct Metric Columns */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1px 1fr",
+                  alignItems: "center",
+                  gap: "6px",
+                  marginTop: "1px",
+                }}
+              >
+                {/* Left: Hadir */}
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <span
+                    style={{
+                      fontSize: "0.56rem",
+                      fontWeight: 800,
+                      color: "#15803d",
+                      lineHeight: 1,
+                    }}
+                  >
+                    HADIR
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "1.05rem",
+                      fontWeight: 900,
+                      color: "#14532d",
+                      lineHeight: 1.15,
+                    }}
+                  >
+                    {rekapAbsensi.hadir}
+                  </span>
+                </div>
+
+                {/* Vertical Divider */}
+                <div
+                  style={{
+                    width: "1px",
+                    height: "22px",
+                    background: "rgba(16, 185, 129, 0.3)",
+                  }}
+                />
+
+                {/* Right: Belum */}
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <span
+                    style={{
+                      fontSize: "0.56rem",
+                      fontWeight: 800,
+                      color: "#dc2626",
+                      lineHeight: 1,
+                    }}
+                  >
+                    BELUM
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "1.05rem",
+                      fontWeight: 900,
+                      color: "#991b1b",
+                      lineHeight: 1.15,
+                    }}
+                  >
+                    {rekapAbsensi.alfa}
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Pill 2: Sakit & Izin */}
+            {/* Card 2: Sakit & Izin */}
             <div
               onClick={() => handleOpenStatusModal("Izin")}
               style={{
-                background: "#fffbeb",
-                border: "1px solid #fde68a",
-                borderRadius: "12px",
-                padding: "6px 8px",
+                background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
+                border: "1px solid rgba(245, 158, 11, 0.3)",
+                borderRadius: "14px",
+                padding: "7px 10px",
                 cursor: "pointer",
+                boxShadow: "0 2px 6px rgba(245, 158, 11, 0.08)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "4px",
                 transition: "all 0.15s ease",
               }}
             >
               <div
-                style={{ display: "flex", alignItems: "center", gap: "4px" }}
-              >
-                <AlertTriangle size={11} color="#d97706" />
-                <span
-                  style={{
-                    fontSize: "0.62rem",
-                    fontWeight: 700,
-                    color: "#92400e",
-                  }}
-                >
-                  Sakit & Izin
-                </span>
-              </div>
-              <div
                 style={{
-                  fontSize: "0.78rem",
-                  fontWeight: 900,
-                  marginTop: "2px",
                   display: "flex",
-                  alignItems: "baseline",
-                  gap: "3px",
+                  alignItems: "center",
+                  justifyContent: "space-between",
                 }}
               >
-                <span style={{ color: "#dc2626" }}>{rekapAbsensi.sakit}</span>
-                <span style={{ fontSize: "0.62rem", color: "#64748b" }}>/</span>
-                <span style={{ color: "#d97706" }}>{rekapAbsensi.izin}</span>
-                <span style={{ fontSize: "0.6rem", fontWeight: 600, color: "#64748b" }}>
-                  Santri
+                <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                  <span
+                    style={{
+                      width: "6px",
+                      height: "6px",
+                      borderRadius: "50%",
+                      background: "#d97706",
+                      boxShadow: "0 0 5px #d97706",
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontSize: "0.62rem",
+                      fontWeight: 800,
+                      color: "#92400e",
+                      letterSpacing: "0.02em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Kondisi
+                  </span>
+                </div>
+                <span
+                  style={{
+                    fontSize: "0.58rem",
+                    fontWeight: 700,
+                    color: "#b45309",
+                    background: "rgba(255, 255, 255, 0.75)",
+                    padding: "1px 6px",
+                    borderRadius: "6px",
+                  }}
+                >
+                  Detail &rarr;
                 </span>
+              </div>
+
+              {/* 2 Distinct Metric Columns */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1px 1fr",
+                  alignItems: "center",
+                  gap: "6px",
+                  marginTop: "1px",
+                }}
+              >
+                {/* Left: Sakit */}
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <span
+                    style={{
+                      fontSize: "0.56rem",
+                      fontWeight: 800,
+                      color: "#d97706",
+                      lineHeight: 1,
+                    }}
+                  >
+                    SAKIT
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "1.05rem",
+                      fontWeight: 900,
+                      color: "#78350f",
+                      lineHeight: 1.15,
+                    }}
+                  >
+                    {rekapAbsensi.sakit}
+                  </span>
+                </div>
+
+                {/* Vertical Divider */}
+                <div
+                  style={{
+                    width: "1px",
+                    height: "22px",
+                    background: "rgba(245, 158, 11, 0.3)",
+                  }}
+                />
+
+                {/* Right: Izin */}
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <span
+                    style={{
+                      fontSize: "0.56rem",
+                      fontWeight: 800,
+                      color: "#6366f1",
+                      lineHeight: 1,
+                    }}
+                  >
+                    IZIN
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "1.05rem",
+                      fontWeight: 900,
+                      color: "#3730a3",
+                      lineHeight: 1.15,
+                    }}
+                  >
+                    {rekapAbsensi.izin}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
