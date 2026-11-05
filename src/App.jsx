@@ -42,9 +42,18 @@ export default function App() {
 
   useEffect(() => {
     const handleLocationChange = () => {
-      setMode(getMode());
+      const currentMode = getMode();
+      setMode(currentMode);
+      if (currentMode === 'mobile') {
+        document.title = 'NWF MOBILE - Pondok Pesantren Nurul Wafa';
+      } else if (currentMode === 'wali') {
+        document.title = 'NWF MOBILE - Portal Wali Santri';
+      } else {
+        document.title = 'NWF Pesantren - PP. Nurul Wafa Sukarame';
+      }
     };
 
+    handleLocationChange();
     window.addEventListener('hashchange', handleLocationChange);
     window.addEventListener('popstate', handleLocationChange);
     return () => {

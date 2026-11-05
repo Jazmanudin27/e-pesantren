@@ -485,10 +485,10 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                     justifyContent: 'center',
                     padding: '2px'
                   }}>
-                    <img src="/logo-pesantren.png" alt="Logo" style={{ width: '24px', height: '24px', objectFit: 'contain' }} onError={(e) => { e.target.src = '/logo.png'; }} />
+                    <img src="/nwf.png" alt="Logo" style={{ width: '24px', height: '24px', objectFit: 'contain' }} onError={(e) => { e.target.src = '/nwf.png'; }} />
                   </div>
                   <span style={{ fontWeight: 800, fontSize: '0.98rem', letterSpacing: '-0.3px' }}>
-                    Ruang Ponpes
+                    NWF MOBILE
                   </span>
                   <span style={{
                     background: '#f59e0b',

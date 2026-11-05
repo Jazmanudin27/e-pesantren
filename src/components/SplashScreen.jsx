@@ -102,7 +102,7 @@ export default function SplashScreen({ onFinish }) {
             boxShadow: '0 8px 18px rgba(0,0,0,0.2)',
             padding: '6px'
           }}>
-            <img src="/logo.png" alt="Logo" style={{ width: '60px', height: '60px', objectFit: 'contain' }} />
+            <img src="/nwf.png" alt="Logo" style={{ width: '60px', height: '60px', objectFit: 'contain' }} />
           </div>
         </div>
 
@@ -121,7 +121,7 @@ export default function SplashScreen({ onFinish }) {
             color: '#ffffff',
             textShadow: '0 2px 10px rgba(0,0,0,0.3)'
           }}>
-            Ruang Ponpes
+            NWF MOBILE
           </h1>
           <span style={{
             background: '#f59e0b',

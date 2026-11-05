@@ -154,7 +154,7 @@ export default function LoginAdmin({ onLoginSuccess }) {
             boxShadow: '0 10px 20px -5px rgba(0, 0, 0, 0.25)',
             padding: '6px'
           }}>
-            <img src="/logo.png" alt="Logo" style={{ width: '56px', height: '56px', objectFit: 'contain' }} />
+            <img src="/nwf.png" alt="Logo" style={{ width: '56px', height: '56px', objectFit: 'contain' }} />
           </div>
 
           <h1 style={{
@@ -164,7 +164,7 @@ export default function LoginAdmin({ onLoginSuccess }) {
             letterSpacing: '-0.3px',
             color: '#ffffff'
           }}>
-            Ruang Ponpes
+            PP. Nurul Wafa
           </h1>
           <p style={{
             fontSize: '13px',

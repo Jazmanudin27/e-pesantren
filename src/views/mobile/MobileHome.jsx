@@ -533,7 +533,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               }}
             >
               <img
-                src="/logo.png"
+                src="/nwf.png"
                 alt="Logo"
                 style={{ width: "24px", height: "24px", objectFit: "contain" }}
               />
@@ -545,7 +545,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 letterSpacing: "-0.3px",
               }}
             >
-              Ruang Ponpes
+              NWF MOBILE
             </span>
             <span
               style={{

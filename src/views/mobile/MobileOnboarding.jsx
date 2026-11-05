@@ -106,7 +106,7 @@ export default function MobileOnboarding({ onStart }) {
               boxShadow: '0 4px 14px rgba(0,0,0,0.25)'
             }}>
               <img 
-                src="/logo.png" 
+                src="/nwf.png" 
                 alt="Logo Ponpes" 
                 style={{ 
                   width: '22px', 
@@ -120,7 +120,7 @@ export default function MobileOnboarding({ onStart }) {
                 fontSize: '0.74rem',
                 letterSpacing: '0.03em'
               }}>
-                RUANG PONPES
+                NWF MOBILE
               </span>
             </div>
 

@@ -660,7 +660,7 @@ export default function AdminLayout() {
       {/* Sidebar Desktop (Dark Navy Aspartech Style) */}
       <aside className={`admin-sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-brand">
-          <img src="/logo.png" alt="Logo" style={{ width: '34px', height: '34px', objectFit: 'contain' }} />
+          <img src="/nwf.png" alt="Logo" style={{ width: '34px', height: '34px', objectFit: 'contain' }} />
           <div className="brand-title">
             <h2>RUANG PONPES</h2>
             <p>SISTEM PESANTREN</p>
@@ -669,7 +669,7 @@ export default function AdminLayout() {
 
         <div className="tenant-card">
           <div className="tenant-logo" style={{ background: '#ffffff', padding: '2px', border: 'none' }}>
-            <img src="/logo.png" alt="Logo" style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
+            <img src="/nwf.png" alt="Logo" style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
           </div>
           <div className="tenant-info">
             <div className="tenant-name">PP. NURUL WAFA</div>
@@ -742,7 +742,7 @@ export default function AdminLayout() {
               {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
             </button>
             <div className="header-mobile-brand">
-              <img src="/logo.png" alt="Logo" style={{ width: '22px', height: '22px', objectFit: 'contain', marginRight: '6px' }} />
+              <img src="/nwf.png" alt="Logo" style={{ width: '22px', height: '22px', objectFit: 'contain', marginRight: '6px' }} />
               <span className="brand-title-mini">RUANG PONPES</span>
             </div>
           </div>
@@ -754,9 +754,9 @@ export default function AdminLayout() {
               target={typeof window !== 'undefined' && (window.location.hostname.includes('ruangtech.com') || window.location.hostname.includes('aspartech.com')) ? '_blank' : '_self'}
               rel="noreferrer"
               className="header-app-link"
-              title="Buka Tampilan Mobile Santri (mnurulwafa.ruangtech.com)"
+              title="Buka NWF Mobile (mnurulwafa.ruangtech.com)"
             >
-              📱 <span className="header-app-link-text">App Santri Mobile</span>
+              📱 <span className="header-app-link-text">NWF Mobile</span>
             </a>
 
             {/* Realtime Clock Pill */}

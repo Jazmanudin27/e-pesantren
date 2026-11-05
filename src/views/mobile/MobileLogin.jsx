@@ -237,10 +237,10 @@ export default function MobileLogin({ onLoginSuccess, onBackToOnboarding }) {
             border: '2px solid #e2e8f0',
             padding: '6px'
           }}>
-            <img src="/logo.png" alt="Logo" style={{ width: '58px', height: '58px', objectFit: 'contain' }} />
+            <img src="/nwf.png" alt="Logo" style={{ width: '58px', height: '58px', objectFit: 'contain' }} />
           </div>
           <h2 style={{ margin: '0 0 4px', fontSize: '1.28rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.3px' }}>
-            Ruang Ponpes
+            NWF MOBILE
           </h2>
           <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
             PP. Nurul Wafa Sukarame
