@@ -904,7 +904,7 @@ export default function MobilePresensi() {
               let matchedSantri = null;
               let displayName = '';
 
-              // JIKA MODEL FACE-API.JS SUDAH SIAP -> GUNAKAN TENSORFLOW DEEP LEARNING (128-D DESCRIPTOR)
+              // AI ENGINE: GUNAKAN TENSORFLOW DEEP LEARNING (128-D DESCRIPTOR) SAMA SEPERTI KAMERA PENGEMBANGAN
               if (isFaceModelReady()) {
                 const faceRes = await detectFaceDescriptor(video);
                 if (!faceRes) {
@@ -925,57 +925,12 @@ export default function MobilePresensi() {
                   }
                 }
               } else {
-                // FALLBACK NATIVE CANVAS MATRIX (SEBELUM MODEL SELESAI DIUNDUH)
-                const sampleCanvas = document.createElement('canvas');
-                sampleCanvas.width = 40;
-                sampleCanvas.height = 40;
-                const sCtx = sampleCanvas.getContext('2d');
-                sCtx.drawImage(video, boxX, boxY, boxW, boxH, 0, 0, 40, 40);
-                const imgData = sCtx.getImageData(0, 0, 40, 40).data;
-
-                let skinPixels = 0;
-                for (let i = 0; i < 1600; i++) {
-                  const idx = i * 4;
-                  const r = imgData[idx];
-                  const g = imgData[idx + 1];
-                  const b = imgData[idx + 2];
-                  if (r > 45 && g > 30 && b > 18 && r > g && r - g >= 8) {
-                    skinPixels++;
-                  }
-                }
-
-                if (skinPixels / 1600 < 0.10) {
-                  setFaceDetected(false);
-                  setFaceStatusText('Arahkan wajah santri ke dalam kotak...');
-                  return;
-                }
-
-                setFaceDetected(true);
-                const liveFeature = extractBiometricGridFromCanvas(sampleCanvas);
-                if (!liveFeature) return;
-
-                let bestDiff = 9999;
-                let bestM = null;
-                registeredList.forEach((prof) => {
-                  const score = compareBiometrics(liveFeature, prof);
-                  if (score < 28 && score < bestDiff) {
-                    bestDiff = score;
-                    bestM = prof;
-                  }
-                });
-
-                if (bestM) {
-                  const dbSantri = (santriListRef.current || []).find(
-                    (s) => String(s.id) === String(bestM.santri_id)
-                  );
-                  if (dbSantri) {
-                    matchedSantri = dbSantri;
-                    displayName = dbSantri.nama_santri;
-                  }
-                }
+                setFaceDetected(false);
+                setFaceStatusText('Memuat model pengenalan wajah AI...');
+                return;
               }
 
-              // 1. TOLAK JIKA WAJAH BEDA / TIDAK COCOK
+              // 1. TOLAK JIKA WAJAH BEDA / TIDAK COCOK DENGAN DATA SANTRI
               if (!matchedSantri) {
                 ctx.fillStyle = 'rgba(239, 68, 68, 0.95)';
                 ctx.roundRect
@@ -987,7 +942,7 @@ export default function MobilePresensi() {
                 ctx.textAlign = 'center';
                 ctx.fillText('⛔ Wajah Belum Terdaftar', boxX + boxW / 2, boxY - 12);
 
-                setFaceStatusText('⛔ Wajah Tidak Dikenali / Belum Terdaftar');
+                setFaceStatusText('⛔ Wajah Belum Terdaftar di Sistem');
                 return;
               }
 
@@ -1178,15 +1133,16 @@ export default function MobilePresensi() {
     setLastScannedSantri({ ...found, snapshot: snap });
   };
 
-  // Validasi Pemindaian Wajah di Kamera HP
-  const handleScanFaceLive = () => {
+  // Validasi Pemindaian Wajah di Kamera HP (Model AI Face-api Ketat)
+  const handleScanFaceLive = async () => {
     if (!isFaceCameraActive) {
       showError('Kamera Belum Aktif', 'Nyalakan kamera wajah terlebih dahulu.');
       return;
     }
 
-    const count = Object.keys(registeredFaces).length;
-    if (count === 0) {
+    const registeredMap = registeredFacesRef.current || {};
+    const registeredList = Object.values(registeredMap);
+    if (registeredList.length === 0) {
       playBeep(false);
       speakAttendance('Wajah belum terdaftar', 'Silakan daftarkan wajah di Master Santri');
       showError(
@@ -1196,28 +1152,46 @@ export default function MobilePresensi() {
       return;
     }
 
+    if (!isFaceModelReady()) {
+      showError('Model AI Memuat', 'Model pengenalan wajah AI sedang diunduh, mohon tunggu sebentar...');
+      return;
+    }
+
+    const video = faceVideoRef.current;
     const snap = captureFaceSnapshot();
-    if (!snap) {
+    if (!video || !snap) {
       showError('Kamera Tidak Siap', 'Pastikan santri menghadap kamera live.');
       return;
     }
 
-    const registeredMap = registeredFacesRef.current || {};
-    const registeredList = Object.values(registeredMap);
-    const matchedProfile = registeredList[registeredList.length - 1] || registeredList[0];
-    const matchedSantri = (santriListRef.current || []).find((s) => String(s.id) === String(matchedProfile.santri_id));
+    try {
+      const faceRes = await detectFaceDescriptor(video);
+      if (!faceRes) {
+        showError('Wajah Tidak Terdeteksi', 'Wajah santri tidak terdeteksi di kamera. Posisikan wajah tegak di dalam kotak pandu.');
+        return;
+      }
 
-    if (matchedSantri) {
-      recordAttendance(matchedSantri, 'Hadir Tepat Waktu', 'Kamera Wajah AI (Manual Scan)', '', snap);
-      setLastScannedSantri({ ...matchedSantri, snapshot: snap });
-      toastSuccess(`Wajah Dikenali: ${matchedSantri.nama_santri}`);
-    } else {
+      const matched = matchFaceDescriptor(faceRes.descriptor, registeredList, 0.52);
+      if (matched) {
+        const matchedSantri = (santriListRef.current || []).find(
+          (s) => String(s.id) === String(matched.santri_id)
+        );
+        if (matchedSantri) {
+          recordAttendance(matchedSantri, 'Hadir Tepat Waktu', 'Kamera Wajah AI (Manual Scan)', '', snap);
+          setLastScannedSantri({ ...matchedSantri, snapshot: snap });
+          toastSuccess(`Wajah Dikenali: ${matchedSantri.nama_santri}`);
+          return;
+        }
+      }
+
       playBeep(false);
-      speakAttendance('Wajah belum terverifikasi', 'Ketuk nama santri terdaftar');
+      speakAttendance('Wajah belum terdaftar', 'Wajah tidak cocok');
       showError(
-        'Wajah Belum Terverifikasi / Belum Terdaftar!',
-        'Wajah santri di kamera belum cocok dengan profil terdaftar. Pastikan wajah tegak ke kamera atau ketuk nama santri di bawah untuk absen instan.'
+        '⛔ Wajah Belum Terdaftar / Tidak Cocok!',
+        'Wajah di depan kamera tidak cocok dengan profil santri manapun yang terdaftar di sistem.'
       );
+    } catch (err) {
+      showError('Gagal Memindai', err.message || 'Terjadi kesalahan pemindaian wajah');
     }
   };
 
