@@ -517,7 +517,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
             {/* Top Modern Teal Gradient Banner (Matched with Mobile Admin) */}
             <div style={{
               background: 'linear-gradient(135deg, #0d766e 0%, #042f2e 100%)',
-              padding: '16px 16px 44px',
+              padding: '16px 16px 36px',
               color: '#ffffff',
               borderBottomLeftRadius: '26px',
               borderBottomRightRadius: '26px',
@@ -527,8 +527,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '14px'
+                alignItems: 'center'
               }}>
                 {/* Brand Logo: NWF Mobile (Identik dengan Mobile Admin) */}
                 <div 
@@ -620,75 +619,17 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   </button>
                 </div>
               </div>
-
-              {/* Santri Profile Header (Nama Santri & NISN, bulat inisial dihilangkan) */}
-              <div style={{
-                marginTop: '4px',
-                marginBottom: '10px'
-              }}>
-                <div style={{
-                  fontSize: '1.15rem',
-                  fontWeight: 900,
-                  color: '#ffffff',
-                  letterSpacing: '-0.3px',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}>
-                  {rawSantriName}
-                </div>
-                <div style={{
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  color: '#a7f3d0',
-                  letterSpacing: '0.04em',
-                  marginTop: '3px'
-                }}>
-                  NISN: <strong style={{ color: '#ffffff' }}>{displayNisn}</strong>
-                </div>
-              </div>
             </div>
 
-            {/* 1. STATUS KEHADIRAN & IBADAH (PALING ATAS, FLOATING DI BAWAH HEADER) */}
-            <div style={{ padding: '0 14px', marginTop: '-24px', position: 'relative', zIndex: 12 }}>
+            {/* 1. STATUS KEHADIRAN & IBADAH (PALING ATAS, FLOATING RAPI) */}
+            <div style={{ padding: '0 14px', marginTop: '-20px', position: 'relative', zIndex: 12 }}>
               <div style={{
                 background: '#ffffff',
                 borderRadius: '20px',
                 border: '1px solid #e2e8f0',
-                padding: '14px',
+                padding: '14px 12px',
                 boxShadow: '0 8px 24px -4px rgba(13, 118, 110, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04)'
               }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '10px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Fingerprint size={16} color="#0d9488" />
-                    <span style={{
-                      fontSize: '0.78rem',
-                      fontWeight: 800,
-                      color: '#0f172a',
-                      letterSpacing: '0.02em',
-                      textTransform: 'uppercase'
-                    }}>
-                      Status Kehadiran
-                    </span>
-                  </div>
-                  <span
-                    onClick={() => setCurrentTab('absensi')}
-                    style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      color: '#0d9488',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Detail &rarr;
-                  </span>
-                </div>
-
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(4, 1fr)',
@@ -865,13 +806,17 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
 
             {/* 3. CARD TAGIHAN KEUANGAN (DI BAWAH SALDO TERSIMPAN) */}
             <div style={{ padding: '12px 14px 0', position: 'relative', zIndex: 10 }}>
-              <div style={{
-                background: '#ffffff',
-                borderRadius: '20px',
-                border: '1px solid #e2e8f0',
-                padding: '16px',
-                boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.05)'
-              }}>
+              <div
+                onClick={() => setCurrentTab('tagihan')}
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '20px',
+                  border: '1px solid #e2e8f0',
+                  padding: '16px',
+                  boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.05)',
+                  cursor: 'pointer'
+                }}
+              >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <CreditCard size={18} color="#005baa" />
@@ -879,8 +824,19 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                       Tagihan Keuangan
                     </span>
                   </div>
-                  <span style={{ fontSize: '0.66rem', fontWeight: 800, background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: '999px' }}>
-                    QRIS & VA
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    color: '#005baa',
+                    background: '#f0f9ff',
+                    padding: '4px 10px',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    <span>Detail</span>
+                    <span>&rarr;</span>
                   </span>
                 </div>
 
@@ -891,7 +847,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   {keuanganSummary?.formattedTotalBelumBayar || 'Rp 0'}
                 </div>
 
-                <div style={{ background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px', fontSize: '0.74rem' }}>
+                <div style={{ background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.74rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: '#64748b' }}>• Administrasi Bulanan:</span>
                     <span style={{ fontWeight: 700, color: '#d97706' }}>{keuanganSummary?.formattedBulanan || 'Rp 0'}</span>
@@ -901,28 +857,6 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                     <span style={{ fontWeight: 700, color: '#005baa' }}>{keuanganSummary?.formattedSisaBiayaMasuk || 'Rp 0'}</span>
                   </div>
                 </div>
-
-                <button
-                  onClick={() => setCurrentTab('tagihan')}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: '12px',
-                    background: 'linear-gradient(135deg, #005baa 0%, #004b91 100%)',
-                    color: '#ffffff',
-                    border: 'none',
-                    fontWeight: 800,
-                    fontSize: '0.78rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    boxShadow: '0 4px 12px rgba(0, 91, 170, 0.25)'
-                  }}
-                >
-                  <CreditCard size={15} /> Bayar Tagihan (QRIS / VA) &rarr;
-                </button>
               </div>
             </div>
 
