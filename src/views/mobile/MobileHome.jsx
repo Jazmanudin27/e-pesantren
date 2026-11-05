@@ -47,6 +47,12 @@ import {
   EyeOff,
   Settings,
   Activity,
+  Headphones,
+  Plus,
+  MapPin,
+  LayoutGrid,
+  ArrowLeft,
+  Copy,
 } from "lucide-react";
 import { showSuccess, showConfirm } from "../../utils/alert.util";
 
@@ -75,6 +81,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
   const [searchModalText, setSearchModalText] = useState("");
   const [menuCardTab, setMenuCardTab] = useState("master"); // 'master' | 'transaksi'
   const touchStartX = useRef(null);
+
+  // Modal State untuk Desain Baru (Kesiswaan Bottom Sheet & Detail Kartu Slideover)
+  const [isCategorySheetOpen, setIsCategorySheetOpen] = useState(false);
+  const [sheetTitle, setSheetTitle] = useState("Kesiswaan");
+  const [sheetCategory, setSheetCategory] = useState("kesiswaan"); // 'kesiswaan' | 'akademik' | 'master' | 'semua'
+  const [isDetailCardOpen, setIsDetailCardOpen] = useState(false);
+  const [selectedDetailMonth, setSelectedDetailMonth] = useState("Mei");
 
   // Khusus Akun Bendahara / Admin Keuangan
   const [keuanganData, setKeuanganData] = useState({
@@ -492,1698 +505,1975 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       }}
     >
       {/* =========================================================================
-          TOP BANNER HEADER (MODERN ROYAL BLUE myBCA BRANDED HEADER)
+          TOP BANNER HEADER (TEAL FOREST MODERN PESANTREN HEADER)
       ========================================================================= */}
       <div
         style={{
           background:
-            "linear-gradient(180deg, #005baa 0%, #004b91 65%, #003870 100%)",
-          padding: "16px 16px 42px",
+            "linear-gradient(180deg, #0b6b60 0%, #0d766e 70%, #08524a 100%)",
+          padding: "16px 16px 48px",
           color: "#ffffff",
           borderBottomLeftRadius: "28px",
           borderBottomRightRadius: "28px",
           position: "relative",
+          overflow: "hidden",
         }}
       >
-        {/* Top App Header */}
+        {/* Soft decorative curved wave */}
+        <svg
+          style={{
+            position: "absolute",
+            right: "-20px",
+            top: "-15px",
+            width: "220px",
+            height: "170px",
+            opacity: 0.12,
+            pointerEvents: "none",
+          }}
+          viewBox="0 0 200 200"
+          fill="none"
+        >
+          <path
+            d="M40 80C90 10 160 30 200 10L200 200L0 200C0 140 10 130 40 80Z"
+            fill="#ffffff"
+          />
+        </svg>
+
+        {/* Top App Header: User Avatar & Name on Left, 3 Outline Circle Buttons on Right */}
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: "8px",
+            position: "relative",
+            zIndex: 2,
           }}
         >
-          {/* Brand Typography: NWF Mobile (Gaya myBCA Text Only) */}
-          <div style={{ display: "flex", alignItems: "baseline", gap: "5px" }}>
-            <span
+          {/* User profile left */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div
+              onClick={() => setIsDetailCardOpen(true)}
               style={{
-                fontWeight: 900,
-                fontSize: "1.55rem",
-                letterSpacing: "-0.6px",
+                width: "42px",
+                height: "42px",
+                borderRadius: "50%",
+                border: "2px solid rgba(255, 255, 255, 0.8)",
+                overflow: "hidden",
+                background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
                 color: "#ffffff",
-                lineHeight: 1,
+                fontWeight: 900,
+                fontSize: "1.1rem",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                cursor: "pointer",
               }}
             >
-              NWF
-            </span>
-            <span
-              style={{
-                fontWeight: 700,
-                fontSize: "1rem",
-                letterSpacing: "0.3px",
-                color: "rgba(255, 255, 255, 0.95)",
-                lineHeight: 1,
-              }}
-            >
-              Mobile
-            </span>
+              {displayName ? displayName.charAt(0).toUpperCase() : "A"}
+            </div>
+            <div>
+              <div
+                style={{
+                  fontSize: "0.96rem",
+                  fontWeight: 800,
+                  color: "#ffffff",
+                  letterSpacing: "-0.2px",
+                  lineHeight: 1.2,
+                }}
+              >
+                {displayName || "Ibnu Arif"}
+              </div>
+              <div
+                style={{
+                  fontSize: "0.68rem",
+                  color: "#a7f3d0",
+                  fontWeight: 600,
+                  marginTop: "2px",
+                }}
+              >
+                {sessionData?.role || (isBendahara ? "Bendahara Pesantren" : "Administrator Utama")}
+              </div>
+            </div>
           </div>
 
-          {/* Top 3 Action Buttons (Settings, Bell, Logout) */}
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          {/* Top 3 Outline Circle Action Buttons */}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <button
-              onClick={handleOpenNotice}
+              onClick={() => setIsDetailCardOpen(true)}
               style={{
-                background: "transparent",
-                border: "none",
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                border: "1px solid rgba(255, 255, 255, 0.35)",
+                background: "rgba(255, 255, 255, 0.12)",
+                backdropFilter: "blur(4px)",
                 color: "#ffffff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 cursor: "pointer",
-                padding: "6px",
-                position: "relative",
               }}
-              title="Notifikasi"
+              title="Detail Kartu"
             >
-              <Bell size={21} />
-              <span
-                style={{
-                  position: "absolute",
-                  top: "4px",
-                  right: "4px",
-                  width: "8px",
-                  height: "8px",
-                  borderRadius: "50%",
-                  background: "#ef4444",
-                  border: "1.5px solid #005baa",
-                }}
-              />
+              <CreditCard size={18} />
             </button>
 
             <button
               onClick={handleOpenAccountInfo}
               style={{
-                background: "transparent",
-                border: "none",
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                border: "1px solid rgba(255, 255, 255, 0.35)",
+                background: "rgba(255, 255, 255, 0.12)",
+                backdropFilter: "blur(4px)",
                 color: "#ffffff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 cursor: "pointer",
-                padding: "6px",
-                borderRadius: "50%",
-                transition: "opacity 0.2s",
               }}
-              title="Pengaturan & Akun"
+              title="Bantuan & Layanan"
             >
-              <Settings size={21} />
+              <Headphones size={18} />
             </button>
 
             <button
-              onClick={onLogout}
+              onClick={handleOpenNotice}
               style={{
-                background: "transparent",
-                border: "none",
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                border: "1px solid rgba(255, 255, 255, 0.35)",
+                background: "rgba(255, 255, 255, 0.12)",
+                backdropFilter: "blur(4px)",
                 color: "#ffffff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 cursor: "pointer",
-                padding: "6px",
+                position: "relative",
               }}
-              title="Keluar"
+              title="Notifikasi"
             >
-              <LogOut size={21} />
+              <Bell size={18} />
+              <span
+                style={{
+                  position: "absolute",
+                  top: "6px",
+                  right: "6px",
+                  width: "7px",
+                  height: "7px",
+                  borderRadius: "50%",
+                  background: "#ef4444",
+                  border: "1.5px solid #0d766e",
+                }}
+              />
             </button>
           </div>
-        </div>
-
-        {/* Greeting Line: HALO, [DISPLAY_NAME] (myBCA style) */}
-        <div
-          style={{
-            fontSize: "0.78rem",
-            fontWeight: 800,
-            letterSpacing: "0.06em",
-            color: "rgba(255, 255, 255, 0.92)",
-            textTransform: "uppercase",
-            marginBottom: "14px",
-          }}
-        >
-          HALO, {displayName.toUpperCase()}
         </div>
       </div>
 
       {/* =========================================================================
-          HERO CARD: PRESENSI SANTRI HARI INI (KHUSUS ADMIN)
+          CARD 1: FLOATING WHITE CARD (SMART ID CARD + INFO PILLS)
       ========================================================================= */}
       <div
         style={{
-          padding: "0 16px",
-          marginTop: "-30px",
+          padding: "0 14px",
+          marginTop: "-34px",
           position: "relative",
           zIndex: 10,
         }}
       >
-        {isBendahara ? (
+        <div
+          style={{
+            background: "#ffffff",
+            borderRadius: "22px",
+            padding: "12px",
+            boxShadow:
+              "0 12px 28px -4px rgba(11, 107, 96, 0.18), 0 3px 10px rgba(0, 0, 0, 0.04)",
+            border: "1px solid #e6f0ed",
+            display: "flex",
+            gap: "10px",
+            alignItems: "stretch",
+          }}
+        >
+          {/* Left 58%: Mini Blue Smart ID Card */}
           <div
+            onClick={() => setIsDetailCardOpen(true)}
             style={{
-              background: "#ffffff",
-              borderRadius: "20px",
-              padding: "16px 18px",
-              boxShadow:
-                "0 10px 25px -4px rgba(0, 91, 170, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04)",
-              border: "1px solid #e2e8f0",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "8px",
-              }}
-            >
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "5px",
-                  color: "#005baa",
-                  fontWeight: 700,
-                  fontSize: "0.84rem",
-                  cursor: "pointer",
-                }}
-                onClick={() => onChangeTab("keuangan-rekap")}
-              >
-                <span>Kas Rekening Operasional</span>
-                <ChevronDown size={16} color="#005baa" />
-              </div>
-
-              <span
-                style={{
-                  fontSize: "0.65rem",
-                  fontWeight: 700,
-                  color: "#16a34a",
-                  background: "#f0fdf4",
-                  border: "1px solid #bbf7d0",
-                  padding: "2px 8px",
-                  borderRadius: "999px",
-                }}
-              >
-                Aktif
-              </span>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontSize: "1.35rem",
-                    fontWeight: 900,
-                    color: "#0f172a",
-                    letterSpacing: "-0.5px",
-                  }}
-                >
-                  {showBalanceEye
-                    ? `IDR ${Number(keuanganData.summary?.total_terbayar || 0).toLocaleString("id-ID")}`
-                    : "IDR ••••••••••"}
-                </div>
-                <div
-                  style={{
-                    fontSize: "0.72rem",
-                    color: "#64748b",
-                    marginTop: "2px",
-                    fontWeight: 500,
-                  }}
-                >
-                  Penerimaan Kas & SPP Bulan Berjalan
-                </div>
-              </div>
-
-              <button
-                onClick={() => setShowBalanceEye(!showBalanceEye)}
-                style={{
-                  background: "#f1f5f9",
-                  border: "none",
-                  borderRadius: "50%",
-                  width: "36px",
-                  height: "36px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#64748b",
-                  cursor: "pointer",
-                  transition: "all 0.15s ease",
-                }}
-                title={showBalanceEye ? "Sembunyikan Saldo" : "Tampilkan Saldo"}
-              >
-                {showBalanceEye ? <Eye size={18} /> : <EyeOff size={18} />}
-              </button>
-            </div>
-          </div>
-        ) : (
-          /* Signature myBCA 2-Tone Hero Card */
-          <div
-            style={{
-              borderRadius: "20px",
-              boxShadow:
-                "0 12px 28px -4px rgba(0, 91, 170, 0.22), 0 2px 8px rgba(0, 0, 0, 0.06)",
+              flex: "1 1 58%",
+              background: "linear-gradient(135deg, #0284c7 0%, #1e40af 100%)",
+              borderRadius: "16px",
+              padding: "10px 12px",
+              color: "#ffffff",
+              position: "relative",
               overflow: "hidden",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
+              cursor: "pointer",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              minHeight: "92px",
+              boxShadow: "0 4px 14px rgba(2, 132, 199, 0.35)",
             }}
           >
-            {/* Dark Top Half (Charcoal #1e293b / #0f172a) */}
+            {/* Top row: Brand & Star emblem */}
             <div
               style={{
-                background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
-                padding: "12px 16px 13px",
-                color: "#ffffff",
                 display: "flex",
                 justifyContent: "space-between",
-                alignItems: "center",
+                alignItems: "flex-start",
               }}
             >
               <div>
                 <div
                   style={{
-                    fontSize: "0.78rem",
-                    color: "#f1f5f9",
+                    fontSize: "0.6rem",
                     fontWeight: 700,
+                    letterSpacing: "0.02em",
+                    color: "#f0f9ff",
+                    lineHeight: 1.1,
+                  }}
+                >
+                  Pondok Pesantren
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.74rem",
+                    fontWeight: 900,
+                    color: "#ffffff",
                     letterSpacing: "0.02em",
                   }}
                 >
-                  ID Pesantren: NWF-2026-ADM
+                  Nurul Wafa
                 </div>
               </div>
-
-              {/* Gold Privilege / Admin Badge */}
-              <div
+              <span
                 style={{
-                  background:
-                    "linear-gradient(135deg, #d97706 0%, #f59e0b 50%, #b45309 100%)",
+                  fontSize: "1.1rem",
+                  lineHeight: 1,
                   color: "#ffffff",
-                  fontWeight: 900,
-                  fontSize: "0.65rem",
-                  letterSpacing: "0.06em",
-                  padding: "5px 10px",
-                  borderRadius: "8px",
-                  boxShadow: "0 2px 6px rgba(217, 119, 6, 0.4)",
-                  border: "1px solid #fef3c7",
-                  textTransform: "uppercase",
+                  opacity: 0.9,
                 }}
               >
-                ADMIN UTAMA
-              </div>
+                ✱
+              </span>
             </div>
 
-            {/* White Bottom Half */}
+            {/* Bottom row: Cardholder details */}
             <div
               style={{
-                background: "#ffffff",
-                padding: "16px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                marginTop: "8px",
               }}
             >
               <div
                 style={{
+                  width: "28px",
+                  height: "34px",
+                  borderRadius: "5px",
+                  background: "#dc2626",
+                  border: "1.5px solid #ffffff",
+                  overflow: "hidden",
                   display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
                 }}
               >
-                <div>
-                  <div
-                    style={{
-                      fontSize: "0.72rem",
-                      color: "#64748b",
-                      fontWeight: 600,
-                    }}
-                  >
-                    Presensi Santri Hari Ini
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "1.45rem",
-                      fontWeight: 900,
-                      color: "#0f172a",
-                      letterSpacing: "-0.5px",
-                      marginTop: "2px",
-                    }}
-                  >
-                    {showBalanceEye
-                      ? `${rekapAbsensi.hadir || 0} Santri Hadir`
-                      : "••••••••"}
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "8px",
-                      marginTop: "4px",
-                      fontSize: "0.68rem",
-                      fontWeight: 700,
-                    }}
-                  >
-                    <span style={{ color: "#15803d" }}>
-                      ✓ Hadir {rekapAbsensi.hadir || 0}
-                    </span>
-                    <span style={{ color: "#b91c1c" }}>
-                      • Sakit {rekapAbsensi.sakit || 0}
-                    </span>
-                    <span style={{ color: "#d97706" }}>
-                      • Izin {rekapAbsensi.izin || 0}
-                    </span>
-                    <span style={{ color: "#64748b" }}>
-                      • Belum {rekapAbsensi.alfa || 0}
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setShowBalanceEye(!showBalanceEye)}
-                  style={{
-                    background: "#f1f5f9",
-                    border: "none",
-                    borderRadius: "50%",
-                    width: "34px",
-                    height: "34px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#64748b",
-                    cursor: "pointer",
-                  }}
-                  title={showBalanceEye ? "Sembunyikan" : "Tampilkan"}
-                >
-                  {showBalanceEye ? <Eye size={17} /> : <EyeOff size={17} />}
-                </button>
+                <User size={20} color="#ffffff" />
               </div>
-
-              {/* Bottom Two Action Pills (myBCA Mutasi & Rekening Lain style) */}
-              <div
-                style={{
-                  display: "flex",
-                  gap: "10px",
-                  marginTop: "14px",
-                  borderTop: "1px solid #f1f5f9",
-                  paddingTop: "12px",
-                }}
-              >
-                <button
-                  onClick={() => handleOpenStatusModal("Hadir")}
+              <div style={{ minWidth: 0, overflow: "hidden" }}>
+                <div
                   style={{
-                    flex: 1,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "6px",
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "10px",
-                    padding: "8px 10px",
-                    fontSize: "0.72rem",
-                    fontWeight: 700,
-                    color: "#005baa",
-                    cursor: "pointer",
+                    fontSize: "0.74rem",
+                    fontWeight: 800,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    color: "#ffffff",
                   }}
                 >
-                  <FileText size={14} color="#005baa" />
-                  <span>Detail Presensi</span>
-                </button>
-
-                <button
-                  onClick={() => onChangeTab("presensi")}
+                  {displayName || "Icha Syahrizati"}
+                </div>
+                <div
                   style={{
-                    flex: 1,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "6px",
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "10px",
-                    padding: "8px 10px",
-                    fontSize: "0.72rem",
-                    fontWeight: 700,
-                    color: "#005baa",
-                    cursor: "pointer",
+                    fontSize: "0.6rem",
+                    color: "#bae6fd",
+                    fontWeight: 600,
+                    letterSpacing: "0.03em",
                   }}
                 >
-                  <Clock size={14} color="#005baa" />
-                  <span>Riwayat Scan</span>
-                </button>
+                  NWF-2026-ADM
+                </div>
               </div>
             </div>
           </div>
-        )}
+
+          {/* Right 42%: Info Stats Pills */}
+          <div
+            style={{
+              flex: "1 1 42%",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              gap: "6px",
+            }}
+          >
+            {/* Pill 1: Uang Jajan */}
+            <div
+              onClick={() => onChangeTab("keuangan-kasir")}
+              style={{
+                background: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                borderRadius: "12px",
+                padding: "6px 8px",
+                cursor: "pointer",
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "4px" }}
+              >
+                <Wallet size={11} color="#16a34a" />
+                <span
+                  style={{
+                    fontSize: "0.62rem",
+                    fontWeight: 700,
+                    color: "#166534",
+                  }}
+                >
+                  Uang Jajan
+                </span>
+              </div>
+              <div
+                style={{
+                  fontSize: "0.78rem",
+                  fontWeight: 900,
+                  color: "#14532d",
+                  marginTop: "2px",
+                }}
+              >
+                {showBalanceEye ? "Rp. 1.500.000,-" : "••••••"}
+              </div>
+            </div>
+
+            {/* Pill 2: Limit Harian */}
+            <div
+              onClick={() => handleOpenStatusModal("Hadir")}
+              style={{
+                background: "#f0fdfa",
+                border: "1px solid #99f6e4",
+                borderRadius: "12px",
+                padding: "6px 8px",
+                cursor: "pointer",
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "4px" }}
+              >
+                <CreditCard size={11} color="#0d9488" />
+                <span
+                  style={{
+                    fontSize: "0.62rem",
+                    fontWeight: 700,
+                    color: "#115e59",
+                  }}
+                >
+                  Limit Harian
+                </span>
+              </div>
+              <div
+                style={{
+                  fontSize: "0.78rem",
+                  fontWeight: 900,
+                  color: "#134e4a",
+                  marginTop: "2px",
+                }}
+              >
+                {showBalanceEye ? "Rp 50.000,-" : "••••••"}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* =========================================================================
-          MYBCA STYLE PROMO BANNER (KHUSUS ADMIN)
+          CARD 2: DARK TEAL PILL BAR (SALDO CASHLESS + 3 QUICK ACTIONS)
       ========================================================================= */}
-      {!isBendahara && (
-        <div style={{ padding: "14px 16px 0" }}>
-          <div
-            onClick={() => onChangeTab("informasi")}
-            style={{
-              background:
-                "linear-gradient(135deg, #005baa 0%, #0284c7 50%, #7c3aed 100%)",
-              borderRadius: "14px",
-              padding: "10px 14px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              color: "#ffffff",
-              cursor: "pointer",
-              boxShadow: "0 4px 14px rgba(0, 91, 170, 0.2)",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <Sparkles size={16} color="#fde047" />
+      <div style={{ padding: "0 14px", marginTop: "10px" }}>
+        <div
+          style={{
+            background: "linear-gradient(135deg, #0d7a6e 0%, #095c53 100%)",
+            borderRadius: "18px",
+            padding: "10px 14px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            color: "#ffffff",
+            boxShadow: "0 6px 18px rgba(13, 122, 110, 0.25)",
+          }}
+        >
+          {/* Left: Saldo Cashless & Nominal */}
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <span
                 style={{
-                  fontSize: "0.74rem",
-                  fontWeight: 800,
-                  letterSpacing: "0.02em",
+                  fontSize: "0.66rem",
+                  color: "#a7f3d0",
+                  fontWeight: 600,
                 }}
               >
-                Informasi & Pengumuman Pesantren
+                Saldo Cashpoint
               </span>
+              <button
+                onClick={() => setShowBalanceEye(!showBalanceEye)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#a7f3d0",
+                  padding: 0,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+                title={showBalanceEye ? "Sembunyikan" : "Tampilkan"}
+              >
+                {showBalanceEye ? <Eye size={13} /> : <EyeOff size={13} />}
+              </button>
+            </div>
+            <div
+              style={{
+                fontSize: "1.05rem",
+                fontWeight: 900,
+                color: "#ffffff",
+                letterSpacing: "-0.3px",
+                marginTop: "1px",
+              }}
+            >
+              {showBalanceEye
+                ? isBendahara
+                  ? `Rp. ${Number(keuanganData.summary?.total_terbayar || 5000000).toLocaleString("id-ID")},-`
+                  : "Rp. 5.000.000,-"
+                : "Rp ••••••••"}
+            </div>
+          </div>
+
+          {/* Right: 3 Quick Action Buttons */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            {/* 1. Beli Poin / Topup */}
+            <div
+              onClick={() => onChangeTab("keuangan-kasir")}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                cursor: "pointer",
+                gap: "3px",
+              }}
+            >
+              <div
+                style={{
+                  width: "28px",
+                  height: "28px",
+                  borderRadius: "50%",
+                  background: "rgba(255, 255, 255, 0.15)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#ffffff",
+                }}
+              >
+                <Plus size={15} />
+              </div>
+              <span
+                style={{
+                  fontSize: "0.58rem",
+                  color: "#e6fffa",
+                  fontWeight: 600,
+                }}
+              >
+                Beli POIN
+              </span>
+            </div>
+
+            {/* 2. Limit / Kartu */}
+            <div
+              onClick={() => setIsDetailCardOpen(true)}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                cursor: "pointer",
+                gap: "3px",
+              }}
+            >
+              <div
+                style={{
+                  width: "28px",
+                  height: "28px",
+                  borderRadius: "50%",
+                  background: "rgba(255, 255, 255, 0.15)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#ffffff",
+                }}
+              >
+                <CreditCard size={14} />
+              </div>
+              <span
+                style={{
+                  fontSize: "0.58rem",
+                  color: "#e6fffa",
+                  fontWeight: 600,
+                }}
+              >
+                Limit
+              </span>
+            </div>
+
+            {/* 3. Riwayat */}
+            <div
+              onClick={() => onChangeTab("keuangan-rekap")}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                cursor: "pointer",
+                gap: "3px",
+              }}
+            >
+              <div
+                style={{
+                  width: "28px",
+                  height: "28px",
+                  borderRadius: "50%",
+                  background: "rgba(255, 255, 255, 0.15)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#ffffff",
+                }}
+              >
+                <FileText size={14} />
+              </div>
+              <span
+                style={{
+                  fontSize: "0.58rem",
+                  color: "#e6fffa",
+                  fontWeight: 600,
+                }}
+              >
+                Riwayat
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================================
+          SECTION 1: 4 BIG PRIMARY CATEGORY SQUIRCLES
+      ========================================================================= */}
+      <div style={{ padding: "16px 14px 4px" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: "10px",
+          }}
+        >
+          {/* 1. Keuangan (Emerald Green) */}
+          <div
+            onClick={() => onChangeTab("keuangan-kasir")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "56px",
+                height: "56px",
+                borderRadius: "18px",
+                background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                boxShadow: "0 8px 18px -2px rgba(16, 185, 129, 0.35)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#ffffff",
+              }}
+            >
+              <Wallet size={26} />
             </div>
             <span
               style={{
-                fontSize: "0.68rem",
+                fontSize: "0.72rem",
                 fontWeight: 700,
-                color: "#e0f2fe",
+                color: "#334155",
               }}
             >
-              Lihat &gt;
+              Keuangan
             </span>
+          </div>
+
+          {/* 2. Akademik (Sky Blue) */}
+          <div
+            onClick={() => {
+              setSheetTitle("Akademik");
+              setSheetCategory("akademik");
+              setIsCategorySheetOpen(true);
+            }}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "56px",
+                height: "56px",
+                borderRadius: "18px",
+                background: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
+                boxShadow: "0 8px 18px -2px rgba(14, 165, 233, 0.35)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#ffffff",
+              }}
+            >
+              <GraduationCap size={26} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: "#334155",
+              }}
+            >
+              Akademik
+            </span>
+          </div>
+
+          {/* 3. Kesiswaan (Purple / Indigo) -> Slide-up Bottom Sheet Modal */}
+          <div
+            onClick={() => {
+              setSheetTitle("Kesiswaan");
+              setSheetCategory("kesiswaan");
+              setIsCategorySheetOpen(true);
+            }}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "56px",
+                height: "56px",
+                borderRadius: "18px",
+                background: "linear-gradient(135deg, #818cf8 0%, #6366f1 100%)",
+                boxShadow: "0 8px 18px -2px rgba(99, 102, 241, 0.35)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#ffffff",
+              }}
+            >
+              <Award size={26} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: "#334155",
+              }}
+            >
+              Kesiswaan
+            </span>
+          </div>
+
+          {/* 4. Atur Kartu (Coral / Rose Red) -> Detail Kartu Modal */}
+          <div
+            onClick={() => setIsDetailCardOpen(true)}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "56px",
+                height: "56px",
+                borderRadius: "18px",
+                background: "linear-gradient(135deg, #fb7185 0%, #e11d48 100%)",
+                boxShadow: "0 8px 18px -2px rgba(225, 29, 72, 0.35)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#ffffff",
+              }}
+            >
+              <CreditCard size={26} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: "#334155",
+              }}
+            >
+              Atur Kartu
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================================
+          SECTION 2: 4 SOFT PASTEL SQUIRCLES
+      ========================================================================= */}
+      <div style={{ padding: "10px 14px 8px" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: "10px",
+          }}
+        >
+          {/* 1. Perizinan */}
+          <div
+            onClick={() => onChangeTab("perizinan")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "56px",
+                height: "56px",
+                borderRadius: "18px",
+                background: "#ede9fe",
+                border: "1px solid #ddd6fe",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#6366f1",
+              }}
+            >
+              <Clock size={24} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: "#334155",
+              }}
+            >
+              Perizinan
+            </span>
+          </div>
+
+          {/* 2. Perundungan / Tata Tertib */}
+          <div
+            onClick={() => onChangeTab("tata-tertib")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "56px",
+                height: "56px",
+                borderRadius: "18px",
+                background: "#ede9fe",
+                border: "1px solid #ddd6fe",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#6366f1",
+              }}
+            >
+              <ShieldAlert size={24} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: "#334155",
+              }}
+            >
+              Perundungan
+            </span>
+          </div>
+
+          {/* 3. Kunjungan / Praktek */}
+          <div
+            onClick={() => onChangeTab("praktek-ibadah")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "56px",
+                height: "56px",
+                borderRadius: "18px",
+                background: "#ede9fe",
+                border: "1px solid #ddd6fe",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#6366f1",
+              }}
+            >
+              <MapPin size={24} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: "#334155",
+              }}
+            >
+              Kunjungan
+            </span>
+          </div>
+
+          {/* 4. Lihat Semua -> Opens All Modules Bottom Sheet */}
+          <div
+            onClick={() => {
+              setSheetTitle("Semua Layanan Pesantren");
+              setSheetCategory("semua");
+              setIsCategorySheetOpen(true);
+            }}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "56px",
+                height: "56px",
+                borderRadius: "18px",
+                background: "#ede9fe",
+                border: "1px solid #ddd6fe",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#6366f1",
+              }}
+            >
+              <LayoutGrid size={24} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: "#334155",
+              }}
+            >
+              Lihat Semua
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================================
+          SECTION 3: TOKO ONLINE (KANTIN / ATRIBUT SANTRI)
+      ========================================================================= */}
+      <div style={{ padding: "14px 14px 18px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "12px",
+          }}
+        >
+          <span
+            style={{
+              fontSize: "0.86rem",
+              fontWeight: 800,
+              color: "#1e293b",
+            }}
+          >
+            Toko Online
+          </span>
+          <button
+            onClick={() => onChangeTab("keuangan-kasir")}
+            style={{
+              background: "#0d766e",
+              border: "none",
+              color: "#ffffff",
+              fontSize: "0.68rem",
+              fontWeight: 700,
+              padding: "4px 12px",
+              borderRadius: "999px",
+              cursor: "pointer",
+            }}
+          >
+            Lihat Semua
+          </button>
+        </div>
+
+        {/* 3 Product Cards */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: "10px",
+          }}
+        >
+          {/* Product 1: Peci Hitam */}
+          <div
+            onClick={() => onChangeTab("keuangan-kasir")}
+            style={{
+              background: "#ffffff",
+              borderRadius: "14px",
+              padding: "8px",
+              border: "1px solid #f1f5f9",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+              cursor: "pointer",
+              textAlign: "center",
+            }}
+          >
+            <div
+              style={{
+                height: "68px",
+                background: "#f8fafc",
+                borderRadius: "10px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: "6px",
+              }}
+            >
+              <div
+                style={{
+                  width: "44px",
+                  height: "32px",
+                  background: "#0f172a",
+                  borderRadius: "8px 8px 4px 4px",
+                  boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
+                }}
+              />
+            </div>
+            <div
+              style={{
+                fontSize: "0.7rem",
+                fontWeight: 700,
+                color: "#1e293b",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              Peci Hitam
+            </div>
+            <div
+              style={{
+                fontSize: "0.62rem",
+                color: "#0d766e",
+                fontWeight: 800,
+                marginTop: "2px",
+              }}
+            >
+              Rp 75.000,-
+            </div>
+          </div>
+
+          {/* Product 2: Kitab Tashrif */}
+          <div
+            onClick={() => onChangeTab("keuangan-kasir")}
+            style={{
+              background: "#ffffff",
+              borderRadius: "14px",
+              padding: "8px",
+              border: "1px solid #f1f5f9",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+              cursor: "pointer",
+              textAlign: "center",
+            }}
+          >
+            <div
+              style={{
+                height: "68px",
+                background: "#fef9c3",
+                borderRadius: "10px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: "6px",
+              }}
+            >
+              <BookOpen size={28} color="#ca8a04" />
+            </div>
+            <div
+              style={{
+                fontSize: "0.7rem",
+                fontWeight: 700,
+                color: "#1e293b",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              Kitab Tashrif
+            </div>
+            <div
+              style={{
+                fontSize: "0.62rem",
+                color: "#0d766e",
+                fontWeight: 800,
+                marginTop: "2px",
+              }}
+            >
+              Rp 45.000,-
+            </div>
+          </div>
+
+          {/* Product 3: Parfum Sholat */}
+          <div
+            onClick={() => onChangeTab("keuangan-kasir")}
+            style={{
+              background: "#ffffff",
+              borderRadius: "14px",
+              padding: "8px",
+              border: "1px solid #f1f5f9",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+              cursor: "pointer",
+              textAlign: "center",
+            }}
+          >
+            <div
+              style={{
+                height: "68px",
+                background: "#ecfdf5",
+                borderRadius: "10px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: "6px",
+              }}
+            >
+              <Sparkles size={28} color="#059669" />
+            </div>
+            <div
+              style={{
+                fontSize: "0.7rem",
+                fontWeight: 700,
+                color: "#1e293b",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              Parfum
+            </div>
+            <div
+              style={{
+                fontSize: "0.62rem",
+                color: "#0d766e",
+                fontWeight: 800,
+                marginTop: "2px",
+              }}
+            >
+              Rp 30.000,-
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================================
+          BOTTOM SHEET MODAL (KESISWAAN / LIHAT SEMUA - LEFT PHONE REPLICA)
+      ========================================================================= */}
+      {isCategorySheetOpen && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.65)",
+            backdropFilter: "blur(4px)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "center",
+          }}
+        >
+          {/* Backdrop click to close */}
+          <div
+            onClick={() => setIsCategorySheetOpen(false)}
+            style={{ position: "absolute", inset: 0 }}
+          />
+
+          <div
+            style={{
+              position: "relative",
+              zIndex: 10,
+              maxWidth: "430px",
+              width: "100%",
+              background: "#ffffff",
+              borderTopLeftRadius: "26px",
+              borderTopRightRadius: "26px",
+              padding: "16px 18px 30px",
+              boxShadow: "0 -10px 40px rgba(0,0,0,0.25)",
+              animation: "slideUp 0.25s ease-out",
+            }}
+          >
+            {/* Top Drag Indicator */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                marginBottom: "12px",
+              }}
+            >
+              <div
+                style={{
+                  width: "38px",
+                  height: "4px",
+                  background: "#cbd5e1",
+                  borderRadius: "999px",
+                }}
+              />
+            </div>
+
+            {/* Header: Title & Close Button */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "20px",
+              }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: "1.1rem",
+                  fontWeight: 800,
+                  color: "#0f172a",
+                }}
+              >
+                {sheetTitle}
+              </h3>
+              <button
+                onClick={() => setIsCategorySheetOpen(false)}
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  borderRadius: "50%",
+                  border: "1px solid #e2e8f0",
+                  background: "#f8fafc",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  color: "#64748b",
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Grid of Soft Lavender Squircles (Exact Left Phone Replica) */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, 1fr)",
+                gap: "18px 8px",
+              }}
+            >
+              {/* 1. Prestasi */}
+              <div
+                onClick={() => {
+                  setIsCategorySheetOpen(false);
+                  onChangeTab("pengembangan");
+                }}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                <div
+                  style={{
+                    width: "56px",
+                    height: "56px",
+                    borderRadius: "18px",
+                    background: "#ede9fe",
+                    color: "#6366f1",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Award size={26} />
+                </div>
+                <span
+                  style={{
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    color: "#334155",
+                    textAlign: "center",
+                  }}
+                >
+                  Prestasi
+                </span>
+              </div>
+
+              {/* 2. Pelanggaran */}
+              <div
+                onClick={() => {
+                  setIsCategorySheetOpen(false);
+                  onChangeTab("tata-tertib");
+                }}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                <div
+                  style={{
+                    width: "56px",
+                    height: "56px",
+                    borderRadius: "18px",
+                    background: "#ede9fe",
+                    color: "#6366f1",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <AlertTriangle size={26} />
+                </div>
+                <span
+                  style={{
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    color: "#334155",
+                    textAlign: "center",
+                  }}
+                >
+                  Pelanggaran
+                </span>
+              </div>
+
+              {/* 3. Progres */}
+              <div
+                onClick={() => {
+                  setIsCategorySheetOpen(false);
+                  onChangeTab("pengembangan");
+                }}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                <div
+                  style={{
+                    width: "56px",
+                    height: "56px",
+                    borderRadius: "18px",
+                    background: "#ede9fe",
+                    color: "#6366f1",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <BarChart3 size={26} />
+                </div>
+                <span
+                  style={{
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    color: "#334155",
+                    textAlign: "center",
+                  }}
+                >
+                  Progres
+                </span>
+              </div>
+
+              {/* 4. Perizinan */}
+              <div
+                onClick={() => {
+                  setIsCategorySheetOpen(false);
+                  onChangeTab("perizinan");
+                }}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                <div
+                  style={{
+                    width: "56px",
+                    height: "56px",
+                    borderRadius: "18px",
+                    background: "#ede9fe",
+                    color: "#6366f1",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Clock size={26} />
+                </div>
+                <span
+                  style={{
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    color: "#334155",
+                    textAlign: "center",
+                  }}
+                >
+                  Perizinan
+                </span>
+              </div>
+
+              {/* 5. Kesehatan */}
+              <div
+                onClick={() => {
+                  setIsCategorySheetOpen(false);
+                  onChangeTab("pengembangan");
+                }}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                <div
+                  style={{
+                    width: "56px",
+                    height: "56px",
+                    borderRadius: "18px",
+                    background: "#ede9fe",
+                    color: "#6366f1",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <HeartPulse size={26} />
+                </div>
+                <span
+                  style={{
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    color: "#334155",
+                    textAlign: "center",
+                  }}
+                >
+                  Kesehatan
+                </span>
+              </div>
+
+              {/* 6. Perundungan */}
+              <div
+                onClick={() => {
+                  setIsCategorySheetOpen(false);
+                  onChangeTab("tata-tertib");
+                }}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                <div
+                  style={{
+                    width: "56px",
+                    height: "56px",
+                    borderRadius: "18px",
+                    background: "#ede9fe",
+                    color: "#6366f1",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <ShieldAlert size={26} />
+                </div>
+                <span
+                  style={{
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    color: "#334155",
+                    textAlign: "center",
+                  }}
+                >
+                  Perundungan
+                </span>
+              </div>
+
+              {/* 7. Kunjungan */}
+              <div
+                onClick={() => {
+                  setIsCategorySheetOpen(false);
+                  onChangeTab("praktek-ibadah");
+                }}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                <div
+                  style={{
+                    width: "56px",
+                    height: "56px",
+                    borderRadius: "18px",
+                    background: "#ede9fe",
+                    color: "#6366f1",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <MapPin size={26} />
+                </div>
+                <span
+                  style={{
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    color: "#334155",
+                    textAlign: "center",
+                  }}
+                >
+                  Kunjungan
+                </span>
+              </div>
+
+              {/* 8. Santri */}
+              <div
+                onClick={() => {
+                  setIsCategorySheetOpen(false);
+                  onChangeTab("master-santri");
+                }}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                <div
+                  style={{
+                    width: "56px",
+                    height: "56px",
+                    borderRadius: "18px",
+                    background: "#ede9fe",
+                    color: "#6366f1",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Users size={26} />
+                </div>
+                <span
+                  style={{
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    color: "#334155",
+                    textAlign: "center",
+                  }}
+                >
+                  Santri
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* =========================================================================
-          KONDISIONAL: TAMPILAN BENDAHARA VS TAMPILAN OPERASIONAL ASATIDZ
+          DETAIL KARTU MODAL (RIGHT PHONE REPLICA)
       ========================================================================= */}
-      {isBendahara ? (
-        <>
-          {/* =========================================================================
-              DIGITAL VAULT CARD: KAS UTAMA PESANTREN (SUPER ELEGAN & MEWAH)
-          ========================================================================= */}
-          <div style={{ padding: "0 16px", marginTop: "14px" }}>
+      {isDetailCardOpen && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "#ffffff",
+            zIndex: 10000,
+            overflowY: "auto",
+            display: "flex",
+            flexDirection: "column",
+            fontFamily:
+              "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+          }}
+        >
+          {/* Top Teal Curved Header */}
+          <div
+            style={{
+              background:
+                "linear-gradient(180deg, #0b6b60 0%, #0d766e 70%, #095c53 100%)",
+              padding: "16px 16px 28px",
+              color: "#ffffff",
+              borderBottomLeftRadius: "28px",
+              borderBottomRightRadius: "28px",
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            {/* Soft decorative wave */}
+            <svg
+              style={{
+                position: "absolute",
+                right: "-20px",
+                top: "-15px",
+                width: "220px",
+                height: "170px",
+                opacity: 0.12,
+                pointerEvents: "none",
+              }}
+              viewBox="0 0 200 200"
+              fill="none"
+            >
+              <path
+                d="M40 80C90 10 160 30 200 10L200 200L0 200C0 140 10 130 40 80Z"
+                fill="#ffffff"
+              />
+            </svg>
+
+            {/* Nav Row: Back Arrow, Title, Action Icons */}
             <div
               style={{
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                marginBottom: "8px",
+                position: "relative",
+                zIndex: 2,
               }}
             >
-              <span
+              <button
+                onClick={() => setIsDetailCardOpen(false)}
                 style={{
-                  fontSize: "0.82rem",
-                  fontWeight: 800,
-                  color: "#005baa",
-                  letterSpacing: "0.04em",
+                  background: "transparent",
+                  border: "none",
+                  color: "#ffffff",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "4px",
+                }}
+              >
+                <ArrowLeft size={22} />
+              </button>
+
+              <span style={{ fontSize: "1.05rem", fontWeight: 800 }}>
+                Detail Kartu
+              </span>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <CreditCard size={20} />
+                <Settings size={20} />
+              </div>
+            </div>
+
+            {/* Profile Section Inside Header */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                textAlign: "center",
+                marginTop: "16px",
+                position: "relative",
+                zIndex: 2,
+              }}
+            >
+              <div
+                style={{
+                  width: "60px",
+                  height: "70px",
+                  borderRadius: "8px",
+                  background: "#dc2626",
+                  border: "2px solid #ffffff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+                  overflow: "hidden",
+                  marginBottom: "8px",
+                }}
+              >
+                <User size={38} color="#ffffff" />
+              </div>
+              <div
+                style={{
+                  fontSize: "1rem",
+                  fontWeight: 900,
+                  letterSpacing: "0.02em",
                   textTransform: "uppercase",
                 }}
               >
-                KAS & KEUANGAN PESANTREN
-              </span>
-              <span
-                onClick={() => onChangeTab("keuangan-rekap")}
+                {displayName || "ICHA SYAHRIZATI"}
+              </div>
+              <div
                 style={{
-                  fontSize: "0.74rem",
-                  fontWeight: 700,
-                  color: "#005baa",
-                  cursor: "pointer",
+                  fontSize: "0.72rem",
+                  color: "#a7f3d0",
+                  marginTop: "2px",
                 }}
               >
-                Selengkapnya &gt;
-              </span>
+                Pondok Pesantren Nurul Wafa
+              </div>
+              <div
+                style={{
+                  fontSize: "0.72rem",
+                  color: "#e2e8f0",
+                  marginTop: "3px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <span>1000 0051 4753 4906</span>
+                <Copy size={13} style={{ cursor: "pointer", opacity: 0.8 }} />
+              </div>
             </div>
+          </div>
+
+          {/* White Card: Saldo Uang Saku & 3 Round Quick Buttons */}
+          <div style={{ padding: "0 16px", marginTop: "-20px", position: "relative", zIndex: 10 }}>
             <div
               style={{
-                background:
-                  "linear-gradient(145deg, #022c22 0%, #064e3b 50%, #065f46 100%)",
-                borderRadius: "26px",
-                border: "1.5px solid rgba(52, 211, 153, 0.35)",
-                padding: "20px 18px",
+                background: "#ffffff",
+                borderRadius: "22px",
+                padding: "18px 16px",
                 boxShadow:
-                  "0 16px 36px -8px rgba(6, 78, 59, 0.45), 0 4px 12px rgba(0, 0, 0, 0.12)",
-                position: "relative",
-                zIndex: 10,
-                color: "#ffffff",
-                overflow: "hidden",
+                  "0 10px 25px -4px rgba(11, 107, 96, 0.15), 0 3px 10px rgba(0,0,0,0.04)",
+                border: "1px solid #e2e8f0",
+                textAlign: "center",
               }}
             >
-              {/* Background Geometric Texture Glow */}
+              <div style={{ fontSize: "0.74rem", color: "#64748b", fontWeight: 600 }}>
+                Saldo Uang Saku
+              </div>
               <div
                 style={{
-                  position: "absolute",
-                  top: "-40px",
-                  right: "-40px",
-                  width: "140px",
-                  height: "140px",
-                  borderRadius: "50%",
-                  background:
-                    "radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, rgba(6, 78, 59, 0) 70%)",
-                  pointerEvents: "none",
-                }}
-              />
-
-              {/* Card Top Row: Chip EMV Gold & Label Kas */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "16px",
+                  fontSize: "1.6rem",
+                  fontWeight: 900,
+                  color: "#0f172a",
+                  letterSpacing: "-0.5px",
+                  marginTop: "4px",
                 }}
               >
+                {showBalanceEye ? "Rp. 1.500.000,-" : "Rp ••••••••"}
+              </div>
+              <div style={{ fontSize: "0.68rem", color: "#94a3b8", marginTop: "2px" }}>
+                Tidak Ada Limit Harian
+              </div>
+
+              {/* 3 Round Quick Action Buttons */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gap: "12px",
+                  marginTop: "16px",
+                  paddingTop: "14px",
+                  borderTop: "1px solid #f1f5f9",
+                }}
+              >
+                {/* 1. Isi Kartu */}
                 <div
-                  style={{ display: "flex", alignItems: "center", gap: "10px" }}
+                  onClick={() => onChangeTab("keuangan-kasir")}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "6px",
+                    cursor: "pointer",
+                  }}
                 >
-                  {/* Gold EMV Chip Simulation */}
                   <div
                     style={{
-                      width: "36px",
-                      height: "26px",
-                      borderRadius: "6px",
-                      background:
-                        "linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #d97706 100%)",
-                      border: "1px solid #fef3c7",
-                      boxShadow: "0 2px 6px rgba(217, 119, 6, 0.4)",
+                      width: "44px",
+                      height: "44px",
+                      borderRadius: "50%",
+                      background: "#0d766e",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "20px",
-                        height: "1px",
-                        background: "rgba(0,0,0,0.25)",
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <span
-                      style={{
-                        fontSize: "0.68rem",
-                        fontWeight: 800,
-                        letterSpacing: "0.08em",
-                        color: "#a7f3d0",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      KAS UTAMA PESANTREN
-                    </span>
-                    <div
-                      style={{
-                        fontSize: "0.6rem",
-                        color: "#6ee7b7",
-                        opacity: 0.85,
-                      }}
-                    >
-                      Rekening Operasional & SPP
-                    </div>
-                  </div>
-                </div>
-
-                {/* Badge Status Online */}
-                <div
-                  style={{
-                    background: "rgba(16, 185, 129, 0.2)",
-                    border: "1px solid rgba(52, 211, 153, 0.4)",
-                    color: "#34d399",
-                    padding: "3px 10px",
-                    borderRadius: "999px",
-                    fontSize: "0.65rem",
-                    fontWeight: 800,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "5px",
-                  }}
-                >
-                  <span
-                    style={{
-                      width: "6px",
-                      height: "6px",
-                      borderRadius: "50%",
-                      background: "#34d399",
-                      boxShadow: "0 0 6px #34d399",
-                    }}
-                  />
-                  REALTIME
-                </div>
-              </div>
-
-              {/* Saldo Pemasukan Kas Masuk Utama */}
-              <div style={{ marginBottom: "18px" }}>
-                <div
-                  style={{
-                    fontSize: "0.74rem",
-                    color: "#d1fae5",
-                    fontWeight: 600,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                  }}
-                >
-                  <span>Total Penerimaan Kas (Pemasukan)</span>
-                  <span
-                    style={{
-                      background: "rgba(255,255,255,0.15)",
-                      padding: "1px 6px",
-                      borderRadius: "4px",
-                      fontSize: "0.6rem",
-                    }}
-                  >
-                    Bulan Berjalan
-                  </span>
-                </div>
-                <div
-                  style={{
-                    fontSize: "1.75rem",
-                    fontWeight: 900,
-                    letterSpacing: "-0.5px",
-                    color: "#ffffff",
-                    marginTop: "4px",
-                    display: "flex",
-                    alignItems: "baseline",
-                    gap: "6px",
-                    textShadow: "0 2px 10px rgba(0,0,0,0.3)",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "1.1rem",
-                      fontWeight: 700,
-                      color: "#34d399",
-                    }}
-                  >
-                    Rp
-                  </span>
-                  <span>
-                    {Number(
-                      keuanganData.summary?.total_kas_masuk_sah ||
-                        keuanganData.summary?.total_terbayar ||
-                        0,
-                    ).toLocaleString("id-ID")}
-                  </span>
-                </div>
-              </div>
-
-              {/* Sub-Metrics Inside Card: Tunggakan & Status Tagihan */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "10px",
-                  background: "rgba(0, 20, 15, 0.55)",
-                  backdropFilter: "blur(12px)",
-                  borderRadius: "18px",
-                  padding: "12px 14px",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                }}
-              >
-                {/* Tunggakan Piutang */}
-                <div
-                  onClick={() => onChangeTab("keuangan-tunggakan")}
-                  style={{
-                    cursor: "pointer",
-                    borderRight: "1px solid rgba(255, 255, 255, 0.12)",
-                    paddingRight: "8px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "0.66rem",
-                      color: "#fca5a5",
-                      fontWeight: 700,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                    }}
-                  >
-                    <AlertTriangle size={12} color="#f87171" />
-                    <span>Total Piutang Santri</span>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "0.95rem",
-                      fontWeight: 800,
-                      color: "#fecdd3",
-                      marginTop: "3px",
-                    }}
-                  >
-                    Rp{" "}
-                    {Number(
-                      keuanganData.summary?.total_tunggakan || 0,
-                    ).toLocaleString("id-ID")}
-                  </div>
-                </div>
-
-                {/* Progress Status Tagihan */}
-                <div
-                  onClick={() => onChangeTab("keuangan-rekap")}
-                  style={{ cursor: "pointer", paddingLeft: "4px" }}
-                >
-                  <div
-                    style={{
-                      fontSize: "0.66rem",
-                      color: "#93c5fd",
-                      fontWeight: 700,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                    }}
-                  >
-                    <CheckCircle2 size={12} color="#60a5fa" />
-                    <span>Realisasi SPP</span>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "0.85rem",
-                      fontWeight: 800,
                       color: "#ffffff",
-                      marginTop: "3px",
+                      boxShadow: "0 4px 10px rgba(13, 118, 110, 0.3)",
                     }}
                   >
-                    <span style={{ color: "#34d399" }}>
-                      {keuanganData.summary?.jumlah_tagihan_lunas || 0} Lunas
-                    </span>
-                    <span
-                      style={{
-                        color: "#94a3b8",
-                        fontSize: "0.72rem",
-                        margin: "0 4px",
-                      }}
-                    >
-                      •
-                    </span>
-                    <span style={{ color: "#f87171", fontSize: "0.75rem" }}>
-                      {keuanganData.summary?.jumlah_tagihan_tertunggak || 0}{" "}
-                      Nunggak
-                    </span>
+                    <Plus size={20} />
                   </div>
+                  <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#334155" }}>
+                    Isi Kartu
+                  </span>
                 </div>
-              </div>
 
-              {/* 2 Action Buttons Integrated Inside Card */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1.4fr 1fr",
-                  gap: "10px",
-                  marginTop: "14px",
-                }}
-              >
-                <button
-                  onClick={() => onChangeTab("keuangan-kasir")}
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                    border: "none",
-                    color: "#ffffff",
-                    padding: "10px 14px",
-                    borderRadius: "14px",
-                    fontWeight: 800,
-                    fontSize: "0.78rem",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "6px",
-                    cursor: "pointer",
-                    boxShadow: "0 4px 14px rgba(16, 185, 129, 0.4)",
-                  }}
-                >
-                  <CreditCard size={15} />
-                  <span>Buka Kasir Bayar &gt;</span>
-                </button>
-
-                <button
+                {/* 2. Rekap Keuangan */}
+                <div
                   onClick={() => onChangeTab("keuangan-rekap")}
                   style={{
-                    background: "rgba(255, 255, 255, 0.12)",
-                    border: "1px solid rgba(255, 255, 255, 0.2)",
-                    color: "#ffffff",
-                    padding: "10px 12px",
-                    borderRadius: "14px",
-                    fontWeight: 700,
-                    fontSize: "0.75rem",
                     display: "flex",
+                    flexDirection: "column",
                     alignItems: "center",
-                    justifyContent: "center",
                     gap: "6px",
                     cursor: "pointer",
                   }}
                 >
-                  <BarChart3 size={15} color="#a7f3d0" />
-                  <span>Laporan &gt;</span>
-                </button>
+                  <div
+                    style={{
+                      width: "44px",
+                      height: "44px",
+                      borderRadius: "50%",
+                      background: "#0d766e",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#ffffff",
+                      boxShadow: "0 4px 10px rgba(13, 118, 110, 0.3)",
+                    }}
+                  >
+                    <Receipt size={18} />
+                  </div>
+                  <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#334155" }}>
+                    Rekap Keuangan
+                  </span>
+                </div>
+
+                {/* 3. Pindah */}
+                <div
+                  onClick={() => onChangeTab("master-santri")}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "6px",
+                    cursor: "pointer",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "44px",
+                      height: "44px",
+                      borderRadius: "50%",
+                      background: "#0d766e",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#ffffff",
+                      boxShadow: "0 4px 10px rgba(13, 118, 110, 0.3)",
+                    }}
+                  >
+                    <RotateCw size={18} />
+                  </div>
+                  <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#334155" }}>
+                    Pindah
+                  </span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* =========================================================================
-              8 MENU KHUSUS KEUANGAN & BENDAHARA
-          ========================================================================= */}
-          <div style={{ padding: "18px 14px 6px" }}>
-            <div
-              style={{
-                fontSize: "0.78rem",
-                fontWeight: 800,
-                color: "#334155",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                marginBottom: "12px",
-                paddingLeft: "4px",
-              }}
-            >
-              Menu Layanan Keuangan
-            </div>
-            <div
-              className="mobile-squircle-grid"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
-                gap: "16px 8px",
-              }}
-            >
-              {/* 1. Kasir & Pembayaran */}
-              <div
-                onClick={() => onChangeTab("keuangan-kasir")}
-                className="mobile-menu-interactive"
-              >
-                <div
-                  className="squircle-icon-animated"
-                  style={{
-                    background: "linear-gradient(135deg, #059669, #047857)",
-                    boxShadow: "0 8px 16px -2px rgba(5, 150, 105, 0.35)",
-                  }}
-                >
-                  <CreditCard size={26} />
-                </div>
-                <span style={menuLabelStyle}>Kasir Santri</span>
-              </div>
-
-              {/* 2. Laporan Rekap */}
-              <div
-                onClick={() => onChangeTab("keuangan-rekap")}
-                className="mobile-menu-interactive"
-              >
-                <div
-                  className="squircle-icon-animated"
-                  style={{
-                    background: "linear-gradient(135deg, #0284c7, #0369a1)",
-                    boxShadow: "0 8px 16px -2px rgba(2, 132, 199, 0.35)",
-                  }}
-                >
-                  <BarChart3 size={26} />
-                </div>
-                <span style={menuLabelStyle}>Laporan Kas</span>
-              </div>
-
-              {/* 3. Tagihan SPP */}
-              <div
-                onClick={() => onChangeTab("keuangan-spp")}
-                className="mobile-menu-interactive"
-              >
-                <div
-                  className="squircle-icon-animated"
-                  style={{
-                    background: "linear-gradient(135deg, #7c3aed, #6d28d9)",
-                    boxShadow: "0 8px 16px -2px rgba(124, 58, 237, 0.35)",
-                  }}
-                >
-                  <FileText size={26} />
-                </div>
-                <span style={menuLabelStyle}>Tagihan SPP</span>
-              </div>
-
-              {/* 4. Biaya Awal Masuk */}
-              <div
-                onClick={() => onChangeTab("keuangan-masuk")}
-                className="mobile-menu-interactive"
-              >
-                <div
-                  className="squircle-icon-animated"
-                  style={{
-                    background: "linear-gradient(135deg, #d97706, #b45309)",
-                    boxShadow: "0 8px 16px -2px rgba(217, 119, 6, 0.35)",
-                  }}
-                >
-                  <Building2 size={26} />
-                </div>
-                <span style={menuLabelStyle}>Biaya Masuk</span>
-              </div>
-
-              {/* 5. Midtrans QRIS & VA */}
-              <div
-                onClick={() => onChangeTab("keuangan-midtrans")}
-                className="mobile-menu-interactive"
-              >
-                <div
-                  className="squircle-icon-animated"
-                  style={{
-                    background: "linear-gradient(135deg, #0891b2, #0e7490)",
-                    boxShadow: "0 8px 16px -2px rgba(8, 145, 178, 0.35)",
-                  }}
-                >
-                  <Zap size={26} />
-                </div>
-                <span style={menuLabelStyle}>QRIS & VA</span>
-              </div>
-
-              {/* 6. Daftar Tunggakan */}
-              <div
-                onClick={() => onChangeTab("keuangan-tunggakan")}
-                className="mobile-menu-interactive"
-              >
-                <div
-                  className="squircle-icon-animated"
-                  style={{
-                    background: "linear-gradient(135deg, #e11d48, #be123c)",
-                    boxShadow: "0 8px 16px -2px rgba(225, 29, 72, 0.35)",
-                  }}
-                >
-                  <AlertTriangle size={26} />
-                </div>
-                <span style={menuLabelStyle}>Tunggakan</span>
-              </div>
-
-              {/* 7. Tarif Komponen Biaya */}
-              <div
-                onClick={() => onChangeTab("keuangan-komponen")}
-                className="mobile-menu-interactive"
-              >
-                <div
-                  className="squircle-icon-animated"
-                  style={{
-                    background: "linear-gradient(135deg, #4f46e5, #4338ca)",
-                    boxShadow: "0 8px 16px -2px rgba(79, 70, 229, 0.35)",
-                  }}
-                >
-                  <Layers size={26} />
-                </div>
-                <span style={menuLabelStyle}>Tarif Biaya</span>
-              </div>
-
-              {/* 8. Generate Tagihan */}
-              <div
-                onClick={() => onChangeTab("keuangan-generate")}
-                className="mobile-menu-interactive"
-              >
-                <div
-                  className="squircle-icon-animated"
-                  style={{
-                    background: "linear-gradient(135deg, #0f766e, #115e59)",
-                    boxShadow: "0 8px 16px -2px rgba(15, 118, 110, 0.35)",
-                  }}
-                >
-                  <RotateCw size={26} />
-                </div>
-                <span style={menuLabelStyle}>Generate SPP</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Transaksi Pembayaran Terkini */}
-          <div style={{ padding: "16px 16px 20px" }}>
+          {/* Riwayat Transaksi Section */}
+          <div style={{ padding: "18px 16px 28px" }}>
             <div
               style={{
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                marginBottom: "10px",
+                marginBottom: "12px",
               }}
             >
-              <div
-                style={{
-                  fontSize: "0.78rem",
-                  fontWeight: 800,
-                  color: "#334155",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                }}
-              >
-                Transaksi Masuk Terakhir
-              </div>
+              <span style={{ fontSize: "0.86rem", fontWeight: 800, color: "#1e293b" }}>
+                Riwayat Transaksi
+              </span>
               <button
-                onClick={() => onChangeTab("keuangan-transaksi")}
                 style={{
-                  background: "none",
+                  background: "#f1f5f9",
                   border: "none",
-                  color: "#059669",
-                  fontSize: "0.72rem",
+                  borderRadius: "8px",
+                  padding: "4px 10px",
+                  fontSize: "0.7rem",
                   fontWeight: 700,
+                  color: "#64748b",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
                   cursor: "pointer",
                 }}
               >
-                Lihat Semua
+                <span>Filter</span>
+                <Filter size={12} />
               </button>
             </div>
 
+            {/* Month Filter Tabs */}
             <div
-              style={{ display: "flex", flexDirection: "column", gap: "8px" }}
-            >
-              {(keuanganData.transaksiTerakhir || [])
-                .filter(
-                  (trx) =>
-                    trx.status_pembayaran === "Berhasil" ||
-                    trx.status_pembayaran === "settlement",
-                )
-                .slice(0, 4)
-                .map((trx, idx) => {
-                  return (
-                    <div
-                      key={trx.id || idx}
-                      onClick={() => onChangeTab("keuangan-transaksi")}
-                      style={{
-                        background: "#ffffff",
-                        borderRadius: "14px",
-                        padding: "12px 14px",
-                        border: "1px solid #e2e8f0",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <div>
-                        <div
-                          style={{
-                            fontWeight: 800,
-                            fontSize: "0.84rem",
-                            color: "#0f172a",
-                          }}
-                        >
-                          {trx.nama_santri || "Santri"}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "0.68rem",
-                            color: "#64748b",
-                            marginTop: "2px",
-                          }}
-                        >
-                          #{trx.nomor_transaksi} •{" "}
-                          {trx.metode_pembayaran || "Tunai"}
-                        </div>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div
-                          style={{
-                            fontWeight: 800,
-                            fontSize: "0.84rem",
-                            color: "#059669",
-                          }}
-                        >
-                          Rp{" "}
-                          {Number(trx.total_bayar || 0).toLocaleString("id-ID")}
-                        </div>
-                        <span
-                          style={{
-                            display: "inline-block",
-                            fontSize: "0.6rem",
-                            fontWeight: 800,
-                            padding: "2px 6px",
-                            borderRadius: "6px",
-                            marginTop: "2px",
-                            background: "#dcfce7",
-                            color: "#15803d",
-                          }}
-                        >
-                          Lunas
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-
-              {(!keuanganData.transaksiTerakhir ||
-                keuanganData.transaksiTerakhir.filter(
-                  (t) =>
-                    t.status_pembayaran === "Berhasil" ||
-                    t.status_pembayaran === "settlement",
-                ).length === 0) && (
-                <div
-                  style={{
-                    padding: "20px",
-                    textAlign: "center",
-                    background: "#ffffff",
-                    borderRadius: "14px",
-                    border: "1px dashed #cbd5e1",
-                    color: "#94a3b8",
-                    fontSize: "0.78rem",
-                  }}
-                >
-                  Belum ada pembayaran kas masuk yang lunas/berhasil
-                </div>
-              )}
-            </div>
-          </div>
-        </>
-      ) : (
-        <>
-          {/* =========================================================================
-              CARD MENU: GAYA PERSIS myBCA (DATA MASTER & TRANSAKSI)
-          ========================================================================= */}
-          <div style={{ padding: "0 16px", marginTop: "16px" }}>
-            <div
-              onTouchStart={(e) => {
-                touchStartX.current = e.touches[0].clientX;
-              }}
-              onTouchEnd={(e) => {
-                if (touchStartX.current === null) return;
-                const diff = touchStartX.current - e.changedTouches[0].clientX;
-                if (diff > 45) setMenuCardTab("transaksi");
-                else if (diff < -45) setMenuCardTab("master");
-                touchStartX.current = null;
-              }}
               style={{
-                background: "#ffffff",
-                borderRadius: "24px",
-                boxShadow:
-                  "0 10px 25px -4px rgba(0, 91, 170, 0.08), 0 2px 8px rgba(0, 0, 0, 0.03)",
-                border: "1px solid #e2e8f0",
-                overflow: "hidden",
-                transition: "all 0.2s ease",
+                display: "flex",
+                gap: "8px",
+                overflowX: "auto",
+                paddingBottom: "8px",
+                marginBottom: "12px",
               }}
             >
-              {/* Top Banner myBCA Style */}
+              {["Feb", "Mar", "Apr", "Mei", "Jun"].map((m) => {
+                const isActive = selectedDetailMonth === m;
+                return (
+                  <button
+                    key={m}
+                    onClick={() => setSelectedDetailMonth(m)}
+                    style={{
+                      background: isActive ? "#0d766e" : "#f1f5f9",
+                      color: isActive ? "#ffffff" : "#64748b",
+                      border: "none",
+                      borderRadius: "14px",
+                      padding: "5px 14px",
+                      fontSize: "0.72rem",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {m}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* List of Recent Transactions */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {/* Item 1 */}
               <div
                 style={{
-                  background:
-                    "linear-gradient(90deg, #005baa 0%, #0072ce 50%, #7c3aed 100%)",
-                  padding: "10px 16px",
+                  background: "#ffffff",
+                  borderRadius: "14px",
+                  padding: "12px 14px",
+                  border: "1px solid #f1f5f9",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.03)",
                   display: "flex",
-                  alignItems: "center",
                   justifyContent: "space-between",
-                  color: "#ffffff",
+                  alignItems: "center",
                 }}
               >
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-                >
-                  <Sparkles size={14} color="#67e8f9" />
-                  <span
-                    style={{
-                      fontSize: "0.74rem",
-                      fontWeight: 800,
-                      letterSpacing: "0.02em",
-                    }}
-                  >
-                    {menuCardTab === "master"
-                      ? "Kategori: Data Master"
-                      : "Kategori: Transaksi Santri"}
-                  </span>
+                <div>
+                  <div style={{ fontSize: "0.78rem", fontWeight: 800, color: "#0f172a" }}>
+                    Isi Saldo Kartu Santri
+                  </div>
+                  <div style={{ fontSize: "0.66rem", color: "#64748b", marginTop: "2px" }}>
+                    via CashPoint • 30 Mei 2025
+                  </div>
                 </div>
-                <div
-                  onClick={() =>
-                    setMenuCardTab(
-                      menuCardTab === "master" ? "transaksi" : "master",
-                    )
-                  }
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    fontSize: "0.7rem",
-                    fontWeight: 700,
-                    color: "#e0f2fe",
-                    cursor: "pointer",
-                  }}
-                >
-                  <span>
-                    {menuCardTab === "master" ? "Transaksi >" : "Data Master >"}
-                  </span>
+                <div style={{ fontSize: "0.82rem", fontWeight: 800, color: "#16a34a" }}>
+                  Rp. 1.500.000,-
                 </div>
               </div>
 
-              {/* Card Body Grid with Smooth Transition */}
-              <div style={{ padding: "18px 12px 14px", minHeight: "175px" }}>
-                {menuCardTab === "master" ? (
-                  /* PAGE 1: DATA MASTER (4 COLUMNS X 2 ROWS) */
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(4, 1fr)",
-                      gap: "16px 6px",
-                    }}
-                  >
-                    {/* 1. Santri */}
-                    <div
-                      onClick={() => onChangeTab("master-santri")}
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "6px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "50px",
-                          height: "50px",
-                          borderRadius: "17px",
-                          background:
-                            "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
-                          border: "1px solid #bfdbfe",
-                          color: "#1d4ed8",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          boxShadow: "0 3px 10px rgba(37, 99, 235, 0.12)",
-                        }}
-                      >
-                        <Users size={23} />
-                      </div>
-                      <span
-                        style={{
-                          fontSize: "0.72rem",
-                          fontWeight: 700,
-                          color: "#334155",
-                          textAlign: "center",
-                        }}
-                      >
-                        Santri
-                      </span>
-                    </div>
-
-                    {/* 2. Asrama */}
-                    <div
-                      onClick={() => onChangeTab("master-asrama")}
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "6px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "50px",
-                          height: "50px",
-                          borderRadius: "17px",
-                          background:
-                            "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
-                          border: "1px solid #fcd34d",
-                          color: "#b45309",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          boxShadow: "0 3px 10px rgba(217, 119, 6, 0.12)",
-                        }}
-                      >
-                        <Building size={23} />
-                      </div>
-                      <span
-                        style={{
-                          fontSize: "0.72rem",
-                          fontWeight: 700,
-                          color: "#334155",
-                          textAlign: "center",
-                        }}
-                      >
-                        Asrama
-                      </span>
-                    </div>
-
-                    {/* 3. Kelas */}
-                    <div
-                      onClick={() => onChangeTab("master-kelas")}
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "6px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "50px",
-                          height: "50px",
-                          borderRadius: "17px",
-                          background:
-                            "linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)",
-                          border: "1px solid #a5b4fc",
-                          color: "#4338ca",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          boxShadow: "0 3px 10px rgba(79, 70, 229, 0.12)",
-                        }}
-                      >
-                        <Layers size={23} />
-                      </div>
-                      <span
-                        style={{
-                          fontSize: "0.72rem",
-                          fontWeight: 700,
-                          color: "#334155",
-                          textAlign: "center",
-                        }}
-                      >
-                        Kelas
-                      </span>
-                    </div>
-
-                    {/* 4. Asatidz */}
-                    <div
-                      onClick={() => onChangeTab("master-asatidz")}
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "6px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "50px",
-                          height: "50px",
-                          borderRadius: "17px",
-                          background:
-                            "linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%)",
-                          border: "1px solid #5eead4",
-                          color: "#0f766e",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          boxShadow: "0 3px 10px rgba(13, 148, 136, 0.12)",
-                        }}
-                      >
-                        <UserCheck size={23} />
-                      </div>
-                      <span
-                        style={{
-                          fontSize: "0.72rem",
-                          fontWeight: 700,
-                          color: "#334155",
-                          textAlign: "center",
-                        }}
-                      >
-                        Asatidz
-                      </span>
-                    </div>
-
-                    {/* 5. Tata Tertib */}
-                    <div
-                      onClick={() => onChangeTab("tata-tertib")}
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "6px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "50px",
-                          height: "50px",
-                          borderRadius: "17px",
-                          background:
-                            "linear-gradient(135deg, #ffe4e6 0%, #fecdd3 100%)",
-                          border: "1px solid #fda4af",
-                          color: "#be123c",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          boxShadow: "0 3px 10px rgba(225, 29, 72, 0.12)",
-                        }}
-                      >
-                        <ShieldAlert size={23} />
-                      </div>
-                      <span
-                        style={{
-                          fontSize: "0.72rem",
-                          fontWeight: 700,
-                          color: "#334155",
-                          textAlign: "center",
-                        }}
-                      >
-                        Tata Tertib
-                      </span>
-                    </div>
-
-                    {/* 6. Daftar Wajah */}
-                    <div
-                      onClick={() => onChangeTab("daftar-wajah")}
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "6px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "50px",
-                          height: "50px",
-                          borderRadius: "17px",
-                          background:
-                            "linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)",
-                          border: "1px solid #7dd3fc",
-                          color: "#0369a1",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          boxShadow: "0 3px 10px rgba(2, 132, 199, 0.12)",
-                        }}
-                      >
-                        <Smile size={23} />
-                      </div>
-                      <span
-                        style={{
-                          fontSize: "0.72rem",
-                          fontWeight: 700,
-                          color: "#334155",
-                          textAlign: "center",
-                        }}
-                      >
-                        Daftar Wajah
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  /* PAGE 2: TRANSAKSI (4 COLUMNS) */
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(4, 1fr)",
-                      gap: "16px 6px",
-                    }}
-                  >
-                    {/* 1. Presensi (Royal Blue) */}
-                    <div
-                      onClick={() => onChangeTab("presensi")}
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "6px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "50px",
-                          height: "50px",
-                          borderRadius: "17px",
-                          background:
-                            "linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)",
-                          border: "1px solid #7dd3fc",
-                          color: "#005baa",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          boxShadow: "0 3px 10px rgba(0, 91, 170, 0.15)",
-                        }}
-                      >
-                        <Fingerprint size={23} />
-                      </div>
-                      <span
-                        style={{
-                          fontSize: "0.72rem",
-                          fontWeight: 700,
-                          color: "#334155",
-                          textAlign: "center",
-                        }}
-                      >
-                        Presensi
-                      </span>
-                    </div>
-
-                    {/* 2. Perizinan (Cyan) */}
-                    <div
-                      onClick={() => onChangeTab("perizinan")}
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "6px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "50px",
-                          height: "50px",
-                          borderRadius: "17px",
-                          background:
-                            "linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%)",
-                          border: "1px solid #67e8f9",
-                          color: "#0e7490",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          boxShadow: "0 3px 10px rgba(6, 182, 212, 0.15)",
-                        }}
-                      >
-                        <DoorOpen size={23} />
-                      </div>
-                      <span
-                        style={{
-                          fontSize: "0.72rem",
-                          fontWeight: 700,
-                          color: "#334155",
-                          textAlign: "center",
-                        }}
-                      >
-                        Perizinan
-                      </span>
-                    </div>
-
-                    {/* 3. Perkembangan (Indigo / Purple) */}
-                    <div
-                      onClick={() => onChangeTab("pengembangan")}
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "6px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "50px",
-                          height: "50px",
-                          borderRadius: "17px",
-                          background:
-                            "linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)",
-                          border: "1px solid #c4b5fd",
-                          color: "#6d28d9",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          boxShadow: "0 3px 10px rgba(124, 58, 237, 0.15)",
-                        }}
-                      >
-                        <Award size={23} />
-                      </div>
-                      <span
-                        style={{
-                          fontSize: "0.72rem",
-                          fontWeight: 700,
-                          color: "#334155",
-                          textAlign: "center",
-                        }}
-                      >
-                        Perkembangan
-                      </span>
-                    </div>
-
-                    {/* 4. Praktek (Emerald Green) */}
-                    <div
-                      onClick={() => onChangeTab("praktek-ibadah")}
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "6px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "50px",
-                          height: "50px",
-                          borderRadius: "17px",
-                          background:
-                            "linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)",
-                          border: "1px solid #86efac",
-                          color: "#15803d",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          boxShadow: "0 3px 10px rgba(16, 185, 129, 0.15)",
-                        }}
-                      >
-                        <HeartHandshake size={23} />
-                      </div>
-                      <span
-                        style={{
-                          fontSize: "0.72rem",
-                          fontWeight: 700,
-                          color: "#334155",
-                          textAlign: "center",
-                        }}
-                      >
-                        Praktek
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* myBCA Style Pagination Dots Indicator (Clickable to switch page) */}
+              {/* Item 2 */}
               <div
                 style={{
+                  background: "#ffffff",
+                  borderRadius: "14px",
+                  padding: "12px 14px",
+                  border: "1px solid #f1f5f9",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.03)",
                   display: "flex",
-                  justifyContent: "center",
+                  justifyContent: "space-between",
                   alignItems: "center",
-                  gap: "6px",
-                  paddingBottom: "14px",
-                  cursor: "pointer",
                 }}
               >
-                <div
-                  onClick={() => setMenuCardTab("master")}
-                  title="Data Master"
-                  style={{
-                    width: menuCardTab === "master" ? "22px" : "6px",
-                    height: "4px",
-                    borderRadius: "4px",
-                    background:
-                      menuCardTab === "master" ? "#005baa" : "#cbd5e1",
-                    transition: "all 0.25s ease",
-                  }}
-                />
-                <div
-                  onClick={() => setMenuCardTab("transaksi")}
-                  title="Transaksi"
-                  style={{
-                    width: menuCardTab === "transaksi" ? "22px" : "6px",
-                    height: "4px",
-                    borderRadius: "4px",
-                    background:
-                      menuCardTab === "transaksi" ? "#005baa" : "#cbd5e1",
-                    transition: "all 0.25s ease",
-                  }}
-                />
+                <div>
+                  <div style={{ fontSize: "0.78rem", fontWeight: 800, color: "#0f172a" }}>
+                    Beli Peci Hitam
+                  </div>
+                  <div style={{ fontSize: "0.66rem", color: "#64748b", marginTop: "2px" }}>
+                    via Kantin • 29 Mei 2025
+                  </div>
+                </div>
+                <div style={{ fontSize: "0.82rem", fontWeight: 800, color: "#ef4444" }}>
+                  -Rp 75.000,-
+                </div>
+              </div>
+
+              {/* Item 3 */}
+              <div
+                style={{
+                  background: "#ffffff",
+                  borderRadius: "14px",
+                  padding: "12px 14px",
+                  border: "1px solid #f1f5f9",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.03)",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: "0.78rem", fontWeight: 800, color: "#0f172a" }}>
+                    Beli Parfum Sholat
+                  </div>
+                  <div style={{ fontSize: "0.66rem", color: "#64748b", marginTop: "2px" }}>
+                    via Kantin • 29 Mei 2025
+                  </div>
+                </div>
+                <div style={{ fontSize: "0.82rem", fontWeight: 800, color: "#ef4444" }}>
+                  -Rp 30.000,-
+                </div>
               </div>
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* =========================================================================
