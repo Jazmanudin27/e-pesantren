@@ -62,6 +62,7 @@ import { showConfirm, toastSuccess } from '../utils/alert.util';
 
 export default function AdminLayout() {
   const isAbsensiTab = (tab) => ['absensi-berjamaah', 'presensi-berjamaah', 'presensi', 'absensi-mengaji', 'presensi-kegiatan'].includes(tab);
+  const isPengembanganTab = (tab) => ['perkembangan-santri-laki', 'perkembangan-ikhwan', 'perkembangan-santri-perempuan', 'perkembangan-santriwati', 'perkembangan-akhwat'].includes(tab);
   const isMasterTab = (tab) => ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-materi', 'setting-shalat', 'setting-kegiatan', 'master-kegiatan'].includes(tab);
   const isSettingsTab = (tab) => ['master-device', 'manajemen-user', 'users'].includes(tab);
   const isLaporanTab = (tab) => ['laporan-presensi', 'laporan-tahfidz'].includes(tab);
@@ -76,6 +77,7 @@ export default function AdminLayout() {
   const initialTab = getInitialTab();
   const [activeTab, setActiveTab] = useState(initialTab);
   const [isAbsensiOpen, setIsAbsensiOpen] = useState(() => isAbsensiTab(initialTab));
+  const [isPengembanganOpen, setIsPengembanganOpen] = useState(() => isPengembanganTab(initialTab));
   const [isMasterOpen, setIsMasterOpen] = useState(() => isMasterTab(initialTab));
   const [isSettingsOpen, setIsSettingsOpen] = useState(() => isSettingsTab(initialTab));
   const [isLaporanOpen, setIsLaporanOpen] = useState(() => isLaporanTab(initialTab));
@@ -251,6 +253,7 @@ export default function AdminLayout() {
     
     // Auto open/close dropdown based on active tab
     setIsAbsensiOpen(isAbsensiTab(tab));
+    setIsPengembanganOpen(isPengembanganTab(tab));
     setIsMasterOpen(isMasterTab(tab));
     setIsSettingsOpen(isSettingsTab(tab));
     setIsLaporanOpen(isLaporanTab(tab));
@@ -264,6 +267,7 @@ export default function AdminLayout() {
       setActiveTab(current);
       localStorage.setItem('epesantren_tab', current);
       setIsAbsensiOpen(isAbsensiTab(current));
+      setIsPengembanganOpen(isPengembanganTab(current));
       setIsMasterOpen(isMasterTab(current));
       setIsSettingsOpen(isSettingsTab(current));
       setIsLaporanOpen(isLaporanTab(current));
@@ -389,6 +393,7 @@ export default function AdminLayout() {
   };
 
   const isAbsensiActive = ['absensi-berjamaah', 'presensi-berjamaah', 'presensi', 'absensi-mengaji', 'presensi-kegiatan'].includes(activeTab);
+  const isPengembanganActive = isPengembanganTab(activeTab);
   const isMasterActive = ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-materi', 'kurikulum-pengajian', 'jadwal-mengajar', 'setting-shalat', 'setting-kegiatan', 'master-kegiatan'].includes(activeTab);
   const isSettingsActive = ['master-device', 'manajemen-user', 'users'].includes(activeTab);
   const isLaporanActive = ['laporan-presensi', 'laporan-tahfidz'].includes(activeTab);
@@ -550,27 +555,37 @@ export default function AdminLayout() {
           </div>
         </button>
 
+        {/* PENGEMBANGAN DROPDOWN */}
         <button 
-          className={`nav-link ${activeTab === 'perkembangan-santri-laki' || activeTab === 'perkembangan-ikhwan' ? 'active' : ''}`}
-          onClick={() => handleTabClick('perkembangan-santri-laki')}
+          className={`nav-link has-dropdown ${isPengembanganActive ? 'active' : ''}`}
+          onClick={() => setIsPengembanganOpen(!isPengembanganOpen)}
         >
           <div className="nav-link-left">
             <BookOpen size={15} style={{ color: '#0284c7' }} />
             <span>Pengembangan</span>
           </div>
-          <span style={{ fontSize: '0.62rem', background: '#0284c7', color: '#fff', padding: '1px 6px', borderRadius: '10px', fontWeight: 800 }}>Ikhwan</span>
+          <ChevronDown size={13} className={`nav-chevron ${isPengembanganOpen ? 'open' : ''}`} />
         </button>
 
-        <button 
-          className={`nav-link ${activeTab === 'perkembangan-santri-perempuan' || activeTab === 'perkembangan-santriwati' || activeTab === 'perkembangan-akhwat' ? 'active' : ''}`}
-          onClick={() => handleTabClick('perkembangan-santri-perempuan')}
-        >
-          <div className="nav-link-left">
-            <BookOpen size={15} style={{ color: '#db2777' }} />
-            <span>Pengembangan</span>
+        {isPengembanganOpen && (
+          <div className="nav-submenu">
+            <button 
+              className={`nav-sublink ${activeTab === 'perkembangan-santri-laki' || activeTab === 'perkembangan-ikhwan' ? 'active' : ''}`}
+              onClick={() => handleTabClick('perkembangan-santri-laki')}
+            >
+              <Users size={13} style={{ marginRight: '6px', color: '#0284c7' }} />
+              <span>Pengembangan (L)</span>
+            </button>
+
+            <button 
+              className={`nav-sublink ${activeTab === 'perkembangan-santri-perempuan' || activeTab === 'perkembangan-santriwati' || activeTab === 'perkembangan-akhwat' ? 'active' : ''}`}
+              onClick={() => handleTabClick('perkembangan-santri-perempuan')}
+            >
+              <Users size={13} style={{ marginRight: '6px', color: '#db2777' }} />
+              <span>Pengembangan (P)</span>
+            </button>
           </div>
-          <span style={{ fontSize: '0.62rem', background: '#db2777', color: '#fff', padding: '1px 6px', borderRadius: '10px', fontWeight: 800 }}>Akhwat</span>
-        </button>
+        )}
 
         <button 
           className={`nav-link ${activeTab === 'laporan-perkembangan' ? 'active' : ''}`}
