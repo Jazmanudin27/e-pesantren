@@ -1509,7 +1509,7 @@ body {
   display: block;
 }
 
-/* MOBILE BOTTOM NAVIGATION (MODERN EXECUTIVE NAVY SLATE DOCK) */
+/* MOBILE BOTTOM NAVIGATION (MODERN ROYAL BLUE myBCA DOCK) */
 .mobile-bottom-nav {
   position: fixed;
   bottom: 0;
@@ -1517,20 +1517,18 @@ body {
   transform: translateX(-50%);
   width: 100%;
   max-width: 430px;
-  height: 64px;
-  background: rgba(15, 23, 42, 0.94);
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  border-top-left-radius: 24px;
-  border-top-right-radius: 24px;
+  height: 66px;
+  background: #005baa;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-top-left-radius: 26px;
+  border-top-right-radius: 26px;
   display: flex !important;
   align-items: center;
   justify-content: space-around;
-  padding: 0 12px 4px;
-  box-shadow: 0 -8px 24px -2px rgba(15, 23, 42, 0.35), 0 -1px 3px rgba(0, 0, 0, 0.1);
+  padding: 0 12px 6px;
+  box-shadow: 0 -8px 24px -2px rgba(0, 91, 170, 0.35), 0 -1px 3px rgba(0, 0, 0, 0.1);
   z-index: 99;
   box-sizing: border-box;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
 }
 
 @media (max-width: 480px) {
@@ -1550,7 +1548,7 @@ body {
   gap: 3px;
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: rgba(255, 255, 255, 0.72);
   font-size: 0.68rem;
   font-weight: 700;
   cursor: pointer;
@@ -1573,14 +1571,14 @@ body {
   height: 28px;
   border-radius: 12px;
   transition: all 0.18s ease;
-  color: #94a3b8;
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .nav-icon-wrapper.active {
-  background: rgba(2, 132, 199, 0.25);
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.2);
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .mobile-nav-item.active {
@@ -1602,13 +1600,13 @@ body {
 .fab-inner-glow {
   width: 54px;
   height: 54px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 50%, #1e40af 100%);
+  border-radius: 18px;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 50%, #005baa 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   border: 3.5px solid #ffffff;
-  box-shadow: 0 8px 20px -2px rgba(2, 132, 199, 0.5), 0 2px 6px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 20px -2px rgba(2, 132, 199, 0.6), 0 2px 6px rgba(0, 0, 0, 0.15);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 

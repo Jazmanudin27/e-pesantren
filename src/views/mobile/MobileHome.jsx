@@ -43,10 +43,14 @@ import {
   Receipt,
   CheckCircle2,
   ChevronRight,
+  Eye,
+  EyeOff,
+  Settings,
 } from "lucide-react";
 import { showSuccess, showConfirm } from "../../utils/alert.util";
 
 export default function MobileHome({ onChangeTab, onLogout }) {
+  const [showBalanceEye, setShowBalanceEye] = useState(true);
   const [stats, setStats] = useState({
     total_santri: 0,
     total_halaqah: 0,
@@ -485,14 +489,12 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       }}
     >
       {/* =========================================================================
-          TOP BANNER HEADER (EMERALD KHUSUS BENDAHARA / EXECUTIVE NAVY SLATE UNTUK ASATIDZ)
+          TOP BANNER HEADER (MODERN ROYAL BLUE myBCA BRANDED HEADER)
       ========================================================================= */}
       <div
         style={{
-          background: isBendahara
-            ? "linear-gradient(180deg, #065f46 0%, #047857 40%, #064e3b 100%)"
-            : "linear-gradient(180deg, #0f172a 0%, #1e293b 45%, #0369a1 100%)",
-          padding: "16px 16px 36px",
+          background: "linear-gradient(180deg, #005baa 0%, #004b91 65%, #003870 100%)",
+          padding: "16px 16px 42px",
           color: "#ffffff",
           borderBottomLeftRadius: "28px",
           borderBottomRightRadius: "28px",
@@ -505,260 +507,580 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: "20px",
+            marginBottom: "16px",
           }}
         >
-          {/* Logo Brand */}
+          {/* Logo Brand: NWF MOBILE (myBCA clean typographic style) */}
           <div
             style={{
               display: "inline-flex",
               alignItems: "center",
               gap: "8px",
-              background: "rgba(255, 255, 255, 0.16)",
-              backdropFilter: "blur(10px)",
-              padding: "6px 12px",
-              borderRadius: "16px",
-              border: "1px solid rgba(255, 255, 255, 0.25)",
             }}
           >
             <div
               style={{
-                width: "28px",
-                height: "28px",
-                borderRadius: "8px",
+                width: "32px",
+                height: "32px",
+                borderRadius: "10px",
                 background: "#ffffff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                padding: "2px",
+                padding: "3px",
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
               }}
             >
               <img
                 src="/nwf.png"
                 alt="Logo"
-                style={{ width: "24px", height: "24px", objectFit: "contain" }}
+                style={{ width: "26px", height: "26px", objectFit: "contain" }}
+                onError={(e) => { e.target.src = "/nwf.png"; }}
               />
             </div>
-            <span
-              style={{
-                fontWeight: 800,
-                fontSize: "0.98rem",
-                letterSpacing: "-0.3px",
-              }}
-            >
-              NWF MOBILE
-            </span>
-            <span
-              style={{
-                background: "#f59e0b",
-                color: "#ffffff",
-                fontSize: "0.62rem",
-                fontWeight: 800,
-                padding: "2px 7px",
-                borderRadius: "999px",
-                letterSpacing: "0.04em",
-              }}
-            >
-              PRO
-            </span>
+            <div>
+              <span
+                style={{
+                  fontWeight: 900,
+                  fontSize: "1.15rem",
+                  letterSpacing: "-0.5px",
+                  color: "#ffffff",
+                  fontStyle: "italic",
+                }}
+              >
+                nwf<span style={{ fontStyle: "normal", fontWeight: 800 }}>MOBILE</span>
+              </span>
+            </div>
           </div>
 
-          {/* Top 3 Round Action Buttons (Cyan Key, Blue Bell, Red Logout) */}
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            {/* Key Button (Cyan) */}
+          {/* Top 3 Action Buttons (Settings, Bell, Logout) */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <button
               onClick={handleOpenAccountInfo}
               style={{
-                width: "38px",
-                height: "38px",
-                borderRadius: "50%",
-                background: "#06b6d4",
-                border: "2px solid rgba(255, 255, 255, 0.4)",
+                background: "transparent",
+                border: "none",
                 color: "#ffffff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 cursor: "pointer",
-                boxShadow: "0 4px 10px rgba(6, 182, 212, 0.4)",
+                padding: "6px",
+                borderRadius: "50%",
+                transition: "opacity 0.2s",
               }}
-              title="Informasi Kunci"
+              title="Pengaturan & Akun"
             >
-              <Key size={17} />
+              <Settings size={22} />
             </button>
 
-            {/* Notification Bell (Blue with Red Dot) */}
             <button
               onClick={handleOpenNotice}
               style={{
-                width: "38px",
-                height: "38px",
-                borderRadius: "50%",
-                background: "#3b82f6",
-                border: "2px solid rgba(255, 255, 255, 0.4)",
+                background: "transparent",
+                border: "none",
                 color: "#ffffff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 cursor: "pointer",
+                padding: "6px",
                 position: "relative",
-                boxShadow: "0 4px 10px rgba(59, 130, 246, 0.4)",
               }}
               title="Notifikasi"
             >
-              <Bell size={17} />
+              <Bell size={22} />
               <span
                 style={{
                   position: "absolute",
-                  top: "5px",
-                  right: "6px",
+                  top: "4px",
+                  right: "4px",
                   width: "8px",
                   height: "8px",
                   borderRadius: "50%",
                   background: "#ef4444",
-                  border: "1.5px solid #ffffff",
+                  border: "1.5px solid #005baa",
                 }}
               />
             </button>
 
-            {/* Logout (Red) */}
             <button
               onClick={onLogout}
               style={{
-                width: "38px",
-                height: "38px",
-                borderRadius: "50%",
-                background: "#ef4444",
-                border: "2px solid rgba(255, 255, 255, 0.4)",
+                background: "transparent",
+                border: "none",
                 color: "#ffffff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 cursor: "pointer",
-                boxShadow: "0 4px 10px rgba(239, 68, 68, 0.4)",
+                padding: "6px",
               }}
               title="Keluar"
             >
-              <LogOut size={17} />
+              <LogOut size={22} />
             </button>
           </div>
         </div>
 
-        {/* Profile Card & Greeting */}
-        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-          {/* Avatar Box with Green Status Indicator */}
-          <div style={{ position: "relative" }}>
-            <div
-              style={{
-                width: "60px",
-                height: "60px",
-                borderRadius: "20px",
-                background: isBendahara
-                  ? "linear-gradient(135deg, #064e3b 0%, #047857 100%)"
-                  : "linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)",
-                border: "2.5px solid rgba(255, 255, 255, 0.85)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: 800,
-                fontSize: "1.25rem",
-                color: "#ffffff",
-                boxShadow: "0 8px 18px rgba(0, 0, 0, 0.25)",
-              }}
-            >
-              {initial}
-            </div>
-            {/* Green Online Dot */}
-            <div
-              style={{
-                position: "absolute",
-                bottom: "-1px",
-                right: "-1px",
-                width: "15px",
-                height: "15px",
-                borderRadius: "50%",
-                background: "#22c55e",
-                border: "2.5px solid #0369a1",
-                boxShadow: "0 0 6px rgba(34, 197, 94, 0.8)",
-              }}
-            />
+        {/* Clean Greeting: HALO, [NAMA] */}
+        <div style={{ marginTop: "4px", marginBottom: "8px" }}>
+          <div
+            style={{
+              fontSize: "0.82rem",
+              fontWeight: 800,
+              letterSpacing: "0.08em",
+              color: "rgba(255, 255, 255, 0.9)",
+              textTransform: "uppercase",
+            }}
+          >
+            HALO, {displayName.toUpperCase()}
           </div>
+        </div>
+      </div>
 
-          {/* User Details & Date Pill */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div
-              style={{
-                fontSize: "0.82rem",
-                color: isBendahara ? "#d1fae5" : "#e0f2fe",
-                fontWeight: 500,
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-              }}
-            >
-              <span>🌅</span>
-              <span>{greeting}</span>
-              {isBendahara && (
-                <span
-                  style={{
-                    fontSize: "0.62rem",
-                    background: "#f59e0b",
-                    color: "#78350f",
-                    padding: "1px 7px",
-                    borderRadius: "6px",
-                    fontWeight: 800,
-                    marginLeft: "4px",
-                  }}
-                >
-                  BENDAHARA
-                </span>
-              )}
-            </div>
-            <div
-              style={{
-                fontSize: "1.22rem",
-                fontWeight: 800,
-                color: "#ffffff",
-                lineHeight: 1.25,
-                marginTop: "1px",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {displayName}
-            </div>
-
-            {/* Date & Time Pill */}
+      {/* =========================================================================
+          FLOATING HERO WHITE CARD (myBCA SANTRI / REKENING SUMMARY WITH EYE TOGGLE)
+      ========================================================================= */}
+      <div style={{ padding: "0 16px", marginTop: "-30px", position: "relative", zIndex: 10 }}>
+        <div
+          style={{
+            background: "#ffffff",
+            borderRadius: "20px",
+            padding: "16px 18px",
+            boxShadow: "0 10px 25px -4px rgba(0, 91, 170, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04)",
+            border: "1px solid #e2e8f0",
+          }}
+        >
+          {/* Top Row: Dropdown selector like "Rekening 123-456-XXX ∨" */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "8px",
+            }}
+          >
             <div
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: "6px",
-                background: "rgba(15, 23, 42, 0.45)",
-                backdropFilter: "blur(8px)",
-                padding: "3px 10px",
+                gap: "5px",
+                color: "#005baa",
+                fontWeight: 700,
+                fontSize: "0.84rem",
+                cursor: "pointer",
+              }}
+              onClick={() => onChangeTab("master-santri")}
+            >
+              <span>{isBendahara ? "Kas Rekening Operasional" : "Santri: PP. Nurul Wafa"}</span>
+              <ChevronDown size={16} color="#005baa" />
+            </div>
+
+            <span
+              style={{
+                fontSize: "0.65rem",
+                fontWeight: 700,
+                color: "#16a34a",
+                background: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                padding: "2px 8px",
                 borderRadius: "999px",
-                fontSize: "0.68rem",
-                color: "#f8fafc",
-                fontWeight: 600,
-                marginTop: "6px",
-                border: "1px solid rgba(255, 255, 255, 0.15)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
               }}
             >
-              <span>📅</span>
-              <span>{currentDateStr || "Jumat, 9 Okt 2026"}</span>
-              <span>•</span>
               <span
                 style={{
-                  width: "6px",
-                  height: "6px",
+                  width: "5px",
+                  height: "5px",
                   borderRadius: "50%",
                   background: "#22c55e",
-                  display: "inline-block",
                 }}
               />
-              <span>{currentTimeStr || "09:30:28 WIB"}</span>
+              Online Realtime
+            </span>
+          </div>
+
+          {/* Main Metric Row: IDR [Amount] with Eye Toggle */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontSize: "1.35rem",
+                  fontWeight: 900,
+                  color: "#0f172a",
+                  letterSpacing: "-0.5px",
+                }}
+              >
+                {showBalanceEye ? (
+                  isBendahara ? (
+                    `IDR ${Number(keuanganData.summary?.total_terbayar || 0).toLocaleString("id-ID")}`
+                  ) : (
+                    `Hadir: ${rekapAbsensi.hadir || 0} Santri`
+                  )
+                ) : (
+                  "IDR ••••••••••"
+                )}
+              </div>
+              <div
+                style={{
+                  fontSize: "0.72rem",
+                  color: "#64748b",
+                  marginTop: "2px",
+                  fontWeight: 500,
+                }}
+              >
+                {isBendahara
+                  ? "Penerimaan Kas & SPP Bulan Berjalan"
+                  : `Total ${stats.total_santri || 0} Santri Terdata • Shalat 5 Waktu`}
+              </div>
             </div>
+
+            {/* Eye Toggle Button */}
+            <button
+              onClick={() => setShowBalanceEye(!showBalanceEye)}
+              style={{
+                background: "#f1f5f9",
+                border: "none",
+                borderRadius: "50%",
+                width: "36px",
+                height: "36px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#64748b",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+              title={showBalanceEye ? "Sembunyikan Saldo" : "Tampilkan Saldo"}
+            >
+              {showBalanceEye ? <Eye size={18} /> : <EyeOff size={18} />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================================
+          MYBCA 8-ITEM QUICK ACTION GRID (4 COLUMNS X 2 ROWS)
+      ========================================================================= */}
+      <div style={{ padding: "18px 16px 8px" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: "14px 10px",
+          }}
+        >
+          {/* 1. Presensi (Royal Blue) */}
+          <div
+            onClick={() => onChangeTab("presensi")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "54px",
+                height: "54px",
+                borderRadius: "18px",
+                background: "linear-gradient(135deg, #005baa 0%, #004b91 100%)",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 6px 14px -2px rgba(0, 91, 170, 0.35)",
+              }}
+            >
+              <Fingerprint size={24} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: "#334155",
+                textAlign: "center",
+              }}
+            >
+              Presensi
+            </span>
+          </div>
+
+          {/* 2. Tahfidz (Emerald Green) */}
+          <div
+            onClick={() => onChangeTab("tahfidz")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "54px",
+                height: "54px",
+                borderRadius: "18px",
+                background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 6px 14px -2px rgba(16, 185, 129, 0.35)",
+              }}
+            >
+              <BookOpen size={24} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: "#334155",
+                textAlign: "center",
+              }}
+            >
+              Tahfidz
+            </span>
+          </div>
+
+          {/* 3. Perizinan (Teal / Cyan) */}
+          <div
+            onClick={() => onChangeTab("perizinan")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "54px",
+                height: "54px",
+                borderRadius: "18px",
+                background: "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 6px 14px -2px rgba(6, 182, 212, 0.35)",
+              }}
+            >
+              <DoorOpen size={24} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: "#334155",
+                textAlign: "center",
+              }}
+            >
+              Perizinan
+            </span>
+          </div>
+
+          {/* 4. Jadwal / Informasi (Purple) */}
+          <div
+            onClick={handleOpenNotice}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "54px",
+                height: "54px",
+                borderRadius: "18px",
+                background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 6px 14px -2px rgba(139, 92, 246, 0.35)",
+              }}
+            >
+              <Calendar size={24} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: "#334155",
+                textAlign: "center",
+              }}
+            >
+              Jadwal
+            </span>
+          </div>
+
+          {/* 5. Tagihan SPP (Sky Blue) */}
+          <div
+            onClick={() => onChangeTab("keuangan-spp")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "54px",
+                height: "54px",
+                borderRadius: "18px",
+                background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 6px 14px -2px rgba(2, 132, 199, 0.35)",
+              }}
+            >
+              <Receipt size={24} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: "#334155",
+                textAlign: "center",
+              }}
+            >
+              Tagihan SPP
+            </span>
+          </div>
+
+          {/* 6. Uang Saku / Kasir (Amber / Orange) */}
+          <div
+            onClick={() => onChangeTab(isBendahara ? "keuangan-kasir" : "keuangan-spp")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "54px",
+                height: "54px",
+                borderRadius: "18px",
+                background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 6px 14px -2px rgba(245, 158, 11, 0.35)",
+              }}
+            >
+              <Wallet size={24} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: "#334155",
+                textAlign: "center",
+              }}
+            >
+              {isBendahara ? "Kasir SPP" : "Uang Saku"}
+            </span>
+          </div>
+
+          {/* 7. Perkembangan / Rapor (Indigo) */}
+          <div
+            onClick={() => onChangeTab("pengembangan")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "54px",
+                height: "54px",
+                borderRadius: "18px",
+                background: "linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 6px 14px -2px rgba(79, 70, 229, 0.35)",
+              }}
+            >
+              <Award size={24} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: "#334155",
+                textAlign: "center",
+              }}
+            >
+              Perkembangan
+            </span>
+          </div>
+
+          {/* 8. Semua Menu / Praktek (Slate / Navy) */}
+          <div
+            onClick={() => onChangeTab("praktek-ibadah")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "54px",
+                height: "54px",
+                borderRadius: "18px",
+                background: "linear-gradient(135deg, #334155 0%, #1e293b 100%)",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 6px 14px -2px rgba(51, 65, 85, 0.35)",
+              }}
+            >
+              <HeartHandshake size={24} />
+            </div>
+            <span
+              style={{
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: "#334155",
+                textAlign: "center",
+              }}
+            >
+              Praktek
+            </span>
           </div>
         </div>
       </div>
@@ -771,7 +1093,38 @@ export default function MobileHome({ onChangeTab, onLogout }) {
           {/* =========================================================================
               DIGITAL VAULT CARD: KAS UTAMA PESANTREN (SUPER ELEGAN & MEWAH)
           ========================================================================= */}
-          <div style={{ padding: "0 16px", marginTop: "-22px" }}>
+          <div style={{ padding: "0 16px", marginTop: "14px" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "8px",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "0.82rem",
+                  fontWeight: 800,
+                  color: "#005baa",
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                }}
+              >
+                KAS & KEUANGAN PESANTREN
+              </span>
+              <span
+                onClick={() => onChangeTab("keuangan-rekap")}
+                style={{
+                  fontSize: "0.74rem",
+                  fontWeight: 700,
+                  color: "#005baa",
+                  cursor: "pointer",
+                }}
+              >
+                Selengkapnya &gt;
+              </span>
+            </div>
             <div
               style={{
                 background:
@@ -1401,9 +1754,40 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       ) : (
         <>
           {/* =========================================================================
-              CARD 1: RINGKASAN PRESENSI & KEHADIRAN HARI INI (MODERN CARD UI)
+              CARD 1: AKTIVITAS & PRESENSI HARI INI (myBCA CARD UI)
           ========================================================================= */}
-          <div style={{ padding: "0 16px", marginTop: "-22px" }}>
+          <div style={{ padding: "0 16px", marginTop: "14px" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "8px",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "0.82rem",
+                  fontWeight: 800,
+                  color: "#005baa",
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                }}
+              >
+                AKTIVITAS & PRESENSI HARI INI
+              </span>
+              <span
+                onClick={() => onChangeTab("presensi")}
+                style={{
+                  fontSize: "0.74rem",
+                  fontWeight: 700,
+                  color: "#005baa",
+                  cursor: "pointer",
+                }}
+              >
+                Selengkapnya &gt;
+              </span>
+            </div>
             <div
               style={{
                 background: "#ffffff",
@@ -1671,7 +2055,38 @@ export default function MobileHome({ onChangeTab, onLogout }) {
           {/* =========================================================================
               CARD 2: KATEGORI LAYANAN PRESENSI & IBADAH (CARD UI)
           ========================================================================= */}
-          <div style={{ padding: "0 16px", marginTop: "16px" }}>
+          <div style={{ padding: "0 16px", marginTop: "18px" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "8px",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "0.82rem",
+                  fontWeight: 800,
+                  color: "#005baa",
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                }}
+              >
+                LAYANAN & IBADAH SANTRI
+              </span>
+              <span
+                onClick={() => onChangeTab("presensi")}
+                style={{
+                  fontSize: "0.74rem",
+                  fontWeight: 700,
+                  color: "#005baa",
+                  cursor: "pointer",
+                }}
+              >
+                Selengkapnya &gt;
+              </span>
+            </div>
             <div
               style={{
                 background: "#ffffff",
@@ -1915,7 +2330,38 @@ export default function MobileHome({ onChangeTab, onLogout }) {
           {/* =========================================================================
               CARD 3: KATEGORI AKADEMIK & PEMBELAJARAN (CARD UI)
           ========================================================================= */}
-          <div style={{ padding: "0 16px", marginTop: "16px" }}>
+          <div style={{ padding: "0 16px", marginTop: "18px" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "8px",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "0.82rem",
+                  fontWeight: 800,
+                  color: "#005baa",
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                }}
+              >
+                AKADEMIK & TAHFIDZ QUR'AN
+              </span>
+              <span
+                onClick={() => onChangeTab("tahfidz")}
+                style={{
+                  fontSize: "0.74rem",
+                  fontWeight: 700,
+                  color: "#005baa",
+                  cursor: "pointer",
+                }}
+              >
+                Selengkapnya &gt;
+              </span>
+            </div>
             <div
               style={{
                 background: "#ffffff",
@@ -2159,7 +2605,38 @@ export default function MobileHome({ onChangeTab, onLogout }) {
           {/* =========================================================================
               CARD 4: KATEGORI DATA MASTER & FASILITAS PESANTREN (CARD UI)
           ========================================================================= */}
-          <div style={{ padding: "0 16px", marginTop: "16px" }}>
+          <div style={{ padding: "0 16px", marginTop: "18px" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "8px",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "0.82rem",
+                  fontWeight: 800,
+                  color: "#005baa",
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                }}
+              >
+                DATA MASTER & FASILITAS
+              </span>
+              <span
+                onClick={() => onChangeTab("master-santri")}
+                style={{
+                  fontSize: "0.74rem",
+                  fontWeight: 700,
+                  color: "#005baa",
+                  cursor: "pointer",
+                }}
+              >
+                Selengkapnya &gt;
+              </span>
+            </div>
             <div
               style={{
                 background: "#ffffff",
