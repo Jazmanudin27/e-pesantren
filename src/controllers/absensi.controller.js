@@ -68,6 +68,93 @@ export const ensureAbsensiTablesAndColumns = async () => {
       `);
     } catch (e) {}
 
+    // 6. Pastikan tabel kegiatan_sesi ada dan strukturnya lengkap
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS kegiatan_sesi (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          kode_sesi VARCHAR(50) NOT NULL UNIQUE,
+          nama_sesi VARCHAR(150) NOT NULL,
+          kategori VARCHAR(100) NOT NULL DEFAULT 'Shalat Berjamaah',
+          jam_mulai_presensi TIME NOT NULL,
+          jam_target TIME NOT NULL,
+          jam_toleransi_telat TIME NOT NULL,
+          jam_tutup_presensi TIME NOT NULL,
+          hari_aktif VARCHAR(100) DEFAULT 'Setiap Hari',
+          tipe_peserta VARCHAR(100) DEFAULT 'Wajib Semua Santri',
+          target_gender VARCHAR(50) DEFAULT 'Semua',
+          target_tipe_santri VARCHAR(50) DEFAULT 'Semua',
+          peserta_santri_ids TEXT NULL,
+          is_active TINYINT(1) DEFAULT 1,
+          keterangan TEXT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `);
+    } catch (eTableSesi) {}
+
+    // Ubah kolom kategori menjadi VARCHAR agar bebas simpan jenis kegiatan tanpa batasan ENUM
+    try {
+      await pool.query(`ALTER TABLE kegiatan_sesi MODIFY COLUMN kategori VARCHAR(100) DEFAULT 'Shalat Berjamaah'`);
+    } catch (eModKat) {}
+
+    // Pastikan kolom-kolom baru ada di kegiatan_sesi
+    try {
+      const [sesiCols] = await pool.query(`
+        SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_NAME = 'kegiatan_sesi' AND TABLE_SCHEMA = DATABASE()
+      `);
+      const sColNames = (sesiCols || []).map(c => c.COLUMN_NAME.toLowerCase());
+      if (!sColNames.includes('tipe_peserta')) {
+        try { await pool.query(`ALTER TABLE kegiatan_sesi ADD COLUMN tipe_peserta VARCHAR(100) DEFAULT 'Wajib Semua Santri'`); } catch(e){}
+      }
+      if (!sColNames.includes('target_gender')) {
+        try { await pool.query(`ALTER TABLE kegiatan_sesi ADD COLUMN target_gender VARCHAR(50) DEFAULT 'Semua'`); } catch(e){}
+      }
+      if (!sColNames.includes('target_tipe_santri')) {
+        try { await pool.query(`ALTER TABLE kegiatan_sesi ADD COLUMN target_tipe_santri VARCHAR(50) DEFAULT 'Semua'`); } catch(e){}
+      }
+      if (!sColNames.includes('peserta_santri_ids')) {
+        try { await pool.query(`ALTER TABLE kegiatan_sesi ADD COLUMN peserta_santri_ids TEXT NULL`); } catch(e){}
+      }
+      if (!sColNames.includes('keterangan')) {
+        try { await pool.query(`ALTER TABLE kegiatan_sesi ADD COLUMN keterangan TEXT NULL`); } catch(e){}
+      }
+    } catch (eCols) {}
+
+    // 7. Jika tabel kegiatan_sesi masih kosong di Database, semai (seed) data resmi untuk Berjamaah dan Mengaji
+    try {
+      const [countRows] = await pool.query(`SELECT COUNT(*) as total FROM kegiatan_sesi`);
+      if (!countRows || countRows[0].total === 0) {
+        console.log('[ABSENSI DB] kegiatan_sesi kosong, melakukan seeding otomatis kegiatan berjamaah & mengaji...');
+        const seeds = [
+          // Kategori 1: Kegiatan Berjamaah (Shalat 5 Waktu & Ibadah Jamaah)
+          ['SHLT-SBH', 'Shalat Subuh Berjamaah', 'Shalat Berjamaah', '04:15:00', '04:40:00', '04:45:00', '05:15:00', 'Setiap Hari', 'Wajib Semua Santri', 'Semua', 1],
+          ['SHLT-DZH', 'Shalat Dzuhur Berjamaah', 'Shalat Berjamaah', '11:45:00', '12:05:00', '12:10:00', '12:45:00', 'Setiap Hari', 'Wajib Semua Santri', 'Semua', 1],
+          ['SHLT-ASH', 'Shalat Ashar Berjamaah', 'Shalat Berjamaah', '15:00:00', '15:20:00', '15:25:00', '16:00:00', 'Setiap Hari', 'Wajib Semua Santri', 'Semua', 1],
+          ['SHLT-MGB', 'Shalat Maghrib Berjamaah', 'Shalat Berjamaah', '17:45:00', '18:05:00', '18:10:00', '18:40:00', 'Setiap Hari', 'Wajib Semua Santri', 'Semua', 1],
+          ['SHLT-ISY', 'Shalat Isya Berjamaah', 'Shalat Berjamaah', '19:00:00', '19:20:00', '19:25:00', '20:00:00', 'Setiap Hari', 'Wajib Semua Santri', 'Semua', 1],
+          ['IBD-DHU', 'Shalat Dhuha Bersama', 'Kegiatan Ibadah Berjamaah', '06:45:00', '07:00:00', '07:05:00', '07:30:00', 'Senin - Sabtu', 'Wajib Semua Santri', 'Semua', 1],
+
+          // Kategori 2: Kegiatan Mengaji (Kajian Kitab, Sorogan, Bandongan, Tahfidz)
+          ['KJN-SRG', 'Sorogan Kitab Fathul Qorib', 'Pengajian / Mengaji', '05:45:00', '06:00:00', '06:10:00', '07:00:00', 'Senin - Jumat', 'Santri Tertentu / Terpilih', 'Semua', 1],
+          ['KJN-BDG', 'Bandongan Kitab Ihya Ulumiddin', 'Pengajian / Mengaji', '18:30:00', '18:45:00', '18:50:00', '19:15:00', 'Setiap Hari', 'Wajib Semua Santri', 'Semua', 1],
+          ['KJN-THF', 'Halaqah Tahfidz & Tasmi Al-Qur\'an', 'Pengajian / Mengaji', '05:30:00', '05:45:00', '05:50:00', '06:30:00', 'Setiap Hari', 'Wajib Semua Santri', 'Semua', 1],
+          ['KJN-TKL', 'Taklim Tafsir Jalalain Sore', 'Pengajian / Mengaji', '16:15:00', '16:30:00', '16:35:00', '17:15:00', 'Senin - Kamis', 'Santri Tertentu / Terpilih', 'Semua', 1],
+          ['KJN-JRM', 'Kajian Nahwu Jurumiyah & Tashrif', 'Pengajian / Mengaji', '20:15:00', '20:30:00', '20:35:00', '21:30:00', 'Senin - Jumat', 'Santri Tertentu / Terpilih', 'Semua', 1]
+        ];
+
+        for (const s of seeds) {
+          await pool.query(`
+            INSERT INTO kegiatan_sesi (
+              kode_sesi, nama_sesi, kategori, jam_mulai_presensi, jam_target, jam_toleransi_telat, jam_tutup_presensi, hari_aktif, tipe_peserta, target_gender, is_active
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE nama_sesi = VALUES(nama_sesi)
+          `, s).catch(() => {});
+        }
+        console.log('[ABSENSI DB] Berhasil menyemai 11 data kegiatan resmi ke database MySQL');
+      }
+    } catch (eSeed) {}
+
     isAbsensiTablesChecked = true;
   } catch (err) {
     console.warn('[ABSENSI DB INIT NOTICE]', err.message);
@@ -440,6 +527,7 @@ export const deleteFingerprintDevice = async (req, res) => {
 
 export const getFingerprintSesi = async (req, res) => {
   try {
+    await ensureAbsensiTablesAndColumns();
     const [rows] = await pool.query('SELECT * FROM kegiatan_sesi ORDER BY jam_mulai_presensi ASC');
     return sendSuccess(res, 'Sesi presensi berhasil diambil', { data: rows });
   } catch (err) {

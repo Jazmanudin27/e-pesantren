@@ -24,7 +24,8 @@ import {
   DollarSign,
   Zap,
   Layers,
-  RotateCw
+  RotateCw,
+  Calendar
 } from 'lucide-react';
 import MobileHome from '../views/mobile/MobileHome';
 import MobileTahfidz from '../views/mobile/MobileTahfidz';
@@ -50,6 +51,7 @@ import MobileOnboarding from '../views/mobile/MobileOnboarding';
 import MobilePraktek from '../views/mobile/MobilePraktek';
 import MobilePengembangan from '../views/mobile/MobilePengembangan';
 import MobileMateriHafalan from '../views/mobile/MobileMateriHafalan';
+import MobileKegiatan from '../views/mobile/MobileKegiatan';
 import SettingKegiatanView from '../views/admin/SettingKegiatanView';
 import InformasiKegiatanAdminView from '../views/admin/InformasiKegiatanAdminView';
 import PortalWaliSantri from '../views/wali/PortalWaliSantri';
@@ -200,6 +202,12 @@ export default function MobileLayout() {
       case 'master-kelas': return 'Data Kelas & Halaqah';
       case 'master-asatidz': return 'Data Asatidz & Musyrif';
       case 'master-materi': return 'Master Materi & Kitab';
+      case 'setting-shalat':
+      case 'setting-kegiatan':
+      case 'master-kegiatan':
+      case 'kegiatan': return 'Jadwal & Master Kegiatan';
+      case 'informasi':
+      case 'informasi-kegiatan': return 'Informasi & Pengumuman';
       case 'kitab': return 'Kajian Kitab Kuning';
       case 'master-device': return 'Data Mesin Fingerprint';
       case 'tata-tertib': return 'Tata Tertib & Ta\'zir';
@@ -225,7 +233,7 @@ export default function MobileLayout() {
     'dashboard', 'master-santri', 'master-asrama', 'master-kelas', 
     'master-asatidz', 'master-materi', 'kitab', 'master-device', 'tata-tertib', 
     'laporan-presensi', 'laporan-tahfidz', 'syahriah', 'praktek-ibadah', 'praktek', 'portal-wali',
-    'setting-shalat', 'setting-kegiatan', 'kegiatan', 'informasi', 'informasi-kegiatan',
+    'setting-shalat', 'setting-kegiatan', 'master-kegiatan', 'kegiatan', 'informasi', 'informasi-kegiatan',
     'keuangan', 'keuangan-kasir', 'keuangan-rekap', 'keuangan-spp', 'keuangan-masuk', 
     'keuangan-transaksi', 'keuangan-tunggakan', 'keuangan-komponen', 'keuangan-generate'
   ].includes(mobileTab);
@@ -287,8 +295,9 @@ export default function MobileLayout() {
         return <MobileMateriHafalan />;
       case 'setting-shalat':
       case 'setting-kegiatan':
+      case 'master-kegiatan':
       case 'kegiatan':
-        return <SettingKegiatanView />;
+        return <MobileKegiatan />;
       case 'informasi':
       case 'informasi-kegiatan':
         return <InformasiKegiatanAdminView />;
@@ -510,6 +519,9 @@ export default function MobileLayout() {
                         </button>
                         <button onClick={() => handleSelectTab('master-materi')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-materi' ? '#ecfdf5' : '#f8fafc', border: mobileTab === 'master-materi' ? '1px solid #059669' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                           <BookOpen size={16} color="#059669" /> Materi & Kitab
+                        </button>
+                        <button onClick={() => handleSelectTab('setting-shalat')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: (mobileTab === 'setting-shalat' || mobileTab === 'kegiatan') ? '#fef3c7' : '#f8fafc', border: (mobileTab === 'setting-shalat' || mobileTab === 'kegiatan') ? '1px solid #d97706' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                          <Calendar size={16} color="#d97706" /> Jadwal Kegiatan
                         </button>
                         <button onClick={() => handleSelectTab('master-device')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-device' ? '#e2e8f0' : '#f8fafc', border: mobileTab === 'master-device' ? '1px solid #475569' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                           <HardDrive size={16} color="#475569" /> Fingerprint
