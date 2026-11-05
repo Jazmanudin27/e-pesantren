@@ -621,53 +621,39 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
-            {/* 1. CARD INFO SALDO TERSIMPAN (PALING ATAS, FLOATING DI HEADER) */}
+            {/* 1. CARD INFO SALDO TERSIMPAN (PALING ATAS, FLOATING DI HEADER - CARD PUTIH ELEGAN) */}
             <div style={{ padding: '0 14px', marginTop: '-24px', position: 'relative', zIndex: 12 }}>
               <div
                 onClick={() => setCurrentTab('tabungan')}
                 style={{
-                  background: 'linear-gradient(145deg, #0f766e 0%, #115e59 100%)',
+                  background: '#ffffff',
                   borderRadius: '22px',
-                  padding: '18px 16px',
-                  boxShadow: '0 10px 25px -5px rgba(15, 118, 110, 0.35), 0 4px 10px rgba(0, 0, 0, 0.05)',
+                  border: '1px solid #e2e8f0',
+                  padding: '16px',
+                  boxShadow: '0 8px 24px -4px rgba(13, 118, 110, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04)',
                   cursor: 'pointer',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  color: '#ffffff'
+                  position: 'relative'
                 }}
               >
-                {/* Accent glow circle */}
-                <div style={{
-                  position: 'absolute',
-                  top: '-20px',
-                  right: '-20px',
-                  width: '110px',
-                  height: '110px',
-                  borderRadius: '50%',
-                  background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 70%)',
-                  pointerEvents: 'none'
-                }} />
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', position: 'relative', zIndex: 2 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '10px',
-                      background: 'rgba(255, 255, 255, 0.2)',
-                      backdropFilter: 'blur(4px)',
+                      width: '34px',
+                      height: '34px',
+                      borderRadius: '11px',
+                      background: '#ecfdf5',
+                      color: '#059669',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#ffffff'
+                      justifyContent: 'center'
                     }}>
-                      <Wallet size={18} />
+                      <Wallet size={19} />
                     </div>
                     <div>
-                      <div style={{ fontSize: '0.68rem', color: '#ccfbf1', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
                         Tabungan Santri
                       </div>
-                      <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#ffffff' }}>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>
                         Saldo Tersimpan
                       </div>
                     </div>
@@ -675,22 +661,22 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   <span style={{
                     fontSize: '0.72rem',
                     fontWeight: 700,
-                    color: '#0f766e',
-                    background: '#ffffff',
-                    padding: '5px 12px',
+                    color: '#059669',
+                    background: '#ecfdf5',
+                    border: '1px solid #a7f3d0',
+                    padding: '4px 10px',
                     borderRadius: '999px',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.12)'
+                    gap: '4px'
                   }}>
                     <span>Buku Kas</span>
                     <span>&rarr;</span>
                   </span>
                 </div>
 
-                <div style={{ position: 'relative', zIndex: 2, marginBottom: '14px' }}>
-                  <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#ffffff', letterSpacing: '-0.5px', lineHeight: 1.1 }}>
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0f766e', letterSpacing: '-0.5px', lineHeight: 1.15 }}>
                     {formatRp(tabunganData?.saldo_saat_ini || 0)}
                   </div>
                 </div>
@@ -699,30 +685,28 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
                   gap: '8px',
-                  position: 'relative',
-                  zIndex: 2
+                  paddingTop: '10px',
+                  borderTop: '1px solid #f1f5f9'
                 }}>
                   <div style={{
-                    background: 'rgba(255, 255, 255, 0.12)',
-                    backdropFilter: 'blur(6px)',
+                    background: '#f0fdf4',
                     borderRadius: '12px',
                     padding: '8px 10px',
-                    border: '1px solid rgba(255, 255, 255, 0.15)'
+                    border: '1px solid #dcfce7'
                   }}>
-                    <div style={{ fontSize: '0.62rem', color: '#a7f3d0', fontWeight: 700, letterSpacing: '0.03em' }}>TOTAL MASUK</div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#ffffff', marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.62rem', color: '#166534', fontWeight: 700, letterSpacing: '0.03em' }}>TOTAL MASUK</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>
                       +{formatRp(tabunganData?.total_masuk || 0)}
                     </div>
                   </div>
                   <div style={{
-                    background: 'rgba(255, 255, 255, 0.12)',
-                    backdropFilter: 'blur(6px)',
+                    background: '#fef2f2',
                     borderRadius: '12px',
                     padding: '8px 10px',
-                    border: '1px solid rgba(255, 255, 255, 0.15)'
+                    border: '1px solid #fee2e2'
                   }}>
-                    <div style={{ fontSize: '0.62rem', color: '#fecaca', fontWeight: 700, letterSpacing: '0.03em' }}>PENGAMBILAN</div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#ffffff', marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.62rem', color: '#991b1b', fontWeight: 700, letterSpacing: '0.03em' }}>PENGAMBILAN</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#dc2626', marginTop: '2px' }}>
                       -{formatRp(tabunganData?.total_keluar || 0)}
                     </div>
                   </div>
@@ -1163,45 +1147,6 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 </button>
               </div>
             )}
-
-            {/* Quick Refresh Info Banner */}
-            <div style={{ padding: '0 16px 16px' }}>
-              <div style={{
-                background: '#ffffff',
-                borderRadius: '16px',
-                border: '1px solid #e2e8f0',
-                padding: '12px 14px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <RotateCw size={16} className={loading ? 'animate-spin' : ''} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0f172a' }}>Sinkronisasi Data Realtime</div>
-                    <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Status presensi & ibadah santri otomatis terupdate</div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => fetchWaliData(selectedSantriId)}
-                  style={{
-                    border: 'none',
-                    background: '#0284c7',
-                    color: '#ffffff',
-                    borderRadius: '8px',
-                    padding: '6px 10px',
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Segarkan
-                </button>
-              </div>
-            </div>
 
             {/* POPUP MODAL TRANSAKSI PENDING DI BERANDA */}
             {isPendingModalOpen && transaksiPending && (
