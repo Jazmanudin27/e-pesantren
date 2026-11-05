@@ -527,7 +527,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             </div>
           </div>
 
-          {/* Right 42%: Info Stats Pills (Sudah Absen & Belum Absen) */}
+          {/* Right 42%: Info Stats Pills (Hadir & Belum, Sakit & Izin) */}
           <div
             style={{
               flex: "1 1 42%",
@@ -537,7 +537,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               gap: "6px",
             }}
           >
-            {/* Pill 1: Sudah Absen */}
+            {/* Pill 1: Hadir & Belum */}
             <div
               onClick={() => handleOpenStatusModal("Hadir")}
               style={{
@@ -560,30 +560,34 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                     color: "#166534",
                   }}
                 >
-                  Sudah Absen
+                  Hadir & Belum
                 </span>
               </div>
               <div
                 style={{
-                  fontSize: "0.82rem",
+                  fontSize: "0.78rem",
                   fontWeight: 900,
-                  color: "#14532d",
                   marginTop: "2px",
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: "3px",
                 }}
               >
-                {rekapAbsensi.hadir}{" "}
-                <span style={{ fontSize: "0.62rem", fontWeight: 600 }}>
+                <span style={{ color: "#15803d" }}>{rekapAbsensi.hadir}</span>
+                <span style={{ fontSize: "0.62rem", color: "#64748b" }}>/</span>
+                <span style={{ color: "#b91c1c" }}>{rekapAbsensi.alfa}</span>
+                <span style={{ fontSize: "0.6rem", fontWeight: 600, color: "#64748b" }}>
                   Santri
                 </span>
               </div>
             </div>
 
-            {/* Pill 2: Belum Absen */}
+            {/* Pill 2: Sakit & Izin */}
             <div
-              onClick={() => handleOpenStatusModal("Alfa")}
+              onClick={() => handleOpenStatusModal("Izin")}
               style={{
-                background: "#fff1f2",
-                border: "1px solid #fecdd3",
+                background: "#fffbeb",
+                border: "1px solid #fde68a",
                 borderRadius: "12px",
                 padding: "6px 8px",
                 cursor: "pointer",
@@ -593,27 +597,31 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               <div
                 style={{ display: "flex", alignItems: "center", gap: "4px" }}
               >
-                <AlertTriangle size={11} color="#e11d48" />
+                <AlertTriangle size={11} color="#d97706" />
                 <span
                   style={{
                     fontSize: "0.62rem",
                     fontWeight: 700,
-                    color: "#9f1239",
+                    color: "#92400e",
                   }}
                 >
-                  Belum Absen
+                  Sakit & Izin
                 </span>
               </div>
               <div
                 style={{
-                  fontSize: "0.82rem",
+                  fontSize: "0.78rem",
                   fontWeight: 900,
-                  color: "#881337",
                   marginTop: "2px",
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: "3px",
                 }}
               >
-                {rekapAbsensi.alfa}{" "}
-                <span style={{ fontSize: "0.62rem", fontWeight: 600 }}>
+                <span style={{ color: "#dc2626" }}>{rekapAbsensi.sakit}</span>
+                <span style={{ fontSize: "0.62rem", color: "#64748b" }}>/</span>
+                <span style={{ color: "#d97706" }}>{rekapAbsensi.izin}</span>
+                <span style={{ fontSize: "0.6rem", fontWeight: 600, color: "#64748b" }}>
                   Santri
                 </span>
               </div>
@@ -623,220 +631,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       </div>
 
       {/* =========================================================================
-          CARD 2: DARK TEAL PILL BAR (PRESENSI SANTRI HARI INI & QUICK STATUS PILLS)
+          SECTION: MENU (ALL 9 MENU ITEMS UNIFIED)
       ========================================================================= */}
-      <div style={{ padding: "0 14px", marginTop: "10px" }}>
-        <div
-          style={{
-            background: "linear-gradient(135deg, #0d7a6e 0%, #095c53 100%)",
-            borderRadius: "18px",
-            padding: "10px 14px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            color: "#ffffff",
-            boxShadow: "0 6px 18px rgba(13, 122, 110, 0.25)",
-          }}
-        >
-          {/* Left: Total Presensi Santri */}
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span
-                style={{
-                  width: "6px",
-                  height: "6px",
-                  borderRadius: "50%",
-                  background: "#4ade80",
-                  display: "inline-block",
-                  boxShadow: "0 0 6px #4ade80",
-                }}
-              />
-              <span
-                style={{
-                  fontSize: "0.66rem",
-                  color: "#a7f3d0",
-                  fontWeight: 700,
-                  letterSpacing: "0.02em",
-                }}
-              >
-                Presensi Hari Ini
-              </span>
-            </div>
-            <div
-              style={{
-                fontSize: "1.05rem",
-                fontWeight: 900,
-                color: "#ffffff",
-                letterSpacing: "-0.3px",
-                marginTop: "1px",
-                display: "flex",
-                alignItems: "baseline",
-                gap: "4px",
-              }}
-            >
-              <span>{rekapAbsensi.hadir}</span>
-              <span
-                style={{
-                  fontSize: "0.72rem",
-                  color: "#a7f3d0",
-                  fontWeight: 700,
-                }}
-              >
-                / {rekapAbsensi.total || stats.total_santri || 0}
-              </span>
-            </div>
-          </div>
-
-          {/* Right: 4 Quick Status Badges for instant filtering */}
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            {/* Hadir */}
-            <div
-              onClick={() => handleOpenStatusModal("Hadir")}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                cursor: "pointer",
-                background: "rgba(255, 255, 255, 0.12)",
-                padding: "4px 8px",
-                borderRadius: "10px",
-                minWidth: "38px",
-              }}
-              title="Lihat Santri Hadir"
-            >
-              <span
-                style={{
-                  fontSize: "0.78rem",
-                  fontWeight: 900,
-                  color: "#86efac",
-                }}
-              >
-                {rekapAbsensi.hadir}
-              </span>
-              <span
-                style={{
-                  fontSize: "0.54rem",
-                  color: "#e6fffa",
-                  fontWeight: 700,
-                }}
-              >
-                Hadir
-              </span>
-            </div>
-
-            {/* Izin */}
-            <div
-              onClick={() => handleOpenStatusModal("Izin")}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                cursor: "pointer",
-                background: "rgba(255, 255, 255, 0.12)",
-                padding: "4px 8px",
-                borderRadius: "10px",
-                minWidth: "38px",
-              }}
-              title="Lihat Santri Izin"
-            >
-              <span
-                style={{
-                  fontSize: "0.78rem",
-                  fontWeight: 900,
-                  color: "#fde047",
-                }}
-              >
-                {rekapAbsensi.izin}
-              </span>
-              <span
-                style={{
-                  fontSize: "0.54rem",
-                  color: "#e6fffa",
-                  fontWeight: 700,
-                }}
-              >
-                Izin
-              </span>
-            </div>
-
-            {/* Sakit */}
-            <div
-              onClick={() => handleOpenStatusModal("Sakit")}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                cursor: "pointer",
-                background: "rgba(255, 255, 255, 0.12)",
-                padding: "4px 8px",
-                borderRadius: "10px",
-                minWidth: "38px",
-              }}
-              title="Lihat Santri Sakit"
-            >
-              <span
-                style={{
-                  fontSize: "0.78rem",
-                  fontWeight: 900,
-                  color: "#cbd5e1",
-                }}
-              >
-                {rekapAbsensi.sakit}
-              </span>
-              <span
-                style={{
-                  fontSize: "0.54rem",
-                  color: "#e6fffa",
-                  fontWeight: 700,
-                }}
-              >
-                Sakit
-              </span>
-            </div>
-
-            {/* Belum / Alfa */}
-            <div
-              onClick={() => handleOpenStatusModal("Alfa")}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                cursor: "pointer",
-                background: "rgba(239, 68, 68, 0.25)",
-                padding: "4px 8px",
-                borderRadius: "10px",
-                minWidth: "38px",
-                border: "1px solid rgba(239, 68, 68, 0.35)",
-              }}
-              title="Lihat Santri Belum Absen"
-            >
-              <span
-                style={{
-                  fontSize: "0.78rem",
-                  fontWeight: 900,
-                  color: "#fca5a5",
-                }}
-              >
-                {rekapAbsensi.alfa}
-              </span>
-              <span
-                style={{
-                  fontSize: "0.54rem",
-                  color: "#fef2f2",
-                  fontWeight: 700,
-                }}
-              >
-                Belum
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* =========================================================================
-          SECTION 1: MENU (WHITE CARDS + COLORED ICONS)
-      ========================================================================= */}
-      <div style={{ padding: "16px 14px 4px" }}>
+      <div style={{ padding: "18px 14px 4px" }}>
         <div
           style={{
             fontSize: "0.82rem",
@@ -862,7 +659,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(4, 1fr)",
-            gap: "12px 10px",
+            gap: "14px 10px",
           }}
         >
           {/* 1. Santri */}
@@ -1016,42 +813,8 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               Kegiatan
             </span>
           </div>
-        </div>
-      </div>
 
-      {/* =========================================================================
-          SECTION 2: TRANSAKSI SANTRI (MATCHED SETARA: WHITE CARDS + COLORED ICONS)
-      ========================================================================= */}
-      <div style={{ padding: "16px 14px 6px" }}>
-        <div
-          style={{
-            fontSize: "0.82rem",
-            fontWeight: 800,
-            color: "#1e293b",
-            marginBottom: "12px",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-          }}
-        >
-          <span
-            style={{
-              width: "4px",
-              height: "14px",
-              background: "#6366f1",
-              borderRadius: "2px",
-            }}
-          />
-          Transaksi Santri
-        </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: "12px 10px",
-          }}
-        >
-          {/* 1. Perizinan */}
+          {/* 5. Perizinan */}
           <div
             onClick={() => onChangeTab("perizinan")}
             style={{
@@ -1089,7 +852,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             </span>
           </div>
 
-          {/* 2. Teguran / Tata Tertib */}
+          {/* 6. Teguran */}
           <div
             onClick={() => onChangeTab("tata-tertib")}
             style={{
@@ -1127,7 +890,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             </span>
           </div>
 
-          {/* 3. Absensi */}
+          {/* 7. Absensi */}
           <div
             onClick={() => onChangeTab("presensi")}
             style={{
@@ -1165,7 +928,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             </span>
           </div>
 
-          {/* 4. Perkembangan */}
+          {/* 8. Perkembangan */}
           <div
             onClick={() => onChangeTab("pengembangan")}
             style={{
@@ -1203,7 +966,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             </span>
           </div>
 
-          {/* 5. Praktek */}
+          {/* 9. Praktek */}
           <div
             onClick={() => onChangeTab("praktek-ibadah")}
             style={{
