@@ -509,7 +509,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: "16px",
+            marginBottom: "8px",
           }}
         >
           {/* Brand Typography: NWF Mobile (Gaya myBCA Text Only) */}
@@ -541,6 +541,36 @@ export default function MobileHome({ onChangeTab, onLogout }) {
           {/* Top 3 Action Buttons (Settings, Bell, Logout) */}
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <button
+              onClick={handleOpenNotice}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                padding: "6px",
+                position: "relative",
+              }}
+              title="Notifikasi"
+            >
+              <Bell size={21} />
+              <span
+                style={{
+                  position: "absolute",
+                  top: "4px",
+                  right: "4px",
+                  width: "8px",
+                  height: "8px",
+                  borderRadius: "50%",
+                  background: "#ef4444",
+                  border: "1.5px solid #005baa",
+                }}
+              />
+            </button>
+
+            <button
               onClick={handleOpenAccountInfo}
               style={{
                 background: "transparent",
@@ -556,37 +586,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               }}
               title="Pengaturan & Akun"
             >
-              <Settings size={22} />
-            </button>
-
-            <button
-              onClick={handleOpenNotice}
-              style={{
-                background: "transparent",
-                border: "none",
-                color: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                padding: "6px",
-                position: "relative",
-              }}
-              title="Notifikasi"
-            >
-              <Bell size={22} />
-              <span
-                style={{
-                  position: "absolute",
-                  top: "4px",
-                  right: "4px",
-                  width: "8px",
-                  height: "8px",
-                  borderRadius: "50%",
-                  background: "#ef4444",
-                  border: "1.5px solid #005baa",
-                }}
-              />
+              <Settings size={21} />
             </button>
 
             <button
@@ -603,9 +603,23 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               }}
               title="Keluar"
             >
-              <LogOut size={22} />
+              <LogOut size={21} />
             </button>
           </div>
+        </div>
+
+        {/* Greeting Line: HALO, [DISPLAY_NAME] (myBCA style) */}
+        <div
+          style={{
+            fontSize: "0.78rem",
+            fontWeight: 800,
+            letterSpacing: "0.06em",
+            color: "rgba(255, 255, 255, 0.92)",
+            textTransform: "uppercase",
+            marginBottom: "14px",
+          }}
+        >
+          HALO, {displayName.toUpperCase()}
         </div>
       </div>
 
@@ -735,272 +749,267 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             </div>
           </div>
         ) : (
+          /* Signature myBCA 2-Tone Hero Card */
           <div
             style={{
-              background: "#ffffff",
-              borderRadius: "22px",
-              border: "1px solid #e2e8f0",
-              padding: "16px 16px 14px",
+              borderRadius: "20px",
               boxShadow:
-                "0 10px 25px -4px rgba(0, 91, 170, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04)",
+                "0 12px 28px -4px rgba(0, 91, 170, 0.22), 0 2px 8px rgba(0, 0, 0, 0.06)",
+              overflow: "hidden",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
             }}
           >
-            {/* Header Card Status */}
+            {/* Dark Top Half (Charcoal #1e293b / #0f172a) */}
             <div
               style={{
+                background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
+                padding: "12px 16px 13px",
+                color: "#ffffff",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                marginBottom: "12px",
-                paddingBottom: "10px",
-                borderBottom: "1px solid #f1f5f9",
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    padding: "3px 8px",
+                    borderRadius: "999px",
+                    fontSize: "0.64rem",
+                    fontWeight: 700,
+                    color: "#e2e8f0",
+                    marginBottom: "5px",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: "6px",
+                      height: "6px",
+                      borderRadius: "50%",
+                      background: "#22c55e",
+                    }}
+                  />
+                  <span>Online Realtime</span>
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.76rem",
+                    color: "#cbd5e1",
+                    fontWeight: 600,
+                  }}
+                >
+                  ID Pesantren: NWF-2026-ADM
+                </div>
+              </div>
+
+              {/* Gold Privilege / Admin Badge */}
+              <div
+                style={{
+                  background:
+                    "linear-gradient(135deg, #d97706 0%, #f59e0b 50%, #b45309 100%)",
+                  color: "#ffffff",
+                  fontWeight: 900,
+                  fontSize: "0.65rem",
+                  letterSpacing: "0.06em",
+                  padding: "5px 10px",
+                  borderRadius: "8px",
+                  boxShadow: "0 2px 6px rgba(217, 119, 6, 0.4)",
+                  border: "1px solid #fef3c7",
+                  textTransform: "uppercase",
+                }}
+              >
+                ADMIN UTAMA
+              </div>
+            </div>
+
+            {/* White Bottom Half */}
+            <div
+              style={{
+                background: "#ffffff",
+                padding: "16px",
               }}
             >
               <div
-                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                }}
               >
-                <div
-                  style={{
-                    width: "32px",
-                    height: "32px",
-                    borderRadius: "10px",
-                    background:
-                      "linear-gradient(135deg, #005baa 0%, #004b91 100%)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#ffffff",
-                  }}
-                >
-                  <CheckCircle2 size={18} strokeWidth={2.4} />
-                </div>
                 <div>
-                  <h3
+                  <div
                     style={{
-                      margin: 0,
-                      fontSize: "0.88rem",
-                      fontWeight: 800,
-                      color: "#0f172a",
-                      letterSpacing: "-0.01em",
+                      fontSize: "0.72rem",
+                      color: "#64748b",
+                      fontWeight: 600,
                     }}
                   >
                     Presensi Santri Hari Ini
-                  </h3>
-                  <p
+                  </div>
+                  <div
                     style={{
-                      margin: 0,
-                      fontSize: "0.68rem",
-                      color: "#64748b",
-                      fontWeight: 500,
+                      fontSize: "1.45rem",
+                      fontWeight: 900,
+                      color: "#0f172a",
+                      letterSpacing: "-0.5px",
+                      marginTop: "2px",
                     }}
                   >
-                    Pantauan kehadiran shalat & kegiatan
-                  </p>
+                    {showBalanceEye
+                      ? `${rekapAbsensi.hadir || 0} Santri Hadir`
+                      : "••••••••"}
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "8px",
+                      marginTop: "4px",
+                      fontSize: "0.68rem",
+                      fontWeight: 700,
+                    }}
+                  >
+                    <span style={{ color: "#15803d" }}>
+                      ✓ Hadir {rekapAbsensi.hadir || 0}
+                    </span>
+                    <span style={{ color: "#b91c1c" }}>
+                      • Sakit {rekapAbsensi.sakit || 0}
+                    </span>
+                    <span style={{ color: "#d97706" }}>
+                      • Izin {rekapAbsensi.izin || 0}
+                    </span>
+                    <span style={{ color: "#64748b" }}>
+                      • Belum {rekapAbsensi.alfa || 0}
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              <span
-                style={{
-                  background: "#f0fdf4",
-                  color: "#166534",
-                  border: "1px solid #bbf7d0",
-                  fontSize: "0.65rem",
-                  fontWeight: 700,
-                  padding: "3px 8px",
-                  borderRadius: "999px",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "4px",
-                }}
-              >
-                <span
+                <button
+                  onClick={() => setShowBalanceEye(!showBalanceEye)}
                   style={{
-                    width: "6px",
-                    height: "6px",
+                    background: "#f1f5f9",
+                    border: "none",
                     borderRadius: "50%",
-                    background: "#22c55e",
+                    width: "34px",
+                    height: "34px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#64748b",
+                    cursor: "pointer",
                   }}
-                />
-                Realtime
-              </span>
-            </div>
-
-            {/* 4 Interactive Status Metric Cards */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
-                gap: "8px",
-              }}
-            >
-              {/* 1. HADIR */}
-              <div
-                onClick={() => handleOpenStatusModal("Hadir")}
-                style={{
-                  background: "#f0fdf4",
-                  border: "1px solid #bbf7d0",
-                  borderRadius: "14px",
-                  padding: "10px 4px",
-                  textAlign: "center",
-                  cursor: "pointer",
-                  transition: "transform 0.15s ease",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "1.15rem",
-                    fontWeight: 800,
-                    color: "#15803d",
-                    lineHeight: 1.1,
-                    marginBottom: "4px",
-                  }}
+                  title={showBalanceEye ? "Sembunyikan" : "Tampilkan"}
                 >
-                  {rekapAbsensi.hadir || 0}
-                </div>
-                <span
-                  style={{
-                    fontSize: "0.68rem",
-                    fontWeight: 700,
-                    color: "#166534",
-                    display: "block",
-                  }}
-                >
-                  Hadir
-                </span>
+                  {showBalanceEye ? <Eye size={17} /> : <EyeOff size={17} />}
+                </button>
               </div>
 
-              {/* 2. SAKIT */}
+              {/* Bottom Two Action Pills (myBCA Mutasi & Rekening Lain style) */}
               <div
-                onClick={() => handleOpenStatusModal("Sakit")}
                 style={{
-                  background: "#fef2f2",
-                  border: "1px solid #fecaca",
-                  borderRadius: "14px",
-                  padding: "10px 4px",
-                  textAlign: "center",
-                  cursor: "pointer",
-                  transition: "transform 0.15s ease",
+                  display: "flex",
+                  gap: "10px",
+                  marginTop: "14px",
+                  borderTop: "1px solid #f1f5f9",
+                  paddingTop: "12px",
                 }}
               >
-                <div
+                <button
+                  onClick={() => handleOpenStatusModal("Hadir")}
                   style={{
-                    fontSize: "1.15rem",
-                    fontWeight: 800,
-                    color: "#b91c1c",
-                    lineHeight: 1.1,
-                    marginBottom: "4px",
-                  }}
-                >
-                  {rekapAbsensi.sakit || 0}
-                </div>
-                <span
-                  style={{
-                    fontSize: "0.68rem",
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "10px",
+                    padding: "8px 10px",
+                    fontSize: "0.72rem",
                     fontWeight: 700,
-                    color: "#991b1b",
-                    display: "block",
+                    color: "#005baa",
+                    cursor: "pointer",
                   }}
                 >
-                  Sakit
-                </span>
-              </div>
+                  <FileText size={14} color="#005baa" />
+                  <span>Detail Presensi</span>
+                </button>
 
-              {/* 3. IZIN */}
-              <div
-                onClick={() => handleOpenStatusModal("Izin")}
-                style={{
-                  background: "#fffbeb",
-                  border: "1px solid #fde68a",
-                  borderRadius: "14px",
-                  padding: "10px 4px",
-                  textAlign: "center",
-                  cursor: "pointer",
-                  transition: "transform 0.15s ease",
-                }}
-              >
-                <div
+                <button
+                  onClick={() => onChangeTab("presensi")}
                   style={{
-                    fontSize: "1.15rem",
-                    fontWeight: 800,
-                    color: "#b45309",
-                    lineHeight: 1.1,
-                    marginBottom: "4px",
-                  }}
-                >
-                  {rekapAbsensi.izin || 0}
-                </div>
-                <span
-                  style={{
-                    fontSize: "0.68rem",
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "10px",
+                    padding: "8px 10px",
+                    fontSize: "0.72rem",
                     fontWeight: 700,
-                    color: "#92400e",
-                    display: "block",
+                    color: "#005baa",
+                    cursor: "pointer",
                   }}
                 >
-                  Izin
-                </span>
+                  <Clock size={14} color="#005baa" />
+                  <span>Riwayat Scan</span>
+                </button>
               </div>
-
-              {/* 4. ALFA / BELUM */}
-              <div
-                onClick={() => handleOpenStatusModal("Alfa")}
-                style={{
-                  background: "#f8fafc",
-                  border: "1px solid #cbd5e1",
-                  borderRadius: "14px",
-                  padding: "10px 4px",
-                  textAlign: "center",
-                  cursor: "pointer",
-                  transition: "transform 0.15s ease",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "1.15rem",
-                    fontWeight: 800,
-                    color: "#475569",
-                    lineHeight: 1.1,
-                    marginBottom: "4px",
-                  }}
-                >
-                  {rekapAbsensi.alfa || 0}
-                </div>
-                <span
-                  style={{
-                    fontSize: "0.68rem",
-                    fontWeight: 700,
-                    color: "#334155",
-                    display: "block",
-                  }}
-                >
-                  Belum
-                </span>
-              </div>
-            </div>
-
-            {/* Tap to View Details Bar */}
-            <div
-              onClick={() => handleOpenStatusModal("Hadir")}
-              style={{
-                marginTop: "10px",
-                padding: "8px 10px",
-                background: "#f8fafc",
-                borderRadius: "10px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                cursor: "pointer",
-                fontSize: "0.72rem",
-                color: "#005baa",
-                fontWeight: 700,
-              }}
-            >
-              <span>Lihat rincian nama santri & sesi filter</span>
-              <ChevronRight size={15} />
             </div>
           </div>
         )}
       </div>
+
+      {/* =========================================================================
+          MYBCA STYLE PROMO BANNER (KHUSUS ADMIN)
+      ========================================================================= */}
+      {!isBendahara && (
+        <div style={{ padding: "14px 16px 0" }}>
+          <div
+            onClick={() => onChangeTab("informasi")}
+            style={{
+              background:
+                "linear-gradient(135deg, #005baa 0%, #0284c7 50%, #7c3aed 100%)",
+              borderRadius: "14px",
+              padding: "10px 14px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              color: "#ffffff",
+              cursor: "pointer",
+              boxShadow: "0 4px 14px rgba(0, 91, 170, 0.2)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Sparkles size={16} color="#fde047" />
+              <span
+                style={{
+                  fontSize: "0.74rem",
+                  fontWeight: 800,
+                  letterSpacing: "0.02em",
+                }}
+              >
+                Informasi & Pengumuman Pesantren
+              </span>
+            </div>
+            <span
+              style={{
+                fontSize: "0.68rem",
+                fontWeight: 700,
+                color: "#e0f2fe",
+              }}
+            >
+              Lihat &gt;
+            </span>
+          </div>
+        </div>
+      )}
 
 
       {/* =========================================================================
@@ -2242,6 +2251,35 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                     Praktek
                   </span>
                 </div>
+              </div>
+
+              {/* myBCA Carousel Dots Indicator */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  gap: "5px",
+                  marginTop: "16px",
+                  paddingTop: "4px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "18px",
+                    height: "4px",
+                    borderRadius: "4px",
+                    background: "#005baa",
+                  }}
+                />
+                <div
+                  style={{
+                    width: "6px",
+                    height: "4px",
+                    borderRadius: "4px",
+                    background: "#cbd5e1",
+                  }}
+                />
               </div>
             </div>
           </div>
