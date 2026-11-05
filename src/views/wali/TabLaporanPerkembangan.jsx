@@ -116,25 +116,25 @@ export default function TabLaporanPerkembangan({ santriId, onBack }) {
         }}>
           <div>
             <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#fff' }}>
-              {metrik.tahfidz?.juz_tertinggi || 15}
+              {metrik.tahfidz?.juz_tertinggi ?? 0}
             </div>
             <div style={{ fontSize: '0.66rem', color: '#e0f2fe' }}>Juz Mutqin</div>
           </div>
           <div>
             <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#4ade80' }}>
-              {metrik.absensi?.hadir || 28}
+              {metrik.absensi?.hadir ?? 0}
             </div>
             <div style={{ fontSize: '0.66rem', color: '#e0f2fe' }}>Hadir Sholat</div>
           </div>
           <div>
             <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#fde047' }}>
-              {metrik.praktek?.lulus || 5}
+              {metrik.praktek?.lulus ?? 0}
             </div>
             <div style={{ fontSize: '0.66rem', color: '#e0f2fe' }}>Praktek Lulus</div>
           </div>
           <div>
             <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#fff' }}>
-              {metrik.pelanggaran?.total_poin || 0}
+              {metrik.pelanggaran?.total_poin ?? 0}
             </div>
             <div style={{ fontSize: '0.66rem', color: '#e0f2fe' }}>Poin Ta'zir</div>
           </div>

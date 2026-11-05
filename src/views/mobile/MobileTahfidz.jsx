@@ -56,41 +56,38 @@ export default function MobileTahfidz() {
 
   const [formData, setFormData] = useState(initialForm);
 
-  const defaultSetoran = [
-    { id: 1, santri_id: 1, nama_santri: 'Muhammad Al-Fatih', materi_hafalan: "Al-Qur'an 30 Juz", capaian_hafalan: 'Juz 15 (Al-Isra 1-25)', status: 'Lulus', tanggal: '2026-10-07' },
-    { id: 2, santri_id: 2, nama_santri: 'Ahmad Dahlan', materi_hafalan: 'Matan Al-Ajurumiyyah', capaian_hafalan: 'Bait 1 - 35 (Bab Kalam & I\'rab)', status: 'Lulus', tanggal: '2026-10-06' },
-    { id: 3, santri_id: 3, nama_santri: 'Khadijah Az-Zahra', materi_hafalan: 'Nadhom Al-Imrithi', capaian_hafalan: 'Bait 1 - 50', status: 'Lulus', tanggal: '2026-10-05' }
-  ];
+  const defaultSetoran = [];
 
   const fetchData = async () => {
     try {
       setLoading(true);
       setMateriOptions(getMasterKitabOptions());
       const [resSetoran, resSantri] = await Promise.all([
-        axios.get('/api/dashboard/stats'),
-        axios.get('/api/santri?all=true')
+        axios.get('/api/dashboard/stats').catch(() => ({ data: { recentSetoran: [] } })),
+        axios.get('/api/santri?all=true').catch(() => ({ data: { data: [] } }))
       ]);
 
       if (resSantri.data && resSantri.data.data) {
         setSantriOptions(resSantri.data.data);
       }
 
-      if (resSetoran.data && resSetoran.data.recentSetoran && resSetoran.data.recentSetoran.length > 0) {
+      if (resSetoran.data && Array.isArray(resSetoran.data.recentSetoran)) {
         setSetoranList(resSetoran.data.recentSetoran);
+        localStorage.setItem('mobile_tahfidz_list', JSON.stringify(resSetoran.data.recentSetoran));
       } else {
-        const saved = JSON.parse(localStorage.getItem('mobile_tahfidz_list') || 'null');
-        setSetoranList(saved || defaultSetoran);
+        setSetoranList([]);
+        localStorage.removeItem('mobile_tahfidz_list');
       }
     } catch (err) {
-      console.warn('API error, falling back to local tahfidz:', err);
-      const saved = JSON.parse(localStorage.getItem('mobile_tahfidz_list') || 'null');
-      setSetoranList(saved || defaultSetoran);
+      console.warn('Gagal memuat tahfidz dari server:', err);
+      setSetoranList([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    localStorage.removeItem('mobile_tahfidz_list');
     fetchData();
   }, []);
 

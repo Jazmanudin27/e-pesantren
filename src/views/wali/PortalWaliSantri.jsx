@@ -397,38 +397,28 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
     setCurrentTab('absensi');
   };
 
-  // Kurikulum Kitab Kuning
-  const kitabList = [
-    { judul: 'Safinatun Najah', bidang: 'Fiqih Ibadah Praktis', status: 'Khatam Juz 1', badge: 'badge-success' },
-    { judul: 'Jurumiyyah', bidang: 'Gramatika Bahasa Arab', status: 'Bab Kalam s/d I\'rab', badge: 'badge-info' },
-    { judul: 'Taqrib / Fathul Qorib', bidang: 'Fiqih Lanjutan', status: 'Sedang Berjalan', badge: 'badge-warning' },
-    { judul: 'Arbain Nawawiyah', bidang: 'Hadits Pilihan', status: 'Hafalan 20 Hadits', badge: 'badge-purple' },
-    { judul: 'Aqidatul Awam', bidang: 'Tauhid & Aqidah Dasar', status: 'Khatam Mandiri', badge: 'badge-success' }
-  ];
+  // Kurikulum Kitab Kuning Berdasarkan Tingkat Diniyah
+  const kitabList = santri.tingkat_diniyah ? [
+    { judul: 'Safinatun Najah', bidang: 'Fiqih Ibadah', status: 'Aktif Belajar', badge: 'badge-success' },
+    { judul: 'Jurumiyyah', bidang: 'Bahasa Arab & Nahwu', status: 'Aktif Belajar', badge: 'badge-info' }
+  ] : [];
 
-  // Dewan Asatidz Pembina
-  const asatidzList = [
-    { 
-      nama: santri.pembina_asrama || 'Ust. Ahmad Fauzan, S.Pd.I', 
-      peran: 'Pembina Kobong & Asrama', 
-      hp: santri.no_hp_pembina || '+62 821-2345-6789' 
-    },
-    { 
-      nama: santri.wali_kelas || 'Ust. Miftahurrahman, M.Pd', 
-      peran: 'Wali Kelas Madrasah Diniyah', 
-      hp: '+62 812-9876-5432' 
-    },
-    { 
-      nama: 'Ust. Ridwan Kamil, Al-Hafidz', 
-      peran: 'Musyrif Tahfidz Al-Qur\'an', 
-      hp: '+62 857-1122-3344' 
-    },
-    { 
-      nama: 'Ust. H. Abdurrahman', 
-      peran: 'Musyrif Keamanan & Kedisiplinan', 
-      hp: '+62 813-4455-6677' 
-    }
-  ];
+  // Dewan Asatidz Pembina (Real data santri)
+  const asatidzList = [];
+  if (santri.pembina_asrama) {
+    asatidzList.push({
+      nama: santri.pembina_asrama,
+      peran: 'Pembina Kobong & Asrama',
+      hp: santri.no_hp_pembina || ''
+    });
+  }
+  if (santri.wali_kelas) {
+    asatidzList.push({
+      nama: santri.wali_kelas,
+      peran: 'Wali Kelas Madrasah Diniyah',
+      hp: ''
+    });
+  }
 
   return (
     <div style={{
@@ -859,17 +849,17 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   Total Seluruh Tagihan Belum Dibayar:
                 </div>
                 <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0f172a', margin: '2px 0 10px' }}>
-                  {keuanganSummary?.formattedTotalBelumBayar || 'Rp 1.450.000'}
+                  {keuanganSummary?.formattedTotalBelumBayar || 'Rp 0'}
                 </div>
 
                 <div style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px', fontSize: '0.75rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: '#64748b' }}>• Tagihan Administrasi Bulanan:</span>
-                    <span style={{ fontWeight: 700, color: '#d97706' }}>{keuanganSummary?.formattedBulanan || 'Rp 600.000'}</span>
+                    <span style={{ fontWeight: 700, color: '#d97706' }}>{keuanganSummary?.formattedBulanan || 'Rp 0'}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: '#64748b' }}>• Sisa Biaya Awal Masuk:</span>
-                    <span style={{ fontWeight: 700, color: '#2563eb' }}>{keuanganSummary?.formattedSisaBiayaMasuk || 'Rp 850.000'}</span>
+                    <span style={{ fontWeight: 700, color: '#2563eb' }}>{keuanganSummary?.formattedSisaBiayaMasuk || 'Rp 0'}</span>
                   </div>
                 </div>
 
@@ -1000,7 +990,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                     {santri.capaian_hafalan_juz || 0} Juz Al-Qur'an
                   </div>
                   <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
-                    {tahfidz[0] ? `Setoran: ${tahfidz[0].surat_mulai || 'Juz'} (${tahfidz[0].predikat || 'Mumtaz'})` : 'Penyetoran rutin bada Subuh & Ashar'}
+                    {tahfidz[0] ? `Setoran: ${tahfidz[0].surat_mulai || 'Juz'} (${tahfidz[0].predikat || 'Mumtaz'})` : 'Belum ada data setoran'}
                   </div>
                 </div>
                 <button
@@ -1317,7 +1307,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
 
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#ffffff' }}>
-                {santri.nama_santri || 'Ahmad Dani'}
+                {santri.nama_santri || '-'}
               </h3>
               <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#bae6fd' }}>
                 NIS: <strong>{santri.nis || '-'}</strong> • Kode: <strong>{santri.kode_santri || '-'}</strong>
@@ -1328,7 +1318,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   {santri.status || 'Aktif'}
                 </span>
                 <span style={{ background: 'rgba(255,255,255,0.22)', color: '#ffffff', fontSize: '0.68rem', fontWeight: 700, padding: '3px 10px', borderRadius: '999px' }}>
-                  {santri.status_santri || 'Mukim di Pesantren'}
+                  {santri.status_santri || 'Mukim'}
                 </span>
               </div>
 
@@ -1430,7 +1420,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 </div>
                 <div style={infoRow}>
                   <span style={infoLabel}>Alamat Rumah Asal:</span>
-                  <span style={infoValue}>{santri.alamat_asal || 'Tasikmalaya, Jawa Barat'}</span>
+                  <span style={infoValue}>{santri.alamat_asal || '-'}</span>
                 </div>
               </div>
             )}
@@ -1445,43 +1435,45 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 </div>
                 <div style={infoRow}>
                   <span style={infoLabel}>Gedung Asrama:</span>
-                  <span style={{ ...infoValue, fontWeight: 800 }}>{santri.nama_asrama || 'Asrama Nurul Wafa'}</span>
+                  <span style={{ ...infoValue, fontWeight: 800 }}>{santri.nama_asrama || '-'}</span>
                 </div>
                 <div style={infoRow}>
                   <span style={infoLabel}>Kamar Kobong:</span>
-                  <span style={infoValue}>{santri.nama_kamar || 'Kamar 01'} ({santri.kode_kamar || 'K01'})</span>
+                  <span style={infoValue}>{santri.nama_kamar ? `${santri.nama_kamar} ${santri.kode_kamar ? `(${santri.kode_kamar})` : ''}` : '-'}</span>
                 </div>
                 <div style={infoRow}>
                   <span style={infoLabel}>Asatidz Pembina Kobong:</span>
-                  <span style={{ ...infoValue, color: '#0284c7', fontWeight: 700 }}>{santri.pembina_asrama || 'Ust. Ahmad Fauzan, S.Pd.I'}</span>
+                  <span style={{ ...infoValue, color: '#0284c7', fontWeight: 700 }}>{santri.pembina_asrama || '-'}</span>
                 </div>
                 <div style={infoRow}>
                   <span style={infoLabel}>Kontak WhatsApp Pembina:</span>
-                  <span style={{ ...infoValue, color: '#059669', fontWeight: 700 }}>{santri.no_hp_pembina || '+62 821-2345-6789'}</span>
+                  <span style={{ ...infoValue, color: '#059669', fontWeight: 700 }}>{santri.no_hp_pembina || '-'}</span>
                 </div>
                 {/* Direct Action Button WhatsApp Pembina */}
-                <a
-                  href={`https://wa.me/${String(santri.no_hp_pembina || '6282123456789').replace(/[^0-9]/g, '')}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    background: '#ecfdf5',
-                    color: '#059669',
-                    border: '1px solid #a7f3d0',
-                    padding: '9px 12px',
-                    borderRadius: '10px',
-                    fontSize: '0.76rem',
-                    fontWeight: 700,
-                    textDecoration: 'none',
-                    marginTop: '4px'
-                  }}
-                >
-                  <MessageCircle size={15} /> Hubungi Pembina Kobong via WhatsApp
-                </a>
+                {santri.no_hp_pembina && (
+                  <a
+                    href={`https://wa.me/${String(santri.no_hp_pembina).replace(/[^0-9]/g, '')}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      background: '#ecfdf5',
+                      color: '#059669',
+                      border: '1px solid #a7f3d0',
+                      padding: '9px 12px',
+                      borderRadius: '10px',
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                      marginTop: '4px'
+                    }}
+                  >
+                    <MessageCircle size={15} /> Hubungi Pembina Kobong via WhatsApp
+                  </a>
+                )}
               </div>
             )}
 
@@ -1495,11 +1487,11 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 </div>
                 <div style={infoRow}>
                   <span style={infoLabel}>Tingkat Diniyah:</span>
-                  <span style={{ ...infoValue, fontWeight: 800, color: '#d97706' }}>{santri.tingkat_diniyah || 'Wustho (Tingkat Menengah)'}</span>
+                  <span style={{ ...infoValue, fontWeight: 800, color: '#d97706' }}>{santri.tingkat_diniyah || '-'}</span>
                 </div>
                 <div style={infoRow}>
                   <span style={infoLabel}>Wali Kelas Diniyah:</span>
-                  <span style={infoValue}>{santri.wali_kelas || 'Ust. Miftahurrahman, M.Pd'}</span>
+                  <span style={infoValue}>{santri.wali_kelas || '-'}</span>
                 </div>
                 <div style={infoRow}>
                   <span style={infoLabel}>Jadwal Taklim & Belajar:</span>
@@ -1521,15 +1513,21 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   <BookOpen size={15} /> Kurikulum & Kajian Kitab Kuning
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                  {kitabList.map((k, idx) => (
-                    <div key={idx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#0f172a' }}>{k.judul}</div>
-                        <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{k.bidang}</div>
-                      </div>
-                      <span className={`badge ${k.badge}`} style={{ fontSize: '0.66rem' }}>{k.status}</span>
+                  {kitabList.length === 0 ? (
+                    <div style={{ fontSize: '0.74rem', color: '#94a3b8', fontStyle: 'italic', padding: '6px 0' }}>
+                      Kurikulum kitab kuning mengikuti jenjang madrasah diniyah santri.
                     </div>
-                  ))}
+                  ) : (
+                    kitabList.map((k, idx) => (
+                      <div key={idx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#0f172a' }}>{k.judul}</div>
+                          <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{k.bidang}</div>
+                        </div>
+                        <span className={`badge ${k.badge}`} style={{ fontSize: '0.66rem' }}>{k.status}</span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}
@@ -1543,33 +1541,41 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   <UserCheck size={15} /> Dewan Asatidz & Musyrif Pembina
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                  {asatidzList.map((g, idx) => (
-                    <div key={idx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#0f172a' }}>{g.nama}</div>
-                        <div style={{ fontSize: '0.7rem', color: '#0284c7', fontWeight: 600 }}>{g.peran}</div>
-                      </div>
-                      <a
-                        href={`https://wa.me/${g.hp.replace(/[^0-9]/g, '')}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          background: '#ecfdf5',
-                          color: '#059669',
-                          padding: '5px 9px',
-                          borderRadius: '8px',
-                          fontSize: '0.7rem',
-                          fontWeight: 700,
-                          textDecoration: 'none'
-                        }}
-                      >
-                        <Phone size={12} /> Chat WA
-                      </a>
+                  {asatidzList.length === 0 ? (
+                    <div style={{ fontSize: '0.74rem', color: '#94a3b8', fontStyle: 'italic', padding: '6px 0' }}>
+                      Belum ada pembina yang ditugaskan untuk santri ini.
                     </div>
-                  ))}
+                  ) : (
+                    asatidzList.map((g, idx) => (
+                      <div key={idx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#0f172a' }}>{g.nama}</div>
+                          <div style={{ fontSize: '0.7rem', color: '#0284c7', fontWeight: 600 }}>{g.peran}</div>
+                        </div>
+                        {g.hp ? (
+                          <a
+                            href={`https://wa.me/${g.hp.replace(/[^0-9]/g, '')}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              background: '#ecfdf5',
+                              color: '#059669',
+                              padding: '5px 9px',
+                              borderRadius: '8px',
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              textDecoration: 'none'
+                            }}
+                          >
+                            <Phone size={12} /> Chat WA
+                          </a>
+                        ) : null}
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}

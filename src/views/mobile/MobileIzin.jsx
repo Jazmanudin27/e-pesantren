@@ -61,44 +61,7 @@ export default function MobileIzin() {
 
   const [formData, setFormData] = useState(initialForm);
 
-  const defaultIzin = [
-    { 
-      id: 1, 
-      santri_id: 1, 
-      nama_santri: 'Muhammad Al-Fatih', 
-      nis: '2601001',
-      jenis_izin: 'Izin Pulang', 
-      status: 'Aktif Keluar', 
-      keperluan: 'Acara Keluarga & Walimah', 
-      tgl_keluar_rencana: '2026-10-10T08:00', 
-      tgl_kembali_rencana: '2026-10-12T10:00',
-      tgl_kembali_aktual: null
-    },
-    { 
-      id: 2, 
-      santri_id: 2, 
-      nama_santri: 'Ahmad Dahlan', 
-      nis: '2601002',
-      jenis_izin: 'Izin Berobat', 
-      status: 'Terlambat Kembali', 
-      keperluan: 'Pemeriksaan Gigi ke RSUD', 
-      tgl_keluar_rencana: '2026-10-08T09:00', 
-      tgl_kembali_rencana: '2026-10-09T14:00',
-      tgl_kembali_aktual: '2026-10-09T18:30'
-    },
-    { 
-      id: 3, 
-      santri_id: 3, 
-      nama_santri: 'Zaidan Muhammad', 
-      nis: '2601003',
-      jenis_izin: 'Izin Khusus', 
-      status: 'Kembali Tepat Waktu', 
-      keperluan: 'Urusan Dokumen Kependudukan', 
-      tgl_keluar_rencana: '2026-10-05T08:00', 
-      tgl_kembali_rencana: '2026-10-06T17:00',
-      tgl_kembali_aktual: '2026-10-06T15:15'
-    }
-  ];
+  const defaultIzin = [];
 
   const fetchData = async () => {
     try {
@@ -120,31 +83,24 @@ export default function MobileIzin() {
         setSantriOptions(resSantri.data.data);
       }
 
-      if (resIzin.data && resIzin.data.data && resIzin.data.data.length > 0) {
+      if (resIzin.data && Array.isArray(resIzin.data.data)) {
         const sanitized = sanitizeItems(resIzin.data.data);
         setIzinList(sanitized);
         localStorage.setItem('mobile_izin_list', JSON.stringify(sanitized));
       } else {
-        const saved = JSON.parse(localStorage.getItem('mobile_izin_list') || 'null');
-        const sanitized = sanitizeItems(saved || defaultIzin);
-        setIzinList(sanitized);
-        localStorage.setItem('mobile_izin_list', JSON.stringify(sanitized));
+        setIzinList([]);
+        localStorage.removeItem('mobile_izin_list');
       }
     } catch (err) {
-      console.warn('Fallback data izin lokal:', err);
-      const saved = JSON.parse(localStorage.getItem('mobile_izin_list') || 'null');
-      const sanitized = Array.isArray(saved) ? saved.map(i => {
-        const { nama_penjemput_mahrom, no_hp_penjemput, hubungan_mahrom, ...rest } = i;
-        return rest;
-      }) : defaultIzin;
-      setIzinList(sanitized);
-      localStorage.setItem('mobile_izin_list', JSON.stringify(sanitized));
+      console.warn('Gagal memuat izin dari server:', err);
+      setIzinList([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    localStorage.removeItem('mobile_izin_list');
     fetchData();
   }, []);
 

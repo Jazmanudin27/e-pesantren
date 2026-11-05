@@ -25,39 +25,37 @@ export default function MobileTataTertib() {
 
   const [formData, setFormData] = useState(initialForm);
 
-  const defaultPelanggaran = [
-    { id: 1, santri_id: 1, nama_santri: 'Muhammad Al-Fatih', tanggal: '2026-10-04', kategori: 'Ringan', bentuk_tazir: 'Membaca Juz 30 di Depan Asrama', status_tazir: 'Sudah Dikerjakan' },
-    { id: 2, santri_id: 2, nama_santri: 'Ahmad Dahlan', tanggal: '2026-09-28', kategori: 'Ringan', bentuk_tazir: 'Pembersihan Area Wudhu', status_tazir: 'Sudah Dikerjakan' }
-  ];
+  const defaultPelanggaran = [];
 
   const fetchData = async () => {
     try {
       setLoading(true);
       const [resP, resS] = await Promise.all([
-        axios.get('/api/pelanggaran'),
-        axios.get('/api/santri?all=true')
+        axios.get('/api/pelanggaran').catch(() => ({ data: { data: [] } })),
+        axios.get('/api/santri?all=true').catch(() => ({ data: { data: [] } }))
       ]);
 
       if (resS.data && resS.data.data) {
         setSantriOptions(resS.data.data);
       }
 
-      if (resP.data && resP.data.data && resP.data.data.length > 0) {
+      if (resP.data && Array.isArray(resP.data.data)) {
         setPelanggaranList(resP.data.data);
+        localStorage.setItem('mobile_pelanggaran_list', JSON.stringify(resP.data.data));
       } else {
-        const saved = JSON.parse(localStorage.getItem('mobile_pelanggaran_list') || 'null');
-        setPelanggaranList(saved || defaultPelanggaran);
+        setPelanggaranList([]);
+        localStorage.removeItem('mobile_pelanggaran_list');
       }
     } catch (err) {
-      console.warn('API error, fallback local:', err);
-      const saved = JSON.parse(localStorage.getItem('mobile_pelanggaran_list') || 'null');
-      setPelanggaranList(saved || defaultPelanggaran);
+      console.warn('Gagal memuat pelanggaran dari server:', err);
+      setPelanggaranList([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    localStorage.removeItem('mobile_pelanggaran_list');
     fetchData();
   }, []);
 
