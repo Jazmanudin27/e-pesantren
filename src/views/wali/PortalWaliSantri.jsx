@@ -621,117 +621,8 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
-            {/* 1. STATUS KEHADIRAN & IBADAH (PALING ATAS, FLOATING RAPI) */}
-            <div style={{ padding: '0 14px', marginTop: '-20px', position: 'relative', zIndex: 12 }}>
-              <div style={{
-                background: '#ffffff',
-                borderRadius: '20px',
-                border: '1px solid #e2e8f0',
-                padding: '14px 12px',
-                boxShadow: '0 8px 24px -4px rgba(13, 118, 110, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04)'
-              }}>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(4, 1fr)',
-                  gap: '8px'
-                }}>
-                  {/* Hadir */}
-                  <div
-                    onClick={() => openAbsensiWithFilter('Hadir')}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
-                  >
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '14px',
-                      background: '#10b981',
-                      color: '#ffffff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      position: 'relative',
-                      boxShadow: '0 4px 12px -2px rgba(16, 185, 129, 0.35)'
-                    }}>
-                      <Check size={22} strokeWidth={2.8} />
-                      {countHadir > 0 && <span style={countBadgeStyle}>{countHadir}</span>}
-                    </div>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e293b' }}>Hadir</span>
-                  </div>
-
-                  {/* Sakit */}
-                  <div
-                    onClick={() => openAbsensiWithFilter('Sakit')}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
-                  >
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '14px',
-                      background: '#ef4444',
-                      color: '#ffffff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      position: 'relative',
-                      boxShadow: '0 4px 12px -2px rgba(239, 68, 68, 0.35)'
-                    }}>
-                      <Building2 size={21} strokeWidth={2.4} />
-                      {countSakit > 0 && <span style={countBadgeStyle}>{countSakit}</span>}
-                    </div>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e293b' }}>Sakit</span>
-                  </div>
-
-                  {/* Izin */}
-                  <div
-                    onClick={() => openAbsensiWithFilter('Izin')}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
-                  >
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '14px',
-                      background: '#f59e0b',
-                      color: '#ffffff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      position: 'relative',
-                      boxShadow: '0 4px 12px -2px rgba(245, 158, 11, 0.35)'
-                    }}>
-                      <FileText size={21} strokeWidth={2.2} />
-                      {countIzin > 0 && <span style={countBadgeStyle}>{countIzin}</span>}
-                    </div>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e293b' }}>Izin</span>
-                  </div>
-
-                  {/* Alfa */}
-                  <div
-                    onClick={() => openAbsensiWithFilter('Alfa')}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
-                  >
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '14px',
-                      background: '#0d9488',
-                      color: '#ffffff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      position: 'relative',
-                      boxShadow: '0 4px 12px -2px rgba(13, 148, 136, 0.35)'
-                    }}>
-                      <Clock size={21} strokeWidth={2.4} />
-                      {countAlfa > 0 && <span style={countBadgeStyle}>{countAlfa}</span>}
-                    </div>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e293b' }}>Alfa</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 2. CARD INFO SALDO TERSIMPAN (DESAIN MODERN BANKING / ELEGAN) */}
-            <div style={{ padding: '12px 14px 0', position: 'relative', zIndex: 11 }}>
+            {/* 1. CARD INFO SALDO TERSIMPAN (PALING ATAS, FLOATING DI HEADER) */}
+            <div style={{ padding: '0 14px', marginTop: '-24px', position: 'relative', zIndex: 12 }}>
               <div
                 onClick={() => setCurrentTab('tabungan')}
                 style={{
@@ -839,8 +730,8 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
-            {/* 3. CARD TAGIHAN KEUANGAN (DESAIN MODERN GLASS & STATUS) */}
-            <div style={{ padding: '12px 14px 0', position: 'relative', zIndex: 10 }}>
+            {/* 2. CARD TAGIHAN KEUANGAN (DI BAWAH SALDO TERSIMPAN) */}
+            <div style={{ padding: '12px 14px 0', position: 'relative', zIndex: 11 }}>
               <div
                 onClick={() => setCurrentTab('tagihan')}
                 style={{
@@ -949,6 +840,115 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                     <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0284c7', marginTop: '2px' }}>
                       {keuanganSummary?.formattedSisaBiayaMasuk || 'Rp 0'}
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. REKAP STATUS KEHADIRAN & IBADAH (HADIR, SAKIT, IZIN, ALFA - DI BAWAH KEUANGAN SPP) */}
+            <div style={{ padding: '12px 14px 0', position: 'relative', zIndex: 10 }}>
+              <div style={{
+                background: '#ffffff',
+                borderRadius: '20px',
+                border: '1px solid #e2e8f0',
+                padding: '14px 12px',
+                boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.05)'
+              }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: '8px'
+                }}>
+                  {/* Hadir */}
+                  <div
+                    onClick={() => openAbsensiWithFilter('Hadir')}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                  >
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '14px',
+                      background: '#10b981',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative',
+                      boxShadow: '0 4px 12px -2px rgba(16, 185, 129, 0.35)'
+                    }}>
+                      <Check size={22} strokeWidth={2.8} />
+                      {countHadir > 0 && <span style={countBadgeStyle}>{countHadir}</span>}
+                    </div>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e293b' }}>Hadir</span>
+                  </div>
+
+                  {/* Sakit */}
+                  <div
+                    onClick={() => openAbsensiWithFilter('Sakit')}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                  >
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '14px',
+                      background: '#ef4444',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative',
+                      boxShadow: '0 4px 12px -2px rgba(239, 68, 68, 0.35)'
+                    }}>
+                      <Building2 size={21} strokeWidth={2.4} />
+                      {countSakit > 0 && <span style={countBadgeStyle}>{countSakit}</span>}
+                    </div>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e293b' }}>Sakit</span>
+                  </div>
+
+                  {/* Izin */}
+                  <div
+                    onClick={() => openAbsensiWithFilter('Izin')}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                  >
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '14px',
+                      background: '#f59e0b',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative',
+                      boxShadow: '0 4px 12px -2px rgba(245, 158, 11, 0.35)'
+                    }}>
+                      <FileText size={21} strokeWidth={2.2} />
+                      {countIzin > 0 && <span style={countBadgeStyle}>{countIzin}</span>}
+                    </div>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e293b' }}>Izin</span>
+                  </div>
+
+                  {/* Alfa */}
+                  <div
+                    onClick={() => openAbsensiWithFilter('Alfa')}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                  >
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '14px',
+                      background: '#0d9488',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative',
+                      boxShadow: '0 4px 12px -2px rgba(13, 148, 136, 0.35)'
+                    }}>
+                      <Clock size={21} strokeWidth={2.4} />
+                      {countAlfa > 0 && <span style={countBadgeStyle}>{countAlfa}</span>}
+                    </div>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e293b' }}>Alfa</span>
                   </div>
                 </div>
               </div>
