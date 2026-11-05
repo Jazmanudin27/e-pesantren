@@ -1681,125 +1681,99 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       ) : (
         <>
           {/* =========================================================================
-              CARD MENU: DATA MASTER & TRANSAKSI
+              CARD MENU: GAYA myBCA (DATA MASTER & TRANSAKSI)
           ========================================================================= */}
-          <div style={{ padding: "0 16px", marginTop: "18px" }}>
-            <div
-              style={{
-                marginBottom: "10px",
-              }}
-            >
+          <div style={{ padding: "0 16px", marginTop: "16px" }}>
+            <div style={{ marginBottom: "10px" }}>
               <span
                 style={{
                   fontSize: "0.85rem",
                   fontWeight: 900,
                   color: "#005baa",
-                  letterSpacing: "0.06em",
+                  letterSpacing: "0.05em",
                   textTransform: "uppercase",
                 }}
               >
                 MENU
               </span>
             </div>
+
             <div
               style={{
                 background: "#ffffff",
-                borderRadius: "22px",
+                borderRadius: "24px",
+                padding: "20px 14px 16px",
+                boxShadow:
+                  "0 10px 25px -4px rgba(0, 91, 170, 0.08), 0 2px 8px rgba(0, 0, 0, 0.03)",
                 border: "1px solid #e2e8f0",
-                padding: "16px 16px 18px",
-                boxShadow: "0 4px 18px -2px rgba(15, 23, 42, 0.05)",
               }}
             >
-              {/* Category Subheader: Data Master */}
+              {/* Category 1: DATA MASTER Header */}
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
                   gap: "8px",
-                  marginBottom: "12px",
+                  marginBottom: "14px",
+                  paddingLeft: "4px",
                 }}
               >
-                <div
+                <span
                   style={{
-                    width: "28px",
-                    height: "28px",
-                    borderRadius: "8px",
-                    background: "#f1f5f9",
-                    color: "#334155",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    fontSize: "0.75rem",
+                    fontWeight: 800,
+                    color: "#005baa",
+                    letterSpacing: "0.05em",
+                    textTransform: "uppercase",
                   }}
                 >
-                  <Building size={16} strokeWidth={2.4} />
-                </div>
-                <div>
-                  <h4
-                    style={{
-                      margin: 0,
-                      fontSize: "0.84rem",
-                      fontWeight: 800,
-                      color: "#0f172a",
-                    }}
-                  >
-                    Data Master
-                  </h4>
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: "0.65rem",
-                      color: "#64748b",
-                    }}
-                  >
-                    Kelola data santri, asrama, kelas & tata tertib
-                  </p>
-                </div>
+                  Data Master
+                </span>
+                <div style={{ flex: 1, height: "1px", background: "#f1f5f9" }} />
               </div>
 
-              {/* 6 Grid Tiles Data Master (3 Columns x 2 Rows) */}
+              {/* myBCA Floating Icon Grid: Data Master (4 Columns) */}
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
-                  gap: "10px",
+                  gridTemplateColumns: "repeat(4, 1fr)",
+                  gap: "16px 6px",
                 }}
               >
                 {/* 1. Santri */}
                 <div
                   onClick={() => onChangeTab("master-santri")}
                   style={{
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "14px",
-                    padding: "12px 6px",
-                    textAlign: "center",
-                    cursor: "pointer",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                     gap: "6px",
-                    transition: "transform 0.15s ease",
+                    cursor: "pointer",
                   }}
                 >
                   <div
                     style={{
-                      width: "38px",
-                      height: "38px",
-                      borderRadius: "10px",
-                      background: "#eff6ff",
-                      color: "#2563eb",
+                      width: "52px",
+                      height: "52px",
+                      borderRadius: "18px",
+                      background:
+                        "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                      color: "#ffffff",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      boxShadow: "0 6px 14px -2px rgba(37, 99, 235, 0.35)",
+                      transition: "transform 0.15s ease",
                     }}
                   >
-                    <Users size={20} />
+                    <Users size={24} />
                   </div>
                   <span
                     style={{
                       fontSize: "0.72rem",
                       fontWeight: 700,
-                      color: "#1e293b",
+                      color: "#334155",
+                      textAlign: "center",
                     }}
                   >
                     Santri
@@ -1810,38 +1784,36 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 <div
                   onClick={() => onChangeTab("master-asrama")}
                   style={{
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "14px",
-                    padding: "12px 6px",
-                    textAlign: "center",
-                    cursor: "pointer",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                     gap: "6px",
-                    transition: "transform 0.15s ease",
+                    cursor: "pointer",
                   }}
                 >
                   <div
                     style={{
-                      width: "38px",
-                      height: "38px",
-                      borderRadius: "10px",
-                      background: "#fef3c7",
-                      color: "#d97706",
+                      width: "52px",
+                      height: "52px",
+                      borderRadius: "18px",
+                      background:
+                        "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+                      color: "#ffffff",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      boxShadow: "0 6px 14px -2px rgba(245, 158, 11, 0.35)",
+                      transition: "transform 0.15s ease",
                     }}
                   >
-                    <Building size={20} />
+                    <Building size={24} />
                   </div>
                   <span
                     style={{
                       fontSize: "0.72rem",
                       fontWeight: 700,
-                      color: "#1e293b",
+                      color: "#334155",
+                      textAlign: "center",
                     }}
                   >
                     Asrama
@@ -1852,164 +1824,156 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 <div
                   onClick={() => onChangeTab("master-kelas")}
                   style={{
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "14px",
-                    padding: "12px 6px",
-                    textAlign: "center",
-                    cursor: "pointer",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                     gap: "6px",
-                    transition: "transform 0.15s ease",
+                    cursor: "pointer",
                   }}
                 >
                   <div
                     style={{
-                      width: "38px",
-                      height: "38px",
-                      borderRadius: "10px",
-                      background: "#e0e7ff",
-                      color: "#4f46e5",
+                      width: "52px",
+                      height: "52px",
+                      borderRadius: "18px",
+                      background:
+                        "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+                      color: "#ffffff",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      boxShadow: "0 6px 14px -2px rgba(99, 102, 241, 0.35)",
+                      transition: "transform 0.15s ease",
                     }}
                   >
-                    <Layers size={20} />
+                    <Layers size={24} />
                   </div>
                   <span
                     style={{
                       fontSize: "0.72rem",
                       fontWeight: 700,
-                      color: "#1e293b",
+                      color: "#334155",
+                      textAlign: "center",
                     }}
                   >
                     Kelas
                   </span>
                 </div>
 
-                {/* 4. Asatidz / Guru */}
+                {/* 4. Asatidz */}
                 <div
                   onClick={() => onChangeTab("master-asatidz")}
                   style={{
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "14px",
-                    padding: "12px 6px",
-                    textAlign: "center",
-                    cursor: "pointer",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                     gap: "6px",
-                    transition: "transform 0.15s ease",
+                    cursor: "pointer",
                   }}
                 >
                   <div
                     style={{
-                      width: "38px",
-                      height: "38px",
-                      borderRadius: "10px",
-                      background: "#ccfbf1",
-                      color: "#0f766e",
+                      width: "52px",
+                      height: "52px",
+                      borderRadius: "18px",
+                      background:
+                        "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)",
+                      color: "#ffffff",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      boxShadow: "0 6px 14px -2px rgba(13, 148, 136, 0.35)",
+                      transition: "transform 0.15s ease",
                     }}
                   >
-                    <UserCheck size={20} />
+                    <UserCheck size={24} />
                   </div>
                   <span
                     style={{
                       fontSize: "0.72rem",
                       fontWeight: 700,
-                      color: "#1e293b",
+                      color: "#334155",
+                      textAlign: "center",
                     }}
                   >
                     Asatidz
                   </span>
                 </div>
 
-                {/* 5. Tata Tertib & Ta'zir */}
+                {/* 5. Tata Tertib */}
                 <div
                   onClick={() => onChangeTab("tata-tertib")}
                   style={{
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "14px",
-                    padding: "12px 6px",
-                    textAlign: "center",
-                    cursor: "pointer",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                     gap: "6px",
-                    transition: "transform 0.15s ease",
+                    cursor: "pointer",
                   }}
                 >
                   <div
                     style={{
-                      width: "38px",
-                      height: "38px",
-                      borderRadius: "10px",
-                      background: "#ffe4e6",
-                      color: "#e11d48",
+                      width: "52px",
+                      height: "52px",
+                      borderRadius: "18px",
+                      background:
+                        "linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)",
+                      color: "#ffffff",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      boxShadow: "0 6px 14px -2px rgba(244, 63, 94, 0.35)",
+                      transition: "transform 0.15s ease",
                     }}
                   >
-                    <ShieldAlert size={20} />
+                    <ShieldAlert size={24} />
                   </div>
                   <span
                     style={{
                       fontSize: "0.72rem",
                       fontWeight: 700,
-                      color: "#1e293b",
+                      color: "#334155",
+                      textAlign: "center",
                     }}
                   >
                     Tata Tertib
                   </span>
                 </div>
 
-                {/* 6. Perekaman Wajah */}
+                {/* 6. Daftar Wajah */}
                 <div
                   onClick={() => onChangeTab("daftar-wajah")}
                   style={{
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "14px",
-                    padding: "12px 6px",
-                    textAlign: "center",
-                    cursor: "pointer",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                     gap: "6px",
-                    transition: "transform 0.15s ease",
+                    cursor: "pointer",
                   }}
                 >
                   <div
                     style={{
-                      width: "38px",
-                      height: "38px",
-                      borderRadius: "10px",
-                      background: "#e0f2fe",
-                      color: "#0284c7",
+                      width: "52px",
+                      height: "52px",
+                      borderRadius: "18px",
+                      background:
+                        "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+                      color: "#ffffff",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      boxShadow: "0 6px 14px -2px rgba(2, 132, 199, 0.35)",
+                      transition: "transform 0.15s ease",
                     }}
                   >
-                    <Smile size={20} />
+                    <Smile size={24} />
                   </div>
                   <span
                     style={{
                       fontSize: "0.72rem",
                       fontWeight: 700,
-                      color: "#1e293b",
+                      color: "#334155",
+                      textAlign: "center",
                     }}
                   >
                     Daftar Wajah
@@ -2017,235 +1981,201 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 </div>
               </div>
 
-              {/* Elegant Divider between Data Master and Transaksi */}
+              {/* Divider Between Data Master and Transaksi */}
               <div
                 style={{
                   height: "1px",
                   background: "#f1f5f9",
-                  margin: "18px 0 14px",
+                  margin: "20px 0 16px",
                 }}
               />
 
-              {/* Category Subheader: Transaksi */}
+              {/* Category 2: TRANSAKSI Header */}
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
                   gap: "8px",
-                  marginBottom: "12px",
+                  marginBottom: "14px",
+                  paddingLeft: "4px",
                 }}
               >
-                <div
+                <span
                   style={{
-                    width: "28px",
-                    height: "28px",
-                    borderRadius: "8px",
-                    background: "#eff6ff",
+                    fontSize: "0.75rem",
+                    fontWeight: 800,
                     color: "#005baa",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    letterSpacing: "0.05em",
+                    textTransform: "uppercase",
                   }}
                 >
-                  <Activity size={16} strokeWidth={2.4} />
-                </div>
-                <div>
-                  <h4
-                    style={{
-                      margin: 0,
-                      fontSize: "0.84rem",
-                      fontWeight: 800,
-                      color: "#0f172a",
-                    }}
-                  >
-                    Transaksi
-                  </h4>
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: "0.65rem",
-                      color: "#64748b",
-                    }}
-                  >
-                    Presensi harian, perizinan, evaluasi & praktek
-                  </p>
-                </div>
+                  Transaksi
+                </span>
+                <div style={{ flex: 1, height: "1px", background: "#f1f5f9" }} />
               </div>
 
-              {/* 4 Grid Tiles Transaksi (4 Columns) */}
+              {/* myBCA Floating Icon Grid: Transaksi (4 Columns) */}
               <div
                 style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(4, 1fr)",
-                  gap: "8px",
+                  gap: "16px 6px",
                 }}
               >
                 {/* 1. Presensi (Royal Blue) */}
                 <div
                   onClick={() => onChangeTab("presensi")}
                   style={{
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "14px",
-                    padding: "10px 4px",
-                    textAlign: "center",
-                    cursor: "pointer",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                     gap: "6px",
-                    transition: "transform 0.15s ease",
+                    cursor: "pointer",
                   }}
                 >
                   <div
                     style={{
-                      width: "38px",
-                      height: "38px",
-                      borderRadius: "10px",
-                      background: "linear-gradient(135deg, #005baa 0%, #004b91 100%)",
+                      width: "52px",
+                      height: "52px",
+                      borderRadius: "18px",
+                      background:
+                        "linear-gradient(135deg, #005baa 0%, #004b91 100%)",
                       color: "#ffffff",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      boxShadow: "0 3px 8px rgba(0, 91, 170, 0.25)",
+                      boxShadow: "0 6px 14px -2px rgba(0, 91, 170, 0.35)",
+                      transition: "transform 0.15s ease",
                     }}
                   >
-                    <Fingerprint size={20} />
+                    <Fingerprint size={24} />
                   </div>
                   <span
                     style={{
-                      fontSize: "0.69rem",
+                      fontSize: "0.72rem",
                       fontWeight: 700,
-                      color: "#1e293b",
+                      color: "#334155",
+                      textAlign: "center",
                     }}
                   >
                     Presensi
                   </span>
                 </div>
 
-                {/* 2. Perizinan (Teal) */}
+                {/* 2. Perizinan (Cyan) */}
                 <div
                   onClick={() => onChangeTab("perizinan")}
                   style={{
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "14px",
-                    padding: "10px 4px",
-                    textAlign: "center",
-                    cursor: "pointer",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                     gap: "6px",
-                    transition: "transform 0.15s ease",
+                    cursor: "pointer",
                   }}
                 >
                   <div
                     style={{
-                      width: "38px",
-                      height: "38px",
-                      borderRadius: "10px",
-                      background: "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)",
+                      width: "52px",
+                      height: "52px",
+                      borderRadius: "18px",
+                      background:
+                        "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)",
                       color: "#ffffff",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      boxShadow: "0 3px 8px rgba(6, 182, 212, 0.25)",
+                      boxShadow: "0 6px 14px -2px rgba(6, 182, 212, 0.35)",
+                      transition: "transform 0.15s ease",
                     }}
                   >
-                    <DoorOpen size={20} />
+                    <DoorOpen size={24} />
                   </div>
                   <span
                     style={{
-                      fontSize: "0.69rem",
+                      fontSize: "0.72rem",
                       fontWeight: 700,
-                      color: "#1e293b",
+                      color: "#334155",
+                      textAlign: "center",
                     }}
                   >
                     Perizinan
                   </span>
                 </div>
 
-                {/* 3. Perkembangan (Indigo) */}
+                {/* 3. Perkembangan (Indigo / Violet) */}
                 <div
                   onClick={() => onChangeTab("pengembangan")}
                   style={{
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "14px",
-                    padding: "10px 4px",
-                    textAlign: "center",
-                    cursor: "pointer",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                     gap: "6px",
-                    transition: "transform 0.15s ease",
+                    cursor: "pointer",
                   }}
                 >
                   <div
                     style={{
-                      width: "38px",
-                      height: "38px",
-                      borderRadius: "10px",
-                      background: "linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)",
+                      width: "52px",
+                      height: "52px",
+                      borderRadius: "18px",
+                      background:
+                        "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)",
                       color: "#ffffff",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      boxShadow: "0 3px 8px rgba(79, 70, 229, 0.25)",
+                      boxShadow: "0 6px 14px -2px rgba(139, 92, 246, 0.35)",
+                      transition: "transform 0.15s ease",
                     }}
                   >
-                    <Award size={20} />
+                    <Award size={24} />
                   </div>
                   <span
                     style={{
-                      fontSize: "0.67rem",
+                      fontSize: "0.72rem",
                       fontWeight: 700,
-                      color: "#1e293b",
+                      color: "#334155",
+                      textAlign: "center",
                     }}
                   >
                     Perkembangan
                   </span>
                 </div>
 
-                {/* 4. Praktek (Slate / Navy) */}
+                {/* 4. Praktek (Emerald Green) */}
                 <div
                   onClick={() => onChangeTab("praktek-ibadah")}
                   style={{
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "14px",
-                    padding: "10px 4px",
-                    textAlign: "center",
-                    cursor: "pointer",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                     gap: "6px",
-                    transition: "transform 0.15s ease",
+                    cursor: "pointer",
                   }}
                 >
                   <div
                     style={{
-                      width: "38px",
-                      height: "38px",
-                      borderRadius: "10px",
-                      background: "linear-gradient(135deg, #334155 0%, #1e293b 100%)",
+                      width: "52px",
+                      height: "52px",
+                      borderRadius: "18px",
+                      background:
+                        "linear-gradient(135deg, #059669 0%, #047857 100%)",
                       color: "#ffffff",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      boxShadow: "0 3px 8px rgba(51, 65, 85, 0.25)",
+                      boxShadow: "0 6px 14px -2px rgba(5, 150, 105, 0.35)",
+                      transition: "transform 0.15s ease",
                     }}
                   >
-                    <HeartHandshake size={20} />
+                    <HeartHandshake size={24} />
                   </div>
                   <span
                     style={{
-                      fontSize: "0.69rem",
+                      fontSize: "0.72rem",
                       fontWeight: 700,
-                      color: "#1e293b",
+                      color: "#334155",
+                      textAlign: "center",
                     }}
                   >
                     Praktek
@@ -2253,20 +2183,20 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 </div>
               </div>
 
-              {/* myBCA Carousel Dots Indicator */}
+              {/* myBCA Style Pagination Dots Indicator */}
               <div
                 style={{
                   display: "flex",
                   justifyContent: "center",
                   alignItems: "center",
-                  gap: "5px",
-                  marginTop: "16px",
+                  gap: "6px",
+                  marginTop: "20px",
                   paddingTop: "4px",
                 }}
               >
                 <div
                   style={{
-                    width: "18px",
+                    width: "20px",
                     height: "4px",
                     borderRadius: "4px",
                     background: "#005baa",
