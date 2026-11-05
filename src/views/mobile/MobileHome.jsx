@@ -583,26 +583,27 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       </div>
 
       {/* =========================================================================
-          SECTION: MENU (ALL 9 MENU ITEMS UNIFIED - EXPANDED WIDTH & TIGHT SPACING)
+          SECTION: MENU (ALL 9 MENU ITEMS UNIFIED - KLASIK, MODERN & ELEGAN)
       ========================================================================= */}
-      <div style={{ padding: "14px 10px 2px" }}>
+      <div style={{ padding: "14px 14px 4px" }}>
         <div
           style={{
-            fontSize: "0.84rem",
+            fontSize: "0.85rem",
             fontWeight: 800,
-            color: "#1e293b",
-            marginBottom: "10px",
+            color: "#0f172a",
+            marginBottom: "12px",
             display: "flex",
             alignItems: "center",
             gap: "6px",
+            letterSpacing: "-0.2px",
           }}
         >
           <span
             style={{
               width: "4px",
               height: "15px",
-              background: "linear-gradient(180deg, #0d766e 0%, #10b981 100%)",
-              borderRadius: "3px",
+              background: "#0d766e",
+              borderRadius: "4px",
             }}
           />
           Menu
@@ -611,7 +612,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(4, 1fr)",
-            gap: "10px 6px",
+            gap: "12px 6px",
             justifyItems: "center",
           }}
         >
@@ -622,47 +623,45 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "4px",
+              gap: "5px",
               cursor: "pointer",
-              width: "100%",
             }}
           >
             <div
               style={{
-                width: "100%",
-                maxWidth: "78px",
-                height: "64px",
-                borderRadius: "18px",
+                width: "68px",
+                height: "68px",
+                borderRadius: "20px",
                 background: "#ffffff",
-                border: "1px solid #edf2f7",
+                border: "1px solid #eef2f6",
                 boxShadow:
-                  "0 4px 12px -2px rgba(15, 23, 42, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.02)",
+                  "0 4px 14px -2px rgba(15, 23, 42, 0.06), 0 2px 4px rgba(0, 0, 0, 0.02)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                transition: "all 0.15s ease",
               }}
             >
               <div
                 style={{
                   width: "44px",
                   height: "44px",
-                  borderRadius: "13px",
-                  background: "linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)",
-                  border: "1px solid rgba(16, 185, 129, 0.25)",
-                  boxShadow: "0 3px 8px rgba(16, 185, 129, 0.16)",
+                  borderRadius: "14px",
+                  background: "#ecfdf5",
+                  border: "1px solid rgba(16, 185, 129, 0.2)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Users size={24} strokeWidth={2.4} color="#059669" />
+                <Users size={23} strokeWidth={2} color="#059669" />
               </div>
             </div>
             <span
               style={{
                 fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#1e293b",
+                fontWeight: 600,
+                color: "#334155",
                 textAlign: "center",
                 lineHeight: 1.2,
               }}
@@ -678,47 +677,45 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "4px",
+              gap: "5px",
               cursor: "pointer",
-              width: "100%",
             }}
           >
             <div
               style={{
-                width: "100%",
-                maxWidth: "78px",
-                height: "64px",
-                borderRadius: "18px",
+                width: "68px",
+                height: "68px",
+                borderRadius: "20px",
                 background: "#ffffff",
-                border: "1px solid #edf2f7",
+                border: "1px solid #eef2f6",
                 boxShadow:
-                  "0 4px 12px -2px rgba(15, 23, 42, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.02)",
+                  "0 4px 14px -2px rgba(15, 23, 42, 0.06), 0 2px 4px rgba(0, 0, 0, 0.02)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                transition: "all 0.15s ease",
               }}
             >
               <div
                 style={{
                   width: "44px",
                   height: "44px",
-                  borderRadius: "13px",
-                  background: "linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)",
-                  border: "1px solid rgba(14, 165, 233, 0.25)",
-                  boxShadow: "0 3px 8px rgba(14, 165, 233, 0.16)",
+                  borderRadius: "14px",
+                  background: "#eff6ff",
+                  border: "1px solid rgba(37, 99, 235, 0.2)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <GraduationCap size={24} strokeWidth={2.4} color="#0284c7" />
+                <GraduationCap size={23} strokeWidth={2} color="#2563eb" />
               </div>
             </div>
             <span
               style={{
                 fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#1e293b",
+                fontWeight: 600,
+                color: "#334155",
                 textAlign: "center",
                 lineHeight: 1.2,
               }}
@@ -734,47 +731,45 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "4px",
+              gap: "5px",
               cursor: "pointer",
-              width: "100%",
             }}
           >
             <div
               style={{
-                width: "100%",
-                maxWidth: "78px",
-                height: "64px",
-                borderRadius: "18px",
+                width: "68px",
+                height: "68px",
+                borderRadius: "20px",
                 background: "#ffffff",
-                border: "1px solid #edf2f7",
+                border: "1px solid #eef2f6",
                 boxShadow:
-                  "0 4px 12px -2px rgba(15, 23, 42, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.02)",
+                  "0 4px 14px -2px rgba(15, 23, 42, 0.06), 0 2px 4px rgba(0, 0, 0, 0.02)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                transition: "all 0.15s ease",
               }}
             >
               <div
                 style={{
                   width: "44px",
                   height: "44px",
-                  borderRadius: "13px",
-                  background: "linear-gradient(135deg, #f3e8ff 0%, #ddd6fe 100%)",
-                  border: "1px solid rgba(139, 92, 246, 0.25)",
-                  boxShadow: "0 3px 8px rgba(139, 92, 246, 0.16)",
+                  borderRadius: "14px",
+                  background: "#f5f3ff",
+                  border: "1px solid rgba(124, 58, 237, 0.2)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Building size={24} strokeWidth={2.4} color="#7c3aed" />
+                <Building size={23} strokeWidth={2} color="#7c3aed" />
               </div>
             </div>
             <span
               style={{
                 fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#1e293b",
+                fontWeight: 600,
+                color: "#334155",
                 textAlign: "center",
                 lineHeight: 1.2,
               }}
@@ -790,47 +785,45 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "4px",
+              gap: "5px",
               cursor: "pointer",
-              width: "100%",
             }}
           >
             <div
               style={{
-                width: "100%",
-                maxWidth: "78px",
-                height: "64px",
-                borderRadius: "18px",
+                width: "68px",
+                height: "68px",
+                borderRadius: "20px",
                 background: "#ffffff",
-                border: "1px solid #edf2f7",
+                border: "1px solid #eef2f6",
                 boxShadow:
-                  "0 4px 12px -2px rgba(15, 23, 42, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.02)",
+                  "0 4px 14px -2px rgba(15, 23, 42, 0.06), 0 2px 4px rgba(0, 0, 0, 0.02)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                transition: "all 0.15s ease",
               }}
             >
               <div
                 style={{
                   width: "44px",
                   height: "44px",
-                  borderRadius: "13px",
-                  background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
-                  border: "1px solid rgba(245, 158, 11, 0.25)",
-                  boxShadow: "0 3px 8px rgba(245, 158, 11, 0.16)",
+                  borderRadius: "14px",
+                  background: "#fffbeb",
+                  border: "1px solid rgba(217, 119, 6, 0.2)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Calendar size={24} strokeWidth={2.4} color="#d97706" />
+                <Calendar size={23} strokeWidth={2} color="#d97706" />
               </div>
             </div>
             <span
               style={{
                 fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#1e293b",
+                fontWeight: 600,
+                color: "#334155",
                 textAlign: "center",
                 lineHeight: 1.2,
               }}
@@ -846,47 +839,45 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "4px",
+              gap: "5px",
               cursor: "pointer",
-              width: "100%",
             }}
           >
             <div
               style={{
-                width: "100%",
-                maxWidth: "78px",
-                height: "64px",
-                borderRadius: "18px",
+                width: "68px",
+                height: "68px",
+                borderRadius: "20px",
                 background: "#ffffff",
-                border: "1px solid #edf2f7",
+                border: "1px solid #eef2f6",
                 boxShadow:
-                  "0 4px 12px -2px rgba(15, 23, 42, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.02)",
+                  "0 4px 14px -2px rgba(15, 23, 42, 0.06), 0 2px 4px rgba(0, 0, 0, 0.02)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                transition: "all 0.15s ease",
               }}
             >
               <div
                 style={{
                   width: "44px",
                   height: "44px",
-                  borderRadius: "13px",
-                  background: "linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)",
-                  border: "1px solid rgba(99, 102, 241, 0.25)",
-                  boxShadow: "0 3px 8px rgba(99, 102, 241, 0.16)",
+                  borderRadius: "14px",
+                  background: "#eef2ff",
+                  border: "1px solid rgba(79, 70, 229, 0.2)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Clock size={24} strokeWidth={2.4} color="#4f46e5" />
+                <Clock size={23} strokeWidth={2} color="#4f46e5" />
               </div>
             </div>
             <span
               style={{
                 fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#1e293b",
+                fontWeight: 600,
+                color: "#334155",
                 textAlign: "center",
                 lineHeight: 1.2,
               }}
@@ -902,47 +893,45 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "4px",
+              gap: "5px",
               cursor: "pointer",
-              width: "100%",
             }}
           >
             <div
               style={{
-                width: "100%",
-                maxWidth: "78px",
-                height: "64px",
-                borderRadius: "18px",
+                width: "68px",
+                height: "68px",
+                borderRadius: "20px",
                 background: "#ffffff",
-                border: "1px solid #edf2f7",
+                border: "1px solid #eef2f6",
                 boxShadow:
-                  "0 4px 12px -2px rgba(15, 23, 42, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.02)",
+                  "0 4px 14px -2px rgba(15, 23, 42, 0.06), 0 2px 4px rgba(0, 0, 0, 0.02)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                transition: "all 0.15s ease",
               }}
             >
               <div
                 style={{
                   width: "44px",
                   height: "44px",
-                  borderRadius: "13px",
-                  background: "linear-gradient(135deg, #ffe4e6 0%, #fecdd3 100%)",
-                  border: "1px solid rgba(239, 68, 68, 0.25)",
-                  boxShadow: "0 3px 8px rgba(239, 68, 68, 0.16)",
+                  borderRadius: "14px",
+                  background: "#fff1f2",
+                  border: "1px solid rgba(225, 29, 72, 0.2)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <ShieldAlert size={24} strokeWidth={2.4} color="#e11d48" />
+                <ShieldAlert size={23} strokeWidth={2} color="#e11d48" />
               </div>
             </div>
             <span
               style={{
                 fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#1e293b",
+                fontWeight: 600,
+                color: "#334155",
                 textAlign: "center",
                 lineHeight: 1.2,
               }}
@@ -958,47 +947,45 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "4px",
+              gap: "5px",
               cursor: "pointer",
-              width: "100%",
             }}
           >
             <div
               style={{
-                width: "100%",
-                maxWidth: "78px",
-                height: "64px",
-                borderRadius: "18px",
+                width: "68px",
+                height: "68px",
+                borderRadius: "20px",
                 background: "#ffffff",
-                border: "1px solid #edf2f7",
+                border: "1px solid #eef2f6",
                 boxShadow:
-                  "0 4px 12px -2px rgba(15, 23, 42, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.02)",
+                  "0 4px 14px -2px rgba(15, 23, 42, 0.06), 0 2px 4px rgba(0, 0, 0, 0.02)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                transition: "all 0.15s ease",
               }}
             >
               <div
                 style={{
                   width: "44px",
                   height: "44px",
-                  borderRadius: "13px",
-                  background: "linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%)",
-                  border: "1px solid rgba(13, 148, 136, 0.25)",
-                  boxShadow: "0 3px 8px rgba(13, 148, 136, 0.16)",
+                  borderRadius: "14px",
+                  background: "#f0fdfa",
+                  border: "1px solid rgba(13, 148, 136, 0.2)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Fingerprint size={24} strokeWidth={2.4} color="#0d9488" />
+                <Fingerprint size={23} strokeWidth={2} color="#0d9488" />
               </div>
             </div>
             <span
               style={{
                 fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#1e293b",
+                fontWeight: 600,
+                color: "#334155",
                 textAlign: "center",
                 lineHeight: 1.2,
               }}
@@ -1014,47 +1001,45 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "4px",
+              gap: "5px",
               cursor: "pointer",
-              width: "100%",
             }}
           >
             <div
               style={{
-                width: "100%",
-                maxWidth: "78px",
-                height: "64px",
-                borderRadius: "18px",
+                width: "68px",
+                height: "68px",
+                borderRadius: "20px",
                 background: "#ffffff",
-                border: "1px solid #edf2f7",
+                border: "1px solid #eef2f6",
                 boxShadow:
-                  "0 4px 12px -2px rgba(15, 23, 42, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.02)",
+                  "0 4px 14px -2px rgba(15, 23, 42, 0.06), 0 2px 4px rgba(0, 0, 0, 0.02)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                transition: "all 0.15s ease",
               }}
             >
               <div
                 style={{
                   width: "44px",
                   height: "44px",
-                  borderRadius: "13px",
-                  background: "linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%)",
-                  border: "1px solid rgba(6, 182, 212, 0.25)",
-                  boxShadow: "0 3px 8px rgba(6, 182, 212, 0.16)",
+                  borderRadius: "14px",
+                  background: "#f0f9ff",
+                  border: "1px solid rgba(2, 132, 199, 0.2)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Award size={24} strokeWidth={2.4} color="#0891b2" />
+                <Award size={23} strokeWidth={2} color="#0284c7" />
               </div>
             </div>
             <span
               style={{
                 fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#1e293b",
+                fontWeight: 600,
+                color: "#334155",
                 textAlign: "center",
                 lineHeight: 1.2,
               }}
@@ -1070,47 +1055,45 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "4px",
+              gap: "5px",
               cursor: "pointer",
-              width: "100%",
             }}
           >
             <div
               style={{
-                width: "100%",
-                maxWidth: "78px",
-                height: "64px",
-                borderRadius: "18px",
+                width: "68px",
+                height: "68px",
+                borderRadius: "20px",
                 background: "#ffffff",
-                border: "1px solid #edf2f7",
+                border: "1px solid #eef2f6",
                 boxShadow:
-                  "0 4px 12px -2px rgba(15, 23, 42, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.02)",
+                  "0 4px 14px -2px rgba(15, 23, 42, 0.06), 0 2px 4px rgba(0, 0, 0, 0.02)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                transition: "all 0.15s ease",
               }}
             >
               <div
                 style={{
                   width: "44px",
                   height: "44px",
-                  borderRadius: "13px",
-                  background: "linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%)",
-                  border: "1px solid rgba(234, 88, 12, 0.25)",
-                  boxShadow: "0 3px 8px rgba(234, 88, 12, 0.16)",
+                  borderRadius: "14px",
+                  background: "#fff7ed",
+                  border: "1px solid rgba(234, 88, 12, 0.2)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <BookOpen size={24} strokeWidth={2.4} color="#ea580c" />
+                <BookOpen size={23} strokeWidth={2} color="#ea580c" />
               </div>
             </div>
             <span
               style={{
                 fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#1e293b",
+                fontWeight: 600,
+                color: "#334155",
                 textAlign: "center",
                 lineHeight: 1.2,
               }}
