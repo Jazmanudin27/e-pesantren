@@ -604,8 +604,8 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                     letterSpacing: "0.03em",
                   }}
                 >
-                  {sessionData.nis || sessionData.nisn ? (
-                    `NIS: ${sessionData.nis || "-"} • NISN: ${sessionData.nisn || "-"}`
+                  {sessionData.nisn || sessionData.nis ? (
+                    `NISN: ${sessionData.nisn || sessionData.nis}`
                   ) : (
                     "NWF-2026-ADM"
                   )}
@@ -2016,8 +2016,8 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                       marginTop: "2px",
                     }}
                   >
-                    {sessionData.nis || sessionData.nisn ? (
-                      `NIS: ${sessionData.nis || "-"} • NISN: ${sessionData.nisn || "-"}`
+                    {sessionData.nisn || sessionData.nis ? (
+                      `NISN: ${sessionData.nisn || sessionData.nis}`
                     ) : (
                       "ID: NWF-2026-ADM"
                     )}

@@ -248,8 +248,8 @@ export const login = async (req, res, next) => {
       );
       if (sRow && sRow.length > 0) {
         namaSantriDb = sRow[0].nama_santri || namaSantriDb;
-        nisnDb = sRow[0].nisn || nisnDb;
-        nisDb = sRow[0].nis || nisDb;
+        nisnDb = sRow[0].nisn || sRow[0].nis || nisnDb;
+        nisDb = sRow[0].nis || sRow[0].nisn || nisDb;
         santriRealId = sRow[0].id;
         if (account.role !== 'admin' && account.role !== 'asatidz' && account.role !== 'asrama') {
           isWali = true;

@@ -79,7 +79,7 @@ export const getWaliSantriData = async (req, res) => {
         s.id,
         s.kode_santri,
         s.nis,
-        s.nisn,
+        COALESCE(NULLIF(TRIM(s.nisn), ''), NULLIF(TRIM(s.nis), ''), NULLIF(TRIM(s.kode_santri), ''), '-') as nisn,
         s.nama_santri,
         s.jk,
         COALESCE(s.foto_url, s.foto, '') as foto_url,

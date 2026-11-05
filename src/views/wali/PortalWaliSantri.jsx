@@ -453,6 +453,9 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   };
 
   const rawSantriName = cleanSantriName(santri.nama_santri || data?.santri?.nama_santri) || getStoredSantriName() || 'Santri';
+  const displayNisn = (santri.nisn && santri.nisn !== '-') 
+    ? santri.nisn 
+    : (santri.nis || sessionData.nisn || sessionData.nis || '-');
   const initial = rawSantriName.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase() || 'SN';
 
   const openAbsensiWithFilter = (status) => {
@@ -669,19 +672,13 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                     {rawSantriName}
                   </div>
                   <div style={{
-                    fontSize: '0.72rem',
+                    fontSize: '0.76rem',
                     fontWeight: 700,
                     color: '#a7f3d0',
                     letterSpacing: '0.03em',
-                    marginTop: '2px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    flexWrap: 'wrap'
+                    marginTop: '2px'
                   }}>
-                    <span>NIS: <strong style={{ color: '#ffffff' }}>{santri.nis || sessionData.nis || '-'}</strong></span>
-                    <span>•</span>
-                    <span>NISN: <strong style={{ color: '#ffffff' }}>{santri.nisn || sessionData.nisn || '-'}</strong></span>
+                    NISN: <strong style={{ color: '#ffffff' }}>{displayNisn}</strong>
                   </div>
                 </div>
               </div>
@@ -1543,7 +1540,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   {rawSantriName}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
-                  NIS: {santri.nis || '-'} • {santri.nama_kelas || 'Santri'} • {santri.nama_asrama || 'Asrama'}
+                  NISN: {displayNisn} • {santri.nama_kelas || 'Santri'} • {santri.nama_asrama || 'Asrama'}
                 </div>
               </div>
             </div>
@@ -1786,8 +1783,8 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#ffffff' }}>
                 {santri.nama_santri || rawSantriName}
               </h3>
-              <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#bae6fd' }}>
-                NIS: <strong>{santri.nis || sessionData.nis || '-'}</strong> • NISN: <strong>{santri.nisn || sessionData.nisn || '-'}</strong>
+              <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#bae6fd' }}>
+                NISN: <strong>{displayNisn}</strong>
               </p>
 
               <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '10px' }}>
@@ -1799,36 +1796,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 </span>
               </div>
 
-              {/* Santri Switcher Dropdown (bila wali punya anak lebih dari 1) */}
-              {santriList.length > 1 && (
-                <div style={{ marginTop: '14px', borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '10px' }}>
-                  <label style={{ fontSize: '0.7rem', color: '#e0f2fe', display: 'block', marginBottom: '4px' }}>
-                    Ganti Santri yang Dipantau:
-                  </label>
-                  <select
-                    value={selectedSantriId || ''}
-                    onChange={(e) => handleSantriChange(Number(e.target.value))}
-                    style={{
-                      width: '100%',
-                      background: 'rgba(255,255,255,0.25)',
-                      border: '1px solid rgba(255,255,255,0.4)',
-                      color: '#ffffff',
-                      borderRadius: '10px',
-                      fontSize: '0.76rem',
-                      padding: '6px 10px',
-                      cursor: 'pointer',
-                      fontWeight: 700,
-                      outline: 'none'
-                    }}
-                  >
-                    {santriList.map(s => (
-                      <option key={s.id} value={s.id} style={{ color: '#0f172a' }}>
-                        {s.nama_santri} (NIS: {s.nis})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+
             </div>
 
             {/* Quick Section Filter Pills */}
@@ -1876,12 +1844,8 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   <span style={infoValue}>{santri.nama_santri || rawSantriName}</span>
                 </div>
                 <div style={infoRow}>
-                  <span style={infoLabel}>NIS (Nomor Induk Santri):</span>
-                  <span style={{ ...infoValue, fontWeight: 800, color: '#0f766e' }}>{santri.nis || sessionData.nis || '-'}</span>
-                </div>
-                <div style={infoRow}>
-                  <span style={infoLabel}>NISN (Nasional):</span>
-                  <span style={{ ...infoValue, fontWeight: 800, color: '#0369a1' }}>{santri.nisn || sessionData.nisn || '-'}</span>
+                  <span style={infoLabel}>NISN:</span>
+                  <span style={{ ...infoValue, fontWeight: 800, color: '#0369a1' }}>{displayNisn}</span>
                 </div>
                 <div style={infoRow}>
                   <span style={infoLabel}>Kode Santri:</span>
@@ -2837,7 +2801,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                       Ajukan Izin Santri
                     </h3>
                     <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748b' }}>
-                      {santri?.nama_santri} ({santri?.nis || 'Santri'})
+                      {santri?.nama_santri || rawSantriName} (NISN: {displayNisn})
                     </p>
                   </div>
                 </div>
