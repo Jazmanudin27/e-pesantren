@@ -146,15 +146,18 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
     try {
       setLoading(true);
       let sessionNisn = '';
+      let sessionNama = '';
       try {
         const sess = JSON.parse(localStorage.getItem('desktop_session') || localStorage.getItem('mobile_session') || '{}');
         sessionNisn = sess.nisn || sess.username || '';
+        sessionNama = sess.nama_santri || sess.nama || '';
       } catch (e) {}
 
       let url = '/api/wali/santri';
       const params = new URLSearchParams();
-      if (targetId) params.append('santri_id', targetId);
       if (sessionNisn) params.append('nisn', sessionNisn);
+      if (sessionNama) params.append('nama', sessionNama);
+      if (targetId) params.append('santri_id', targetId);
       const qStr = params.toString();
       if (qStr) url += `?${qStr}`;
 
@@ -419,8 +422,17 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   const countIzin = perizinan.length || presensi.filter(p => (p.status || '').toLowerCase().includes('izin')).length;
   const countAlfa = presensi.filter(p => (p.status || '').toLowerCase().includes('alfa') || (p.status || '').toLowerCase().includes('absen')).length;
 
-  const rawSantriName = santri.nama_santri || 'Santri Nurul Wafa';
-  const initial = rawSantriName.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase() || 'SW';
+  const getStoredSantriName = () => {
+    try {
+      const sess = JSON.parse(localStorage.getItem('desktop_session') || localStorage.getItem('mobile_session') || '{}');
+      return sess.nama_santri || sess.nama || sess.username || '';
+    } catch (e) {
+      return '';
+    }
+  };
+
+  const rawSantriName = santri.nama_santri || data?.santri?.nama_santri || getStoredSantriName() || 'Santri';
+  const initial = rawSantriName.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase() || 'SN';
 
   const openAbsensiWithFilter = (status) => {
     setAbsensiStatusFilter(status);
@@ -648,218 +660,148 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
-            {/* FLOATING HERO WHITE CARD (SANTRI SMART ID CARD + DUAL METRIC STATS - PERSIS MOBILE ADMIN) */}
-            <div style={{ padding: '0 14px', marginTop: '-34px', position: 'relative', zIndex: 10 }}>
+            {/* FLOATING HERO METRICS: TABUNGAN SANTRI & TAGIHAN SPP */}
+            <div style={{ padding: '0 14px', marginTop: '-32px', position: 'relative', zIndex: 10 }}>
               <div style={{
                 background: '#ffffff',
                 borderRadius: '22px',
                 padding: '12px',
                 boxShadow: '0 12px 28px -4px rgba(11, 107, 96, 0.18), 0 3px 10px rgba(0, 0, 0, 0.04)',
                 border: '1px solid #e6f0ed',
-                display: 'flex',
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
                 gap: '10px',
                 alignItems: 'stretch'
               }}>
-                {/* Left 58%: Mini Blue Smart ID Card Santri */}
+                {/* Card 1: Tabungan Santri */}
                 <div
-                  onClick={() => setCurrentTab('profile')}
+                  onClick={() => setCurrentTab('tabungan')}
                   style={{
-                    flex: '1 1 58%',
-                    background: 'linear-gradient(135deg, #0284c7 0%, #1e40af 100%)',
+                    background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                    border: '1px solid rgba(16, 185, 129, 0.35)',
                     borderRadius: '16px',
-                    padding: '10px 12px',
-                    color: '#ffffff',
-                    position: 'relative',
-                    overflow: 'hidden',
+                    padding: '12px',
                     cursor: 'pointer',
+                    boxShadow: '0 3px 10px rgba(16, 185, 129, 0.12)',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
-                    minHeight: '92px',
-                    boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)'
+                    minHeight: '88px',
+                    transition: 'all 0.15s ease'
                   }}
                 >
-                  {/* Top row: Brand & Star emblem */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <div style={{
-                        fontSize: '0.6rem',
-                        fontWeight: 700,
-                        letterSpacing: '0.02em',
-                        color: '#f0f9ff',
-                        lineHeight: 1.1
-                      }}>
-                        Pondok Pesantren
-                      </div>
-                      <div style={{
-                        fontSize: '0.74rem',
-                        fontWeight: 900,
-                        color: '#ffffff',
-                        letterSpacing: '0.02em'
-                      }}>
-                        Nurul Wafa
-                      </div>
-                    </div>
-                    <span style={{ fontSize: '1.1rem', lineHeight: 1, color: '#ffffff', opacity: 0.9 }}>
-                      ✱
-                    </span>
-                  </div>
-
-                  {/* Bottom row: Cardholder details */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
-                    <div style={{
-                      width: '28px',
-                      height: '34px',
-                      borderRadius: '5px',
-                      background: santri.jk === 'P' ? '#db2777' : '#0369a1',
-                      border: '1.5px solid #ffffff',
-                      overflow: 'hidden',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      fontWeight: 900,
-                      fontSize: '0.8rem',
-                      color: '#ffffff'
-                    }}>
-                      {santri.foto_url ? (
-                        <img src={santri.foto_url} alt="Foto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : (
-                        initial
-                      )}
-                    </div>
-                    <div style={{ minWidth: 0, overflow: 'hidden' }}>
-                      <div style={{
-                        fontSize: '0.74rem',
-                        fontWeight: 800,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        color: '#ffffff'
-                      }}>
-                        {rawSantriName}
-                      </div>
-                      <div style={{
-                        fontSize: '0.62rem',
-                        color: '#bae6fd',
-                        fontWeight: 700,
-                        letterSpacing: '0.02em',
-                        marginTop: '1px'
-                      }}>
-                        NISN: {santri.nisn || santri.nis || '-'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right 42%: Modern Dual-Metric Stats Cards (Tabungan & Tagihan SPP) */}
-                <div style={{
-                  flex: '1 1 42%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  gap: '8px'
-                }}>
-                  {/* Card 1: Tabungan Santri */}
-                  <div
-                    onClick={() => setCurrentTab('tabungan')}
-                    style={{
-                      background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-                      border: '1px solid rgba(16, 185, 129, 0.3)',
-                      borderRadius: '14px',
-                      padding: '8px 10px',
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 6px rgba(16, 185, 129, 0.08)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '2px',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{
-                        width: '6px',
-                        height: '6px',
+                        width: '7px',
+                        height: '7px',
                         borderRadius: '50%',
                         background: '#16a34a',
-                        boxShadow: '0 0 5px #16a34a'
+                        boxShadow: '0 0 6px #16a34a'
                       }} />
                       <span style={{
-                        fontSize: '0.6rem',
+                        fontSize: '0.66rem',
                         fontWeight: 800,
                         color: '#166534',
-                        letterSpacing: '0.02em',
+                        letterSpacing: '0.03em',
                         textTransform: 'uppercase'
                       }}>
                         TABUNGAN
                       </span>
                     </div>
+                    <Wallet size={16} color="#16a34a" />
+                  </div>
+
+                  <div style={{ marginTop: '6px', marginBottom: '4px' }}>
                     <div style={{
-                      fontSize: '0.95rem',
+                      fontSize: '1.05rem',
                       fontWeight: 900,
                       color: '#14532d',
                       lineHeight: 1.15,
-                      marginTop: '2px',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis'
                     }}>
                       {formatRp(tabunganData?.saldo_saat_ini || 0)}
                     </div>
-                    <div style={{ fontSize: '0.58rem', color: '#059669', fontWeight: 700 }}>
-                      Uang Saku &rarr;
-                    </div>
                   </div>
 
-                  {/* Card 2: Tagihan SPP */}
-                  <div
-                    onClick={() => setCurrentTab('tagihan')}
-                    style={{
-                      background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-                      border: '1px solid rgba(245, 158, 11, 0.3)',
-                      borderRadius: '14px',
-                      padding: '8px 10px',
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 6px rgba(245, 158, 11, 0.08)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '2px',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <div style={{
+                    fontSize: '0.64rem',
+                    color: '#059669',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    <span>Uang Saku Santri</span>
+                    <span>&rarr;</span>
+                  </div>
+                </div>
+
+                {/* Card 2: Tagihan & SPP */}
+                <div
+                  onClick={() => setCurrentTab('tagihan')}
+                  style={{
+                    background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+                    border: '1px solid rgba(245, 158, 11, 0.35)',
+                    borderRadius: '16px',
+                    padding: '12px',
+                    cursor: 'pointer',
+                    boxShadow: '0 3px 10px rgba(245, 158, 11, 0.12)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    minHeight: '88px',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{
-                        width: '6px',
-                        height: '6px',
+                        width: '7px',
+                        height: '7px',
                         borderRadius: '50%',
                         background: '#d97706',
-                        boxShadow: '0 0 5px #d97706'
+                        boxShadow: '0 0 6px #d97706'
                       }} />
                       <span style={{
-                        fontSize: '0.6rem',
+                        fontSize: '0.66rem',
                         fontWeight: 800,
                         color: '#92400e',
-                        letterSpacing: '0.02em',
+                        letterSpacing: '0.03em',
                         textTransform: 'uppercase'
                       }}>
                         TAGIHAN SPP
                       </span>
                     </div>
+                    <CreditCard size={16} color="#d97706" />
+                  </div>
+
+                  <div style={{ marginTop: '6px', marginBottom: '4px' }}>
                     <div style={{
-                      fontSize: '0.95rem',
+                      fontSize: '1.05rem',
                       fontWeight: 900,
                       color: (keuanganSummary?.totalBelumBayar || 0) > 0 ? '#b45309' : '#15803d',
                       lineHeight: 1.15,
-                      marginTop: '2px',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis'
                     }}>
                       {keuanganSummary?.formattedTotalBelumBayar || 'Rp 0'}
                     </div>
-                    <div style={{ fontSize: '0.58rem', color: '#b45309', fontWeight: 700 }}>
-                      {(keuanganSummary?.totalBelumBayar || 0) > 0 ? 'Bayar Online \u2192' : 'Lunas \u2713'}
-                    </div>
+                  </div>
+
+                  <div style={{
+                    fontSize: '0.64rem',
+                    color: (keuanganSummary?.totalBelumBayar || 0) > 0 ? '#b45309' : '#15803d',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    <span>{(keuanganSummary?.totalBelumBayar || 0) > 0 ? 'Bayar Online' : 'Semua Lunas'}</span>
+                    <span>{(keuanganSummary?.totalBelumBayar || 0) > 0 ? '\u2192' : '\u2713'}</span>
                   </div>
                 </div>
               </div>

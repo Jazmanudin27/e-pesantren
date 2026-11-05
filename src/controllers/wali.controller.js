@@ -8,22 +8,40 @@ import bcrypt from 'bcryptjs';
 export const getWaliSantriData = async (req, res) => {
   try {
     let santriId = null;
-    const nisnParam = req.query.nisn || req.query.nis || (req.user && req.user.username);
+    const searchParam = req.query.nisn || req.query.nis || req.query.nama || req.query.username || (req.user && (req.user.nama_santri || req.user.username || req.user.nama));
 
-    // Prioritas 1: Cari tepat berdasarkan NISN / NIS / username dari akun login
-    if (nisnParam) {
-      const [byNisn] = await pool.query(
-        'SELECT id FROM santri WHERE nisn = ? OR nis = ? OR username = ? LIMIT 1',
-        [nisnParam, nisnParam, nisnParam]
+    // Prioritas 1: Cari tepat berdasarkan NISN / NIS / username / nama_santri dari akun login
+    if (searchParam) {
+      const cleanSearch = String(searchParam).trim();
+      const [bySearch] = await pool.query(
+        `SELECT id FROM santri 
+         WHERE LOWER(TRIM(nisn)) = LOWER(TRIM(?)) 
+            OR LOWER(TRIM(nis)) = LOWER(TRIM(?)) 
+            OR LOWER(TRIM(COALESCE(username, ''))) = LOWER(TRIM(?))
+            OR LOWER(TRIM(nama_santri)) = LOWER(TRIM(?))
+            OR LOWER(TRIM(nama_santri)) LIKE LOWER(?)
+         ORDER BY (LOWER(TRIM(nama_santri)) = LOWER(TRIM(?))) DESC, id ASC
+         LIMIT 1`,
+        [cleanSearch, cleanSearch, cleanSearch, cleanSearch, `%${cleanSearch}%`, cleanSearch]
       );
-      if (byNisn && byNisn.length > 0) {
-        santriId = byNisn[0].id;
+      if (bySearch && bySearch.length > 0) {
+        santriId = bySearch[0].id;
       }
     }
 
     // Prioritas 2: Jika query santri_id eksplisit atau dari token santri_id
     if (!santriId) {
       santriId = req.query.santri_id || (req.user && (req.user.santri_id || (req.user.role === 'wali' ? req.user.id : null)));
+    }
+
+    // Prioritas 2.5: Cek jika di tabel users ada relasi santri_id
+    if (!santriId && req.user && req.user.id) {
+      try {
+        const [uRow] = await pool.query('SELECT santri_id FROM users WHERE id = ? LIMIT 1', [req.user.id]);
+        if (uRow && uRow.length > 0 && uRow[0].santri_id) {
+          santriId = uRow[0].santri_id;
+        }
+      } catch (e) {}
     }
 
     // Prioritas 3: Fallback jika belum ada

@@ -143,8 +143,10 @@ export const login = async (req, res, next) => {
                 OR LOWER(TRIM(s.nis)) = LOWER(TRIM(?)) 
                 OR LOWER(TRIM(COALESCE(s.nisn, ''))) = LOWER(TRIM(?)) 
                 OR LOWER(TRIM(s.kode_santri)) = LOWER(TRIM(?)) 
+                OR LOWER(TRIM(s.nama_santri)) = LOWER(TRIM(?))
+                OR LOWER(TRIM(s.nama_santri)) LIKE LOWER(?)
              LIMIT 1`,
-            [cleanUser, cleanUser, cleanUser, cleanUser]
+            [cleanUser, cleanUser, cleanUser, cleanUser, cleanUser, `%${cleanUser}%`]
           );
           strRows = resWithUser;
         } catch (colErr) {
@@ -156,8 +158,10 @@ export const login = async (req, res, next) => {
              WHERE LOWER(TRIM(s.nis)) = LOWER(TRIM(?)) 
                 OR LOWER(TRIM(s.nisn)) = LOWER(TRIM(?)) 
                 OR LOWER(TRIM(s.kode_santri)) = LOWER(TRIM(?)) 
+                OR LOWER(TRIM(s.nama_santri)) = LOWER(TRIM(?))
+                OR LOWER(TRIM(s.nama_santri)) LIKE LOWER(?)
              LIMIT 1`,
-            [cleanUser, cleanUser, cleanUser]
+            [cleanUser, cleanUser, cleanUser, cleanUser, `%${cleanUser}%`]
           );
           strRows = resLegacy;
         }
