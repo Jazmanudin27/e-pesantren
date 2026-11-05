@@ -45,7 +45,10 @@ import {
   Plus,
   XCircle,
   AlertTriangle,
-  Settings
+  Settings,
+  Wallet,
+  ArrowDownLeft,
+  ArrowUpRight
 } from 'lucide-react';
 import TabTagihanKeuangan from './TabTagihanKeuangan';
 import TabLaporanPerkembangan from './TabLaporanPerkembangan';
@@ -58,6 +61,13 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   const [showBalanceEye, setShowBalanceEye] = useState(true);
   const [santriList, setSantriList] = useState([]);
   const [keuanganSummary, setKeuanganSummary] = useState(null);
+  const [tabunganData, setTabunganData] = useState({
+    saldo_saat_ini: 0,
+    total_masuk: 0,
+    total_keluar: 0,
+    riwayat_transaksi: []
+  });
+  const [loadingTabungan, setLoadingTabungan] = useState(false);
   const [transaksiPending, setTransaksiPending] = useState(null);
   const [isPendingModalOpen, setIsPendingModalOpen] = useState(true);
   const [processingPending, setProcessingPending] = useState(false);
@@ -262,17 +272,34 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
     } catch (e) {}
   };
 
+  const fetchSantriTabungan = async (targetId = selectedSantriId) => {
+    if (!targetId) return;
+    try {
+      setLoadingTabungan(true);
+      const res = await axios.get(`/api/tabungan/santri/${targetId}`);
+      if (res.data?.success && res.data.data) {
+        setTabunganData(res.data.data);
+      }
+    } catch (e) {
+      console.warn('Tabungan santri notice:', e.message);
+    } finally {
+      setLoadingTabungan(false);
+    }
+  };
+
   useEffect(() => {
     fetchWaliData();
     fetchSantriList();
     fetchKeuanganOverview();
     fetchLatestFeed();
+    fetchSantriTabungan();
   }, [selectedSantriId]);
 
   const handleSantriChange = (newId) => {
     setSelectedSantriId(newId);
     fetchWaliData(newId);
     fetchKeuanganOverview(newId);
+    fetchSantriTabungan(newId);
   };
 
   const handleUpdatePassword = async (e) => {
@@ -450,13 +477,13 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
         {currentTab === 'beranda' && (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             
-            {/* Top Royal Blue Gradient Banner */}
+            {/* Top Modern Teal Gradient Banner (Matched with Mobile Admin) */}
             <div style={{
-              background: 'linear-gradient(180deg, #005baa 0%, #004b91 65%, #003870 100%)',
-              padding: '16px 16px 42px',
+              background: 'linear-gradient(135deg, #0d766e 0%, #042f2e 100%)',
+              padding: '16px 16px 44px',
               color: '#ffffff',
-              borderBottomLeftRadius: '28px',
-              borderBottomRightRadius: '28px',
+              borderBottomLeftRadius: '26px',
+              borderBottomRightRadius: '26px',
               position: 'relative'
             }}>
               {/* Header Top Bar */}
@@ -464,305 +491,535 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '16px'
+                marginBottom: '14px'
               }}>
-                {/* Brand Logo: NWF Mobile (NWF Gede, Mobile Sedang) */}
-                <div style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '10px'
-                }}>
-                  <div style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '11px',
-                    background: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '3px',
-                    boxShadow: '0 3px 10px rgba(0, 0, 0, 0.18)'
-                  }}>
-                    <img src="/nwf.png" alt="Logo" style={{ width: '30px', height: '30px', objectFit: 'contain' }} onError={(e) => { e.target.src = '/nwf.png'; }} />
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
+                {/* Brand Logo: NWF Mobile (Identik dengan Mobile Admin) */}
+                <div 
+                  onClick={() => setCurrentTab('profile')}
+                  style={{ display: 'flex', flexDirection: 'column', cursor: 'pointer', userSelect: 'none' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'baseline' }}>
                     <span style={{
                       fontWeight: 900,
-                      fontSize: '1.45rem',
+                      fontSize: '1.5rem',
                       letterSpacing: '-0.6px',
                       color: '#ffffff',
-                      lineHeight: 1
+                      lineHeight: 1,
+                      textShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
                     }}>
                       NWF
                     </span>
                     <span style={{
-                      fontWeight: 700,
-                      fontSize: '0.95rem',
-                      letterSpacing: '0.3px',
-                      color: 'rgba(255, 255, 255, 0.95)',
-                      lineHeight: 1
+                      fontWeight: 800,
+                      fontSize: '1.15rem',
+                      fontStyle: 'italic',
+                      letterSpacing: '-0.2px',
+                      color: '#a7f3d0',
+                      lineHeight: 1,
+                      textShadow: '0 2px 6px rgba(11, 107, 96, 0.35)'
                     }}>
                       Mobile
                     </span>
                   </div>
+                  <span style={{
+                    fontSize: '0.62rem',
+                    fontWeight: 700,
+                    color: 'rgba(255, 255, 255, 0.82)',
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase',
+                    marginTop: '3px',
+                    lineHeight: 1
+                  }}>
+                    Portal Orang Tua Santri
+                  </span>
                 </div>
 
-                {/* Top Action Buttons (Settings, Bell, Logout) */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <button
-                    onClick={() => {
-                      setProfileSection('keamanan');
-                      setCurrentTab('profile');
-                    }}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#ffffff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      padding: '6px',
-                      borderRadius: '50%',
-                      transition: 'opacity 0.2s'
-                    }}
-                    title="Pengaturan Akun & Profil"
-                  >
-                    <Settings size={22} />
-                  </button>
+                {/* Top Action Buttons (Santri Switcher, Bell, Logout) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {santriList && santriList.length > 1 && (
+                    <select
+                      value={selectedSantriId || ''}
+                      onChange={(e) => handleSantriChange(Number(e.target.value))}
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.18)',
+                        color: '#ffffff',
+                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                        borderRadius: '10px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        padding: '5px 8px',
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {santriList.map((s) => (
+                        <option key={s.id} value={s.id} style={{ color: '#0f172a' }}>
+                          {s.nama_santri}
+                        </option>
+                      ))}
+                    </select>
+                  )}
 
                   <button
                     onClick={() => setCurrentTab('notifikasi')}
                     style={{
-                      background: 'transparent',
+                      background: 'rgba(255, 255, 255, 0.15)',
                       border: 'none',
                       color: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       cursor: 'pointer',
-                      padding: '6px',
+                      padding: '7px',
+                      borderRadius: '10px',
                       position: 'relative'
                     }}
                     title="Pemberitahuan Pesantren"
                   >
-                    <Bell size={22} />
+                    <Bell size={18} />
                     <span style={{
                       position: 'absolute',
                       top: '4px',
                       right: '4px',
-                      width: '8px',
-                      height: '8px',
+                      width: '7px',
+                      height: '7px',
                       borderRadius: '50%',
-                      background: '#ef4444',
-                      border: '1.5px solid #005baa'
+                      background: '#ef4444'
                     }} />
                   </button>
 
                   <button
                     onClick={handleLogoutAction}
                     style={{
-                      background: 'transparent',
+                      background: 'rgba(255, 255, 255, 0.15)',
                       border: 'none',
                       color: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       cursor: 'pointer',
-                      padding: '6px'
+                      padding: '7px',
+                      borderRadius: '10px'
                     }}
                     title="Keluar Akun"
                   >
-                    <LogOut size={22} />
+                    <LogOut size={18} />
                   </button>
                 </div>
               </div>
 
-              {/* Clean Greeting: HALO, [NAMA_WALI] */}
-              <div style={{ marginTop: '4px', marginBottom: '8px' }}>
+              {/* Clean Greeting: Halo Wali Santri */}
+              <div style={{ marginTop: '2px', marginBottom: '6px' }}>
                 <div style={{
-                  fontSize: '0.82rem',
-                  fontWeight: 800,
-                  letterSpacing: '0.08em',
-                  color: 'rgba(255, 255, 255, 0.9)',
-                  textTransform: 'uppercase'
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
+                  color: '#bae6fd',
                 }}>
-                  HALO, {(santri.nama_wali || rawSantriName).toUpperCase()}
+                  {greeting}
+                </div>
+                <div style={{
+                  fontSize: '0.98rem',
+                  fontWeight: 800,
+                  color: '#ffffff',
+                  letterSpacing: '-0.2px'
+                }}>
+                  {santri.nama_wali ? santri.nama_wali : `Bapak/Ibu Wali Santri`}
                 </div>
               </div>
             </div>
 
-            {/* FLOATING HERO WHITE CARD (myBCA SANTRI & TAGIHAN SUMMARY WITH EYE TOGGLE) */}
-            <div style={{ padding: '0 16px', marginTop: '-30px', position: 'relative', zIndex: 10 }}>
+            {/* FLOATING HERO WHITE CARD (SANTRI SMART ID CARD + DUAL METRIC STATS - PERSIS MOBILE ADMIN) */}
+            <div style={{ padding: '0 14px', marginTop: '-34px', position: 'relative', zIndex: 10 }}>
               <div style={{
                 background: '#ffffff',
-                borderRadius: '20px',
-                padding: '16px 18px',
-                boxShadow: '0 10px 25px -4px rgba(0, 91, 170, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04)',
-                border: '1px solid #e2e8f0'
+                borderRadius: '22px',
+                padding: '12px',
+                boxShadow: '0 12px 28px -4px rgba(11, 107, 96, 0.18), 0 3px 10px rgba(0, 0, 0, 0.04)',
+                border: '1px solid #e6f0ed',
+                display: 'flex',
+                gap: '10px',
+                alignItems: 'stretch'
               }}>
-                {/* Top Row: Santri selector like "Rekening 123-456-XXX ∨" */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '8px'
-                }}>
-                  <div
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      color: '#005baa',
-                      fontWeight: 700,
-                      fontSize: '0.84rem',
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => setCurrentTab('profile')}
-                  >
-                    <span>Santri: {rawSantriName} {santri.nis ? `• ${santri.nis}` : ''}</span>
-                    <ChevronDown size={16} color="#005baa" />
+                {/* Left 58%: Mini Blue Smart ID Card Santri */}
+                <div
+                  onClick={() => setCurrentTab('profile')}
+                  style={{
+                    flex: '1 1 58%',
+                    background: 'linear-gradient(135deg, #0284c7 0%, #1e40af 100%)',
+                    borderRadius: '16px',
+                    padding: '10px 12px',
+                    color: '#ffffff',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    minHeight: '92px',
+                    boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)'
+                  }}
+                >
+                  {/* Top row: Brand & Star emblem */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{
+                        fontSize: '0.6rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.02em',
+                        color: '#f0f9ff',
+                        lineHeight: 1.1
+                      }}>
+                        Pondok Pesantren
+                      </div>
+                      <div style={{
+                        fontSize: '0.74rem',
+                        fontWeight: 900,
+                        color: '#ffffff',
+                        letterSpacing: '0.02em'
+                      }}>
+                        Nurul Wafa
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '1.1rem', lineHeight: 1, color: '#ffffff', opacity: 0.9 }}>
+                      ✱
+                    </span>
                   </div>
 
-                  <span style={{
-                    fontSize: '0.65rem',
-                    fontWeight: 700,
-                    color: '#16a34a',
-                    background: '#f0fdf4',
-                    border: '1px solid #bbf7d0',
-                    padding: '2px 8px',
-                    borderRadius: '999px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}>
-                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#22c55e' }} />
-                    Aktif
-                  </span>
-                </div>
-
-                {/* Main Metric Row: IDR [Amount] with Eye Toggle */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <div>
+                  {/* Bottom row: Cardholder details */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
                     <div style={{
-                      fontSize: '1.35rem',
-                      fontWeight: 900,
-                      color: '#0f172a',
-                      letterSpacing: '-0.5px'
-                    }}>
-                      {showBalanceEye ? (
-                        keuanganSummary?.formattedTotalBelumBayar || 'Rp 0'
-                      ) : (
-                        'IDR ••••••••••'
-                      )}
-                    </div>
-                    <div style={{
-                      fontSize: '0.72rem',
-                      color: '#64748b',
-                      marginTop: '2px',
-                      fontWeight: 500
-                    }}>
-                      Sisa Tagihan Belum Dibayar • Sisa Biaya Masuk & SPP
-                    </div>
-                  </div>
-
-                  {/* Eye Toggle Button */}
-                  <button
-                    onClick={() => setShowBalanceEye(!showBalanceEye)}
-                    style={{
-                      background: '#f1f5f9',
-                      border: 'none',
-                      borderRadius: '50%',
-                      width: '36px',
-                      height: '36px',
+                      width: '28px',
+                      height: '34px',
+                      borderRadius: '5px',
+                      background: santri.jk === 'P' ? '#db2777' : '#0369a1',
+                      border: '1.5px solid #ffffff',
+                      overflow: 'hidden',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: '#64748b',
+                      flexShrink: 0,
+                      fontWeight: 900,
+                      fontSize: '0.8rem',
+                      color: '#ffffff'
+                    }}>
+                      {santri.foto_url ? (
+                        <img src={santri.foto_url} alt="Foto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        initial
+                      )}
+                    </div>
+                    <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                      <div style={{
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        color: '#ffffff'
+                      }}>
+                        {rawSantriName}
+                      </div>
+                      <div style={{
+                        fontSize: '0.6rem',
+                        color: '#bae6fd',
+                        fontWeight: 600,
+                        letterSpacing: '0.03em'
+                      }}>
+                        {santri.nis || 'NWF-SNT'} • {santri.nama_kelas || 'Santri'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right 42%: Modern Dual-Metric Stats Cards (Tabungan & Tagihan SPP) */}
+                <div style={{
+                  flex: '1 1 42%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  gap: '8px'
+                }}>
+                  {/* Card 1: Tabungan Santri */}
+                  <div
+                    onClick={() => setCurrentTab('tabungan')}
+                    style={{
+                      background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      borderRadius: '14px',
+                      padding: '8px 10px',
                       cursor: 'pointer',
+                      boxShadow: '0 2px 6px rgba(16, 185, 129, 0.08)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '2px',
                       transition: 'all 0.15s ease'
                     }}
-                    title={showBalanceEye ? 'Sembunyikan Saldo' : 'Tampilkan Saldo'}
                   >
-                    {showBalanceEye ? <Eye size={18} /> : <EyeOff size={18} />}
-                  </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <span style={{
+                        width: '6px',
+                        height: '6px',
+                        borderRadius: '50%',
+                        background: '#16a34a',
+                        boxShadow: '0 0 5px #16a34a'
+                      }} />
+                      <span style={{
+                        fontSize: '0.6rem',
+                        fontWeight: 800,
+                        color: '#166534',
+                        letterSpacing: '0.02em',
+                        textTransform: 'uppercase'
+                      }}>
+                        TABUNGAN
+                      </span>
+                    </div>
+                    <div style={{
+                      fontSize: '0.95rem',
+                      fontWeight: 900,
+                      color: '#14532d',
+                      lineHeight: 1.15,
+                      marginTop: '2px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {formatRp(tabunganData?.saldo_saat_ini || 0)}
+                    </div>
+                    <div style={{ fontSize: '0.58rem', color: '#059669', fontWeight: 700 }}>
+                      Uang Saku &rarr;
+                    </div>
+                  </div>
+
+                  {/* Card 2: Tagihan SPP */}
+                  <div
+                    onClick={() => setCurrentTab('tagihan')}
+                    style={{
+                      background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+                      border: '1px solid rgba(245, 158, 11, 0.3)',
+                      borderRadius: '14px',
+                      padding: '8px 10px',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 6px rgba(245, 158, 11, 0.08)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '2px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <span style={{
+                        width: '6px',
+                        height: '6px',
+                        borderRadius: '50%',
+                        background: '#d97706',
+                        boxShadow: '0 0 5px #d97706'
+                      }} />
+                      <span style={{
+                        fontSize: '0.6rem',
+                        fontWeight: 800,
+                        color: '#92400e',
+                        letterSpacing: '0.02em',
+                        textTransform: 'uppercase'
+                      }}>
+                        TAGIHAN SPP
+                      </span>
+                    </div>
+                    <div style={{
+                      fontSize: '0.95rem',
+                      fontWeight: 900,
+                      color: (keuanganSummary?.totalBelumBayar || 0) > 0 ? '#b45309' : '#15803d',
+                      lineHeight: 1.15,
+                      marginTop: '2px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {keuanganSummary?.formattedTotalBelumBayar || 'Rp 0'}
+                    </div>
+                    <div style={{ fontSize: '0.58rem', color: '#b45309', fontWeight: 700 }}>
+                      {(keuanganSummary?.totalBelumBayar || 0) > 0 ? 'Bayar Online \u2192' : 'Lunas \u2713'}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* MYBCA 8-ITEM QUICK ACTION GRID (4 COLUMNS X 2 ROWS) */}
-            <div style={{ padding: '18px 16px 8px' }}>
+            {/* SECTION MENU: 9 ITEMS KLASIK, MODERN & ELEGAN (CARD PUTIH PERSIS MOBILE ADMIN) */}
+            <div style={{ padding: '16px 14px 4px' }}>
+              <div style={{
+                fontSize: '0.85rem',
+                fontWeight: 800,
+                color: '#0f172a',
+                marginBottom: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                letterSpacing: '-0.2px'
+              }}>
+                <span style={{
+                  width: '4px',
+                  height: '15px',
+                  background: '#0d766e',
+                  borderRadius: '4px'
+                }} />
+                Menu Layanan Santri
+              </div>
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(4, 1fr)',
-                gap: '14px 10px'
+                gap: '14px 6px',
+                justifyItems: 'center'
               }}>
-                {/* 1. Presensi (Royal Blue) */}
+                {/* 1. Tabungan Santri */}
+                <div onClick={() => setCurrentTab('tabungan')} style={menuCardStyle}>
+                  <div style={{
+                    width: '62px',
+                    height: '62px',
+                    borderRadius: '18px',
+                    background: '#ffffff',
+                    border: '1px solid #f1f5f9',
+                    boxShadow: '0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                  }}>
+                    <Wallet size={27} strokeWidth={2.2} color="#059669" />
+                  </div>
+                  <span style={menuLabelStyle}>Tabungan</span>
+                </div>
+
+                {/* 2. Bayar SPP / Tagihan */}
+                <div onClick={() => setCurrentTab('tagihan')} style={menuCardStyle}>
+                  <div style={{
+                    width: '62px',
+                    height: '62px',
+                    borderRadius: '18px',
+                    background: '#ffffff',
+                    border: '1px solid #f1f5f9',
+                    boxShadow: '0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                  }}>
+                    <CreditCard size={27} strokeWidth={2.2} color="#0284c7" />
+                  </div>
+                  <span style={menuLabelStyle}>Bayar SPP</span>
+                </div>
+
+                {/* 3. Presensi Sholat */}
                 <div onClick={() => setCurrentTab('absensi')} style={menuCardStyle}>
-                  <div style={{ width: '54px', height: '54px', borderRadius: '18px', background: 'linear-gradient(135deg, #005baa 0%, #004b91 100%)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 14px -2px rgba(0, 91, 170, 0.35)' }}>
-                    <Fingerprint size={24} />
+                  <div style={{
+                    width: '62px',
+                    height: '62px',
+                    borderRadius: '18px',
+                    background: '#ffffff',
+                    border: '1px solid #f1f5f9',
+                    boxShadow: '0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                  }}>
+                    <Fingerprint size={27} strokeWidth={2.2} color="#0d9488" />
                   </div>
                   <span style={menuLabelStyle}>Presensi</span>
                 </div>
 
-                {/* 2. Tahfidz (Emerald Green) */}
+                {/* 4. Tahfidz */}
                 <div onClick={() => setCurrentTab('hafalan')} style={menuCardStyle}>
-                  <div style={{ width: '54px', height: '54px', borderRadius: '18px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 14px -2px rgba(16, 185, 129, 0.35)' }}>
-                    <BookOpen size={24} />
+                  <div style={{
+                    width: '62px',
+                    height: '62px',
+                    borderRadius: '18px',
+                    background: '#ffffff',
+                    border: '1px solid #f1f5f9',
+                    boxShadow: '0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                  }}>
+                    <BookOpen size={27} strokeWidth={2.2} color="#7c3aed" />
                   </div>
                   <span style={menuLabelStyle}>Tahfidz</span>
                 </div>
 
-                {/* 3. Perizinan (Teal / Cyan) */}
+                {/* 5. Perizinan Pulang */}
                 <div onClick={() => setCurrentTab('perizinan')} style={menuCardStyle}>
-                  <div style={{ width: '54px', height: '54px', borderRadius: '18px', background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 14px -2px rgba(6, 182, 212, 0.35)' }}>
-                    <DoorOpen size={24} />
+                  <div style={{
+                    width: '62px',
+                    height: '62px',
+                    borderRadius: '18px',
+                    background: '#ffffff',
+                    border: '1px solid #f1f5f9',
+                    boxShadow: '0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                  }}>
+                    <Clock size={27} strokeWidth={2.2} color="#4f46e5" />
                   </div>
                   <span style={menuLabelStyle}>Perizinan</span>
                 </div>
 
-                {/* 4. Jadwal / Info (Purple) */}
-                <div onClick={() => setCurrentTab('informasi')} style={menuCardStyle}>
-                  <div style={{ width: '54px', height: '54px', borderRadius: '18px', background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 14px -2px rgba(139, 92, 246, 0.35)' }}>
-                    <Bell size={24} />
-                  </div>
-                  <span style={menuLabelStyle}>Jadwal</span>
-                </div>
-
-                {/* 5. Tagihan SPP (Sky Blue) */}
-                <div onClick={() => setCurrentTab('tagihan')} style={menuCardStyle}>
-                  <div style={{ width: '54px', height: '54px', borderRadius: '18px', background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 14px -2px rgba(2, 132, 199, 0.35)' }}>
-                    <CreditCard size={24} />
-                  </div>
-                  <span style={menuLabelStyle}>Tagihan SPP</span>
-                </div>
-
-                {/* 6. Rapor Perkembangan (Amber / Orange) */}
-                <div onClick={() => setCurrentTab('laporan')} style={menuCardStyle}>
-                  <div style={{ width: '54px', height: '54px', borderRadius: '18px', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 14px -2px rgba(245, 158, 11, 0.35)' }}>
-                    <FileText size={24} />
-                  </div>
-                  <span style={menuLabelStyle}>Rapor</span>
-                </div>
-
-                {/* 7. Praktek Ibadah (Indigo) */}
+                {/* 6. Praktek Ibadah */}
                 <div onClick={() => setCurrentTab('praktek')} style={menuCardStyle}>
-                  <div style={{ width: '54px', height: '54px', borderRadius: '18px', background: 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 14px -2px rgba(79, 70, 229, 0.35)' }}>
-                    <HeartHandshake size={24} />
+                  <div style={{
+                    width: '62px',
+                    height: '62px',
+                    borderRadius: '18px',
+                    background: '#ffffff',
+                    border: '1px solid #f1f5f9',
+                    boxShadow: '0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                  }}>
+                    <HeartHandshake size={27} strokeWidth={2.2} color="#ea580c" />
                   </div>
                   <span style={menuLabelStyle}>Praktek</span>
                 </div>
 
-                {/* 8. Kedisiplinan (Dark Slate) */}
-                <div onClick={() => setCurrentTab('pelanggaran')} style={menuCardStyle}>
-                  <div style={{ width: '54px', height: '54px', borderRadius: '18px', background: 'linear-gradient(135deg, #334155 0%, #1e293b 100%)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 14px -2px rgba(51, 65, 85, 0.35)' }}>
-                    <ShieldAlert size={24} />
+                {/* 7. Rapor Santri */}
+                <div onClick={() => setCurrentTab('laporan')} style={menuCardStyle}>
+                  <div style={{
+                    width: '62px',
+                    height: '62px',
+                    borderRadius: '18px',
+                    background: '#ffffff',
+                    border: '1px solid #f1f5f9',
+                    boxShadow: '0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                  }}>
+                    <Award size={27} strokeWidth={2.2} color="#0891b2" />
                   </div>
-                  <span style={menuLabelStyle}>Kedisiplinan</span>
+                  <span style={menuLabelStyle}>Rapor</span>
+                </div>
+
+                {/* 8. Tata Tertib */}
+                <div onClick={() => setCurrentTab('pelanggaran')} style={menuCardStyle}>
+                  <div style={{
+                    width: '62px',
+                    height: '62px',
+                    borderRadius: '18px',
+                    background: '#ffffff',
+                    border: '1px solid #f1f5f9',
+                    boxShadow: '0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                  }}>
+                    <ShieldAlert size={27} strokeWidth={2.2} color="#e11d48" />
+                  </div>
+                  <span style={menuLabelStyle}>Tata Tertib</span>
                 </div>
               </div>
             </div>
@@ -928,6 +1185,95 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                       {countAlfa > 0 && <span style={countBadgeStyle}>{countAlfa}</span>}
                     </div>
                     <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#1e293b' }}>Alfa</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* SECTION: TABUNGAN & UANG SAKU SANTRI */}
+            <div style={{ padding: '16px 16px 0' }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '8px'
+              }}>
+                <span style={{
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  color: '#0d766e',
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase'
+                }}>
+                  TABUNGAN & UANG SAKU SANTRI
+                </span>
+                <span
+                  onClick={() => setCurrentTab('tabungan')}
+                  style={{
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    color: '#0d766e',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Buku Tabungan &gt;
+                </span>
+              </div>
+              <div style={{
+                background: '#ffffff',
+                borderRadius: '20px',
+                border: '1px solid #e2e8f0',
+                padding: '16px',
+                boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Wallet size={22} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>Saldo Tersimpan</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f766e' }}>
+                        {formatRp(tabunganData?.saldo_saat_ini || 0)}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setCurrentTab('tabungan')}
+                    style={{
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      border: 'none',
+                      color: '#ffffff',
+                      borderRadius: '10px',
+                      padding: '8px 14px',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 8px rgba(16, 185, 129, 0.25)'
+                    }}
+                  >
+                    Buku Tabungan
+                  </button>
+                </div>
+
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '8px',
+                  paddingTop: '10px',
+                  borderTop: '1px solid #f1f5f9'
+                }}>
+                  <div style={{ background: '#f0fdf4', borderRadius: '10px', padding: '8px 10px' }}>
+                    <div style={{ fontSize: '0.62rem', color: '#166534', fontWeight: 700 }}>TOTAL MASUK</div>
+                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>
+                      +{formatRp(tabunganData?.total_masuk || 0)}
+                    </div>
+                  </div>
+                  <div style={{ background: '#fef2f2', borderRadius: '10px', padding: '8px 10px' }}>
+                    <div style={{ fontSize: '0.62rem', color: '#991b1b', fontWeight: 700 }}>PENGAMBILAN</div>
+                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#dc2626', marginTop: '2px' }}>
+                      -{formatRp(tabunganData?.total_keluar || 0)}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1285,6 +1631,264 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             )}
 
+          </div>
+        )}
+
+        {/* =========================================================================
+            TABUNGAN SANTRI (BUKU TABUNGAN & RIWAYAT MUTASI UNTUK ORANG TUA)
+        ========================================================================= */}
+        {currentTab === 'tabungan' && (
+          <div style={{ display: 'flex', flexDirection: 'column', padding: '16px 16px 24px' }}>
+            {/* Top Navigation Bar */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <button
+                onClick={() => setCurrentTab('beranda')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  padding: '6px 12px',
+                  borderRadius: '12px',
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  color: '#475569',
+                  cursor: 'pointer'
+                }}
+              >
+                <ChevronLeft size={16} /> Kembali
+              </button>
+              <h2 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
+                Buku Tabungan Santri
+              </h2>
+              <button
+                onClick={() => fetchSantriTabungan(selectedSantriId)}
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  padding: '6px',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  color: '#0d766e',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                title="Refresh Saldo"
+              >
+                <RotateCw size={15} />
+              </button>
+            </div>
+
+            {/* Santri Card */}
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              padding: '12px 14px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              marginBottom: '14px'
+            }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
+                background: santri.jk === 'P' ? '#fdf2f8' : '#eff6ff',
+                color: santri.jk === 'P' ? '#db2777' : '#0284c7',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 900,
+                fontSize: '1rem',
+                flexShrink: 0
+              }}>
+                {initial}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f172a' }}>
+                  {rawSantriName}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+                  NIS: {santri.nis || '-'} • {santri.nama_kelas || 'Santri'} • {santri.nama_asrama || 'Asrama'}
+                </div>
+              </div>
+            </div>
+
+            {/* Big Saldo Card */}
+            <div style={{
+              background: 'linear-gradient(135deg, #0d766e 0%, #064e3b 100%)',
+              borderRadius: '20px',
+              padding: '18px 20px',
+              color: '#ffffff',
+              boxShadow: '0 8px 24px -4px rgba(13, 118, 110, 0.35)',
+              marginBottom: '16px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#a7f3d0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Saldo Tabungan Santri
+                  </div>
+                  <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#ffffff', marginTop: '4px', letterSpacing: '-0.5px' }}>
+                    {formatRp(tabunganData?.saldo_saat_ini || 0)}
+                  </div>
+                </div>
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '12px',
+                  background: 'rgba(255, 255, 255, 0.16)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Wallet size={24} color="#a7f3d0" />
+                </div>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '8px',
+                marginTop: '16px',
+                paddingTop: '12px',
+                borderTop: '1px solid rgba(255, 255, 255, 0.15)'
+              }}>
+                <div>
+                  <div style={{ fontSize: '0.62rem', color: '#a7f3d0', fontWeight: 700 }}>TOTAL UANG MASUK</div>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#ecfdf5', marginTop: '2px' }}>
+                    +{formatRp(tabunganData?.total_masuk || 0)}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.62rem', color: '#fecaca', fontWeight: 700 }}>TOTAL PENGAMBILAN</div>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#fee2e2', marginTop: '2px' }}>
+                    -{formatRp(tabunganData?.total_keluar || 0)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Petunjuk Pengiriman Uang Saku */}
+            <div style={{
+              background: '#f0fdf4',
+              borderRadius: '14px',
+              border: '1px solid #bbf7d0',
+              padding: '12px 14px',
+              marginBottom: '16px',
+              display: 'flex',
+              gap: '10px',
+              alignItems: 'flex-start'
+            }}>
+              <CheckCircle2 size={18} color="#16a34a" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div style={{ fontSize: '0.72rem', color: '#166534', lineHeight: 1.4 }}>
+                <strong>Informasi Tabungan Santri:</strong> Uang saku yang disetor dikelola oleh bendahara / wali asrama pondok. Santri dapat mengambil uang saku harian/mingguan untuk kebutuhan jajan, kitab, dan keperluan pesantren.
+              </div>
+            </div>
+
+            {/* Riwayat Mutasi Transaksi */}
+            <div>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '10px'
+              }}>
+                <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a' }}>
+                  Riwayat Mutasi Tabungan ({tabunganData?.riwayat_transaksi?.length || 0})
+                </span>
+                <span style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                  Real-time
+                </span>
+              </div>
+
+              {loadingTabungan ? (
+                <div style={{ textAlign: 'center', padding: '30px', color: '#64748b', fontSize: '0.8rem' }}>
+                  Memuat riwayat mutasi...
+                </div>
+              ) : tabunganData?.riwayat_transaksi?.length === 0 ? (
+                <div style={{
+                  background: '#ffffff',
+                  borderRadius: '16px',
+                  padding: '24px',
+                  textAlign: 'center',
+                  border: '1px dashed #cbd5e1',
+                  color: '#94a3b8',
+                  fontSize: '0.78rem'
+                }}>
+                  Belum ada transaksi tabungan yang tercatat untuk santri ini.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {tabunganData.riwayat_transaksi.map((t) => {
+                    const isMasuk = t.jenis_transaksi === 'masuk';
+                    return (
+                      <div
+                        key={t.id}
+                        style={{
+                          background: '#ffffff',
+                          borderRadius: '14px',
+                          padding: '12px 14px',
+                          border: '1px solid #e2e8f0',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+                          <div style={{
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '10px',
+                            background: isMasuk ? '#ecfdf5' : '#fef2f2',
+                            color: isMasuk ? '#059669' : '#dc2626',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}>
+                            {isMasuk ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{
+                              fontSize: '0.82rem',
+                              fontWeight: 800,
+                              color: '#0f172a',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis'
+                            }}>
+                              {t.keterangan || (isMasuk ? 'Penambahan Saldo' : 'Pengambilan')}
+                            </div>
+                            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '1px' }}>
+                              {t.tanggal_transaksi} • Saldo: {formatRp(t.saldo_sebelum)} &rarr;{' '}
+                              <span style={{ fontWeight: 700, color: '#0f766e' }}>{formatRp(t.saldo_sesudah)}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '8px' }}>
+                          <div style={{
+                            fontSize: '0.92rem',
+                            fontWeight: 900,
+                            color: isMasuk ? '#059669' : '#dc2626'
+                          }}>
+                            {isMasuk ? '+' : '-'}{formatRp(t.nominal)}
+                          </div>
+                          <div style={{ fontSize: '0.62rem', color: '#94a3b8', marginTop: '1px' }}>
+                            {t.kode_transaksi}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -2699,33 +3303,33 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
           <button 
             className="mobile-fab-center"
             onClick={() => setCurrentTab('absensi')}
-            title="Presensi Sholat Santri"
+            title="Presensi Sholat & Ibadah Santri"
           >
             <div className="fab-inner-glow">
               <Fingerprint size={28} color="#ffffff" strokeWidth={2.4} />
             </div>
           </button>
 
-          {/* 4. Rapor Perkembangan */}
+          {/* 4. Tabungan Santri (Uang Saku) */}
           <button 
-            className={`mobile-nav-item ${currentTab === 'laporan' ? 'active' : ''}`}
-            onClick={() => setCurrentTab('laporan')}
+            className={`mobile-nav-item ${currentTab === 'tabungan' ? 'active' : ''}`}
+            onClick={() => setCurrentTab('tabungan')}
           >
-            <div className={`nav-icon-wrapper ${currentTab === 'laporan' ? 'active' : ''}`}>
-              <FileText size={20} />
+            <div className={`nav-icon-wrapper ${currentTab === 'tabungan' ? 'active' : ''}`}>
+              <Wallet size={20} />
             </div>
-            <span>Rapor</span>
+            <span>Tabungan</span>
           </button>
 
-          {/* 5. Info Pondok (Linimasa) */}
+          {/* 5. Profil & Pengaturan */}
           <button 
-            className={`mobile-nav-item ${currentTab === 'informasi' ? 'active' : ''}`}
-            onClick={() => setCurrentTab('informasi')}
+            className={`mobile-nav-item ${currentTab === 'profile' ? 'active' : ''}`}
+            onClick={() => setCurrentTab('profile')}
           >
-            <div className={`nav-icon-wrapper ${currentTab === 'informasi' ? 'active' : ''}`}>
-              <Bell size={20} />
+            <div className={`nav-icon-wrapper ${currentTab === 'profile' ? 'active' : ''}`}>
+              <User size={20} />
             </div>
-            <span>Info</span>
+            <span>Profil</span>
           </button>
         </nav>
 

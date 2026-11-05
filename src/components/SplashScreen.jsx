@@ -106,46 +106,47 @@ export default function SplashScreen({ onFinish }) {
           </div>
         </div>
 
-        {/* Title & Badge */}
+        {/* Title & Branding: Sama persis dengan Header (tanpa badge PRO) */}
         <div style={{
-          display: 'inline-flex',
+          display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
-          gap: '8px',
           marginBottom: '6px'
         }}>
-          <h1 style={{
-            margin: 0,
-            fontSize: '1.75rem',
-            fontWeight: 900,
-            letterSpacing: '-0.5px',
-            color: '#ffffff',
-            textShadow: '0 2px 10px rgba(0,0,0,0.3)'
-          }}>
-            NWF MOBILE
-          </h1>
+          <div style={{ display: 'flex', alignItems: 'baseline' }}>
+            <span style={{
+              fontWeight: 900,
+              fontSize: '2.2rem',
+              letterSpacing: '-0.8px',
+              color: '#ffffff',
+              lineHeight: 1,
+              textShadow: '0 2px 10px rgba(0, 0, 0, 0.3)'
+            }}>
+              NWF
+            </span>
+            <span style={{
+              fontWeight: 800,
+              fontSize: '1.65rem',
+              fontStyle: 'italic',
+              letterSpacing: '-0.3px',
+              color: '#a7f3d0',
+              lineHeight: 1,
+              textShadow: '0 2px 8px rgba(11, 107, 96, 0.4)'
+            }}>
+              Mobile
+            </span>
+          </div>
           <span style={{
-            background: '#f59e0b',
-            color: '#ffffff',
-            fontSize: '0.72rem',
-            fontWeight: 900,
-            padding: '3px 9px',
-            borderRadius: '999px',
-            boxShadow: '0 4px 10px rgba(245, 158, 11, 0.5)',
-            letterSpacing: '0.05em'
+            fontSize: '0.74rem',
+            fontWeight: 700,
+            color: 'rgba(255, 255, 255, 0.85)',
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            marginTop: '5px',
+            lineHeight: 1
           }}>
-            PRO
+            Ponpes Nurul Wafa
           </span>
-        </div>
-
-        {/* Subtitle */}
-        <div style={{
-          fontSize: '0.94rem',
-          fontWeight: 700,
-          color: '#a7f3d0',
-          marginBottom: '4px',
-          letterSpacing: '0.01em'
-        }}>
-          Pondok Pesantren Nurul Wafa
         </div>
 
         <p style={{

@@ -1264,6 +1264,47 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               Praktek
             </span>
           </div>
+
+          {/* 10. Tabungan Santri */}
+          <div
+            onClick={() => onChangeTab("tabungan")}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                width: "62px",
+                height: "62px",
+                borderRadius: "18px",
+                background: "#ffffff",
+                border: "1px solid #f1f5f9",
+                boxShadow:
+                  "0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "transform 0.15s ease, box-shadow 0.15s ease",
+              }}
+            >
+              <Wallet size={27} strokeWidth={2.2} color="#059669" />
+            </div>
+            <span
+              style={{
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: "#334155",
+                textAlign: "center",
+                lineHeight: 1.2,
+              }}
+            >
+              Tabungan
+            </span>
+          </div>
         </div>
       </div>
 

@@ -32,7 +32,8 @@ import {
   Camera,
   HeartHandshake,
   CreditCard,
-  Calendar
+  Calendar,
+  Wallet
 } from 'lucide-react';
 import DashboardAdmin from '../views/admin/DashboardAdmin';
 import SantriView from '../views/admin/SantriView';
@@ -50,6 +51,7 @@ import PerizinanView from '../views/admin/PerizinanView';
 import TataTertibView from '../views/admin/TataTertibView';
 import AbsensiFingerprintView from '../views/admin/AbsensiFingerprintView';
 import KeuanganAdminView from '../views/keuangan/KeuanganAdminView';
+import TabunganSantriAdminView from '../views/keuangan/TabunganSantriAdminView';
 import KurikulumPengajianView from '../views/admin/KurikulumPengajianView';
 import LaporanPerkembanganAdminView from '../views/admin/LaporanPerkembanganAdminView';
 import InformasiKegiatanAdminView from '../views/admin/InformasiKegiatanAdminView';
@@ -66,7 +68,7 @@ export default function AdminLayout() {
   const isMasterTab = (tab) => ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-materi', 'setting-shalat', 'setting-kegiatan', 'master-kegiatan'].includes(tab);
   const isSettingsTab = (tab) => ['master-device', 'manajemen-user', 'users'].includes(tab);
   const isLaporanTab = (tab) => ['laporan-presensi', 'laporan-tahfidz'].includes(tab);
-  const isKeuanganTab = (tab) => ['keuangan-admin', 'keuangan', 'keuangan-kasir', 'keuangan-rekap', 'keuangan-spp', 'tagihan'].includes(tab);
+  const isKeuanganTab = (tab) => ['keuangan-admin', 'keuangan', 'keuangan-kasir', 'keuangan-rekap', 'keuangan-spp', 'tagihan', 'tabungan-santri', 'tabungan'].includes(tab);
 
   // Get initial tab from URL hash
   const getInitialTab = () => {
@@ -379,6 +381,12 @@ export default function AdminLayout() {
           return null;
         }
         return <KeuanganAdminView initialMode="rekap" initialRekapTab="semua" />;
+      case 'tabungan-santri':
+      case 'tabungan':
+        if (!canAccessKeuangan(currentUser)) {
+          return null;
+        }
+        return <TabunganSantriAdminView />;
       case 'perkembangan-santri-laki':
       case 'perkembangan-ikhwan':
         return <PerkembanganSantriLakiView />;
@@ -638,6 +646,14 @@ export default function AdminLayout() {
                 >
                   <BarChart3 size={13} style={{ marginRight: '6px', color: '#0284c7' }} />
                   <span>Rekap & Laporan Kas</span>
+                </button>
+
+                <button 
+                  className={`nav-sublink ${activeTab === 'tabungan-santri' || activeTab === 'tabungan' ? 'active' : ''}`}
+                  onClick={() => handleTabClick('tabungan-santri')}
+                >
+                  <Wallet size={13} style={{ marginRight: '6px', color: '#0d9488' }} />
+                  <span>Saldo Tabungan Santri</span>
                 </button>
               </div>
             )}

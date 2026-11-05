@@ -55,6 +55,7 @@ import MobileKegiatan from '../views/mobile/MobileKegiatan';
 import SettingKegiatanView from '../views/admin/SettingKegiatanView';
 import InformasiKegiatanAdminView from '../views/admin/InformasiKegiatanAdminView';
 import PortalWaliSantri from '../views/wali/PortalWaliSantri';
+import MobileTabungan from '../views/mobile/MobileTabungan';
 import { canAccessKeuangan } from '../utils/authRole.util';
 
 export default function MobileLayout() {
@@ -233,6 +234,7 @@ export default function MobileLayout() {
       case 'keuangan-tunggakan': return 'Daftar Tunggakan Santri';
       case 'keuangan-komponen': return 'Tarif Komponen Biaya';
       case 'keuangan-generate': return 'Generate Tagihan SPP';
+      case 'tabungan': return 'Saldo Tabungan Santri';
       case 'profil': return isBendahara ? 'Profil Bendahara' : 'Profil Asatidz & Admin';
       case 'portal-wali': return 'Portal Orang Tua (Wali)';
       default: return '';
@@ -245,7 +247,7 @@ export default function MobileLayout() {
     'laporan-presensi', 'laporan-tahfidz', 'syahriah', 'praktek-ibadah', 'praktek', 'portal-wali',
     'setting-shalat', 'setting-kegiatan', 'master-kegiatan', 'kegiatan', 'informasi', 'informasi-kegiatan',
     'keuangan', 'keuangan-kasir', 'keuangan-rekap', 'keuangan-spp', 'keuangan-masuk', 
-    'keuangan-transaksi', 'keuangan-tunggakan', 'keuangan-komponen', 'keuangan-generate'
+    'keuangan-transaksi', 'keuangan-tunggakan', 'keuangan-komponen', 'keuangan-generate', 'tabungan'
   ].includes(mobileTab);
 
   const renderAksesDibatasi = () => (
@@ -334,6 +336,8 @@ export default function MobileLayout() {
       case 'keuangan-generate':
         if (!canAccessKeuangan(session)) return renderAksesDibatasi();
         return <MobileKeuangan initialSubTab={mobileTab} onBackToHome={() => handleSelectTab('home')} />;
+      case 'tabungan':
+        return <MobileTabungan onBackToHome={() => handleSelectTab('home')} />;
       case 'profil':
         return <MobileProfil onChangeTab={handleSelectTab} onLogout={handleLogout} />;
       default:
@@ -477,6 +481,9 @@ export default function MobileLayout() {
                       <button onClick={() => handleSelectTab('keuangan-generate')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'keuangan-generate' ? '#ccfbf1' : '#f8fafc', border: mobileTab === 'keuangan-generate' ? '1px solid #0f766e' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                         <RotateCw size={16} color="#0f766e" /> Generate SPP
                       </button>
+                      <button onClick={() => handleSelectTab('tabungan')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'tabungan' ? '#ccfbf1' : '#f8fafc', border: mobileTab === 'tabungan' ? '1px solid #0d9488' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                        <Wallet size={16} color="#0d9488" /> Tabungan Santri
+                      </button>
                     </div>
                   </div>
                 ) : (
@@ -503,6 +510,9 @@ export default function MobileLayout() {
                         </button>
                         <button onClick={() => handleSelectTab('pengembangan')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'pengembangan' ? '#e0f2fe' : '#f8fafc', border: mobileTab === 'pengembangan' ? '1px solid #0284c7' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                           <Award size={16} color="#0284c7" /> Pengembangan
+                        </button>
+                        <button onClick={() => handleSelectTab('tabungan')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'tabungan' ? '#ccfbf1' : '#f8fafc', border: mobileTab === 'tabungan' ? '1px solid #0d9488' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                          <Wallet size={16} color="#0d9488" /> Tabungan
                         </button>
                       </div>
                     </div>

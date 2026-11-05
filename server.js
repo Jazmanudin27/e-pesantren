@@ -7,6 +7,7 @@ import apiRoutes from './src/routes/index.js';
 import { ensureSantriCredentialsColumns } from './src/config/initWaliDb.js';
 import { ensurePraktekTables } from './src/controllers/praktek.controller.js';
 import { ensureAbsensiTablesAndColumns } from './src/controllers/absensi.controller.js';
+import { ensureTabunganTables } from './src/controllers/tabungan.controller.js';
 
 dotenv.config();
 
@@ -51,6 +52,7 @@ app.listen(PORT, '0.0.0.0', async () => {
     await ensureSantriCredentialsColumns();
     await ensurePraktekTables();
     await ensureAbsensiTablesAndColumns();
+    await ensureTabunganTables();
   } catch (e) {
     console.warn('[E-PESANTREN] Init DB notice:', e.message);
   }
