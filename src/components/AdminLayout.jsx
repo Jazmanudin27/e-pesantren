@@ -49,7 +49,7 @@ import TahfidzView from '../views/admin/TahfidzView';
 import PerizinanView from '../views/admin/PerizinanView';
 import TataTertibView from '../views/admin/TataTertibView';
 import AbsensiFingerprintView from '../views/admin/AbsensiFingerprintView';
-import KeuanganAdminView from '../views/admin/KeuanganAdminView';
+import KeuanganAdminView from '../views/keuangan/KeuanganAdminView';
 import KurikulumPengajianView from '../views/admin/KurikulumPengajianView';
 import LaporanPerkembanganAdminView from '../views/admin/LaporanPerkembanganAdminView';
 import InformasiKegiatanAdminView from '../views/admin/InformasiKegiatanAdminView';
@@ -66,6 +66,7 @@ export default function AdminLayout() {
   const isMasterTab = (tab) => ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-materi', 'setting-shalat', 'setting-kegiatan', 'master-kegiatan'].includes(tab);
   const isSettingsTab = (tab) => ['master-device', 'manajemen-user', 'users'].includes(tab);
   const isLaporanTab = (tab) => ['laporan-presensi', 'laporan-tahfidz'].includes(tab);
+  const isKeuanganTab = (tab) => ['keuangan-admin', 'keuangan', 'keuangan-kasir', 'keuangan-rekap', 'keuangan-spp', 'tagihan'].includes(tab);
 
   // Get initial tab from URL hash
   const getInitialTab = () => {
@@ -81,6 +82,7 @@ export default function AdminLayout() {
   const [isMasterOpen, setIsMasterOpen] = useState(() => isMasterTab(initialTab));
   const [isSettingsOpen, setIsSettingsOpen] = useState(() => isSettingsTab(initialTab));
   const [isLaporanOpen, setIsLaporanOpen] = useState(() => isLaporanTab(initialTab));
+  const [isKeuanganOpen, setIsKeuanganOpen] = useState(() => isKeuanganTab(initialTab));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -347,6 +349,7 @@ export default function AdminLayout() {
         return <PraktekIbadahView />;
       case 'keuangan-admin':
       case 'keuangan':
+      case 'keuangan-kasir':
       case 'tagihan':
         if (!canAccessKeuangan(currentUser)) {
           return (
@@ -369,7 +372,13 @@ export default function AdminLayout() {
             </div>
           );
         }
-        return <KeuanganAdminView />;
+        return <KeuanganAdminView initialMode="kasir" />;
+      case 'keuangan-rekap':
+      case 'keuangan-laporan':
+        if (!canAccessKeuangan(currentUser)) {
+          return null;
+        }
+        return <KeuanganAdminView initialMode="rekap" initialRekapTab="semua" />;
       case 'perkembangan-santri-laki':
       case 'perkembangan-ikhwan':
         return <PerkembanganSantriLakiView />;
@@ -397,6 +406,7 @@ export default function AdminLayout() {
   const isMasterActive = ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-materi', 'kurikulum-pengajian', 'jadwal-mengajar', 'setting-shalat', 'setting-kegiatan', 'master-kegiatan'].includes(activeTab);
   const isSettingsActive = ['master-device', 'manajemen-user', 'users'].includes(activeTab);
   const isLaporanActive = ['laporan-presensi', 'laporan-tahfidz'].includes(activeTab);
+  const isKeuanganActive = isKeuanganTab(activeTab);
 
   const renderNavMenu = (isMobile = false) => {
     const handleTabClick = (tab) => {
@@ -602,15 +612,35 @@ export default function AdminLayout() {
           <>
             <div className="menu-category">KEUANGAN & ADMINISTRASI</div>
             <button 
-              className={`nav-link ${activeTab === 'keuangan-admin' || activeTab === 'keuangan' ? 'active' : ''}`}
-              onClick={() => handleTabClick('keuangan-admin')}
+              className={`nav-link has-dropdown ${isKeuanganActive ? 'active' : ''}`}
+              onClick={() => setIsKeuanganOpen(!isKeuanganOpen)}
             >
               <div className="nav-link-left">
                 <CreditCard size={15} style={{ color: '#059669' }} />
                 <span>Keuangan</span>
               </div>
-              <span style={{ fontSize: '0.62rem', background: '#059669', color: '#fff', padding: '1px 6px', borderRadius: '10px', fontWeight: 800 }}>QRIS/VA</span>
+              <ChevronDown size={13} className={`nav-chevron ${isKeuanganOpen ? 'open' : ''}`} />
             </button>
+
+            {isKeuanganOpen && (
+              <div className="nav-submenu">
+                <button 
+                  className={`nav-sublink ${activeTab === 'keuangan-admin' || activeTab === 'keuangan' || activeTab === 'keuangan-kasir' ? 'active' : ''}`}
+                  onClick={() => handleTabClick('keuangan-admin')}
+                >
+                  <CreditCard size={13} style={{ marginRight: '6px', color: '#059669' }} />
+                  <span>Kasir & Tagihan Santri</span>
+                </button>
+
+                <button 
+                  className={`nav-sublink ${activeTab === 'keuangan-rekap' ? 'active' : ''}`}
+                  onClick={() => handleTabClick('keuangan-rekap')}
+                >
+                  <BarChart3 size={13} style={{ marginRight: '6px', color: '#0284c7' }} />
+                  <span>Rekap & Laporan Kas</span>
+                </button>
+              </div>
+            )}
           </>
         )}
 

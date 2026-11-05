@@ -29,7 +29,7 @@ import {
 import MobileHome from '../views/mobile/MobileHome';
 import MobileTahfidz from '../views/mobile/MobileTahfidz';
 import MobileSyahriah from '../views/mobile/MobileSyahriah';
-import KeuanganAdminView from '../views/admin/KeuanganAdminView';
+import KeuanganAdminView from '../views/keuangan/KeuanganAdminView';
 import MobileKeuangan from '../views/mobile/MobileKeuangan';
 import MobileIzin from '../views/mobile/MobileIzin';
 import MobileDashboard from '../views/mobile/MobileDashboard';
