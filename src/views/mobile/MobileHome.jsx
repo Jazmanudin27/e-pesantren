@@ -87,15 +87,15 @@ export default function MobileHome({ onChangeTab, onLogout }) {
     }
   })();
 
-  const rawName =
-    sessionData.nama ||
-    sessionData.username ||
-    "Admin";
+  const rawName = sessionData.nama || sessionData.username || "Admin";
   const displayName = rawName.split(" ")[0];
 
   // Auto reset scroll to top on mount (cegah header ketutup/terpotong saat refresh)
   useEffect(() => {
-    if (typeof window !== "undefined" && "scrollRestoration" in window.history) {
+    if (
+      typeof window !== "undefined" &&
+      "scrollRestoration" in window.history
+    ) {
       window.history.scrollRestoration = "manual";
     }
     window.scrollTo(0, 0);
@@ -113,7 +113,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
         now.toLocaleTimeString("id-ID", {
           hour: "2-digit",
           minute: "2-digit",
-        })
+        }),
       );
       setCurrentDateStr(
         now.toLocaleDateString("id-ID", {
@@ -121,7 +121,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
           day: "numeric",
           month: "short",
           year: "numeric",
-        })
+        }),
       );
     };
     updateTime();
@@ -132,12 +132,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
   // Load Realtime Data: Santri & Rekap Absensi
   const loadData = async () => {
     try {
-      const [resSantri, resRekap, resSesi, resAbsensi] = await Promise.allSettled([
-        axios.get("/api/santri"),
-        axios.get("/api/absensi/rekap-harian"),
-        axios.get("/api/absensi/sesi"),
-        axios.get("/api/absensi/hari-ini"),
-      ]);
+      const [resSantri, resRekap, resSesi, resAbsensi] =
+        await Promise.allSettled([
+          axios.get("/api/santri"),
+          axios.get("/api/absensi/rekap-harian"),
+          axios.get("/api/absensi/sesi"),
+          axios.get("/api/absensi/hari-ini"),
+        ]);
 
       if (resSantri.status === "fulfilled" && resSantri.value.data?.success) {
         const santriArr = resSantri.value.data.data || [];
@@ -192,10 +193,16 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       (item.status || "").toLowerCase() === selectedStatusTab.toLowerCase();
     const qMatch =
       !searchModalText ||
-      (item.nama_santri || "").toLowerCase().includes(searchModalText.toLowerCase()) ||
+      (item.nama_santri || "")
+        .toLowerCase()
+        .includes(searchModalText.toLowerCase()) ||
       (item.nis || "").toLowerCase().includes(searchModalText.toLowerCase()) ||
-      (item.nama_asrama || "").toLowerCase().includes(searchModalText.toLowerCase()) ||
-      (item.nama_kamar || "").toLowerCase().includes(searchModalText.toLowerCase());
+      (item.nama_asrama || "")
+        .toLowerCase()
+        .includes(searchModalText.toLowerCase()) ||
+      (item.nama_kamar || "")
+        .toLowerCase()
+        .includes(searchModalText.toLowerCase());
     const sesMatch =
       selectedKegiatan === "Semua" ||
       (item.nama_sesi || "").toLowerCase() === selectedKegiatan.toLowerCase();
@@ -203,18 +210,18 @@ export default function MobileHome({ onChangeTab, onLogout }) {
   });
 
   const modalHadirCount = todayAbsensiList.filter(
-    (x) => (x.status || "").toLowerCase() === "hadir"
+    (x) => (x.status || "").toLowerCase() === "hadir",
   ).length;
   const modalSakitCount = todayAbsensiList.filter(
-    (x) => (x.status || "").toLowerCase() === "sakit"
+    (x) => (x.status || "").toLowerCase() === "sakit",
   ).length;
   const modalIzinCount = todayAbsensiList.filter(
-    (x) => (x.status || "").toLowerCase() === "izin"
+    (x) => (x.status || "").toLowerCase() === "izin",
   ).length;
   const modalAlfaCount = todayAbsensiList.filter(
     (x) =>
       (x.status || "").toLowerCase() === "alfa" ||
-      (x.status || "").toLowerCase() === "belum"
+      (x.status || "").toLowerCase() === "belum",
   ).length;
 
   return (
@@ -249,100 +256,56 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             alignItems: "center",
           }}
         >
-          {/* Brand Application: NWF Mobile (Mobile Miring & Menarik) */}
+          {/* Brand Application: NWFMobile (Logo hilang, teks disatukan) */}
           <div
             onClick={handleOpenAccountInfo}
             style={{
               display: "flex",
-              alignItems: "center",
-              gap: "10px",
+              flexDirection: "column",
               cursor: "pointer",
               userSelect: "none",
             }}
           >
-            {/* Glossy Brand Emblem Icon */}
-            <div
-              style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "14px",
-                background:
-                  "linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.08) 100%)",
-                border: "1.5px solid rgba(255, 255, 255, 0.35)",
-                backdropFilter: "blur(8px)",
-                WebkitBackdropFilter: "blur(8px)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 6px 16px -2px rgba(0, 0, 0, 0.18)",
-                flexShrink: 0,
-              }}
-            >
-              <img
-                src="/nwf.png"
-                alt="NWF"
-                onError={(e) => {
-                  e.target.style.display = "none";
-                  if (e.target.nextSibling) e.target.nextSibling.style.display = "block";
-                }}
-                style={{ width: "26px", height: "26px", objectFit: "contain" }}
-              />
+            <div style={{ display: "flex", alignItems: "baseline" }}>
               <span
                 style={{
-                  display: "none",
                   fontWeight: 900,
-                  fontSize: "0.95rem",
+                  fontSize: "1.55rem",
+                  letterSpacing: "-0.6px",
                   color: "#ffffff",
-                  letterSpacing: "-0.5px",
+                  lineHeight: 1,
+                  textShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
                 }}
               >
                 NWF
               </span>
-            </div>
-
-            {/* Typography NWF Mobile */}
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-                <span
-                  style={{
-                    fontWeight: 900,
-                    fontSize: "1.42rem",
-                    letterSpacing: "-0.6px",
-                    color: "#ffffff",
-                    lineHeight: 1,
-                    textShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
-                  }}
-                >
-                  NWF
-                </span>
-                <span
-                  style={{
-                    fontWeight: 800,
-                    fontSize: "1.1rem",
-                    fontStyle: "italic",
-                    letterSpacing: "0.2px",
-                    color: "#a7f3d0",
-                    lineHeight: 1,
-                    textShadow: "0 2px 6px rgba(11, 107, 96, 0.35)",
-                  }}
-                >
-                  Mobile
-                </span>
-              </div>
               <span
                 style={{
-                  fontSize: "0.62rem",
-                  fontWeight: 700,
-                  color: "rgba(255, 255, 255, 0.8)",
-                  letterSpacing: "0.05em",
-                  textTransform: "uppercase",
-                  marginTop: "3px",
+                  fontWeight: 800,
+                  fontSize: "1.18rem",
+                  fontStyle: "italic",
+                  letterSpacing: "-0.2px",
+                  color: "#a7f3d0",
                   lineHeight: 1,
+                  textShadow: "0 2px 6px rgba(11, 107, 96, 0.35)",
                 }}
               >
-                Pondok Pesantren Nurul Wafa
+                Mobile
               </span>
             </div>
+            <span
+              style={{
+                fontSize: "0.62rem",
+                fontWeight: 700,
+                color: "rgba(255, 255, 255, 0.8)",
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
+                marginTop: "3px",
+                lineHeight: 1,
+              }}
+            >
+              Ponpes Nurul Wafa
+            </span>
           </div>
 
           {/* Top 3 Action Icons (Card / Support / Notification) */}
@@ -608,7 +571,10 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                   marginTop: "2px",
                 }}
               >
-                {rekapAbsensi.hadir} <span style={{ fontSize: "0.62rem", fontWeight: 600 }}>Santri</span>
+                {rekapAbsensi.hadir}{" "}
+                <span style={{ fontSize: "0.62rem", fontWeight: 600 }}>
+                  Santri
+                </span>
               </div>
             </div>
 
@@ -646,7 +612,10 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                   marginTop: "2px",
                 }}
               >
-                {rekapAbsensi.alfa} <span style={{ fontSize: "0.62rem", fontWeight: 600 }}>Santri</span>
+                {rekapAbsensi.alfa}{" "}
+                <span style={{ fontSize: "0.62rem", fontWeight: 600 }}>
+                  Santri
+                </span>
               </div>
             </div>
           </div>
@@ -706,7 +675,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               }}
             >
               <span>{rekapAbsensi.hadir}</span>
-              <span style={{ fontSize: "0.72rem", color: "#a7f3d0", fontWeight: 700 }}>
+              <span
+                style={{
+                  fontSize: "0.72rem",
+                  color: "#a7f3d0",
+                  fontWeight: 700,
+                }}
+              >
                 / {rekapAbsensi.total || stats.total_santri || 0}
               </span>
             </div>
@@ -729,10 +704,22 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               }}
               title="Lihat Santri Hadir"
             >
-              <span style={{ fontSize: "0.78rem", fontWeight: 900, color: "#86efac" }}>
+              <span
+                style={{
+                  fontSize: "0.78rem",
+                  fontWeight: 900,
+                  color: "#86efac",
+                }}
+              >
                 {rekapAbsensi.hadir}
               </span>
-              <span style={{ fontSize: "0.54rem", color: "#e6fffa", fontWeight: 700 }}>
+              <span
+                style={{
+                  fontSize: "0.54rem",
+                  color: "#e6fffa",
+                  fontWeight: 700,
+                }}
+              >
                 Hadir
               </span>
             </div>
@@ -752,10 +739,22 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               }}
               title="Lihat Santri Izin"
             >
-              <span style={{ fontSize: "0.78rem", fontWeight: 900, color: "#fde047" }}>
+              <span
+                style={{
+                  fontSize: "0.78rem",
+                  fontWeight: 900,
+                  color: "#fde047",
+                }}
+              >
                 {rekapAbsensi.izin}
               </span>
-              <span style={{ fontSize: "0.54rem", color: "#e6fffa", fontWeight: 700 }}>
+              <span
+                style={{
+                  fontSize: "0.54rem",
+                  color: "#e6fffa",
+                  fontWeight: 700,
+                }}
+              >
                 Izin
               </span>
             </div>
@@ -775,10 +774,22 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               }}
               title="Lihat Santri Sakit"
             >
-              <span style={{ fontSize: "0.78rem", fontWeight: 900, color: "#cbd5e1" }}>
+              <span
+                style={{
+                  fontSize: "0.78rem",
+                  fontWeight: 900,
+                  color: "#cbd5e1",
+                }}
+              >
                 {rekapAbsensi.sakit}
               </span>
-              <span style={{ fontSize: "0.54rem", color: "#e6fffa", fontWeight: 700 }}>
+              <span
+                style={{
+                  fontSize: "0.54rem",
+                  color: "#e6fffa",
+                  fontWeight: 700,
+                }}
+              >
                 Sakit
               </span>
             </div>
@@ -799,10 +810,22 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               }}
               title="Lihat Santri Belum Absen"
             >
-              <span style={{ fontSize: "0.78rem", fontWeight: 900, color: "#fca5a5" }}>
+              <span
+                style={{
+                  fontSize: "0.78rem",
+                  fontWeight: 900,
+                  color: "#fca5a5",
+                }}
+              >
                 {rekapAbsensi.alfa}
               </span>
-              <span style={{ fontSize: "0.54rem", color: "#fef2f2", fontWeight: 700 }}>
+              <span
+                style={{
+                  fontSize: "0.54rem",
+                  color: "#fef2f2",
+                  fontWeight: 700,
+                }}
+              >
                 Belum
               </span>
             </div>
@@ -811,7 +834,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       </div>
 
       {/* =========================================================================
-          SECTION 1: DATA MASTER (4 PRIMARY BIG SQUIRCLES)
+          SECTION 1: MENU (WHITE CARDS + COLORED ICONS)
       ========================================================================= */}
       <div style={{ padding: "16px 14px 4px" }}>
         <div
@@ -819,7 +842,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             fontSize: "0.82rem",
             fontWeight: 800,
             color: "#1e293b",
-            marginBottom: "10px",
+            marginBottom: "12px",
             display: "flex",
             alignItems: "center",
             gap: "6px",
@@ -833,16 +856,16 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               borderRadius: "2px",
             }}
           />
-          Data Master
+          Menu
         </div>
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(4, 1fr)",
-            gap: "10px",
+            gap: "12px 10px",
           }}
         >
-          {/* 1. Santri (Emerald Green) */}
+          {/* 1. Santri */}
           <div
             onClick={() => onChangeTab("master-santri")}
             style={{
@@ -858,28 +881,29 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 width: "56px",
                 height: "56px",
                 borderRadius: "18px",
-                background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                boxShadow: "0 8px 18px -2px rgba(16, 185, 129, 0.35)",
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 4px 14px rgba(15, 23, 42, 0.05)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#ffffff",
               }}
             >
-              <Users size={26} />
+              <Users size={26} color="#10b981" />
             </div>
             <span
               style={{
                 fontSize: "0.72rem",
                 fontWeight: 700,
                 color: "#334155",
+                textAlign: "center",
               }}
             >
               Santri
             </span>
           </div>
 
-          {/* 2. Kelas (Sky Blue) */}
+          {/* 2. Kelas */}
           <div
             onClick={() => onChangeTab("master-kelas")}
             style={{
@@ -895,28 +919,29 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 width: "56px",
                 height: "56px",
                 borderRadius: "18px",
-                background: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
-                boxShadow: "0 8px 18px -2px rgba(14, 165, 233, 0.35)",
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 4px 14px rgba(15, 23, 42, 0.05)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#ffffff",
               }}
             >
-              <GraduationCap size={26} />
+              <GraduationCap size={26} color="#0ea5e9" />
             </div>
             <span
               style={{
                 fontSize: "0.72rem",
                 fontWeight: 700,
                 color: "#334155",
+                textAlign: "center",
               }}
             >
               Kelas
             </span>
           </div>
 
-          {/* 3. Asrama (Purple) */}
+          {/* 3. Asrama */}
           <div
             onClick={() => onChangeTab("master-asrama")}
             style={{
@@ -932,28 +957,29 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 width: "56px",
                 height: "56px",
                 borderRadius: "18px",
-                background: "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)",
-                boxShadow: "0 8px 18px -2px rgba(139, 92, 246, 0.35)",
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 4px 14px rgba(15, 23, 42, 0.05)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#ffffff",
               }}
             >
-              <Building size={26} />
+              <Building size={26} color="#8b5cf6" />
             </div>
             <span
               style={{
                 fontSize: "0.72rem",
                 fontWeight: 700,
                 color: "#334155",
+                textAlign: "center",
               }}
             >
               Asrama
             </span>
           </div>
 
-          {/* 4. Kegiatan (Amber / Gold) */}
+          {/* 4. Kegiatan */}
           <div
             onClick={() => onChangeTab("setting-shalat")}
             style={{
@@ -969,21 +995,22 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 width: "56px",
                 height: "56px",
                 borderRadius: "18px",
-                background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-                boxShadow: "0 8px 18px -2px rgba(245, 158, 11, 0.35)",
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 4px 14px rgba(15, 23, 42, 0.05)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#ffffff",
               }}
             >
-              <Calendar size={26} />
+              <Calendar size={26} color="#f59e0b" />
             </div>
             <span
               style={{
                 fontSize: "0.72rem",
                 fontWeight: 700,
                 color: "#334155",
+                textAlign: "center",
               }}
             >
               Kegiatan
@@ -993,15 +1020,15 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       </div>
 
       {/* =========================================================================
-          SECTION 2: TRANSAKSI SANTRI (5 SOFT PASTEL SQUIRCLES)
+          SECTION 2: TRANSAKSI SANTRI (MATCHED SETARA: WHITE CARDS + COLORED ICONS)
       ========================================================================= */}
-      <div style={{ padding: "14px 14px 6px" }}>
+      <div style={{ padding: "16px 14px 6px" }}>
         <div
           style={{
             fontSize: "0.82rem",
             fontWeight: 800,
             color: "#1e293b",
-            marginBottom: "10px",
+            marginBottom: "12px",
             display: "flex",
             alignItems: "center",
             gap: "6px",
@@ -1020,8 +1047,8 @@ export default function MobileHome({ onChangeTab, onLogout }) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(5, 1fr)",
-            gap: "8px",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: "12px 10px",
           }}
         >
           {/* 1. Perizinan */}
@@ -1031,33 +1058,31 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "5px",
+              gap: "6px",
               cursor: "pointer",
             }}
           >
             <div
               style={{
-                width: "50px",
-                height: "50px",
-                borderRadius: "16px",
-                background: "#ede9fe",
-                border: "1px solid #ddd6fe",
+                width: "56px",
+                height: "56px",
+                borderRadius: "18px",
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 4px 14px rgba(15, 23, 42, 0.05)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#6366f1",
-                boxShadow: "0 2px 8px rgba(99, 102, 241, 0.12)",
               }}
             >
-              <Clock size={22} />
+              <Clock size={26} color="#6366f1" />
             </div>
             <span
               style={{
-                fontSize: "0.66rem",
+                fontSize: "0.72rem",
                 fontWeight: 700,
                 color: "#334155",
                 textAlign: "center",
-                lineHeight: 1.1,
               }}
             >
               Perizinan
@@ -1071,33 +1096,31 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "5px",
+              gap: "6px",
               cursor: "pointer",
             }}
           >
             <div
               style={{
-                width: "50px",
-                height: "50px",
-                borderRadius: "16px",
-                background: "#ffe4e6",
-                border: "1px solid #fecdd3",
+                width: "56px",
+                height: "56px",
+                borderRadius: "18px",
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 4px 14px rgba(15, 23, 42, 0.05)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#e11d48",
-                boxShadow: "0 2px 8px rgba(225, 29, 72, 0.12)",
               }}
             >
-              <ShieldAlert size={22} />
+              <ShieldAlert size={26} color="#ef4444" />
             </div>
             <span
               style={{
-                fontSize: "0.66rem",
+                fontSize: "0.72rem",
                 fontWeight: 700,
                 color: "#334155",
                 textAlign: "center",
-                lineHeight: 1.1,
               }}
             >
               Teguran
@@ -1111,33 +1134,31 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "5px",
+              gap: "6px",
               cursor: "pointer",
             }}
           >
             <div
               style={{
-                width: "50px",
-                height: "50px",
-                borderRadius: "16px",
-                background: "#ecfdf5",
-                border: "1px solid #a7f3d0",
+                width: "56px",
+                height: "56px",
+                borderRadius: "18px",
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 4px 14px rgba(15, 23, 42, 0.05)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#059669",
-                boxShadow: "0 2px 8px rgba(5, 150, 105, 0.12)",
               }}
             >
-              <Fingerprint size={22} />
+              <Fingerprint size={26} color="#0d9488" />
             </div>
             <span
               style={{
-                fontSize: "0.66rem",
+                fontSize: "0.72rem",
                 fontWeight: 700,
                 color: "#334155",
                 textAlign: "center",
-                lineHeight: 1.1,
               }}
             >
               Absensi
@@ -1151,33 +1172,31 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "5px",
+              gap: "6px",
               cursor: "pointer",
             }}
           >
             <div
               style={{
-                width: "50px",
-                height: "50px",
-                borderRadius: "16px",
-                background: "#e0f2fe",
-                border: "1px solid #bae6fd",
+                width: "56px",
+                height: "56px",
+                borderRadius: "18px",
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 4px 14px rgba(15, 23, 42, 0.05)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#0284c7",
-                boxShadow: "0 2px 8px rgba(2, 132, 199, 0.12)",
               }}
             >
-              <Award size={22} />
+              <Award size={26} color="#0284c7" />
             </div>
             <span
               style={{
-                fontSize: "0.64rem",
+                fontSize: "0.72rem",
                 fontWeight: 700,
                 color: "#334155",
                 textAlign: "center",
-                lineHeight: 1.1,
               }}
             >
               Perkembangan
@@ -1191,33 +1210,31 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "5px",
+              gap: "6px",
               cursor: "pointer",
             }}
           >
             <div
               style={{
-                width: "50px",
-                height: "50px",
-                borderRadius: "16px",
-                background: "#fef3c7",
-                border: "1px solid #fde68a",
+                width: "56px",
+                height: "56px",
+                borderRadius: "18px",
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 4px 14px rgba(15, 23, 42, 0.05)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#d97706",
-                boxShadow: "0 2px 8px rgba(217, 119, 6, 0.12)",
               }}
             >
-              <BookOpen size={22} />
+              <BookOpen size={26} color="#d97706" />
             </div>
             <span
               style={{
-                fontSize: "0.66rem",
+                fontSize: "0.72rem",
                 fontWeight: 700,
                 color: "#334155",
                 textAlign: "center",
-                lineHeight: 1.1,
               }}
             >
               Praktek
@@ -1337,7 +1354,8 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 lineHeight: 1.4,
               }}
             >
-              Sesi presensi shalat ditutup tepat waktu. Santri yang belum hadir otomatis masuk daftar Belum Absen.
+              Sesi presensi shalat ditutup tepat waktu. Santri yang belum hadir
+              otomatis masuk daftar Belum Absen.
             </div>
           </div>
 
@@ -1395,7 +1413,8 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 lineHeight: 1.4,
               }}
             >
-              Perizinan santri wajib melalui persetujuan wali asrama dan tercatat dalam sistem perizinan.
+              Perizinan santri wajib melalui persetujuan wali asrama dan
+              tercatat dalam sistem perizinan.
             </div>
           </div>
         </div>
@@ -1685,7 +1704,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                       boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                      }}
+                    >
                       <div
                         style={{
                           width: "36px",
@@ -1720,7 +1745,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                             marginTop: "2px",
                           }}
                         >
-                          NIS: {item.nis || "-"} • {item.nama_asrama || "Asrama"} / {item.nama_kamar || "-"}
+                          NIS: {item.nis || "-"} •{" "}
+                          {item.nama_asrama || "Asrama"} /{" "}
+                          {item.nama_kamar || "-"}
                         </div>
                       </div>
                     </div>
@@ -1736,18 +1763,18 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                             (item.status || "").toLowerCase() === "hadir"
                               ? "#dcfce7"
                               : (item.status || "").toLowerCase() === "izin"
-                              ? "#fef3c7"
-                              : (item.status || "").toLowerCase() === "sakit"
-                              ? "#fee2e2"
-                              : "#f1f5f9",
+                                ? "#fef3c7"
+                                : (item.status || "").toLowerCase() === "sakit"
+                                  ? "#fee2e2"
+                                  : "#f1f5f9",
                           color:
                             (item.status || "").toLowerCase() === "hadir"
                               ? "#15803d"
                               : (item.status || "").toLowerCase() === "izin"
-                              ? "#b45309"
-                              : (item.status || "").toLowerCase() === "sakit"
-                              ? "#b91c1c"
-                              : "#64748b",
+                                ? "#b45309"
+                                : (item.status || "").toLowerCase() === "sakit"
+                                  ? "#b91c1c"
+                                  : "#64748b",
                         }}
                       >
                         {item.status || selectedStatusTab}
@@ -1826,7 +1853,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 marginBottom: "16px",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
                 <CreditCard size={18} color="#0d766e" />
                 <span
                   style={{
@@ -1874,7 +1903,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 }}
               >
                 <div>
-                  <div style={{ fontSize: "0.72rem", color: "#bae6fd", fontWeight: 700 }}>
+                  <div
+                    style={{
+                      fontSize: "0.72rem",
+                      color: "#bae6fd",
+                      fontWeight: 700,
+                    }}
+                  >
                     Pondok Pesantren
                   </div>
                   <div style={{ fontSize: "1.1rem", fontWeight: 900 }}>
@@ -1884,7 +1919,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 <span style={{ fontSize: "1.4rem" }}>✱</span>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "14px" }}
+              >
                 <div
                   style={{
                     width: "50px",
@@ -1903,7 +1940,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                   <div style={{ fontSize: "0.98rem", fontWeight: 900 }}>
                     {displayName || "Admin Nurul Wafa"}
                   </div>
-                  <div style={{ fontSize: "0.75rem", color: "#bae6fd", marginTop: "2px" }}>
+                  <div
+                    style={{
+                      fontSize: "0.75rem",
+                      color: "#bae6fd",
+                      marginTop: "2px",
+                    }}
+                  >
                     ID: NWF-2026-ADM
                   </div>
                   <div
@@ -1924,7 +1967,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             </div>
 
             {/* Quick Actions */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+            >
               <button
                 onClick={() => {
                   setIsDetailCardOpen(false);
