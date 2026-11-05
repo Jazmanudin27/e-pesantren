@@ -1001,170 +1001,6 @@ export default function MobileHome({ onChangeTab, onLogout }) {
         )}
       </div>
 
-      {/* =========================================================================
-          MYBCA QUICK ACTION GRID (4 UTAMA: PRESENSI, PERIZINAN, PERKEMBANGAN, PRAKTEK)
-      ========================================================================= */}
-      <div style={{ padding: "18px 16px 8px" }}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: "14px 10px",
-          }}
-        >
-          {/* 1. Presensi (Royal Blue) */}
-          <div
-            onClick={() => onChangeTab("presensi")}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "6px",
-              cursor: "pointer",
-            }}
-          >
-            <div
-              style={{
-                width: "54px",
-                height: "54px",
-                borderRadius: "18px",
-                background: "linear-gradient(135deg, #005baa 0%, #004b91 100%)",
-                color: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 6px 14px -2px rgba(0, 91, 170, 0.35)",
-              }}
-            >
-              <Fingerprint size={24} />
-            </div>
-            <span
-              style={{
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#334155",
-                textAlign: "center",
-              }}
-            >
-              Presensi
-            </span>
-          </div>
-
-          {/* 2. Perizinan (Teal / Cyan) */}
-          <div
-            onClick={() => onChangeTab("perizinan")}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "6px",
-              cursor: "pointer",
-            }}
-          >
-            <div
-              style={{
-                width: "54px",
-                height: "54px",
-                borderRadius: "18px",
-                background: "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)",
-                color: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 6px 14px -2px rgba(6, 182, 212, 0.35)",
-              }}
-            >
-              <DoorOpen size={24} />
-            </div>
-            <span
-              style={{
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#334155",
-                textAlign: "center",
-              }}
-            >
-              Perizinan
-            </span>
-          </div>
-
-          {/* 3. Perkembangan / Rapor (Indigo) */}
-          <div
-            onClick={() => onChangeTab("pengembangan")}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "6px",
-              cursor: "pointer",
-            }}
-          >
-            <div
-              style={{
-                width: "54px",
-                height: "54px",
-                borderRadius: "18px",
-                background: "linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)",
-                color: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 6px 14px -2px rgba(79, 70, 229, 0.35)",
-              }}
-            >
-              <Award size={24} />
-            </div>
-            <span
-              style={{
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#334155",
-                textAlign: "center",
-              }}
-            >
-              Perkembangan
-            </span>
-          </div>
-
-          {/* 4. Praktek Ibadah (Slate / Navy) */}
-          <div
-            onClick={() => onChangeTab("praktek-ibadah")}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "6px",
-              cursor: "pointer",
-            }}
-          >
-            <div
-              style={{
-                width: "54px",
-                height: "54px",
-                borderRadius: "18px",
-                background: "linear-gradient(135deg, #334155 0%, #1e293b 100%)",
-                color: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 6px 14px -2px rgba(51, 65, 85, 0.35)",
-              }}
-            >
-              <HeartHandshake size={24} />
-            </div>
-            <span
-              style={{
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#334155",
-                textAlign: "center",
-              }}
-            >
-              Praktek
-            </span>
-          </div>
-        </div>
-      </div>
 
       {/* =========================================================================
           KONDISIONAL: TAMPILAN BENDAHARA VS TAMPILAN OPERASIONAL ASATIDZ
@@ -2188,300 +2024,166 @@ export default function MobileHome({ onChangeTab, onLogout }) {
           </div>
 
           {/* =========================================================================
-              CARD 2: KATEGORI LAYANAN PRESENSI & IBADAH (CARD UI)
+              QUICK ACTION MENU (PRESENSI, PERIZINAN, PERKEMBANGAN, PRAKTEK)
           ========================================================================= */}
-          <div style={{ padding: "0 16px", marginTop: "18px" }}>
+          <div style={{ padding: "18px 16px 10px" }}>
             <div
               style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "8px",
+                display: "grid",
+                gridTemplateColumns: "repeat(4, 1fr)",
+                gap: "14px 10px",
               }}
             >
-              <span
-                style={{
-                  fontSize: "0.82rem",
-                  fontWeight: 800,
-                  color: "#005baa",
-                  letterSpacing: "0.04em",
-                  textTransform: "uppercase",
-                }}
-              >
-                LAYANAN & IBADAH SANTRI
-              </span>
-              <span
+              {/* 1. Presensi (Royal Blue) */}
+              <div
                 onClick={() => onChangeTab("presensi")}
                 style={{
-                  fontSize: "0.74rem",
-                  fontWeight: 700,
-                  color: "#005baa",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "6px",
                   cursor: "pointer",
                 }}
               >
-                Selengkapnya &gt;
-              </span>
-            </div>
-            <div
-              style={{
-                background: "#ffffff",
-                borderRadius: "20px",
-                border: "1px solid #e2e8f0",
-                padding: "16px",
-                boxShadow: "0 4px 16px -2px rgba(15, 23, 42, 0.04)",
-              }}
-            >
-              {/* Category Title */}
+                <div
+                  style={{
+                    width: "54px",
+                    height: "54px",
+                    borderRadius: "18px",
+                    background: "linear-gradient(135deg, #005baa 0%, #004b91 100%)",
+                    color: "#ffffff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: "0 6px 14px -2px rgba(0, 91, 170, 0.35)",
+                  }}
+                >
+                  <Fingerprint size={24} />
+                </div>
+                <span
+                  style={{
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    color: "#334155",
+                    textAlign: "center",
+                  }}
+                >
+                  Presensi
+                </span>
+              </div>
+
+              {/* 2. Perizinan (Teal / Cyan) */}
               <div
+                onClick={() => onChangeTab("perizinan")}
                 style={{
                   display: "flex",
+                  flexDirection: "column",
                   alignItems: "center",
-                  gap: "8px",
-                  marginBottom: "12px",
+                  gap: "6px",
+                  cursor: "pointer",
                 }}
               >
                 <div
                   style={{
-                    width: "28px",
-                    height: "28px",
-                    borderRadius: "8px",
-                    background: "#e0f2fe",
-                    color: "#0284c7",
+                    width: "54px",
+                    height: "54px",
+                    borderRadius: "18px",
+                    background: "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)",
+                    color: "#ffffff",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    boxShadow: "0 6px 14px -2px rgba(6, 182, 212, 0.35)",
                   }}
                 >
-                  <Fingerprint size={17} strokeWidth={2.4} />
+                  <DoorOpen size={24} />
                 </div>
-                <div>
-                  <h4
-                    style={{
-                      margin: 0,
-                      fontSize: "0.85rem",
-                      fontWeight: 800,
-                      color: "#0f172a",
-                    }}
-                  >
-                    Layanan Presensi & Ibadah
-                  </h4>
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: "0.66rem",
-                      color: "#64748b",
-                    }}
-                  >
-                    Pencatatan kehadiran ibadah & izin santri
-                  </p>
-                </div>
+                <span
+                  style={{
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    color: "#334155",
+                    textAlign: "center",
+                  }}
+                >
+                  Perizinan
+                </span>
               </div>
 
-              {/* Items List */}
+              {/* 3. Perkembangan / Rapor (Indigo) */}
               <div
-                style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+                onClick={() => onChangeTab("pengembangan")}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "6px",
+                  cursor: "pointer",
+                }}
               >
-                {/* 1. Presensi Digital (Wajah & Barcode) */}
                 <div
-                  onClick={() => onChangeTab("presensi")}
                   style={{
+                    width: "54px",
+                    height: "54px",
+                    borderRadius: "18px",
+                    background: "linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)",
+                    color: "#ffffff",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "12px 14px",
-                    background:
-                      "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
-                    border: "1px solid #bae6fd",
-                    borderRadius: "14px",
-                    cursor: "pointer",
-                    transition: "all 0.18s ease",
+                    justifyContent: "center",
+                    boxShadow: "0 6px 14px -2px rgba(79, 70, 229, 0.35)",
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "12px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "42px",
-                        height: "42px",
-                        borderRadius: "12px",
-                        background:
-                          "linear-gradient(135deg, #0284c7 0%, #1e40af 100%)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#ffffff",
-                        boxShadow: "0 4px 10px rgba(2, 132, 199, 0.3)",
-                      }}
-                    >
-                      <Fingerprint size={22} />
-                    </div>
-                    <div>
-                      <div
-                        style={{
-                          fontSize: "0.84rem",
-                          fontWeight: 800,
-                          color: "#0c4a6e",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                        }}
-                      >
-                        Presensi Digital Santri
-                        <span
-                          style={{
-                            fontSize: "0.58rem",
-                            fontWeight: 800,
-                            padding: "2px 6px",
-                            borderRadius: "6px",
-                            background: "#0284c7",
-                            color: "#ffffff",
-                          }}
-                        >
-                          Face & QR
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "0.68rem",
-                          color: "#0369a1",
-                          marginTop: "2px",
-                        }}
-                      >
-                        Shalat 5 Waktu, Mengaji & Riwayat
-                      </div>
-                    </div>
-                  </div>
-                  <ChevronRight size={18} color="#0284c7" />
+                  <Award size={24} />
                 </div>
+                <span
+                  style={{
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    color: "#334155",
+                    textAlign: "center",
+                  }}
+                >
+                  Perkembangan
+                </span>
+              </div>
 
-                {/* 2. Praktek Ibadah */}
+              {/* 4. Praktek Ibadah (Slate / Navy) */}
+              <div
+                onClick={() => onChangeTab("praktek-ibadah")}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "6px",
+                  cursor: "pointer",
+                }}
+              >
                 <div
-                  onClick={() => onChangeTab("praktek-ibadah")}
                   style={{
+                    width: "54px",
+                    height: "54px",
+                    borderRadius: "18px",
+                    background: "linear-gradient(135deg, #334155 0%, #1e293b 100%)",
+                    color: "#ffffff",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "12px 14px",
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "14px",
-                    cursor: "pointer",
-                    transition: "all 0.18s ease",
+                    justifyContent: "center",
+                    boxShadow: "0 6px 14px -2px rgba(51, 65, 85, 0.35)",
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "12px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "42px",
-                        height: "42px",
-                        borderRadius: "12px",
-                        background:
-                          "linear-gradient(135deg, #059669 0%, #047857 100%)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#ffffff",
-                        boxShadow: "0 4px 10px rgba(5, 150, 105, 0.25)",
-                      }}
-                    >
-                      <HeartHandshake size={22} />
-                    </div>
-                    <div>
-                      <div
-                        style={{
-                          fontSize: "0.84rem",
-                          fontWeight: 800,
-                          color: "#1e293b",
-                        }}
-                      >
-                        Praktek Ibadah & Doa
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "0.68rem",
-                          color: "#64748b",
-                          marginTop: "2px",
-                        }}
-                      >
-                        Penilaian shalat fardhu, wudhu & wirid
-                      </div>
-                    </div>
-                  </div>
-                  <ChevronRight size={18} color="#94a3b8" />
+                  <HeartHandshake size={24} />
                 </div>
-
-                {/* 3. Perizinan Santri */}
-                <div
-                  onClick={() => onChangeTab("perizinan")}
+                <span
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "12px 14px",
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "14px",
-                    cursor: "pointer",
-                    transition: "all 0.18s ease",
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    color: "#334155",
+                    textAlign: "center",
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "12px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "42px",
-                        height: "42px",
-                        borderRadius: "12px",
-                        background:
-                          "linear-gradient(135deg, #d97706 0%, #b45309 100%)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#ffffff",
-                        boxShadow: "0 4px 10px rgba(217, 119, 6, 0.25)",
-                      }}
-                    >
-                      <DoorOpen size={22} />
-                    </div>
-                    <div>
-                      <div
-                        style={{
-                          fontSize: "0.84rem",
-                          fontWeight: 800,
-                          color: "#1e293b",
-                        }}
-                      >
-                        Perizinan Santri
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "0.68rem",
-                          color: "#64748b",
-                          marginTop: "2px",
-                        }}
-                      >
-                        Surat izin pulang, izin sakit & sambangan
-                      </div>
-                    </div>
-                  </div>
-                  <ChevronRight size={18} color="#94a3b8" />
-                </div>
+                  Praktek
+                </span>
               </div>
             </div>
           </div>
