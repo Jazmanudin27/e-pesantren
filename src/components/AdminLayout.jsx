@@ -61,6 +61,7 @@ import { canAccessKeuangan } from '../utils/authRole.util';
 import { showConfirm, toastSuccess } from '../utils/alert.util';
 
 export default function AdminLayout() {
+  const isAbsensiTab = (tab) => ['absensi-berjamaah', 'presensi-berjamaah', 'presensi', 'absensi-mengaji', 'presensi-kegiatan'].includes(tab);
   const isMasterTab = (tab) => ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-materi', 'setting-shalat', 'setting-kegiatan', 'master-kegiatan'].includes(tab);
   const isSettingsTab = (tab) => ['master-device', 'manajemen-user', 'users'].includes(tab);
   const isLaporanTab = (tab) => ['laporan-presensi', 'laporan-tahfidz'].includes(tab);
@@ -74,6 +75,7 @@ export default function AdminLayout() {
 
   const initialTab = getInitialTab();
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [isAbsensiOpen, setIsAbsensiOpen] = useState(() => isAbsensiTab(initialTab));
   const [isMasterOpen, setIsMasterOpen] = useState(() => isMasterTab(initialTab));
   const [isSettingsOpen, setIsSettingsOpen] = useState(() => isSettingsTab(initialTab));
   const [isLaporanOpen, setIsLaporanOpen] = useState(() => isLaporanTab(initialTab));
@@ -248,6 +250,7 @@ export default function AdminLayout() {
     localStorage.setItem('epesantren_tab', tab);
     
     // Auto open/close dropdown based on active tab
+    setIsAbsensiOpen(isAbsensiTab(tab));
     setIsMasterOpen(isMasterTab(tab));
     setIsSettingsOpen(isSettingsTab(tab));
     setIsLaporanOpen(isLaporanTab(tab));
@@ -260,6 +263,7 @@ export default function AdminLayout() {
       const current = hash || 'dashboard';
       setActiveTab(current);
       localStorage.setItem('epesantren_tab', current);
+      setIsAbsensiOpen(isAbsensiTab(current));
       setIsMasterOpen(isMasterTab(current));
       setIsSettingsOpen(isSettingsTab(current));
       setIsLaporanOpen(isLaporanTab(current));
@@ -294,8 +298,10 @@ export default function AdminLayout() {
         return <DashboardAdmin />;
       case 'presensi':
       case 'presensi-berjamaah':
+      case 'absensi-berjamaah':
         return <AbsensiFingerprintView initialType="berjamaah" />;
       case 'presensi-kegiatan':
+      case 'absensi-mengaji':
         return <AbsensiFingerprintView initialType="kegiatan" />;
       case 'laporan-presensi':
         return <AbsensiFingerprintView initialType="berjamaah" />;
@@ -382,6 +388,7 @@ export default function AdminLayout() {
     }
   };
 
+  const isAbsensiActive = ['absensi-berjamaah', 'presensi-berjamaah', 'presensi', 'absensi-mengaji', 'presensi-kegiatan'].includes(activeTab);
   const isMasterActive = ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-materi', 'kurikulum-pengajian', 'jadwal-mengajar', 'setting-shalat', 'setting-kegiatan', 'master-kegiatan'].includes(activeTab);
   const isSettingsActive = ['master-device', 'manajemen-user', 'users'].includes(activeTab);
   const isLaporanActive = ['laporan-presensi', 'laporan-tahfidz'].includes(activeTab);
@@ -405,27 +412,37 @@ export default function AdminLayout() {
           </div>
         </button>
 
+        {/* ABSENSI SANTRI DROPDOWN / ACCORDION */}
         <button 
-          className={`nav-link ${(activeTab === 'presensi-berjamaah' || activeTab === 'presensi') ? 'active' : ''}`}
-          onClick={() => handleTabClick('presensi-berjamaah')}
+          className={`nav-link has-dropdown ${isAbsensiActive ? 'active' : ''}`}
+          onClick={() => setIsAbsensiOpen(!isAbsensiOpen)}
         >
           <div className="nav-link-left">
             <Fingerprint size={15} style={{ color: '#0284c7' }} />
-            <span>Presensi Berjamaah</span>
+            <span>Absensi Santri</span>
           </div>
-          <span style={{ fontSize: '0.62rem', background: '#0284c7', color: '#fff', padding: '1px 6px', borderRadius: '10px', fontWeight: 800 }}>Shalat</span>
+          <ChevronDown size={13} className={`nav-chevron ${isAbsensiOpen ? 'open' : ''}`} />
         </button>
 
-        <button 
-          className={`nav-link ${activeTab === 'presensi-kegiatan' ? 'active' : ''}`}
-          onClick={() => handleTabClick('presensi-kegiatan')}
-        >
-          <div className="nav-link-left">
-            <BookOpen size={15} style={{ color: '#059669' }} />
-            <span>Presensi Kegiatan</span>
+        {isAbsensiOpen && (
+          <div className="nav-submenu">
+            <button 
+              className={`nav-sublink ${['absensi-berjamaah', 'presensi-berjamaah', 'presensi'].includes(activeTab) ? 'active' : ''}`}
+              onClick={() => handleTabClick('absensi-berjamaah')}
+            >
+              <Fingerprint size={13} style={{ marginRight: '6px', color: '#0284c7' }} />
+              <span>Absensi Berjamaah</span>
+            </button>
+
+            <button 
+              className={`nav-sublink ${['absensi-mengaji', 'presensi-kegiatan'].includes(activeTab) ? 'active' : ''}`}
+              onClick={() => handleTabClick('absensi-mengaji')}
+            >
+              <BookOpen size={13} style={{ marginRight: '6px', color: '#059669' }} />
+              <span>Absensi Mengaji</span>
+            </button>
           </div>
-          <span style={{ fontSize: '0.62rem', background: '#059669', color: '#fff', padding: '1px 6px', borderRadius: '10px', fontWeight: 800 }}>NWF Mobile</span>
-        </button>
+        )}
 
         <button 
           className={`nav-link ${activeTab === 'tahfidz' ? 'active' : ''}`}

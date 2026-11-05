@@ -84,6 +84,7 @@ export default function AbsensiFingerprintView({ initialType }) {
 
           return {
             id: item.id || idx + 1,
+            santri_id: item.santri_id || null,
             nama_santri: item.nama_santri || "Santri",
             nis: item.nis || "-",
             kegiatan: namaKegiatan,
@@ -136,21 +137,33 @@ export default function AbsensiFingerprintView({ initialType }) {
 
     if (ok) {
       try {
-        const res = await axios.delete(`/api/absensi/fingerprint/${row.id}`);
+        // Hapus langsung dari UI State secara optimistik
+        setAbsensiList((prev) => prev.filter((item) => item.id !== row.id));
+        if (selectedDetail && selectedDetail.id === row.id) {
+          setSelectedDetail(null);
+        }
+
+        const res = await axios.delete(`/api/absensi/fingerprint/${row.id}`, {
+          data: {
+            santri_id: row.santri_id,
+            tanggal: row.tanggal,
+            waktu_scan: row.jam_scan,
+          },
+        });
+
         if (res.data?.success) {
           toastSuccess("Riwayat presensi berhasil dihapus");
-          if (selectedDetail && selectedDetail.id === row.id) {
-            setSelectedDetail(null);
-          }
           fetchAbsensi();
         } else {
           showError("Gagal", res.data?.message || "Gagal menghapus riwayat presensi");
+          fetchAbsensi();
         }
       } catch (err) {
         showError(
           "Gagal Menghapus",
           err.response?.data?.message || err.message || "Terjadi kesalahan saat menghapus data"
         );
+        fetchAbsensi();
       }
     }
   };
@@ -236,64 +249,6 @@ export default function AbsensiFingerprintView({ initialType }) {
 
   return (
     <div>
-      {/* 0. TAB SEGMENTED: PRESENSI BERJAMAAH VS PRESENSI KEGIATAN */}
-      <div style={{
-        display: "flex",
-        flexWrap: "wrap",
-        gap: "10px",
-        background: "#e2e8f0",
-        padding: "6px",
-        borderRadius: "16px",
-        marginBottom: "20px",
-        width: "fit-content"
-      }}>
-        <button
-          type="button"
-          onClick={() => { setActiveTabType("berjamaah"); setSelectedKegiatan("semua"); }}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "10px 22px",
-            borderRadius: "12px",
-            border: "none",
-            background: activeTabType === "berjamaah" ? "#0284c7" : "transparent",
-            color: activeTabType === "berjamaah" ? "#ffffff" : "#475569",
-            fontWeight: 800,
-            fontSize: "0.9rem",
-            cursor: "pointer",
-            boxShadow: activeTabType === "berjamaah" ? "0 4px 14px rgba(2, 132, 199, 0.35)" : "none",
-            transition: "all 0.2s ease"
-          }}
-        >
-          <Fingerprint size={18} />
-          <span>Presensi Berjamaah (Shalat 5 Waktu)</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => { setActiveTabType("kegiatan"); setSelectedKegiatan("semua"); }}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "10px 22px",
-            borderRadius: "12px",
-            border: "none",
-            background: activeTabType === "kegiatan" ? "#059669" : "transparent",
-            color: activeTabType === "kegiatan" ? "#ffffff" : "#475569",
-            fontWeight: 800,
-            fontSize: "0.9rem",
-            cursor: "pointer",
-            boxShadow: activeTabType === "kegiatan" ? "0 4px 14px rgba(5, 150, 105, 0.35)" : "none",
-            transition: "all 0.2s ease"
-          }}
-        >
-          <BookOpen size={18} />
-          <span>Presensi Kegiatan (Barcode & Wajah)</span>
-        </button>
-      </div>
-
       {/* 1. TOP 4 COLORED STATS CARDS */}
       <div className="top-stats-grid">
         <div className="stat-card-colored stat-card-blue">
@@ -348,13 +303,13 @@ export default function AbsensiFingerprintView({ initialType }) {
           <div>
             <h2>
               {activeTabType === "berjamaah"
-                ? "Presensi Shalat Berjamaah (Fingerprint MP340)"
-                : "Presensi Kegiatan Santri (NWF Mobile)"}
+                ? "Absensi Berjamaah (Shalat 5 Waktu)"
+                : "Absensi Mengaji (NWF Mobile)"}
             </h2>
             <p>
               {activeTabType === "berjamaah"
                 ? "Pemantauan waktu scan shalat 5 waktu santri otomatis dari mesin fingerprint Solution MP340 & ADMS"
-                : "Pemantauan presensi kegiatan non-shalat (Pegon, Tahfidz, Sorogan, dll) dari scan Barcode & Wajah AI Mobile"}
+                : "Pemantauan presensi kegiatan santri (Pegon, Tahfidz, Sorogan, dll) dari scan Barcode & Wajah AI Mobile"}
             </p>
           </div>
         </div>
@@ -680,40 +635,91 @@ export default function AbsensiFingerprintView({ initialType }) {
 
       {/* MODAL DETAIL */}
       {selectedDetail && (
-        <div className="modal-backdrop">
+        <div 
+          className="modal-overlay"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.65)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            padding: "16px"
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedDetail(null);
+          }}
+        >
           <div
             className="modal-card"
-            style={{ maxWidth: "480px", width: "90%" }}
+            style={{
+              maxWidth: "500px",
+              width: "100%",
+              background: "#ffffff",
+              borderRadius: "16px",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+              border: "1px solid #cbd5e1",
+              overflow: "hidden"
+            }}
           >
-            <div className="modal-header">
+            <div 
+              className="modal-header"
+              style={{
+                padding: "16px 20px",
+                borderBottom: "1px solid #f1f5f9",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                background: activeTabType === "berjamaah" 
+                  ? "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)" 
+                  : "linear-gradient(135deg, #059669 0%, #047857 100%)",
+                color: "#ffffff"
+              }}
+            >
               <div
                 style={{ display: "flex", alignItems: "center", gap: "8px" }}
               >
-                <Fingerprint size={18} color="#0284c7" />
-                <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700 }}>
-                  Detail Presensi Santri
-                </h3>
+                {activeTabType === "berjamaah" ? (
+                  <Fingerprint size={20} color="#ffffff" />
+                ) : (
+                  <BookOpen size={20} color="#ffffff" />
+                )}
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "0.98rem", fontWeight: 800, color: "#ffffff" }}>
+                    Detail Presensi Santri
+                  </h3>
+                  <p style={{ margin: 0, fontSize: "0.72rem", color: "rgba(255, 255, 255, 0.85)" }}>
+                    {selectedDetail.kegiatan} • {selectedDetail.tanggal}
+                  </p>
+                </div>
               </div>
               <button
-                className="btn-icon"
                 onClick={() => setSelectedDetail(null)}
                 style={{
                   border: "none",
-                  background: "transparent",
+                  background: "rgba(255, 255, 255, 0.2)",
+                  color: "#ffffff",
+                  borderRadius: "8px",
+                  padding: "4px",
                   cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
                 }}
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
             <div
               className="modal-body"
               style={{
-                padding: "16px 20px",
+                padding: "20px",
                 display: "flex",
                 flexDirection: "column",
-                gap: "10px",
-                fontSize: "0.82rem",
+                gap: "12px",
+                fontSize: "0.85rem",
               }}
             >
               <div
@@ -721,11 +727,11 @@ export default function AbsensiFingerprintView({ initialType }) {
                   display: "flex",
                   justifyContent: "space-between",
                   borderBottom: "1px solid #f1f5f9",
-                  paddingBottom: "6px",
+                  paddingBottom: "8px",
                 }}
               >
                 <span style={{ color: "#64748b" }}>Nama Santri</span>
-                <span style={{ fontWeight: 700, color: "#0f172a" }}>
+                <span style={{ fontWeight: 800, color: "#0f172a" }}>
                   {selectedDetail.nama_santri}
                 </span>
               </div>
@@ -734,24 +740,24 @@ export default function AbsensiFingerprintView({ initialType }) {
                   display: "flex",
                   justifyContent: "space-between",
                   borderBottom: "1px solid #f1f5f9",
-                  paddingBottom: "6px",
+                  paddingBottom: "8px",
                 }}
               >
-                <span style={{ color: "#64748b" }}>NIS</span>
-                <span style={{ fontWeight: 600 }}>{selectedDetail.nis}</span>
+                <span style={{ color: "#64748b" }}>NIS Santri</span>
+                <span style={{ fontWeight: 700, color: "#0284c7" }}>{selectedDetail.nis}</span>
               </div>
               <div
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
                   borderBottom: "1px solid #f1f5f9",
-                  paddingBottom: "6px",
+                  paddingBottom: "8px",
                 }}
               >
                 <span style={{ color: "#64748b" }}>Kegiatan</span>
                 <span
                   className="badge badge-primary"
-                  style={{ fontSize: "0.72rem" }}
+                  style={{ fontSize: "0.76rem", padding: "3px 8px" }}
                 >
                   {selectedDetail.kegiatan}
                 </span>
@@ -761,10 +767,10 @@ export default function AbsensiFingerprintView({ initialType }) {
                   display: "flex",
                   justifyContent: "space-between",
                   borderBottom: "1px solid #f1f5f9",
-                  paddingBottom: "6px",
+                  paddingBottom: "8px",
                 }}
               >
-                <span style={{ color: "#64748b" }}>Tanggal</span>
+                <span style={{ color: "#64748b" }}>Tanggal Presensi</span>
                 <span style={{ fontWeight: 600 }}>
                   {selectedDetail.tanggal}
                 </span>
@@ -774,11 +780,11 @@ export default function AbsensiFingerprintView({ initialType }) {
                   display: "flex",
                   justifyContent: "space-between",
                   borderBottom: "1px solid #f1f5f9",
-                  paddingBottom: "6px",
+                  paddingBottom: "8px",
                 }}
               >
-                <span style={{ color: "#64748b" }}>Jam Scan</span>
-                <span style={{ fontWeight: 700, color: "#0284c7" }}>
+                <span style={{ color: "#64748b" }}>Waktu / Jam Scan</span>
+                <span style={{ fontWeight: 800, color: "#0284c7", fontSize: "0.95rem" }}>
                   {selectedDetail.jam_scan || selectedDetail.jam_masuk || "-"}
                 </span>
               </div>
@@ -787,11 +793,11 @@ export default function AbsensiFingerprintView({ initialType }) {
                   display: "flex",
                   justifyContent: "space-between",
                   borderBottom: "1px solid #f1f5f9",
-                  paddingBottom: "6px",
+                  paddingBottom: "8px",
                 }}
               >
                 <span style={{ color: "#64748b" }}>Perangkat / Mesin</span>
-                <span style={{ fontWeight: 600, color: "#0f172a" }}>
+                <span style={{ fontWeight: 700, color: "#0f172a" }}>
                   {selectedDetail.nama_device || selectedDetail.metode_scan || "Mesin MP340"}
                 </span>
               </div>
@@ -800,12 +806,13 @@ export default function AbsensiFingerprintView({ initialType }) {
                   display: "flex",
                   justifyContent: "space-between",
                   borderBottom: "1px solid #f1f5f9",
-                  paddingBottom: "6px",
+                  paddingBottom: "8px",
                 }}
               >
                 <span style={{ color: "#64748b" }}>Status Kehadiran</span>
                 <span
-                  className={`badge ${selectedDetail.status?.includes("Tepat") ? "badge-success" : "badge-danger"}`}
+                  className={`badge ${(selectedDetail.status || "").toLowerCase().includes("terlambat") ? "badge-danger" : "badge-success"}`}
+                  style={{ fontSize: "0.76rem", padding: "3px 8px" }}
                 >
                   {selectedDetail.status}
                 </span>
@@ -815,17 +822,17 @@ export default function AbsensiFingerprintView({ initialType }) {
                   display: "flex",
                   justifyContent: "space-between",
                   borderBottom: "1px solid #f1f5f9",
-                  paddingBottom: "6px",
+                  paddingBottom: "8px",
                 }}
               >
                 <span style={{ color: "#64748b" }}>Asrama &amp; Kamar</span>
-                <span>
+                <span style={{ fontWeight: 600 }}>
                   {selectedDetail.nama_asrama} - {selectedDetail.nama_kamar}
                 </span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "#64748b" }}>Lokasi / Geotag</span>
-                <span style={{ color: "#0284c7", fontSize: "0.74rem" }}>
+                <span style={{ color: "#0284c7", fontSize: "0.76rem", fontWeight: 600 }}>
                   {selectedDetail.lat_lng}
                 </span>
               </div>
@@ -833,11 +840,12 @@ export default function AbsensiFingerprintView({ initialType }) {
             <div
               className="modal-footer"
               style={{
-                padding: "10px 20px",
+                padding: "14px 20px",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
                 borderTop: "1px solid #f1f5f9",
+                background: "#f8fafc"
               }}
             >
               <button
@@ -849,16 +857,20 @@ export default function AbsensiFingerprintView({ initialType }) {
                   display: "inline-flex",
                   alignItems: "center",
                   gap: "6px",
-                  fontSize: "0.8rem",
+                  fontSize: "0.82rem",
+                  fontWeight: 700,
                   cursor: "pointer",
+                  padding: "8px 14px",
+                  borderRadius: "8px"
                 }}
                 onClick={() => handleDelete(selectedDetail)}
               >
-                <Trash2 size={13} /> Hapus Data
+                <Trash2 size={14} /> Hapus Data Presensi
               </button>
               <button
                 className="btn btn-outline"
                 onClick={() => setSelectedDetail(null)}
+                style={{ padding: "8px 16px", borderRadius: "8px", fontWeight: 600 }}
               >
                 Tutup
               </button>

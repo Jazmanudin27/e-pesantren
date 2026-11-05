@@ -5,6 +5,22 @@ let isAbsensiTablesChecked = false;
 export const ensureAbsensiTablesAndColumns = async () => {
   if (isAbsensiTablesChecked) return;
   try {
+    // 0. Buat tabel absensi_deleted_logs jika belum ada (mencegah mesin ADMS MP340 re-push log yang sudah dihapus Admin)
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS absensi_deleted_logs (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          santri_id INT NOT NULL,
+          tanggal DATE NOT NULL,
+          waktu_scan VARCHAR(50) DEFAULT NULL,
+          sesi_id INT DEFAULT NULL,
+          nama_kegiatan VARCHAR(150) DEFAULT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          INDEX idx_santri_tgl (santri_id, tanggal)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      `);
+    } catch (eDelTable) {}
+
     const [cols] = await pool.query(`
       SELECT COLUMN_NAME 
       FROM INFORMATION_SCHEMA.COLUMNS 
@@ -64,7 +80,14 @@ export const getAbsensiFingerprint = async (req, res) => {
     const tipeParam = (req.query.tipe || req.query.type || '').toLowerCase(); // 'berjamaah' | 'kegiatan' | ''
 
     const [rows] = await pool.query(`
-      SELECT aj.*, 
+      SELECT aj.id,
+             aj.santri_id,
+             aj.sesi_id,
+             aj.device_id,
+             aj.waktu_scan,
+             aj.status,
+             aj.keterangan,
+             aj.nama_kegiatan,
              DATE_FORMAT(aj.tanggal, '%Y-%m-%d') as tanggal,
              aj.status as status_kehadiran,
              aj.metode_presensi as metode_scan,
@@ -74,7 +97,8 @@ export const getAbsensiFingerprint = async (req, res) => {
                WHEN COALESCE(aj.nama_kegiatan, ks.nama_sesi, '') REGEXP 'shalat|sholat|subuh|dzuhur|ashar|maghrib|isya' THEN 'Berjamaah'
                ELSE 'Kegiatan'
              END) as tipe_presensi,
-             s.nama_santri, s.nis, s.fingerprint_pin, a.nama_asrama, k.nama_kamar,
+             s.nama_santri, s.nis, s.fingerprint_pin, s.tipe_santri,
+             a.nama_asrama, k.nama_kamar,
              ks.kategori, fd.nama_device
       FROM absensi_jamaah_mengaji aj
       JOIN santri s ON aj.santri_id = s.id
@@ -82,6 +106,8 @@ export const getAbsensiFingerprint = async (req, res) => {
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
       LEFT JOIN kegiatan_sesi ks ON aj.sesi_id = ks.id
       LEFT JOIN fingerprint_device fd ON aj.device_id = fd.id
+      LEFT JOIN absensi_deleted_logs adl ON (adl.santri_id = aj.santri_id AND adl.tanggal = aj.tanggal)
+      WHERE adl.id IS NULL
       ORDER BY aj.tanggal DESC, aj.waktu_scan DESC
       LIMIT 1000
     `);
@@ -301,6 +327,17 @@ export const syncMobileAbsensi = async (req, res) => {
     for (const item of items) {
       if (!item.santri_id) continue;
       const tgl = item.tanggal || new Date().toISOString().split('T')[0];
+
+      // Abaikan jika data presensi santri pada tanggal ini sudah pernah dihapus oleh Admin
+      const [isDeleted] = await pool.query(`
+        SELECT id FROM absensi_deleted_logs 
+        WHERE santri_id = ? AND tanggal = ? 
+        LIMIT 1
+      `, [item.santri_id, tgl]).catch(() => [[]]);
+      if (isDeleted && isDeleted.length > 0) {
+        continue;
+      }
+
       const scanTime = item.waktu_scan || '07:00:00';
       const kegiatanName = item.kegiatan || item.nama_sesi || 'Kegiatan Pesantren';
       const isShalat = /shalat|sholat|subuh|dzuhur|ashar|maghrib|isya/i.test(kegiatanName);
@@ -311,7 +348,7 @@ export const syncMobileAbsensi = async (req, res) => {
 
       const [existing] = await pool.query(`
         SELECT id FROM absensi_jamaah_mengaji 
-        WHERE tanggal = ? AND santri_id = ? AND nama_kegiatan = ?
+        WHERE tanggal = ? AND santri_id = ? AND (nama_kegiatan = ? OR sesi_id IS NULL)
         LIMIT 1
       `, [tgl, item.santri_id, kegiatanName]).catch(() => [[]]);
 
@@ -358,18 +395,58 @@ export const updateAbsensiFingerprint = async (req, res) => {
 
 export const deleteAbsensiFingerprint = async (req, res) => {
   try {
+    await ensureAbsensiTablesAndColumns();
     const { id } = req.params;
-    if (!id) {
-      return sendError(res, 'ID presensi tidak valid', 400);
+    const bodySantriId = req.body?.santri_id || req.query?.santri_id;
+    const bodyTanggal = req.body?.tanggal || req.query?.tanggal;
+    const bodyWaktuScan = req.body?.waktu_scan || req.query?.waktu_scan || req.body?.jam_scan;
+
+    if (!id && !bodySantriId) {
+      return sendError(res, 'ID atau santri_id presensi wajib disertakan', 400);
     }
     if (String(id).startsWith('izin-')) {
       return sendError(res, 'Presensi ini sinkronisasi otomatis dari modul Perizinan. Hapus perizinan santri pada menu Perizinan.', 400);
     }
-    const [result] = await pool.query('DELETE FROM absensi_jamaah_mengaji WHERE id = ?', [id]);
-    if (result.affectedRows === 0) {
-      return sendError(res, 'Data presensi tidak ditemukan atau sudah dihapus', 404);
+
+    // 1. Ambil baris data yang ingin dihapus untuk disimpan ke absensi_deleted_logs
+    let targetRows = [];
+    if (id && !isNaN(Number(id))) {
+      const [f1] = await pool.query('SELECT * FROM absensi_jamaah_mengaji WHERE id = ?', [id]).catch(() => [[]]);
+      if (f1 && f1.length > 0) targetRows = f1;
     }
-    return sendSuccess(res, 'Presensi berhasil dihapus');
+    if (targetRows.length === 0 && bodySantriId && bodyTanggal) {
+      const [f2] = await pool.query('SELECT * FROM absensi_jamaah_mengaji WHERE santri_id = ? AND tanggal = ?', [bodySantriId, bodyTanggal]).catch(() => [[]]);
+      if (f2 && f2.length > 0) targetRows = f2;
+    }
+
+    // 2. Catat ke absensi_deleted_logs agar mesin MP340 & ADMS tidak otomatis menginsert ulang log ini
+    for (const row of targetRows) {
+      await pool.query(`
+        INSERT INTO absensi_deleted_logs (santri_id, tanggal, waktu_scan, sesi_id, nama_kegiatan)
+        VALUES (?, ?, ?, ?, ?)
+      `, [row.santri_id, row.tanggal, row.waktu_scan || bodyWaktuScan, row.sesi_id, row.nama_kegiatan]).catch(() => {});
+    }
+
+    if (targetRows.length === 0 && bodySantriId && bodyTanggal) {
+      await pool.query(`
+        INSERT INTO absensi_deleted_logs (santri_id, tanggal, waktu_scan, sesi_id, nama_kegiatan)
+        VALUES (?, ?, ?, NULL, 'Dihapus Admin')
+      `, [bodySantriId, bodyTanggal, bodyWaktuScan || null]).catch(() => {});
+    }
+
+    // 3. Eksekusi Hapus dari tabel absensi_jamaah_mengaji
+    let deletedCount = 0;
+    if (id && !isNaN(Number(id))) {
+      const [delRes] = await pool.query('DELETE FROM absensi_jamaah_mengaji WHERE id = ?', [id]).catch(() => [{ affectedRows: 0 }]);
+      deletedCount += (delRes?.affectedRows || 0);
+    }
+
+    if (bodySantriId && bodyTanggal) {
+      const [delRes2] = await pool.query('DELETE FROM absensi_jamaah_mengaji WHERE santri_id = ? AND tanggal = ?', [bodySantriId, bodyTanggal]).catch(() => [{ affectedRows: 0 }]);
+      deletedCount += (delRes2?.affectedRows || 0);
+    }
+
+    return sendSuccess(res, 'Presensi berhasil dihapus permanen dari database');
   } catch (err) {
     return sendError(res, err.message, 500);
   }

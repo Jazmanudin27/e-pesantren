@@ -193,7 +193,19 @@ export const handleAdmsPushData = async (req, res) => {
         console.warn('[ADMS] Cari sesi notice:', eSesi.message);
       }
 
-      // 3. Simpan atau Update ke Tabel absensi_jamaah_mengaji (Idempoten)
+      // 3. Cek apakah log untuk santri & tanggal ini sudah pernah dihapus oleh Admin
+      const [isDeleted] = await pool.query(`
+        SELECT id FROM absensi_deleted_logs 
+        WHERE santri_id = ? AND tanggal = ? 
+        LIMIT 1
+      `, [santri.id, tanggalScan]).catch(() => [[]]);
+
+      if (isDeleted && isDeleted.length > 0) {
+        console.log(`[ADMS SKIP] Log ${santri.nama_santri} (PIN: ${pin}) tanggal ${tanggalScan} jam ${waktuScan} dilewati karena telah dihapus oleh Admin.`);
+        continue;
+      }
+
+      // 4. Simpan atau Update ke Tabel absensi_jamaah_mengaji (Idempoten)
       const [existingLog] = await pool.query(`
         SELECT id FROM absensi_jamaah_mengaji 
         WHERE tanggal = ? AND sesi_id = ? AND santri_id = ? 
