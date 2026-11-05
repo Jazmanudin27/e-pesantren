@@ -612,7 +612,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(4, 1fr)",
-            gap: "14px 6px",
+            gap: "15px 6px",
             justifyItems: "center",
           }}
         >
@@ -623,7 +623,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "6px",
+              gap: "7px",
               cursor: "pointer",
             }}
           >
@@ -632,15 +632,24 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 width: "60px",
                 height: "60px",
                 borderRadius: "18px",
-                background: "#059669",
-                boxShadow: "0 6px 14px rgba(5, 150, 105, 0.28)",
+                background: "linear-gradient(180deg, #10b981 0%, #059669 100%)",
+                borderTop: "1.5px solid rgba(255, 255, 255, 0.45)",
+                borderLeft: "1px solid rgba(255, 255, 255, 0.2)",
+                borderRight: "1px solid rgba(0, 0, 0, 0.1)",
+                boxShadow:
+                  "0 4.5px 0 #047857, 0 8px 18px rgba(5, 150, 105, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.5)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                transition: "all 0.15s ease",
+                transition: "all 0.12s ease",
               }}
             >
-              <Users size={26} strokeWidth={2.2} color="#ffffff" />
+              <Users
+                size={26}
+                strokeWidth={2.2}
+                color="#ffffff"
+                style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.25))" }}
+              />
             </div>
             <span
               style={{
@@ -662,7 +671,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "6px",
+              gap: "7px",
               cursor: "pointer",
             }}
           >
@@ -671,15 +680,24 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 width: "60px",
                 height: "60px",
                 borderRadius: "18px",
-                background: "#0284c7",
-                boxShadow: "0 6px 14px rgba(2, 132, 199, 0.28)",
+                background: "linear-gradient(180deg, #0ea5e9 0%, #0284c7 100%)",
+                borderTop: "1.5px solid rgba(255, 255, 255, 0.45)",
+                borderLeft: "1px solid rgba(255, 255, 255, 0.2)",
+                borderRight: "1px solid rgba(0, 0, 0, 0.1)",
+                boxShadow:
+                  "0 4.5px 0 #0369a1, 0 8px 18px rgba(2, 132, 199, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.5)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                transition: "all 0.15s ease",
+                transition: "all 0.12s ease",
               }}
             >
-              <GraduationCap size={26} strokeWidth={2.2} color="#ffffff" />
+              <GraduationCap
+                size={26}
+                strokeWidth={2.2}
+                color="#ffffff"
+                style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.25))" }}
+              />
             </div>
             <span
               style={{
@@ -701,7 +719,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "6px",
+              gap: "7px",
               cursor: "pointer",
             }}
           >
@@ -710,15 +728,24 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 width: "60px",
                 height: "60px",
                 borderRadius: "18px",
-                background: "#7c3aed",
-                boxShadow: "0 6px 14px rgba(124, 58, 237, 0.28)",
+                background: "linear-gradient(180deg, #8b5cf6 0%, #7c3aed 100%)",
+                borderTop: "1.5px solid rgba(255, 255, 255, 0.45)",
+                borderLeft: "1px solid rgba(255, 255, 255, 0.2)",
+                borderRight: "1px solid rgba(0, 0, 0, 0.1)",
+                boxShadow:
+                  "0 4.5px 0 #6d28d9, 0 8px 18px rgba(124, 58, 237, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.5)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                transition: "all 0.15s ease",
+                transition: "all 0.12s ease",
               }}
             >
-              <Building size={26} strokeWidth={2.2} color="#ffffff" />
+              <Building
+                size={26}
+                strokeWidth={2.2}
+                color="#ffffff"
+                style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.25))" }}
+              />
             </div>
             <span
               style={{
@@ -740,7 +767,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "6px",
+              gap: "7px",
               cursor: "pointer",
             }}
           >
@@ -749,15 +776,24 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 width: "60px",
                 height: "60px",
                 borderRadius: "18px",
-                background: "#d97706",
-                boxShadow: "0 6px 14px rgba(217, 119, 6, 0.28)",
+                background: "linear-gradient(180deg, #f59e0b 0%, #d97706 100%)",
+                borderTop: "1.5px solid rgba(255, 255, 255, 0.45)",
+                borderLeft: "1px solid rgba(255, 255, 255, 0.2)",
+                borderRight: "1px solid rgba(0, 0, 0, 0.1)",
+                boxShadow:
+                  "0 4.5px 0 #b45309, 0 8px 18px rgba(217, 119, 6, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.5)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                transition: "all 0.15s ease",
+                transition: "all 0.12s ease",
               }}
             >
-              <Calendar size={26} strokeWidth={2.2} color="#ffffff" />
+              <Calendar
+                size={26}
+                strokeWidth={2.2}
+                color="#ffffff"
+                style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.25))" }}
+              />
             </div>
             <span
               style={{
@@ -779,7 +815,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "6px",
+              gap: "7px",
               cursor: "pointer",
             }}
           >
@@ -788,15 +824,24 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 width: "60px",
                 height: "60px",
                 borderRadius: "18px",
-                background: "#4f46e5",
-                boxShadow: "0 6px 14px rgba(79, 70, 229, 0.28)",
+                background: "linear-gradient(180deg, #6366f1 0%, #4f46e5 100%)",
+                borderTop: "1.5px solid rgba(255, 255, 255, 0.45)",
+                borderLeft: "1px solid rgba(255, 255, 255, 0.2)",
+                borderRight: "1px solid rgba(0, 0, 0, 0.1)",
+                boxShadow:
+                  "0 4.5px 0 #4338ca, 0 8px 18px rgba(79, 70, 229, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.5)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                transition: "all 0.15s ease",
+                transition: "all 0.12s ease",
               }}
             >
-              <Clock size={26} strokeWidth={2.2} color="#ffffff" />
+              <Clock
+                size={26}
+                strokeWidth={2.2}
+                color="#ffffff"
+                style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.25))" }}
+              />
             </div>
             <span
               style={{
@@ -818,7 +863,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "6px",
+              gap: "7px",
               cursor: "pointer",
             }}
           >
@@ -827,15 +872,24 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 width: "60px",
                 height: "60px",
                 borderRadius: "18px",
-                background: "#e11d48",
-                boxShadow: "0 6px 14px rgba(225, 29, 72, 0.28)",
+                background: "linear-gradient(180deg, #f43f5e 0%, #e11d48 100%)",
+                borderTop: "1.5px solid rgba(255, 255, 255, 0.45)",
+                borderLeft: "1px solid rgba(255, 255, 255, 0.2)",
+                borderRight: "1px solid rgba(0, 0, 0, 0.1)",
+                boxShadow:
+                  "0 4.5px 0 #be123c, 0 8px 18px rgba(225, 29, 72, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.5)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                transition: "all 0.15s ease",
+                transition: "all 0.12s ease",
               }}
             >
-              <ShieldAlert size={26} strokeWidth={2.2} color="#ffffff" />
+              <ShieldAlert
+                size={26}
+                strokeWidth={2.2}
+                color="#ffffff"
+                style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.25))" }}
+              />
             </div>
             <span
               style={{
@@ -857,7 +911,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "6px",
+              gap: "7px",
               cursor: "pointer",
             }}
           >
@@ -866,15 +920,24 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 width: "60px",
                 height: "60px",
                 borderRadius: "18px",
-                background: "#0d9488",
-                boxShadow: "0 6px 14px rgba(13, 148, 136, 0.28)",
+                background: "linear-gradient(180deg, #14b8a6 0%, #0d9488 100%)",
+                borderTop: "1.5px solid rgba(255, 255, 255, 0.45)",
+                borderLeft: "1px solid rgba(255, 255, 255, 0.2)",
+                borderRight: "1px solid rgba(0, 0, 0, 0.1)",
+                boxShadow:
+                  "0 4.5px 0 #0f766e, 0 8px 18px rgba(13, 148, 136, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.5)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                transition: "all 0.15s ease",
+                transition: "all 0.12s ease",
               }}
             >
-              <Fingerprint size={26} strokeWidth={2.2} color="#ffffff" />
+              <Fingerprint
+                size={26}
+                strokeWidth={2.2}
+                color="#ffffff"
+                style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.25))" }}
+              />
             </div>
             <span
               style={{
@@ -896,7 +959,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "6px",
+              gap: "7px",
               cursor: "pointer",
             }}
           >
@@ -905,15 +968,24 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 width: "60px",
                 height: "60px",
                 borderRadius: "18px",
-                background: "#0891b2",
-                boxShadow: "0 6px 14px rgba(8, 145, 178, 0.28)",
+                background: "linear-gradient(180deg, #06b6d4 0%, #0891b2 100%)",
+                borderTop: "1.5px solid rgba(255, 255, 255, 0.45)",
+                borderLeft: "1px solid rgba(255, 255, 255, 0.2)",
+                borderRight: "1px solid rgba(0, 0, 0, 0.1)",
+                boxShadow:
+                  "0 4.5px 0 #0e7490, 0 8px 18px rgba(8, 145, 178, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.5)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                transition: "all 0.15s ease",
+                transition: "all 0.12s ease",
               }}
             >
-              <Award size={26} strokeWidth={2.2} color="#ffffff" />
+              <Award
+                size={26}
+                strokeWidth={2.2}
+                color="#ffffff"
+                style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.25))" }}
+              />
             </div>
             <span
               style={{
@@ -935,7 +1007,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "6px",
+              gap: "7px",
               cursor: "pointer",
             }}
           >
@@ -944,15 +1016,24 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 width: "60px",
                 height: "60px",
                 borderRadius: "18px",
-                background: "#c2410c",
-                boxShadow: "0 6px 14px rgba(194, 65, 12, 0.28)",
+                background: "linear-gradient(180deg, #ea580c 0%, #c2410c 100%)",
+                borderTop: "1.5px solid rgba(255, 255, 255, 0.45)",
+                borderLeft: "1px solid rgba(255, 255, 255, 0.2)",
+                borderRight: "1px solid rgba(0, 0, 0, 0.1)",
+                boxShadow:
+                  "0 4.5px 0 #9a3412, 0 8px 18px rgba(194, 65, 12, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.5)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                transition: "all 0.15s ease",
+                transition: "all 0.12s ease",
               }}
             >
-              <BookOpen size={26} strokeWidth={2.2} color="#ffffff" />
+              <BookOpen
+                size={26}
+                strokeWidth={2.2}
+                color="#ffffff"
+                style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.25))" }}
+              />
             </div>
             <span
               style={{
