@@ -1981,7 +1981,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                       </span>
                     </div>
 
-                    {/* 6. Daftar  */}
+                    {/* 6. Daftar Wajah */}
                     <div
                       onClick={() => onChangeTab("daftar-wajah")}
                       style={{
