@@ -89,8 +89,21 @@ export default function MobileHome({ onChangeTab, onLogout }) {
     }
   })();
 
-  const rawName = sessionData.nama || sessionData.username || "Admin";
-  const displayName = rawName.split(" ")[0];
+  const cleanName = (name) => {
+    if (!name) return "";
+    let c = String(name).trim();
+    if (c.includes("(Wali ")) {
+      const m = c.match(/\(Wali\s+([^)]+)\)/i);
+      if (m && m[1]) return m[1].trim();
+    }
+    if (c.toLowerCase().startsWith("wali santri ")) return c.substring(12).trim();
+    if (c.toLowerCase().startsWith("wali ")) return c.substring(5).trim();
+    if (c.toLowerCase().startsWith("orang tua santri")) return c.replace(/^orang tua santri/i, "").replace(/^[^\w]+/, "").trim();
+    return c;
+  };
+
+  const rawName = cleanName(sessionData.nama_santri || sessionData.nama || sessionData.username || "Admin");
+  const displayName = rawName.includes(" ") ? rawName : rawName;
 
   // Auto reset scroll to top on mount (cegah header ketutup/terpotong saat refresh)
   useEffect(() => {

@@ -226,11 +226,43 @@ export const login = async (req, res, next) => {
     }
 
     // Generate JWT Token (E-Sekolah Architecture)
-    const isWali = userType === 'Wali Santri';
+    const isWali = userType === 'Wali Santri' || account.role === 'wali' || account.role === 'santri';
+
+    // Cari data santri asli dari database MySQL
+    let namaSantriDb = account.nama_santri || '';
+    let nisnDb = account.nisn || '';
+    let nisDb = account.nis || '';
+    let santriRealId = isWali ? account.id : account.santri_id;
+
+    if (isWali || account.santri_id) {
+      try {
+        const [sRow] = await pool.query(
+          `SELECT id, nama_santri, nisn, nis, foto_url, foto FROM santri 
+           WHERE id = ? 
+              OR LOWER(TRIM(COALESCE(username, ''))) = LOWER(TRIM(?))
+              OR LOWER(TRIM(nis)) = LOWER(TRIM(?)) 
+              OR LOWER(TRIM(COALESCE(nisn, ''))) = LOWER(TRIM(?))
+              OR LOWER(TRIM(nama_santri)) = LOWER(TRIM(?))
+              OR LOWER(TRIM(nama_santri)) LIKE LOWER(?)
+           ORDER BY (LOWER(TRIM(nama_santri)) = LOWER(TRIM(?))) DESC, id ASC
+           LIMIT 1`,
+          [santriRealId || 0, cleanUser, cleanUser, cleanUser, cleanUser, `%${cleanUser}%`, cleanUser]
+        );
+        if (sRow && sRow.length > 0) {
+          namaSantriDb = sRow[0].nama_santri || namaSantriDb;
+          nisnDb = sRow[0].nisn || nisnDb;
+          nisDb = sRow[0].nis || nisDb;
+          santriRealId = sRow[0].id;
+        }
+      } catch (e) {
+        console.warn('Gagal fetch nama santri database:', e.message);
+      }
+    }
+
     const tokenPayload = {
       id: account.id,
-      santri_id: isWali ? account.id : undefined,
-      username: account.username || account.kode_asrama || account.nik_niy || account.nis || cleanUser,
+      santri_id: santriRealId || (isWali ? account.id : undefined),
+      username: account.username || account.kode_asrama || account.nik_niy || nisDb || nisnDb || cleanUser,
       role: isWali ? 'wali' : (account.role || (userType === 'Asatidz' ? 'asatidz' : userType) || 'asrama').toLowerCase(),
       userType: isWali ? 'Wali Santri' : (userType === 'Asatidz' ? 'Ustadz / Guru' : userType),
       asrama_id: account.asrama_id || account.id || 1
@@ -238,8 +270,9 @@ export const login = async (req, res, next) => {
 
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '7d' });
 
+    // Nama tampilan: jika Wali Santri, WAJIB menggunakan Nama Santri asli dari database!
     const displayName = isWali
-      ? (account.nama_wali ? `${account.nama_wali} (Wali ${account.nama_santri})` : `Wali Santri ${account.nama_santri}`)
+      ? (namaSantriDb || account.nama_santri || account.nama || cleanUser)
       : (account.nama_asatidz || account.nama_asrama || account.nama_santri || account.name || cleanUser);
 
     // Success response with JWT Token
@@ -248,22 +281,26 @@ export const login = async (req, res, next) => {
       role: tokenPayload.role,
       userType: tokenPayload.userType,
       asrama_id: tokenPayload.asrama_id,
-      santri_id: isWali ? account.id : undefined,
+      santri_id: tokenPayload.santri_id,
       nama: displayName,
+      nama_santri: namaSantriDb || account.nama_santri || displayName,
       nama_asatidz: account.nama_asatidz || '',
       nama_asrama: account.nama_asrama || (isWali ? account.nama_asrama : account.nama_santri) || 'Asrama',
       pembina: account.pembina || account.nama_asatidz || 'Musyrif Asrama',
       username: tokenPayload.username,
+      nis: nisDb,
+      nisn: nisnDb,
       user: {
         id: account.id,
-        santri_id: isWali ? account.id : undefined,
+        santri_id: tokenPayload.santri_id,
         username: tokenPayload.username,
         role: tokenPayload.role,
         userType: tokenPayload.userType,
         nama: displayName,
         nama_wali: account.nama_wali,
-        nama_santri: account.nama_santri,
-        nis: account.nis,
+        nama_santri: namaSantriDb || account.nama_santri || displayName,
+        nis: nisDb,
+        nisn: nisnDb,
         ...account
       }
     });

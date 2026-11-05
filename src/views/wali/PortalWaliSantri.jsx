@@ -422,16 +422,29 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   const countIzin = perizinan.length || presensi.filter(p => (p.status || '').toLowerCase().includes('izin')).length;
   const countAlfa = presensi.filter(p => (p.status || '').toLowerCase().includes('alfa') || (p.status || '').toLowerCase().includes('absen')).length;
 
+  const cleanSantriName = (name) => {
+    if (!name) return '';
+    let c = String(name).trim();
+    if (c.includes('(Wali ')) {
+      const m = c.match(/\(Wali\s+([^)]+)\)/i);
+      if (m && m[1]) return m[1].trim();
+    }
+    if (c.toLowerCase().startsWith('wali santri ')) return c.substring(12).trim();
+    if (c.toLowerCase().startsWith('wali ')) return c.substring(5).trim();
+    if (c.toLowerCase().startsWith('orang tua santri')) return c.replace(/^orang tua santri/i, '').replace(/^[^\w]+/, '').trim();
+    return c;
+  };
+
   const getStoredSantriName = () => {
     try {
       const sess = JSON.parse(localStorage.getItem('desktop_session') || localStorage.getItem('mobile_session') || '{}');
-      return sess.nama_santri || sess.nama || sess.username || '';
+      return cleanSantriName(sess.nama_santri || sess.nama || sess.username || '');
     } catch (e) {
       return '';
     }
   };
 
-  const rawSantriName = santri.nama_santri || data?.santri?.nama_santri || getStoredSantriName() || 'Santri';
+  const rawSantriName = cleanSantriName(santri.nama_santri || data?.santri?.nama_santri) || getStoredSantriName() || 'Santri';
   const initial = rawSantriName.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase() || 'SN';
 
   const openAbsensiWithFilter = (status) => {
