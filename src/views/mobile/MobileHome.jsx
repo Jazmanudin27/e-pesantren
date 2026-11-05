@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import {
   Fingerprint,
@@ -73,6 +73,8 @@ export default function MobileHome({ onChangeTab, onLogout }) {
   const [sesiList, setSesiList] = useState([]);
   const [todayAbsensiList, setTodayAbsensiList] = useState([]);
   const [searchModalText, setSearchModalText] = useState("");
+  const [menuCardTab, setMenuCardTab] = useState("master"); // 'master' | 'transaksi'
+  const touchStartX = useRef(null);
 
   // Khusus Akun Bendahara / Admin Keuangan
   const [keuanganData, setKeuanganData] = useState({
@@ -1681,7 +1683,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       ) : (
         <>
           {/* =========================================================================
-              CARD MENU: GAYA myBCA (DATA MASTER & TRANSAKSI)
+              CARD MENU: GAYA PERSIS myBCA (DATA MASTER & TRANSAKSI)
           ========================================================================= */}
           <div style={{ padding: "0 16px", marginTop: "16px" }}>
             <div style={{ marginBottom: "10px" }}>
@@ -1699,515 +1701,530 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             </div>
 
             <div
+              onTouchStart={(e) => {
+                touchStartX.current = e.touches[0].clientX;
+              }}
+              onTouchEnd={(e) => {
+                if (touchStartX.current === null) return;
+                const diff = touchStartX.current - e.changedTouches[0].clientX;
+                if (diff > 45) setMenuCardTab("transaksi");
+                else if (diff < -45) setMenuCardTab("master");
+                touchStartX.current = null;
+              }}
               style={{
                 background: "#ffffff",
                 borderRadius: "24px",
-                padding: "20px 14px 16px",
                 boxShadow:
                   "0 10px 25px -4px rgba(0, 91, 170, 0.08), 0 2px 8px rgba(0, 0, 0, 0.03)",
                 border: "1px solid #e2e8f0",
+                overflow: "hidden",
+                transition: "all 0.2s ease",
               }}
             >
-              {/* Category 1: DATA MASTER Header */}
+              {/* Top Banner myBCA Style */}
               <div
                 style={{
+                  background:
+                    "linear-gradient(90deg, #005baa 0%, #0072ce 50%, #7c3aed 100%)",
+                  padding: "10px 16px",
                   display: "flex",
                   alignItems: "center",
-                  gap: "8px",
-                  marginBottom: "14px",
-                  paddingLeft: "4px",
+                  justifyContent: "space-between",
+                  color: "#ffffff",
                 }}
               >
-                <span
-                  style={{
-                    fontSize: "0.75rem",
-                    fontWeight: 800,
-                    color: "#005baa",
-                    letterSpacing: "0.05em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Data Master
-                </span>
-                <div style={{ flex: 1, height: "1px", background: "#f1f5f9" }} />
-              </div>
-
-              {/* myBCA Floating Icon Grid: Data Master (4 Columns) */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(4, 1fr)",
-                  gap: "16px 6px",
-                }}
-              >
-                {/* 1. Santri */}
-                <div
-                  onClick={() => onChangeTab("master-santri")}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "6px",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "52px",
-                      height: "52px",
-                      borderRadius: "18px",
-                      background:
-                        "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-                      color: "#ffffff",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      boxShadow: "0 6px 14px -2px rgba(37, 99, 235, 0.35)",
-                      transition: "transform 0.15s ease",
-                    }}
-                  >
-                    <Users size={24} />
-                  </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Sparkles size={14} color="#67e8f9" />
                   <span
                     style={{
-                      fontSize: "0.72rem",
-                      fontWeight: 700,
-                      color: "#334155",
-                      textAlign: "center",
+                      fontSize: "0.74rem",
+                      fontWeight: 800,
+                      letterSpacing: "0.02em",
                     }}
                   >
-                    Santri
+                    {menuCardTab === "master"
+                      ? "Kategori: Data Master"
+                      : "Kategori: Transaksi Santri"}
                   </span>
                 </div>
-
-                {/* 2. Asrama */}
                 <div
-                  onClick={() => onChangeTab("master-asrama")}
+                  onClick={() =>
+                    setMenuCardTab(
+                      menuCardTab === "master" ? "transaksi" : "master",
+                    )
+                  }
                   style={{
                     display: "flex",
-                    flexDirection: "column",
                     alignItems: "center",
-                    gap: "6px",
+                    gap: "4px",
+                    fontSize: "0.7rem",
+                    fontWeight: 700,
+                    color: "#e0f2fe",
                     cursor: "pointer",
                   }}
                 >
-                  <div
-                    style={{
-                      width: "52px",
-                      height: "52px",
-                      borderRadius: "18px",
-                      background:
-                        "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-                      color: "#ffffff",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      boxShadow: "0 6px 14px -2px rgba(245, 158, 11, 0.35)",
-                      transition: "transform 0.15s ease",
-                    }}
-                  >
-                    <Building size={24} />
-                  </div>
-                  <span
-                    style={{
-                      fontSize: "0.72rem",
-                      fontWeight: 700,
-                      color: "#334155",
-                      textAlign: "center",
-                    }}
-                  >
-                    Asrama
-                  </span>
-                </div>
-
-                {/* 3. Kelas */}
-                <div
-                  onClick={() => onChangeTab("master-kelas")}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "6px",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "52px",
-                      height: "52px",
-                      borderRadius: "18px",
-                      background:
-                        "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
-                      color: "#ffffff",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      boxShadow: "0 6px 14px -2px rgba(99, 102, 241, 0.35)",
-                      transition: "transform 0.15s ease",
-                    }}
-                  >
-                    <Layers size={24} />
-                  </div>
-                  <span
-                    style={{
-                      fontSize: "0.72rem",
-                      fontWeight: 700,
-                      color: "#334155",
-                      textAlign: "center",
-                    }}
-                  >
-                    Kelas
-                  </span>
-                </div>
-
-                {/* 4. Asatidz */}
-                <div
-                  onClick={() => onChangeTab("master-asatidz")}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "6px",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "52px",
-                      height: "52px",
-                      borderRadius: "18px",
-                      background:
-                        "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)",
-                      color: "#ffffff",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      boxShadow: "0 6px 14px -2px rgba(13, 148, 136, 0.35)",
-                      transition: "transform 0.15s ease",
-                    }}
-                  >
-                    <UserCheck size={24} />
-                  </div>
-                  <span
-                    style={{
-                      fontSize: "0.72rem",
-                      fontWeight: 700,
-                      color: "#334155",
-                      textAlign: "center",
-                    }}
-                  >
-                    Asatidz
-                  </span>
-                </div>
-
-                {/* 5. Tata Tertib */}
-                <div
-                  onClick={() => onChangeTab("tata-tertib")}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "6px",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "52px",
-                      height: "52px",
-                      borderRadius: "18px",
-                      background:
-                        "linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)",
-                      color: "#ffffff",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      boxShadow: "0 6px 14px -2px rgba(244, 63, 94, 0.35)",
-                      transition: "transform 0.15s ease",
-                    }}
-                  >
-                    <ShieldAlert size={24} />
-                  </div>
-                  <span
-                    style={{
-                      fontSize: "0.72rem",
-                      fontWeight: 700,
-                      color: "#334155",
-                      textAlign: "center",
-                    }}
-                  >
-                    Tata Tertib
-                  </span>
-                </div>
-
-                {/* 6. Daftar Wajah */}
-                <div
-                  onClick={() => onChangeTab("daftar-wajah")}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "6px",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "52px",
-                      height: "52px",
-                      borderRadius: "18px",
-                      background:
-                        "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
-                      color: "#ffffff",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      boxShadow: "0 6px 14px -2px rgba(2, 132, 199, 0.35)",
-                      transition: "transform 0.15s ease",
-                    }}
-                  >
-                    <Smile size={24} />
-                  </div>
-                  <span
-                    style={{
-                      fontSize: "0.72rem",
-                      fontWeight: 700,
-                      color: "#334155",
-                      textAlign: "center",
-                    }}
-                  >
-                    Daftar Wajah
+                  <span>
+                    {menuCardTab === "master" ? "Transaksi >" : "Data Master >"}
                   </span>
                 </div>
               </div>
 
-              {/* Divider Between Data Master and Transaksi */}
-              <div
-                style={{
-                  height: "1px",
-                  background: "#f1f5f9",
-                  margin: "20px 0 16px",
-                }}
-              />
+              {/* Card Body Grid with Smooth Transition */}
+              <div style={{ padding: "18px 12px 14px", minHeight: "175px" }}>
+                {menuCardTab === "master" ? (
+                  /* PAGE 1: DATA MASTER (4 COLUMNS X 2 ROWS) */
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(4, 1fr)",
+                      gap: "16px 6px",
+                    }}
+                  >
+                    {/* 1. Santri */}
+                    <div
+                      onClick={() => onChangeTab("master-santri")}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "6px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "50px",
+                          height: "50px",
+                          borderRadius: "17px",
+                          background:
+                            "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+                          border: "1px solid #bfdbfe",
+                          color: "#1d4ed8",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          boxShadow: "0 3px 10px rgba(37, 99, 235, 0.12)",
+                        }}
+                      >
+                        <Users size={23} />
+                      </div>
+                      <span
+                        style={{
+                          fontSize: "0.72rem",
+                          fontWeight: 700,
+                          color: "#334155",
+                          textAlign: "center",
+                        }}
+                      >
+                        Santri
+                      </span>
+                    </div>
 
-              {/* Category 2: TRANSAKSI Header */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  marginBottom: "14px",
-                  paddingLeft: "4px",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: "0.75rem",
-                    fontWeight: 800,
-                    color: "#005baa",
-                    letterSpacing: "0.05em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Transaksi
-                </span>
-                <div style={{ flex: 1, height: "1px", background: "#f1f5f9" }} />
+                    {/* 2. Asrama */}
+                    <div
+                      onClick={() => onChangeTab("master-asrama")}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "6px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "50px",
+                          height: "50px",
+                          borderRadius: "17px",
+                          background:
+                            "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
+                          border: "1px solid #fcd34d",
+                          color: "#b45309",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          boxShadow: "0 3px 10px rgba(217, 119, 6, 0.12)",
+                        }}
+                      >
+                        <Building size={23} />
+                      </div>
+                      <span
+                        style={{
+                          fontSize: "0.72rem",
+                          fontWeight: 700,
+                          color: "#334155",
+                          textAlign: "center",
+                        }}
+                      >
+                        Asrama
+                      </span>
+                    </div>
+
+                    {/* 3. Kelas */}
+                    <div
+                      onClick={() => onChangeTab("master-kelas")}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "6px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "50px",
+                          height: "50px",
+                          borderRadius: "17px",
+                          background:
+                            "linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)",
+                          border: "1px solid #a5b4fc",
+                          color: "#4338ca",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          boxShadow: "0 3px 10px rgba(79, 70, 229, 0.12)",
+                        }}
+                      >
+                        <Layers size={23} />
+                      </div>
+                      <span
+                        style={{
+                          fontSize: "0.72rem",
+                          fontWeight: 700,
+                          color: "#334155",
+                          textAlign: "center",
+                        }}
+                      >
+                        Kelas
+                      </span>
+                    </div>
+
+                    {/* 4. Asatidz */}
+                    <div
+                      onClick={() => onChangeTab("master-asatidz")}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "6px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "50px",
+                          height: "50px",
+                          borderRadius: "17px",
+                          background:
+                            "linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%)",
+                          border: "1px solid #5eead4",
+                          color: "#0f766e",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          boxShadow: "0 3px 10px rgba(13, 148, 136, 0.12)",
+                        }}
+                      >
+                        <UserCheck size={23} />
+                      </div>
+                      <span
+                        style={{
+                          fontSize: "0.72rem",
+                          fontWeight: 700,
+                          color: "#334155",
+                          textAlign: "center",
+                        }}
+                      >
+                        Asatidz
+                      </span>
+                    </div>
+
+                    {/* 5. Tata Tertib */}
+                    <div
+                      onClick={() => onChangeTab("tata-tertib")}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "6px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "50px",
+                          height: "50px",
+                          borderRadius: "17px",
+                          background:
+                            "linear-gradient(135deg, #ffe4e6 0%, #fecdd3 100%)",
+                          border: "1px solid #fda4af",
+                          color: "#be123c",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          boxShadow: "0 3px 10px rgba(225, 29, 72, 0.12)",
+                        }}
+                      >
+                        <ShieldAlert size={23} />
+                      </div>
+                      <span
+                        style={{
+                          fontSize: "0.72rem",
+                          fontWeight: 700,
+                          color: "#334155",
+                          textAlign: "center",
+                        }}
+                      >
+                        Tata Tertib
+                      </span>
+                    </div>
+
+                    {/* 6. Daftar Wajah */}
+                    <div
+                      onClick={() => onChangeTab("daftar-wajah")}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "6px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "50px",
+                          height: "50px",
+                          borderRadius: "17px",
+                          background:
+                            "linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)",
+                          border: "1px solid #7dd3fc",
+                          color: "#0369a1",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          boxShadow: "0 3px 10px rgba(2, 132, 199, 0.12)",
+                        }}
+                      >
+                        <Smile size={23} />
+                      </div>
+                      <span
+                        style={{
+                          fontSize: "0.72rem",
+                          fontWeight: 700,
+                          color: "#334155",
+                          textAlign: "center",
+                        }}
+                      >
+                        Daftar Wajah
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  /* PAGE 2: TRANSAKSI (4 COLUMNS) */
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(4, 1fr)",
+                      gap: "16px 6px",
+                    }}
+                  >
+                    {/* 1. Presensi (Royal Blue) */}
+                    <div
+                      onClick={() => onChangeTab("presensi")}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "6px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "50px",
+                          height: "50px",
+                          borderRadius: "17px",
+                          background:
+                            "linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)",
+                          border: "1px solid #7dd3fc",
+                          color: "#005baa",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          boxShadow: "0 3px 10px rgba(0, 91, 170, 0.15)",
+                        }}
+                      >
+                        <Fingerprint size={23} />
+                      </div>
+                      <span
+                        style={{
+                          fontSize: "0.72rem",
+                          fontWeight: 700,
+                          color: "#334155",
+                          textAlign: "center",
+                        }}
+                      >
+                        Presensi
+                      </span>
+                    </div>
+
+                    {/* 2. Perizinan (Cyan) */}
+                    <div
+                      onClick={() => onChangeTab("perizinan")}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "6px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "50px",
+                          height: "50px",
+                          borderRadius: "17px",
+                          background:
+                            "linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%)",
+                          border: "1px solid #67e8f9",
+                          color: "#0e7490",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          boxShadow: "0 3px 10px rgba(6, 182, 212, 0.15)",
+                        }}
+                      >
+                        <DoorOpen size={23} />
+                      </div>
+                      <span
+                        style={{
+                          fontSize: "0.72rem",
+                          fontWeight: 700,
+                          color: "#334155",
+                          textAlign: "center",
+                        }}
+                      >
+                        Perizinan
+                      </span>
+                    </div>
+
+                    {/* 3. Perkembangan (Indigo / Purple) */}
+                    <div
+                      onClick={() => onChangeTab("pengembangan")}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "6px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "50px",
+                          height: "50px",
+                          borderRadius: "17px",
+                          background:
+                            "linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)",
+                          border: "1px solid #c4b5fd",
+                          color: "#6d28d9",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          boxShadow: "0 3px 10px rgba(124, 58, 237, 0.15)",
+                        }}
+                      >
+                        <Award size={23} />
+                      </div>
+                      <span
+                        style={{
+                          fontSize: "0.72rem",
+                          fontWeight: 700,
+                          color: "#334155",
+                          textAlign: "center",
+                        }}
+                      >
+                        Perkembangan
+                      </span>
+                    </div>
+
+                    {/* 4. Praktek (Emerald Green) */}
+                    <div
+                      onClick={() => onChangeTab("praktek-ibadah")}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "6px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "50px",
+                          height: "50px",
+                          borderRadius: "17px",
+                          background:
+                            "linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)",
+                          border: "1px solid #86efac",
+                          color: "#15803d",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          boxShadow: "0 3px 10px rgba(16, 185, 129, 0.15)",
+                        }}
+                      >
+                        <HeartHandshake size={23} />
+                      </div>
+                      <span
+                        style={{
+                          fontSize: "0.72rem",
+                          fontWeight: 700,
+                          color: "#334155",
+                          textAlign: "center",
+                        }}
+                      >
+                        Praktek
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* myBCA Floating Icon Grid: Transaksi (4 Columns) */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(4, 1fr)",
-                  gap: "16px 6px",
-                }}
-              >
-                {/* 1. Presensi (Royal Blue) */}
-                <div
-                  onClick={() => onChangeTab("presensi")}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "6px",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "52px",
-                      height: "52px",
-                      borderRadius: "18px",
-                      background:
-                        "linear-gradient(135deg, #005baa 0%, #004b91 100%)",
-                      color: "#ffffff",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      boxShadow: "0 6px 14px -2px rgba(0, 91, 170, 0.35)",
-                      transition: "transform 0.15s ease",
-                    }}
-                  >
-                    <Fingerprint size={24} />
-                  </div>
-                  <span
-                    style={{
-                      fontSize: "0.72rem",
-                      fontWeight: 700,
-                      color: "#334155",
-                      textAlign: "center",
-                    }}
-                  >
-                    Presensi
-                  </span>
-                </div>
-
-                {/* 2. Perizinan (Cyan) */}
-                <div
-                  onClick={() => onChangeTab("perizinan")}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "6px",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "52px",
-                      height: "52px",
-                      borderRadius: "18px",
-                      background:
-                        "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)",
-                      color: "#ffffff",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      boxShadow: "0 6px 14px -2px rgba(6, 182, 212, 0.35)",
-                      transition: "transform 0.15s ease",
-                    }}
-                  >
-                    <DoorOpen size={24} />
-                  </div>
-                  <span
-                    style={{
-                      fontSize: "0.72rem",
-                      fontWeight: 700,
-                      color: "#334155",
-                      textAlign: "center",
-                    }}
-                  >
-                    Perizinan
-                  </span>
-                </div>
-
-                {/* 3. Perkembangan (Indigo / Violet) */}
-                <div
-                  onClick={() => onChangeTab("pengembangan")}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "6px",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "52px",
-                      height: "52px",
-                      borderRadius: "18px",
-                      background:
-                        "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)",
-                      color: "#ffffff",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      boxShadow: "0 6px 14px -2px rgba(139, 92, 246, 0.35)",
-                      transition: "transform 0.15s ease",
-                    }}
-                  >
-                    <Award size={24} />
-                  </div>
-                  <span
-                    style={{
-                      fontSize: "0.72rem",
-                      fontWeight: 700,
-                      color: "#334155",
-                      textAlign: "center",
-                    }}
-                  >
-                    Perkembangan
-                  </span>
-                </div>
-
-                {/* 4. Praktek (Emerald Green) */}
-                <div
-                  onClick={() => onChangeTab("praktek-ibadah")}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "6px",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "52px",
-                      height: "52px",
-                      borderRadius: "18px",
-                      background:
-                        "linear-gradient(135deg, #059669 0%, #047857 100%)",
-                      color: "#ffffff",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      boxShadow: "0 6px 14px -2px rgba(5, 150, 105, 0.35)",
-                      transition: "transform 0.15s ease",
-                    }}
-                  >
-                    <HeartHandshake size={24} />
-                  </div>
-                  <span
-                    style={{
-                      fontSize: "0.72rem",
-                      fontWeight: 700,
-                      color: "#334155",
-                      textAlign: "center",
-                    }}
-                  >
-                    Praktek
-                  </span>
-                </div>
-              </div>
-
-              {/* myBCA Style Pagination Dots Indicator */}
+              {/* myBCA Style Pagination Dots Indicator (Clickable to switch page) */}
               <div
                 style={{
                   display: "flex",
                   justifyContent: "center",
                   alignItems: "center",
                   gap: "6px",
-                  marginTop: "20px",
-                  paddingTop: "4px",
+                  paddingBottom: "14px",
+                  cursor: "pointer",
                 }}
               >
                 <div
+                  onClick={() => setMenuCardTab("master")}
+                  title="Data Master"
                   style={{
-                    width: "20px",
+                    width: menuCardTab === "master" ? "22px" : "6px",
                     height: "4px",
                     borderRadius: "4px",
-                    background: "#005baa",
+                    background:
+                      menuCardTab === "master" ? "#005baa" : "#cbd5e1",
+                    transition: "all 0.25s ease",
                   }}
                 />
                 <div
+                  onClick={() => setMenuCardTab("transaksi")}
+                  title="Transaksi"
                   style={{
-                    width: "6px",
+                    width: menuCardTab === "transaksi" ? "22px" : "6px",
                     height: "4px",
                     borderRadius: "4px",
-                    background: "#cbd5e1",
+                    background:
+                      menuCardTab === "transaksi" ? "#005baa" : "#cbd5e1",
+                    transition: "all 0.25s ease",
                   }}
                 />
               </div>
