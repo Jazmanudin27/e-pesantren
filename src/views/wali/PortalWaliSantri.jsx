@@ -660,148 +660,75 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
-            {/* FLOATING HERO METRICS: TABUNGAN SANTRI & TAGIHAN SPP */}
-            <div style={{ padding: '0 14px', marginTop: '-32px', position: 'relative', zIndex: 10 }}>
-              <div style={{
-                background: '#ffffff',
-                borderRadius: '22px',
-                padding: '12px',
-                boxShadow: '0 12px 28px -4px rgba(11, 107, 96, 0.18), 0 3px 10px rgba(0, 0, 0, 0.04)',
-                border: '1px solid #e6f0ed',
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '10px',
-                alignItems: 'stretch'
-              }}>
-                {/* Card 1: Tabungan Santri */}
-                <div
-                  onClick={() => setCurrentTab('tabungan')}
-                  style={{
-                    background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-                    border: '1px solid rgba(16, 185, 129, 0.35)',
-                    borderRadius: '16px',
-                    padding: '12px',
-                    cursor: 'pointer',
-                    boxShadow: '0 3px 10px rgba(16, 185, 129, 0.12)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    minHeight: '88px',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{
-                        width: '7px',
-                        height: '7px',
-                        borderRadius: '50%',
-                        background: '#16a34a',
-                        boxShadow: '0 0 6px #16a34a'
-                      }} />
-                      <span style={{
-                        fontSize: '0.66rem',
-                        fontWeight: 800,
-                        color: '#166534',
-                        letterSpacing: '0.03em',
-                        textTransform: 'uppercase'
-                      }}>
-                        TABUNGAN
-                      </span>
-                    </div>
-                    <Wallet size={16} color="#16a34a" />
-                  </div>
-
-                  <div style={{ marginTop: '6px', marginBottom: '4px' }}>
+            {/* CARD INFO SALDO TERSIMPAN (DI ATAS MENU LAYANAN SANTRI) */}
+            <div style={{ padding: '0 14px', marginTop: '-24px', position: 'relative', zIndex: 10 }}>
+              <div
+                onClick={() => setCurrentTab('tabungan')}
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '20px',
+                  border: '1px solid #e2e8f0',
+                  padding: '16px',
+                  boxShadow: '0 8px 24px -4px rgba(13, 118, 110, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div style={{
-                      fontSize: '1.05rem',
-                      fontWeight: 900,
-                      color: '#14532d',
-                      lineHeight: 1.15,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '12px',
+                      background: '#ecfdf5',
+                      color: '#059669',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
                     }}>
-                      {formatRp(tabunganData?.saldo_saat_ini || 0)}
+                      <Wallet size={22} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Saldo Tersimpan</div>
+                      <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f766e', lineHeight: 1.1 }}>
+                        {formatRp(tabunganData?.saldo_saat_ini || 0)}
+                      </div>
                     </div>
                   </div>
-
-                  <div style={{
-                    fontSize: '0.64rem',
-                    color: '#059669',
+                  <span style={{
+                    fontSize: '0.72rem',
                     fontWeight: 700,
+                    color: '#059669',
+                    background: '#ecfdf5',
+                    padding: '4px 10px',
+                    borderRadius: '8px',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px'
                   }}>
-                    <span>Uang Saku Santri</span>
+                    <span>Detail</span>
                     <span>&rarr;</span>
-                  </div>
+                  </span>
                 </div>
 
-                {/* Card 2: Tagihan & SPP */}
-                <div
-                  onClick={() => setCurrentTab('tagihan')}
-                  style={{
-                    background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-                    border: '1px solid rgba(245, 158, 11, 0.35)',
-                    borderRadius: '16px',
-                    padding: '12px',
-                    cursor: 'pointer',
-                    boxShadow: '0 3px 10px rgba(245, 158, 11, 0.12)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    minHeight: '88px',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{
-                        width: '7px',
-                        height: '7px',
-                        borderRadius: '50%',
-                        background: '#d97706',
-                        boxShadow: '0 0 6px #d97706'
-                      }} />
-                      <span style={{
-                        fontSize: '0.66rem',
-                        fontWeight: 800,
-                        color: '#92400e',
-                        letterSpacing: '0.03em',
-                        textTransform: 'uppercase'
-                      }}>
-                        TAGIHAN SPP
-                      </span>
-                    </div>
-                    <CreditCard size={16} color="#d97706" />
-                  </div>
-
-                  <div style={{ marginTop: '6px', marginBottom: '4px' }}>
-                    <div style={{
-                      fontSize: '1.05rem',
-                      fontWeight: 900,
-                      color: (keuanganSummary?.totalBelumBayar || 0) > 0 ? '#b45309' : '#15803d',
-                      lineHeight: 1.15,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}>
-                      {keuanganSummary?.formattedTotalBelumBayar || 'Rp 0'}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '8px',
+                  paddingTop: '10px',
+                  borderTop: '1px solid #f1f5f9'
+                }}>
+                  <div style={{ background: '#f0fdf4', borderRadius: '10px', padding: '8px 10px' }}>
+                    <div style={{ fontSize: '0.62rem', color: '#166534', fontWeight: 700 }}>TOTAL MASUK</div>
+                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>
+                      +{formatRp(tabunganData?.total_masuk || 0)}
                     </div>
                   </div>
-
-                  <div style={{
-                    fontSize: '0.64rem',
-                    color: (keuanganSummary?.totalBelumBayar || 0) > 0 ? '#b45309' : '#15803d',
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}>
-                    <span>{(keuanganSummary?.totalBelumBayar || 0) > 0 ? 'Bayar Online' : 'Semua Lunas'}</span>
-                    <span>{(keuanganSummary?.totalBelumBayar || 0) > 0 ? '\u2192' : '\u2713'}</span>
+                  <div style={{ background: '#fef2f2', borderRadius: '10px', padding: '8px 10px' }}>
+                    <div style={{ fontSize: '0.62rem', color: '#991b1b', fontWeight: 700 }}>PENGAMBILAN</div>
+                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#dc2626', marginTop: '2px' }}>
+                      -{formatRp(tabunganData?.total_keluar || 0)}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1153,94 +1080,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
-            {/* SECTION: TABUNGAN & UANG SAKU SANTRI */}
-            <div style={{ padding: '16px 16px 0' }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '8px'
-              }}>
-                <span style={{
-                  fontSize: '0.82rem',
-                  fontWeight: 800,
-                  color: '#0d766e',
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase'
-                }}>
-                  TABUNGAN & UANG SAKU SANTRI
-                </span>
-                <span
-                  onClick={() => setCurrentTab('tabungan')}
-                  style={{
-                    fontSize: '0.74rem',
-                    fontWeight: 700,
-                    color: '#0d766e',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Buku Tabungan &gt;
-                </span>
-              </div>
-              <div style={{
-                background: '#ffffff',
-                borderRadius: '20px',
-                border: '1px solid #e2e8f0',
-                padding: '16px',
-                boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Wallet size={22} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>Saldo Tersimpan</div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f766e' }}>
-                        {formatRp(tabunganData?.saldo_saat_ini || 0)}
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setCurrentTab('tabungan')}
-                    style={{
-                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                      border: 'none',
-                      color: '#ffffff',
-                      borderRadius: '10px',
-                      padding: '8px 14px',
-                      fontSize: '0.74rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 8px rgba(16, 185, 129, 0.25)'
-                    }}
-                  >
-                    Buku Tabungan
-                  </button>
-                </div>
 
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: '8px',
-                  paddingTop: '10px',
-                  borderTop: '1px solid #f1f5f9'
-                }}>
-                  <div style={{ background: '#f0fdf4', borderRadius: '10px', padding: '8px 10px' }}>
-                    <div style={{ fontSize: '0.62rem', color: '#166534', fontWeight: 700 }}>TOTAL MASUK</div>
-                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#15803d', marginTop: '2px' }}>
-                      +{formatRp(tabunganData?.total_masuk || 0)}
-                    </div>
-                  </div>
-                  <div style={{ background: '#fef2f2', borderRadius: '10px', padding: '8px 10px' }}>
-                    <div style={{ fontSize: '0.62rem', color: '#991b1b', fontWeight: 700 }}>PENGAMBILAN</div>
-                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#dc2626', marginTop: '2px' }}>
-                      -{formatRp(tabunganData?.total_keluar || 0)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             {/* SECTION 2: BAYAR & TAGIHAN KEUANGAN (myBCA CARD UI) */}
             <div style={{ padding: '16px 16px 0' }}>
