@@ -7,9 +7,26 @@ import bcrypt from 'bcryptjs';
  */
 export const getWaliSantriData = async (req, res) => {
   try {
-    let santriId = req.query.santri_id || (req.user && (req.user.santri_id || req.user.id));
+    let santriId = null;
+    const nisnParam = req.query.nisn || req.query.nis || (req.user && req.user.username);
 
-    // Jika santriId belum ada, cari santri pertama sebagai fallback
+    // Prioritas 1: Cari tepat berdasarkan NISN / NIS / username dari akun login
+    if (nisnParam) {
+      const [byNisn] = await pool.query(
+        'SELECT id FROM santri WHERE nisn = ? OR nis = ? OR username = ? LIMIT 1',
+        [nisnParam, nisnParam, nisnParam]
+      );
+      if (byNisn && byNisn.length > 0) {
+        santriId = byNisn[0].id;
+      }
+    }
+
+    // Prioritas 2: Jika query santri_id eksplisit atau dari token santri_id
+    if (!santriId) {
+      santriId = req.query.santri_id || (req.user && (req.user.santri_id || (req.user.role === 'wali' ? req.user.id : null)));
+    }
+
+    // Prioritas 3: Fallback jika belum ada
     if (!santriId) {
       const [first] = await pool.query('SELECT id FROM santri ORDER BY id ASC LIMIT 1');
       if (first && first.length > 0) {
@@ -30,6 +47,7 @@ export const getWaliSantriData = async (req, res) => {
         s.nisn,
         s.nama_santri,
         s.jk,
+        COALESCE(s.foto_url, s.foto, '') as foto_url,
         s.tempat_lahir,
         s.tgl_lahir,
         s.status_santri,

@@ -145,7 +145,19 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   const fetchWaliData = async (targetId = selectedSantriId) => {
     try {
       setLoading(true);
-      const url = targetId ? `/api/wali/santri?santri_id=${targetId}` : '/api/wali/santri';
+      let sessionNisn = '';
+      try {
+        const sess = JSON.parse(localStorage.getItem('desktop_session') || localStorage.getItem('mobile_session') || '{}');
+        sessionNisn = sess.nisn || sess.username || '';
+      } catch (e) {}
+
+      let url = '/api/wali/santri';
+      const params = new URLSearchParams();
+      if (targetId) params.append('santri_id', targetId);
+      if (sessionNisn) params.append('nisn', sessionNisn);
+      const qStr = params.toString();
+      if (qStr) url += `?${qStr}`;
+
       const res = await axios.get(url);
       if (res.data?.success && res.data.data) {
         setData(res.data.data);
@@ -162,16 +174,6 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Ambil daftar santri jika wali punya lebih dari 1 anak
-  const fetchSantriList = async () => {
-    try {
-      const res = await axios.get('/api/santri');
-      if (res.data?.success && Array.isArray(res.data.data)) {
-        setSantriList(res.data.data);
-      }
-    } catch (e) {}
   };
 
   const formatRp = (num) => 'Rp ' + Number(num || 0).toLocaleString('id-ID');
@@ -289,7 +291,6 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
 
   useEffect(() => {
     fetchWaliData();
-    fetchSantriList();
     fetchKeuanganOverview();
     fetchLatestFeed();
     fetchSantriTabungan();
@@ -534,32 +535,8 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   </span>
                 </div>
 
-                {/* Top Action Buttons (Santri Switcher, Bell, Logout) */}
+                {/* Top Action Buttons (Bell, Logout) */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {santriList && santriList.length > 1 && (
-                    <select
-                      value={selectedSantriId || ''}
-                      onChange={(e) => handleSantriChange(Number(e.target.value))}
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.18)',
-                        color: '#ffffff',
-                        border: '1px solid rgba(255, 255, 255, 0.3)',
-                        borderRadius: '10px',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        padding: '5px 8px',
-                        outline: 'none',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {santriList.map((s) => (
-                        <option key={s.id} value={s.id} style={{ color: '#0f172a' }}>
-                          {s.nama_santri}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-
                   <button
                     onClick={() => setCurrentTab('notifikasi')}
                     style={{
@@ -608,22 +585,65 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 </div>
               </div>
 
-              {/* Clean Greeting: Halo Wali Santri */}
-              <div style={{ marginTop: '2px', marginBottom: '6px' }}>
+              {/* Santri Profile Header (Foto Santri, Nama Santri, NISN) */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginTop: '6px',
+                marginBottom: '10px'
+              }}>
                 <div style={{
-                  fontSize: '0.74rem',
-                  fontWeight: 600,
-                  color: '#bae6fd',
-                }}>
-                  {greeting}
-                </div>
-                <div style={{
-                  fontSize: '0.98rem',
-                  fontWeight: 800,
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '50%',
+                  border: '2px solid rgba(255, 255, 255, 0.9)',
+                  overflow: 'hidden',
+                  background: santri.jk === 'P' ? '#db2777' : '#0284c7',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.16)',
                   color: '#ffffff',
-                  letterSpacing: '-0.2px'
+                  fontWeight: 900,
+                  fontSize: '1.15rem'
                 }}>
-                  {santri.nama_wali ? santri.nama_wali : `Bapak/Ibu Wali Santri`}
+                  {santri.foto_url ? (
+                    <img
+                      src={santri.foto_url}
+                      alt={rawSantriName}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    initial
+                  )}
+                </div>
+
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{
+                    fontSize: '1.02rem',
+                    fontWeight: 800,
+                    color: '#ffffff',
+                    letterSpacing: '-0.2px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}>
+                    {rawSantriName}
+                  </div>
+                  <div style={{
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    color: '#a7f3d0',
+                    letterSpacing: '0.03em',
+                    marginTop: '2px'
+                  }}>
+                    NISN: {santri.nisn || santri.nis || '-'}
+                  </div>
                 </div>
               </div>
             </div>
@@ -720,12 +740,13 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                         {rawSantriName}
                       </div>
                       <div style={{
-                        fontSize: '0.6rem',
+                        fontSize: '0.62rem',
                         color: '#bae6fd',
-                        fontWeight: 600,
-                        letterSpacing: '0.03em'
+                        fontWeight: 700,
+                        letterSpacing: '0.02em',
+                        marginTop: '1px'
                       }}>
-                        {santri.nis || 'NWF-SNT'} • {santri.nama_kelas || 'Santri'}
+                        NISN: {santri.nisn || santri.nis || '-'}
                       </div>
                     </div>
                   </div>
