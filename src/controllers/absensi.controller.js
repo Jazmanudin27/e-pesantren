@@ -112,85 +112,15 @@ export const getAbsensiFingerprint = async (req, res) => {
       LIMIT 1000
     `);
 
-    // Otomatis sinkronkan santri yang memiliki izin aktif / sakit pulang dari santri_perizinan
-    let izinAutoLogs = [];
-    try {
-      const [izinRows] = await pool.query(`
-        SELECT sp.*,
-               DATE_FORMAT(COALESCE(sp.tgl_keluar_aktual, sp.tgl_keluar_rencana), '%Y-%m-%d') as tgl_mulai,
-               DATE_FORMAT(COALESCE(sp.tgl_kembali_aktual, sp.tgl_kembali_rencana), '%Y-%m-%d') as tgl_selesai,
-               s.nama_santri, s.nis, s.fingerprint_pin, a.nama_asrama, k.nama_kamar
-        FROM santri_perizinan sp
-        JOIN santri s ON sp.santri_id = s.id
-        LEFT JOIN asrama a ON s.asrama_id = a.id
-        LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
-        WHERE sp.status NOT IN ('Ditolak', 'Dibatalkan', 'Menunggu Persetujuan')
-          AND COALESCE(sp.tgl_kembali_aktual, sp.tgl_kembali_rencana) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-        ORDER BY sp.id DESC
-      `);
-
-      if (izinRows && izinRows.length > 0) {
-        const today = new Date();
-        izinRows.forEach(sp => {
-          const isSakit = (sp.jenis_izin || '').toLowerCase().includes('sakit') ||
-                          (sp.jenis_izin || '').toLowerCase().includes('berobat') ||
-                          (sp.keperluan || '').toLowerCase().includes('sakit');
-          const finalStatus = isSakit ? 'Sakit' : 'Izin';
-          const ket = `Perizinan ${sp.jenis_izin || 'Pulang'}${sp.keperluan ? `: ${sp.keperluan}` : ''}`;
-
-          if (!sp.tgl_mulai) return;
-          const startDate = new Date(sp.tgl_mulai);
-          const endDate = sp.tgl_selesai ? new Date(sp.tgl_selesai) : today;
-          const limitEnd = endDate < today ? endDate : today;
-
-          for (let d = new Date(startDate); d <= limitEnd; d.setDate(d.getDate() + 1)) {
-            const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-            const alreadyLogged = rows.some(r => r.santri_id === sp.santri_id && r.tanggal === dStr);
-            const alreadyAuto = izinAutoLogs.some(r => r.santri_id === sp.santri_id && r.tanggal === dStr);
-
-            if (!alreadyLogged && !alreadyAuto) {
-              izinAutoLogs.push({
-                id: `izin-${sp.id}-${dStr}`,
-                santri_id: sp.santri_id,
-                sesi_id: null,
-                device_id: null,
-                tanggal: dStr,
-                waktu_scan: '00:00:00',
-                status_kehadiran: finalStatus,
-                status: finalStatus,
-                metode_scan: 'Perizinan Otomatis',
-                metode_presensi: 'Perizinan Otomatis',
-                keterangan: ket,
-                keteledoran_keterangan: ket,
-                nama_santri: sp.nama_santri,
-                nis: sp.nis,
-                fingerprint_pin: sp.fingerprint_pin,
-                nama_asrama: sp.nama_asrama,
-                nama_kamar: sp.nama_kamar,
-                nama_sesi: 'Semua Kegiatan (Perizinan)',
-                kegiatan: 'Semua Kegiatan (Perizinan)',
-                tipe_presensi: 'Semua',
-                kategori: 'Perizinan',
-                nama_device: 'Sistem Perizinan',
-                is_perizinan_auto: true
-              });
-            }
-          }
-        });
-      }
-    } catch (eIzin) {
-      console.warn('Sync perizinan to absensi log error:', eIzin.message);
-    }
-
-    let combined = [...izinAutoLogs, ...rows];
+    let finalRows = rows || [];
 
     if (tipeParam === 'berjamaah') {
-      combined = combined.filter(item => item.tipe_presensi === 'Berjamaah' || item.is_perizinan_auto);
+      finalRows = finalRows.filter(item => item.tipe_presensi === 'Berjamaah');
     } else if (tipeParam === 'kegiatan') {
-      combined = combined.filter(item => item.tipe_presensi === 'Kegiatan' || item.is_perizinan_auto);
+      finalRows = finalRows.filter(item => item.tipe_presensi === 'Kegiatan');
     }
 
-    return sendSuccess(res, 'Data absensi fingerprint berhasil diambil', { data: combined });
+    return sendSuccess(res, 'Data absensi murni database berhasil diambil', { data: finalRows });
   } catch (err) {
     try {
       const [rows] = await pool.query(`

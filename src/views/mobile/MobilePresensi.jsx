@@ -367,42 +367,22 @@ export default function MobilePresensi() {
         } catch (eSync) {}
       }
 
-      let combinedIzin = [];
-      if (resIzin.data && resIzin.data.data && Array.isArray(resIzin.data.data)) {
-        combinedIzin = [...resIzin.data.data];
-      }
-      try {
-        const localIzin = JSON.parse(localStorage.getItem('mobile_izin_list') || '[]');
-        if (Array.isArray(localIzin)) {
-          localIzin.forEach(item => {
-            const exists = combinedIzin.some(ex => ex.id === item.id || (ex.santri_id === item.santri_id && ex.tgl_keluar_rencana === item.tgl_keluar_rencana));
-            if (!exists) combinedIzin.push(item);
-          });
-        }
-      } catch (e) {}
-      setIzinList(combinedIzin);
+      // 1. Data Izin dari MySQL Database
+      const serverIzin = (resIzin.data && Array.isArray(resIzin.data.data)) ? resIzin.data.data : [];
+      setIzinList(serverIzin);
 
-      let combinedLogs = [];
-      if (resAbs.data && resAbs.data.data && resAbs.data.data.length > 0) {
-        combinedLogs = resAbs.data.data;
-      } else {
-        const saved = JSON.parse(localStorage.getItem('mobile_presensi_logs') || '[]');
-        combinedLogs = saved;
-      }
+      // 2. Data Presensi murni 100% dari MySQL Database (TANPA DUMMY/FAKE & TANPA RESURRECTION DARI LOCALSTORAGE)
+      const serverLogs = (resAbs.data && Array.isArray(resAbs.data.data)) ? resAbs.data.data : [];
+      setPresensiLogs(serverLogs);
+
+      // Update cache lokal agar sama persis dengan MySQL database
       try {
-        const localLogs = JSON.parse(localStorage.getItem('mobile_presensi_logs') || '[]');
-        if (Array.isArray(localLogs) && localLogs.length > 0) {
-          localLogs.forEach(item => {
-            const exists = combinedLogs.some(ex => ex.id === item.id || (ex.santri_id === item.santri_id && ex.tanggal === item.tanggal && (ex.kegiatan === item.kegiatan || ex.sesi_id === item.sesi_id)));
-            if (!exists) combinedLogs.push(item);
-          });
-          // Otomatis sinkronkan riwayat presensi mobile ke database MySQL agar Desktop langsung terisi
-          axios.post('/api/absensi/sync-mobile', { items: localLogs }).catch(() => {});
-        }
+        localStorage.setItem('mobile_presensi_logs', JSON.stringify(serverLogs));
+        localStorage.setItem('mobile_izin_list', JSON.stringify(serverIzin));
       } catch (e) {}
-      setPresensiLogs(combinedLogs);
     } catch (err) {
-      console.warn('Fallback data lokal:', err);
+      console.warn('Gagal ambil data presensi dari MySQL:', err);
+      // Fallback offline murni jika jaringan putus
       const saved = JSON.parse(localStorage.getItem('mobile_presensi_logs') || '[]');
       setPresensiLogs(saved);
       try {
@@ -1642,63 +1622,42 @@ export default function MobilePresensi() {
     return st.includes(filterManualStatus.toLowerCase());
   });
 
-  // Gabungkan presensiLogs dengan perizinan untuk Tab Riwayat
-  const riwayatLogsCombined = (() => {
-    let list = [...presensiLogs];
-    const targetDate = filterTanggalRiwayat || getTodayDateStr();
+  // Data riwayat murni 100% dari database MySQL (tanpa injeksi data fake/sintetis perizinan)
+  const riwayatLogsCombined = presensiLogs;
 
-    (izinList || []).forEach(sp => {
-      const st = String(sp.status || '').toLowerCase();
-      if (st.includes('tolak') || st.includes('batal')) return;
-
-      const tglMulai = normalizeDateStr(sp.tgl_keluar_aktual || sp.tgl_keluar_rencana);
-      const isReturned = st.includes('kembali') && !st.includes('terlambat');
-      const tglSelesai = normalizeDateStr(
-        (isReturned && sp.tgl_kembali_aktual) ? sp.tgl_kembali_aktual : (sp.tgl_kembali_rencana || sp.tgl_kembali_aktual)
-      );
-
-      if (tglMulai && targetDate < tglMulai) return;
-      if (tglSelesai && targetDate > tglSelesai && !st.includes('terlambat')) return;
-
-      const isSakit = (sp.jenis_izin || '').toLowerCase().includes('sakit') ||
-                      (sp.jenis_izin || '').toLowerCase().includes('berobat') ||
-                      (sp.keperluan || '').toLowerCase().includes('sakit');
-      const finalStatus = isSakit ? 'Sakit' : 'Izin';
-
-      const existingIdx = list.findIndex(l => 
-        normalizeDateStr(l.tanggal) === targetDate &&
-        ((l.santri_id && l.santri_id === sp.santri_id) || 
-         (l.nama_santri && sp.nama_santri && l.nama_santri.toLowerCase() === sp.nama_santri.toLowerCase()))
-      );
-
-      const izinObj = {
-        id: `izin-${sp.id}`,
-        santri_id: sp.santri_id,
-        nama_santri: sp.nama_santri,
-        nis: sp.nis,
-        kegiatan: 'Semua Kegiatan (Perizinan Pulang/Sakit)',
-        tanggal: targetDate,
-        waktu_scan: '00:00:00',
-        status: finalStatus,
-        status_kehadiran: finalStatus,
-        metode_scan: 'Perizinan',
-        metode_presensi: 'Perizinan',
-        keterangan: `Perizinan ${sp.jenis_izin || 'Pulang'} (${sp.keperluan || sp.status || 'Disetujui'})`,
-        is_perizinan_auto: true
-      };
-
-      if (existingIdx === -1) {
-        list.push(izinObj);
-      } else {
-        const curStatus = simplifyStatus(list[existingIdx].status_kehadiran || list[existingIdx].status);
-        if (curStatus !== 'Izin' && curStatus !== 'Sakit') {
-          list[existingIdx] = { ...list[existingIdx], ...izinObj };
-        }
+  // Hapus log presensi langsung dari Mobile ke database MySQL
+  const handleDeleteLog = async (log) => {
+    if (!log || !log.id) return;
+    const ok = await showConfirm(
+      'Hapus Riwayat Presensi',
+      `Yakin ingin menghapus riwayat presensi ${log.nama_santri || 'santri'} (${log.kegiatan || 'kegiatan'}) pada tanggal ${normalizeDateStr(log.tanggal)}? Data akan dihapus permanen dari MySQL.`,
+      'Ya, Hapus',
+      'Batal'
+    );
+    if (ok) {
+      setPresensiLogs((prev) => {
+        const next = prev.filter((l) => l.id !== log.id);
+        try {
+          localStorage.setItem('mobile_presensi_logs', JSON.stringify(next));
+        } catch (e) {}
+        return next;
+      });
+      try {
+        await axios.delete(`/api/absensi/fingerprint/${log.id}`, {
+          data: {
+            santri_id: log.santri_id,
+            tanggal: log.tanggal,
+            waktu_scan: log.waktu_scan,
+          },
+        });
+        toastSuccess('Riwayat presensi berhasil dihapus dari database');
+        fetchData();
+      } catch (err) {
+        showError('Gagal Menghapus', err.response?.data?.message || err.message);
+        fetchData();
       }
-    });
-
-    return list;
-  })();
+    }
+  };
 
   // Helper pengecekan kategori log: Berjamaah vs Mengaji
   const isLogBerjamaah = (log) => {
@@ -1712,9 +1671,9 @@ export default function MobilePresensi() {
   const filteredRiwayat = riwayatLogsCombined.filter(log => {
     // 1. Saring ketat berdasarkan Kategori Aktif (Berjamaah vs Mengaji)
     if (activeKategori === 'berjamaah') {
-      if (!isLogBerjamaah(log) && !log.is_perizinan_auto) return false;
+      if (!isLogBerjamaah(log)) return false;
     } else if (activeKategori === 'mengaji') {
-      if (isLogBerjamaah(log) && !log.is_perizinan_auto) return false;
+      if (isLogBerjamaah(log)) return false;
     }
 
     const q = searchRiwayat.toLowerCase();
@@ -1738,12 +1697,12 @@ export default function MobilePresensi() {
   const sessionTotal = santriList.length;
   const sessionPercent = sessionTotal > 0 ? Math.round((sessionSudahCount / sessionTotal) * 100) : 0;
 
-  // Perhitungan statistik riwayat (sesuai tanggal filter yang dipilih & Kategori Aktif)
+  // Perhitungan statistik riwayat (sesuai tanggal filter yang dipilih & Kategori Aktif murni dari database)
   const riwayatLogsForStats = riwayatLogsCombined.filter(l => {
     if (activeKategori === 'berjamaah') {
-      if (!isLogBerjamaah(l) && !l.is_perizinan_auto) return false;
+      if (!isLogBerjamaah(l)) return false;
     } else if (activeKategori === 'mengaji') {
-      if (isLogBerjamaah(l) && !l.is_perizinan_auto) return false;
+      if (isLogBerjamaah(l)) return false;
     }
     return !filterTanggalRiwayat || normalizeDateStr(l.tanggal) === filterTanggalRiwayat;
   });
@@ -1757,9 +1716,9 @@ export default function MobilePresensi() {
   // Badge notifikasi tab riwayat: sinkron dengan data tanggal aktif & kategori aktif
   const todayPresensiCount = riwayatLogsCombined.filter(l => {
     if (activeKategori === 'berjamaah') {
-      if (!isLogBerjamaah(l) && !l.is_perizinan_auto) return false;
+      if (!isLogBerjamaah(l)) return false;
     } else if (activeKategori === 'mengaji') {
-      if (isLogBerjamaah(l) && !l.is_perizinan_auto) return false;
+      if (isLogBerjamaah(l)) return false;
     }
     return normalizeDateStr(l.tanggal) === getTodayDateStr();
   }).length;
@@ -2956,7 +2915,30 @@ export default function MobilePresensi() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '4px' }}>
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  fetchData();
+                  toastSuccess('Sinkronisasi ulang dari MySQL...');
+                }}
+                style={{
+                  background: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  color: '#15803d',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  padding: '5px 8px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+                title="Refresh Riwayat Langsung dari Database MySQL"
+              >
+                <RefreshCw size={12} /> Sync
+              </button>
               {filterTanggalRiwayat !== getTodayDateStr() && (
                 <button
                   type="button"
@@ -3185,21 +3167,42 @@ export default function MobilePresensi() {
                     </div>
                   </div>
 
-                  {/* Right: Date Badge (Clean & No Delete Button) */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '4px 8px',
-                    borderRadius: '8px',
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    fontSize: '0.68rem',
-                    fontWeight: 700,
-                    color: '#64748b',
-                    flexShrink: 0
-                  }}>
-                    {normalizeDateStr(log.tanggal) || getTodayDateStr()}
+                  {/* Right: Date Badge & Tombol Hapus */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '4px 8px',
+                      borderRadius: '8px',
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      color: '#64748b',
+                    }}>
+                      {normalizeDateStr(log.tanggal) || getTodayDateStr()}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteLog(log)}
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '8px',
+                        background: '#fef2f2',
+                        border: '1px solid #fecaca',
+                        color: '#dc2626',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        padding: 0
+                      }}
+                      title="Hapus Presensi"
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   </div>
                 </div>
               );
