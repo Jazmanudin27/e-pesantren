@@ -26,6 +26,7 @@ import TabNotifikasiWali from "./TabNotifikasiWali";
 import TabTagihanKeuangan from "./TabTagihanKeuangan";
 import TabLaporanPerkembangan from "./TabLaporanPerkembangan";
 import TabInformasiKegiatan from "./TabInformasiKegiatan";
+import ModalTagihanJatuhTempo from "./ModalTagihanJatuhTempo";
 
 import {
   showConfirm,
@@ -50,6 +51,8 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   const [isPendingModalOpen, setIsPendingModalOpen] = useState(true);
   const [processingPending, setProcessingPending] = useState(false);
   const [latestFeed, setLatestFeed] = useState([]);
+  const [tagihanJatuhTempo, setTagihanJatuhTempo] = useState([]);
+  const [isJatuhTempoModalOpen, setIsJatuhTempoModalOpen] = useState(false);
   const [selectedSantriId, setSelectedSantriId] = useState(() => {
     try {
       const sess = JSON.parse(
@@ -219,6 +222,34 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
         setTransaksiPending(pending);
         if (pending) {
           setIsPendingModalOpen(true);
+        }
+
+        // Deteksi tagihan lewat jatuh tempo (belum lunas & tanggal jatuh tempo < hari ini)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const semuaTagihan = [
+          ...(res.data.data.tagihanBulanan || []),
+          ...(res.data.data.biayaAwalMasuk || []),
+          ...(res.data.data.tagihanLainnya || [])
+        ];
+        const overdue = semuaTagihan
+          .filter(t => {
+            if (parseFloat(t.sisa_tagihan || 0) <= 0 || t.status === 'Lunas' || !t.jatuh_tempo) return false;
+            const jt = new Date(t.jatuh_tempo);
+            if (isNaN(jt.getTime())) return false;
+            jt.setHours(0, 0, 0, 0);
+            return jt < today;
+          })
+          .sort((a, b) => new Date(a.jatuh_tempo) - new Date(b.jatuh_tempo));
+        setTagihanJatuhTempo(overdue);
+
+        // Tampilkan modal maksimal 1x per hari per santri (agar tidak mengganggu)
+        if (overdue.length > 0) {
+          const todayKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+          const storageKey = `jatuh_tempo_notif_${targetId || 'default'}`;
+          if (localStorage.getItem(storageKey) !== todayKey) {
+            setIsJatuhTempoModalOpen(true);
+          }
         }
       }
     } catch (e) {}
@@ -2018,7 +2049,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                     ) : (
                       <>
                         <Check size={18} strokeWidth={2.8} />
-                        Isi Salso
+                        Isi Saldo
                       </>
                     )}
                   </button>
@@ -2027,6 +2058,30 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
             </div>
           </div>
         )}
+
+        {/* =========================================================================
+            MODAL NOTIFIKASI TAGIHAN LEWAT JATUH TEMPO
+        ========================================================================= */}
+        <ModalTagihanJatuhTempo
+          open={
+            isJatuhTempoModalOpen &&
+            currentTab !== "tagihan" &&
+            !(isPendingModalOpen && transaksiPending)
+          }
+          tagihanList={tagihanJatuhTempo}
+          santriNama={rawSantriName}
+          formatRp={formatRp}
+          onClose={() => {
+            const now = new Date();
+            const todayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+            localStorage.setItem(`jatuh_tempo_notif_${selectedSantriId || "default"}`, todayKey);
+            setIsJatuhTempoModalOpen(false);
+          }}
+          onBayar={() => {
+            setIsJatuhTempoModalOpen(false);
+            setCurrentTab("tagihan");
+          }}
+        />
 
         {/* =========================================================================
             ELEVATED FLOATING WHITE BOTTOM NAVIGATION BAR
