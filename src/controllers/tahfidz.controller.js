@@ -1,5 +1,6 @@
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
+import { createWaliNotification } from './notifikasi.controller.js';
 
 export const getHalaqah = async (req, res) => {
   try {
@@ -141,6 +142,14 @@ export const createSetoran = async (req, res) => {
         UPDATE santri SET capaian_hafalan_juz = GREATEST(capaian_hafalan_juz, ?) WHERE id = ?
       `, [juz, santri_id]).catch(() => {});
     }
+
+    createWaliNotification({
+      santri_id,
+      kategori: 'tahfidz',
+      judul: `Setoran Tahfidz: ${finalMateri}`,
+      pesan: `Alhamdulillah, ananda telah menyetorkan hafalan ${finalCapaian} dengan predikat ${finalKelancaran} (${status || 'Lulus'}).`,
+      target_tab: 'hafalan'
+    });
 
     return sendSuccess(res, 'Setoran hafalan berhasil dicatat', { id: result.insertId }, 201);
   } catch (err) {

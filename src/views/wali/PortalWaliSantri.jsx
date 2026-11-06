@@ -53,6 +53,14 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   const [latestFeed, setLatestFeed] = useState([]);
   const [tagihanJatuhTempo, setTagihanJatuhTempo] = useState([]);
   const [isJatuhTempoModalOpen, setIsJatuhTempoModalOpen] = useState(false);
+  const [notifikasiList, setNotifikasiList] = useState([]);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const [pushPermission, setPushPermission] = useState(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      return window.Notification.permission;
+    }
+    return "default";
+  });
   const [selectedSantriId, setSelectedSantriId] = useState(() => {
     try {
       const sess = JSON.parse(
@@ -377,11 +385,211 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
     }
   };
 
+  // Helper memicu Native System Notification di Bar Atas HP (Ala Shopee)
+  const triggerNativePhoneNotification = async (title, body, targetTab = "notifikasi", notifId = null) => {
+    try {
+      if (!("Notification" in window)) return;
+      if (window.Notification.permission !== "granted") return;
+
+      if ("serviceWorker" in navigator) {
+        const reg = await navigator.serviceWorker.ready;
+        if (reg && reg.active) {
+          reg.active.postMessage({
+            type: "SHOW_WALI_NOTIFICATION",
+            payload: {
+              title,
+              body,
+              targetTab,
+              notifId,
+              tag: `nwf-wali-${notifId || Date.now()}`,
+            },
+          });
+          return;
+        }
+        if (reg && reg.showNotification) {
+          await reg.showNotification(title, {
+            body,
+            icon: "/nwf.png",
+            badge: "/nwf.png",
+            vibrate: [200, 100, 200],
+            data: { targetTab, notifId },
+          });
+          return;
+        }
+      }
+
+      new window.Notification(title, {
+        body,
+        icon: "/nwf.png",
+      });
+    } catch (e) {
+      console.warn("Push notification notice:", e.message);
+    }
+  };
+
+  const handleRequestPushPermission = async () => {
+    try {
+      if (!("Notification" in window)) {
+        showError("Tidak Didukung", "Browser HP Anda belum mendukung notifikasi sistem.");
+        return;
+      }
+      const perm = await window.Notification.requestPermission();
+      setPushPermission(perm);
+      if (perm === "granted") {
+        toastSuccess("Notifikasi Aktif!", "Notifikasi aktivitas santri kini aktif di layar HP Anda.");
+        triggerNativePhoneNotification(
+          "NWF Mobile • Notifikasi Aktif ✅",
+          `Setiap aktivitas ${rawSantriName} (Absensi, Tabungan, Tahfidz & Kegiatan) akan muncul otomatis di HP Anda.`,
+          "beranda"
+        );
+      }
+    } catch (e) {}
+  };
+
+  const handleSendTestNotification = () => {
+    triggerNativePhoneNotification(
+      `Info Santri: ${rawSantriName}`,
+      `Alhamdulillah, fitur notifikasi real-time di HP Bapak/Ibu berfungsi dengan baik.`,
+      "notifikasi"
+    );
+    toastSuccess("Notifikasi Dikirim", "Cek bar notifikasi di bagian atas layar HP Anda.");
+  };
+
+  const fetchNotifikasiWali = async (targetId = selectedSantriId, isBackgroundPoll = false) => {
+    if (!targetId) return;
+    try {
+      const storageKey = `nwf_last_notif_id_${targetId}`;
+      const lastSeenId = parseInt(localStorage.getItem(storageKey) || "0") || 0;
+
+      const res = await axios.get(
+        `/api/wali/notifikasi?santri_id=${targetId}&since_id=${lastSeenId}&limit=40`
+      );
+      if (res.data?.success && res.data.data) {
+        const {
+          notifications = [],
+          new_notifications = [],
+          unread_count = 0,
+          latest_id = 0,
+        } = res.data.data;
+
+        setNotifikasiList(notifications);
+        setUnreadNotifCount(unread_count);
+
+        // Jika ada notifikasi baru saat polling berjalan, munculkan Push Notification ala Shopee
+        if (lastSeenId > 0 && new_notifications.length > 0) {
+          new_notifications.slice(0, 3).forEach((n) => {
+            triggerNativePhoneNotification(
+              n.judul || "Info Santri Baru",
+              n.pesan || "",
+              n.target_tab || "notifikasi",
+              n.id
+            );
+          });
+          // Tampilkan juga toast ringan jika sedang membuka aplikasi
+          const newest = new_notifications[0];
+          if (newest) {
+            toastSuccess(newest.judul, newest.pesan);
+          }
+        }
+
+        if (latest_id > lastSeenId) {
+          localStorage.setItem(storageKey, String(latest_id));
+        }
+      }
+    } catch (e) {
+      if (!isBackgroundPoll) {
+        console.warn("Notifikasi wali notice:", e.message);
+      }
+    }
+  };
+
+  const handleMarkAllNotifRead = async () => {
+    if (!selectedSantriId) return;
+    try {
+      await axios.put("/api/wali/notifikasi/read", { santri_id: selectedSantriId });
+      setNotifikasiList((prev) => prev.map((n) => ({ ...n, is_read: 1 })));
+      setUnreadNotifCount(0);
+    } catch (e) {}
+  };
+
+  const handleClearAllNotif = async () => {
+    if (!selectedSantriId) return;
+    try {
+      await axios.delete(`/api/wali/notifikasi/clear?santri_id=${selectedSantriId}`);
+      setNotifikasiList([]);
+      setUnreadNotifCount(0);
+      toastSuccess("Dibersihkan", "Riwayat notifikasi berhasil dihapus.");
+    } catch (e) {}
+  };
+
+  const handleClickNotificationItem = async (notif) => {
+    if (!notif) return;
+    try {
+      if (Number(notif.is_read) === 0) {
+        await axios.put("/api/wali/notifikasi/read", { notif_id: notif.id });
+        setNotifikasiList((prev) =>
+          prev.map((item) => (item.id === notif.id ? { ...item, is_read: 1 } : item))
+        );
+        setUnreadNotifCount((prev) => Math.max(0, prev - 1));
+      }
+    } catch (e) {}
+
+    if (notif.target_tab && notif.target_tab !== "notifikasi") {
+      setCurrentTab(notif.target_tab);
+    }
+  };
+
   useEffect(() => {
     fetchWaliData();
     fetchKeuanganOverview();
     fetchLatestFeed();
     fetchSantriTabungan();
+    fetchNotifikasiWali(selectedSantriId, false);
+  }, [selectedSantriId]);
+
+  // Smart Delta Polling Ringan (setiap 20 detik saat tab aktif) + Listener Klik Notifikasi Service Worker
+  useEffect(() => {
+    if (!selectedSantriId) return;
+
+    // Minta izin notifikasi secara halus setelah 4 detik jika masih default
+    let permTimer = null;
+    if ("Notification" in window && window.Notification.permission === "default") {
+      permTimer = setTimeout(() => {
+        window.Notification.requestPermission().then((p) => setPushPermission(p)).catch(() => {});
+      }, 4000);
+    }
+
+    const pollInterval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        fetchNotifikasiWali(selectedSantriId, true);
+      }
+    }, 20000);
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchNotifikasiWali(selectedSantriId, true);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    const onSwMessage = (event) => {
+      if (event.data && event.data.type === "NAVIGATE_FROM_NOTIFICATION") {
+        const target = event.data.targetTab || "notifikasi";
+        setCurrentTab(target);
+      }
+    };
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("message", onSwMessage);
+    }
+
+    return () => {
+      if (permTimer) clearTimeout(permTimer);
+      clearInterval(pollInterval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.removeEventListener("message", onSwMessage);
+      }
+    };
   }, [selectedSantriId]);
 
   useEffect(() => {
@@ -395,6 +603,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
     fetchWaliData(newId);
     fetchKeuanganOverview(newId);
     fetchSantriTabungan(newId);
+    fetchNotifikasiWali(newId, false);
   };
 
   const handleUpdatePassword = async (e) => {
@@ -752,6 +961,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
             handleLanjutkanBayar={handleLanjutkanBayar}
             handleBatalkanTransaksi={handleBatalkanTransaksi}
             formatRp={formatRp}
+            unreadNotifCount={unreadNotifCount}
             onNavigateTab={setCurrentTab}
             handleLogoutAction={handleLogoutAction}
           />
@@ -854,6 +1064,14 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
           <TabNotifikasiWali
             rawSantriName={rawSantriName}
             displayNisn={displayNisn}
+            notifikasiList={notifikasiList}
+            unreadCount={unreadNotifCount}
+            pushPermission={pushPermission}
+            onRequestPushPermission={handleRequestPushPermission}
+            onSendTestNotification={handleSendTestNotification}
+            onMarkAllRead={handleMarkAllNotifRead}
+            onClearAll={handleClearAllNotif}
+            onClickNotification={handleClickNotificationItem}
             onBack={() => setCurrentTab("beranda")}
           />
         )}

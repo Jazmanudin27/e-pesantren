@@ -1,5 +1,6 @@
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
+import { createWaliNotification } from './notifikasi.controller.js';
 
 let isAbsensiTablesChecked = false;
 export const ensureAbsensiTablesAndColumns = async () => {
@@ -325,6 +326,15 @@ export const createAbsensiFingerprint = async (req, res) => {
       insertResult = resInsert;
     }
 
+    // Catat notifikasi ke HP Orang Tua / Wali Santri
+    createWaliNotification({
+      santri_id: finalSantriId,
+      kategori: 'absensi',
+      judul: `Presensi ${finalKegiatan}: ${finalStatus}`,
+      pesan: `Alhamdulillah, ananda tercatat ${finalStatus} pada kegiatan ${finalKegiatan} pukul ${String(scanTime).slice(0, 5)} WIB (${finalMetode}).`,
+      target_tab: 'absensi'
+    });
+
     return sendSuccess(res, 'Presensi berhasil dicatat', { id: insertResult.insertId, metode_presensi: finalMetode }, 201);
   } catch (err) {
     return sendError(res, err.message, 500);
@@ -381,6 +391,14 @@ export const syncMobileAbsensi = async (req, res) => {
             tanggal, sesi_id, nama_kegiatan, tipe_presensi, santri_id, waktu_scan, status, device_id, metode_presensi, keterangan
           ) VALUES (?, NULL, ?, ?, ?, ?, ?, 1, ?, ?)
         `, [tgl, kegiatanName, tipe, item.santri_id, scanTime, st, mt, ket]).catch(() => {});
+
+        createWaliNotification({
+          santri_id: item.santri_id,
+          kategori: 'absensi',
+          judul: `Presensi ${kegiatanName}: ${st}`,
+          pesan: `Ananda tercatat ${st} pada kegiatan ${kegiatanName} pukul ${String(scanTime).slice(0, 5)} WIB (${mt}).`,
+          target_tab: 'absensi'
+        });
       }
       syncedCount++;
     }

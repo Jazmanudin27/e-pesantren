@@ -1,4 +1,5 @@
 import pool from '../config/database.js';
+import { createWaliNotification } from './notifikasi.controller.js';
 
 /**
  * Controller Resmi untuk Integrasi Mesin Fingerprint (Protokol ADMS / Cloud Server ZKTeco & Solution)
@@ -161,6 +162,7 @@ export const handleAdmsPushData = async (req, res) => {
 
       // 2. Tentukan Sesi Kegiatan Berdasarkan Jam Scan
       let sesiId = 1;
+      let namaSesiAktif = 'Shalat Berjamaah';
       let statusKehadiran = 'Hadir';
 
       try {
@@ -180,13 +182,15 @@ export const handleAdmsPushData = async (req, res) => {
 
         if (sesiRows && sesiRows.length > 0) {
           sesiId = sesiRows[0].id;
+          namaSesiAktif = sesiRows[0].nama_sesi || 'Shalat Berjamaah';
           if (sesiRows[0].jam_toleransi_telat && waktuScan > sesiRows[0].jam_toleransi_telat) {
             statusKehadiran = 'Terlambat';
           }
         } else {
-          const [anySesi] = await pool.query('SELECT id FROM kegiatan_sesi LIMIT 1');
+          const [anySesi] = await pool.query('SELECT id, nama_sesi FROM kegiatan_sesi LIMIT 1');
           if (anySesi && anySesi.length > 0) {
             sesiId = anySesi[0].id;
+            namaSesiAktif = anySesi[0].nama_sesi || 'Shalat Berjamaah';
           }
         }
       } catch (eSesi) {
@@ -245,6 +249,13 @@ export const handleAdmsPushData = async (req, res) => {
       }
 
       processedCount++;
+      createWaliNotification({
+        santri_id: santri.id,
+        kategori: 'absensi',
+        judul: `Scan Fingerprint: ${namaSesiAktif}`,
+        pesan: `Alhamdulillah, ${santri.nama_santri} telah melakukan scan fingerprint (${statusKehadiran}) pada ${namaSesiAktif} pukul ${String(waktuScan).slice(0, 5)} WIB.`,
+        target_tab: 'absensi'
+      });
       console.log(`[ADMS SUCCESS] ${santri.nama_santri} (PIN: ${pin}) berhasil presensi jam ${waktuScan}!`);
     } catch (lineErr) {
       console.error(`[ADMS ERROR] Gagal proses baris "${line}":`, lineErr.message);

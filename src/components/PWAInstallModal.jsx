@@ -11,10 +11,13 @@ export default function PWAInstallModal() {
   useEffect(() => {
     // 1. Cek apakah sudah running dalam mode standalone / sudah diinstall
     const checkStandalone = () => {
+      const urlParams = new URLSearchParams(window.location.search);
       const isStandaloneMode = 
         window.matchMedia('(display-mode: standalone)').matches ||
+        window.matchMedia('(display-mode: fullscreen)').matches ||
         window.navigator.standalone === true ||
-        document.referrer.includes('android-app://');
+        document.referrer.includes('android-app://') ||
+        urlParams.get('source') === 'pwa';
       setIsStandalone(isStandaloneMode);
       return isStandaloneMode;
     };

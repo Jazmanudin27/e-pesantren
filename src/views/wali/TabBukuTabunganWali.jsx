@@ -142,7 +142,7 @@ const TabBukuTabunganWali = ({
             </div>
           </div>
 
-          {/* 2 Mini Counters with Frosted Glass */}
+          {/* 2 Mini Counters with Crisp White Cards */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
@@ -151,31 +151,31 @@ const TabBukuTabunganWali = ({
             zIndex: 2
           }}>
             <div style={{
-              background: 'rgba(0, 0, 0, 0.22)',
-              backdropFilter: 'blur(6px)',
+              background: '#ffffff',
               padding: '9px 12px',
               borderRadius: '12px',
-              border: '1px solid rgba(255, 255, 255, 0.12)'
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.14)',
+              border: '1px solid rgba(255, 255, 255, 0.9)'
             }}>
-              <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#a7f3d0', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase' }}>
-                <ArrowDownLeft size={12} color="#4ade80" strokeWidth={2.5} /> Total Uang Masuk
+              <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase' }}>
+                <ArrowDownLeft size={12} color="#059669" strokeWidth={2.5} /> Total Uang Masuk
               </div>
-              <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#4ade80', marginTop: '3px' }}>
+              <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#059669', marginTop: '3px' }}>
                 +{formatRp(tabunganData?.total_masuk || 0)}
               </div>
             </div>
 
             <div style={{
-              background: 'rgba(0, 0, 0, 0.22)',
-              backdropFilter: 'blur(6px)',
+              background: '#ffffff',
               padding: '9px 12px',
               borderRadius: '12px',
-              border: '1px solid rgba(255, 255, 255, 0.12)'
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.14)',
+              border: '1px solid rgba(255, 255, 255, 0.9)'
             }}>
-              <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#fecdd3', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase' }}>
-                <ArrowUpRight size={12} color="#fca5a5" strokeWidth={2.5} /> Total Pengambilan
+              <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase' }}>
+                <ArrowUpRight size={12} color="#e11d48" strokeWidth={2.5} /> Total Pengambilan
               </div>
-              <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#fca5a5', marginTop: '3px' }}>
+              <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#e11d48', marginTop: '3px' }}>
                 -{formatRp(tabunganData?.total_keluar || 0)}
               </div>
             </div>

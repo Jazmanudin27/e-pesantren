@@ -4,6 +4,7 @@ import { canAccessKeuangan } from '../utils/authRole.util.js';
 import { createBniVirtualAccount } from '../services/bni.service.js';
 import { createIpaymuTransaction } from '../services/ipaymu.service.js';
 import { chargeMidtransDirect, createMidtransSnapToken, checkMidtransTransactionStatus } from '../services/midtrans.service.js';
+import { createWaliNotification } from './notifikasi.controller.js';
 
 /**
  * Helper Internal: Generate Auto Tagihan (SPP Bulanan Okt 2026 - Jun 2027 + Tagihan Bebas Non-Bulanan) untuk 1 Santri
@@ -601,6 +602,15 @@ export const konfirmasiPembayaranBerhasil = async (req, res) => {
     `, [tanggalBayar, kuitansiNomor, trx.id]);
 
     await connection.commit();
+
+    const fmtBayar = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(trx.total_bayar || 0);
+    createWaliNotification({
+      santri_id: trx.santri_id,
+      kategori: 'keuangan',
+      judul: `Pembayaran Berhasil: ${fmtBayar}`,
+      pesan: `Alhamdulillah, pembayaran tagihan sebesar ${fmtBayar} (Kuitansi: ${kuitansiNomor}) telah terverifikasi.`,
+      target_tab: 'tagihan'
+    });
 
     return sendSuccess(res, 'Pembayaran berhasil diverifikasi secara otomatis! Tagihan telah lunas/berkurang.', {
       transaksi_id: trx.id,

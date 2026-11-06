@@ -1,6 +1,7 @@
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
 import { sendWANotification } from '../utils/whatsapp.util.js';
+import { createWaliNotification } from './notifikasi.controller.js';
 
 const VALID_STATUSES = [
   'Menunggu Persetujuan',
@@ -114,6 +115,14 @@ export const createPerizinan = async (req, res) => {
       console.warn('Gagal kirim WA perizinan:', e.message);
     }
 
+    createWaliNotification({
+      santri_id,
+      kategori: 'perizinan',
+      judul: `${cleanJenis}: ${cleanStatus}`,
+      pesan: `Permohonan ${cleanJenis} (${kode_izin}) untuk keperluan "${keperluan || '-'}" berstatus: ${cleanStatus}.`,
+      target_tab: 'perizinan'
+    });
+
     return sendSuccess(res, 'Izin santri berhasil dibuat', { id: result.insertId, barcode, kode_izin, status: cleanStatus }, 201);
   } catch (err) {
     return sendError(res, err.message, 500);
@@ -165,6 +174,14 @@ export const updatePerizinan = async (req, res) => {
     } catch (e) {
       console.warn('Gagal kirim WA update status perizinan:', e.message);
     }
+
+    createWaliNotification({
+      santri_id,
+      kategori: 'perizinan',
+      judul: `Update Status Izin: ${cleanStatus}`,
+      pesan: `Status ${cleanJenis} ananda telah diperbarui menjadi "${cleanStatus}" oleh ${disetujui_oleh || 'Dewan Pengasuh'}.`,
+      target_tab: 'perizinan'
+    });
 
     return sendSuccess(res, 'Data perizinan berhasil diperbarui');
   } catch (err) {

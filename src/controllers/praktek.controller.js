@@ -1,5 +1,6 @@
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
+import { createWaliNotification } from './notifikasi.controller.js';
 
 let isPraktekTablesInitialized = false;
 
@@ -286,6 +287,14 @@ export const createPraktek = async (req, res) => {
       catatan_perbaikan || deskripsi || '',
       tgl
     ]);
+
+    createWaliNotification({
+      santri_id,
+      kategori: 'praktek',
+      judul: `Ujian Praktek: ${finalNamaPraktek}`,
+      pesan: `Hasil penilaian praktek ibadah "${finalNamaPraktek}" telah diinput dengan status: ${finalStatus}.${deskripsi ? ' Catatan: ' + deskripsi : ''}`,
+      target_tab: 'praktek'
+    });
 
     return sendSuccess(res, 'Penilaian praktek berhasil disimpan', { 
       id: result.insertId, 

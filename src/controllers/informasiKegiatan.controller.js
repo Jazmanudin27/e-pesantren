@@ -1,5 +1,6 @@
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
+import { createWaliNotification } from './notifikasi.controller.js';
 
 /**
  * Mengambil Daftar Linimasa / Feed Informasi & Dokumentasi Kegiatan Pesantren
@@ -62,6 +63,14 @@ export const createInformasi = async (req, res) => {
       (judul, kategori, ringkasan, konten, foto_url, video_url, penulis, tanggal_publikasi, is_pinned)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [judul, kategori || 'Kegiatan Santri', ringkasan || null, konten, foto_url || null, video_url || null, author, tgl, is_pinned ? 1 : 0]);
+
+    createWaliNotification({
+      santri_id: null, // Broadcast ke semua wali santri
+      kategori: 'kegiatan',
+      judul: `Info Kegiatan: ${judul}`,
+      pesan: ringkasan || String(konten || '').slice(0, 140),
+      target_tab: 'informasi'
+    });
 
     return sendSuccess(res, 'Informasi kegiatan berhasil diterbitkan ke linimasa', { id: result.insertId });
   } catch (err) {

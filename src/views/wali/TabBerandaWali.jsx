@@ -70,6 +70,7 @@ const TabBerandaWali = ({
   handleLanjutkanBayar,
   handleBatalkanTransaksi,
   formatRp = (n) => `Rp ${(n || 0).toLocaleString('id-ID')}`,
+  unreadNotifCount = 0,
   onNavigateTab,
   handleLogoutAction
 }) => {
@@ -182,15 +183,38 @@ const TabBerandaWali = ({
               title="Pemberitahuan Pesantren"
             >
               <Bell size={18} />
-              <span style={{
-                position: 'absolute',
-                top: '4px',
-                right: '4px',
-                width: '7px',
-                height: '7px',
-                borderRadius: '50%',
-                background: '#ef4444'
-              }} />
+              {unreadNotifCount > 0 ? (
+                <span style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-4px',
+                  minWidth: '17px',
+                  height: '17px',
+                  padding: '0 4px',
+                  borderRadius: '99px',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '0.58rem',
+                  fontWeight: 900,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1.5px solid #0d766e',
+                  boxShadow: '0 2px 6px rgba(239, 68, 68, 0.5)'
+                }}>
+                  {unreadNotifCount > 99 ? '99+' : unreadNotifCount}
+                </span>
+              ) : (
+                <span style={{
+                  position: 'absolute',
+                  top: '4px',
+                  right: '4px',
+                  width: '7px',
+                  height: '7px',
+                  borderRadius: '50%',
+                  background: '#10b981'
+                }} />
+              )}
             </button>
 
             <button
@@ -669,32 +693,32 @@ const TabBerandaWali = ({
                 margin: '8px 0 7px'
               }} />
 
-              {/* Sub Metrics: Glass Pills */}
+              {/* Sub Metrics: Crisp White Cards */}
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
-                gap: '6px'
+                gap: '8px'
               }}>
                 <div style={{
-                  background: 'rgba(0, 0, 0, 0.22)',
-                  backdropFilter: 'blur(4px)',
-                  padding: '6px 10px',
-                  borderRadius: '10px',
-                  border: '1px solid rgba(255, 255, 255, 0.12)'
+                  background: '#ffffff',
+                  padding: '8px 11px',
+                  borderRadius: '11px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.14)',
+                  border: '1px solid rgba(255, 255, 255, 0.9)'
                 }}>
                   <div style={{
-                    fontSize: '0.58rem',
+                    fontSize: '0.56rem',
                     fontWeight: 800,
-                    color: '#a7f3d0',
+                    color: '#64748b',
                     letterSpacing: '0.03em',
                     textTransform: 'uppercase'
                   }}>
                     TOTAL UANG MASUK
                   </div>
                   <div style={{
-                    fontSize: '0.84rem',
+                    fontSize: '0.86rem',
                     fontWeight: 900,
-                    color: '#4ade80',
+                    color: '#059669',
                     marginTop: '2px',
                     letterSpacing: '-0.2px'
                   }}>
@@ -703,25 +727,25 @@ const TabBerandaWali = ({
                 </div>
 
                 <div style={{
-                  background: 'rgba(0, 0, 0, 0.22)',
-                  backdropFilter: 'blur(4px)',
-                  padding: '6px 10px',
-                  borderRadius: '10px',
-                  border: '1px solid rgba(255, 255, 255, 0.12)'
+                  background: '#ffffff',
+                  padding: '8px 11px',
+                  borderRadius: '11px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.14)',
+                  border: '1px solid rgba(255, 255, 255, 0.9)'
                 }}>
                   <div style={{
-                    fontSize: '0.58rem',
+                    fontSize: '0.56rem',
                     fontWeight: 800,
-                    color: '#fecdd3',
+                    color: '#64748b',
                     letterSpacing: '0.03em',
                     textTransform: 'uppercase'
                   }}>
                     TOTAL PENGAMBILAN
                   </div>
                   <div style={{
-                    fontSize: '0.84rem',
+                    fontSize: '0.86rem',
                     fontWeight: 900,
-                    color: '#fca5a5',
+                    color: '#e11d48',
                     marginTop: '2px',
                     letterSpacing: '-0.2px'
                   }}>
@@ -791,32 +815,32 @@ const TabBerandaWali = ({
                 margin: '8px 0 7px'
               }} />
 
-              {/* Sub Metrics: Glass Pills */}
+              {/* Sub Metrics: Crisp White Cards */}
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
-                gap: '6px'
+                gap: '8px'
               }}>
                 <div style={{
-                  background: 'rgba(0, 0, 0, 0.22)',
-                  backdropFilter: 'blur(4px)',
-                  padding: '6px 10px',
-                  borderRadius: '10px',
-                  border: '1px solid rgba(255, 255, 255, 0.12)'
+                  background: '#ffffff',
+                  padding: '8px 11px',
+                  borderRadius: '11px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.14)',
+                  border: '1px solid rgba(255, 255, 255, 0.9)'
                 }}>
                   <div style={{
-                    fontSize: '0.58rem',
+                    fontSize: '0.56rem',
                     fontWeight: 800,
-                    color: '#bae6fd',
+                    color: '#64748b',
                     letterSpacing: '0.03em',
                     textTransform: 'uppercase'
                   }}>
                     SPP BULANAN
                   </div>
                   <div style={{
-                    fontSize: '0.84rem',
+                    fontSize: '0.86rem',
                     fontWeight: 900,
-                    color: '#ffffff',
+                    color: '#1d4ed8',
                     marginTop: '2px',
                     letterSpacing: '-0.2px'
                   }}>
@@ -825,25 +849,25 @@ const TabBerandaWali = ({
                 </div>
 
                 <div style={{
-                  background: 'rgba(0, 0, 0, 0.22)',
-                  backdropFilter: 'blur(4px)',
-                  padding: '6px 10px',
-                  borderRadius: '10px',
-                  border: '1px solid rgba(255, 255, 255, 0.12)'
+                  background: '#ffffff',
+                  padding: '8px 11px',
+                  borderRadius: '11px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.14)',
+                  border: '1px solid rgba(255, 255, 255, 0.9)'
                 }}>
                   <div style={{
-                    fontSize: '0.58rem',
+                    fontSize: '0.56rem',
                     fontWeight: 800,
-                    color: '#fed7aa',
+                    color: '#64748b',
                     letterSpacing: '0.03em',
                     textTransform: 'uppercase'
                   }}>
                     SISA BIAYA MASUK
                   </div>
                   <div style={{
-                    fontSize: '0.84rem',
+                    fontSize: '0.86rem',
                     fontWeight: 900,
-                    color: '#fef08a',
+                    color: '#d97706',
                     marginTop: '2px',
                     letterSpacing: '-0.2px'
                   }}>

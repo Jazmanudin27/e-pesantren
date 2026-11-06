@@ -1,6 +1,7 @@
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
 import { createMidtransSnapToken } from '../services/midtrans.service.js';
+import { createWaliNotification } from './notifikasi.controller.js';
 
 let isTabunganTablesInitialized = false;
 
@@ -371,6 +372,16 @@ export const tambahSaldoSantri = async (req, res) => {
 
     await connection.commit();
 
+    const fmtNom = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(nom);
+    const fmtSaldo = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(saldoSesudah);
+    createWaliNotification({
+      santri_id,
+      kategori: 'tabungan',
+      judul: `Tabungan Masuk: +${fmtNom}`,
+      pesan: `Saldo tabungan ananda bertambah ${fmtNom} (${cleanKet}). Total saldo saat ini: ${fmtSaldo}.`,
+      target_tab: 'tabungan'
+    });
+
     return sendSuccess(res, 'Saldo tabungan berhasil ditambahkan', {
       transaksi_id: trxResult.insertId,
       kode_transaksi: kodeTransaksi,
@@ -465,6 +476,16 @@ export const tarikSaldoSantri = async (req, res) => {
     );
 
     await connection.commit();
+
+    const fmtNom = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(nom);
+    const fmtSaldo = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(saldoSesudah);
+    createWaliNotification({
+      santri_id,
+      kategori: 'tabungan',
+      judul: `Pengambilan Tabungan: -${fmtNom}`,
+      pesan: `Tercatat penarikan tabungan sebesar ${fmtNom} (${cleanKet}). Sisa saldo saat ini: ${fmtSaldo}.`,
+      target_tab: 'tabungan'
+    });
 
     return sendSuccess(res, 'Pengambilan tabungan berhasil dicatat', {
       transaksi_id: trxResult.insertId,

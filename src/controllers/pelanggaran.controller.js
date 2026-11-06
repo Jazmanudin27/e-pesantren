@@ -1,6 +1,7 @@
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
 import { sendWANotification } from '../utils/whatsapp.util.js';
+import { createWaliNotification } from './notifikasi.controller.js';
 
 export const getPelanggaran = async (req, res) => {
   try {
@@ -54,6 +55,14 @@ export const createPelanggaran = async (req, res) => {
         console.warn('Gagal kirim WA pelanggaran:', e.message);
       }
     }
+
+    createWaliNotification({
+      santri_id,
+      kategori: 'pelanggaran',
+      judul: `Catatan Kedisiplinan (${kategori || 'Ringan'})`,
+      pesan: `Ananda tercatat melakukan pelanggaran: "${jenis_pelanggaran || kategori}". Pembinaan/Ta'zir: ${bentuk_tazir || 'Pembinaan'}.`,
+      target_tab: 'pelanggaran'
+    });
 
     return sendSuccess(res, 'Catatan pelanggaran berhasil disimpan', { id: result.insertId }, 201);
   } catch (err) {

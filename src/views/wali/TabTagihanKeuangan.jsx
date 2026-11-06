@@ -403,7 +403,7 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
             </div>
           </div>
 
-          {/* 2 Mini Counters with Frosted Glass */}
+          {/* 2 Mini Counters with Crisp White Cards */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
@@ -412,31 +412,31 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
             zIndex: 2
           }}>
             <div style={{
-              background: 'rgba(0, 0, 0, 0.22)',
-              backdropFilter: 'blur(6px)',
+              background: '#ffffff',
               padding: '9px 12px',
               borderRadius: '12px',
-              border: '1px solid rgba(255, 255, 255, 0.12)'
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.14)',
+              border: '1px solid rgba(255, 255, 255, 0.9)'
             }}>
-              <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#bae6fd', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
                 Tunggakan SPP Bulanan
               </div>
-              <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#ffffff', marginTop: '3px' }}>
+              <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#1d4ed8', marginTop: '3px' }}>
                 {summary.formattedBulanan || 'Rp 0'}
               </div>
             </div>
 
             <div style={{
-              background: 'rgba(0, 0, 0, 0.22)',
-              backdropFilter: 'blur(6px)',
+              background: '#ffffff',
               padding: '9px 12px',
               borderRadius: '12px',
-              border: '1px solid rgba(255, 255, 255, 0.12)'
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.14)',
+              border: '1px solid rgba(255, 255, 255, 0.9)'
             }}>
-              <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#fed7aa', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
                 Sisa Biaya Awal Masuk
               </div>
-              <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#fef08a', marginTop: '3px' }}>
+              <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#d97706', marginTop: '3px' }}>
                 {summary.formattedSisaBiayaMasuk || 'Rp 0'}
               </div>
             </div>
