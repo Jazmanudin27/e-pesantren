@@ -96,13 +96,23 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       const m = c.match(/\(Wali\s+([^)]+)\)/i);
       if (m && m[1]) return m[1].trim();
     }
-    if (c.toLowerCase().startsWith("wali santri ")) return c.substring(12).trim();
+    if (c.toLowerCase().startsWith("wali santri "))
+      return c.substring(12).trim();
     if (c.toLowerCase().startsWith("wali ")) return c.substring(5).trim();
-    if (c.toLowerCase().startsWith("orang tua santri")) return c.replace(/^orang tua santri/i, "").replace(/^[^\w]+/, "").trim();
+    if (c.toLowerCase().startsWith("orang tua santri"))
+      return c
+        .replace(/^orang tua santri/i, "")
+        .replace(/^[^\w]+/, "")
+        .trim();
     return c;
   };
 
-  const rawName = cleanName(sessionData.nama_santri || sessionData.nama || sessionData.username || "Admin");
+  const rawName = cleanName(
+    sessionData.nama_santri ||
+      sessionData.nama ||
+      sessionData.username ||
+      "Admin",
+  );
   const displayName = rawName.includes(" ") ? rawName : rawName;
 
   // Auto reset scroll to top on mount (cegah header ketutup/terpotong saat refresh)
@@ -158,9 +168,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       let allSantri = [];
       if (resSantri.status === "fulfilled" && resSantri.value.data?.success) {
         allSantri =
-          resSantri.value.data.data?.data ||
-          resSantri.value.data.data ||
-          [];
+          resSantri.value.data.data?.data || resSantri.value.data.data || [];
         const totalCount =
           resSantri.value.data.data?.total ||
           resSantri.value.data.total ||
@@ -175,9 +183,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
 
       if (resSesi.status === "fulfilled" && resSesi.value.data?.success) {
         setSesiList(
-          resSesi.value.data.data?.data ||
-          resSesi.value.data.data ||
-          []
+          resSesi.value.data.data?.data || resSesi.value.data.data || [],
         );
       }
 
@@ -239,7 +245,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               status: "Izin",
               status_kehadiran: "Izin",
               nama_sesi: "Izin Keluar / Pulang",
-              waktu_scan: iz.tgl_keluar_rencana ? String(iz.tgl_keluar_rencana).slice(11, 16) : "-",
+              waktu_scan: iz.tgl_keluar_rencana
+                ? String(iz.tgl_keluar_rencana).slice(11, 16)
+                : "-",
             });
           }
         });
@@ -447,7 +455,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 "Konfirmasi Keluar",
                 "Apakah Anda yakin ingin keluar dari NWF Mobile?",
                 "Ya, Keluar",
-                "Batal"
+                "Batal",
               );
               if (ok && onLogout) onLogout();
             }}
@@ -604,11 +612,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                     letterSpacing: "0.03em",
                   }}
                 >
-                  {sessionData.nisn || sessionData.nis ? (
-                    `NISN: ${sessionData.nisn || sessionData.nis}`
-                  ) : (
-                    "NWF-2026-ADM"
-                  )}
+                  {sessionData.nisn || sessionData.nis
+                    ? `NISN: ${sessionData.nisn || sessionData.nis}`
+                    : "NWF-2026-ADM"}
                 </div>
               </div>
             </div>
@@ -1562,7 +1568,10 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                     letterSpacing: "-0.2px",
                   }}
                 >
-                  Santri {selectedStatusTab === "Alfa" ? "Belum Absen" : selectedStatusTab}
+                  Santri{" "}
+                  {selectedStatusTab === "Alfa"
+                    ? "Belum Absen"
+                    : selectedStatusTab}
                 </h3>
                 <div
                   style={{
@@ -1618,265 +1627,262 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             }}
           >
             {[
-                {
-                  key: "Hadir",
-                  count: modalHadirCount,
-                  color: "#10b981",
-                  bg: "#ecfdf5",
-                },
-                {
-                  key: "Sakit",
-                  count: modalSakitCount,
-                  color: "#ef4444",
-                  bg: "#fef2f2",
-                },
-                {
-                  key: "Izin",
-                  count: modalIzinCount,
-                  color: "#f59e0b",
-                  bg: "#fffbeb",
-                },
-                {
-                  key: "Alfa",
-                  label: "Belum",
-                  count: modalAlfaCount,
-                  color: "#0d9488",
-                  bg: "#f0fdfa",
-                },
-              ].map((st) => {
-                const isActive = selectedStatusTab === st.key;
-                return (
-                  <button
-                    key={st.key}
-                    onClick={() => setSelectedStatusTab(st.key)}
-                    style={{
-                      padding: "8px 4px",
-                      borderRadius: "12px",
-                      border: isActive
-                        ? `2px solid ${st.color}`
-                        : "1px solid #e2e8f0",
-                      background: isActive ? st.bg : "#ffffff",
-                      color: isActive ? st.color : "#64748b",
-                      fontSize: "0.74rem",
-                      fontWeight: isActive ? 800 : 600,
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: "2px",
-                      cursor: "pointer",
-                      boxShadow: isActive
-                        ? "0 2px 8px rgba(0,0,0,0.06)"
-                        : "none",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    <span>{st.label || st.key}</span>
-                    <span
-                      style={{
-                        fontSize: "0.85rem",
-                        fontWeight: 900,
-                      }}
-                    >
-                      {st.count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Filter Search & Sesi Kegiatan */}
-            <div
-              style={{
-                padding: "10px 16px",
-                display: "flex",
-                gap: "8px",
-                borderBottom: "1px solid #f1f5f9",
-              }}
-            >
-              <div
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  background: "#f1f5f9",
-                  borderRadius: "10px",
-                  padding: "0 10px",
-                  gap: "6px",
-                }}
-              >
-                <Search size={14} color="#64748b" />
-                <input
-                  type="text"
-                  placeholder="Cari santri / NIS / asrama..."
-                  value={searchModalText}
-                  onChange={(e) => setSearchModalText(e.target.value)}
+              {
+                key: "Hadir",
+                count: modalHadirCount,
+                color: "#10b981",
+                bg: "#ecfdf5",
+              },
+              {
+                key: "Sakit",
+                count: modalSakitCount,
+                color: "#ef4444",
+                bg: "#fef2f2",
+              },
+              {
+                key: "Izin",
+                count: modalIzinCount,
+                color: "#f59e0b",
+                bg: "#fffbeb",
+              },
+              {
+                key: "Alfa",
+                label: "Belum",
+                count: modalAlfaCount,
+                color: "#0d9488",
+                bg: "#f0fdfa",
+              },
+            ].map((st) => {
+              const isActive = selectedStatusTab === st.key;
+              return (
+                <button
+                  key={st.key}
+                  onClick={() => setSelectedStatusTab(st.key)}
                   style={{
-                    border: "none",
-                    background: "transparent",
-                    padding: "8px 0",
-                    fontSize: "0.76rem",
-                    color: "#0f172a",
-                    outline: "none",
-                    width: "100%",
-                  }}
-                />
-              </div>
-
-              {sesiList.length > 0 && (
-                <select
-                  value={selectedKegiatan}
-                  onChange={(e) => setSelectedKegiatan(e.target.value)}
-                  style={{
-                    padding: "8px 10px",
-                    borderRadius: "10px",
-                    border: "1px solid #cbd5e1",
-                    background: "#ffffff",
-                    fontSize: "0.72rem",
-                    fontWeight: 700,
-                    color: "#334155",
-                    outline: "none",
-                    maxWidth: "130px",
+                    padding: "8px 4px",
+                    borderRadius: "12px",
+                    border: isActive
+                      ? `2px solid ${st.color}`
+                      : "1px solid #e2e8f0",
+                    background: isActive ? st.bg : "#ffffff",
+                    color: isActive ? st.color : "#64748b",
+                    fontSize: "0.74rem",
+                    fontWeight: isActive ? 800 : 600,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "2px",
+                    cursor: "pointer",
+                    boxShadow: isActive ? "0 2px 8px rgba(0,0,0,0.06)" : "none",
+                    transition: "all 0.15s ease",
                   }}
                 >
-                  <option value="Semua">Semua Sesi</option>
-                  {sesiList.map((s) => (
-                    <option key={s.id || s.kode_sesi} value={s.nama_sesi}>
-                      {s.nama_sesi}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
+                  <span>{st.label || st.key}</span>
+                  <span
+                    style={{
+                      fontSize: "0.85rem",
+                      fontWeight: 900,
+                    }}
+                  >
+                    {st.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
-            {/* List Santri */}
+          {/* Filter Search & Sesi Kegiatan */}
+          <div
+            style={{
+              padding: "10px 16px",
+              display: "flex",
+              gap: "8px",
+              borderBottom: "1px solid #f1f5f9",
+            }}
+          >
             <div
               style={{
                 flex: 1,
-                overflowY: "auto",
-                padding: "12px 16px",
                 display: "flex",
-                flexDirection: "column",
-                gap: "8px",
+                alignItems: "center",
+                background: "#f1f5f9",
+                borderRadius: "10px",
+                padding: "0 10px",
+                gap: "6px",
               }}
             >
-              {filteredModalList.length > 0 ? (
-                filteredModalList.map((item, idx) => (
+              <Search size={14} color="#64748b" />
+              <input
+                type="text"
+                placeholder="Cari santri / NIS / asrama..."
+                value={searchModalText}
+                onChange={(e) => setSearchModalText(e.target.value)}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  padding: "8px 0",
+                  fontSize: "0.76rem",
+                  color: "#0f172a",
+                  outline: "none",
+                  width: "100%",
+                }}
+              />
+            </div>
+
+            {sesiList.length > 0 && (
+              <select
+                value={selectedKegiatan}
+                onChange={(e) => setSelectedKegiatan(e.target.value)}
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: "10px",
+                  border: "1px solid #cbd5e1",
+                  background: "#ffffff",
+                  fontSize: "0.72rem",
+                  fontWeight: 700,
+                  color: "#334155",
+                  outline: "none",
+                  maxWidth: "130px",
+                }}
+              >
+                <option value="Semua">Semua Sesi</option>
+                {sesiList.map((s) => (
+                  <option key={s.id || s.kode_sesi} value={s.nama_sesi}>
+                    {s.nama_sesi}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          {/* List Santri */}
+          <div
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              padding: "12px 16px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+            }}
+          >
+            {filteredModalList.length > 0 ? (
+              filteredModalList.map((item, idx) => (
+                <div
+                  key={item.id || idx}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "10px 12px",
+                    background: "#ffffff",
+                    borderRadius: "12px",
+                    border: "1px solid #e2e8f0",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                  }}
+                >
                   <div
-                    key={item.id || idx}
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "10px 12px",
-                      background: "#ffffff",
-                      borderRadius: "12px",
-                      border: "1px solid #e2e8f0",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                      gap: "10px",
                     }}
                   >
                     <div
                       style={{
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "50%",
+                        background: "#e0f2fe",
+                        color: "#0284c7",
                         display: "flex",
                         alignItems: "center",
-                        gap: "10px",
+                        justifyContent: "center",
+                        fontWeight: 800,
+                        fontSize: "0.85rem",
+                        flexShrink: 0,
                       }}
                     >
-                      <div
-                        style={{
-                          width: "36px",
-                          height: "36px",
-                          borderRadius: "50%",
-                          background: "#e0f2fe",
-                          color: "#0284c7",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontWeight: 800,
-                          fontSize: "0.85rem",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {(item.nama_santri || "S").charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <div
-                          style={{
-                            fontSize: "0.82rem",
-                            fontWeight: 800,
-                            color: "#0f172a",
-                          }}
-                        >
-                          {item.nama_santri || "Santri"}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "0.68rem",
-                            color: "#64748b",
-                            marginTop: "2px",
-                          }}
-                        >
-                          NIS: {item.nis || "-"} •{" "}
-                          {item.nama_asrama || "Asrama"} /{" "}
-                          {item.nama_kamar || "-"}
-                        </div>
-                      </div>
+                      {(item.nama_santri || "S").charAt(0).toUpperCase()}
                     </div>
-
-                    <div style={{ textAlign: "right" }}>
-                      <span
-                        style={{
-                          fontSize: "0.65rem",
-                          fontWeight: 800,
-                          padding: "3px 8px",
-                          borderRadius: "6px",
-                          background:
-                            (item.status || "").toLowerCase() === "hadir"
-                              ? "#dcfce7"
-                              : (item.status || "").toLowerCase() === "izin"
-                                ? "#fef3c7"
-                                : (item.status || "").toLowerCase() === "sakit"
-                                  ? "#fee2e2"
-                                  : "#f1f5f9",
-                          color:
-                            (item.status || "").toLowerCase() === "hadir"
-                              ? "#15803d"
-                              : (item.status || "").toLowerCase() === "izin"
-                                ? "#b45309"
-                                : (item.status || "").toLowerCase() === "sakit"
-                                  ? "#b91c1c"
-                                  : "#64748b",
-                        }}
-                      >
-                        {item.status || selectedStatusTab}
-                      </span>
+                    <div>
                       <div
                         style={{
-                          fontSize: "0.62rem",
-                          color: "#94a3b8",
-                          marginTop: "3px",
+                          fontSize: "0.82rem",
+                          fontWeight: 800,
+                          color: "#0f172a",
                         }}
                       >
-                        {item.jam_absen || item.waktu || "-"}
+                        {item.nama_santri || "Santri"}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "0.68rem",
+                          color: "#64748b",
+                          marginTop: "2px",
+                        }}
+                      >
+                        NIS: {item.nis || "-"} • {item.nama_asrama || "Asrama"}{" "}
+                        / {item.nama_kamar || "-"}
                       </div>
                     </div>
                   </div>
-                ))
-              ) : (
-                <div
-                  style={{
-                    padding: "36px 16px",
-                    textAlign: "center",
-                    color: "#94a3b8",
-                    fontSize: "0.82rem",
-                  }}
-                >
-                  Tidak ada data santri dengan status{" "}
-                  <strong>{selectedStatusTab}</strong>
+
+                  <div style={{ textAlign: "right" }}>
+                    <span
+                      style={{
+                        fontSize: "0.65rem",
+                        fontWeight: 800,
+                        padding: "3px 8px",
+                        borderRadius: "6px",
+                        background:
+                          (item.status || "").toLowerCase() === "hadir"
+                            ? "#dcfce7"
+                            : (item.status || "").toLowerCase() === "izin"
+                              ? "#fef3c7"
+                              : (item.status || "").toLowerCase() === "sakit"
+                                ? "#fee2e2"
+                                : "#f1f5f9",
+                        color:
+                          (item.status || "").toLowerCase() === "hadir"
+                            ? "#15803d"
+                            : (item.status || "").toLowerCase() === "izin"
+                              ? "#b45309"
+                              : (item.status || "").toLowerCase() === "sakit"
+                                ? "#b91c1c"
+                                : "#64748b",
+                      }}
+                    >
+                      {item.status || selectedStatusTab}
+                    </span>
+                    <div
+                      style={{
+                        fontSize: "0.62rem",
+                        color: "#94a3b8",
+                        marginTop: "3px",
+                      }}
+                    >
+                      {item.jam_absen || item.waktu || "-"}
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
+              ))
+            ) : (
+              <div
+                style={{
+                  padding: "36px 16px",
+                  textAlign: "center",
+                  color: "#94a3b8",
+                  fontSize: "0.82rem",
+                }}
+              >
+                Tidak ada data santri dengan status{" "}
+                <strong>{selectedStatusTab}</strong>
+              </div>
+            )}
           </div>
-        )}
+        </div>
+      )}
 
       {/* =========================================================================
           MODAL DETAIL KARTU ID ADMIN
@@ -2016,11 +2022,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                       marginTop: "2px",
                     }}
                   >
-                    {sessionData.nisn || sessionData.nis ? (
-                      `NISN: ${sessionData.nisn || sessionData.nis}`
-                    ) : (
-                      "ID: NWF-2026-ADM"
-                    )}
+                    {sessionData.nisn || sessionData.nis
+                      ? `NISN: ${sessionData.nisn || sessionData.nis}`
+                      : "ID: NWF-2026-ADM"}
                   </div>
                   <div
                     style={{

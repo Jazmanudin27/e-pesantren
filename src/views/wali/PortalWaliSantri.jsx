@@ -1463,7 +1463,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
-            <div style={{ padding: '0 16px 24px' }}>
+            {/* Santri Profile Content */}
               {/* Petunjuk Pengiriman Uang Saku */}
             <div style={{
               background: '#f0fdf4',
@@ -1581,7 +1581,6 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 </div>
               )}
             </div>
-            </div>
           </div>
         )}
 
@@ -1628,7 +1627,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
-            <div style={{ padding: '0 16px 24px' }}>
+            {/* Santri Profile Content */}
 
             {/* Profile Santri Hero Card */}
             <div style={{
@@ -2076,7 +2075,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
-            <div style={{ padding: '0 16px 24px' }}>
+            {/* Santri Profile Content */}
 
             {/* Info Banner */}
             <div style={{
@@ -2298,7 +2297,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
-            <div style={{ padding: '0 16px 24px' }}>
+            {/* Santri Profile Content */}
 
             {/* Filter Pills */}
             <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '6px', marginBottom: '12px' }}>
@@ -2405,7 +2404,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
-            <div style={{ padding: '0 16px 24px' }}>
+            {/* Santri Profile Content */}
 
             {/* Total Capaian Banner */}
             <div style={{
@@ -2509,7 +2508,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
-            <div style={{ padding: '0 16px 24px' }}>
+            {/* Santri Profile Content */}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {praktek.length === 0 ? (
@@ -2591,7 +2590,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
-            <div style={{ padding: '0 16px 24px' }}>
+            {/* Santri Profile Content */}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {pelanggaran.length === 0 ? (
@@ -2674,7 +2673,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
-            <div style={{ padding: '0 16px 24px' }}>
+            {/* Santri Profile Content */}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {[
