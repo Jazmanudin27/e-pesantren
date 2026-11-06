@@ -685,23 +685,25 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                     type="button"
                     onClick={() => setCurrentTab('absensi')}
                     style={{
-                      background: 'transparent',
-                      border: 'none',
+                      background: 'rgba(13, 148, 136, 0.08)',
+                      border: '1px solid rgba(13, 148, 136, 0.2)',
+                      borderRadius: '8px',
                       color: '#0d9488',
                       fontSize: '0.68rem',
                       fontWeight: 700,
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '2px',
-                      padding: 0
+                      gap: '3px',
+                      padding: '3px 8px',
+                      transition: 'all 0.15s ease'
                     }}
                   >
                     Rincian <ChevronRight size={12} />
                   </button>
                 </div>
 
-                {/* 4 Cards Grid */}
+                {/* 4 Cards Grid (Display Info Sahaja, Klik Rincian di Atas) */}
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(4, 1fr)',
@@ -709,7 +711,6 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 }}>
                   {/* Hadir */}
                   <div
-                    onClick={() => openAbsensiWithFilter('Hadir')}
                     style={{
                       background: 'linear-gradient(145deg, #f0fdf4 0%, #dcfce7 100%)',
                       borderRadius: '14px',
@@ -717,9 +718,8 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      cursor: 'pointer',
                       border: '1px solid #bbf7d0',
-                      transition: 'transform 0.12s ease'
+                      userSelect: 'none'
                     }}
                   >
                     <div style={{
@@ -751,7 +751,6 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
 
                   {/* Sakit */}
                   <div
-                    onClick={() => openAbsensiWithFilter('Sakit')}
                     style={{
                       background: 'linear-gradient(145deg, #fef2f2 0%, #fee2e2 100%)',
                       borderRadius: '14px',
@@ -759,9 +758,8 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      cursor: 'pointer',
                       border: '1px solid #fecaca',
-                      transition: 'transform 0.12s ease'
+                      userSelect: 'none'
                     }}
                   >
                     <div style={{
@@ -793,7 +791,6 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
 
                   {/* Izin */}
                   <div
-                    onClick={() => openAbsensiWithFilter('Izin')}
                     style={{
                       background: 'linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%)',
                       borderRadius: '14px',
@@ -801,9 +798,8 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      cursor: 'pointer',
                       border: '1px solid #fde68a',
-                      transition: 'transform 0.12s ease'
+                      userSelect: 'none'
                     }}
                   >
                     <div style={{
@@ -835,7 +831,6 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
 
                   {/* Alfa */}
                   <div
-                    onClick={() => openAbsensiWithFilter('Alfa')}
                     style={{
                       background: 'linear-gradient(145deg, #f0fdfa 0%, #ccfbf1 100%)',
                       borderRadius: '14px',
@@ -843,9 +838,8 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      cursor: 'pointer',
                       border: '1px solid #99f6e4',
-                      transition: 'transform 0.12s ease'
+                      userSelect: 'none'
                     }}
                   >
                     <div style={{
