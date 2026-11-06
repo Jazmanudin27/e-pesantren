@@ -1,7 +1,7 @@
 {
   "name": "NWF Mobile",
   "short_name": "NWF Mobile",
-  "description": "NWF Mobile - Aplikasi Pesantren & Portal Wali Santri",
+  "description": "NWF Mobile",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
