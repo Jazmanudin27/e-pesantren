@@ -265,49 +265,75 @@ export default function MobileLogin({ onLoginSuccess, onBackToOnboarding }) {
           </span>
         </div>
 
-        {/* Branding Header */}
+        {/* Branding Header: Disamakan dengan Header Beranda (NWF Mobile) */}
         <div style={{ textAlign: "center", marginBottom: "22px" }}>
           <div
             style={{
-              width: "74px",
-              height: "74px",
-              borderRadius: "22px",
+              width: "68px",
+              height: "68px",
+              borderRadius: "20px",
               background: "#ffffff",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 12px",
-              boxShadow: "0 10px 20px -5px rgba(5, 150, 105, 0.25)",
-              border: "2px solid #e2e8f0",
-              padding: "6px",
+              boxShadow: "0 10px 20px -5px rgba(13, 118, 110, 0.25)",
+              border: "1.5px solid #e2e8f0",
+              padding: "8px",
             }}
           >
             <img
               src="/nwf.png"
-              alt="Logo"
-              style={{ width: "58px", height: "58px", objectFit: "contain" }}
+              alt="NWF Logo"
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
             />
           </div>
-          <h2
+
+          <div
             style={{
-              margin: "0 0 4px",
-              fontSize: "1.28rem",
-              fontWeight: 800,
-              color: "#0f172a",
-              letterSpacing: "-0.3px",
+              display: "inline-flex",
+              alignItems: "baseline",
+              justifyContent: "center",
+              gap: "4px",
+              marginBottom: "4px",
             }}
           >
-            NWF MOBILE
-          </h2>
+            <span
+              style={{
+                fontWeight: 900,
+                fontSize: "1.65rem",
+                letterSpacing: "-0.6px",
+                color: "#0f172a",
+                lineHeight: 1,
+              }}
+            >
+              NWF
+            </span>
+            <span
+              style={{
+                fontWeight: 800,
+                fontSize: "1.32rem",
+                fontStyle: "italic",
+                letterSpacing: "-0.3px",
+                color: "#0d766e",
+                lineHeight: 1,
+              }}
+            >
+              Mobile
+            </span>
+          </div>
+
           <p
             style={{
               margin: 0,
-              fontSize: "0.8rem",
+              fontSize: "0.68rem",
               color: "#64748b",
-              fontWeight: 600,
+              fontWeight: 800,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
             }}
           >
-            PP. Nurul Wafa Sukarame
+            Pondok Pesantren Nurul Wafa
           </p>
         </div>
 

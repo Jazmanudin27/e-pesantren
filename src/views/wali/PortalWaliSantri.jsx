@@ -55,6 +55,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   const [isJatuhTempoModalOpen, setIsJatuhTempoModalOpen] = useState(false);
   const [notifikasiList, setNotifikasiList] = useState([]);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const [activeTopBannerNotif, setActiveTopBannerNotif] = useState(null);
   const [pushPermission, setPushPermission] = useState(() => {
     if (typeof window !== "undefined" && "Notification" in window) {
       return window.Notification.permission;
@@ -437,23 +438,56 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
       setPushPermission(perm);
       if (perm === "granted") {
         toastSuccess("Notifikasi Aktif!", "Notifikasi aktivitas santri kini aktif di layar HP Anda.");
-        triggerNativePhoneNotification(
-          "NWF Mobile • Notifikasi Aktif ✅",
-          `Setiap aktivitas ${rawSantriName} (Absensi, Tabungan, Tahfidz & Kegiatan) akan muncul otomatis di HP Anda.`,
-          "beranda"
-        );
       }
     } catch (e) {}
   };
 
-  const handleSendTestNotification = () => {
-    triggerNativePhoneNotification(
-      `Info Santri: ${rawSantriName}`,
-      `Alhamdulillah, fitur notifikasi real-time di HP Bapak/Ibu berfungsi dengan baik.`,
-      "notifikasi"
-    );
-    toastSuccess("Notifikasi Dikirim", "Cek bar notifikasi di bagian atas layar HP Anda.");
+  // Bunyi ting lembut (Web Audio API) & getar saat notifikasi masuk
+  const playNotificationDing = () => {
+    try {
+      if (navigator.vibrate) {
+        navigator.vibrate([180, 80, 180]);
+      }
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1174.66, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.45);
+    } catch (e) {}
   };
+
+  // Munculkan Floating Pop-Up Banner di Atas Layar (Heads-Up Ala Shopee) + Native OS Notification
+  const showShopeeHeadsUpNotification = (notif) => {
+    if (!notif) return;
+    setActiveTopBannerNotif(notif);
+    playNotificationDing();
+
+    // Kirim juga ke OS Android/iOS Notification Bar jika diizinkan
+    triggerNativePhoneNotification(
+      notif.judul || "NWF Mobile • Info Santri",
+      notif.pesan || "",
+      notif.target_tab || "notifikasi",
+      notif.id
+    );
+  };
+
+  // Auto-hide banner atas layar setelah 6.5 detik
+  useEffect(() => {
+    if (!activeTopBannerNotif) return;
+    const timer = setTimeout(() => {
+      setActiveTopBannerNotif(null);
+    }, 6500);
+    return () => clearTimeout(timer);
+  }, [activeTopBannerNotif]);
 
   const fetchNotifikasiWali = async (targetId = selectedSantriId, isBackgroundPoll = false) => {
     if (!targetId) return;
@@ -475,20 +509,15 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
         setNotifikasiList(notifications);
         setUnreadNotifCount(unread_count);
 
-        // Jika ada notifikasi baru saat polling berjalan, munculkan Push Notification ala Shopee
-        if (lastSeenId > 0 && new_notifications.length > 0) {
-          new_notifications.slice(0, 3).forEach((n) => {
-            triggerNativePhoneNotification(
-              n.judul || "Info Santri Baru",
-              n.pesan || "",
-              n.target_tab || "notifikasi",
-              n.id
-            );
-          });
-          // Tampilkan juga toast ringan jika sedang membuka aplikasi
+        // Jika ada notifikasi baru yang belum pernah muncul di layar atas HP
+        if (new_notifications.length > 0) {
           const newest = new_notifications[0];
-          if (newest) {
-            toastSuccess(newest.judul, newest.pesan);
+          showShopeeHeadsUpNotification(newest);
+        } else if (lastSeenId === 0 && notifications.length > 0) {
+          // Pertama kali buka & ada notifikasi yang belum dibaca -> munculkan 1x di atas layar
+          const firstUnread = notifications.find((n) => Number(n.is_read) === 0);
+          if (firstUnread) {
+            showShopeeHeadsUpNotification(firstUnread);
           }
         }
 
@@ -563,7 +592,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
       if (document.visibilityState === "visible") {
         fetchNotifikasiWali(selectedSantriId, true);
       }
-    }, 20000);
+    }, 8000);
 
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible") {
@@ -939,6 +968,150 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
           boxSizing: "border-box",
         }}
       >
+        {/* FLOATING HEADS-UP NOTIFICATION BANNER DI ATAS LAYAR (ALA SHOPEE) */}
+        {activeTopBannerNotif && (
+          <div
+            style={{
+              position: "fixed",
+              top: "12px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: "calc(100% - 24px)",
+              maxWidth: "406px",
+              zIndex: 999999,
+              background: "rgba(15, 23, 42, 0.96)",
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
+              borderRadius: "18px",
+              padding: "12px 14px",
+              boxShadow:
+                "0 18px 38px -6px rgba(0, 0, 0, 0.45), 0 0 0 1.5px rgba(16, 185, 129, 0.45)",
+              color: "#ffffff",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "11px",
+              cursor: "pointer",
+              animation: "slideDownShopeeNotif 0.32s cubic-bezier(0.16, 1, 0.3, 1)",
+            }}
+            onClick={() => {
+              const target = activeTopBannerNotif;
+              setActiveTopBannerNotif(null);
+              handleClickNotificationItem(target);
+            }}
+          >
+            <style>{`
+              @keyframes slideDownShopeeNotif {
+                0% { opacity: 0; transform: translate(-50%, -28px) scale(0.95); }
+                100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+              }
+            `}</style>
+
+            {/* Logo NWF App Squircle */}
+            <div
+              style={{
+                width: "40px",
+                height: "40px",
+                borderRadius: "12px",
+                background: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "5px",
+                flexShrink: 0,
+                boxShadow: "0 4px 10px rgba(0,0,0,0.25)",
+              }}
+            >
+              <img
+                src="/nwf.png"
+                alt="NWF"
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              />
+            </div>
+
+            {/* Teks Notifikasi */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "6px",
+                  marginBottom: "2px",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                  <span
+                    style={{
+                      fontSize: "0.62rem",
+                      fontWeight: 900,
+                      color: "#34d399",
+                      letterSpacing: "0.04em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    NWF MOBILE
+                  </span>
+                  <span style={{ fontSize: "0.6rem", color: "#64748b" }}>•</span>
+                  <span style={{ fontSize: "0.62rem", color: "#94a3b8", fontWeight: 600 }}>
+                    Baru saja
+                  </span>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  fontSize: "0.82rem",
+                  fontWeight: 800,
+                  color: "#ffffff",
+                  lineHeight: 1.25,
+                }}
+              >
+                {activeTopBannerNotif.judul}
+              </div>
+
+              <div
+                style={{
+                  fontSize: "0.73rem",
+                  color: "#cbd5e1",
+                  lineHeight: 1.35,
+                  marginTop: "2px",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                }}
+              >
+                {activeTopBannerNotif.pesan}
+              </div>
+            </div>
+
+            {/* Tombol Tutup X */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveTopBannerNotif(null);
+              }}
+              style={{
+                background: "rgba(255, 255, 255, 0.12)",
+                border: "none",
+                color: "#94a3b8",
+                width: "24px",
+                height: "24px",
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                flexShrink: 0,
+                padding: 0,
+              }}
+            >
+              <X size={13} />
+            </button>
+          </div>
+        )}
+
         {/* 1. BERANDA TAB */}
         {currentTab === "beranda" && (
           <TabBerandaWali
@@ -1068,7 +1241,6 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
             unreadCount={unreadNotifCount}
             pushPermission={pushPermission}
             onRequestPushPermission={handleRequestPushPermission}
-            onSendTestNotification={handleSendTestNotification}
             onMarkAllRead={handleMarkAllNotifRead}
             onClearAll={handleClearAllNotif}
             onClickNotification={handleClickNotificationItem}

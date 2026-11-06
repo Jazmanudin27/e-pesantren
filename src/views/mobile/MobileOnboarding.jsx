@@ -111,37 +111,68 @@ export default function MobileOnboarding({ onStart }) {
               justifyContent: "space-between",
             }}
           >
-            {/* Left Brand Badge */}
+            {/* Left Brand Badge: Disamakan dengan Header Beranda (NWF Mobile) */}
             <div
               style={{
-                background: "#ffffff",
-                borderRadius: "12px",
-                padding: "5px 12px 5px 8px",
+                background: "rgba(13, 118, 110, 0.88)",
+                backdropFilter: "blur(10px)",
+                WebkitBackdropFilter: "blur(10px)",
+                border: "1px solid rgba(167, 243, 208, 0.35)",
+                borderRadius: "14px",
+                padding: "5px 12px 5px 7px",
                 display: "inline-flex",
                 alignItems: "center",
-                gap: "6px",
+                gap: "8px",
                 boxShadow: "0 4px 14px rgba(0,0,0,0.25)",
               }}
             >
-              <img
-                src="/nwf.png"
-                alt="Logo Ponpes"
+              <div
                 style={{
-                  width: "22px",
-                  height: "22px",
-                  objectFit: "contain",
-                }}
-              />
-              <span
-                style={{
-                  color: "#064e3b",
-                  fontWeight: 900,
-                  fontSize: "0.74rem",
-                  letterSpacing: "0.03em",
+                  width: "26px",
+                  height: "26px",
+                  borderRadius: "8px",
+                  background: "#ffffff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "3px",
                 }}
               >
-                NWF MOBILE
-              </span>
+                <img
+                  src="/nwf.png"
+                  alt="Logo Ponpes"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                  }}
+                />
+              </div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "2px" }}>
+                <span
+                  style={{
+                    color: "#ffffff",
+                    fontWeight: 900,
+                    fontSize: "0.92rem",
+                    letterSpacing: "-0.3px",
+                    lineHeight: 1,
+                  }}
+                >
+                  NWF
+                </span>
+                <span
+                  style={{
+                    color: "#a7f3d0",
+                    fontWeight: 800,
+                    fontSize: "0.78rem",
+                    fontStyle: "italic",
+                    letterSpacing: "-0.1px",
+                    lineHeight: 1,
+                  }}
+                >
+                  Mobile
+                </span>
+              </div>
             </div>
 
             {/* Right Status Pill */}

@@ -108,7 +108,6 @@ const TabNotifikasiWali = ({
   unreadCount = 0,
   pushPermission = 'default',
   onRequestPushPermission,
-  onSendTestNotification,
   onMarkAllRead,
   onClearAll,
   onClickNotification,
@@ -178,9 +177,6 @@ const TabNotifikasiWali = ({
                   </span>
                 )}
               </div>
-              <div style={{ fontSize: '0.72rem', color: '#a7f3d0', marginTop: '2px', fontWeight: 600 }}>
-                {rawSantriName} • NISN: {displayNisn}
-              </div>
             </div>
           </div>
 
@@ -230,9 +226,9 @@ const TabNotifikasiWali = ({
         </div>
       </div>
 
-      {/* Banner Status Izin Push Notification Layar HP (Ala Shopee) */}
-      <div style={{ padding: '0 14px', marginBottom: '12px' }}>
-        {pushPermission !== 'granted' ? (
+      {/* Banner Status Izin Push Notification Layar HP (Hanya tampil jika izin belum diberikan) */}
+      {pushPermission !== 'granted' && (
+        <div style={{ padding: '0 14px', marginBottom: '12px' }}>
           <div style={{
             background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
             border: '1.5px solid #fde68a',
@@ -285,42 +281,8 @@ const TabNotifikasiWali = ({
               Aktifkan
             </button>
           </div>
-        ) : (
-          <div style={{
-            background: '#ecfdf5',
-            border: '1px solid #a7f3d0',
-            borderRadius: '14px',
-            padding: '9px 12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '8px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.72rem', fontWeight: 700, color: '#065f46' }}>
-              <CheckCircle2 size={16} color="#059669" />
-              <span>Notifikasi Real-Time HP Aktif (Bunyi & Pop-Up Otomatis)</span>
-            </div>
-            {onSendTestNotification && (
-              <button
-                onClick={onSendTestNotification}
-                style={{
-                  background: '#ffffff',
-                  color: '#059669',
-                  border: '1px solid #6ee7b7',
-                  padding: '4px 9px',
-                  borderRadius: '8px',
-                  fontSize: '0.66rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  flexShrink: 0
-                }}
-              >
-                Tes Notif HP
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Filter Kategori Pills */}
       <div style={{
