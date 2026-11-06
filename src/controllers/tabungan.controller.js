@@ -120,13 +120,8 @@ export const getTabunganList = async (req, res) => {
     const [santriRows] = await pool.query(
       `
       SELECT 
-        s.id,
-        s.nama_santri,
-        s.nis,
-        s.jk,
-        s.nama_kelas,
-        s.nama_wali,
-        s.no_hp_wali,
+        s.*,
+        s.no_wa_wali as no_hp_wali,
         a.nama_asrama,
         k.nama_kamar,
         COALESCE(t.saldo, 0.00) as saldo,
@@ -137,7 +132,7 @@ export const getTabunganList = async (req, res) => {
       FROM santri s
       LEFT JOIN santri_tabungan t ON s.id = t.santri_id
       LEFT JOIN asrama a ON s.asrama_id = a.id
-      LEFT JOIN kamar k ON s.kamar_id = k.id
+      LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
       LEFT JOIN (
         SELECT 
           santri_id,
@@ -209,13 +204,8 @@ export const getSantriTabunganDetail = async (req, res) => {
     const [santriRows] = await pool.query(
       `
       SELECT 
-        s.id,
-        s.nama_santri,
-        s.nis,
-        s.jk,
-        s.nama_kelas,
-        s.nama_wali,
-        s.no_hp_wali,
+        s.*,
+        s.no_wa_wali as no_hp_wali,
         a.nama_asrama,
         k.nama_kamar,
         COALESCE(t.saldo, 0.00) as saldo,
@@ -223,7 +213,7 @@ export const getSantriTabunganDetail = async (req, res) => {
       FROM santri s
       LEFT JOIN santri_tabungan t ON s.id = t.santri_id
       LEFT JOIN asrama a ON s.asrama_id = a.id
-      LEFT JOIN kamar k ON s.kamar_id = k.id
+      LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
       WHERE s.id = ?
       LIMIT 1
       `,

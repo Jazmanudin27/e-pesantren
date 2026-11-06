@@ -1,8 +1,15 @@
 // NWF Mobile Service Worker for Fast PWA Standalone Installation & Push Notifications
-const CACHE_NAME = 'nwf-mobile-v4';
+const CACHE_NAME = 'nwf-mobile-v5';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
+  event.waitUntil(
+    Promise.all([
+      generatePaddedPwaIcon(192, false),
+      generatePaddedPwaIcon(512, false),
+      generatePaddedPwaIcon(512, true)
+    ]).catch(() => {})
+  );
 });
 
 self.addEventListener('activate', (event) => {
@@ -13,21 +20,21 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Helper: Generate Luxury Padded PNG App Icon via OffscreenCanvas so Logo is NEVER clipped
+// Helper: Generate Luxury Padded PNG App Icon via OffscreenCanvas so Logo is 100% visible & never clipped
 async function generatePaddedPwaIcon(size = 512, isMaskable = false) {
-  const cache = await caches.open(CACHE_NAME);
-  const cacheKey = new Request(`/pwa-icon-${isMaskable ? 'maskable-' : ''}${size}.png`);
-  const cachedRes = await cache.match(cacheKey);
-  if (cachedRes) return cachedRes;
-
   try {
-    const logoRes = await fetch('/nwf.png');
+    const cache = await caches.open(CACHE_NAME);
+    const cacheKey = new Request(`${self.location.origin}/pwa-icon-${isMaskable ? 'maskable-' : ''}${size}.png`);
+    const cachedRes = await cache.match(cacheKey);
+    if (cachedRes) return cachedRes;
+
+    const logoRes = await fetch('/nwf.png', { cache: 'force-cache' });
+    if (!logoRes.ok) return fetch('/nwf.png');
     const logoBlob = await logoRes.blob();
     const bitmap = await createImageBitmap(logoBlob);
 
     const canvas = new OffscreenCanvas(size, size);
     const ctx = canvas.getContext('2d');
-
     const center = size / 2;
 
     // 1. Luxury Emerald-Teal Background
@@ -37,45 +44,43 @@ async function generatePaddedPwaIcon(size = 512, isMaskable = false) {
     bgGrad.addColorStop(1, '#059669');
 
     if (isMaskable) {
-      // Full bleed for maskable
       ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, size, size);
     } else {
-      // Rounded squircle for standard 'any' icon
       const radius = size * 0.22;
       ctx.beginPath();
-      ctx.roundRect(0, 0, size, size, radius);
+      if (ctx.roundRect) {
+        ctx.roundRect(0, 0, size, size, radius);
+      } else {
+        ctx.rect(0, 0, size, size);
+      }
       ctx.fillStyle = bgGrad;
       ctx.fill();
     }
 
     // 2. Outer Gold-Mint Accent Ring inside Safe Zone
-    const outerRingRadius = size * 0.365;
+    const outerRingRadius = size * 0.37;
     ctx.beginPath();
     ctx.arc(center, center, outerRingRadius, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(167, 243, 208, 0.75)';
+    ctx.strokeStyle = 'rgba(167, 243, 208, 0.8)';
     ctx.lineWidth = Math.max(2, size * 0.01);
     ctx.stroke();
 
     // 3. Crisp White Inner Circle Badge
-    const whiteBadgeRadius = size * 0.34;
-    ctx.save();
-    ctx.shadowColor = 'rgba(2, 44, 34, 0.35)';
-    ctx.shadowBlur = size * 0.035;
-    ctx.shadowOffsetY = size * 0.012;
+    const whiteBadgeRadius = size * 0.345;
     ctx.beginPath();
     ctx.arc(center, center, whiteBadgeRadius, 0, Math.PI * 2);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
-    ctx.restore();
 
-    // 4. Draw NWF Logo Centered at 56% Scale (Plenty of Breathing Room, Never Clipped)
+    // 4. Draw NWF Logo Centered at 56% Scale (Never Clipped)
     const logoSize = size * 0.56;
     const logoOffset = (size - logoSize) / 2;
     ctx.drawImage(bitmap, logoOffset, logoOffset, logoSize, logoSize);
 
     const outBlob = await canvas.convertToBlob({ type: 'image/png' });
     const response = new Response(outBlob, {
+      status: 200,
       headers: {
         'Content-Type': 'image/png',
         'Cache-Control': 'public, max-age=604800'
@@ -91,6 +96,11 @@ async function generatePaddedPwaIcon(size = 512, isMaskable = false) {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
+
+  // JANGAN intercept request cross-origin (seperti Midtrans snap.js, Google Fonts, CDN) agar tidak error Response undefined
+  if (url.origin !== self.location.origin) return;
+
+  // JANGAN intercept endpoint API
   if (url.pathname.startsWith('/api/')) return;
 
   if (url.pathname === '/pwa-icon-192.png') {
@@ -107,7 +117,11 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+    fetch(event.request).catch(async () => {
+      const cached = await caches.match(event.request);
+      if (cached) return cached;
+      return new Response('Offline', { status: 503, statusText: 'Offline' });
+    })
   );
 });
 
@@ -117,8 +131,8 @@ self.addEventListener('message', (event) => {
     const { title, body, tag, targetTab, notifId } = event.data.payload || {};
     const options = {
       body: body || 'Ada pembaruan aktivitas santri di Pondok Pesantren.',
-      icon: '/pwa-icon-192.png',
-      badge: '/pwa-icon-192.png',
+      icon: '/nwf.png',
+      badge: '/nwf.png',
       tag: tag || `nwf-notif-${notifId || Date.now()}`,
       renotify: true,
       vibrate: [200, 100, 200],

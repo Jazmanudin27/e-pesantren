@@ -10,15 +10,14 @@ export default function PWAInstallModal() {
   const [showChromeManualGuide, setShowChromeManualGuide] = useState(false);
 
   useEffect(() => {
-    // 1. Cek apakah sudah running dalam mode standalone / sudah diinstall
+    // 1. Cek apakah sudah running dalam mode standalone / sudah diinstall sebagai aplikasi
     const checkStandalone = () => {
-      const urlParams = new URLSearchParams(window.location.search);
       const isStandaloneMode =
         window.matchMedia('(display-mode: standalone)').matches ||
         window.matchMedia('(display-mode: fullscreen)').matches ||
+        window.matchMedia('(display-mode: minimal-ui)').matches ||
         window.navigator.standalone === true ||
-        document.referrer.includes('android-app://') ||
-        urlParams.get('source') === 'pwa';
+        document.referrer.includes('android-app://');
       setIsStandalone(isStandaloneMode);
       return isStandaloneMode;
     };
@@ -36,15 +35,12 @@ export default function PWAInstallModal() {
       setIsInstallable(true);
     }
 
-    const openModalIfNotDismissed = (delayMs = 1750) => {
-      const dismissed = sessionStorage.getItem('nwf_pwa_dismissed_v2');
-      if (!dismissed) {
-        setTimeout(() => {
-          if (!checkStandalone()) {
-            setIsOpen(true);
-          }
-        }, delayMs);
-      }
+    const openModalAutomatically = (delayMs = 1300) => {
+      setTimeout(() => {
+        if (!checkStandalone()) {
+          setIsOpen(true);
+        }
+      }, delayMs);
     };
 
     // 4. Listener untuk Android / Chrome PWA prompt
@@ -59,7 +55,7 @@ export default function PWAInstallModal() {
         setIsInstallable(true);
         setShowChromeManualGuide(false);
       }
-      openModalIfNotDismissed(1750);
+      openModalAutomatically(800);
     };
 
     const handleInstalled = () => {
@@ -75,8 +71,8 @@ export default function PWAInstallModal() {
     window.addEventListener('appinstalled', handleInstalled);
     window.addEventListener('pwa-app-installed', handleInstalled);
 
-    // 5. Selalu tampilkan modal otomatis saat pertama buka link di Chrome / Safari (setelah SplashScreen selesai)
-    openModalIfNotDismissed(1800);
+    // 5. Selalu tampilkan modal otomatis saat buka link di Chrome / Safari (setelah SplashScreen selesai)
+    openModalAutomatically(1350);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);

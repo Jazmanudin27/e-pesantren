@@ -64,7 +64,7 @@ export default function App() {
   return (
     <>
       {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
-      {(mode === 'mobile' || mode === 'wali') && <PWAInstallModal />}
+      <PWAInstallModal />
       {mode === 'wali' ? (
         <PortalWaliSantri onLogout={() => { window.location.hash = '#login'; setMode(getMode()); }} />
       ) : mode === 'mobile' ? (

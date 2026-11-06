@@ -8,8 +8,10 @@ import bcrypt from 'bcryptjs';
  */
 export const getWaliSantriData = async (req, res) => {
   try {
-    await ensureAbsensiTablesAndColumns();
-    await syncActivePerizinanToAbsensi();
+    try {
+      await ensureAbsensiTablesAndColumns();
+      await syncActivePerizinanToAbsensi();
+    } catch (eInit) {}
 
     let santriId = null;
 
@@ -42,19 +44,32 @@ export const getWaliSantriData = async (req, res) => {
 
     // Prioritas 1: Cari tepat berdasarkan cleanSearch (NISN / NIS / username / nama_santri) dari akun login
     if (!santriId && cleanSearch) {
-      const [bySearch] = await pool.query(
-        `SELECT id FROM santri 
-         WHERE LOWER(TRIM(nisn)) = LOWER(TRIM(?)) 
-            OR LOWER(TRIM(nis)) = LOWER(TRIM(?)) 
-            OR LOWER(TRIM(COALESCE(username, ''))) = LOWER(TRIM(?))
-            OR LOWER(TRIM(nama_santri)) = LOWER(TRIM(?))
-            OR LOWER(TRIM(nama_santri)) LIKE LOWER(?)
-         ORDER BY (LOWER(TRIM(nama_santri)) = LOWER(TRIM(?))) DESC, id ASC
-         LIMIT 1`,
-        [cleanSearch, cleanSearch, cleanSearch, cleanSearch, `%${cleanSearch}%`, cleanSearch]
-      );
-      if (bySearch && bySearch.length > 0) {
-        santriId = bySearch[0].id;
+      try {
+        const [bySearch] = await pool.query(
+          `SELECT id FROM santri 
+           WHERE LOWER(TRIM(COALESCE(nisn, ''))) = LOWER(TRIM(?)) 
+              OR LOWER(TRIM(COALESCE(nis, ''))) = LOWER(TRIM(?)) 
+              OR LOWER(TRIM(COALESCE(username, ''))) = LOWER(TRIM(?))
+              OR LOWER(TRIM(nama_santri)) = LOWER(TRIM(?))
+              OR LOWER(TRIM(nama_santri)) LIKE LOWER(?)
+           ORDER BY (LOWER(TRIM(nama_santri)) = LOWER(TRIM(?))) DESC, id ASC
+           LIMIT 1`,
+          [cleanSearch, cleanSearch, cleanSearch, cleanSearch, `%${cleanSearch}%`, cleanSearch]
+        );
+        if (bySearch && bySearch.length > 0) {
+          santriId = bySearch[0].id;
+        }
+      } catch (eSearch) {
+        const [bySearchFallback] = await pool.query(
+          `SELECT id FROM santri 
+           WHERE LOWER(TRIM(COALESCE(nis, ''))) = LOWER(TRIM(?)) 
+              OR LOWER(TRIM(nama_santri)) LIKE LOWER(?)
+           LIMIT 1`,
+          [cleanSearch, `%${cleanSearch}%`]
+        ).catch(() => [[]]);
+        if (bySearchFallback && bySearchFallback.length > 0) {
+          santriId = bySearchFallback[0].id;
+        }
       }
     }
 
@@ -90,51 +105,51 @@ export const getWaliSantriData = async (req, res) => {
       return sendError(res, 'ID Santri tidak ditemukan', 404);
     }
 
-    // 1. Data Profil Lengkap Santri
-    const [santriRows] = await pool.query(`
-      SELECT 
-        s.id,
-        s.kode_santri,
-        s.nis,
-        COALESCE(NULLIF(TRIM(s.nisn), ''), NULLIF(TRIM(s.nis), ''), NULLIF(TRIM(s.kode_santri), ''), '-') as nisn,
-        s.nama_santri,
-        s.jk,
-        COALESCE(s.foto_url, s.foto, '') as foto_url,
-        s.tempat_lahir,
-        s.tgl_lahir,
-        s.status_santri,
-        s.asrama_id,
-        s.kamar_id,
-        s.fingerprint_pin,
-        s.rfid_card_uid,
-        s.capaian_hafalan_juz,
-        s.tingkat_diniyah,
-        s.nama_wali,
-        s.no_wa_wali,
-        s.hubungan_wali,
-        s.alamat_asal,
-        s.status,
-        s.tahun_masuk,
-        s.username,
-        a.nama_asrama,
-        a.lokasi_gedung,
-        k.nama_kamar,
-        k.kode_kamar,
-        ast.nama_asatidz as pembina_asrama,
-        ast.no_hp as no_hp_pembina
-      FROM santri s
-      LEFT JOIN asrama a ON s.asrama_id = a.id
-      LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
-      LEFT JOIN asatidz ast ON a.pembina_asatidz_id = ast.id
-      WHERE s.id = ?
-      LIMIT 1
-    `, [santriId]);
+    // 1. Data Profil Lengkap Santri (gunakan s.* agar aman terhadap perbedaan kolom antar versi DB)
+    let santriRows = [];
+    try {
+      const [rowsMain] = await pool.query(`
+        SELECT 
+          s.*,
+          a.nama_asrama,
+          a.lokasi_gedung,
+          k.nama_kamar,
+          k.kode_kamar,
+          ast.nama_asatidz as pembina_asrama,
+          ast.no_hp as no_hp_pembina
+        FROM santri s
+        LEFT JOIN asrama a ON s.asrama_id = a.id
+        LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+        LEFT JOIN asatidz ast ON a.pembina_asatidz_id = ast.id
+        WHERE s.id = ?
+        LIMIT 1
+      `, [santriId]);
+      santriRows = rowsMain || [];
+    } catch (eProfile) {
+      const [rowsFallback] = await pool.query(`
+        SELECT 
+          s.*,
+          a.nama_asrama,
+          k.nama_kamar
+        FROM santri s
+        LEFT JOIN asrama a ON s.asrama_id = a.id
+        LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+        WHERE s.id = ?
+        LIMIT 1
+      `, [santriId]);
+      santriRows = rowsFallback || [];
+    }
 
     if (!santriRows || santriRows.length === 0) {
       return sendError(res, 'Data santri tidak ditemukan', 404);
     }
 
-    const santri = santriRows[0];
+    const rawSantri = santriRows[0];
+    const santri = {
+      ...rawSantri,
+      nisn: (rawSantri.nisn && String(rawSantri.nisn).trim()) || (rawSantri.nis && String(rawSantri.nis).trim()) || (rawSantri.kode_santri && String(rawSantri.kode_santri).trim()) || '-',
+      foto_url: rawSantri.foto_url || rawSantri.foto || rawSantri.foto_santri || ''
+    };
 
     // 2. Data Tahfidz Qur'an (Setoran Ziyadah & Muroja'ah)
     let tahfidzSetoran = [];
