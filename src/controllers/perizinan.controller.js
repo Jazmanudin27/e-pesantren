@@ -2,6 +2,7 @@ import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
 import { sendWANotification } from '../utils/whatsapp.util.js';
 import { createWaliNotification } from './notifikasi.controller.js';
+import { syncActivePerizinanToAbsensi } from './absensi.controller.js';
 
 const VALID_STATUSES = [
   'Menunggu Persetujuan',
@@ -123,6 +124,9 @@ export const createPerizinan = async (req, res) => {
       target_tab: 'perizinan'
     });
 
+    // Otomatis sinkronkan ke absensi berjamaah & kegiatan jika status izin aktif / disetujui
+    await syncActivePerizinanToAbsensi();
+
     return sendSuccess(res, 'Izin santri berhasil dibuat', { id: result.insertId, barcode, kode_izin, status: cleanStatus }, 201);
   } catch (err) {
     return sendError(res, err.message, 500);
@@ -183,6 +187,8 @@ export const updatePerizinan = async (req, res) => {
       target_tab: 'perizinan'
     });
 
+    await syncActivePerizinanToAbsensi();
+
     return sendSuccess(res, 'Data perizinan berhasil diperbarui');
   } catch (err) {
     return sendError(res, err.message, 500);
@@ -207,6 +213,7 @@ export const checkoutPerizinan = async (req, res) => {
       SET status = 'Aktif Keluar', tgl_keluar_aktual = NOW(), satpam_keluar = ?
       WHERE id = ?
     `, [satpam || 'Petugas Pos Gerbang', id]);
+    await syncActivePerizinanToAbsensi();
     return sendSuccess(res, 'Santri tercatat keluar gerbang');
   } catch (err) {
     return sendError(res, err.message, 500);

@@ -68,13 +68,18 @@ export default function MobileHome({ onChangeTab, onLogout }) {
     total: 0,
   });
 
+  // Kategori Tab Rekap Absensi Beranda & Modal: 'berjamaah' | 'kegiatan'
+  const [activeKategoriRekap, setActiveKategoriRekap] = useState("berjamaah");
+
   // Modal State untuk Detail Absensi Hari Ini
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isDetailCardOpen, setIsDetailCardOpen] = useState(false);
   const [selectedStatusTab, setSelectedStatusTab] = useState("Hadir"); // 'Hadir' | 'Sakit' | 'Izin' | 'Alfa'
   const [selectedKegiatan, setSelectedKegiatan] = useState("Semua"); // 'Semua' | nama_sesi
   const [sesiList, setSesiList] = useState([]);
-  const [todayAbsensiList, setTodayAbsensiList] = useState([]);
+  const [materiList, setMateriList] = useState([]);
+  const [rawTodayLogs, setRawTodayLogs] = useState([]);
+  const [rawActiveIzin, setRawActiveIzin] = useState([]);
   const [santriMasterList, setSantriMasterList] = useState([]);
   const [searchModalText, setSearchModalText] = useState("");
 
@@ -157,12 +162,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
   // Load Realtime Data: Santri & Rekap Absensi
   const loadData = async () => {
     try {
-      const [resSantri, resAbsensi, resIzin, resSesi] =
+      const [resSantri, resAbsensi, resIzin, resSesi, resMateri] =
         await Promise.allSettled([
           axios.get("/api/santri?all=true"),
           axios.get("/api/absensi/fingerprint"),
           axios.get("/api/perizinan"),
           axios.get("/api/absensi/sesi"),
+          axios.get("/api/materi-hafalan"),
         ]);
 
       let allSantri = [];
@@ -187,6 +193,12 @@ export default function MobileHome({ onChangeTab, onLogout }) {
         );
       }
 
+      if (resMateri.status === "fulfilled" && resMateri.value.data?.success) {
+        setMateriList(
+          resMateri.value.data.data?.data || resMateri.value.data.data || [],
+        );
+      }
+
       // Hitung log hari ini
       const now = new Date();
       const todayDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -201,26 +213,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
         const tgl = (l.tanggal || "").split("T")[0];
         return !tgl || tgl === todayDateStr;
       });
-
-      // Filter unik per santri
-      const loggedSantriMap = new Map();
-      todayLogs.forEach((l) => {
-        const sid = l.santri_id || l.id;
-        if (sid && !loggedSantriMap.has(sid)) {
-          loggedSantriMap.set(sid, l);
-        }
-      });
-
-      let hadir = 0;
-      let sakit = 0;
-      let izin = 0;
-
-      loggedSantriMap.forEach((l) => {
-        const st = (l.status_kehadiran || l.status || "").toLowerCase();
-        if (st.includes("hadir")) hadir++;
-        else if (st.includes("sakit")) sakit++;
-        else if (st.includes("izin")) izin++;
-      });
+      setRawTodayLogs(todayLogs);
 
       // Sinkronkan perizinan aktif (keluar pondok)
       if (resIzin.status === "fulfilled" && resIzin.value.data?.success) {
@@ -228,86 +221,15 @@ export default function MobileHome({ onChangeTab, onLogout }) {
           resIzin.value.data.data?.data || resIzin.value.data.data || [];
         const activeIzin = izinArr.filter((i) => {
           const st = String(i.status || "").toLowerCase();
-          return st.includes("aktif") || st.includes("luar");
+          if (st.includes("tolak") || st.includes("batal") || st.includes("kembali")) {
+            return false;
+          }
+          return st.includes("aktif") || st.includes("luar") || st.includes("setuju");
         });
 
         setStats((prev) => ({ ...prev, total_izin_aktif: activeIzin.length }));
-
-        activeIzin.forEach((iz) => {
-          const sid = iz.santri_id;
-          if (sid && !loggedSantriMap.has(sid)) {
-            izin++;
-            loggedSantriMap.set(sid, {
-              id: `izin-${iz.id}`,
-              santri_id: sid,
-              nama_santri: iz.nama_santri,
-              nis: iz.nis,
-              status: "Izin",
-              status_kehadiran: "Izin",
-              nama_sesi: "Izin Keluar / Pulang",
-              waktu_scan: iz.tgl_keluar_rencana
-                ? String(iz.tgl_keluar_rencana).slice(11, 16)
-                : "-",
-            });
-          }
-        });
+        setRawActiveIzin(activeIzin);
       }
-
-      // RUMUS: Total santri dikurangi yang sudah input/absen (Hadir + Sakit + Izin)
-      const totalSantriCount =
-        (resSantri.status === "fulfilled" &&
-          (resSantri.value.data.data?.total || resSantri.value.data.total)) ||
-        allSantri.length;
-      const sudahInputCount = hadir + sakit + izin;
-      const belumAbsen =
-        totalSantriCount > 0
-          ? Math.max(0, totalSantriCount - sudahInputCount)
-          : 0;
-
-      setRekapAbsensi({
-        hadir,
-        sakit,
-        izin,
-        alfa: belumAbsen,
-        total: totalSantriCount,
-      });
-
-      // Siapkan list santri yang sudah presensi
-      const mappedLogged = Array.from(loggedSantriMap.values()).map((l) => {
-        const st = (l.status_kehadiran || l.status || "Hadir").toLowerCase();
-        let cleanStatus = "Hadir";
-        if (st.includes("sakit")) cleanStatus = "Sakit";
-        else if (st.includes("izin")) cleanStatus = "Izin";
-
-        return {
-          id: l.id || `log-${l.santri_id}`,
-          santri_id: l.santri_id,
-          nama_santri: l.nama_santri,
-          nis: l.nis,
-          nama_asrama: l.nama_asrama,
-          nama_kamar: l.nama_kamar,
-          nama_sesi: l.nama_sesi || l.kegiatan || "Presensi",
-          status: cleanStatus,
-          jam_absen: l.waktu_scan || l.waktu || "-",
-        };
-      });
-
-      // Siapkan list santri yang BELUM absen (belum input)
-      const mappedBelum = allSantri
-        .filter((s) => !loggedSantriMap.has(s.id))
-        .map((s) => ({
-          id: `belum-${s.id}`,
-          santri_id: s.id,
-          nama_santri: s.nama_santri,
-          nis: s.nis,
-          nama_asrama: s.nama_asrama,
-          nama_kamar: s.nama_kamar,
-          nama_sesi: "Semua Sesi",
-          status: "Alfa",
-          jam_absen: "Belum Absen",
-        }));
-
-      setTodayAbsensiList([...mappedLogged, ...mappedBelum]);
     } catch (err) {
       console.warn("Notice loading mobile home data:", err.message);
     }
@@ -316,6 +238,184 @@ export default function MobileHome({ onChangeTab, onLogout }) {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Helper cek apakah log termasuk Berjamaah (Shalat) vs Kegiatan (Mengaji)
+  const isLogBerjamaah = (log) => {
+    const k = String(
+      log?.nama_sesi || log?.kegiatan || log?.nama_kegiatan || "",
+    ).toLowerCase();
+    const isShalat = /shalat|sholat|subuh|dzuhur|ashar|maghrib|isya/.test(k);
+    const tipe = String(log?.tipe_presensi || "").toLowerCase();
+    return tipe === "berjamaah" || isShalat;
+  };
+
+  // Daftar opsi sesi sesuai tab kategori aktif ('berjamaah' vs 'kegiatan')
+  const availableSesiOptions = React.useMemo(() => {
+    const isShalatWord = (str) =>
+      /shalat|sholat|subuh|dzuhur|ashar|maghrib|isya/i.test(String(str || ""));
+    const list = [];
+    const seen = new Set();
+
+    if (activeKategoriRekap === "berjamaah") {
+      (sesiList || []).forEach((s) => {
+        if (isShalatWord(s.nama_sesi) || isShalatWord(s.kategori)) {
+          const nm = (s.nama_sesi || "").trim();
+          if (nm && !seen.has(nm.toLowerCase())) {
+            seen.add(nm.toLowerCase());
+            list.push(nm);
+          }
+        }
+      });
+    } else {
+      (materiList || []).forEach((m) => {
+        if (!isShalatWord(m.nama_materi) && !isShalatWord(m.kategori)) {
+          const nm = (m.nama_materi || "").trim();
+          if (nm && !seen.has(nm.toLowerCase())) {
+            seen.add(nm.toLowerCase());
+            list.push(nm);
+          }
+        }
+      });
+      (sesiList || []).forEach((s) => {
+        if (!isShalatWord(s.nama_sesi) && !isShalatWord(s.kategori)) {
+          const nm = (s.nama_sesi || "").trim();
+          if (nm && !seen.has(nm.toLowerCase())) {
+            seen.add(nm.toLowerCase());
+            list.push(nm);
+          }
+        }
+      });
+    }
+    return list;
+  }, [activeKategoriRekap, sesiList, materiList]);
+
+  // Perhitungan dinamis Rekap & Daftar Santri sesuai Tab Kategori ('berjamaah' vs 'kegiatan') & Sesi
+  const { computedRekap, todayAbsensiList } = React.useMemo(() => {
+    // 1. Filter log sesuai kategori aktif (Berjamaah vs Kegiatan) & sesi (jika dipilih)
+    const categoryLogs = rawTodayLogs.filter((l) => {
+      const matchKat =
+        activeKategoriRekap === "berjamaah"
+          ? isLogBerjamaah(l)
+          : !isLogBerjamaah(l);
+      if (!matchKat) return false;
+      if (selectedKegiatan !== "Semua") {
+        const sName = String(
+          l.nama_sesi || l.kegiatan || l.nama_kegiatan || "",
+        ).toLowerCase();
+        if (sName !== selectedKegiatan.toLowerCase()) return false;
+      }
+      return true;
+    });
+
+    const loggedSantriMap = new Map();
+    categoryLogs.forEach((l) => {
+      const sid = l.santri_id || l.id;
+      if (sid && !loggedSantriMap.has(String(sid))) {
+        loggedSantriMap.set(String(sid), l);
+      }
+    });
+
+    // 2. Sinkronkan santri yang sedang izin aktif (otomatis Sakit / Izin)
+    rawActiveIzin.forEach((iz) => {
+      const sid = iz.santri_id;
+      if (sid && !loggedSantriMap.has(String(sid))) {
+        const isSakit =
+          String(iz.jenis_izin || "").toLowerCase().includes("sakit") ||
+          String(iz.jenis_izin || "").toLowerCase().includes("berobat") ||
+          String(iz.keperluan || "").toLowerCase().includes("sakit");
+        const stIzin = isSakit ? "Sakit" : "Izin";
+        loggedSantriMap.set(String(sid), {
+          id: `izin-${iz.id}`,
+          santri_id: sid,
+          nama_santri: iz.nama_santri,
+          nis: iz.nis,
+          status: stIzin,
+          status_kehadiran: stIzin,
+          nama_sesi: iz.jenis_izin || "Izin Pulang",
+          waktu_scan: iz.tgl_keluar_rencana
+            ? String(iz.tgl_keluar_rencana).slice(11, 16)
+            : "-",
+        });
+      }
+    });
+
+    let hadir = 0;
+    let sakit = 0;
+    let izin = 0;
+
+    loggedSantriMap.forEach((l) => {
+      const st = (l.status_kehadiran || l.status || "").toLowerCase();
+      if (st.includes("hadir")) hadir++;
+      else if (st.includes("sakit")) sakit++;
+      else if (st.includes("izin")) izin++;
+    });
+
+    const totalSantriCount = stats.total_santri || santriMasterList.length;
+    const sudahInputCount = hadir + sakit + izin;
+    const belumAbsen =
+      totalSantriCount > 0 ? Math.max(0, totalSantriCount - sudahInputCount) : 0;
+
+    const mappedLogged = Array.from(loggedSantriMap.values()).map((l) => {
+      const st = (l.status_kehadiran || l.status || "Hadir").toLowerCase();
+      let cleanStatus = "Hadir";
+      if (st.includes("sakit")) cleanStatus = "Sakit";
+      else if (st.includes("izin")) cleanStatus = "Izin";
+
+      const masterSantri = santriMasterList.find(
+        (s) => String(s.id) === String(l.santri_id),
+      );
+
+      return {
+        id: l.id || `log-${l.santri_id}`,
+        santri_id: l.santri_id,
+        nama_santri: l.nama_santri || masterSantri?.nama_santri,
+        nis: l.nisn || l.nis || masterSantri?.nisn || masterSantri?.nis,
+        nama_kelas: masterSantri?.nama_kelas || masterSantri?.tingkat_diniyah || "",
+        nama_asrama: l.nama_asrama || masterSantri?.nama_asrama,
+        nama_kamar: l.nama_kamar || masterSantri?.nama_kamar,
+        nama_sesi: l.nama_sesi || l.kegiatan || "Presensi",
+        status: cleanStatus,
+        jam_absen: l.waktu_scan || l.waktu || "-",
+      };
+    });
+
+    const mappedBelum = santriMasterList
+      .filter((s) => !loggedSantriMap.has(String(s.id)))
+      .map((s) => ({
+        id: `belum-${s.id}`,
+        santri_id: s.id,
+        nama_santri: s.nama_santri,
+        nis: s.nisn || s.nis,
+        nama_kelas: s.nama_kelas || s.tingkat_diniyah || "",
+        nama_asrama: s.nama_asrama,
+        nama_kamar: s.nama_kamar,
+        nama_sesi: "Semua Sesi",
+        status: "Alfa",
+        jam_absen: "Belum Absen",
+      }));
+
+    return {
+      computedRekap: {
+        hadir,
+        sakit,
+        izin,
+        alfa: belumAbsen,
+        total: totalSantriCount,
+      },
+      todayAbsensiList: [...mappedLogged, ...mappedBelum],
+    };
+  }, [
+    rawTodayLogs,
+    rawActiveIzin,
+    santriMasterList,
+    stats.total_santri,
+    activeKategoriRekap,
+    selectedKegiatan,
+  ]);
+
+  useEffect(() => {
+    setRekapAbsensi(computedRekap);
+  }, [computedRekap]);
 
   const handleOpenStatusModal = (statusKey) => {
     setSelectedStatusTab(statusKey);
@@ -648,29 +748,101 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             </div>
           </div>
 
-          {/* Right 42%: Modern Dual-Metric Stats Cards (Hadir & Belum, Sakit & Izin) */}
+          {/* Right 42%: Modern Dual-Metric Stats Cards dengan Tab Berjamaah & Kegiatan */}
           <div
             style={{
               flex: "1 1 42%",
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between",
-              gap: "8px",
+              gap: "6px",
             }}
           >
+            {/* Mini Segmented Tab: Berjamaah vs Kegiatan */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "3px",
+                background: "#f1f5f9",
+                padding: "2.5px",
+                borderRadius: "10px",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveKategoriRekap("berjamaah");
+                  setSelectedKegiatan("Semua");
+                }}
+                style={{
+                  border: "none",
+                  borderRadius: "7px",
+                  padding: "4px 2px",
+                  fontSize: "0.56rem",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  background:
+                    activeKategoriRekap === "berjamaah"
+                      ? "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)"
+                      : "transparent",
+                  color:
+                    activeKategoriRekap === "berjamaah" ? "#ffffff" : "#64748b",
+                  boxShadow:
+                    activeKategoriRekap === "berjamaah"
+                      ? "0 2px 5px rgba(2, 132, 199, 0.25)"
+                      : "none",
+                  transition: "all 0.15s ease",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                🕌 Berjamaah
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveKategoriRekap("kegiatan");
+                  setSelectedKegiatan("Semua");
+                }}
+                style={{
+                  border: "none",
+                  borderRadius: "7px",
+                  padding: "4px 2px",
+                  fontSize: "0.56rem",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  background:
+                    activeKategoriRekap === "kegiatan"
+                      ? "linear-gradient(135deg, #059669 0%, #047857 100%)"
+                      : "transparent",
+                  color:
+                    activeKategoriRekap === "kegiatan" ? "#ffffff" : "#64748b",
+                  boxShadow:
+                    activeKategoriRekap === "kegiatan"
+                      ? "0 2px 5px rgba(5, 150, 105, 0.25)"
+                      : "none",
+                  transition: "all 0.15s ease",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                📖 Kegiatan
+              </button>
+            </div>
+
             {/* Card 1: Hadir & Belum */}
             <div
               onClick={() => handleOpenStatusModal("Hadir")}
               style={{
                 background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
                 border: "1px solid rgba(16, 185, 129, 0.3)",
-                borderRadius: "14px",
-                padding: "8px 10px",
+                borderRadius: "12px",
+                padding: "6px 9px",
                 cursor: "pointer",
                 boxShadow: "0 2px 6px rgba(16, 185, 129, 0.08)",
                 display: "flex",
                 flexDirection: "column",
-                gap: "4px",
+                gap: "3px",
                 transition: "all 0.15s ease",
               }}
             >
@@ -790,13 +962,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               style={{
                 background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
                 border: "1px solid rgba(245, 158, 11, 0.3)",
-                borderRadius: "14px",
-                padding: "8px 10px",
+                borderRadius: "12px",
+                padding: "6px 9px",
                 cursor: "pointer",
                 boxShadow: "0 2px 6px rgba(245, 158, 11, 0.08)",
                 display: "flex",
                 flexDirection: "column",
-                gap: "4px",
+                gap: "3px",
                 transition: "all 0.15s ease",
               }}
             >
@@ -1642,13 +1814,101 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             </button>
           </div>
 
+          {/* 2 Tab Kategori di Modal: Berjamaah vs Kegiatan */}
+          <div
+            style={{
+              background: "#ffffff",
+              padding: "10px 14px 4px",
+              flexShrink: 0,
+            }}
+          >
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "6px",
+                background: "#f1f5f9",
+                padding: "4px",
+                borderRadius: "12px",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveKategoriRekap("berjamaah");
+                  setSelectedKegiatan("Semua");
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                  padding: "7px 10px",
+                  borderRadius: "9px",
+                  border: "none",
+                  background:
+                    activeKategoriRekap === "berjamaah"
+                      ? "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)"
+                      : "transparent",
+                  color:
+                    activeKategoriRekap === "berjamaah" ? "#ffffff" : "#64748b",
+                  fontWeight: 800,
+                  fontSize: "0.74rem",
+                  cursor: "pointer",
+                  boxShadow:
+                    activeKategoriRekap === "berjamaah"
+                      ? "0 3px 8px rgba(2, 132, 199, 0.28)"
+                      : "none",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <span>🕌</span>
+                <span>Berjamaah</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveKategoriRekap("kegiatan");
+                  setSelectedKegiatan("Semua");
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                  padding: "7px 10px",
+                  borderRadius: "9px",
+                  border: "none",
+                  background:
+                    activeKategoriRekap === "kegiatan"
+                      ? "linear-gradient(135deg, #059669 0%, #047857 100%)"
+                      : "transparent",
+                  color:
+                    activeKategoriRekap === "kegiatan" ? "#ffffff" : "#64748b",
+                  fontWeight: 800,
+                  fontSize: "0.74rem",
+                  cursor: "pointer",
+                  boxShadow:
+                    activeKategoriRekap === "kegiatan"
+                      ? "0 3px 8px rgba(5, 150, 105, 0.28)"
+                      : "none",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <span>📖</span>
+                <span>Kegiatan</span>
+              </button>
+            </div>
+          </div>
+
           {/* Status Pills Selector inside modal */}
           <div
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(4, 1fr)",
               gap: "8px",
-              padding: "10px 14px",
+              padding: "8px 14px 10px",
               background: "#ffffff",
               borderBottom: "1px solid #e2e8f0",
               flexShrink: 0,
@@ -1742,7 +2002,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               <Search size={14} color="#64748b" />
               <input
                 type="text"
-                placeholder="Cari santri / NIS / asrama..."
+                placeholder="Cari nama santri, NISN, atau kelas..."
                 value={searchModalText}
                 onChange={(e) => setSearchModalText(e.target.value)}
                 style={{
@@ -1757,7 +2017,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               />
             </div>
 
-            {sesiList.length > 0 && (
+            {availableSesiOptions.length > 0 && (
               <select
                 value={selectedKegiatan}
                 onChange={(e) => setSelectedKegiatan(e.target.value)}
@@ -1770,13 +2030,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                   fontWeight: 700,
                   color: "#334155",
                   outline: "none",
-                  maxWidth: "130px",
+                  maxWidth: "145px",
                 }}
               >
                 <option value="Semua">Semua Sesi</option>
-                {sesiList.map((s) => (
-                  <option key={s.id || s.kode_sesi} value={s.nama_sesi}>
-                    {s.nama_sesi}
+                {availableSesiOptions.map((namaSesi) => (
+                  <option key={namaSesi} value={namaSesi}>
+                    {namaSesi}
                   </option>
                 ))}
               </select>
@@ -1804,55 +2064,59 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                     justifyContent: "space-between",
                     padding: "10px 12px",
                     background: "#ffffff",
-                    borderRadius: "12px",
+                    borderRadius: "13px",
                     border: "1px solid #e2e8f0",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                    boxShadow: "0 2px 5px rgba(15, 23, 42, 0.03)",
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                    }}
-                  >
+                  <div style={{ minWidth: 0, flex: 1 }}>
                     <div
                       style={{
-                        width: "36px",
-                        height: "36px",
-                        borderRadius: "50%",
-                        background: "#e0f2fe",
-                        color: "#0284c7",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
+                        fontSize: "0.84rem",
                         fontWeight: 800,
-                        fontSize: "0.85rem",
-                        flexShrink: 0,
+                        color: "#0f172a",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
                       }}
                     >
-                      {(item.nama_santri || "S").charAt(0).toUpperCase()}
+                      {item.nama_santri || "Santri"}
                     </div>
-                    <div>
-                      <div
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        marginTop: "3px",
+                      }}
+                    >
+                      <span
                         style={{
-                          fontSize: "0.82rem",
-                          fontWeight: 800,
-                          color: "#0f172a",
+                          fontSize: "0.65rem",
+                          fontWeight: 700,
+                          color: "#475569",
+                          background: "#f1f5f9",
+                          padding: "1.5px 6px",
+                          borderRadius: "5px",
                         }}
                       >
-                        {item.nama_santri || "Santri"}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "0.68rem",
-                          color: "#64748b",
-                          marginTop: "2px",
-                        }}
-                      >
-                        NIS: {item.nis || "-"} • {item.nama_asrama || "Asrama"}{" "}
-                        / {item.nama_kamar || "-"}
-                      </div>
+                        NISN: {item.nis || "-"}
+                      </span>
+                      {item.nama_kelas && (
+                        <span
+                          style={{
+                            fontSize: "0.65rem",
+                            fontWeight: 800,
+                            color: "#1d4ed8",
+                            background: "#eff6ff",
+                            border: "1px solid #bfdbfe",
+                            padding: "1.5px 7px",
+                            borderRadius: "999px",
+                          }}
+                        >
+                          {item.nama_kelas}
+                        </span>
+                      )}
                     </div>
                   </div>
 

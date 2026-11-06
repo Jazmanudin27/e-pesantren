@@ -1713,28 +1713,35 @@ export default function MobilePresensi() {
 
     return izinList.find((sp) => {
       const matchSantri =
-        (sp.santri_id && sp.santri_id === santri.id) ||
+        (sp.santri_id && String(sp.santri_id) === String(santri.id)) ||
         (sp.nama_santri &&
           santri.nama_santri &&
-          sp.nama_santri.toLowerCase() === santri.nama_santri.toLowerCase());
+          sp.nama_santri.trim().toLowerCase() ===
+            santri.nama_santri.trim().toLowerCase());
       if (!matchSantri) return false;
 
       const st = String(sp.status || "").toLowerCase();
-      if (st.includes("tolak") || st.includes("batal")) return false;
+      // Jika sudah ditolak, dibatalkan, atau sudah kembali ke pondok, maka izin sudah selesai
+      if (
+        st.includes("tolak") ||
+        st.includes("batal") ||
+        st.includes("kembali")
+      ) {
+        return false;
+      }
 
       const tglMulai = normalizeDateStr(
         sp.tgl_keluar_aktual || sp.tgl_keluar_rencana,
       );
-      const isReturned = st.includes("kembali") && !st.includes("terlambat");
       const tglSelesai = normalizeDateStr(
-        isReturned && sp.tgl_kembali_aktual
-          ? sp.tgl_kembali_aktual
-          : sp.tgl_kembali_rencana || sp.tgl_kembali_aktual,
+        sp.tgl_kembali_rencana || sp.tgl_kembali_aktual,
       );
 
       if (tglMulai && dateToCheck < tglMulai) return false;
-      if (tglSelesai && dateToCheck > tglSelesai && !st.includes("terlambat"))
+      // Jika status 'Aktif Keluar' (belum check-in kembali), tetap dianggap sedang di luar
+      if (tglSelesai && dateToCheck > tglSelesai && !st.includes("keluar")) {
         return false;
+      }
 
       return true;
     });
@@ -3004,7 +3011,7 @@ export default function MobilePresensi() {
               <Search size={17} color="#0284c7" style={{ flexShrink: 0 }} />
               <input
                 type="text"
-                placeholder="Cari santri, NIS, asrama..."
+                placeholder="Cari nama santri, NISN, atau kelas..."
                 value={searchManual}
                 onChange={(e) => setSearchManual(e.target.value)}
                 style={{
@@ -3157,16 +3164,17 @@ export default function MobilePresensi() {
             )}
           </div>
 
-          {/* List Santri dengan Modern Card & Interactive Segmented Buttons */}
+          {/* List Santri Modern & Rapi (Hanya Nama Santri, NISN, dan Kelas) */}
           <div
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: "10px",
+              gap: "8px",
               marginBottom: "20px",
             }}
           >
             {filteredSantri.map((santri) => {
+              const activeIzin = getSantriActiveIzin(santri);
               const currentLog = getSantriCurrentLog(santri);
               const currentStatus = currentLog
                 ? String(currentLog.status_kehadiran || currentLog.status || "")
@@ -3177,313 +3185,323 @@ export default function MobilePresensi() {
               const isAlpa =
                 currentStatus.toLowerCase().includes("alpa") ||
                 currentStatus.toLowerCase().includes("alpha");
+              const isAutoPerizinan =
+                Boolean(activeIzin) ||
+                Boolean(currentLog?.is_perizinan_auto) ||
+                String(currentLog?.metode_scan || "").toLowerCase() === "perizinan";
+
+              const kelasLabel = getSantriKelasLabel(santri) || "-";
+              const nisnValue = santri.nisn || santri.nis || "-";
 
               // Color accents
               let cardBorder = "#e2e8f0";
-              let avatarBg = "#f1f5f9";
-              let avatarColor = "#475569";
+              let accentBar = "#cbd5e1";
+              let cardBg = "#ffffff";
               if (isHadir) {
-                cardBorder = "#10b981";
-                avatarBg = "#d1fae5";
-                avatarColor = "#065f46";
+                cardBorder = "#a7f3d0";
+                accentBar = "#10b981";
+                cardBg = "linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)";
               } else if (isSakit) {
-                cardBorder = "#8b5cf6";
-                avatarBg = "#ede9fe";
-                avatarColor = "#5b21b6";
+                cardBorder = "#ddd6fe";
+                accentBar = "#8b5cf6";
+                cardBg = "linear-gradient(135deg, #ffffff 0%, #faf5ff 100%)";
               } else if (isIzin) {
-                cardBorder = "#f59e0b";
-                avatarBg = "#fef3c7";
-                avatarColor = "#92400e";
+                cardBorder = "#fde68a";
+                accentBar = "#f59e0b";
+                cardBg = "linear-gradient(135deg, #ffffff 0%, #fffbeb 100%)";
               } else if (isAlpa) {
-                cardBorder = "#ef4444";
-                avatarBg = "#fee2e2";
-                avatarColor = "#991b1b";
+                cardBorder = "#fecdd3";
+                accentBar = "#ef4444";
+                cardBg = "linear-gradient(135deg, #ffffff 0%, #fff1f2 100%)";
               }
 
               return (
                 <div
                   key={santri.id}
                   style={{
-                    background: "#ffffff",
-                    borderRadius: "18px",
-                    padding: "14px",
+                    background: cardBg,
+                    borderRadius: "15px",
+                    padding: "11px 12px 11px 15px",
                     border: `1.5px solid ${cardBorder}`,
                     boxShadow: currentLog
-                      ? "0 4px 14px -3px rgba(0,0,0,0.06)"
-                      : "0 2px 6px rgba(0,0,0,0.02)",
+                      ? "0 4px 12px -2px rgba(15, 23, 42, 0.06)"
+                      : "0 2px 6px rgba(15, 23, 42, 0.03)",
                     display: "flex",
                     flexDirection: "column",
-                    gap: "12px",
+                    gap: "9px",
+                    position: "relative",
+                    overflow: "hidden",
                     transition: "all 0.2s ease",
                   }}
                 >
-                  {/* Top Row: Avatar, Info, Status Badge */}
+                  {/* Garis Aksen Status di Sisi Kiri */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: "4px",
+                      background: accentBar,
+                    }}
+                  />
+
+                  {/* Baris Atas: Nama Santri, NISN, dan Kelas */}
                   <div
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: "10px",
+                      justifyContent: "space-between",
+                      gap: "8px",
                     }}
                   >
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div
+                        style={{
+                          fontWeight: 800,
+                          fontSize: "0.86rem",
+                          color: "#0f172a",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          letterSpacing: "-0.2px",
+                        }}
+                      >
+                        {santri.nama_santri}
+                      </div>
+                      <div
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "5px",
+                          marginTop: "3px",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "0.66rem",
+                            fontWeight: 700,
+                            color: "#475569",
+                            background: "#f1f5f9",
+                            border: "1px solid #e2e8f0",
+                            padding: "1.5px 7px",
+                            borderRadius: "6px",
+                            letterSpacing: "0.02em",
+                          }}
+                        >
+                          NISN: {nisnValue}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Badge Kelas di Kanan */}
+                    <span
+                      style={{
+                        background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+                        color: "#1d4ed8",
+                        border: "1px solid #bfdbfe",
+                        padding: "4px 10px",
+                        borderRadius: "999px",
+                        fontSize: "0.68rem",
+                        fontWeight: 800,
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                        boxShadow: "0 1px 3px rgba(37, 99, 235, 0.08)",
+                      }}
+                    >
+                      {kelasLabel}
+                    </span>
+                  </div>
+
+                  {/* Jika Santri Sedang Izin Pulang / Sakit Aktif: Otomatis Tercatat & Tidak Perlu Input Absen */}
+                  {isAutoPerizinan ? (
                     <div
                       style={{
-                        width: "42px",
-                        height: "42px",
-                        borderRadius: "14px",
-                        background: avatarBg,
-                        color: avatarColor,
+                        background: isSakit ? "#f5f3ff" : "#fffbeb",
+                        border: `1px dashed ${isSakit ? "#c4b5fd" : "#fcd34d"}`,
+                        borderRadius: "10px",
+                        padding: "7px 10px",
                         display: "flex",
                         alignItems: "center",
-                        justifyContent: "center",
-                        fontWeight: 800,
-                        fontSize: "0.86rem",
-                        flexShrink: 0,
+                        justifyContent: "space-between",
+                        gap: "8px",
                       }}
                     >
-                      {getInitials(santri.nama_santri)}
-                    </div>
-
-                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div
                         style={{
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: "6px",
+                          gap: "7px",
+                          minWidth: 0,
                         }}
                       >
-                        <div
-                          style={{
-                            fontWeight: 800,
-                            fontSize: "0.92rem",
-                            color: "#0f172a",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {santri.nama_santri}
-                        </div>
-
-                        {currentLog && (
-                          <span
+                        <span style={{ fontSize: "0.95rem", flexShrink: 0 }}>
+                          {isSakit ? "🏥" : "🏠"}
+                        </span>
+                        <div style={{ minWidth: 0 }}>
+                          <div
                             style={{
-                              background: isHadir
-                                ? "#ecfdf5"
-                                : isSakit
-                                  ? "#faf5ff"
-                                  : isIzin
-                                    ? "#fffbeb"
-                                    : "#fff1f2",
-                              color: isHadir
-                                ? "#059669"
-                                : isSakit
-                                  ? "#7c3aed"
-                                  : isIzin
-                                    ? "#d97706"
-                                    : "#dc2626",
-                              border: `1px solid ${cardBorder}`,
-                              fontSize: "0.64rem",
+                              fontSize: "0.7rem",
                               fontWeight: 800,
-                              padding: "2px 8px",
-                              borderRadius: "999px",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "4px",
-                              whiteSpace: "nowrap",
+                              color: isSakit ? "#5b21b6" : "#92400e",
                             }}
                           >
-                            <span
-                              style={{
-                                width: "5px",
-                                height: "5px",
-                                borderRadius: "50%",
-                                background: isHadir
-                                  ? "#10b981"
-                                  : isSakit
-                                    ? "#8b5cf6"
-                                    : isIzin
-                                      ? "#f59e0b"
-                                      : "#ef4444",
-                              }}
-                            />
-                            {currentLog.waktu_scan
-                              ? `${currentLog.waktu_scan.substring(0, 5)} WIB`
-                              : "Tercatat"}
-                          </span>
-                        )}
+                            Sedang {activeIzin?.jenis_izin || "Izin Pulang"}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "0.62rem",
+                              color: isSakit ? "#6d28d9" : "#b45309",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            Otomatis tercatat • Tidak perlu diabsen
+                          </div>
+                        </div>
                       </div>
-
-                      <div
+                      <span
                         style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          fontSize: "0.7rem",
-                          color: "#64748b",
-                          marginTop: "2px",
+                          background: isSakit ? "#7c3aed" : "#f59e0b",
+                          color: "#ffffff",
+                          fontSize: "0.62rem",
+                          fontWeight: 800,
+                          padding: "3.5px 8px",
+                          borderRadius: "7px",
+                          whiteSpace: "nowrap",
+                          flexShrink: 0,
                         }}
                       >
-                        <span
-                          style={{
-                            background: "#f1f5f9",
-                            padding: "1px 6px",
-                            borderRadius: "4px",
-                            fontWeight: 600,
-                          }}
-                        >
-                          NIS: {santri.nis || "-"}
-                        </span>
-                        <span>•</span>
-                        <span
-                          style={{
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {santri.nama_asrama || "Mukim"}
-                        </span>
-                        {getSantriKelasLabel(santri) && (
-                          <>
-                            <span>•</span>
-                            <span
-                              style={{
-                                background: "#eff6ff",
-                                color: "#1d4ed8",
-                                padding: "1px 6px",
-                                borderRadius: "4px",
-                                fontWeight: 700,
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {getSantriKelasLabel(santri)}
-                            </span>
-                          </>
-                        )}
-                      </div>
+                        ✓ Otomatis {isSakit ? "Sakit" : "Izin"}
+                      </span>
                     </div>
-                  </div>
-
-                  {/* 4 Interactive Segmented Status Buttons */}
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(4, 1fr)",
-                      gap: "6px",
-                      background: "#f8fafc",
-                      padding: "4px",
-                      borderRadius: "12px",
-                    }}
-                  >
-                    {/* HADIR */}
-                    <button
-                      type="button"
-                      onClick={() => handleQuickManualAction(santri, "Hadir")}
+                  ) : (
+                    /* 4 Tombol Status Modern & Ramping */
+                    <div
                       style={{
-                        padding: "8px 2px",
-                        borderRadius: "9px",
-                        border: isHadir ? "none" : "1px solid #d1fae5",
-                        background: isHadir ? "#10b981" : "#ffffff",
-                        color: isHadir ? "#ffffff" : "#047857",
-                        fontSize: "0.74rem",
-                        fontWeight: 800,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "3px",
-                        boxShadow: isHadir
-                          ? "0 4px 10px rgba(16, 185, 129, 0.35)"
-                          : "none",
-                        transition: "all 0.15s ease",
+                        display: "grid",
+                        gridTemplateColumns: "repeat(4, 1fr)",
+                        gap: "6px",
                       }}
                     >
-                      {isHadir && <Check size={12} strokeWidth={3} />}
-                      <span>Hadir</span>
-                    </button>
+                      {/* HADIR */}
+                      <button
+                        type="button"
+                        onClick={() => handleQuickManualAction(santri, "Hadir")}
+                        style={{
+                          padding: "6.5px 2px",
+                          borderRadius: "9px",
+                          border: isHadir ? "none" : "1px solid #bbf7d0",
+                          background: isHadir
+                            ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
+                            : "#f0fdf4",
+                          color: isHadir ? "#ffffff" : "#047857",
+                          fontSize: "0.7rem",
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "3px",
+                          boxShadow: isHadir
+                            ? "0 3px 8px rgba(16, 185, 129, 0.32)"
+                            : "none",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        {isHadir && <Check size={11} strokeWidth={3} />}
+                        <span>Hadir</span>
+                      </button>
 
-                    {/* SAKIT */}
-                    <button
-                      type="button"
-                      onClick={() => handleQuickManualAction(santri, "Sakit")}
-                      style={{
-                        padding: "8px 2px",
-                        borderRadius: "9px",
-                        border: isSakit ? "none" : "1px solid #ede9fe",
-                        background: isSakit ? "#8b5cf6" : "#ffffff",
-                        color: isSakit ? "#ffffff" : "#6d28d9",
-                        fontSize: "0.74rem",
-                        fontWeight: 800,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "3px",
-                        boxShadow: isSakit
-                          ? "0 4px 10px rgba(139, 92, 246, 0.35)"
-                          : "none",
-                        transition: "all 0.15s ease",
-                      }}
-                    >
-                      {isSakit && <Check size={12} strokeWidth={3} />}
-                      <span>Sakit</span>
-                    </button>
+                      {/* SAKIT */}
+                      <button
+                        type="button"
+                        onClick={() => handleQuickManualAction(santri, "Sakit")}
+                        style={{
+                          padding: "6.5px 2px",
+                          borderRadius: "9px",
+                          border: isSakit ? "none" : "1px solid #ddd6fe",
+                          background: isSakit
+                            ? "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)"
+                            : "#faf5ff",
+                          color: isSakit ? "#ffffff" : "#6d28d9",
+                          fontSize: "0.7rem",
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "3px",
+                          boxShadow: isSakit
+                            ? "0 3px 8px rgba(139, 92, 246, 0.32)"
+                            : "none",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        {isSakit && <Check size={11} strokeWidth={3} />}
+                        <span>Sakit</span>
+                      </button>
 
-                    {/* IZIN */}
-                    <button
-                      type="button"
-                      onClick={() => handleQuickManualAction(santri, "Izin")}
-                      style={{
-                        padding: "8px 2px",
-                        borderRadius: "9px",
-                        border: isIzin ? "none" : "1px solid #fef3c7",
-                        background: isIzin ? "#f59e0b" : "#ffffff",
-                        color: isIzin ? "#ffffff" : "#b45309",
-                        fontSize: "0.74rem",
-                        fontWeight: 800,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "3px",
-                        boxShadow: isIzin
-                          ? "0 4px 10px rgba(245, 158, 11, 0.35)"
-                          : "none",
-                        transition: "all 0.15s ease",
-                      }}
-                    >
-                      {isIzin && <Check size={12} strokeWidth={3} />}
-                      <span>Izin</span>
-                    </button>
+                      {/* IZIN */}
+                      <button
+                        type="button"
+                        onClick={() => handleQuickManualAction(santri, "Izin")}
+                        style={{
+                          padding: "6.5px 2px",
+                          borderRadius: "9px",
+                          border: isIzin ? "none" : "1px solid #fde68a",
+                          background: isIzin
+                            ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+                            : "#fffbeb",
+                          color: isIzin ? "#ffffff" : "#b45309",
+                          fontSize: "0.7rem",
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "3px",
+                          boxShadow: isIzin
+                            ? "0 3px 8px rgba(245, 158, 11, 0.32)"
+                            : "none",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        {isIzin && <Check size={11} strokeWidth={3} />}
+                        <span>Izin</span>
+                      </button>
 
-                    {/* ALFA */}
-                    <button
-                      type="button"
-                      onClick={() => handleQuickManualAction(santri, "Alfa")}
-                      style={{
-                        padding: "8px 2px",
-                        borderRadius: "9px",
-                        border: isAlpa ? "none" : "1px solid #fee2e2",
-                        background: isAlpa ? "#ef4444" : "#ffffff",
-                        color: isAlpa ? "#ffffff" : "#b91c1c",
-                        fontSize: "0.74rem",
-                        fontWeight: 800,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "3px",
-                        boxShadow: isAlpa
-                          ? "0 4px 10px rgba(239, 68, 68, 0.35)"
-                          : "none",
-                        transition: "all 0.15s ease",
-                      }}
-                    >
-                      {isAlpa && <Check size={12} strokeWidth={3} />}
-                      <span>Alfa</span>
-                    </button>
-                  </div>
+                      {/* ALFA */}
+                      <button
+                        type="button"
+                        onClick={() => handleQuickManualAction(santri, "Alfa")}
+                        style={{
+                          padding: "6.5px 2px",
+                          borderRadius: "9px",
+                          border: isAlpa ? "none" : "1px solid #fecdd3",
+                          background: isAlpa
+                            ? "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"
+                            : "#fff1f2",
+                          color: isAlpa ? "#ffffff" : "#b91c1c",
+                          fontSize: "0.7rem",
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "3px",
+                          boxShadow: isAlpa
+                            ? "0 3px 8px rgba(239, 68, 68, 0.32)"
+                            : "none",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        {isAlpa && <Check size={11} strokeWidth={3} />}
+                        <span>Alfa</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}

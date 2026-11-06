@@ -162,9 +162,143 @@ export const ensureAbsensiTablesAndColumns = async () => {
   }
 };
 
+/**
+ * Otomatis sinkronisasi santri yang sedang Izin Pulang / Sakit aktif hari ini
+ * ke tabel absensi_jamaah_mengaji untuk seluruh sesi Berjamaah & Kegiatan Mengaji.
+ * Dengan demikian musyrif tidak perlu menginput absensi manual bagi santri yang sedang pulang.
+ */
+export const syncActivePerizinanToAbsensi = async () => {
+  try {
+    await ensureAbsensiTablesAndColumns();
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    // 1. Ambil semua perizinan yang sedang aktif keluar / disetujui pada tanggal hari ini
+    const [activeIzins] = await pool.query(`
+      SELECT sp.*
+      FROM santri_perizinan sp
+      WHERE sp.status IN ('Aktif Keluar', 'Disetujui Pengasuh')
+        AND DATE(COALESCE(sp.tgl_keluar_aktual, sp.tgl_keluar_rencana)) <= ?
+        AND (
+          sp.tgl_kembali_rencana IS NULL
+          OR DATE(sp.tgl_kembali_rencana) >= ?
+          OR sp.status = 'Aktif Keluar'
+        )
+    `, [todayStr, todayStr]).catch(() => [[]]);
+
+    if (!activeIzins || activeIzins.length === 0) return;
+
+    // 2. Ambil daftar sesi kegiatan aktif (Shalat Berjamaah & Kegiatan Mengaji)
+    const [sesiRows] = await pool.query(`
+      SELECT id, nama_sesi, kategori, jam_target
+      FROM kegiatan_sesi
+      WHERE is_active = 1
+    `).catch(() => [[]]);
+
+    const [materiRows] = await pool.query(`
+      SELECT id, nama_materi, kategori
+      FROM materi_hafalan
+    `).catch(() => [[]]);
+
+    const allSessions = [];
+    const seenNames = new Set();
+
+    (sesiRows || []).forEach(s => {
+      if (!s.nama_sesi) return;
+      const key = s.nama_sesi.trim().toLowerCase();
+      if (seenNames.has(key)) return;
+      seenNames.add(key);
+      const isShalat = /shalat|sholat|subuh|dzuhur|ashar|maghrib|isya/i.test(s.nama_sesi) || /shalat|sholat/i.test(s.kategori || '');
+      allSessions.push({
+        sesi_id: s.id,
+        nama_kegiatan: s.nama_sesi,
+        tipe_presensi: isShalat ? 'Berjamaah' : 'Kegiatan',
+        waktu_scan: s.jam_target ? String(s.jam_target).substring(0, 8) : '05:00:00'
+      });
+    });
+
+    (materiRows || []).forEach(m => {
+      if (!m.nama_materi) return;
+      const key = m.nama_materi.trim().toLowerCase();
+      if (seenNames.has(key)) return;
+      seenNames.add(key);
+      const isShalat = /shalat|sholat|subuh|dzuhur|ashar|maghrib|isya/i.test(m.nama_materi);
+      if (!isShalat) {
+        allSessions.push({
+          sesi_id: null,
+          nama_kegiatan: m.nama_materi,
+          tipe_presensi: 'Kegiatan',
+          waktu_scan: '07:00:00'
+        });
+      }
+    });
+
+    if (allSessions.length === 0) return;
+
+    // 3. Ambil log absensi hari ini agar tidak insert duplikat
+    const [existingToday] = await pool.query(`
+      SELECT santri_id, nama_kegiatan, sesi_id
+      FROM absensi_jamaah_mengaji
+      WHERE tanggal = ?
+    `, [todayStr]).catch(() => [[]]);
+
+    const existingSet = new Set(
+      (existingToday || []).map(
+        r => `${r.santri_id}__${String(r.nama_kegiatan || '').trim().toLowerCase()}`
+      )
+    );
+
+    // Cek juga absensi_deleted_logs agar yang sengaja dihapus tidak dibuat ulang
+    const [deletedToday] = await pool.query(`
+      SELECT santri_id, nama_kegiatan
+      FROM absensi_deleted_logs
+      WHERE tanggal = ?
+    `, [todayStr]).catch(() => [[]]);
+
+    const deletedSet = new Set(
+      (deletedToday || []).map(
+        r => `${r.santri_id}__${String(r.nama_kegiatan || '').trim().toLowerCase()}`
+      )
+    );
+
+    for (const izin of activeIzins) {
+      const jenisLower = String(izin.jenis_izin || '').toLowerCase();
+      const kepLower = String(izin.keperluan || '').toLowerCase();
+      const isSakit = jenisLower.includes('sakit') || jenisLower.includes('berobat') || kepLower.includes('sakit');
+      const statusAbsen = isSakit ? 'Sakit' : 'Izin';
+      const ketText = `Otomatis ${izin.jenis_izin || 'Izin Pulang'}${izin.keperluan ? ': ' + izin.keperluan : ''}`;
+
+      for (const sess of allSessions) {
+        const key = `${izin.santri_id}__${sess.nama_kegiatan.trim().toLowerCase()}`;
+        if (existingSet.has(key) || deletedSet.has(key)) continue;
+
+        await pool.query(`
+          INSERT INTO absensi_jamaah_mengaji (
+            santri_id, sesi_id, tanggal, waktu_scan, status, metode_presensi, nama_kegiatan, tipe_presensi, keterangan
+          ) VALUES (?, ?, ?, ?, ?, 'Perizinan', ?, ?, ?)
+        `, [
+          izin.santri_id,
+          sess.sesi_id,
+          todayStr,
+          sess.waktu_scan,
+          statusAbsen,
+          sess.nama_kegiatan,
+          sess.tipe_presensi,
+          ketText
+        ]).catch(() => {});
+
+        existingSet.add(key);
+      }
+    }
+  } catch (eSync) {
+    console.warn('[AUTO SYNC PERIZINAN -> ABSENSI NOTICE]:', eSync.message);
+  }
+};
+
 export const getAbsensiFingerprint = async (req, res) => {
   try {
     await ensureAbsensiTablesAndColumns();
+    await syncActivePerizinanToAbsensi();
     const tipeParam = (req.query.tipe || req.query.type || '').toLowerCase(); // 'berjamaah' | 'kegiatan' | ''
 
     const [rows] = await pool.query(`
