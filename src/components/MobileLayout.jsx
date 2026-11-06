@@ -54,6 +54,7 @@ import MobileMateriHafalan from '../views/mobile/MobileMateriHafalan';
 import MobileKegiatan from '../views/mobile/MobileKegiatan';
 import SettingKegiatanView from '../views/admin/SettingKegiatanView';
 import InformasiKegiatanAdminView from '../views/admin/InformasiKegiatanAdminView';
+import TabInformasiKegiatan from '../views/wali/TabInformasiKegiatan';
 import PortalWaliSantri from '../views/wali/PortalWaliSantri';
 import MobileTabungan from '../views/mobile/MobileTabungan';
 import { canAccessKeuangan } from '../utils/authRole.util';
@@ -342,7 +343,7 @@ export default function MobileLayout() {
         return <MobileKegiatan />;
       case 'informasi':
       case 'informasi-kegiatan':
-        return <InformasiKegiatanAdminView />;
+        return <TabInformasiKegiatan onBack={() => handleSelectTab('home')} />;
       case 'kitab':
         return <MobileKitab />;
       case 'master-device':
@@ -376,12 +377,13 @@ export default function MobileLayout() {
   };
 
   const isFinancialTab = mobileTab === 'syahriah' || mobileTab.startsWith('keuangan');
+  const hasCustomHeader = isFinancialTab || mobileTab === 'informasi' || mobileTab === 'informasi-kegiatan';
 
   return (
     <div className="mobile-wrapper">
       <div className="mobile-app-container">
-        {/* Sub-Menu Top Navigation Header (Excludes Beranda/Home and MobileKeuangan which has integrated header) */}
-        {mobileTab !== 'home' && !isFinancialTab && (
+        {/* Sub-Menu Top Navigation Header (Excludes Beranda/Home and views with integrated header) */}
+        {mobileTab !== 'home' && !hasCustomHeader && (
           <div style={{
             background: 'linear-gradient(135deg, #064e3b 0%, #047857 60%, #059669 100%)',
             color: '#ffffff',

@@ -81,6 +81,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
   const [rawTodayLogs, setRawTodayLogs] = useState([]);
   const [rawActiveIzin, setRawActiveIzin] = useState([]);
   const [santriMasterList, setSantriMasterList] = useState([]);
+  const [latestFeed, setLatestFeed] = useState([]);
   const [searchModalText, setSearchModalText] = useState("");
 
   const [currentTimeStr, setCurrentTimeStr] = useState("");
@@ -162,14 +163,19 @@ export default function MobileHome({ onChangeTab, onLogout }) {
   // Load Realtime Data: Santri & Rekap Absensi
   const loadData = async () => {
     try {
-      const [resSantri, resAbsensi, resIzin, resSesi, resMateri] =
+      const [resSantri, resAbsensi, resIzin, resSesi, resMateri, resFeed] =
         await Promise.allSettled([
           axios.get("/api/santri?all=true"),
           axios.get("/api/absensi/fingerprint"),
           axios.get("/api/perizinan"),
           axios.get("/api/absensi/sesi"),
           axios.get("/api/materi-hafalan"),
+          axios.get("/api/informasi-kegiatan/feed?limit=6"),
         ]);
+
+      if (resFeed.status === "fulfilled" && resFeed.value.data?.success) {
+        setLatestFeed(resFeed.value.data.data?.feed || []);
+      }
 
       let allSantri = [];
       if (resSantri.status === "fulfilled" && resSantri.value.data?.success) {
@@ -1159,179 +1165,295 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       </div>
 
       {/* =========================================================================
-          SECTION 3: INFORMASI PESANTREN
+          SECTION 3: SLIDER KEGIATAN & AGENDA PESANTREN (SAMA SEPERTI PORTAL ORTU)
       ========================================================================= */}
-      <div style={{ padding: "8px 12px 20px" }}>
+      <div style={{ padding: "12px 14px 20px" }}>
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: "12px",
+            marginBottom: "10px",
           }}
         >
           <div
             style={{
-              fontSize: "0.84rem",
+              fontSize: "0.85rem",
               fontWeight: 800,
-              color: "#1e293b",
+              color: "#0f172a",
               display: "flex",
               alignItems: "center",
               gap: "6px",
+              letterSpacing: "-0.2px",
             }}
           >
             <span
               style={{
                 width: "4px",
-                height: "14px",
-                background: "#0ea5e9",
-                borderRadius: "2px",
+                height: "15px",
+                background: "#059669",
+                borderRadius: "4px",
               }}
             />
-            Informasi & Pengumuman
+            Kegiatan Pesantren
           </div>
           <button
+            type="button"
             onClick={() => onChangeTab("informasi")}
             style={{
-              background: "#0d766e",
+              background: "transparent",
               border: "none",
-              color: "#ffffff",
-              fontSize: "0.68rem",
+              color: "#059669",
+              fontSize: "0.72rem",
               fontWeight: 700,
-              padding: "4px 12px",
-              borderRadius: "999px",
               cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "2px",
+              padding: 0,
             }}
           >
-            Lihat Semua
+            Lihat Semua <ChevronRight size={13} />
           </button>
         </div>
 
-        {/* 2 Realtime Information Cards */}
+        {/* Horizontal Scroll Carousel */}
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
             gap: "10px",
+            overflowX: "auto",
+            paddingBottom: "8px",
+            scrollSnapType: "x mandatory",
+            WebkitOverflowScrolling: "touch",
           }}
         >
-          {/* Card 1 */}
-          <div
-            onClick={() => onChangeTab("informasi")}
-            style={{
-              background: "#ffffff",
-              borderRadius: "16px",
-              padding: "12px 14px",
-              border: "1px solid #e2e8f0",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
-              cursor: "pointer",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "6px",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "0.62rem",
-                  fontWeight: 800,
-                  color: "#0d766e",
-                  background: "#ccfbf1",
-                  padding: "2px 8px",
-                  borderRadius: "6px",
-                }}
-              >
-                Kedisiplinan & Presensi
-              </span>
-              <span style={{ fontSize: "0.62rem", color: "#94a3b8" }}>
-                Hari ini
-              </span>
-            </div>
-            <div
-              style={{
-                fontSize: "0.78rem",
-                fontWeight: 800,
-                color: "#0f172a",
-                lineHeight: 1.3,
-                marginBottom: "4px",
-              }}
-            >
-              Perekaman Fingerprint Jamaah & Penutupan Sesi Otomatis
-            </div>
-            <div
-              style={{
-                fontSize: "0.7rem",
-                color: "#64748b",
-                lineHeight: 1.4,
-              }}
-            >
-              Sesi presensi shalat ditutup tepat waktu. Santri yang belum hadir
-              otomatis masuk daftar Belum Absen.
-            </div>
-          </div>
+          {(latestFeed && latestFeed.length > 0
+            ? latestFeed
+            : [
+                {
+                  id: "fb-1",
+                  judul: "Kajian Kitab Kuning & Sorogan Santri",
+                  kategori: "Pengajian",
+                  konten:
+                    "Kajian fiqih ibadah & nahwu ba'da Subuh dan Maghrib bersama dewan asatidz.",
+                  tanggal_publikasi: "Harian",
+                },
+                {
+                  id: "fb-2",
+                  judul: "Setoran Tahfidz & Tasmi' Al-Qur'an",
+                  kategori: "Tahfidz",
+                  konten:
+                    "Muroja'ah rutin santri dan evaluasi mutqin hafalan bersama musyrif asrama.",
+                  tanggal_publikasi: "Mingguan",
+                },
+                {
+                  id: "fb-3",
+                  judul: "Muhadhoroh & Latihan Khitobah 3 Bahasa",
+                  kategori: "Ekstrakurikuler",
+                  konten:
+                    "Pembinaan public speaking santri dalam Bahasa Arab, Inggris, dan Indonesia.",
+                  tanggal_publikasi: "Kamis Malam",
+                },
+                {
+                  id: "fb-4",
+                  judul: "Disiplin Presensi Sholat Berjamaah",
+                  kategori: "Ibadah",
+                  konten:
+                    "Pemantauan kehadiran sholat fardhu & tahajud di Masjid Jami' Pesantren.",
+                  tanggal_publikasi: "Wajib",
+                },
+              ]
+          ).map((item, idx) => {
+            const kat = String(item.kategori || "").toLowerCase();
+            let theme = {
+              emoji: "✨",
+              grad: "linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%)",
+            };
+            if (
+              kat.includes("ngaji") ||
+              kat.includes("kitab") ||
+              kat.includes("kajian")
+            )
+              theme = {
+                emoji: "📖",
+                grad: "linear-gradient(135deg, #059669 0%, #064e3b 100%)",
+              };
+            else if (kat.includes("tahfidz") || kat.includes("qur"))
+              theme = {
+                emoji: "🕌",
+                grad: "linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)",
+              };
+            else if (kat.includes("ibadah") || kat.includes("sholat"))
+              theme = {
+                emoji: "🤲",
+                grad: "linear-gradient(135deg, #0d9488 0%, #134e4a 100%)",
+              };
+            else if (kat.includes("ekstra") || kat.includes("lomba"))
+              theme = {
+                emoji: "🏆",
+                grad: "linear-gradient(135deg, #ea580c 0%, #7c2d12 100%)",
+              };
+            else if (kat.includes("umum") || kat.includes("info"))
+              theme = {
+                emoji: "📢",
+                grad: "linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%)",
+              };
+            else if (kat.includes("libur") || kat.includes("pulang"))
+              theme = {
+                emoji: "🏖️",
+                grad: "linear-gradient(135deg, #0284c7 0%, #0c4a6e 100%)",
+              };
 
-          {/* Card 2 */}
-          <div
-            onClick={() => onChangeTab("informasi")}
-            style={{
-              background: "#ffffff",
-              borderRadius: "16px",
-              padding: "12px 14px",
-              border: "1px solid #e2e8f0",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
-              cursor: "pointer",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "6px",
-              }}
-            >
-              <span
+            const foto = item.foto_url || item.lampiran_url || "";
+            const tglLabel = item.tanggal_publikasi
+              ? typeof item.tanggal_publikasi === "string" &&
+                item.tanggal_publikasi.includes("-")
+                ? new Date(item.tanggal_publikasi).toLocaleDateString("id-ID", {
+                    day: "numeric",
+                    month: "short",
+                  })
+                : item.tanggal_publikasi
+              : "Pesantren";
+
+            return (
+              <div
+                key={item.id || idx}
+                onClick={() => onChangeTab("informasi")}
                 style={{
-                  fontSize: "0.62rem",
-                  fontWeight: 800,
-                  color: "#6366f1",
-                  background: "#ede9fe",
-                  padding: "2px 8px",
-                  borderRadius: "6px",
+                  flex: "0 0 230px",
+                  height: "158px",
+                  scrollSnapAlign: "start",
+                  position: "relative",
+                  borderRadius: "18px",
+                  overflow: "hidden",
+                  cursor: "pointer",
+                  background: foto
+                    ? `url(${foto}) center/cover no-repeat`
+                    : theme.grad,
+                  boxShadow: "0 8px 20px -6px rgba(15, 23, 42, 0.3)",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  color: "#ffffff",
                 }}
               >
-                Pengasuhan Santri
-              </span>
-              <span style={{ fontSize: "0.62rem", color: "#94a3b8" }}>
-                Kemarin
-              </span>
-            </div>
-            <div
-              style={{
-                fontSize: "0.78rem",
-                fontWeight: 800,
-                color: "#0f172a",
-                lineHeight: 1.3,
-                marginBottom: "4px",
-              }}
-            >
-              Alur Verifikasi Perizinan Pulang & Jam Kunjungan Santri
-            </div>
-            <div
-              style={{
-                fontSize: "0.7rem",
-                color: "#64748b",
-                lineHeight: 1.4,
-              }}
-            >
-              Perizinan santri wajib melalui persetujuan wali asrama dan
-              tercatat dalam sistem perizinan.
-            </div>
-          </div>
+                {/* Watermark emoji (tanpa foto) */}
+                {!foto && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      right: "-6px",
+                      top: "-8px",
+                      fontSize: "5.2rem",
+                      opacity: 0.16,
+                      pointerEvents: "none",
+                      userSelect: "none",
+                    }}
+                  >
+                    {theme.emoji}
+                  </div>
+                )}
+
+                {/* Overlay gelap bawah agar teks terbaca */}
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background:
+                      "linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,0.78) 100%)",
+                  }}
+                />
+
+                {/* Top Badges */}
+                <div
+                  style={{
+                    position: "relative",
+                    padding: "10px 10px 0",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <span
+                    style={{
+                      background: "rgba(255, 255, 255, 0.22)",
+                      backdropFilter: "blur(6px)",
+                      border: "1px solid rgba(255,255,255,0.3)",
+                      color: "#ffffff",
+                      fontSize: "0.6rem",
+                      fontWeight: 800,
+                      padding: "3px 8px",
+                      borderRadius: "999px",
+                    }}
+                  >
+                    {theme.emoji} {item.kategori || "Kegiatan"}
+                  </span>
+                  {Number(item.is_pinned) === 1 ? (
+                    <span
+                      style={{
+                        background: "#f59e0b",
+                        color: "#ffffff",
+                        fontSize: "0.56rem",
+                        fontWeight: 900,
+                        padding: "3px 7px",
+                        borderRadius: "999px",
+                      }}
+                    >
+                      📌 PIN
+                    </span>
+                  ) : (
+                    <Sparkles size={14} style={{ opacity: 0.85 }} />
+                  )}
+                </div>
+
+                {/* Bottom Info */}
+                <div style={{ position: "relative", padding: "0 11px 10px" }}>
+                  <div
+                    style={{
+                      fontSize: "0.84rem",
+                      fontWeight: 900,
+                      lineHeight: 1.25,
+                      textShadow: "0 2px 6px rgba(0,0,0,0.45)",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {item.judul}
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      fontSize: "0.62rem",
+                      fontWeight: 700,
+                      color: "rgba(255,255,255,0.85)",
+                      marginTop: "6px",
+                    }}
+                  >
+                    <Calendar size={11} />
+                    <span>{tglLabel}</span>
+                    <span
+                      style={{
+                        marginLeft: "auto",
+                        background: "#ffffff",
+                        color: "#0f172a",
+                        padding: "2px 8px",
+                        borderRadius: "999px",
+                        fontSize: "0.6rem",
+                        fontWeight: 800,
+                      }}
+                    >
+                      Lihat →
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
