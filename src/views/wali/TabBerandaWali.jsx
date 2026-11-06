@@ -491,53 +491,52 @@ const TabBerandaWali = ({
         </div>
       </div>
 
-      {/* 2. CARD TABUNGAN SANTRI & KEUANGAN SPP */}
+      {/* 2. CARD TABUNGAN SANTRI & KEUANGAN SPP (CARD PUTIH ELEGAN) */}
       <div style={{ padding: '8px 14px 0', position: 'relative', zIndex: 11 }}>
         <div
           style={{
-            background: financeActiveTab === 'tabungan' ? '#044e42' : '#0f3c5c',
-            borderRadius: '14px',
-            padding: '9px 12px 8px',
-            boxShadow: financeActiveTab === 'tabungan'
-              ? '0 6px 16px -4px rgba(4, 78, 66, 0.35)'
-              : '0 6px 16px -4px rgba(15, 60, 92, 0.35)',
+            background: '#ffffff',
+            borderRadius: '18px',
+            border: '1px solid #e2e8f0',
+            padding: '12px 14px 12px',
+            boxShadow: '0 10px 25px -4px rgba(13, 118, 110, 0.14), 0 2px 6px rgba(0, 0, 0, 0.04)',
             position: 'relative',
             overflow: 'hidden',
-            color: '#ffffff',
-            transition: 'background 0.2s ease, box-shadow 0.2s ease'
+            color: '#0f172a',
+            transition: 'all 0.2s ease'
           }}
         >
           {/* Tab Switcher: Tabungan & Tagihan */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: '3px',
-            background: 'rgba(0, 0, 0, 0.22)',
-            padding: '2px',
+            gap: '4px',
+            background: '#f1f5f9',
+            padding: '3px',
             borderRadius: '10px',
-            marginBottom: '8px'
+            marginBottom: '10px'
           }}>
             <button
               type="button"
               onClick={() => setFinanceActiveTab('tabungan')}
               style={{
-                border: 'none',
+                border: financeActiveTab === 'tabungan' ? '1px solid #a7f3d0' : 'none',
                 background: financeActiveTab === 'tabungan' ? '#ffffff' : 'transparent',
-                color: financeActiveTab === 'tabungan' ? '#044e42' : 'rgba(255, 255, 255, 0.8)',
-                fontWeight: 700,
+                color: financeActiveTab === 'tabungan' ? '#0d766e' : '#64748b',
+                fontWeight: 800,
                 fontSize: '11px',
-                padding: '3px 6px',
-                borderRadius: '7px',
+                padding: '5px 8px',
+                borderRadius: '8px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '4px',
-                boxShadow: financeActiveTab === 'tabungan' ? '0 2px 5px rgba(0,0,0,0.15)' : 'none',
+                gap: '5px',
+                boxShadow: financeActiveTab === 'tabungan' ? '0 2px 6px rgba(13, 118, 110, 0.12)' : 'none',
                 transition: 'all 0.15s ease'
               }}
             >
-              <Wallet size={12} color={financeActiveTab === 'tabungan' ? '#044e42' : 'rgba(255, 255, 255, 0.8)'} />
+              <Wallet size={13} color={financeActiveTab === 'tabungan' ? '#0d766e' : '#64748b'} />
               <span>Tabungan</span>
             </button>
 
@@ -545,28 +544,28 @@ const TabBerandaWali = ({
               type="button"
               onClick={() => setFinanceActiveTab('tagihan')}
               style={{
-                border: 'none',
+                border: financeActiveTab === 'tagihan' ? '1px solid #bae6fd' : 'none',
                 background: financeActiveTab === 'tagihan' ? '#ffffff' : 'transparent',
-                color: financeActiveTab === 'tagihan' ? '#0f3c5c' : 'rgba(255, 255, 255, 0.8)',
-                fontWeight: 700,
+                color: financeActiveTab === 'tagihan' ? '#0284c7' : '#64748b',
+                fontWeight: 800,
                 fontSize: '11px',
-                padding: '3px 6px',
-                borderRadius: '7px',
+                padding: '5px 8px',
+                borderRadius: '8px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '4px',
-                boxShadow: financeActiveTab === 'tagihan' ? '0 2px 5px rgba(0,0,0,0.15)' : 'none',
+                gap: '5px',
+                boxShadow: financeActiveTab === 'tagihan' ? '0 2px 6px rgba(2, 132, 199, 0.12)' : 'none',
                 transition: 'all 0.15s ease'
               }}
             >
-              <CreditCard size={12} color={financeActiveTab === 'tagihan' ? '#0f3c5c' : 'rgba(255, 255, 255, 0.8)'} />
+              <CreditCard size={13} color={financeActiveTab === 'tagihan' ? '#0284c7' : '#64748b'} />
               <span>Tagihan</span>
               {(keuanganSummary?.totalBelumBayar || 0) > 0 && (
                 <span style={{
-                  width: '5px',
-                  height: '5px',
+                  width: '6px',
+                  height: '6px',
                   borderRadius: '50%',
                   background: '#ef4444'
                 }} />
@@ -582,7 +581,7 @@ const TabBerandaWali = ({
                   <div style={{
                     fontSize: '0.62rem',
                     fontWeight: 800,
-                    color: '#5eead4',
+                    color: '#0d766e',
                     letterSpacing: '0.04em',
                     textTransform: 'uppercase',
                     lineHeight: 1.1
@@ -590,12 +589,12 @@ const TabBerandaWali = ({
                     SALDO TABUNGAN SANTRI
                   </div>
                   <div style={{
-                    fontSize: '1.15rem',
+                    fontSize: '1.25rem',
                     fontWeight: 900,
-                    color: '#ffffff',
+                    color: '#0f172a',
                     letterSpacing: '-0.3px',
                     lineHeight: 1.1,
-                    marginTop: '2px'
+                    marginTop: '3px'
                   }}>
                     {formatRp(tabunganData?.saldo_saat_ini || 0)}
                   </div>
@@ -605,49 +604,55 @@ const TabBerandaWali = ({
                   onClick={() => onNavigateTab('tabungan')}
                   title="Buka Buku Kas"
                   style={{
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '8px',
-                    background: 'rgba(255, 255, 255, 0.12)',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '10px',
+                    background: '#ecfdf5',
+                    border: '1px solid #a7f3d0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#5eead4',
+                    color: '#059669',
                     cursor: 'pointer',
                     flexShrink: 0,
                     marginLeft: '8px',
                     transition: 'transform 0.15s ease'
                   }}
                 >
-                  <Wallet size={15} strokeWidth={2.4} />
+                  <Wallet size={16} strokeWidth={2.4} />
                 </div>
               </div>
 
               <div style={{
                 height: '1px',
-                background: 'rgba(255, 255, 255, 0.15)',
-                margin: '7px 0 6px'
+                background: '#f1f5f9',
+                margin: '10px 0 8px'
               }} />
 
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
-                gap: '6px'
+                gap: '8px'
               }}>
-                <div>
+                <div style={{
+                  background: '#f0fdf4',
+                  borderRadius: '10px',
+                  padding: '6px 8px',
+                  border: '1px solid #dcfce7'
+                }}>
                   <div style={{
                     fontSize: '0.58rem',
                     fontWeight: 800,
-                    color: '#99f6e4',
+                    color: '#15803d',
                     letterSpacing: '0.03em',
                     textTransform: 'uppercase'
                   }}>
                     TOTAL UANG MASUK
                   </div>
                   <div style={{
-                    fontSize: '0.78rem',
+                    fontSize: '0.82rem',
                     fontWeight: 900,
-                    color: '#ffffff',
+                    color: '#166534',
                     marginTop: '1px',
                     letterSpacing: '-0.2px'
                   }}>
@@ -655,20 +660,25 @@ const TabBerandaWali = ({
                   </div>
                 </div>
 
-                <div>
+                <div style={{
+                  background: '#fff1f2',
+                  borderRadius: '10px',
+                  padding: '6px 8px',
+                  border: '1px solid #ffe4e6'
+                }}>
                   <div style={{
                     fontSize: '0.58rem',
                     fontWeight: 800,
-                    color: '#fecdd3',
+                    color: '#e11d48',
                     letterSpacing: '0.03em',
                     textTransform: 'uppercase'
                   }}>
                     TOTAL PENGAMBILAN
                   </div>
                   <div style={{
-                    fontSize: '0.78rem',
+                    fontSize: '0.82rem',
                     fontWeight: 900,
-                    color: '#ffffff',
+                    color: '#9f1239',
                     marginTop: '1px',
                     letterSpacing: '-0.2px'
                   }}>
@@ -687,7 +697,7 @@ const TabBerandaWali = ({
                   <div style={{
                     fontSize: '0.62rem',
                     fontWeight: 800,
-                    color: '#7dd3fc',
+                    color: '#0284c7',
                     letterSpacing: '0.04em',
                     textTransform: 'uppercase',
                     lineHeight: 1.1
@@ -695,12 +705,12 @@ const TabBerandaWali = ({
                     TOTAL TAGIHAN KEUANGAN
                   </div>
                   <div style={{
-                    fontSize: '1.15rem',
+                    fontSize: '1.25rem',
                     fontWeight: 900,
-                    color: '#ffffff',
+                    color: (keuanganSummary?.totalBelumBayar || 0) > 0 ? '#dc2626' : '#0f172a',
                     letterSpacing: '-0.3px',
                     lineHeight: 1.1,
-                    marginTop: '2px'
+                    marginTop: '3px'
                   }}>
                     {keuanganSummary?.formattedTotalBelumBayar || 'Rp 0'}
                   </div>
@@ -710,49 +720,55 @@ const TabBerandaWali = ({
                   onClick={() => onNavigateTab('tagihan')}
                   title="Buka Rincian Tagihan"
                   style={{
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '8px',
-                    background: 'rgba(255, 255, 255, 0.12)',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '10px',
+                    background: '#f0f9ff',
+                    border: '1px solid #bae6fd',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#7dd3fc',
+                    color: '#0284c7',
                     cursor: 'pointer',
                     flexShrink: 0,
                     marginLeft: '8px',
                     transition: 'transform 0.15s ease'
                   }}
                 >
-                  <CreditCard size={15} strokeWidth={2.4} />
+                  <CreditCard size={16} strokeWidth={2.4} />
                 </div>
               </div>
 
               <div style={{
                 height: '1px',
-                background: 'rgba(255, 255, 255, 0.15)',
-                margin: '7px 0 6px'
+                background: '#f1f5f9',
+                margin: '10px 0 8px'
               }} />
 
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
-                gap: '6px'
+                gap: '8px'
               }}>
-                <div>
+                <div style={{
+                  background: '#f8fafc',
+                  borderRadius: '10px',
+                  padding: '6px 8px',
+                  border: '1px solid #e2e8f0'
+                }}>
                   <div style={{
                     fontSize: '0.58rem',
                     fontWeight: 800,
-                    color: '#bae6fd',
+                    color: '#64748b',
                     letterSpacing: '0.03em',
                     textTransform: 'uppercase'
                   }}>
                     SPP BULANAN
                   </div>
                   <div style={{
-                    fontSize: '0.78rem',
+                    fontSize: '0.82rem',
                     fontWeight: 900,
-                    color: '#ffffff',
+                    color: '#0f172a',
                     marginTop: '1px',
                     letterSpacing: '-0.2px'
                   }}>
@@ -760,20 +776,25 @@ const TabBerandaWali = ({
                   </div>
                 </div>
 
-                <div>
+                <div style={{
+                  background: '#f8fafc',
+                  borderRadius: '10px',
+                  padding: '6px 8px',
+                  border: '1px solid #e2e8f0'
+                }}>
                   <div style={{
                     fontSize: '0.58rem',
                     fontWeight: 800,
-                    color: '#bae6fd',
+                    color: '#64748b',
                     letterSpacing: '0.03em',
                     textTransform: 'uppercase'
                   }}>
                     SISA BIAYA MASUK
                   </div>
                   <div style={{
-                    fontSize: '0.78rem',
+                    fontSize: '0.82rem',
                     fontWeight: 900,
-                    color: '#ffffff',
+                    color: '#0f172a',
                     marginTop: '1px',
                     letterSpacing: '-0.2px'
                   }}>
