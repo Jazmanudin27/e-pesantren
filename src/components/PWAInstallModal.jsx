@@ -231,29 +231,38 @@ export default function PWAInstallModal() {
 
               {/* Tombol Tutup X */}
               <button
-                onClick={handleDismiss}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDismiss();
+                }}
                 style={{
                   position: 'absolute',
-                  top: '14px',
-                  right: '14px',
-                  width: '30px',
-                  height: '30px',
+                  top: '12px',
+                  right: '12px',
+                  zIndex: 30,
+                  width: '34px',
+                  height: '34px',
+                  padding: 0,
+                  lineHeight: 0,
                   borderRadius: '50%',
-                  background: 'rgba(255, 255, 255, 0.16)',
-                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  border: '1px solid rgba(255, 255, 255, 0.32)',
                   color: '#ffffff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  touchAction: 'manipulation'
                 }}
                 title="Tutup"
+                aria-label="Tutup"
               >
-                <X size={15} />
+                <X size={16} strokeWidth={2.5} style={{ pointerEvents: 'none' }} />
               </button>
 
               {/* App Icon Frame + Brand Identity */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative', zIndex: 2 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative', zIndex: 2, paddingRight: '34px' }}>
                 {/* Pure White Squircle Icon (Background Putih Bersih Tanpa Hijau, Logo Proporsional) */}
                 <div
                   style={{

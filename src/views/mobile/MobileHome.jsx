@@ -1107,6 +1107,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 shadow: "0 6px 16px -2px rgba(249, 115, 22, 0.38)",
               },
               {
+                label: "Daftar Wajah",
+                tab: "daftar-wajah",
+                icon: Smile,
+                bg: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
+                shadow: "0 6px 16px -2px rgba(236, 72, 153, 0.38)",
+              },
+              {
                 label: "Tabungan",
                 tab: "tabungan",
                 icon: Wallet,
