@@ -660,7 +660,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 padding: '12px 12px 10px',
                 boxShadow: '0 10px 25px -4px rgba(13, 118, 110, 0.14), 0 2px 6px rgba(0, 0, 0, 0.04)'
               }}>
-                {/* Header Mini Status */}
+                {/* Header Mini Status: Ganti jadi Nama Santri */}
                 <div style={{
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -669,17 +669,43 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   paddingBottom: '8px',
                   borderBottom: '1px solid #f1f5f9'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{
-                      width: '7px',
-                      height: '7px',
-                      borderRadius: '50%',
-                      background: '#10b981',
-                      boxShadow: '0 0 0 2px rgba(16, 185, 129, 0.2)'
-                    }} />
-                    <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.2px' }}>
-                      Rekap Presensi & Ibadah
-                    </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1, paddingRight: '8px' }}>
+                    <div style={{
+                      width: '26px',
+                      height: '26px',
+                      borderRadius: '8px',
+                      background: '#ecfdf5',
+                      border: '1px solid #a7f3d0',
+                      color: '#059669',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <User size={15} strokeWidth={2.5} />
+                    </div>
+                    <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                      <div style={{
+                        fontSize: '0.82rem',
+                        fontWeight: 900,
+                        color: '#0f172a',
+                        letterSpacing: '-0.2px',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {rawSantriName}
+                      </div>
+                      <div style={{
+                        fontSize: '0.62rem',
+                        fontWeight: 600,
+                        color: '#64748b',
+                        lineHeight: 1.1,
+                        marginTop: '1px'
+                      }}>
+                        NISN: {displayNisn} {santri.nama_kamar ? `• ${santri.nama_kamar}` : ''}
+                      </div>
+                    </div>
                   </div>
                   <button
                     type="button"
@@ -695,7 +721,8 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '3px',
-                      padding: '3px 8px',
+                      padding: '4px 8px',
+                      flexShrink: 0,
                       transition: 'all 0.15s ease'
                     }}
                   >
