@@ -199,6 +199,78 @@ export default function MobilePresensi() {
     selectedKegiatanRef.current = selectedKegiatan;
   }, [selectedKegiatan]);
 
+  const daftarBerjamaahRef = useRef(daftarBerjamaah);
+  useEffect(() => {
+    daftarBerjamaahRef.current = daftarBerjamaah;
+  }, [daftarBerjamaah]);
+
+  // Helper: Otomatis pilih sesi Shalat Berjamaah sesuai jam saat ini & Setting Jadwal Shalat Berjamaah (kegiatan_sesi)
+  const detectActiveBerjamaahBySchedule = (list = daftarBerjamaahRef.current) => {
+    if (!Array.isArray(list) || list.length === 0) return null;
+    const now = new Date();
+    const curMin = now.getHours() * 60 + now.getMinutes();
+
+    const toMin = (tStr) => {
+      if (!tStr) return null;
+      const parts = String(tStr).trim().split(":").map(Number);
+      if (!parts.length || isNaN(parts[0])) return null;
+      return (parts[0] || 0) * 60 + (parts[1] || 0);
+    };
+
+    const inRange = (val, start, end) => {
+      if (start === null || end === null) return false;
+      if (start <= end) return val >= start && val <= end;
+      return val >= start || val <= end;
+    };
+
+    // 1. Prioritas Utama: Jam sekarang berada tepat di rentang jam_mulai_presensi s/d jam_tutup_presensi
+    let matched = list.find((s) => {
+      const start = toMin(s.jam_mulai_presensi);
+      const end = toMin(
+        s.jam_tutup_presensi || s.jam_toleransi_telat || s.jam_target,
+      );
+      return inRange(curMin, start, end);
+    });
+
+    // 2. Prioritas Kedua: Buffer 30 menit sebelum jam_mulai s/d 45 menit setelah jam_tutup
+    if (!matched) {
+      matched = list.find((s) => {
+        const start = toMin(s.jam_mulai_presensi);
+        const end = toMin(
+          s.jam_tutup_presensi || s.jam_toleransi_telat || s.jam_target,
+        );
+        if (start === null || end === null) return false;
+        return inRange(
+          curMin,
+          Math.max(0, start - 30),
+          Math.min(1439, end + 45),
+        );
+      });
+    }
+
+    // 3. Prioritas Ketiga: Sesi Shalat Berjamaah dengan jarak waktu terdekat dari jam sekarang
+    if (!matched) {
+      let bestDist = Infinity;
+      for (const s of list) {
+        const start = toMin(s.jam_mulai_presensi) ?? 0;
+        const target = toMin(s.jam_target) ?? start;
+        const end =
+          toMin(
+            s.jam_tutup_presensi || s.jam_toleransi_telat || s.jam_target,
+          ) ?? target;
+        const distToWindow =
+          curMin < start ? start - curMin : curMin > end ? curMin - end : 0;
+        const dist = Math.min(distToWindow, Math.abs(curMin - target));
+        if (dist < bestDist) {
+          bestDist = dist;
+          matched = s;
+        }
+      }
+    }
+
+    return matched || list[0];
+  };
+
   // Suppress harmless RenderedCameraImpl onabort warning from html5-qrcode
   useEffect(() => {
     const handleRejection = (e) => {
@@ -288,14 +360,14 @@ export default function MobilePresensi() {
 
       // Filter kata shalat untuk memisahkan Berjamaah vs Mengaji
       const isShalatWord = (str) =>
-        /shalat|sholat|subuh|dzuhur|ashar|maghrib|isya/i.test(
+        /shalat|sholat|subuh|shubuh|dzuhur|zuhur|ashar|asar|maghrib|magrib|isya|dhuha|berjamaah/i.test(
           String(str || ""),
         );
 
       const rawMateri = resMateri.data?.data || [];
       const rawSesi = resSesi.data?.data || [];
 
-      // 1. Kategori Berjamaah: Shalat 5 Waktu dari kegiatan_sesi
+      // 1. Kategori Berjamaah: Shalat 5 Waktu & Ibadah Berjamaah dari kegiatan_sesi (lengkap dengan jam jadwal)
       let listBerjamaah = [];
       if (Array.isArray(rawSesi) && rawSesi.length > 0) {
         rawSesi.forEach((s) => {
@@ -303,16 +375,24 @@ export default function MobilePresensi() {
             listBerjamaah.push({
               id: s.id,
               nama: s.nama_sesi,
-              kategori: "Shalat Berjamaah",
+              kategori: s.kategori || "Shalat Berjamaah",
               tempat: s.keterangan || "Masjid Jami",
               tipe: "Berjamaah",
+              jam_mulai_presensi: s.jam_mulai_presensi || null,
+              jam_target: s.jam_target || null,
+              jam_toleransi_telat: s.jam_toleransi_telat || null,
+              jam_tutup_presensi: s.jam_tutup_presensi || null,
+              hari_aktif: s.hari_aktif || "Setiap Hari",
             });
           }
         });
       }
       if (listBerjamaah.length === 0) listBerjamaah = DAFTAR_BERJAMAAH_DEFAULT;
       setDaftarBerjamaah(listBerjamaah);
+      daftarBerjamaahRef.current = listBerjamaah;
+      const autoScheduledBerjamaah = detectActiveBerjamaahBySchedule(listBerjamaah);
       setSelectedBerjamaah((prev) => {
+        if (autoScheduledBerjamaah) return autoScheduledBerjamaah;
         if (
           !prev ||
           !listBerjamaah.some((k) => String(k.id) === String(prev.id))
@@ -1083,9 +1163,17 @@ export default function MobilePresensi() {
                 return;
               }
 
-              // 2. CEK APAKAH SUDAH HADIR DI SESI INI
+              // 2. OTOMATIS PILIH SESI SHALAT BERJAMAAH SESUAI JADWAL SAAT SCAN WAJAH AI
               const todayStr = getTodayDateStr();
-              const curKegiatan = selectedKegiatanRef.current;
+              const autoBerjamaah = detectActiveBerjamaahBySchedule(
+                daftarBerjamaahRef.current,
+              );
+              const curKegiatan = autoBerjamaah || selectedKegiatanRef.current;
+              if (autoBerjamaah) {
+                setActiveKategori("berjamaah");
+                setSelectedBerjamaah(autoBerjamaah);
+                selectedKegiatanRef.current = autoBerjamaah;
+              }
               const isAlreadyAttended = (presensiLogsRef.current || []).some(
                 (item) => {
                   const sameSantri =
@@ -1524,6 +1612,33 @@ export default function MobilePresensi() {
     const timeStr = now.toTimeString().split(" ")[0];
     const dateStr = getTodayDateStr();
 
+    // OTOMATIS PILIH KATEGORI & JADWAL SHALAT BERJAMAAH SAAT SCAN WAJAH AI / FACE
+    const isFaceScan = /wajah|face|ai/i.test(String(metode || ""));
+    let targetKegiatan = selectedKegiatan;
+    let targetKategori = activeKategori;
+
+    if (isFaceScan) {
+      const autoBerjamaah = detectActiveBerjamaahBySchedule(
+        daftarBerjamaahRef.current,
+      );
+      if (autoBerjamaah) {
+        targetKegiatan = autoBerjamaah;
+        targetKategori = "berjamaah";
+        setActiveKategori("berjamaah");
+        setSelectedBerjamaah(autoBerjamaah);
+        selectedKegiatanRef.current = autoBerjamaah;
+      }
+    }
+
+    if (!targetKegiatan) {
+      targetKegiatan = {
+        id: 1,
+        nama: "Shalat Berjamaah",
+        tempat: "Masjid Jami",
+        tipe: "Berjamaah",
+      };
+    }
+
     // 1. VALIDASI DOUBLE PRESENSI: Cek apakah santri sudah tercatat di sesi & tanggal ini
     const existingLog = presensiLogs.find((item) => {
       const sameSantri =
@@ -1539,16 +1654,16 @@ export default function MobilePresensi() {
             santri.nama_santri.trim().toLowerCase());
       const sameSesi =
         (item.sesi_id != null &&
-          selectedKegiatan.id != null &&
-          String(item.sesi_id) === String(selectedKegiatan.id)) ||
+          targetKegiatan.id != null &&
+          String(item.sesi_id) === String(targetKegiatan.id)) ||
         (item.kegiatan &&
-          selectedKegiatan.nama &&
+          targetKegiatan.nama &&
           item.kegiatan.trim().toLowerCase() ===
-            selectedKegiatan.nama.trim().toLowerCase()) ||
+            targetKegiatan.nama.trim().toLowerCase()) ||
         (item.nama_sesi &&
-          selectedKegiatan.nama &&
+          targetKegiatan.nama &&
           item.nama_sesi.trim().toLowerCase() ===
-            selectedKegiatan.nama.trim().toLowerCase());
+            targetKegiatan.nama.trim().toLowerCase());
       const itemTgl = normalizeDateStr(item.tanggal);
       const sameTgl = !itemTgl || itemTgl === dateStr;
       return sameSantri && sameSesi && sameTgl;
@@ -1563,13 +1678,13 @@ export default function MobilePresensi() {
         snapshot: snapshot || existingLog.foto_bukti,
         isDuplicate: true,
         waktu_scan: existingLog.waktu_scan,
-        notice: `Santri ini SUDAH hadir pada kegiatan "${selectedKegiatan.nama}" pukul ${formatCompactTime(existingLog.waktu_scan, existingLog.tanggal)}.`,
+        notice: `Santri ini SUDAH hadir pada kegiatan "${targetKegiatan.nama}" pukul ${formatCompactTime(existingLog.waktu_scan, existingLog.tanggal)}.`,
       });
 
       if (!metode.includes("Otomatis")) {
         showError(
           "Presensi Ganda (Double Data)!",
-          `${santri.nama_santri} (NIS: ${santri.nis}) sudah tercatat hadir pada sesi "${selectedKegiatan.nama}" pukul ${formatCompactTime(existingLog.waktu_scan, existingLog.tanggal)}. Data tidak diduplikasi.`,
+          `${santri.nama_santri} (NIS: ${santri.nis}) sudah tercatat hadir pada sesi "${targetKegiatan.nama}" pukul ${formatCompactTime(existingLog.waktu_scan, existingLog.tanggal)}. Data tidak diduplikasi.`,
         );
       }
       return;
@@ -1580,7 +1695,7 @@ export default function MobilePresensi() {
 
     const payload = {
       santri_id: santri.id,
-      sesi_id: selectedKegiatan.id,
+      sesi_id: targetKegiatan.id,
       device_id: 1,
       tanggal: dateStr,
       waktu_scan: timeStr,
@@ -1590,10 +1705,11 @@ export default function MobilePresensi() {
       metode_scan: metode,
       keterangan: ket,
       nama_santri: santri.nama_santri,
-      nama_sesi: selectedKegiatan.nama,
-      kegiatan: selectedKegiatan.nama,
-      tipe_presensi: activeKategori === "berjamaah" ? "Berjamaah" : "Kegiatan",
-      tempat: selectedKegiatan.tempat,
+      nama_sesi: targetKegiatan.nama,
+      kegiatan: targetKegiatan.nama,
+      tipe_presensi: targetKategori === "berjamaah" ? "Berjamaah" : "Kegiatan",
+      auto_jadwal_berjamaah: isFaceScan,
+      tempat: targetKegiatan.tempat,
       foto_bukti: snapshot || santri.foto || null,
     };
 
@@ -1619,16 +1735,16 @@ export default function MobilePresensi() {
               santri.nama_santri.trim().toLowerCase());
         const sameSesi =
           (item.sesi_id != null &&
-            selectedKegiatan.id != null &&
-            String(item.sesi_id) === String(selectedKegiatan.id)) ||
+            targetKegiatan.id != null &&
+            String(item.sesi_id) === String(targetKegiatan.id)) ||
           (item.kegiatan &&
-            selectedKegiatan.nama &&
+            targetKegiatan.nama &&
             item.kegiatan.trim().toLowerCase() ===
-              selectedKegiatan.nama.trim().toLowerCase()) ||
+              targetKegiatan.nama.trim().toLowerCase()) ||
           (item.nama_sesi &&
-            selectedKegiatan.nama &&
+            targetKegiatan.nama &&
             item.nama_sesi.trim().toLowerCase() ===
-              selectedKegiatan.nama.trim().toLowerCase());
+              targetKegiatan.nama.trim().toLowerCase());
         const itemTgl = normalizeDateStr(item.tanggal);
         const sameTgl = !itemTgl || itemTgl === dateStr;
 
@@ -2170,15 +2286,26 @@ export default function MobilePresensi() {
               cursor: "pointer",
             }}
           >
-            {currentDaftarKegiatan.map((k) => (
-              <option
-                key={k.id}
-                value={k.id}
-                style={{ color: "#0f172a", fontWeight: 700 }}
-              >
-                {k.nama}
-              </option>
-            ))}
+            {currentDaftarKegiatan.map((k) => {
+              const startJam = k.jam_mulai_presensi
+                ? String(k.jam_mulai_presensi).substring(0, 5)
+                : "";
+              const endJam = k.jam_tutup_presensi
+                ? String(k.jam_tutup_presensi).substring(0, 5)
+                : "";
+              const jadwalSuffix =
+                startJam && endJam ? ` (${startJam} - ${endJam})` : "";
+              return (
+                <option
+                  key={k.id}
+                  value={k.id}
+                  style={{ color: "#0f172a", fontWeight: 700 }}
+                >
+                  {k.nama}
+                  {jadwalSuffix}
+                </option>
+              );
+            })}
           </select>
           <ChevronDown
             size={15}

@@ -126,7 +126,7 @@ export default function TabLaporanPerkembangan({ santriId, onBack }) {
                 Perkembangan Santri
               </div>
               <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.85)', marginTop: '2px' }}>
-                Rekap capaian tahfidz, kedisiplinan, ibadah, & akademik
+                Rekap kedisiplinan, ibadah, & akademik santri
               </div>
             </div>
 
@@ -146,22 +146,16 @@ export default function TabLaporanPerkembangan({ santriId, onBack }) {
             </div>
           </div>
 
-          {/* 4 Mini Counters */}
+          {/* 3 Mini Counters */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
+            gridTemplateColumns: 'repeat(3, 1fr)',
             gap: '6px',
             background: 'rgba(0, 0, 0, 0.22)',
             padding: '8px',
             borderRadius: '12px',
             textAlign: 'center'
           }}>
-            <div>
-              <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#ffffff' }}>
-                {metrik.tahfidz?.juz_tertinggi ?? 0}
-              </div>
-              <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>Juz Mutqin</div>
-            </div>
             <div>
               <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#4ade80' }}>
                 {metrik.absensi?.hadir ?? 0}
@@ -253,25 +247,6 @@ export default function TabLaporanPerkembangan({ santriId, onBack }) {
                   <strong>Catatan Pembelajaran:</strong> {laporanAktif.catatan_akademik}
                 </div>
               )}
-            </div>
-
-            {/* CARD 2: PERKEMBANGAN HAFALAN & TAHFIDZ */}
-            <div style={{
-              background: '#ffffff',
-              borderRadius: '18px',
-              border: '1px solid #e2e8f0',
-              padding: '16px',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                <Sparkles size={18} color="#8b5cf6" />
-                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>
-                  Perkembangan Hafalan Al-Qur'an
-                </span>
-              </div>
-              <div style={{ fontSize: '0.8rem', color: '#334155', lineHeight: 1.5 }}>
-                {laporanAktif.catatan_hafalan || 'Santri rutin menyetorkan ziyadah dan muroja\'ah setiap ba\'da Shubuh dan Maghrib dengan kelancaran tajwid yang baik.'}
-              </div>
             </div>
 
             {/* CARD 3: KEDISIPLINAN, PERILAKU & IBADAH */}

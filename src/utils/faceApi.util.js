@@ -85,10 +85,10 @@ export const detectFaceDescriptor = async (mediaElement) => {
 
   try {
     const faceapi = window.faceapi;
-    // InputSize 320 menghasilkan deteksi landmark wajah jauh lebih presisi dibanding 224
+    // InputSize 320 + scoreThreshold 0.60 menghasilkan deteksi landmark wajah presisi tinggi & menolak wajah buram
     const options = new faceapi.TinyFaceDetectorOptions({
       inputSize: 320,
-      scoreThreshold: 0.55
+      scoreThreshold: 0.60
     });
 
     const detection = await faceapi
@@ -96,7 +96,7 @@ export const detectFaceDescriptor = async (mediaElement) => {
       .withFaceLandmarks()
       .withFaceDescriptor();
 
-    if (!detection || !detection.detection || detection.detection.score < 0.55) return null;
+    if (!detection || !detection.detection || detection.detection.score < 0.60) return null;
 
     return {
       box: detection.detection.box, // { x, y, width, height }
@@ -147,31 +147,49 @@ export const extractDescriptorFromDataUrl = (dataUrl) => {
   });
 };
 
-// 6. Pencocokan Vektor Biometrik (Euclidean Distance Ketat)
+// 6. Pencocokan Vektor Biometrik (Euclidean Distance Ketat + Validasi Anti-Bocor / Runner-Up Margin)
 // Ambang batas ketat: distance < 0.40 = orang yang sama; distance >= 0.40 = orang berbeda / tolak
 export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, threshold = 0.40) => {
   if (!liveDescriptor || !registeredProfilesList || !window.faceapi) return null;
   if (!isValidDescriptor(liveDescriptor)) return null;
 
   const faceapi = window.faceapi;
+  const strictThreshold = Math.min(Number(threshold) || 0.40, 0.40);
   let bestMatch = null;
   let minDistance = 999;
+  let secondMinDistance = 999;
+  let bestSantriId = null;
 
   for (const prof of registeredProfilesList) {
+    if (!prof) continue;
     const targetDescriptor = prof.descriptor || prof.faceDescriptor;
     if (isValidDescriptor(targetDescriptor)) {
       const dist = faceapi.euclideanDistance(liveDescriptor, targetDescriptor);
-      if (dist < threshold && dist < minDistance) {
+      const profId = String(prof.santri_id || prof.id || '');
+      if (dist < minDistance) {
+        if (bestSantriId && bestSantriId !== profId) {
+          secondMinDistance = minDistance;
+        }
         minDistance = dist;
-        bestMatch = {
-          ...prof,
-          distance: dist,
-          confidence: Math.round(Math.max(0, (1 - dist / threshold) * 100))
-        };
+        bestSantriId = profId;
+        bestMatch = prof;
+      } else if (profId !== bestSantriId && dist < secondMinDistance) {
+        secondMinDistance = dist;
       }
     }
   }
 
-  return bestMatch;
+  if (!bestMatch || minDistance >= strictThreshold) return null;
+
+  // Anti-bocor: jika jarak di area batas (0.34 - 0.40) dan selisih dengan kandidat santri lain terlalu tipis (< 0.025), tolak agar tidak salah orang
+  if (minDistance > 0.34 && secondMinDistance < 999 && (secondMinDistance - minDistance) < 0.025) {
+    return null;
+  }
+
+  return {
+    ...bestMatch,
+    distance: minDistance,
+    confidence: Math.round(Math.max(0, (1 - minDistance / strictThreshold) * 100))
+  };
 };
 

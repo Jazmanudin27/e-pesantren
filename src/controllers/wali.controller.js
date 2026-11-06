@@ -145,9 +145,48 @@ export const getWaliSantriData = async (req, res) => {
     }
 
     const rawSantri = santriRows[0];
+
+    const sanitizeDbField = (val, dummyValues = []) => {
+      if (val === null || val === undefined) return '';
+      const s = String(val).trim();
+      if (!s || s === '-' || s === 'null' || s === 'undefined') return '';
+      const lower = s.toLowerCase();
+      if (
+        lower === 'pondok pesantren nurul wafa' ||
+        lower === 'pp nurul wafa' ||
+        lower === 'pp. nurul wafa' ||
+        dummyValues.some(d => lower === String(d).toLowerCase())
+      ) {
+        return '';
+      }
+      return s;
+    };
+
+    const cleanAlamat = sanitizeDbField(rawSantri.alamat_asal);
+    const cleanWali = sanitizeDbField(rawSantri.nama_wali, ['wali santri']);
+    const cleanWaWali = sanitizeDbField(rawSantri.no_wa_wali);
+    const cleanHubunganWali = cleanWali ? sanitizeDbField(rawSantri.hubungan_wali) : '';
+
+    // Jika di DB masih tersimpan dummy 'Pondok Pesantren Nurul Wafa' atau '-', bersihkan langsung di DB
+    if (rawSantri.alamat_asal && !cleanAlamat) {
+      pool.query('UPDATE santri SET alamat_asal = ? WHERE id = ?', ['', rawSantri.id]).catch(() => {});
+    }
+
     const santri = {
       ...rawSantri,
-      nisn: (rawSantri.nisn && String(rawSantri.nisn).trim()) || (rawSantri.nis && String(rawSantri.nis).trim()) || (rawSantri.kode_santri && String(rawSantri.kode_santri).trim()) || '-',
+      nisn: sanitizeDbField(rawSantri.nisn) || sanitizeDbField(rawSantri.nis) || sanitizeDbField(rawSantri.kode_santri) || '',
+      tempat_lahir: sanitizeDbField(rawSantri.tempat_lahir),
+      status_santri: sanitizeDbField(rawSantri.status_santri),
+      tahun_masuk: sanitizeDbField(rawSantri.tahun_masuk),
+      nama_wali: cleanWali,
+      no_wa_wali: cleanWaWali,
+      hubungan_wali: cleanHubunganWali,
+      alamat_asal: cleanAlamat,
+      nama_asrama: sanitizeDbField(rawSantri.nama_asrama),
+      nama_kamar: sanitizeDbField(rawSantri.nama_kamar),
+      kode_kamar: sanitizeDbField(rawSantri.kode_kamar),
+      pembina_asrama: sanitizeDbField(rawSantri.pembina_asrama),
+      no_hp_pembina: sanitizeDbField(rawSantri.no_hp_pembina),
       foto_url: rawSantri.foto_url || rawSantri.foto || rawSantri.foto_santri || ''
     };
 

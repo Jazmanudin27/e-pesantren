@@ -85,6 +85,25 @@ export async function ensureSantriCredentialsColumns() {
         WHERE (password IS NULL OR TRIM(password) = '')
       `);
 
+      // Bersihkan nilai dummy default pada alamat_asal, nama_wali, no_wa_wali agar sesuai data riil database
+      try {
+        await pool.query(`
+          UPDATE santri 
+          SET alamat_asal = '' 
+          WHERE LOWER(TRIM(COALESCE(alamat_asal, ''))) IN ('pondok pesantren nurul wafa', 'pp nurul wafa', 'pp. nurul wafa', '-')
+        `);
+        await pool.query(`
+          UPDATE santri 
+          SET nama_wali = '' 
+          WHERE LOWER(TRIM(COALESCE(nama_wali, ''))) IN ('wali santri', '-')
+        `);
+        await pool.query(`
+          UPDATE santri 
+          SET no_wa_wali = '' 
+          WHERE TRIM(COALESCE(no_wa_wali, '')) = '-'
+        `);
+      } catch (cleanErr) {}
+
       // 5. Pastikan kolom metode & channel pembayaran di keuangan_transaksi_pembayaran aman panjangnya
       try {
         await pool.query(`

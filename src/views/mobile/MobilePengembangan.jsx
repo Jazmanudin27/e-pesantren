@@ -34,6 +34,7 @@ import SearchableSelect from "../../components/SearchableSelect";
 import {
   initFaceApiModels,
   detectFaceDescriptor,
+  extractDescriptorFromDataUrl,
   matchFaceDescriptor,
   isFaceModelReady,
 } from "../../utils/faceApi.util";
@@ -123,6 +124,7 @@ export default function MobilePengembangan() {
   const masterKategoriRef = useRef(masterKategoriAll);
   const isMatchedCooldownRef = useRef(false);
   const matchedStreakRef = useRef({ id: null, count: 0 });
+  const [faceApiModelReady, setFaceApiModelReady] = useState(false);
 
   useEffect(() => {
     santriListRef.current = santriList;
@@ -133,12 +135,100 @@ export default function MobilePengembangan() {
   }, [masterKategoriAll]);
 
   useEffect(() => {
-    initFaceApiModels().catch(() => {});
+    let isMounted = true;
+    initFaceApiModels()
+      .then(() => {
+        if (isMounted) setFaceApiModelReady(true);
+      })
+      .catch(() => {});
     fetchInitialData();
     return () => {
+      isMounted = false;
       stopFaceCamera();
     };
   }, []);
+
+  // Auto-sync & heal 128-D descriptor wajah santri dari database
+  useEffect(() => {
+    if (!santriList || santriList.length === 0) return;
+    let isCancelled = false;
+
+    const syncAndHealDescriptors = async () => {
+      try {
+        let currentProfiles = {};
+        try {
+          currentProfiles = JSON.parse(
+            localStorage.getItem("epesantren_face_profiles") || "{}",
+          );
+        } catch (e) {}
+
+        const validIds = new Set(santriList.map((s) => String(s.id)));
+        let changed = false;
+
+        Object.keys(currentProfiles).forEach((idKey) => {
+          const prof = currentProfiles[idKey];
+          const pId = String(prof?.santri_id || idKey);
+          if (!validIds.has(pId)) {
+            delete currentProfiles[idKey];
+            changed = true;
+          }
+        });
+
+        for (const s of santriList) {
+          if (isCancelled) return;
+          const photoUrl = s.foto || s.foto_santri;
+          if (
+            photoUrl &&
+            (!currentProfiles[s.id] || !currentProfiles[s.id].foto)
+          ) {
+            currentProfiles[s.id] = {
+              santri_id: s.id,
+              nama: s.nama_santri,
+              nis: s.nis,
+              asrama: s.nama_asrama || "",
+              kamar: s.nama_kamar || "",
+              foto: photoUrl,
+              descriptor: currentProfiles[s.id]?.descriptor || null,
+              registered_at: new Date().toISOString(),
+            };
+            changed = true;
+          }
+
+          if (
+            isFaceModelReady() &&
+            currentProfiles[s.id] &&
+            !currentProfiles[s.id].descriptor &&
+            currentProfiles[s.id].foto
+          ) {
+            try {
+              const desc = await extractDescriptorFromDataUrl(
+                currentProfiles[s.id].foto,
+              );
+              if (desc && !isCancelled) {
+                currentProfiles[s.id] = {
+                  ...currentProfiles[s.id],
+                  descriptor: desc,
+                };
+                changed = true;
+              }
+            } catch (e) {}
+          }
+        }
+
+        if (changed && !isCancelled) {
+          localStorage.setItem(
+            "epesantren_face_profiles",
+            JSON.stringify(currentProfiles),
+          );
+        }
+      } catch (e) {}
+    };
+
+    syncAndHealDescriptors();
+    return () => {
+      isCancelled = true;
+    };
+  }, [santriList, faceApiModelReady]);
 
   const fetchInitialData = async () => {
     setLoading(true);
@@ -431,11 +521,15 @@ export default function MobilePengembangan() {
           );
 
           if (matched) {
-            const fullSantri =
-              (santriListRef.current || []).find(
-                (s) => String(s.id) === String(matched.santri_id),
-              ) || matched;
-            const displayName = fullSantri.nama_santri || matched.nama;
+            const fullSantri = (santriListRef.current || []).find(
+              (s) => String(s.id) === String(matched.santri_id),
+            );
+            if (!fullSantri) {
+              matchedStreakRef.current = { id: null, count: 0 };
+              setFaceStatusText("⛔ Wajah Belum Terdaftar di Sistem");
+              return;
+            }
+            const displayName = fullSantri.nama_santri;
 
             if (matchedStreakRef.current.id === fullSantri.id) {
               matchedStreakRef.current.count += 1;

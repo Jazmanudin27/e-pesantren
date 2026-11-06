@@ -54,6 +54,22 @@ const inputFieldStyle = {
   boxSizing: 'border-box'
 };
 
+const cleanDbValue = (val, blacklist = []) => {
+  if (val === null || val === undefined) return '';
+  const str = String(val).trim();
+  if (!str || str === '-' || str === 'null' || str === 'undefined') return '';
+  const lower = str.toLowerCase();
+  if (
+    lower === 'pondok pesantren nurul wafa' ||
+    lower === 'pp nurul wafa' ||
+    lower === 'pp. nurul wafa' ||
+    blacklist.some((b) => lower === String(b).toLowerCase())
+  ) {
+    return '';
+  }
+  return str;
+};
+
 const TabProfilWali = ({
   santri = {},
   rawSantriName = '',
@@ -71,6 +87,26 @@ const TabProfilWali = ({
   handleLogoutAction,
   onBack
 }) => {
+  const dbNama = cleanDbValue(santri.nama_santri) || cleanDbValue(rawSantriName);
+  const dbNisn = cleanDbValue(santri.nisn) || cleanDbValue(santri.nis) || cleanDbValue(displayNisn);
+  const dbJk = cleanDbValue(santri.jk);
+  const dbStatusAktif = cleanDbValue(santri.status);
+  const dbStatusSantri = cleanDbValue(santri.status_santri);
+  const dbTahunMasuk = cleanDbValue(santri.tahun_masuk);
+  const dbTempatLahir = cleanDbValue(santri.tempat_lahir);
+  const dbTglLahir = cleanDbValue(
+    santri.tgl_lahir ? String(santri.tgl_lahir).split('T')[0] : ''
+  );
+  const dbNamaWali = cleanDbValue(santri.nama_wali, ['wali santri']);
+  const dbHubunganWali = cleanDbValue(santri.hubungan_wali);
+  const dbNoWaWali = cleanDbValue(santri.no_wa_wali);
+  const dbAlamatAsal = cleanDbValue(santri.alamat_asal);
+  const dbNamaAsrama = cleanDbValue(santri.nama_asrama);
+  const dbNamaKamar = cleanDbValue(santri.nama_kamar);
+  const dbKodeKamar = cleanDbValue(santri.kode_kamar);
+  const dbPembinaAsrama = cleanDbValue(santri.pembina_asrama);
+  const dbNoHpPembina = cleanDbValue(santri.no_hp_pembina);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: '90px' }}>
       {/* Top Header Bar Terpadu Emerald Green */}
@@ -147,17 +183,19 @@ const TabProfilWali = ({
                 KARTU SANTRI DIGITAL
               </span>
             </div>
-            <span style={{
-              background: '#10b981',
-              color: '#ffffff',
-              fontSize: '0.65rem',
-              fontWeight: 800,
-              padding: '3px 10px',
-              borderRadius: '999px',
-              boxShadow: '0 2px 6px rgba(16, 185, 129, 0.4)'
-            }}>
-              ● {santri.status || 'Aktif Santri'}
-            </span>
+            {dbStatusAktif && (
+              <span style={{
+                background: '#10b981',
+                color: '#ffffff',
+                fontSize: '0.65rem',
+                fontWeight: 800,
+                padding: '3px 10px',
+                borderRadius: '999px',
+                boxShadow: '0 2px 6px rgba(16, 185, 129, 0.4)'
+              }}>
+                ● {dbStatusAktif}
+              </span>
+            )}
           </div>
 
           {/* Avatar & Main Info */}
@@ -206,38 +244,42 @@ const TabProfilWali = ({
                 lineHeight: 1.25,
                 textShadow: '0 2px 8px rgba(0, 0, 0, 0.25)'
               }}>
-                {santri.nama_santri || rawSantriName}
+                {dbNama}
               </h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-                <span style={{
-                  background: 'rgba(255, 255, 255, 0.16)',
-                  color: '#bae6fd',
-                  fontSize: '0.68rem',
-                  fontWeight: 700,
-                  padding: '2px 8px',
-                  borderRadius: '6px',
-                  fontFamily: 'monospace'
-                }}>
-                  NISN: {displayNisn}
-                </span>
-                <span style={{
-                  background: 'rgba(255, 255, 255, 0.16)',
-                  color: '#99f6e4',
-                  fontSize: '0.68rem',
-                  fontWeight: 700,
-                  padding: '2px 8px',
-                  borderRadius: '6px'
-                }}>
-                  {santri.jk === 'P' ? 'Akhwat' : 'Ikhwan'}
-                </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', flexWrap: 'wrap' }}>
+                {dbNisn && (
+                  <span style={{
+                    background: 'rgba(255, 255, 255, 0.16)',
+                    color: '#bae6fd',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    fontFamily: 'monospace'
+                  }}>
+                    NISN: {dbNisn}
+                  </span>
+                )}
+                {dbJk && (
+                  <span style={{
+                    background: 'rgba(255, 255, 255, 0.16)',
+                    color: '#99f6e4',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '6px'
+                  }}>
+                    {dbJk === 'P' ? 'Akhwat' : dbJk === 'L' ? 'Ikhwan' : dbJk}
+                  </span>
+                )}
               </div>
             </div>
           </div>
 
-          {/* 3 Quick Glass Counters: Asrama, Kamar, Diniyah */}
+          {/* 2 Quick Glass Counters: Asrama & Kamar */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
+            gridTemplateColumns: 'repeat(2, 1fr)',
             gap: '6px',
             background: 'rgba(0, 0, 0, 0.22)',
             padding: '8px 10px',
@@ -246,20 +288,14 @@ const TabProfilWali = ({
           }}>
             <div>
               <div style={{ fontSize: '0.6rem', color: '#99f6e4', fontWeight: 700, textTransform: 'uppercase' }}>Asrama</div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#ffffff', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {santri.nama_asrama || '-'}
+              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#ffffff', marginTop: '1px', minHeight: '1.1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {dbNamaAsrama}
               </div>
             </div>
             <div>
               <div style={{ fontSize: '0.6rem', color: '#99f6e4', fontWeight: 700, textTransform: 'uppercase' }}>Kamar / Kobong</div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#ffffff', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {santri.nama_kamar || '-'}
-              </div>
-            </div>
-            <div>
-              <div style={{ fontSize: '0.6rem', color: '#99f6e4', fontWeight: 700, textTransform: 'uppercase' }}>Diniyah</div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#fef08a', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {santri.tingkat_diniyah || 'Ula'}
+              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#ffffff', marginTop: '1px', minHeight: '1.1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {dbNamaKamar}
               </div>
             </div>
           </div>
@@ -271,7 +307,6 @@ const TabProfilWali = ({
             { id: 'semua', label: 'Semua Data', icon: '📋' },
             { id: 'biodata', label: 'Biodata Santri', icon: '👤' },
             { id: 'asrama', label: 'Asrama & Kobong', icon: '🏛️' },
-            { id: 'diniyah', label: 'Madrasah & Kitab', icon: '📖' },
             { id: 'asatidz', label: 'Dewan Asatidz', icon: '👨‍🏫' },
             { id: 'keamanan', label: 'Keamanan Akun', icon: '🔐' }
           ].map(pill => {
@@ -317,36 +352,48 @@ const TabProfilWali = ({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '9px', marginTop: '2px' }}>
               <div style={infoRow}>
                 <span style={infoLabel}>Nama Lengkap:</span>
-                <span style={{ ...infoValue, color: '#0f172a', fontWeight: 800 }}>{santri.nama_santri || rawSantriName}</span>
+                <span style={{ ...infoValue, color: '#0f172a', fontWeight: 800 }}>{dbNama}</span>
               </div>
               <div style={infoRow}>
                 <span style={infoLabel}>NISN Santri:</span>
-                <span style={{ ...infoValue, color: '#0284c7', fontWeight: 800, fontFamily: 'monospace' }}>{displayNisn}</span>
+                <span style={{ ...infoValue, color: '#0284c7', fontWeight: 800, fontFamily: 'monospace' }}>{dbNisn}</span>
               </div>
               <div style={infoRow}>
                 <span style={infoLabel}>Jenis Kelamin:</span>
-                <span style={infoValue}>{santri.jk === 'P' ? 'Akhwat (Perempuan)' : 'Ikhwan (Laki-laki)'}</span>
+                <span style={infoValue}>{dbJk === 'P' ? 'Akhwat (Perempuan)' : dbJk === 'L' ? 'Ikhwan (Laki-laki)' : dbJk}</span>
+              </div>
+              <div style={infoRow}>
+                <span style={infoLabel}>Tempat, Tgl Lahir:</span>
+                <span style={infoValue}>
+                  {dbTempatLahir && dbTglLahir
+                    ? `${dbTempatLahir}, ${dbTglLahir}`
+                    : dbTempatLahir || dbTglLahir || ''}
+                </span>
               </div>
               <div style={infoRow}>
                 <span style={infoLabel}>Status Santri:</span>
-                <span style={{ ...infoValue, color: '#059669', fontWeight: 800 }}>{santri.status_santri || 'Santri Mukim (Menetap)'}</span>
+                <span style={{ ...infoValue, color: '#059669', fontWeight: 800 }}>{dbStatusSantri}</span>
               </div>
               <div style={infoRow}>
                 <span style={infoLabel}>Tahun Masuk:</span>
-                <span style={infoValue}>Tahun Ajaran {santri.tahun_masuk || '2026/2027'}</span>
+                <span style={infoValue}>{dbTahunMasuk}</span>
               </div>
               <div style={{ height: '1px', background: '#f1f5f9', margin: '2px 0' }} />
               <div style={infoRow}>
                 <span style={infoLabel}>Nama Orang Tua / Wali:</span>
-                <span style={{ ...infoValue, color: '#0f172a', fontWeight: 800 }}>{santri.nama_wali || '-'} ({santri.hubungan_wali || 'Orang Tua'})</span>
+                <span style={{ ...infoValue, color: '#0f172a', fontWeight: 800 }}>
+                  {dbNamaWali
+                    ? `${dbNamaWali}${dbHubunganWali ? ` (${dbHubunganWali})` : ''}`
+                    : ''}
+                </span>
               </div>
               <div style={infoRow}>
                 <span style={infoLabel}>No. WhatsApp Wali:</span>
-                <span style={{ ...infoValue, color: '#059669', fontWeight: 800 }}>{santri.no_wa_wali || '-'}</span>
+                <span style={{ ...infoValue, color: '#059669', fontWeight: 800 }}>{dbNoWaWali}</span>
               </div>
               <div style={infoRow}>
                 <span style={infoLabel}>Alamat Rumah Asal:</span>
-                <span style={{ ...infoValue, maxWidth: '60%', textAlign: 'right' }}>{santri.alamat_asal || '-'}</span>
+                <span style={{ ...infoValue, maxWidth: '60%', textAlign: 'right' }}>{dbAlamatAsal}</span>
               </div>
             </div>
           </div>
@@ -365,24 +412,26 @@ const TabProfilWali = ({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '9px', marginTop: '2px' }}>
               <div style={infoRow}>
                 <span style={infoLabel}>Gedung Asrama:</span>
-                <span style={{ ...infoValue, color: '#4338ca', fontWeight: 900 }}>{santri.nama_asrama || '-'}</span>
+                <span style={{ ...infoValue, color: '#4338ca', fontWeight: 900 }}>{dbNamaAsrama}</span>
               </div>
               <div style={infoRow}>
                 <span style={infoLabel}>Kamar / Kobong:</span>
-                <span style={{ ...infoValue, fontWeight: 800 }}>{santri.nama_kamar ? `${santri.nama_kamar} ${santri.kode_kamar ? `(${santri.kode_kamar})` : ''}` : '-'}</span>
+                <span style={{ ...infoValue, fontWeight: 800 }}>
+                  {dbNamaKamar ? `${dbNamaKamar}${dbKodeKamar ? ` (${dbKodeKamar})` : ''}` : ''}
+                </span>
               </div>
               <div style={infoRow}>
                 <span style={infoLabel}>Asatidz Pembina Kobong:</span>
-                <span style={{ ...infoValue, color: '#0284c7', fontWeight: 800 }}>{santri.pembina_asrama || '-'}</span>
+                <span style={{ ...infoValue, color: '#0284c7', fontWeight: 800 }}>{dbPembinaAsrama}</span>
               </div>
               <div style={infoRow}>
                 <span style={infoLabel}>Kontak WhatsApp Pembina:</span>
-                <span style={{ ...infoValue, color: '#059669', fontWeight: 800 }}>{santri.no_hp_pembina || '-'}</span>
+                <span style={{ ...infoValue, color: '#059669', fontWeight: 800 }}>{dbNoHpPembina}</span>
               </div>
 
-              {santri.no_hp_pembina && (
+              {dbNoHpPembina && (
                 <a
-                  href={`https://wa.me/${String(santri.no_hp_pembina).replace(/[^0-9]/g, '')}`}
+                  href={`https://wa.me/${String(dbNoHpPembina).replace(/[^0-9]/g, '')}`}
                   target="_blank"
                   rel="noreferrer"
                   style={{
@@ -405,60 +454,6 @@ const TabProfilWali = ({
                   <MessageCircle size={16} color="#059669" /> Hubungi Pembina Kobong via WhatsApp
                 </a>
               )}
-            </div>
-          </div>
-        )}
-
-        {/* SECTION 3: TINGKAT MADRASAH DINIYAH & KURIKULUM KITAB */}
-        {(profileSection === 'semua' || profileSection === 'diniyah') && (
-          <div style={infoCardBox}>
-            <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#b45309', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '6px', borderBottom: '1px solid #f1f5f9' }}>
-              <div style={{ width: '26px', height: '26px', borderRadius: '8px', background: '#fef3c7', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <GraduationCap size={15} />
-              </div>
-              <span>Madrasah Diniyah & Kajian Kitab</span>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '9px', marginTop: '2px' }}>
-              <div style={infoRow}>
-                <span style={infoLabel}>Jenjang Diniyah:</span>
-                <span style={{ ...infoValue, color: '#b45309', fontWeight: 900 }}>{santri.tingkat_diniyah || 'Tingkat Ula'}</span>
-              </div>
-              <div style={infoRow}>
-                <span style={infoLabel}>Wali Kelas Diniyah:</span>
-                <span style={{ ...infoValue, fontWeight: 800 }}>{santri.wali_kelas || 'Ust. Pembina Diniyah'}</span>
-              </div>
-              <div style={infoRow}>
-                <span style={infoLabel}>Jadwal Taklim:</span>
-                <span style={infoValue}>Bada Subuh & Bada Maghrib</span>
-              </div>
-              <div style={infoRow}>
-                <span style={infoLabel}>Target Hafalan:</span>
-                <span style={{ ...infoValue, color: '#7c3aed', fontWeight: 800 }}>30 Juz & Mutun Ilmiyyah</span>
-              </div>
-
-              <div style={{ marginTop: '6px' }}>
-                <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>
-                  Kajian Kitab Kuning Aktif:
-                </span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {[
-                    { judul: 'Safinatun Najah', bidang: 'Fiqih Ibadah', status: 'Aktif Belajar', color: '#059669', bg: '#ecfdf5' },
-                    { judul: 'Al-Jurumiyyah', bidang: 'Bahasa Arab & Nahwu', status: 'Aktif Belajar', color: '#0284c7', bg: '#e0f2fe' },
-                    { judul: 'Ta\'limul Muta\'allim', bidang: 'Adab & Akhlak Santri', status: 'Kajian Rutin', color: '#7c3aed', bg: '#f5f3ff' }
-                  ].map((k, idx) => (
-                    <div key={idx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#0f172a' }}>📖 {k.judul}</div>
-                        <div style={{ fontSize: '0.68rem', color: '#64748b' }}>{k.bidang}</div>
-                      </div>
-                      <span style={{ fontSize: '0.65rem', fontWeight: 800, color: k.color, background: k.bg, padding: '3px 8px', borderRadius: '6px' }}>
-                        {k.status}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
         )}

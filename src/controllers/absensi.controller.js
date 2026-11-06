@@ -379,6 +379,126 @@ export const getAbsensiFingerprint = async (req, res) => {
   }
 };
 
+/**
+ * Helper: Konversi jam "HH:mm:ss" atau "HH:mm" menjadi menit sejak 00:00
+ */
+const parseTimeStrToMinutes = (tStr) => {
+  if (!tStr) return null;
+  const parts = String(tStr).trim().split(':').map(Number);
+  if (parts.length === 0 || isNaN(parts[0])) return null;
+  return (parts[0] || 0) * 60 + (parts[1] || 0);
+};
+
+/**
+ * Helper: Otomatis cari sesi Shalat Berjamaah aktif dari tabel kegiatan_sesi
+ * berdasarkan jam scan (waktuScan) pada Setting Jadwal Shalat Berjamaah.
+ */
+export const resolveActiveShalatBerjamaahSesi = async (waktuScanStr) => {
+  try {
+    await ensureAbsensiTablesAndColumns();
+    const [sesiRows] = await pool.query(`
+      SELECT id, kode_sesi, nama_sesi, kategori,
+             jam_mulai_presensi, jam_target, jam_toleransi_telat, jam_tutup_presensi,
+             hari_aktif
+      FROM kegiatan_sesi
+      WHERE is_active = 1
+        AND (
+          kategori REGEXP 'shalat|sholat|berjamaah|ibadah'
+          OR nama_sesi REGEXP 'shalat|sholat|subuh|shubuh|dzuhur|zuhur|ashar|asar|maghrib|magrib|isya|dhuha|jumat'
+        )
+      ORDER BY jam_mulai_presensi ASC
+    `);
+
+    if (!sesiRows || sesiRows.length === 0) {
+      return {
+        id: 1,
+        nama_sesi: 'Shalat Berjamaah',
+        kategori: 'Shalat Berjamaah',
+        tipe_presensi: 'Berjamaah',
+        jam_toleransi_telat: null
+      };
+    }
+
+    const now = new Date();
+    const curMin =
+      parseTimeStrToMinutes(waktuScanStr) ??
+      now.getHours() * 60 + now.getMinutes();
+
+    const isWithinRange = (val, start, end) => {
+      if (start === null || end === null) return false;
+      if (start <= end) return val >= start && val <= end;
+      return val >= start || val <= end;
+    };
+
+    // 1. Prioritas Utama: Jam scan masuk tepat di antara jam_mulai_presensi s/d jam_tutup_presensi
+    let matched = sesiRows.find((s) => {
+      const start = parseTimeStrToMinutes(s.jam_mulai_presensi);
+      const end = parseTimeStrToMinutes(
+        s.jam_tutup_presensi || s.jam_toleransi_telat || s.jam_target
+      );
+      return isWithinRange(curMin, start, end);
+    });
+
+    // 2. Prioritas Kedua: Toleransi buffer 30 menit sebelum jam_mulai s/d 45 menit setelah jam_tutup
+    if (!matched) {
+      matched = sesiRows.find((s) => {
+        const start = parseTimeStrToMinutes(s.jam_mulai_presensi);
+        const end = parseTimeStrToMinutes(
+          s.jam_tutup_presensi || s.jam_toleransi_telat || s.jam_target
+        );
+        if (start === null || end === null) return false;
+        const bufStart = Math.max(0, start - 30);
+        const bufEnd = Math.min(1439, end + 45);
+        return isWithinRange(curMin, bufStart, bufEnd);
+      });
+    }
+
+    // 3. Prioritas Ketiga: Pilih jadwal Shalat Berjamaah dengan jarak waktu terdekat dari jam scan saat ini
+    if (!matched) {
+      let bestDist = Infinity;
+      for (const s of sesiRows) {
+        const start = parseTimeStrToMinutes(s.jam_mulai_presensi) ?? 0;
+        const target = parseTimeStrToMinutes(s.jam_target) ?? start;
+        const end =
+          parseTimeStrToMinutes(
+            s.jam_tutup_presensi || s.jam_toleransi_telat || s.jam_target
+          ) ?? target;
+        const distToWindow =
+          curMin < start
+            ? start - curMin
+            : curMin > end
+            ? curMin - end
+            : 0;
+        const dist = Math.min(distToWindow, Math.abs(curMin - target));
+        if (dist < bestDist) {
+          bestDist = dist;
+          matched = s;
+        }
+      }
+    }
+
+    const chosen = matched || sesiRows[0];
+    return {
+      id: chosen.id,
+      nama_sesi: chosen.nama_sesi || 'Shalat Berjamaah',
+      kategori: chosen.kategori || 'Shalat Berjamaah',
+      tipe_presensi: 'Berjamaah',
+      jam_mulai_presensi: chosen.jam_mulai_presensi,
+      jam_target: chosen.jam_target,
+      jam_toleransi_telat: chosen.jam_toleransi_telat,
+      jam_tutup_presensi: chosen.jam_tutup_presensi
+    };
+  } catch (err) {
+    return {
+      id: 1,
+      nama_sesi: 'Shalat Berjamaah',
+      kategori: 'Shalat Berjamaah',
+      tipe_presensi: 'Berjamaah',
+      jam_toleransi_telat: null
+    };
+  }
+};
+
 export const createAbsensiFingerprint = async (req, res) => {
   try {
     await ensureAbsensiTablesAndColumns();
@@ -421,14 +541,34 @@ export const createAbsensiFingerprint = async (req, res) => {
 
     const finalStatus = status || status_kehadiran || 'Hadir';
     const finalSantriId = parseInt(santri_id) || 1;
-    const finalKegiatan = kegiatan || nama_sesi || 'Kegiatan Pesantren';
-    const isShalat = /shalat|sholat|subuh|shubuh|dzuhur|ashar|maghrib|isya|dhuha/i.test(finalKegiatan);
-    const finalTipe = tipe_presensi || (isShalat ? 'Berjamaah' : 'Kegiatan');
+
+    // OTOMATIS PILIH JADWAL SHALAT BERJAMAAH SAAT SCAN FINGERPRINT MAUPUN SCAN WAJAH AI (FACE)
+    const isAutoBerjamaahScan =
+      finalMetode === 'Fingerprint' ||
+      finalMetode === 'Wajah AI' ||
+      req.body?.auto_jadwal_berjamaah === true;
+
+    let finalKegiatan = kegiatan || nama_sesi || 'Kegiatan Pesantren';
+    let finalTipe = tipe_presensi;
+    let parsedSesiId = sesi_id ? parseInt(sesi_id) : null;
+
+    if (isAutoBerjamaahScan) {
+      const autoSesi = await resolveActiveShalatBerjamaahSesi(scanTime);
+      if (autoSesi) {
+        parsedSesiId = autoSesi.id;
+        finalKegiatan = autoSesi.nama_sesi;
+        finalTipe = 'Berjamaah';
+      }
+    }
+
+    const isShalat = /shalat|sholat|subuh|shubuh|dzuhur|zuhur|ashar|asar|maghrib|magrib|isya|dhuha|berjamaah/i.test(finalKegiatan);
+    finalTipe = finalTipe || (isShalat ? 'Berjamaah' : 'Kegiatan');
     const finalKet = keterangan || keteledoran_keterangan || (metode_presensi || 'Scan Presensi');
     
     // finalSesiId hanya di-assign integer jika memang shalat (agar id materi_hafalan seperti Pegon id=1 tidak bentrok dengan kegiatan_sesi id=1 Shalat Subuh)
-    let parsedSesiId = isShalat ? parseInt(sesi_id) : null;
-    if (isShalat && (isNaN(parsedSesiId) || parsedSesiId <= 0)) {
+    if (!isShalat) {
+      parsedSesiId = null;
+    } else if (isNaN(parsedSesiId) || parsedSesiId <= 0) {
       parsedSesiId = 1;
     }
 
@@ -474,7 +614,14 @@ export const createAbsensiFingerprint = async (req, res) => {
         replaceRecentSameCategory: true
       });
 
-      return sendSuccess(res, 'Presensi berhasil diperbarui (tidak duplikat)', { id: existingId, metode_presensi: finalMetode });
+      return sendSuccess(res, 'Presensi berhasil diperbarui (tidak duplikat)', {
+        id: existingId,
+        metode_presensi: finalMetode,
+        sesi_id: parsedSesiId,
+        nama_sesi: finalKegiatan,
+        kegiatan: finalKegiatan,
+        tipe_presensi: finalTipe
+      });
     }
 
     // 2. JIKA BELUM ADA, INSERT BARU
@@ -511,7 +658,14 @@ export const createAbsensiFingerprint = async (req, res) => {
       target_tab: 'absensi'
     });
 
-    return sendSuccess(res, 'Presensi berhasil dicatat', { id: insertResult.insertId, metode_presensi: finalMetode }, 201);
+    return sendSuccess(res, 'Presensi berhasil dicatat', {
+      id: insertResult.insertId,
+      metode_presensi: finalMetode,
+      sesi_id: parsedSesiId,
+      nama_sesi: finalKegiatan,
+      kegiatan: finalKegiatan,
+      tipe_presensi: finalTipe
+    }, 201);
   } catch (err) {
     return sendError(res, err.message, 500);
   }
@@ -542,31 +696,44 @@ export const syncMobileAbsensi = async (req, res) => {
       }
 
       const scanTime = item.waktu_scan || '07:00:00';
-      const kegiatanName = item.kegiatan || item.nama_sesi || 'Kegiatan Pesantren';
-      const isShalat = /shalat|sholat|subuh|dzuhur|ashar|maghrib|isya/i.test(kegiatanName);
-      const tipe = item.tipe_presensi || (isShalat ? 'Berjamaah' : 'Kegiatan');
-      const st = item.status || item.status_kehadiran || 'Hadir';
       const mt = item.metode_presensi || item.metode_scan || 'Wajah AI';
+      const isAutoBerjamaah = /wajah|face|ai|finger|sidik/i.test(String(mt || ''));
+      let kegiatanName = item.kegiatan || item.nama_sesi || 'Kegiatan Pesantren';
+      let sesiId = item.sesi_id || null;
+      let tipe = item.tipe_presensi;
+
+      if (isAutoBerjamaah) {
+        const autoSesi = await resolveActiveShalatBerjamaahSesi(scanTime);
+        if (autoSesi) {
+          sesiId = autoSesi.id;
+          kegiatanName = autoSesi.nama_sesi;
+          tipe = 'Berjamaah';
+        }
+      }
+
+      const isShalat = /shalat|sholat|subuh|shubuh|dzuhur|zuhur|ashar|asar|maghrib|magrib|isya|dhuha|berjamaah/i.test(kegiatanName);
+      tipe = tipe || (isShalat ? 'Berjamaah' : 'Kegiatan');
+      const st = item.status || item.status_kehadiran || 'Hadir';
       const ket = item.keterangan || `NWF Mobile: ${kegiatanName}`;
 
       const [existing] = await pool.query(`
         SELECT id FROM absensi_jamaah_mengaji 
-        WHERE tanggal = ? AND santri_id = ? AND (nama_kegiatan = ? OR sesi_id IS NULL)
+        WHERE tanggal = ? AND santri_id = ? AND (nama_kegiatan = ? OR (sesi_id IS NOT NULL AND sesi_id = ?))
         LIMIT 1
-      `, [tgl, item.santri_id, kegiatanName]).catch(() => [[]]);
+      `, [tgl, item.santri_id, kegiatanName, sesiId]).catch(() => [[]]);
 
       if (existing && existing.length > 0) {
         await pool.query(`
           UPDATE absensi_jamaah_mengaji 
-          SET status = ?, waktu_scan = ?, metode_presensi = ?, keterangan = ?, tipe_presensi = ?
+          SET status = ?, waktu_scan = ?, metode_presensi = ?, keterangan = ?, nama_kegiatan = ?, tipe_presensi = ?, sesi_id = ?
           WHERE id = ?
-        `, [st, scanTime, mt, ket, tipe, existing[0].id]).catch(() => {});
+        `, [st, scanTime, mt, ket, kegiatanName, tipe, sesiId, existing[0].id]).catch(() => {});
       } else {
         await pool.query(`
           INSERT INTO absensi_jamaah_mengaji (
             tanggal, sesi_id, nama_kegiatan, tipe_presensi, santri_id, waktu_scan, status, device_id, metode_presensi, keterangan
-          ) VALUES (?, NULL, ?, ?, ?, ?, ?, 1, ?, ?)
-        `, [tgl, kegiatanName, tipe, item.santri_id, scanTime, st, mt, ket]).catch(() => {});
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+        `, [tgl, sesiId, kegiatanName, tipe, item.santri_id, scanTime, st, mt, ket]).catch(() => {});
 
         const notifCopy = buildAbsensiNotifText({
           namaSantri: item.nama_santri || 'Ananda',

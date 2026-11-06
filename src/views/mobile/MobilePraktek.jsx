@@ -31,6 +31,7 @@ import SearchableSelect from "../../components/SearchableSelect";
 import {
   initFaceApiModels,
   detectFaceDescriptor,
+  extractDescriptorFromDataUrl,
   matchFaceDescriptor,
   isFaceModelReady,
 } from "../../utils/faceApi.util";
@@ -80,18 +81,110 @@ export default function MobilePraktek() {
   const isDetectingRef = useRef(false);
   const santriListRef = useRef(santriList);
   const isMatchedCooldownRef = useRef(false);
+  const matchedStreakRef = useRef({ id: null, count: 0 });
+  const [faceApiModelReady, setFaceApiModelReady] = useState(false);
 
   useEffect(() => {
     santriListRef.current = santriList;
   }, [santriList]);
 
-  // Inisialisasi model Face API
+  // Inisialisasi model Face API & sinkronisasi descriptor
   useEffect(() => {
-    initFaceApiModels().catch(() => {});
+    let isMounted = true;
+    initFaceApiModels()
+      .then(() => {
+        if (isMounted) setFaceApiModelReady(true);
+      })
+      .catch(() => {});
     return () => {
+      isMounted = false;
       stopFaceCamera();
     };
   }, []);
+
+  // Auto-sync & heal 128-D descriptor wajah santri dari database (sama persis dengan MobilePresensi)
+  useEffect(() => {
+    if (!santriList || santriList.length === 0) return;
+    let isCancelled = false;
+
+    const syncAndHealDescriptors = async () => {
+      try {
+        let currentProfiles = {};
+        try {
+          currentProfiles = JSON.parse(
+            localStorage.getItem("epesantren_face_profiles") || "{}",
+          );
+        } catch (e) {}
+
+        const validIds = new Set(santriList.map((s) => String(s.id)));
+        let changed = false;
+
+        // Bersihkan profil wajah hantu/dummy yang sudah tidak ada di tabel santri DB
+        Object.keys(currentProfiles).forEach((idKey) => {
+          const prof = currentProfiles[idKey];
+          const pId = String(prof?.santri_id || idKey);
+          if (!validIds.has(pId)) {
+            delete currentProfiles[idKey];
+            changed = true;
+          }
+        });
+
+        // Sinkronkan foto santri dari DB & ekstraksi descriptor 128-D jika belum ada
+        for (const s of santriList) {
+          if (isCancelled) return;
+          const photoUrl = s.foto || s.foto_santri;
+          if (
+            photoUrl &&
+            (!currentProfiles[s.id] || !currentProfiles[s.id].foto)
+          ) {
+            currentProfiles[s.id] = {
+              santri_id: s.id,
+              nama: s.nama_santri,
+              nis: s.nis,
+              asrama: s.nama_asrama || "",
+              kamar: s.nama_kamar || "",
+              foto: photoUrl,
+              descriptor: currentProfiles[s.id]?.descriptor || null,
+              registered_at: new Date().toISOString(),
+            };
+            changed = true;
+          }
+
+          if (
+            isFaceModelReady() &&
+            currentProfiles[s.id] &&
+            !currentProfiles[s.id].descriptor &&
+            currentProfiles[s.id].foto
+          ) {
+            try {
+              const desc = await extractDescriptorFromDataUrl(
+                currentProfiles[s.id].foto,
+              );
+              if (desc && !isCancelled) {
+                currentProfiles[s.id] = {
+                  ...currentProfiles[s.id],
+                  descriptor: desc,
+                };
+                changed = true;
+              }
+            } catch (e) {}
+          }
+        }
+
+        if (changed && !isCancelled) {
+          localStorage.setItem(
+            "epesantren_face_profiles",
+            JSON.stringify(currentProfiles),
+          );
+        }
+      } catch (e) {}
+    };
+
+    syncAndHealDescriptors();
+    return () => {
+      isCancelled = true;
+    };
+  }, [santriList, faceApiModelReady]);
 
   const playSuccessSound = () => {
     try {
@@ -117,6 +210,7 @@ export default function MobilePraktek() {
     setMatchedSantriPreview(null);
     setIsFaceDetected(false);
     isMatchedCooldownRef.current = false;
+    matchedStreakRef.current = { id: null, count: 0 };
 
     try {
       if (faceStreamRef.current) {
@@ -287,55 +381,77 @@ export default function MobilePraktek() {
         if (isFaceModelReady()) {
           const faceRes = await detectFaceDescriptor(video);
           if (!faceRes) {
+            matchedStreakRef.current = { id: null, count: 0 };
             setIsFaceDetected(false);
             setFaceStatusText("Arahkan wajah santri ke kamera...");
             return;
           }
 
           setIsFaceDetected(true);
+          // Ambang batas ketat 0.40 (sama persis dengan scan wajah kegiatan / presensi agar tidak bocor ke santri lain)
           const matched = matchFaceDescriptor(
             faceRes.descriptor,
             registeredList,
-            0.52,
+            0.40,
           );
 
+          let matchedSantri = null;
+          let displayName = "";
           if (matched) {
-            const fullSantri =
-              (santriListRef.current || []).find(
-                (s) => String(s.id) === String(matched.santri_id),
-              ) || matched;
-            const displayName = fullSantri.nama_santri || matched.nama;
+            const dbSantri = (santriListRef.current || []).find(
+              (s) => String(s.id) === String(matched.santri_id),
+            );
+            if (dbSantri) {
+              matchedSantri = dbSantri;
+              displayName = dbSantri.nama_santri;
+            }
+          }
 
-            handleFaceRecognized(fullSantri, displayName);
-          } else {
+          if (!matchedSantri) {
+            matchedStreakRef.current = { id: null, count: 0 };
+            ctx.fillStyle = "rgba(239, 68, 68, 0.95)";
+            ctx.roundRect
+              ? ctx.roundRect(boxX, boxY - 30, boxW, 26, 6)
+              : ctx.rect(boxX, boxY - 30, boxW, 26);
+            ctx.fill();
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 12px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText(
+              "⛔ Wajah Belum Terdaftar",
+              boxX + boxW / 2,
+              boxY - 12,
+            );
             setFaceStatusText("⛔ Wajah Belum Terdaftar di Sistem");
-          }
-        } else {
-          // Native fallback skin tone check
-          const sampleCanvas = document.createElement("canvas");
-          sampleCanvas.width = 40;
-          sampleCanvas.height = 40;
-          const sCtx = sampleCanvas.getContext("2d");
-          sCtx.drawImage(video, boxX, boxY, boxW, boxH, 0, 0, 40, 40);
-          const imgData = sCtx.getImageData(0, 0, 40, 40).data;
-
-          let skinPixels = 0;
-          for (let i = 0; i < 1600; i++) {
-            const idx = i * 4;
-            const r = imgData[idx];
-            const g = imgData[idx + 1];
-            const b = imgData[idx + 2];
-            if (r > 45 && g > 30 && b > 18 && r > g && r - g >= 8) skinPixels++;
-          }
-
-          if (skinPixels / 1600 < 0.1) {
-            setIsFaceDetected(false);
-            setFaceStatusText("Arahkan wajah santri ke dalam kotak...");
             return;
           }
 
-          setIsFaceDetected(true);
-          setFaceStatusText("Sedang memuat AI wajah...");
+          // Verifikasi 2-Frame Konsekutif wajib sama ID santrinya untuk mencegah salah deteksi (Wajah B -> Wajah D)
+          if (matchedStreakRef.current.id === matchedSantri.id) {
+            matchedStreakRef.current.count += 1;
+          } else {
+            matchedStreakRef.current = { id: matchedSantri.id, count: 1 };
+          }
+
+          if (matchedStreakRef.current.count < 2) {
+            setFaceStatusText(`Memverifikasi: ${displayName}...`);
+            return;
+          }
+
+          ctx.fillStyle = "rgba(16, 185, 129, 0.95)";
+          ctx.roundRect
+            ? ctx.roundRect(boxX, boxY - 30, boxW, 26, 6)
+            : ctx.rect(boxX, boxY - 30, boxW, 26);
+          ctx.fill();
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 12px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(`✅ ${displayName}`, boxX + boxW / 2, boxY - 12);
+
+          handleFaceRecognized(matchedSantri, displayName);
+        } else {
+          setIsFaceDetected(false);
+          setFaceStatusText("Memuat model pengenalan wajah AI...");
         }
       } catch (err) {
         // error handling

@@ -1376,10 +1376,10 @@ export default function SantriView() {
                     <Calendar size={14} /> TTL & Angkatan
                   </div>
                   <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a' }}>
-                    {selectedSantri.tempat_lahir || 'Tasikmalaya'}, {selectedSantri.tgl_lahir || '-'}
+                    {selectedSantri.tempat_lahir || ''}{selectedSantri.tempat_lahir && selectedSantri.tgl_lahir ? ', ' : ''}{selectedSantri.tgl_lahir ? String(selectedSantri.tgl_lahir).split('T')[0] : ''}
                   </div>
                   <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px' }}>
-                    Tahun Masuk: <strong>{selectedSantri.tahun_masuk || '2026/2027'}</strong>
+                    Tahun Masuk: <strong>{selectedSantri.tahun_masuk || ''}</strong>
                   </div>
                 </div>
 
@@ -1397,13 +1397,13 @@ export default function SantriView() {
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '10px', fontSize: '0.78rem' }}>
                     <div>
-                      <span style={{ color: '#64748b' }}>Nama Wali:</span> <strong>{selectedSantri.nama_wali || '-'}</strong> ({selectedSantri.hubungan_wali || 'Orang Tua'})
+                      <span style={{ color: '#64748b' }}>Nama Wali:</span> <strong>{selectedSantri.nama_wali && selectedSantri.nama_wali !== '-' ? selectedSantri.nama_wali : ''}</strong> {selectedSantri.nama_wali && selectedSantri.hubungan_wali ? `(${selectedSantri.hubungan_wali})` : ''}
                     </div>
                     <div>
-                      <span style={{ color: '#64748b' }}>WhatsApp:</span> <strong>{selectedSantri.no_wa_wali || '-'}</strong>
+                      <span style={{ color: '#64748b' }}>WhatsApp:</span> <strong>{selectedSantri.no_wa_wali && selectedSantri.no_wa_wali !== '-' ? selectedSantri.no_wa_wali : ''}</strong>
                     </div>
                     <div style={{ gridColumn: 'span 2' }}>
-                      <span style={{ color: '#64748b' }}>Alamat Asal:</span> <span>{selectedSantri.alamat_asal || 'Pondok Pesantren Nurul Wafa'}</span>
+                      <span style={{ color: '#64748b' }}>Alamat Asal:</span> <span>{selectedSantri.alamat_asal && selectedSantri.alamat_asal.toLowerCase() !== 'pondok pesantren nurul wafa' && selectedSantri.alamat_asal !== '-' ? selectedSantri.alamat_asal : ''}</span>
                     </div>
                   </div>
                 </div>

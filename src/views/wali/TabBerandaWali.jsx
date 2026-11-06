@@ -970,19 +970,7 @@ const TabBerandaWali = ({
               <span style={menuLabelStyle}>Berjamaah</span>
             </div>
 
-            {/* 4. Tahfidz */}
-            <div onClick={() => onNavigateTab('hafalan')} style={menuCardStyle}>
-              <div style={{
-                ...squircleIconStyle,
-                background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
-                boxShadow: '0 6px 16px -2px rgba(168, 85, 247, 0.38)'
-              }}>
-                <BookOpen size={23} strokeWidth={2.3} color="#ffffff" />
-              </div>
-              <span style={menuLabelStyle}>Tahfidz</span>
-            </div>
-
-            {/* 5. Perizinan Pulang */}
+            {/* 4. Perizinan Pulang */}
             <div onClick={() => onNavigateTab('perizinan')} style={menuCardStyle}>
               <div style={{
                 ...squircleIconStyle,

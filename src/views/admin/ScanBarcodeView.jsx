@@ -130,6 +130,7 @@ export default function ScanBarcodeView() {
   }, [registeredFaces]);
 
   const santriListRef = useRef(santriList);
+  const matchedStreakRef = useRef({ id: null, count: 0 });
   useEffect(() => {
     santriListRef.current = santriList;
   }, [santriList]);
@@ -448,14 +449,20 @@ export default function ScanBarcodeView() {
     saveLogs(updated);
 
     // Kirim ke backend presensi (async)
+    const isFaceSource = /wajah|face|ai/i.test(String(source || ""));
     axios
       .post("/api/absensi/fingerprint", {
         santri_id: found.id,
         nis: found.nis,
-        metode: source,
+        metode_presensi: isFaceSource ? "Wajah AI" : source,
+        metode_scan: isFaceSource ? "Wajah AI" : source,
         status: statusPresensi,
+        sesi_id: currentSesiObj.id,
         kegiatan: currentSesiObj.nama,
-        jam_masuk: now.toTimeString().split(" ")[0],
+        nama_sesi: currentSesiObj.nama,
+        tipe_presensi: "Berjamaah",
+        auto_jadwal_berjamaah: true,
+        waktu_scan: now.toTimeString().split(" ")[0],
       })
       .catch(() => {});
 
@@ -917,10 +924,11 @@ export default function ScanBarcodeView() {
           let matchedSantri = null;
           let displayName = "";
 
-          // JIKA MODEL FACE-API.JS SUDAH SIAP -> GUNAKAN TENSORFLOW DEEP LEARNING (128-D DESCRIPTOR)
+          // JIKA MODEL FACE-API.JS SUDAH SIAP -> GUNAKAN TENSORFLOW DEEP LEARNING (128-D DESCRIPTOR KETAT 0.40)
           if (isFaceModelReady()) {
             const faceRes = await detectFaceDescriptor(video);
             if (!faceRes) {
+              matchedStreakRef.current = { id: null, count: 0 };
               setFaceDetected(false);
               setFaceStatusText("Menunggu wajah santri di depan kamera...");
               return;
@@ -930,7 +938,7 @@ export default function ScanBarcodeView() {
             const matched = matchFaceDescriptor(
               faceRes.descriptor,
               registeredList,
-              0.52,
+              0.40,
             );
             if (matched) {
               const dbSantri = (santriListRef.current || []).find(
@@ -942,58 +950,14 @@ export default function ScanBarcodeView() {
               }
             }
           } else {
-            // FALLBACK NATIVE CANVAS MATRIX (SEBELUM MODEL SELESAI DIUNDUH)
-            const sampleCanvas = document.createElement("canvas");
-            sampleCanvas.width = 40;
-            sampleCanvas.height = 40;
-            const sCtx = sampleCanvas.getContext("2d");
-            sCtx.drawImage(video, boxX, boxY, boxW, boxH, 0, 0, 40, 40);
-            const imgData = sCtx.getImageData(0, 0, 40, 40).data;
-
-            let skinPixels = 0;
-            for (let i = 0; i < 1600; i++) {
-              const idx = i * 4;
-              const r = imgData[idx];
-              const g = imgData[idx + 1];
-              const b = imgData[idx + 2];
-              if (r > 45 && g > 30 && b > 18 && r > g && r - g >= 8) {
-                skinPixels++;
-              }
-            }
-
-            if (skinPixels / 1600 < 0.1) {
-              setFaceDetected(false);
-              setFaceStatusText("Menunggu wajah santri di depan kamera...");
-              return;
-            }
-
-            setFaceDetected(true);
-            const liveFeature = extractBiometricGridFromCanvas(sampleCanvas);
-            if (!liveFeature) return;
-
-            let bestDiff = 9999;
-            let bestM = null;
-            registeredList.forEach((prof) => {
-              const score = compareBiometrics(liveFeature, prof);
-              if (score < 28 && score < bestDiff) {
-                bestDiff = score;
-                bestM = prof;
-              }
-            });
-
-            if (bestM) {
-              const dbSantri = (santriListRef.current || []).find(
-                (s) => String(s.id) === String(bestM.santri_id),
-              );
-              if (dbSantri) {
-                matchedSantri = dbSantri;
-                displayName = dbSantri.nama_santri;
-              }
-            }
+            setFaceDetected(false);
+            setFaceStatusText("Memuat model pengenalan wajah AI...");
+            return;
           }
 
           // 1. JIKA WAJAH BEDA / TIDAK TERDAFTAR -> TOLAK
           if (!matchedSantri) {
+            matchedStreakRef.current = { id: null, count: 0 };
             ctx.fillStyle = "rgba(239, 68, 68, 0.95)";
             ctx.roundRect
               ? ctx.roundRect(boxX, boxY - 32, boxW, 28, 6)
@@ -1009,6 +973,18 @@ export default function ScanBarcodeView() {
             );
 
             setFaceStatusText("⛔ Wajah Tidak Dikenali / Belum Terdaftar");
+            return;
+          }
+
+          // Verifikasi 2-Frame Konsekutif wajib sama ID santrinya untuk mencegah salah deteksi (Wajah B -> Wajah D)
+          if (matchedStreakRef.current.id === matchedSantri.id) {
+            matchedStreakRef.current.count += 1;
+          } else {
+            matchedStreakRef.current = { id: matchedSantri.id, count: 1 };
+          }
+
+          if (matchedStreakRef.current.count < 2) {
+            setFaceStatusText(`Memverifikasi: ${displayName}...`);
             return;
           }
 

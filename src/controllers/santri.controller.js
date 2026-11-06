@@ -126,6 +126,20 @@ export const getAllSantri = async (req, res) => {
 
     const [rows] = await pool.query(dataSql, dataParams);
 
+    const sanitizedRows = (rows || []).map(r => {
+      const rawAlamat = r.alamat_asal ? String(r.alamat_asal).trim() : '';
+      const isDummyAlamat = ['pondok pesantren nurul wafa', 'pp nurul wafa', 'pp. nurul wafa', '-'].includes(rawAlamat.toLowerCase());
+      const rawWali = r.nama_wali ? String(r.nama_wali).trim() : '';
+      const isDummyWali = ['wali santri', '-'].includes(rawWali.toLowerCase());
+      const rawWa = r.no_wa_wali ? String(r.no_wa_wali).trim() : '';
+      return {
+        ...r,
+        alamat_asal: isDummyAlamat ? '' : rawAlamat,
+        nama_wali: isDummyWali ? '' : rawWali,
+        no_wa_wali: rawWa === '-' ? '' : rawWa
+      };
+    });
+
     // Global Stats for top cards & tab counts
     const [statsRows] = await pool.query(`
       SELECT 
@@ -148,7 +162,7 @@ export const getAllSantri = async (req, res) => {
     };
 
     return sendSuccess(res, 'Data santri berhasil diambil', { 
-      data: rows || [],
+      data: sanitizedRows,
       pagination: {
         page: pageNum,
         limit: limitNum,
@@ -409,7 +423,7 @@ export const importSantri = async (req, res) => {
         kamarId = kamarMap[kamarNama];
       }
 
-      const tempatLahir = String(row.tempat_lahir || row['Tempat Lahir'] || 'Tasikmalaya').trim();
+      const tempatLahir = String(row.tempat_lahir || row['Tempat Lahir'] || '').trim();
       
       // Parse tanggal lahir ke YYYY-MM-DD
       let tglLahir = row.tgl_lahir || row['Tanggal Lahir'] || null;
@@ -420,12 +434,14 @@ export const importSantri = async (req, res) => {
         }
       }
 
-      const namaWali = String(row.nama_wali || row['Nama Wali'] || row['Wali'] || 'Wali Santri').trim();
-      const noWaWali = String(row.no_wa_wali || row['No WA'] || row['No HP Wali'] || row['WhatsApp'] || '-').replace(/[^0-9+]/g, '');
-      const hubunganWali = String(row.hubungan_wali || row['Hubungan'] || 'Orang Tua').trim();
-      const alamatAsal = String(row.alamat_asal || row.alamat || row['Alamat'] || '-').trim();
+      const rawNamaWali = String(row.nama_wali || row['Nama Wali'] || row['Wali'] || '').trim();
+      const namaWali = (rawNamaWali === '-' || rawNamaWali.toLowerCase() === 'wali santri') ? '' : rawNamaWali;
+      const noWaWali = String(row.no_wa_wali || row['No WA'] || row['No HP Wali'] || row['WhatsApp'] || '').replace(/[^0-9+]/g, '');
+      const hubunganWali = String(row.hubungan_wali || row['Hubungan'] || '').trim();
+      const rawAlamatAsal = String(row.alamat_asal || row.alamat || row['Alamat'] || '').trim();
+      const alamatAsal = (rawAlamatAsal === '-' || rawAlamatAsal.toLowerCase() === 'pondok pesantren nurul wafa') ? '' : rawAlamatAsal;
       const status = String(row.status || 'Aktif').trim();
-      const tahunMasuk = String(row.tahun_masuk || row['Tahun Masuk'] || '2026/2027').trim();
+      const tahunMasuk = String(row.tahun_masuk || row['Tahun Masuk'] || '').trim();
       const kelas = String(row.kelas || row['Kelas'] || '').trim();
       const fingerprintPin = row.fingerprint_pin || row['PIN Fingerprint'] || null;
       const rfidCardUid = row.rfid_card_uid || row['RFID'] || null;

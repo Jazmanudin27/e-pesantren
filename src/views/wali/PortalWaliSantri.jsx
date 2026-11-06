@@ -19,7 +19,6 @@ import TabBukuTabunganWali from "./TabBukuTabunganWali";
 import TabProfilWali from "./TabProfilWali";
 import TabPerizinanWali from "./TabPerizinanWali";
 import TabAbsensiWali from "./TabAbsensiWali";
-import TabTahfidzWali from "./TabTahfidzWali";
 import TabPraktekWali from "./TabPraktekWali";
 import TabTataTertibWali from "./TabTataTertibWali";
 import TabNotifikasiWali from "./TabNotifikasiWali";
@@ -170,7 +169,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     if (document.body) document.body.scrollTop = 0;
     if (document.documentElement) document.documentElement.scrollTop = 0;
-    if (selectedSantriId && ["beranda", "absensi", "perizinan", "tahfidz", "praktek", "pelanggaran"].includes(currentTab)) {
+    if (selectedSantriId && ["beranda", "absensi", "perizinan", "praktek", "pelanggaran"].includes(currentTab)) {
       fetchWaliData(selectedSantriId, true);
     }
   }, [currentTab]);
@@ -568,7 +567,12 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
       }
     } catch (e) {}
 
-    if (notif.target_tab && notif.target_tab !== "notifikasi") {
+    if (
+      notif.target_tab &&
+      notif.target_tab !== "notifikasi" &&
+      notif.target_tab !== "hafalan" &&
+      notif.target_tab !== "tahfidz"
+    ) {
       setCurrentTab(notif.target_tab);
     }
   };
@@ -928,20 +932,13 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
       .slice(0, 2)
       .toUpperCase() || "SN";
 
-  // Dewan Asatidz Pembina (Real data santri)
+  // Dewan Asatidz Pembina (Real data santri dari database)
   const asatidzList = [];
-  if (santri.pembina_asrama) {
+  if (santri.pembina_asrama && String(santri.pembina_asrama).trim() && santri.pembina_asrama !== "-") {
     asatidzList.push({
       nama: santri.pembina_asrama,
       peran: "Pembina Kobong & Asrama",
-      hp: santri.no_hp_pembina || "",
-    });
-  }
-  if (santri.wali_kelas) {
-    asatidzList.push({
-      nama: santri.wali_kelas,
-      peran: "Wali Kelas Madrasah Diniyah",
-      hp: "",
+      hp: santri.no_hp_pembina && santri.no_hp_pembina !== "-" ? santri.no_hp_pembina : "",
     });
   }
 
@@ -1206,17 +1203,6 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
             getCurrentMonthRange={getCurrentMonthRange}
             fetchWaliData={fetchWaliData}
             selectedSantriId={selectedSantriId}
-            onBack={() => setCurrentTab("beranda")}
-          />
-        )}
-
-        {/* 6. TAHFIDZ & HAFALAN AL-QUR'AN TAB */}
-        {currentTab === "hafalan" && (
-          <TabTahfidzWali
-            santri={santri}
-            tahfidz={tahfidz}
-            rawSantriName={rawSantriName}
-            displayNisn={displayNisn}
             onBack={() => setCurrentTab("beranda")}
           />
         )}

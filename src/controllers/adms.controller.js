@@ -1,5 +1,6 @@
 import pool from '../config/database.js';
 import { createWaliNotification, buildAbsensiNotifText } from './notifikasi.controller.js';
+import { resolveActiveShalatBerjamaahSesi } from './absensi.controller.js';
 
 /**
  * Controller Resmi untuk Integrasi Mesin Fingerprint (Protokol ADMS / Cloud Server ZKTeco & Solution)
@@ -160,41 +161,14 @@ export const handleAdmsPushData = async (req, res) => {
 
       const santri = santriRows[0];
 
-      // 2. Tentukan Sesi Kegiatan Berdasarkan Jam Scan
-      let sesiId = 1;
-      let namaSesiAktif = 'Shalat Berjamaah';
+      // 2. Otomatis Pilih Sesi Shalat Berjamaah Berdasarkan Jam Scan & Setting Jadwal Shalat Berjamaah
+      const autoSesi = await resolveActiveShalatBerjamaahSesi(waktuScan);
+      const sesiId = autoSesi?.id || 1;
+      const namaSesiAktif = autoSesi?.nama_sesi || 'Shalat Berjamaah';
+      const tipePresensi = 'Berjamaah';
       let statusKehadiran = 'Hadir';
-
-      try {
-        const [sesiRows] = await pool.query(`
-          SELECT id, nama_sesi, jam_target, jam_toleransi_telat, jam_mulai_presensi, jam_tutup_presensi
-          FROM kegiatan_sesi 
-          WHERE is_active = 1
-          ORDER BY 
-            (CASE 
-              WHEN ? BETWEEN jam_mulai_presensi AND jam_tutup_presensi THEN 0 
-              WHEN ? <= jam_tutup_presensi THEN 1
-              ELSE 2 
-            END),
-            jam_mulai_presensi ASC
-          LIMIT 1
-        `, [waktuScan, waktuScan]);
-
-        if (sesiRows && sesiRows.length > 0) {
-          sesiId = sesiRows[0].id;
-          namaSesiAktif = sesiRows[0].nama_sesi || 'Shalat Berjamaah';
-          if (sesiRows[0].jam_toleransi_telat && waktuScan > sesiRows[0].jam_toleransi_telat) {
-            statusKehadiran = 'Terlambat';
-          }
-        } else {
-          const [anySesi] = await pool.query('SELECT id, nama_sesi FROM kegiatan_sesi LIMIT 1');
-          if (anySesi && anySesi.length > 0) {
-            sesiId = anySesi[0].id;
-            namaSesiAktif = anySesi[0].nama_sesi || 'Shalat Berjamaah';
-          }
-        }
-      } catch (eSesi) {
-        console.warn('[ADMS] Cari sesi notice:', eSesi.message);
+      if (autoSesi?.jam_toleransi_telat && waktuScan > String(autoSesi.jam_toleransi_telat)) {
+        statusKehadiran = 'Hadir';
       }
 
       // 3. Cek apakah log untuk santri & tanggal ini sudah pernah dihapus oleh Admin
@@ -209,22 +183,24 @@ export const handleAdmsPushData = async (req, res) => {
         continue;
       }
 
-      // 4. Simpan atau Update ke Tabel absensi_jamaah_mengaji (Idempoten)
+      // 4. Simpan atau Update ke Tabel absensi_jamaah_mengaji dengan Kategori Berjamaah Otomatis (Idempoten)
       const [existingLog] = await pool.query(`
         SELECT id FROM absensi_jamaah_mengaji 
-        WHERE tanggal = ? AND sesi_id = ? AND santri_id = ? 
+        WHERE tanggal = ? AND santri_id = ? AND (
+          sesi_id = ? OR LOWER(TRIM(COALESCE(nama_kegiatan, ''))) = LOWER(TRIM(?))
+        )
         LIMIT 1
-      `, [tanggalScan, sesiId, santri.id]);
+      `, [tanggalScan, santri.id, sesiId, namaSesiAktif]);
 
-      const keterangan = `Scan Fingerprint Mesin MP340 (SN: ${sn})`;
+      const keterangan = `Scan Fingerprint Mesin MP340 (SN: ${sn}) - ${namaSesiAktif}`;
 
       if (existingLog && existingLog.length > 0) {
         try {
           await pool.query(`
             UPDATE absensi_jamaah_mengaji 
-            SET status = ?, waktu_scan = ?, device_id = ?, metode_presensi = 'Fingerprint', keterangan = ?
+            SET status = ?, waktu_scan = ?, device_id = ?, metode_presensi = 'Fingerprint', nama_kegiatan = ?, tipe_presensi = ?, keterangan = ?
             WHERE id = ?
-          `, [statusKehadiran, waktuScan, deviceId, keterangan, existingLog[0].id]);
+          `, [statusKehadiran, waktuScan, deviceId, namaSesiAktif, tipePresensi, keterangan, existingLog[0].id]);
         } catch (errUp) {
           await pool.query(`
             UPDATE absensi_jamaah_mengaji 
@@ -236,9 +212,9 @@ export const handleAdmsPushData = async (req, res) => {
         try {
           await pool.query(`
             INSERT INTO absensi_jamaah_mengaji 
-            (tanggal, sesi_id, santri_id, waktu_scan, status, device_id, metode_presensi, keterangan)
-            VALUES (?, ?, ?, ?, ?, ?, 'Fingerprint', ?)
-          `, [tanggalScan, sesiId, santri.id, waktuScan, statusKehadiran, deviceId, keterangan]);
+            (tanggal, sesi_id, nama_kegiatan, tipe_presensi, santri_id, waktu_scan, status, device_id, metode_presensi, keterangan)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Fingerprint', ?)
+          `, [tanggalScan, sesiId, namaSesiAktif, tipePresensi, santri.id, waktuScan, statusKehadiran, deviceId, keterangan]);
         } catch (errIns) {
           await pool.query(`
             INSERT INTO absensi_jamaah_mengaji 
