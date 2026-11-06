@@ -119,6 +119,12 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
     hubungan_mahrom: 'Orang Tua (Wali)'
   });
 
+  // Top Up Saldo Tabungan State
+  const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
+  const [submittingTopUp, setSubmittingTopUp] = useState(false);
+  const [topUpNominal, setTopUpNominal] = useState(50000);
+  const [topUpKeterangan, setTopUpKeterangan] = useState('Uang saku santri via Wali');
+
   // Live Clock & Greeting
   const [currentTimeStr, setCurrentTimeStr] = useState('');
   const [currentDateStr, setCurrentDateStr] = useState('');
@@ -445,6 +451,42 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
       showError('Gagal Mengajukan Izin', err.response?.data?.message || err.message);
     } finally {
       setSubmittingIzin(false);
+    }
+  };
+
+  const handleTopUpSubmit = async (e) => {
+    e.preventDefault();
+    const nom = parseFloat(topUpNominal);
+    if (!nom || isNaN(nom) || nom <= 0) {
+      showError('Nominal Tidak Valid', 'Silakan masukkan nominal pengisian saldo yang benar.');
+      return;
+    }
+    if (nom < 5000) {
+      showError('Minimal Setor', 'Nominal pengisian minimal Rp 5.000.');
+      return;
+    }
+    try {
+      setSubmittingTopUp(true);
+      const res = await axios.post('/api/tabungan/setor', {
+        santri_id: selectedSantriId || santri?.id,
+        nominal: nom,
+        keterangan: (topUpKeterangan || '').trim() || 'Pengisian Saldo via Wali Santri',
+        admin_nama: `Wali (${rawSantriName})`
+      });
+      if (res.data?.success) {
+        toastSuccess('Pengisian Berhasil!', `Saldo tabungan ananda berhasil diisi sebesar Rp ${nom.toLocaleString('id-ID')}.`);
+        setIsTopUpModalOpen(false);
+        setTopUpNominal(50000);
+        setTopUpKeterangan('Uang saku santri via Wali');
+        fetchSantriTabungan(selectedSantriId || santri?.id);
+        fetchKeuanganOverview(selectedSantriId || santri?.id);
+      } else {
+        showError('Gagal', res.data?.message || 'Gagal mengisi saldo tabungan.');
+      }
+    } catch (err) {
+      showError('Gagal Mengisi Saldo', err.response?.data?.message || err.message);
+    } finally {
+      setSubmittingTopUp(false);
     }
   };
 
@@ -1255,18 +1297,11 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 {/* 1. Tabungan Santri */}
                 <div onClick={() => setCurrentTab('tabungan')} style={menuCardStyle}>
                   <div style={{
-                    width: '62px',
-                    height: '62px',
-                    borderRadius: '18px',
-                    background: '#ffffff',
-                    border: '1px solid #f1f5f9',
-                    boxShadow: '0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                    ...squircleIconStyle,
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    boxShadow: '0 8px 18px -2px rgba(16, 185, 129, 0.45)'
                   }}>
-                    <Wallet size={27} strokeWidth={2.2} color="#059669" />
+                    <Wallet size={26} strokeWidth={2.3} color="#ffffff" />
                   </div>
                   <span style={menuLabelStyle}>Tabungan</span>
                 </div>
@@ -1274,18 +1309,11 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 {/* 2. Bayar SPP / Tagihan */}
                 <div onClick={() => setCurrentTab('tagihan')} style={menuCardStyle}>
                   <div style={{
-                    width: '62px',
-                    height: '62px',
-                    borderRadius: '18px',
-                    background: '#ffffff',
-                    border: '1px solid #f1f5f9',
-                    boxShadow: '0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                    ...squircleIconStyle,
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                    boxShadow: '0 8px 18px -2px rgba(59, 130, 246, 0.45)'
                   }}>
-                    <CreditCard size={27} strokeWidth={2.2} color="#0284c7" />
+                    <CreditCard size={26} strokeWidth={2.3} color="#ffffff" />
                   </div>
                   <span style={menuLabelStyle}>Bayar SPP</span>
                 </div>
@@ -1293,18 +1321,11 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 {/* 3. Presensi Sholat / Berjamaah */}
                 <div onClick={() => setCurrentTab('absensi')} style={menuCardStyle}>
                   <div style={{
-                    width: '62px',
-                    height: '62px',
-                    borderRadius: '18px',
-                    background: '#ffffff',
-                    border: '1px solid #f1f5f9',
-                    boxShadow: '0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                    ...squircleIconStyle,
+                    background: 'linear-gradient(135deg, #06b6d4 0%, #0284c7 100%)',
+                    boxShadow: '0 8px 18px -2px rgba(6, 182, 212, 0.45)'
                   }}>
-                    <Fingerprint size={27} strokeWidth={2.2} color="#0d9488" />
+                    <Fingerprint size={26} strokeWidth={2.3} color="#ffffff" />
                   </div>
                   <span style={menuLabelStyle}>Berjamaah</span>
                 </div>
@@ -1312,18 +1333,11 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 {/* 4. Tahfidz */}
                 <div onClick={() => setCurrentTab('hafalan')} style={menuCardStyle}>
                   <div style={{
-                    width: '62px',
-                    height: '62px',
-                    borderRadius: '18px',
-                    background: '#ffffff',
-                    border: '1px solid #f1f5f9',
-                    boxShadow: '0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                    ...squircleIconStyle,
+                    background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                    boxShadow: '0 8px 18px -2px rgba(168, 85, 247, 0.45)'
                   }}>
-                    <BookOpen size={27} strokeWidth={2.2} color="#7c3aed" />
+                    <BookOpen size={26} strokeWidth={2.3} color="#ffffff" />
                   </div>
                   <span style={menuLabelStyle}>Tahfidz</span>
                 </div>
@@ -1331,18 +1345,11 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 {/* 5. Perizinan Pulang */}
                 <div onClick={() => setCurrentTab('perizinan')} style={menuCardStyle}>
                   <div style={{
-                    width: '62px',
-                    height: '62px',
-                    borderRadius: '18px',
-                    background: '#ffffff',
-                    border: '1px solid #f1f5f9',
-                    boxShadow: '0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                    ...squircleIconStyle,
+                    background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                    boxShadow: '0 8px 18px -2px rgba(249, 115, 22, 0.45)'
                   }}>
-                    <Clock size={27} strokeWidth={2.2} color="#4f46e5" />
+                    <Clock size={26} strokeWidth={2.3} color="#ffffff" />
                   </div>
                   <span style={menuLabelStyle}>Perizinan</span>
                 </div>
@@ -1350,56 +1357,35 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 {/* 6. Praktek Ibadah */}
                 <div onClick={() => setCurrentTab('praktek')} style={menuCardStyle}>
                   <div style={{
-                    width: '62px',
-                    height: '62px',
-                    borderRadius: '18px',
-                    background: '#ffffff',
-                    border: '1px solid #f1f5f9',
-                    boxShadow: '0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                    ...squircleIconStyle,
+                    background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
+                    boxShadow: '0 8px 18px -2px rgba(20, 184, 166, 0.45)'
                   }}>
-                    <HeartHandshake size={27} strokeWidth={2.2} color="#ea580c" />
+                    <HeartHandshake size={26} strokeWidth={2.3} color="#ffffff" />
                   </div>
                   <span style={menuLabelStyle}>Praktek</span>
                 </div>
 
-                {/* 7. Rapor Santri */}
+                {/* 7. Perkembangan Santri (sebelumnya Rapor) */}
                 <div onClick={() => setCurrentTab('laporan')} style={menuCardStyle}>
                   <div style={{
-                    width: '62px',
-                    height: '62px',
-                    borderRadius: '18px',
-                    background: '#ffffff',
-                    border: '1px solid #f1f5f9',
-                    boxShadow: '0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                    ...squircleIconStyle,
+                    background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)',
+                    boxShadow: '0 8px 18px -2px rgba(2, 132, 199, 0.45)'
                   }}>
-                    <Award size={27} strokeWidth={2.2} color="#0891b2" />
+                    <Award size={26} strokeWidth={2.3} color="#ffffff" />
                   </div>
-                  <span style={menuLabelStyle}>Rapor</span>
+                  <span style={menuLabelStyle}>Perkembangan</span>
                 </div>
 
                 {/* 8. Tata Tertib */}
                 <div onClick={() => setCurrentTab('pelanggaran')} style={menuCardStyle}>
                   <div style={{
-                    width: '62px',
-                    height: '62px',
-                    borderRadius: '18px',
-                    background: '#ffffff',
-                    border: '1px solid #f1f5f9',
-                    boxShadow: '0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                    ...squircleIconStyle,
+                    background: 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
+                    boxShadow: '0 8px 18px -2px rgba(244, 63, 94, 0.45)'
                   }}>
-                    <ShieldAlert size={27} strokeWidth={2.2} color="#e11d48" />
+                    <ShieldAlert size={26} strokeWidth={2.3} color="#ffffff" />
                   </div>
                   <span style={menuLabelStyle}>Tata Tertib</span>
                 </div>
@@ -1893,6 +1879,33 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   </div>
                 </div>
               </div>
+
+              {/* ACTION BUTTON: ISI SALDO TABUNGAN (TOP UP) */}
+              <button
+                type="button"
+                onClick={() => setIsTopUpModalOpen(true)}
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '12px 16px',
+                  borderRadius: '16px',
+                  fontWeight: 800,
+                  fontSize: '0.86rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 14px rgba(5, 150, 105, 0.35)',
+                  cursor: 'pointer',
+                  marginBottom: '14px',
+                  transition: 'transform 0.15s ease'
+                }}
+              >
+                <Plus size={18} strokeWidth={2.8} />
+                <span>Isi Saldo Tabungan (Top Up)</span>
+              </button>
 
               {/* Petunjuk Pengiriman Uang Saku */}
               <div style={{
@@ -2456,7 +2469,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
         ========================================================================= */}
         {currentTab === 'perizinan' && (
           <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: '90px' }}>
-            {/* Top Header Bar Terpadu Emerald Green */}
+            {/* Top Header Bar Terpadu Emerald Green (Persis Absensi) */}
             <div style={{
               background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
               padding: '16px 16px 20px',
@@ -2478,9 +2491,6 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                     <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
                       Perizinan Santri
                     </h2>
-                    <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '2px' }}>
-                      Santri: {rawSantriName} (NISN: {displayNisn})
-                    </div>
                   </div>
                 </div>
 
@@ -2498,32 +2508,117 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                     fontSize: '0.78rem',
                     fontWeight: 800,
                     cursor: 'pointer',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
                   }}
                 >
-                  <Plus size={15} /> Ajukan Izin
+                  <Plus size={15} strokeWidth={2.8} /> Ajukan Izin
                 </button>
               </div>
             </div>
 
-            {/* Santri Profile Content */}
+            <div style={{ padding: '0 16px' }}>
+              {/* HERO STAT CARD PERIZINAN */}
+              {(() => {
+                const countMenunggu = perizinan.filter(p => (p.status || '').toLowerCase().includes('menunggu')).length;
+                const countDisetujui = perizinan.filter(p => (p.status || '').toLowerCase().includes('disetujui')).length;
+                const countAktif = perizinan.filter(p => (p.status || '').toLowerCase().includes('aktif')).length;
+                const isKeluar = countAktif > 0;
 
-            {/* Info Banner */}
-            <div style={{
-              background: '#f0fdf4',
-              border: '1px solid #bbf7d0',
-              borderRadius: '14px',
-              padding: '12px 14px',
-              marginBottom: '14px',
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '10px'
-            }}>
-              <Shield size={18} color="#16a34a" style={{ flexShrink: 0, marginTop: '2px' }} />
-              <div style={{ fontSize: '0.74rem', color: '#166534', lineHeight: 1.45 }}>
-                <strong>Prosedur Perizinan:</strong> Pengajuan izin dari orang tua/wali santri akan diverifikasi oleh Dewan Pengasuh. Santri wajib lapor ke Pos Keamanan gerbang saat keluar dan kembali ke pondok.
+                return (
+                  <div style={{
+                    background: isKeluar 
+                      ? 'linear-gradient(135deg, #7c2d12 0%, #451a03 100%)' 
+                      : 'linear-gradient(135deg, #4338ca 0%, #1e1b4b 100%)',
+                    borderRadius: '20px',
+                    padding: '16px 16px 14px',
+                    color: '#ffffff',
+                    boxShadow: isKeluar 
+                      ? '0 8px 24px -4px rgba(124, 45, 18, 0.35)' 
+                      : '0 8px 24px -4px rgba(67, 56, 202, 0.35)',
+                    marginBottom: '14px',
+                    transition: 'all 0.25s ease'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                      <div>
+                        <div style={{
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          color: isKeluar ? '#fed7aa' : '#c7d2fe',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}>
+                          STATUS KEBERADAAN SANTRI
+                        </div>
+                        <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', marginTop: '2px', letterSpacing: '-0.3px' }}>
+                          {isKeluar ? 'Sedang Izin Keluar' : 'Di Lingkungan Pesantren'}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.85)', marginTop: '2px' }}>
+                          {isKeluar ? 'Santri sedang berada di luar lingkungan pondok' : 'Santri berada di asrama & mengikuti taklim pondok'}
+                        </div>
+                      </div>
+
+                      <div style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '14px',
+                        background: 'rgba(255, 255, 255, 0.16)',
+                        border: '1px solid rgba(255, 255, 255, 0.25)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#ffffff',
+                        fontSize: '1.4rem'
+                      }}>
+                        🚪
+                      </div>
+                    </div>
+
+                    {/* 4 Mini Counters */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(4, 1fr)',
+                      gap: '6px',
+                      background: 'rgba(0, 0, 0, 0.22)',
+                      padding: '8px',
+                      borderRadius: '12px'
+                    }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#fbbf24' }}>{countMenunggu}</div>
+                        <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>Menunggu</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#60a5fa' }}>{countDisetujui}</div>
+                        <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>Disetujui</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#c084fc' }}>{countAktif}</div>
+                        <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>Aktif Izin</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#4ade80' }}>{perizinan.length}</div>
+                        <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>Total Izin</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Info Banner */}
+              <div style={{
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                borderRadius: '14px',
+                padding: '12px 14px',
+                marginBottom: '14px',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '10px'
+              }}>
+                <Shield size={18} color="#16a34a" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <div style={{ fontSize: '0.74rem', color: '#166534', lineHeight: 1.45 }}>
+                  <strong>Prosedur Perizinan:</strong> Pengajuan izin dari orang tua/wali santri akan diverifikasi oleh Dewan Pengasuh. Santri wajib lapor ke Pos Keamanan gerbang saat keluar dan kembali ke pondok.
+                </div>
               </div>
-            </div>
 
             {/* List Perizinan */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -2676,6 +2771,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   );
                 })
               )}
+            </div>
             </div>
           </div>
         )}
@@ -3221,7 +3317,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
         ========================================================================= */}
         {currentTab === 'praktek' && (
           <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: '90px' }}>
-            {/* Top Header Bar Terpadu Emerald Green */}
+            {/* Top Header Bar Terpadu Emerald Green (Persis Absensi) */}
             <div style={{
               background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
               padding: '16px 16px 20px',
@@ -3243,9 +3339,6 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                     <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
                       Ujian Praktek Ibadah
                     </h2>
-                    <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '2px' }}>
-                      Santri: {rawSantriName} (NISN: {displayNisn})
-                    </div>
                   </div>
                 </div>
 
@@ -3264,36 +3357,113 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
-            {/* Santri Profile Content */}
+            <div style={{ padding: '0 16px' }}>
+              {/* HERO STAT CARD PRAKTEK */}
+              {(() => {
+                const countLulus = praktek.filter(r => (r.status || '').toLowerCase().includes('lulus')).length;
+                const countMengulang = praktek.filter(r => (r.status || '').toLowerCase().includes('ulang')).length;
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {praktek.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 16px', background: '#ffffff', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
-                  <HeartHandshake size={36} color="#94a3b8" style={{ margin: '0 auto 8px' }} />
-                  <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155' }}>Belum Ada Hasil Ujian Praktek</div>
-                  <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px' }}>Evaluasi wudhu, sholat, dan kaifiyah ibadah santri akan ditampilkan di sini.</div>
-                </div>
-              ) : (
-                praktek.map((row, idx) => {
-                  const isLulus = row.status === 'Lulus';
-                  return (
-                    <div key={row.id || idx} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '14px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                        <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>{row.kategori || row.nama_praktek || 'Praktek Sholat Fardhu'}</span>
-                        <span className={`badge ${isLulus ? 'badge-success' : 'badge-danger'}`} style={{ fontWeight: 800 }}>
-                          {isLulus ? 'LULUS' : 'MENGULANG'}
-                        </span>
+                return (
+                  <div style={{
+                    background: 'linear-gradient(135deg, #c2410c 0%, #7c2d12 100%)',
+                    borderRadius: '20px',
+                    padding: '16px 16px 14px',
+                    color: '#ffffff',
+                    boxShadow: '0 8px 24px -4px rgba(194, 65, 12, 0.35)',
+                    marginBottom: '14px',
+                    transition: 'all 0.25s ease'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                      <div>
+                        <div style={{
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          color: '#fed7aa',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}>
+                          EVALUASI KAIFIYAH IBADAH
+                        </div>
+                        <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', marginTop: '2px', letterSpacing: '-0.3px' }}>
+                          {countLulus} Materi Lulus
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.85)', marginTop: '2px' }}>
+                          Ujian wudhu, sholat fardhu, & doa harian pondok
+                        </div>
                       </div>
-                      <div style={{ fontSize: '0.76rem', color: '#475569', lineHeight: 1.4 }}>
-                        {row.deskripsi || row.catatan_perbaikan || 'Sesuai kaifiyah dan sunnah yang diajarkan di pondok.'}
-                      </div>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '6px' }}>
-                        Penguji: {row.nama_penguji || 'Ust. Penguji'} • {row.tanggal_ujian ? String(row.tanggal_ujian).split('T')[0] : '-'}
+
+                      <div style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '14px',
+                        background: 'rgba(255, 255, 255, 0.16)',
+                        border: '1px solid rgba(255, 255, 255, 0.25)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#ffffff',
+                        fontSize: '1.4rem'
+                      }}>
+                        🤲
                       </div>
                     </div>
-                  );
-                })
-              )}
+
+                    {/* 3 Mini Counters */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, 1fr)',
+                      gap: '8px',
+                      background: 'rgba(0, 0, 0, 0.22)',
+                      padding: '8px',
+                      borderRadius: '12px'
+                    }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#4ade80' }}>{countLulus}</div>
+                        <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>Lulus</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#fca5a5' }}>{countMengulang}</div>
+                        <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>Mengulang</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#fed7aa' }}>{praktek.length}</div>
+                        <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>Total Ujian</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* List Praktek */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {praktek.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px 16px', background: '#ffffff', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
+                    <HeartHandshake size={36} color="#94a3b8" style={{ margin: '0 auto 8px' }} />
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155' }}>Belum Ada Hasil Ujian Praktek</div>
+                    <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px' }}>Evaluasi wudhu, sholat, dan kaifiyah ibadah santri akan ditampilkan di sini.</div>
+                  </div>
+                ) : (
+                  praktek.map((row, idx) => {
+                    const isLulus = (row.status || '').toLowerCase().includes('lulus');
+                    return (
+                      <div key={row.id || idx} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '14px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                          <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>{row.kategori || row.nama_praktek || 'Praktek Sholat Fardhu'}</span>
+                          <span className={`badge ${isLulus ? 'badge-success' : 'badge-danger'}`} style={{ fontWeight: 800 }}>
+                            {isLulus ? 'LULUS' : 'MENGULANG'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.76rem', color: '#475569', lineHeight: 1.4 }}>
+                          {row.deskripsi || row.catatan_perbaikan || 'Sesuai kaifiyah dan sunnah yang diajarkan di pondok.'}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #f8fafc' }}>
+                          Penguji: <strong style={{ color: '#0284c7' }}>{row.nama_penguji || 'Ust. Penguji'}</strong> • {row.tanggal_ujian ? String(row.tanggal_ujian).split('T')[0] : '-'}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -3325,9 +3495,6 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                     <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
                       Catatan Kedisiplinan & Tata Tertib
                     </h2>
-                    <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '2px' }}>
-                      Santri: {rawSantriName} (NISN: {displayNisn})
-                    </div>
                   </div>
                 </div>
 
@@ -3346,37 +3513,120 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
-            {/* Santri Profile Content */}
+            <div style={{ padding: '0 16px' }}>
+              {/* HERO STAT CARD KEDISIPLINAN */}
+              {(() => {
+                const countRingan = pelanggaran.filter(r => (r.kategori || '').toLowerCase() === 'ringan').length;
+                const countSedang = pelanggaran.filter(r => (r.kategori || '').toLowerCase() === 'sedang').length;
+                const countBerat = pelanggaran.filter(r => (r.kategori || '').toLowerCase() === 'berat').length;
+                const isClean = pelanggaran.length === 0;
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {pelanggaran.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 16px', background: '#ecfdf5', borderRadius: '18px', border: '1px solid #a7f3d0' }}>
-                  <CheckCircle size={40} color="#059669" style={{ margin: '0 auto 8px' }} />
-                  <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#065f46' }}>Alhamdulillah, Catatan Bersih!</div>
-                  <div style={{ fontSize: '0.76rem', color: '#047857', marginTop: '4px' }}>Santri selalu tertib dan disiplin mengikuti tata tertib pesantren.</div>
-                </div>
-              ) : (
-                pelanggaran.map((row, idx) => (
-                  <div key={row.id || idx} style={{ background: '#ffffff', border: '1px solid #fed7aa', borderRadius: '14px', padding: '14px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <span className={`badge ${row.kategori === 'Berat' ? 'badge-danger' : 'badge-warning'}`}>
-                        Kategori: {row.kategori || 'Ringan'}
-                      </span>
-                      <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{row.tanggal ? String(row.tanggal).split('T')[0] : '-'}</span>
+                return (
+                  <div style={{
+                    background: isClean 
+                      ? 'linear-gradient(135deg, #059669 0%, #064e3b 100%)' 
+                      : 'linear-gradient(135deg, #e11d48 0%, #881337 100%)',
+                    borderRadius: '20px',
+                    padding: '16px 16px 14px',
+                    color: '#ffffff',
+                    boxShadow: isClean 
+                      ? '0 8px 24px -4px rgba(5, 150, 105, 0.35)' 
+                      : '0 8px 24px -4px rgba(225, 29, 72, 0.35)',
+                    marginBottom: '14px',
+                    transition: 'all 0.25s ease'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                      <div>
+                        <div style={{
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          color: isClean ? '#a7f3d0' : '#fecdd3',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}>
+                          STATUS KEDISIPLINAN SANTRI
+                        </div>
+                        <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', marginTop: '2px', letterSpacing: '-0.3px' }}>
+                          {isClean ? 'Catatan Disiplin Bersih' : `${pelanggaran.length} Catatan Ta'zir`}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.85)', marginTop: '2px' }}>
+                          {isClean ? 'Alhamdulillah, santri tertib & taat aturan pondok' : 'Bimbingan akhlak & kepatuhan tata tertib pesantren'}
+                        </div>
+                      </div>
+
+                      <div style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '14px',
+                        background: 'rgba(255, 255, 255, 0.16)',
+                        border: '1px solid rgba(255, 255, 255, 0.25)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#ffffff',
+                        fontSize: '1.4rem'
+                      }}>
+                        {isClean ? '🛡️' : '⚠️'}
+                      </div>
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: '#1e293b', fontWeight: 700, marginBottom: '4px' }}>
-                      Bentuk Ta'zir Mendidik:
-                    </div>
-                    <div style={{ fontSize: '0.76rem', color: '#475569', background: '#fffbeb', padding: '8px 10px', borderRadius: '8px', marginBottom: '8px' }}>
-                      {row.bentuk_tazir || 'Membaca Al-Qur\'an di Masjid pondok'}
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b' }}>
-                      <span>Status: <strong style={{ color: '#059669' }}>{row.status_tazir || 'Selesai Ta\'zir'}</strong></span>
-                      <span>Musyrif: {row.musyrif_pencatat || 'Musyrif Keamanan'}</span>
+
+                    {/* 3 Mini Counters */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, 1fr)',
+                      gap: '8px',
+                      background: 'rgba(0, 0, 0, 0.22)',
+                      padding: '8px',
+                      borderRadius: '12px'
+                    }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 900, color: countRingan > 0 ? '#fde047' : '#ffffff' }}>{countRingan}</div>
+                        <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>Ringan</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 900, color: countSedang > 0 ? '#fdba74' : '#ffffff' }}>{countSedang}</div>
+                        <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>Sedang</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 900, color: countBerat > 0 ? '#fca5a5' : '#4ade80' }}>{countBerat}</div>
+                        <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>Berat</div>
+                      </div>
                     </div>
                   </div>
-                ))
-              )}
+                );
+              })()}
+
+              {/* List Pelanggaran */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {pelanggaran.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px 16px', background: '#ecfdf5', borderRadius: '18px', border: '1px solid #a7f3d0' }}>
+                    <CheckCircle size={40} color="#059669" style={{ margin: '0 auto 8px' }} />
+                    <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#065f46' }}>Alhamdulillah, Catatan Bersih!</div>
+                    <div style={{ fontSize: '0.76rem', color: '#047857', marginTop: '4px' }}>Santri selalu tertib dan disiplin mengikuti tata tertib pesantren.</div>
+                  </div>
+                ) : (
+                  pelanggaran.map((row, idx) => (
+                    <div key={row.id || idx} style={{ background: '#ffffff', border: '1px solid #fed7aa', borderRadius: '14px', padding: '14px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span className={`badge ${row.kategori === 'Berat' ? 'badge-danger' : 'badge-warning'}`}>
+                          Kategori: {row.kategori || 'Ringan'}
+                        </span>
+                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{row.tanggal ? String(row.tanggal).split('T')[0] : '-'}</span>
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: '#1e293b', fontWeight: 700, marginBottom: '4px' }}>
+                        Bentuk Ta'zir Mendidik:
+                      </div>
+                      <div style={{ fontSize: '0.76rem', color: '#475569', background: '#fffbeb', padding: '8px 10px', borderRadius: '8px', marginBottom: '8px' }}>
+                        {row.bentuk_tazir || 'Membaca Al-Qur\'an di Masjid pondok'}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b' }}>
+                        <span>Status: <strong style={{ color: '#059669' }}>{row.status_tazir || 'Selesai Ta\'zir'}</strong></span>
+                        <span>Musyrif: {row.musyrif_pencatat || 'Musyrif Keamanan'}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -3791,6 +4041,267 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                       <>
                         <Check size={16} />
                         Kirim Permohonan Izin
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================================
+            MODAL TOP UP / ISI SALDO TABUNGAN SANTRI
+        ========================================================================= */}
+        {isTopUpModalOpen && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 99999,
+            backgroundColor: 'rgba(15, 23, 42, 0.68)',
+            backdropFilter: 'blur(5px)',
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            padding: 0
+          }}>
+            <div style={{
+              background: '#ffffff',
+              width: '100%',
+              maxWidth: '480px',
+              borderTopLeftRadius: '26px',
+              borderTopRightRadius: '26px',
+              maxHeight: '92vh',
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 -10px 30px rgba(0,0,0,0.2)',
+              animation: 'slideUp 0.25s ease-out'
+            }}>
+              {/* Modal Header */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '16px 20px',
+                borderBottom: '1px solid #f1f5f9',
+                position: 'sticky',
+                top: 0,
+                background: '#ffffff',
+                zIndex: 10
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '12px',
+                    background: '#ecfdf5',
+                    color: '#059669',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Wallet size={18} strokeWidth={2.4} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                      Isi Saldo Tabungan
+                    </h3>
+                    <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '2px 0 0' }}>
+                      Santri: {rawSantriName}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsTopUpModalOpen(false)}
+                  style={{
+                    background: '#f1f5f9',
+                    border: 'none',
+                    color: '#64748b',
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Form Body */}
+              <form onSubmit={handleTopUpSubmit} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Info Saldo Saat Ini */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #f0fdf4 0%, #e6fffa 100%)',
+                  border: '1px solid #bbf7d0',
+                  borderRadius: '14px',
+                  padding: '12px 14px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>
+                      Saldo Tabungan Saat Ini
+                    </div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f766e', marginTop: '2px' }}>
+                      {formatRp(tabunganData?.saldo_saat_ini || 0)}
+                    </div>
+                  </div>
+                  <span style={{ fontSize: '0.7rem', color: '#15803d', fontWeight: 700, background: '#dcfce7', padding: '4px 8px', borderRadius: '8px' }}>
+                    Terkelola Pondok
+                  </span>
+                </div>
+
+                {/* Pilihan Nominal Cepat (Chips) */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#334155', marginBottom: '8px' }}>
+                    Pilih Nominal Cepat:
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                    {[20000, 50000, 100000, 200000, 500000, 1000000].map((nom) => (
+                      <button
+                        key={nom}
+                        type="button"
+                        onClick={() => setTopUpNominal(nom)}
+                        style={{
+                          padding: '10px 6px',
+                          borderRadius: '12px',
+                          border: parseFloat(topUpNominal) === nom ? '2px solid #059669' : '1px solid #e2e8f0',
+                          background: parseFloat(topUpNominal) === nom ? '#ecfdf5' : '#ffffff',
+                          color: parseFloat(topUpNominal) === nom ? '#047857' : '#334155',
+                          fontWeight: 800,
+                          fontSize: '0.78rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {formatRp(nom)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Input Nominal Manual */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>
+                    Nominal Pengisian (Rp) <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="5000"
+                    step="1000"
+                    required
+                    value={topUpNominal}
+                    onChange={(e) => setTopUpNominal(e.target.value)}
+                    placeholder="Contoh: 50000"
+                    style={{
+                      width: '100%',
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '1rem',
+                      fontWeight: 800,
+                      color: '#0f172a',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '4px' }}>
+                    Nominal: <strong style={{ color: '#059669' }}>{formatRp(topUpNominal || 0)}</strong> (Minimal Rp 5.000)
+                  </div>
+                </div>
+
+                {/* Catatan / Keterangan */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>
+                    Catatan / Keperluan Uang Saku
+                  </label>
+                  <input
+                    type="text"
+                    value={topUpKeterangan}
+                    onChange={(e) => setTopUpKeterangan(e.target.value)}
+                    placeholder="Contoh: Uang saku jajan & kitab mingguan"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '12px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.8rem',
+                      color: '#0f172a',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                {/* Info Note */}
+                <div style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '10px 12px',
+                  fontSize: '0.7rem',
+                  color: '#64748b',
+                  lineHeight: 1.4
+                }}>
+                  💡 Saldo yang diisi akan otomatis bertambah ke tabungan santri dan dicatat ke riwayat mutasi sebagai uang masuk. Santri dapat mengambilnya melalui bendahara / musyrif kobong.
+                </div>
+
+                {/* Submit buttons */}
+                <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsTopUpModalOpen(false)}
+                    disabled={submittingTopUp}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      borderRadius: '12px',
+                      border: '1px solid #cbd5e1',
+                      background: '#ffffff',
+                      color: '#475569',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submittingTopUp}
+                    style={{
+                      flex: 2,
+                      padding: '12px',
+                      borderRadius: '12px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                      color: '#ffffff',
+                      fontSize: '0.84rem',
+                      fontWeight: 800,
+                      cursor: submittingTopUp ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 14px rgba(5, 150, 105, 0.35)'
+                    }}
+                  >
+                    {submittingTopUp ? (
+                      <>
+                        <RotateCw size={16} className="animate-spin" />
+                        Memproses...
+                      </>
+                    ) : (
+                      <>
+                        <Check size={16} />
+                        Konfirmasi Isi Saldo
                       </>
                     )}
                   </button>

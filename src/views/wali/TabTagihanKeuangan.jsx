@@ -427,7 +427,7 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
             }}
           >
             <CreditCard size={14} color={activeSubTab === 'tagihan' ? '#0284c7' : '#64748b'} />
-            Tagihan Belum Lunas
+            Tagihan
           </button>
           <button
             type="button"
@@ -450,7 +450,7 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
             }}
           >
             <FileText size={14} color={activeSubTab === 'riwayat' ? '#0284c7' : '#64748b'} />
-            Riwayat & Kuitansi
+            Riwayat
           </button>
         </div>
       </div>

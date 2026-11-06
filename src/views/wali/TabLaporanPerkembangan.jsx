@@ -65,16 +65,17 @@ export default function TabLaporanPerkembangan({ santriId, onBack }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: '90px' }}>
       
-      {/* Top Header Bar */}
+      {/* Top Header Bar Terpadu Emerald Green */}
       <div style={{
         background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-        padding: '16px 16px 24px',
+        padding: '16px 16px 20px',
         color: '#ffffff',
         borderBottomLeftRadius: '24px',
         borderBottomRightRadius: '24px',
-        boxShadow: '0 8px 20px rgba(5, 150, 105, 0.25)'
+        boxShadow: '0 8px 20px rgba(5, 150, 105, 0.25)',
+        marginBottom: '16px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {onBack && (
               <button 
@@ -86,11 +87,8 @@ export default function TabLaporanPerkembangan({ santriId, onBack }) {
             )}
             <div>
               <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
-                Laporan Perkembangan Santri
+                Perkembangan Santri
               </h2>
-              <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '2px' }}>
-                Santri: {santri.nama_santri || 'Santri'} (NISN: {santri.nisn || santri.nis || '-'})
-              </div>
             </div>
           </div>
 
@@ -101,47 +99,89 @@ export default function TabLaporanPerkembangan({ santriId, onBack }) {
             <RotateCw size={16} />
           </button>
         </div>
-
-        {/* 4 Quick Stat Pills */}
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.16)',
-          backdropFilter: 'blur(10px)',
-          borderRadius: '16px',
-          border: '1px solid rgba(255, 255, 255, 0.25)',
-          padding: '12px 14px',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '8px',
-          textAlign: 'center'
-        }}>
-          <div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#fff' }}>
-              {metrik.tahfidz?.juz_tertinggi ?? 0}
-            </div>
-            <div style={{ fontSize: '0.66rem', color: '#e0f2fe' }}>Juz Mutqin</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#4ade80' }}>
-              {metrik.absensi?.hadir ?? 0}
-            </div>
-            <div style={{ fontSize: '0.66rem', color: '#e0f2fe' }}>Hadir Sholat</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#fde047' }}>
-              {metrik.praktek?.lulus ?? 0}
-            </div>
-            <div style={{ fontSize: '0.66rem', color: '#e0f2fe' }}>Praktek Lulus</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#fff' }}>
-              {metrik.pelanggaran?.total_poin ?? 0}
-            </div>
-            <div style={{ fontSize: '0.66rem', color: '#e0f2fe' }}>Poin Ta'zir</div>
-          </div>
-        </div>
       </div>
 
-      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {/* HERO STAT CARD PERKEMBANGAN SANTRI */}
+        <div style={{
+          background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+          borderRadius: '20px',
+          padding: '16px 16px 14px',
+          color: '#ffffff',
+          boxShadow: '0 8px 24px -4px rgba(2, 132, 199, 0.35)',
+          transition: 'all 0.25s ease'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+            <div>
+              <div style={{
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                color: '#bae6fd',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                RAPOR & EVALUASI TERPADU
+              </div>
+              <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', marginTop: '2px', letterSpacing: '-0.3px' }}>
+                Perkembangan Santri
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.85)', marginTop: '2px' }}>
+                Rekap capaian tahfidz, kedisiplinan, ibadah, & akademik
+              </div>
+            </div>
+
+            <div style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '14px',
+              background: 'rgba(255, 255, 255, 0.16)',
+              border: '1px solid rgba(255, 255, 255, 0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ffffff',
+              fontSize: '1.4rem'
+            }}>
+              ⭐
+            </div>
+          </div>
+
+          {/* 4 Mini Counters */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '6px',
+            background: 'rgba(0, 0, 0, 0.22)',
+            padding: '8px',
+            borderRadius: '12px',
+            textAlign: 'center'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#ffffff' }}>
+                {metrik.tahfidz?.juz_tertinggi ?? 0}
+              </div>
+              <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>Juz Mutqin</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#4ade80' }}>
+                {metrik.absensi?.hadir ?? 0}
+              </div>
+              <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>Hadir Sholat</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#fde047' }}>
+                {metrik.praktek?.lulus ?? 0}
+              </div>
+              <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>Praktek</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 900, color: (metrik.pelanggaran?.total_poin || 0) > 0 ? '#fca5a5' : '#4ade80' }}>
+                {metrik.pelanggaran?.total_poin ?? 0}
+              </div>
+              <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>Poin Ta'zir</div>
+            </div>
+          </div>
+        </div>
         
         {/* Periode Selector Dropdown if multiple reports exist */}
         {laporanList.length > 1 && (
