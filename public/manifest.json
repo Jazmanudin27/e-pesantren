@@ -1,7 +1,7 @@
 {
   "name": "NWF Mobile",
   "short_name": "NWF Mobile",
-  "description": "NWF Mobile",
+  "description": "NWF Mobile - Aplikasi Pesantren & Portal Wali Santri",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -9,12 +9,6 @@
   "background_color": "#0d766e",
   "theme_color": "#0d766e",
   "icons": [
-    {
-      "src": "/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    },
     {
       "src": "/nwf.png",
       "sizes": "192x192",
@@ -29,4 +23,3 @@
     }
   ]
 }
-
