@@ -1436,15 +1436,6 @@ export default function MobileIzin() {
                   }}
                 />
               </div>
-                      borderRadius: "12px",
-                      border: "1.5px solid #cbd5e1",
-                      fontSize: "0.82rem",
-                      boxSizing: "border-box",
-                      outline: "none",
-                    }}
-                  />
-                </div>
-              </div>
 
               {/* Action Buttons */}
               <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
