@@ -651,110 +651,228 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
-            {/* 1. REKAP STATUS KEHADIRAN & IBADAH (FLOATING DI BAWAH HEADER) */}
-            <div style={{ padding: '0 14px', marginTop: '-20px', position: 'relative', zIndex: 12 }}>
+            {/* 1. REKAP STATUS KEHADIRAN & IBADAH (DESAIN MODERN LUXURY CARD) */}
+            <div style={{ padding: '0 14px', marginTop: '-24px', position: 'relative', zIndex: 12 }}>
               <div style={{
                 background: '#ffffff',
-                borderRadius: '20px',
+                borderRadius: '18px',
                 border: '1px solid #e2e8f0',
-                padding: '12px 10px',
-                boxShadow: '0 8px 24px -4px rgba(13, 118, 110, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04)'
+                padding: '12px 12px 10px',
+                boxShadow: '0 10px 25px -4px rgba(13, 118, 110, 0.14), 0 2px 6px rgba(0, 0, 0, 0.04)'
               }}>
+                {/* Header Mini Status */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '10px',
+                  paddingBottom: '8px',
+                  borderBottom: '1px solid #f1f5f9'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{
+                      width: '7px',
+                      height: '7px',
+                      borderRadius: '50%',
+                      background: '#10b981',
+                      boxShadow: '0 0 0 2px rgba(16, 185, 129, 0.2)'
+                    }} />
+                    <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.2px' }}>
+                      Rekap Presensi & Ibadah
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentTab('absensi')}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#0d9488',
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '2px',
+                      padding: 0
+                    }}
+                  >
+                    Rincian <ChevronRight size={12} />
+                  </button>
+                </div>
+
+                {/* 4 Cards Grid */}
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(4, 1fr)',
-                  gap: '8px'
+                  gap: '6px'
                 }}>
                   {/* Hadir */}
                   <div
                     onClick={() => openAbsensiWithFilter('Hadir')}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                    style={{
+                      background: 'linear-gradient(145deg, #f0fdf4 0%, #dcfce7 100%)',
+                      borderRadius: '14px',
+                      padding: '8px 4px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      cursor: 'pointer',
+                      border: '1px solid #bbf7d0',
+                      transition: 'transform 0.12s ease'
+                    }}
                   >
                     <div style={{
-                      width: '46px',
-                      height: '46px',
-                      borderRadius: '14px',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '10px',
                       background: '#10b981',
                       color: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      position: 'relative',
-                      boxShadow: '0 4px 12px -2px rgba(16, 185, 129, 0.35)'
+                      boxShadow: '0 3px 8px -1px rgba(16, 185, 129, 0.35)'
                     }}>
-                      <Check size={20} strokeWidth={2.4} />
-                      {countHadir > 0 && <span style={countBadgeStyle}>{countHadir}</span>}
+                      <Check size={16} strokeWidth={2.8} />
                     </div>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e293b' }}>Hadir</span>
+                    <div style={{
+                      fontSize: '1.05rem',
+                      fontWeight: 900,
+                      color: '#15803d',
+                      marginTop: '4px',
+                      lineHeight: 1
+                    }}>
+                      {countHadir}
+                    </div>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#166534', marginTop: '2px' }}>
+                      Hadir
+                    </span>
                   </div>
 
                   {/* Sakit */}
                   <div
                     onClick={() => openAbsensiWithFilter('Sakit')}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                    style={{
+                      background: 'linear-gradient(145deg, #fef2f2 0%, #fee2e2 100%)',
+                      borderRadius: '14px',
+                      padding: '8px 4px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      cursor: 'pointer',
+                      border: '1px solid #fecaca',
+                      transition: 'transform 0.12s ease'
+                    }}
                   >
                     <div style={{
-                      width: '46px',
-                      height: '46px',
-                      borderRadius: '14px',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '10px',
                       background: '#ef4444',
                       color: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      position: 'relative',
-                      boxShadow: '0 4px 12px -2px rgba(239, 68, 68, 0.35)'
+                      boxShadow: '0 3px 8px -1px rgba(239, 68, 68, 0.35)'
                     }}>
-                      <Building2 size={20} strokeWidth={2.4} />
-                      {countSakit > 0 && <span style={countBadgeStyle}>{countSakit}</span>}
+                      <Building2 size={16} strokeWidth={2.6} />
                     </div>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e293b' }}>Sakit</span>
+                    <div style={{
+                      fontSize: '1.05rem',
+                      fontWeight: 900,
+                      color: '#b91c1c',
+                      marginTop: '4px',
+                      lineHeight: 1
+                    }}>
+                      {countSakit}
+                    </div>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#991b1b', marginTop: '2px' }}>
+                      Sakit
+                    </span>
                   </div>
 
                   {/* Izin */}
                   <div
                     onClick={() => openAbsensiWithFilter('Izin')}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                    style={{
+                      background: 'linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%)',
+                      borderRadius: '14px',
+                      padding: '8px 4px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      cursor: 'pointer',
+                      border: '1px solid #fde68a',
+                      transition: 'transform 0.12s ease'
+                    }}
                   >
                     <div style={{
-                      width: '46px',
-                      height: '46px',
-                      borderRadius: '14px',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '10px',
                       background: '#f59e0b',
                       color: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      position: 'relative',
-                      boxShadow: '0 4px 12px -2px rgba(245, 158, 11, 0.35)'
+                      boxShadow: '0 3px 8px -1px rgba(245, 158, 11, 0.35)'
                     }}>
-                      <FileText size={20} strokeWidth={2.4} />
-                      {countIzin > 0 && <span style={countBadgeStyle}>{countIzin}</span>}
+                      <FileText size={16} strokeWidth={2.6} />
                     </div>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e293b' }}>Izin</span>
+                    <div style={{
+                      fontSize: '1.05rem',
+                      fontWeight: 900,
+                      color: '#b45309',
+                      marginTop: '4px',
+                      lineHeight: 1
+                    }}>
+                      {countIzin}
+                    </div>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#92400e', marginTop: '2px' }}>
+                      Izin
+                    </span>
                   </div>
 
                   {/* Alfa */}
                   <div
                     onClick={() => openAbsensiWithFilter('Alfa')}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                    style={{
+                      background: 'linear-gradient(145deg, #f0fdfa 0%, #ccfbf1 100%)',
+                      borderRadius: '14px',
+                      padding: '8px 4px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      cursor: 'pointer',
+                      border: '1px solid #99f6e4',
+                      transition: 'transform 0.12s ease'
+                    }}
                   >
                     <div style={{
-                      width: '46px',
-                      height: '46px',
-                      borderRadius: '14px',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '10px',
                       background: '#0d9488',
                       color: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      position: 'relative',
-                      boxShadow: '0 4px 12px -2px rgba(13, 148, 136, 0.35)'
+                      boxShadow: '0 3px 8px -1px rgba(13, 148, 136, 0.35)'
                     }}>
-                      <Clock size={20} strokeWidth={2.4} />
-                      {countAlfa > 0 && <span style={countBadgeStyle}>{countAlfa}</span>}
+                      <Clock size={16} strokeWidth={2.6} />
                     </div>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e293b' }}>Alfa</span>
+                    <div style={{
+                      fontSize: '1.05rem',
+                      fontWeight: 900,
+                      color: '#0f766e',
+                      marginTop: '4px',
+                      lineHeight: 1
+                    }}>
+                      {countAlfa}
+                    </div>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#115e59', marginTop: '2px' }}>
+                      Alfa
+                    </span>
                   </div>
                 </div>
               </div>
