@@ -609,7 +609,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       </div>
 
       {/* =========================================================================
-          CARD 1: FLOATING WHITE CARD (ADMIN ID CARD + PRESENSI STATUS PILLS)
+          CARD 1: FLOATING WHITE CARD (TAB BERJAMAAH & KEGIATAN + PRESENSI & KONDISI)
       ========================================================================= */}
       <div
         style={{
@@ -628,221 +628,111 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               "0 12px 28px -4px rgba(11, 107, 96, 0.18), 0 3px 10px rgba(0, 0, 0, 0.04)",
             border: "1px solid #e6f0ed",
             display: "flex",
+            flexDirection: "column",
             gap: "10px",
-            alignItems: "stretch",
           }}
         >
-          {/* Left 58%: Mini Blue Smart ID Card */}
+          {/* Segmented Tab: Berjamaah vs Kegiatan */}
           <div
-            onClick={handleOpenAccountInfo}
             style={{
-              flex: "1 1 58%",
-              background: "linear-gradient(135deg, #0284c7 0%, #1e40af 100%)",
-              borderRadius: "16px",
-              padding: "10px 12px",
-              color: "#ffffff",
-              position: "relative",
-              overflow: "hidden",
-              cursor: "pointer",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              minHeight: "92px",
-              boxShadow: "0 4px 14px rgba(2, 132, 199, 0.35)",
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "6px",
+              background: "#f1f5f9",
+              padding: "4px",
+              borderRadius: "13px",
+              border: "1px solid #e2e8f0",
             }}
           >
-            {/* Top row: Brand & Star emblem */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
+            <button
+              type="button"
+              onClick={() => {
+                setActiveKategoriRekap("berjamaah");
+                setSelectedKegiatan("Semua");
               }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontSize: "0.6rem",
-                    fontWeight: 700,
-                    letterSpacing: "0.02em",
-                    color: "#f0f9ff",
-                    lineHeight: 1.1,
-                  }}
-                >
-                  Pondok Pesantren
-                </div>
-                <div
-                  style={{
-                    fontSize: "0.74rem",
-                    fontWeight: 900,
-                    color: "#ffffff",
-                    letterSpacing: "0.02em",
-                  }}
-                >
-                  Nurul Wafa
-                </div>
-              </div>
-              <span
-                style={{
-                  fontSize: "1.1rem",
-                  lineHeight: 1,
-                  color: "#ffffff",
-                  opacity: 0.9,
-                }}
-              >
-                ✱
-              </span>
-            </div>
-
-            {/* Bottom row: Cardholder details */}
-            <div
               style={{
+                border: "none",
+                borderRadius: "9px",
+                padding: "7px 8px",
+                fontSize: "0.72rem",
+                fontWeight: 800,
+                cursor: "pointer",
+                background:
+                  activeKategoriRekap === "berjamaah"
+                    ? "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)"
+                    : "transparent",
+                color:
+                  activeKategoriRekap === "berjamaah" ? "#ffffff" : "#64748b",
+                boxShadow:
+                  activeKategoriRekap === "berjamaah"
+                    ? "0 3px 8px rgba(2, 132, 199, 0.28)"
+                    : "none",
+                transition: "all 0.15s ease",
                 display: "flex",
                 alignItems: "center",
-                gap: "8px",
-                marginTop: "8px",
+                justifyContent: "center",
+                gap: "5px",
               }}
             >
-              <div
-                style={{
-                  width: "28px",
-                  height: "34px",
-                  borderRadius: "5px",
-                  background: "#dc2626",
-                  border: "1.5px solid #ffffff",
-                  overflow: "hidden",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <User size={20} color="#ffffff" />
-              </div>
-              <div style={{ minWidth: 0, overflow: "hidden" }}>
-                <div
-                  style={{
-                    fontSize: "0.74rem",
-                    fontWeight: 800,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    color: "#ffffff",
-                  }}
-                >
-                  {displayName || sessionData.nama || "Admin Nurul Wafa"}
-                </div>
-                <div
-                  style={{
-                    fontSize: "0.6rem",
-                    color: "#bae6fd",
-                    fontWeight: 600,
-                    letterSpacing: "0.03em",
-                  }}
-                >
-                  {sessionData.nisn || sessionData.nis
-                    ? `NISN: ${sessionData.nisn || sessionData.nis}`
-                    : "NWF-2026-ADM"}
-                </div>
-              </div>
-            </div>
+              <span>🕌</span>
+              <span>Berjamaah</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveKategoriRekap("kegiatan");
+                setSelectedKegiatan("Semua");
+              }}
+              style={{
+                border: "none",
+                borderRadius: "9px",
+                padding: "7px 8px",
+                fontSize: "0.72rem",
+                fontWeight: 800,
+                cursor: "pointer",
+                background:
+                  activeKategoriRekap === "kegiatan"
+                    ? "linear-gradient(135deg, #059669 0%, #047857 100%)"
+                    : "transparent",
+                color:
+                  activeKategoriRekap === "kegiatan" ? "#ffffff" : "#64748b",
+                boxShadow:
+                  activeKategoriRekap === "kegiatan"
+                    ? "0 3px 8px rgba(5, 150, 105, 0.28)"
+                    : "none",
+                transition: "all 0.15s ease",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "5px",
+              }}
+            >
+              <span>📖</span>
+              <span>Kegiatan</span>
+            </button>
           </div>
 
-          {/* Right 42%: Modern Dual-Metric Stats Cards dengan Tab Berjamaah & Kegiatan */}
+          {/* 2-Column Grid: Presensi (Hadir & Belum) | Kondisi (Sakit & Izin) */}
           <div
             style={{
-              flex: "1 1 42%",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              gap: "6px",
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "10px",
             }}
           >
-            {/* Mini Segmented Tab: Berjamaah vs Kegiatan */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "3px",
-                background: "#f1f5f9",
-                padding: "2.5px",
-                borderRadius: "10px",
-                border: "1px solid #e2e8f0",
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveKategoriRekap("berjamaah");
-                  setSelectedKegiatan("Semua");
-                }}
-                style={{
-                  border: "none",
-                  borderRadius: "7px",
-                  padding: "4px 2px",
-                  fontSize: "0.56rem",
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  background:
-                    activeKategoriRekap === "berjamaah"
-                      ? "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)"
-                      : "transparent",
-                  color:
-                    activeKategoriRekap === "berjamaah" ? "#ffffff" : "#64748b",
-                  boxShadow:
-                    activeKategoriRekap === "berjamaah"
-                      ? "0 2px 5px rgba(2, 132, 199, 0.25)"
-                      : "none",
-                  transition: "all 0.15s ease",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                🕌 Berjamaah
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveKategoriRekap("kegiatan");
-                  setSelectedKegiatan("Semua");
-                }}
-                style={{
-                  border: "none",
-                  borderRadius: "7px",
-                  padding: "4px 2px",
-                  fontSize: "0.56rem",
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  background:
-                    activeKategoriRekap === "kegiatan"
-                      ? "linear-gradient(135deg, #059669 0%, #047857 100%)"
-                      : "transparent",
-                  color:
-                    activeKategoriRekap === "kegiatan" ? "#ffffff" : "#64748b",
-                  boxShadow:
-                    activeKategoriRekap === "kegiatan"
-                      ? "0 2px 5px rgba(5, 150, 105, 0.25)"
-                      : "none",
-                  transition: "all 0.15s ease",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                📖 Kegiatan
-              </button>
-            </div>
-
             {/* Card 1: Hadir & Belum */}
             <div
               onClick={() => handleOpenStatusModal("Hadir")}
               style={{
                 background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
                 border: "1px solid rgba(16, 185, 129, 0.3)",
-                borderRadius: "12px",
-                padding: "6px 9px",
+                borderRadius: "14px",
+                padding: "10px 12px",
                 cursor: "pointer",
                 boxShadow: "0 2px 6px rgba(16, 185, 129, 0.08)",
                 display: "flex",
                 flexDirection: "column",
-                gap: "3px",
+                gap: "5px",
                 transition: "all 0.15s ease",
               }}
             >
@@ -864,7 +754,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 />
                 <span
                   style={{
-                    fontSize: "0.62rem",
+                    fontSize: "0.64rem",
                     fontWeight: 800,
                     color: "#166534",
                     letterSpacing: "0.02em",
@@ -881,8 +771,8 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                   display: "grid",
                   gridTemplateColumns: "1fr 1px 1fr",
                   alignItems: "center",
-                  gap: "6px",
-                  marginTop: "1px",
+                  gap: "8px",
+                  marginTop: "2px",
                 }}
               >
                 {/* Left: Hadir */}
@@ -895,7 +785,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 >
                   <span
                     style={{
-                      fontSize: "0.56rem",
+                      fontSize: "0.58rem",
                       fontWeight: 800,
                       color: "#15803d",
                       lineHeight: 1,
@@ -905,10 +795,10 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                   </span>
                   <span
                     style={{
-                      fontSize: "1.05rem",
+                      fontSize: "1.15rem",
                       fontWeight: 900,
                       color: "#14532d",
-                      lineHeight: 1.15,
+                      lineHeight: 1.2,
                     }}
                   >
                     {rekapAbsensi.hadir}
@@ -919,7 +809,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 <div
                   style={{
                     width: "1px",
-                    height: "22px",
+                    height: "24px",
                     background: "rgba(16, 185, 129, 0.3)",
                   }}
                 />
@@ -934,7 +824,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 >
                   <span
                     style={{
-                      fontSize: "0.56rem",
+                      fontSize: "0.58rem",
                       fontWeight: 800,
                       color: "#dc2626",
                       lineHeight: 1,
@@ -944,10 +834,10 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                   </span>
                   <span
                     style={{
-                      fontSize: "1.05rem",
+                      fontSize: "1.15rem",
                       fontWeight: 900,
                       color: "#991b1b",
-                      lineHeight: 1.15,
+                      lineHeight: 1.2,
                     }}
                   >
                     {rekapAbsensi.alfa}
@@ -962,13 +852,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               style={{
                 background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
                 border: "1px solid rgba(245, 158, 11, 0.3)",
-                borderRadius: "12px",
-                padding: "6px 9px",
+                borderRadius: "14px",
+                padding: "10px 12px",
                 cursor: "pointer",
                 boxShadow: "0 2px 6px rgba(245, 158, 11, 0.08)",
                 display: "flex",
                 flexDirection: "column",
-                gap: "3px",
+                gap: "5px",
                 transition: "all 0.15s ease",
               }}
             >
@@ -990,7 +880,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 />
                 <span
                   style={{
-                    fontSize: "0.62rem",
+                    fontSize: "0.64rem",
                     fontWeight: 800,
                     color: "#92400e",
                     letterSpacing: "0.02em",
@@ -1007,8 +897,8 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                   display: "grid",
                   gridTemplateColumns: "1fr 1px 1fr",
                   alignItems: "center",
-                  gap: "6px",
-                  marginTop: "1px",
+                  gap: "8px",
+                  marginTop: "2px",
                 }}
               >
                 {/* Left: Sakit */}
@@ -1021,7 +911,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 >
                   <span
                     style={{
-                      fontSize: "0.56rem",
+                      fontSize: "0.58rem",
                       fontWeight: 800,
                       color: "#d97706",
                       lineHeight: 1,
@@ -1031,10 +921,10 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                   </span>
                   <span
                     style={{
-                      fontSize: "1.05rem",
+                      fontSize: "1.15rem",
                       fontWeight: 900,
                       color: "#78350f",
-                      lineHeight: 1.15,
+                      lineHeight: 1.2,
                     }}
                   >
                     {rekapAbsensi.sakit}
@@ -1045,7 +935,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 <div
                   style={{
                     width: "1px",
-                    height: "22px",
+                    height: "24px",
                     background: "rgba(245, 158, 11, 0.3)",
                   }}
                 />
@@ -1060,7 +950,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 >
                   <span
                     style={{
-                      fontSize: "0.56rem",
+                      fontSize: "0.58rem",
                       fontWeight: 800,
                       color: "#6366f1",
                       lineHeight: 1,
@@ -1070,10 +960,10 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                   </span>
                   <span
                     style={{
-                      fontSize: "1.05rem",
+                      fontSize: "1.15rem",
                       fontWeight: 900,
                       color: "#3730a3",
-                      lineHeight: 1.15,
+                      lineHeight: 1.2,
                     }}
                   >
                     {rekapAbsensi.izin}
@@ -1086,447 +976,168 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       </div>
 
       {/* =========================================================================
-          SECTION: MENU (ALL 9 MENU ITEMS UNIFIED - KLASIK, MODERN & ELEGAN)
+          SECTION: MENU (DIBUNGKUS CARD PUTIH & IKON SQUIRCLE BERWARNA SEPERTI PORTAL ORTU)
       ========================================================================= */}
-      <div style={{ padding: "14px 14px 4px" }}>
+      <div style={{ padding: "0 14px", marginTop: "12px" }}>
         <div
           style={{
-            fontSize: "0.85rem",
-            fontWeight: 800,
-            color: "#0f172a",
-            marginBottom: "12px",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            letterSpacing: "-0.2px",
+            background: "#ffffff",
+            borderRadius: "18px",
+            border: "1px solid #e2e8f0",
+            padding: "12px 12px 14px",
+            boxShadow:
+              "0 10px 25px -4px rgba(13, 118, 110, 0.14), 0 2px 6px rgba(0, 0, 0, 0.04)",
           }}
         >
-          <span
-            style={{
-              width: "4px",
-              height: "15px",
-              background: "#0d766e",
-              borderRadius: "4px",
-            }}
-          />
-          Menu
-        </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: "14px 6px",
-            justifyItems: "center",
-          }}
-        >
-          {/* 1. Santri */}
           <div
-            onClick={() => onChangeTab("master-santri")}
             style={{
+              fontSize: "0.82rem",
+              fontWeight: 800,
+              color: "#0f172a",
+              marginBottom: "12px",
               display: "flex",
-              flexDirection: "column",
               alignItems: "center",
               gap: "6px",
-              cursor: "pointer",
+              letterSpacing: "-0.2px",
             }}
           >
-            <div
-              style={{
-                width: "62px",
-                height: "62px",
-                borderRadius: "18px",
-                background: "#ffffff",
-                border: "1px solid #f1f5f9",
-                boxShadow:
-                  "0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "transform 0.15s ease, box-shadow 0.15s ease",
-              }}
-            >
-              <Users size={27} strokeWidth={2.2} color="#059669" />
-            </div>
             <span
               style={{
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#334155",
-                textAlign: "center",
-                lineHeight: 1.2,
+                width: "4px",
+                height: "14px",
+                background: "#0d766e",
+                borderRadius: "4px",
               }}
-            >
-              Santri
-            </span>
+            />
+            Menu Layanan Pesantren
           </div>
 
-          {/* 2. Kelas */}
           <div
-            onClick={() => onChangeTab("master-kelas")}
             style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "6px",
-              cursor: "pointer",
+              display: "grid",
+              gridTemplateColumns: "repeat(4, 1fr)",
+              gap: "12px 4px",
+              justifyItems: "center",
             }}
           >
-            <div
-              style={{
-                width: "62px",
-                height: "62px",
-                borderRadius: "18px",
-                background: "#ffffff",
-                border: "1px solid #f1f5f9",
-                boxShadow:
-                  "0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "transform 0.15s ease, box-shadow 0.15s ease",
-              }}
-            >
-              <GraduationCap size={27} strokeWidth={2.2} color="#0284c7" />
-            </div>
-            <span
-              style={{
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#334155",
-                textAlign: "center",
-                lineHeight: 1.2,
-              }}
-            >
-              Kelas
-            </span>
-          </div>
-
-          {/* 3. Asrama */}
-          <div
-            onClick={() => onChangeTab("master-asrama")}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "6px",
-              cursor: "pointer",
-            }}
-          >
-            <div
-              style={{
-                width: "62px",
-                height: "62px",
-                borderRadius: "18px",
-                background: "#ffffff",
-                border: "1px solid #f1f5f9",
-                boxShadow:
-                  "0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "transform 0.15s ease, box-shadow 0.15s ease",
-              }}
-            >
-              <Building size={27} strokeWidth={2.2} color="#7c3aed" />
-            </div>
-            <span
-              style={{
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#334155",
-                textAlign: "center",
-                lineHeight: 1.2,
-              }}
-            >
-              Asrama
-            </span>
-          </div>
-
-          {/* 4. Kegiatan */}
-          <div
-            onClick={() => onChangeTab("setting-shalat")}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "6px",
-              cursor: "pointer",
-            }}
-          >
-            <div
-              style={{
-                width: "62px",
-                height: "62px",
-                borderRadius: "18px",
-                background: "#ffffff",
-                border: "1px solid #f1f5f9",
-                boxShadow:
-                  "0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "transform 0.15s ease, box-shadow 0.15s ease",
-              }}
-            >
-              <Calendar size={27} strokeWidth={2.2} color="#d97706" />
-            </div>
-            <span
-              style={{
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#334155",
-                textAlign: "center",
-                lineHeight: 1.2,
-              }}
-            >
-              Kegiatan
-            </span>
-          </div>
-
-          {/* 5. Perizinan */}
-          <div
-            onClick={() => onChangeTab("perizinan")}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "6px",
-              cursor: "pointer",
-            }}
-          >
-            <div
-              style={{
-                width: "62px",
-                height: "62px",
-                borderRadius: "18px",
-                background: "#ffffff",
-                border: "1px solid #f1f5f9",
-                boxShadow:
-                  "0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "transform 0.15s ease, box-shadow 0.15s ease",
-              }}
-            >
-              <Clock size={27} strokeWidth={2.2} color="#4f46e5" />
-            </div>
-            <span
-              style={{
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#334155",
-                textAlign: "center",
-                lineHeight: 1.2,
-              }}
-            >
-              Perizinan
-            </span>
-          </div>
-
-          {/* 6. Teguran */}
-          <div
-            onClick={() => onChangeTab("tata-tertib")}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "6px",
-              cursor: "pointer",
-            }}
-          >
-            <div
-              style={{
-                width: "62px",
-                height: "62px",
-                borderRadius: "18px",
-                background: "#ffffff",
-                border: "1px solid #f1f5f9",
-                boxShadow:
-                  "0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "transform 0.15s ease, box-shadow 0.15s ease",
-              }}
-            >
-              <ShieldAlert size={27} strokeWidth={2.2} color="#e11d48" />
-            </div>
-            <span
-              style={{
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#334155",
-                textAlign: "center",
-                lineHeight: 1.2,
-              }}
-            >
-              Teguran
-            </span>
-          </div>
-
-          {/* 7. Absensi */}
-          <div
-            onClick={() => onChangeTab("presensi")}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "6px",
-              cursor: "pointer",
-            }}
-          >
-            <div
-              style={{
-                width: "62px",
-                height: "62px",
-                borderRadius: "18px",
-                background: "#ffffff",
-                border: "1px solid #f1f5f9",
-                boxShadow:
-                  "0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "transform 0.15s ease, box-shadow 0.15s ease",
-              }}
-            >
-              <Fingerprint size={27} strokeWidth={2.2} color="#0d9488" />
-            </div>
-            <span
-              style={{
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#334155",
-                textAlign: "center",
-                lineHeight: 1.2,
-              }}
-            >
-              Absensi
-            </span>
-          </div>
-
-          {/* 8. Perkembangan */}
-          <div
-            onClick={() => onChangeTab("pengembangan")}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "6px",
-              cursor: "pointer",
-            }}
-          >
-            <div
-              style={{
-                width: "62px",
-                height: "62px",
-                borderRadius: "18px",
-                background: "#ffffff",
-                border: "1px solid #f1f5f9",
-                boxShadow:
-                  "0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "transform 0.15s ease, box-shadow 0.15s ease",
-              }}
-            >
-              <Award size={27} strokeWidth={2.2} color="#0891b2" />
-            </div>
-            <span
-              style={{
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#334155",
-                textAlign: "center",
-                lineHeight: 1.2,
-              }}
-            >
-              Perkembangan
-            </span>
-          </div>
-
-          {/* 9. Praktek */}
-          <div
-            onClick={() => onChangeTab("praktek-ibadah")}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "6px",
-              cursor: "pointer",
-            }}
-          >
-            <div
-              style={{
-                width: "62px",
-                height: "62px",
-                borderRadius: "18px",
-                background: "#ffffff",
-                border: "1px solid #f1f5f9",
-                boxShadow:
-                  "0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "transform 0.15s ease, box-shadow 0.15s ease",
-              }}
-            >
-              <BookOpen size={27} strokeWidth={2.2} color="#ea580c" />
-            </div>
-            <span
-              style={{
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#334155",
-                textAlign: "center",
-                lineHeight: 1.2,
-              }}
-            >
-              Praktek
-            </span>
-          </div>
-
-          {/* 10. Tabungan Santri */}
-          <div
-            onClick={() => onChangeTab("tabungan")}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "6px",
-              cursor: "pointer",
-            }}
-          >
-            <div
-              style={{
-                width: "62px",
-                height: "62px",
-                borderRadius: "18px",
-                background: "#ffffff",
-                border: "1px solid #f1f5f9",
-                boxShadow:
-                  "0 8px 20px -3px rgba(15, 23, 42, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "transform 0.15s ease, box-shadow 0.15s ease",
-              }}
-            >
-              <Wallet size={27} strokeWidth={2.2} color="#059669" />
-            </div>
-            <span
-              style={{
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#334155",
-                textAlign: "center",
-                lineHeight: 1.2,
-              }}
-            >
-              Tabungan
-            </span>
+            {[
+              {
+                label: "Santri",
+                tab: "master-santri",
+                icon: Users,
+                bg: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                shadow: "0 6px 16px -2px rgba(16, 185, 129, 0.38)",
+              },
+              {
+                label: "Kelas",
+                tab: "master-kelas",
+                icon: GraduationCap,
+                bg: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+                shadow: "0 6px 16px -2px rgba(59, 130, 246, 0.38)",
+              },
+              {
+                label: "Asrama",
+                tab: "master-asrama",
+                icon: Building,
+                bg: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)",
+                shadow: "0 6px 16px -2px rgba(168, 85, 247, 0.38)",
+              },
+              {
+                label: "Kegiatan",
+                tab: "setting-shalat",
+                icon: Calendar,
+                bg: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+                shadow: "0 6px 16px -2px rgba(245, 158, 11, 0.38)",
+              },
+              {
+                label: "Perizinan",
+                tab: "perizinan",
+                icon: Clock,
+                bg: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+                shadow: "0 6px 16px -2px rgba(99, 102, 241, 0.38)",
+              },
+              {
+                label: "Teguran",
+                tab: "tata-tertib",
+                icon: ShieldAlert,
+                bg: "linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)",
+                shadow: "0 6px 16px -2px rgba(244, 63, 94, 0.38)",
+              },
+              {
+                label: "Absensi",
+                tab: "presensi",
+                icon: Fingerprint,
+                bg: "linear-gradient(135deg, #06b6d4 0%, #0284c7 100%)",
+                shadow: "0 6px 16px -2px rgba(6, 182, 212, 0.38)",
+              },
+              {
+                label: "Perkembangan",
+                tab: "pengembangan",
+                icon: Award,
+                bg: "linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)",
+                shadow: "0 6px 16px -2px rgba(2, 132, 199, 0.38)",
+              },
+              {
+                label: "Praktek",
+                tab: "praktek-ibadah",
+                icon: BookOpen,
+                bg: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+                shadow: "0 6px 16px -2px rgba(249, 115, 22, 0.38)",
+              },
+              {
+                label: "Tabungan",
+                tab: "tabungan",
+                icon: Wallet,
+                bg: "linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)",
+                shadow: "0 6px 16px -2px rgba(20, 184, 166, 0.38)",
+              },
+            ].map((item) => {
+              const IconComp = item.icon;
+              return (
+                <div
+                  key={item.tab}
+                  onClick={() => onChangeTab(item.tab)}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    cursor: "pointer",
+                    textAlign: "center",
+                    width: "100%",
+                    userSelect: "none",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "50px",
+                      height: "50px",
+                      borderRadius: "16px",
+                      background: item.bg,
+                      boxShadow: item.shadow,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginBottom: "6px",
+                      transition: "transform 0.15s ease",
+                    }}
+                  >
+                    <IconComp size={23} strokeWidth={2.3} color="#ffffff" />
+                  </div>
+                  <span
+                    style={{
+                      fontSize: "0.67rem",
+                      fontWeight: 700,
+                      color: "#334155",
+                      lineHeight: 1.2,
+                      maxWidth: "68px",
+                      display: "block",
+                    }}
+                  >
+                    {item.label}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
