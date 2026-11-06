@@ -48,7 +48,8 @@ import {
   Settings,
   Wallet,
   ArrowDownLeft,
-  ArrowUpRight
+  ArrowUpRight,
+  ArrowLeft
 } from 'lucide-react';
 import TabTagihanKeuangan from './TabTagihanKeuangan';
 import TabLaporanPerkembangan from './TabLaporanPerkembangan';
