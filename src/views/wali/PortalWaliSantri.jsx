@@ -1265,7 +1265,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   <span style={menuLabelStyle}>Bayar SPP</span>
                 </div>
 
-                {/* 3. Presensi Sholat */}
+                {/* 3. Presensi Sholat / Berjamaah */}
                 <div onClick={() => setCurrentTab('absensi')} style={menuCardStyle}>
                   <div style={{
                     width: '62px',
@@ -1281,7 +1281,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   }}>
                     <Fingerprint size={27} strokeWidth={2.2} color="#0d9488" />
                   </div>
-                  <span style={menuLabelStyle}>Presensi</span>
+                  <span style={menuLabelStyle}>Berjamaah</span>
                 </div>
 
                 {/* 4. Tahfidz */}
@@ -2630,11 +2630,8 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   </button>
                   <div>
                     <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
-                      Presensi Sholat & Jamaah
+                      Absensi Berjamaah & Mengaji
                     </h2>
-                    <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '2px' }}>
-                      Santri: {rawSantriName} (NISN: {displayNisn})
-                    </div>
                   </div>
                 </div>
 
@@ -2704,7 +2701,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                           textTransform: 'uppercase',
                           letterSpacing: '0.5px'
                         }}>
-                          {absensiSubTab === 'berjamaah' ? 'Disiplin Sholat 5 Waktu' : 'Disiplin Mengaji & Kitab'}
+                          {absensiSubTab === 'berjamaah' ? 'Presensi Berjamaah' : 'Presensi Mengaji'}
                         </div>
                         <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', marginTop: '2px', letterSpacing: '-0.3px' }}>
                           {totalHadir} Sesi Hadir
@@ -2775,7 +2772,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                         background: absensiSubTab === 'berjamaah' ? '#ffffff' : 'transparent',
                         color: absensiSubTab === 'berjamaah' ? '#0d766e' : '#64748b',
                         fontWeight: 800,
-                        fontSize: '0.78rem',
+                        fontSize: '0.8rem',
                         padding: '9px 8px',
                         borderRadius: '11px',
                         cursor: 'pointer',
@@ -2788,7 +2785,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                       }}
                     >
                       <span>🕌</span>
-                      <span>Sholat Berjamaah</span>
+                      <span>Berjamaah</span>
                       <span style={{
                         fontSize: '0.62rem',
                         fontWeight: 700,
@@ -2809,7 +2806,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                         background: absensiSubTab === 'mengaji' ? '#ffffff' : 'transparent',
                         color: absensiSubTab === 'mengaji' ? '#0284c7' : '#64748b',
                         fontWeight: 800,
-                        fontSize: '0.78rem',
+                        fontSize: '0.8rem',
                         padding: '9px 8px',
                         borderRadius: '11px',
                         cursor: 'pointer',
@@ -2822,7 +2819,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                       }}
                     >
                       <span>📖</span>
-                      <span>Mengaji & Kitab</span>
+                      <span>Mengaji</span>
                       <span style={{
                         fontSize: '0.62rem',
                         fontWeight: 700,
@@ -2905,8 +2902,8 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                           {absensiStatusFilter !== 'Semua' 
                             ? `Tidak ada data dengan status "${absensiStatusFilter}"`
                             : absensiSubTab === 'berjamaah'
-                              ? 'Belum Ada Riwayat Sholat Berjamaah'
-                              : 'Belum Ada Riwayat Presensi Mengaji'}
+                              ? 'Belum Ada Riwayat Berjamaah'
+                              : 'Belum Ada Riwayat Mengaji'}
                         </div>
                         <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px', maxWidth: '280px', marginInline: 'auto' }}>
                           {absensiSubTab === 'berjamaah'
@@ -2990,7 +2987,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis'
                                 }}>
-                                  {row.nama_sesi || (absensiSubTab === 'berjamaah' ? 'Sholat Berjamaah' : 'Kajian Mengaji')}
+                                  {row.nama_sesi || (absensiSubTab === 'berjamaah' ? 'Berjamaah' : 'Mengaji')}
                                 </div>
                               </div>
 
