@@ -396,48 +396,85 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             alignItems: "center",
           }}
         >
-          {/* Brand Application: NWFMobile (Logo hilang, teks disatukan) */}
+          {/* Brand Application: NWF Mobile dengan Emblem Logo Elegan (tidak mepet) */}
           <div
             onClick={handleOpenAccountInfo}
             style={{
               display: "flex",
-              flexDirection: "column",
+              alignItems: "center",
+              gap: "10px",
               cursor: "pointer",
               userSelect: "none",
             }}
           >
-            <div style={{ display: "flex", alignItems: "baseline" }}>
+            <div
+              style={{
+                width: "42px",
+                height: "42px",
+                borderRadius: "13px",
+                background: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "6px",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.16)",
+                flexShrink: 0,
+              }}
+            >
+              <img
+                src="/nwf.png"
+                alt="NWF Logo"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                }}
+              />
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "3px" }}>
+                <span
+                  style={{
+                    fontWeight: 900,
+                    fontSize: "1.45rem",
+                    letterSpacing: "-0.5px",
+                    color: "#ffffff",
+                    lineHeight: 1,
+                    textShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
+                  }}
+                >
+                  NWF
+                </span>
+                <span
+                  style={{
+                    fontWeight: 800,
+                    fontSize: "1.15rem",
+                    fontStyle: "italic",
+                    letterSpacing: "-0.2px",
+                    color: "#a7f3d0",
+                    lineHeight: 1,
+                    textShadow: "0 2px 6px rgba(11, 107, 96, 0.35)",
+                  }}
+                >
+                  Mobile
+                </span>
+              </div>
               <span
                 style={{
-                  fontWeight: 900,
-                  fontSize: "1.55rem",
-                  letterSpacing: "-0.6px",
-                  color: "#ffffff",
+                  fontSize: "0.62rem",
+                  fontWeight: 700,
+                  color: "rgba(255, 255, 255, 0.85)",
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                  marginTop: "2px",
                   lineHeight: 1,
-                  textShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
                 }}
               >
-                NWF
-              </span>
-              <span
-                style={{
-                  fontWeight: 800,
-                  fontSize: "1.18rem",
-                  fontStyle: "italic",
-                  letterSpacing: "-0.2px",
-                  color: "#a7f3d0",
-                  lineHeight: 1,
-                  textShadow: "0 2px 6px rgba(11, 107, 96, 0.35)",
-                }}
-              >
-                Mobile
+                Pondok Pesantren Nurul Wafa
               </span>
             </div>
-            <span
-              style={{
-                fontSize: "0.62rem",
-                fontWeight: 700,
-                color: "rgba(255, 255, 255, 0.8)",
+          </div>
                 letterSpacing: "0.05em",
                 textTransform: "uppercase",
                 marginTop: "3px",

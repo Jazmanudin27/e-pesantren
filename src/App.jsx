@@ -44,12 +44,10 @@ export default function App() {
     const handleLocationChange = () => {
       const currentMode = getMode();
       setMode(currentMode);
-      if (currentMode === 'mobile') {
-        document.title = 'NWF MOBILE - Pondok Pesantren Nurul Wafa';
-      } else if (currentMode === 'wali') {
-        document.title = 'NWF MOBILE - Portal Wali Santri';
+      if (currentMode === 'mobile' || currentMode === 'wali') {
+        document.title = 'NWF Mobile';
       } else {
-        document.title = 'NWF Pesantren - PP. Nurul Wafa Sukarame';
+        document.title = 'NWF Pesantren';
       }
     };
 

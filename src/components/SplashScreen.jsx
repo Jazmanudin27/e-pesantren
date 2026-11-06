@@ -100,9 +100,9 @@ export default function SplashScreen({ onFinish }) {
             alignItems: 'center',
             justifyContent: 'center',
             boxShadow: '0 8px 18px rgba(0,0,0,0.2)',
-            padding: '6px'
+            padding: '11px'
           }}>
-            <img src="/nwf.png" alt="Logo" style={{ width: '60px', height: '60px', objectFit: 'contain' }} />
+            <img src="/nwf.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
         </div>
 
