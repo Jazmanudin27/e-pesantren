@@ -167,7 +167,7 @@ export const getWaliSantriData = async (req, res) => {
         LEFT JOIN kegiatan_sesi ks ON a.sesi_id = ks.id
         WHERE a.santri_id = ?
         ORDER BY a.tanggal DESC, a.waktu_scan DESC, a.id DESC
-        LIMIT 30
+        LIMIT 60
       `, [santriId]);
       presensiJamaah = absRows || [];
     } catch (e) {
