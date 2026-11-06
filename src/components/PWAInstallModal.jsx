@@ -254,47 +254,32 @@ export default function PWAInstallModal() {
 
               {/* App Icon Frame + Brand Identity */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative', zIndex: 2 }}>
-                {/* Double-Layered Luxury Squircle Icon (Logo Proporsional, Tidak Terlalu Besar & Tidak Ketutup) */}
+                {/* Pure White Squircle Icon (Background Putih Bersih Tanpa Hijau, Logo Proporsional) */}
                 <div
                   style={{
-                    width: '68px',
-                    height: '68px',
-                    borderRadius: '20px',
-                    background: 'linear-gradient(145deg, rgba(255,255,255,0.28) 0%, rgba(167,243,208,0.15) 100%)',
-                    border: '1.5px solid rgba(255, 255, 255, 0.45)',
-                    padding: '6px',
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '18px',
+                    background: '#ffffff',
+                    padding: '10px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: '0 10px 24px rgba(2, 44, 34, 0.35)',
-                    flexShrink: 0
+                    boxShadow: '0 8px 20px rgba(0, 0, 0, 0.22)',
+                    flexShrink: 0,
+                    boxSizing: 'border-box'
                   }}
                 >
-                  <div
+                  <img
+                    src="/nwf.png"
+                    alt="NWF Mobile Icon"
                     style={{
                       width: '100%',
                       height: '100%',
-                      borderRadius: '14px',
-                      background: '#ffffff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '9px',
-                      boxShadow: 'inset 0 0 0 1px rgba(16, 185, 129, 0.18), 0 4px 10px rgba(0, 0, 0, 0.12)',
-                      boxSizing: 'border-box'
+                      objectFit: 'contain',
+                      display: 'block'
                     }}
-                  >
-                    <img
-                      src="/nwf.png"
-                      alt="NWF Mobile Icon"
-                      style={{
-                        width: '36px',
-                        height: '36px',
-                        objectFit: 'contain',
-                        display: 'block'
-                      }}
-                    />
-                  </div>
+                  />
                 </div>
 
                 {/* App Title & Verified Badge */}

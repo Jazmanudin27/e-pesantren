@@ -1,40 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <defs>
-    <linearGradient id="emeraldBg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#064e3b" />
-      <stop offset="50%" stop-color="#0d766e" />
-      <stop offset="100%" stop-color="#059669" />
-    </linearGradient>
-    <linearGradient id="goldAccent" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#fef08a" />
-      <stop offset="50%" stop-color="#f59e0b" />
-      <stop offset="100%" stop-color="#b45309" />
-    </linearGradient>
-    <filter id="badgeShadow" x="-15%" y="-15%" width="130%" height="130%">
-      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#022c22" flood-opacity="0.35" />
-    </filter>
-  </defs>
+  <!-- Pure White Background (#ffffff) Tanpa Warna Hijau -->
+  <rect width="512" height="512" rx="112" fill="#ffffff" />
 
-  <!-- Full-bleed Luxury Emerald Background -->
-  <rect width="512" height="512" rx="112" fill="url(#emeraldBg)" />
-
-  <!-- Safe-zone Outer Ring -->
-  <circle cx="256" cy="256" r="192" fill="none" stroke="url(#goldAccent)" stroke-width="5" opacity="0.85" />
-
-  <!-- White Inner Circle Badge -->
-  <circle cx="256" cy="256" r="176" fill="#ffffff" filter="url(#badgeShadow)" />
-  <circle cx="256" cy="256" r="165" fill="none" stroke="#10b981" stroke-width="2.5" stroke-dasharray="6 4" opacity="0.45" />
-
-  <!-- Inline Vector Emblem Pondok Pesantren Nurul Wafa (100% Self-Contained, Never Blocked by Browser) -->
-  <!-- Islamic Dome Silhouette -->
-  <path d="M186 248 C186 195, 232 168, 256 146 C280 168, 326 195, 326 248 Z" fill="url(#emeraldBg)" />
-  <!-- Crescent & Star Finial -->
+  <!-- Inline Vector Emblem Pondok Pesantren Nurul Wafa -->
+  <path d="M186 248 C186 195, 232 168, 256 146 C280 168, 326 195, 326 248 Z" fill="#047857" />
   <circle cx="256" cy="132" r="10" fill="#f59e0b" />
   <circle cx="259" cy="129" r="8" fill="#ffffff" />
-  <!-- Open Kitab / Al-Qur'an -->
   <path d="M176 254 Q216 242 256 258 Q296 242 336 254 L336 306 Q296 294 256 310 Q216 294 176 306 Z" fill="#047857" stroke="#f59e0b" stroke-width="4" stroke-linejoin="round" />
   <line x1="256" y1="258" x2="256" y2="310" stroke="#fef08a" stroke-width="3.5" />
-  <!-- NWF Monogram -->
   <text x="256" y="232" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="38" fill="#ffffff" letter-spacing="2">NWF</text>
   <text x="256" y="346" text-anchor="middle" font-family="Arial, sans-serif" font-weight="800" font-size="22" fill="#064e3b" letter-spacing="1.5">NURUL WAFA</text>
 </svg>

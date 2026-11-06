@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link id="nwf-favicon" rel="icon" type="image/png" href="/nwf.png" />
     <link id="nwf-apple-icon" rel="apple-touch-icon" href="/nwf.png" />
-    <link rel="manifest" href="/manifest.json?v=5" />
+    <link rel="manifest" href="/manifest.json?v=6" />
     <meta name="theme-color" content="#0d766e" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -32,52 +32,28 @@
           window.dispatchEvent(new CustomEvent('pwa-app-installed'));
         });
 
-        // 2. Generate Padded App Icon dari /nwf.png via Canvas agar Logo 100% muncul & proporsional (tidak kepotong)
+        // 2. Generate Padded App Icon Berlatar Putih Bersih (#ffffff) dari /nwf.png via Canvas (Tanpa Warna Hijau)
         window.addEventListener('load', function() {
           try {
             const img = new Image();
             img.crossOrigin = 'anonymous';
             img.onload = function() {
-              const makeIconBlob = function(size, isMaskable, cb) {
+              const makeIconBlob = function(size, cb) {
                 const canvas = document.createElement('canvas');
                 canvas.width = size;
                 canvas.height = size;
                 const ctx = canvas.getContext('2d');
-                const center = size / 2;
 
-                const bgGrad = ctx.createLinearGradient(0, 0, size, size);
-                bgGrad.addColorStop(0, '#064e3b');
-                bgGrad.addColorStop(0.5, '#0d766e');
-                bgGrad.addColorStop(1, '#059669');
-
-                if (isMaskable) {
-                  ctx.fillStyle = bgGrad;
-                  ctx.fillRect(0, 0, size, size);
-                } else {
-                  const r = size * 0.22;
-                  ctx.beginPath();
-                  if (ctx.roundRect) ctx.roundRect(0, 0, size, size, r);
-                  else ctx.rect(0, 0, size, size);
-                  ctx.fillStyle = bgGrad;
-                  ctx.fill();
-                }
-
-                ctx.beginPath();
-                ctx.arc(center, center, size * 0.37, 0, Math.PI * 2);
-                ctx.strokeStyle = 'rgba(167, 243, 208, 0.85)';
-                ctx.lineWidth = Math.max(2, size * 0.012);
-                ctx.stroke();
-
-                ctx.beginPath();
-                ctx.arc(center, center, size * 0.345, 0, Math.PI * 2);
+                // Background Putih Bersih (#ffffff) tanpa warna hijau
                 ctx.fillStyle = '#ffffff';
-                ctx.fill();
+                ctx.fillRect(0, 0, size, size);
 
-                const logoSize = size * 0.56;
-                const offset = (size - logoSize) / 2;
+                // Logo NWF proporsional di tengah (72%)
+                const logoSize = Math.round(size * 0.72);
+                const offset = Math.round((size - logoSize) / 2);
                 ctx.drawImage(img, offset, offset, logoSize, logoSize);
 
-                if (size === 192 && !isMaskable) {
+                if (size === 192) {
                   try {
                     const dataUrl = canvas.toDataURL('image/png');
                     const fav = document.getElementById('nwf-favicon');
@@ -95,21 +71,17 @@
               };
 
               if ('caches' in window) {
-                caches.open('nwf-mobile-v5').then(function(cache) {
-                  makeIconBlob(192, false, function(b) {
+                caches.open('nwf-mobile-v6').then(function(cache) {
+                  makeIconBlob(192, function(b) {
                     const res = new Response(b, { headers: { 'Content-Type': 'image/png' } });
                     cache.put('/pwa-icon-192.png', res.clone());
-                    cache.put('/pwa-icon-192.png?v=5', res);
+                    cache.put('/pwa-icon-192.png?v=6', res.clone());
+                    cache.put('/pwa-icon-maskable-192.png?v=6', res);
                   });
-                  makeIconBlob(512, false, function(b) {
+                  makeIconBlob(256, function(b) {
                     const res = new Response(b, { headers: { 'Content-Type': 'image/png' } });
-                    cache.put('/pwa-icon-512.png', res.clone());
-                    cache.put('/pwa-icon-512.png?v=5', res);
-                  });
-                  makeIconBlob(512, true, function(b) {
-                    const res = new Response(b, { headers: { 'Content-Type': 'image/png' } });
-                    cache.put('/pwa-icon-maskable-512.png', res.clone());
-                    cache.put('/pwa-icon-maskable-512.png?v=5', res);
+                    cache.put('/pwa-icon-256.png', res.clone());
+                    cache.put('/pwa-icon-256.png?v=6', res);
                   });
                 }).catch(function() {});
               }
@@ -135,7 +107,7 @@
         });
       })();
     </script>
-    <script type="text/javascript" src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="SB-Mid-client-gtkZiSrCZjZHYwwZ"></script>
+    <script type="text/javascript" src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="SB-Mid-client-gtkZiSrCZjZHYwwZ" async defer></script>
   </head>
   <body>
     <div id="root"></div>
