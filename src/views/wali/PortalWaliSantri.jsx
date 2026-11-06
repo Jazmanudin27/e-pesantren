@@ -547,7 +547,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
             {/* Top Modern Teal Gradient Banner (Matched with Mobile Admin) */}
             <div style={{
               background: 'linear-gradient(135deg, #0d766e 0%, #042f2e 100%)',
-              padding: '16px 16px 26px',
+              padding: '16px 16px 34px',
               color: '#ffffff',
               borderBottomLeftRadius: '24px',
               borderBottomRightRadius: '24px',
@@ -651,8 +651,117 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
+            {/* 1. REKAP STATUS KEHADIRAN & IBADAH (FLOATING DI BAWAH HEADER) */}
+            <div style={{ padding: '0 14px', marginTop: '-20px', position: 'relative', zIndex: 12 }}>
+              <div style={{
+                background: '#ffffff',
+                borderRadius: '20px',
+                border: '1px solid #e2e8f0',
+                padding: '12px 10px',
+                boxShadow: '0 8px 24px -4px rgba(13, 118, 110, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04)'
+              }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: '8px'
+                }}>
+                  {/* Hadir */}
+                  <div
+                    onClick={() => openAbsensiWithFilter('Hadir')}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                  >
+                    <div style={{
+                      width: '46px',
+                      height: '46px',
+                      borderRadius: '14px',
+                      background: '#10b981',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative',
+                      boxShadow: '0 4px 12px -2px rgba(16, 185, 129, 0.35)'
+                    }}>
+                      <Check size={20} strokeWidth={2.4} />
+                      {countHadir > 0 && <span style={countBadgeStyle}>{countHadir}</span>}
+                    </div>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e293b' }}>Hadir</span>
+                  </div>
+
+                  {/* Sakit */}
+                  <div
+                    onClick={() => openAbsensiWithFilter('Sakit')}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                  >
+                    <div style={{
+                      width: '46px',
+                      height: '46px',
+                      borderRadius: '14px',
+                      background: '#ef4444',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative',
+                      boxShadow: '0 4px 12px -2px rgba(239, 68, 68, 0.35)'
+                    }}>
+                      <Building2 size={20} strokeWidth={2.4} />
+                      {countSakit > 0 && <span style={countBadgeStyle}>{countSakit}</span>}
+                    </div>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e293b' }}>Sakit</span>
+                  </div>
+
+                  {/* Izin */}
+                  <div
+                    onClick={() => openAbsensiWithFilter('Izin')}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                  >
+                    <div style={{
+                      width: '46px',
+                      height: '46px',
+                      borderRadius: '14px',
+                      background: '#f59e0b',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative',
+                      boxShadow: '0 4px 12px -2px rgba(245, 158, 11, 0.35)'
+                    }}>
+                      <FileText size={20} strokeWidth={2.4} />
+                      {countIzin > 0 && <span style={countBadgeStyle}>{countIzin}</span>}
+                    </div>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e293b' }}>Izin</span>
+                  </div>
+
+                  {/* Alfa */}
+                  <div
+                    onClick={() => openAbsensiWithFilter('Alfa')}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                  >
+                    <div style={{
+                      width: '46px',
+                      height: '46px',
+                      borderRadius: '14px',
+                      background: '#0d9488',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative',
+                      boxShadow: '0 4px 12px -2px rgba(13, 148, 136, 0.35)'
+                    }}>
+                      <Clock size={20} strokeWidth={2.4} />
+                      {countAlfa > 0 && <span style={countBadgeStyle}>{countAlfa}</span>}
+                    </div>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e293b' }}>Alfa</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* 2. CARD TABUNGAN SANTRI & KEUANGAN SPP (DESAIN EMERALD TEAL LEBIH KOMPAK) */}
-            <div style={{ padding: '0 14px', marginTop: '-14px', position: 'relative', zIndex: 11 }}>
+            <div style={{ padding: '8px 14px 0', position: 'relative', zIndex: 11 }}>
               <div
                 style={{
                   background: financeActiveTab === 'tabungan' ? '#044e42' : '#0f3c5c',
