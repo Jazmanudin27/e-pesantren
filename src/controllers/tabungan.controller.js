@@ -573,7 +573,7 @@ export const topupMidtransTabungan = async (req, res) => {
     }
 
     const [santriRows] = await pool.query(
-      'SELECT id, nama_santri, nama_wali, no_wa_wali, no_hp_wali FROM santri WHERE id = ?',
+      'SELECT id, nama_santri, nama_wali, no_wa_wali FROM santri WHERE id = ?',
       [santri_id]
     );
     if (!santriRows || santriRows.length === 0) {
@@ -589,7 +589,7 @@ export const topupMidtransTabungan = async (req, res) => {
       nomorTransaksi,
       totalBayar: nom,
       santriNama: santri.nama_santri || 'Santri',
-      noWaWali: santri.no_wa_wali || santri.no_hp_wali || '081234567890',
+      noWaWali: santri.no_wa_wali || '081234567890',
       items: [{
         tagihan_id: 99999,
         judul_tagihan: `Isi Saldo Tabungan ${santri.nama_santri || ''}`.substring(0, 45),
