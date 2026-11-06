@@ -1,5 +1,5 @@
 import pool from '../config/database.js';
-import { createWaliNotification } from './notifikasi.controller.js';
+import { createWaliNotification, buildAbsensiNotifText } from './notifikasi.controller.js';
 
 /**
  * Controller Resmi untuk Integrasi Mesin Fingerprint (Protokol ADMS / Cloud Server ZKTeco & Solution)
@@ -249,12 +249,19 @@ export const handleAdmsPushData = async (req, res) => {
       }
 
       processedCount++;
+      const notifCopy = buildAbsensiNotifText({
+        namaSantri: santri.nama_santri,
+        kegiatan: namaSesiAktif,
+        status: statusKehadiran,
+        waktu: waktuScan
+      });
       createWaliNotification({
         santri_id: santri.id,
         kategori: 'absensi',
-        judul: `Scan Fingerprint: ${namaSesiAktif}`,
-        pesan: `Alhamdulillah, ${santri.nama_santri} telah melakukan scan fingerprint (${statusKehadiran}) pada ${namaSesiAktif} pukul ${String(waktuScan).slice(0, 5)} WIB.`,
-        target_tab: 'absensi'
+        judul: notifCopy.judul,
+        pesan: notifCopy.pesan,
+        target_tab: 'absensi',
+        replaceRecentSameCategory: true
       });
       console.log(`[ADMS SUCCESS] ${santri.nama_santri} (PIN: ${pin}) berhasil presensi jam ${waktuScan}!`);
     } catch (lineErr) {

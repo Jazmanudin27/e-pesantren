@@ -1,6 +1,6 @@
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
-import { createWaliNotification } from './notifikasi.controller.js';
+import { createWaliNotification, buildAbsensiNotifText } from './notifikasi.controller.js';
 
 let isAbsensiTablesChecked = false;
 export const ensureAbsensiTablesAndColumns = async () => {
@@ -304,6 +304,23 @@ export const createAbsensiFingerprint = async (req, res) => {
           WHERE id = ?
         `, [finalStatus, scanTime, finalMetode, finalKet, existingId]);
       });
+
+      // Perbarui juga notifikasi wali santri jika status dikoreksi (misal salah klik Sakit -> Izin)
+      const notifCopy = buildAbsensiNotifText({
+        namaSantri: req.body?.nama_santri || 'Ananda',
+        kegiatan: finalKegiatan,
+        status: finalStatus,
+        waktu: scanTime
+      });
+      createWaliNotification({
+        santri_id: finalSantriId,
+        kategori: 'absensi',
+        judul: notifCopy.judul,
+        pesan: notifCopy.pesan,
+        target_tab: 'absensi',
+        replaceRecentSameCategory: true
+      });
+
       return sendSuccess(res, 'Presensi berhasil diperbarui (tidak duplikat)', { id: existingId, metode_presensi: finalMetode });
     }
 
@@ -326,12 +343,18 @@ export const createAbsensiFingerprint = async (req, res) => {
       insertResult = resInsert;
     }
 
-    // Catat notifikasi ke HP Orang Tua / Wali Santri
+    // Catat notifikasi profesional ke HP Orang Tua / Wali Santri
+    const notifCopy = buildAbsensiNotifText({
+      namaSantri: req.body?.nama_santri || 'Ananda',
+      kegiatan: finalKegiatan,
+      status: finalStatus,
+      waktu: scanTime
+    });
     createWaliNotification({
       santri_id: finalSantriId,
       kategori: 'absensi',
-      judul: `Presensi ${finalKegiatan}: ${finalStatus}`,
-      pesan: `Alhamdulillah, ananda tercatat ${finalStatus} pada kegiatan ${finalKegiatan} pukul ${String(scanTime).slice(0, 5)} WIB (${finalMetode}).`,
+      judul: notifCopy.judul,
+      pesan: notifCopy.pesan,
       target_tab: 'absensi'
     });
 
@@ -392,11 +415,17 @@ export const syncMobileAbsensi = async (req, res) => {
           ) VALUES (?, NULL, ?, ?, ?, ?, ?, 1, ?, ?)
         `, [tgl, kegiatanName, tipe, item.santri_id, scanTime, st, mt, ket]).catch(() => {});
 
+        const notifCopy = buildAbsensiNotifText({
+          namaSantri: item.nama_santri || 'Ananda',
+          kegiatan: kegiatanName,
+          status: st,
+          waktu: scanTime
+        });
         createWaliNotification({
           santri_id: item.santri_id,
           kategori: 'absensi',
-          judul: `Presensi ${kegiatanName}: ${st}`,
-          pesan: `Ananda tercatat ${st} pada kegiatan ${kegiatanName} pukul ${String(scanTime).slice(0, 5)} WIB (${mt}).`,
+          judul: notifCopy.judul,
+          pesan: notifCopy.pesan,
           target_tab: 'absensi'
         });
       }

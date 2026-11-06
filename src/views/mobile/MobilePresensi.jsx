@@ -117,11 +117,13 @@ export default function MobilePresensi() {
 
   // Data State
   const [santriList, setSantriList] = useState([]);
+  const [kelasList, setKelasList] = useState([]);
   const [presensiLogs, setPresensiLogs] = useState([]);
   const [izinList, setIzinList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchManual, setSearchManual] = useState("");
   const [filterManualStatus, setFilterManualStatus] = useState("Semua");
+  const [filterManualKelas, setFilterManualKelas] = useState("Semua");
 
   // Riwayat State
   const [searchRiwayat, setSearchRiwayat] = useState("");
@@ -265,7 +267,7 @@ export default function MobilePresensi() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [resSantri, resAbs, resIzin, resMateri, resSesi] =
+      const [resSantri, resAbs, resIzin, resMateri, resSesi, resKelas] =
         await Promise.all([
           axios.get("/api/santri?all=true"),
           axios
@@ -276,7 +278,13 @@ export default function MobilePresensi() {
             .get("/api/materi-hafalan")
             .catch(() => ({ data: { data: [] } })),
           axios.get("/api/absensi/sesi").catch(() => ({ data: { data: [] } })),
+          axios.get("/api/kelas").catch(() => ({ data: { data: [] } })),
         ]);
+
+      const rawKelas = resKelas.data?.data || [];
+      if (Array.isArray(rawKelas)) {
+        setKelasList(rawKelas);
+      }
 
       // Filter kata shalat untuk memisahkan Berjamaah vs Mengaji
       const isShalatWord = (str) =>
@@ -1664,10 +1672,10 @@ export default function MobilePresensi() {
     axios.post("/api/absensi/fingerprint", payload).catch(() => {});
   };
 
-  // Quick Action Manual Presensi per Santri
+  // Quick Action Manual Presensi per Santri (Bisa ganti/update status jika salah klik)
   const handleQuickManualAction = (santri, status) => {
     playBeep();
-    recordAttendance(santri, status, "Manual Musyrif");
+    recordAttendance(santri, status, "Manual Musyrif", "Override_Manual");
     toastSuccess(`${santri.nama_santri}: ${status}`);
   };
 
@@ -1823,8 +1831,48 @@ export default function MobilePresensi() {
       .replace(" Malam", "");
   };
 
+  const getSantriKelasLabel = (s) => {
+    if (!s) return "";
+    if (s.nama_kelas && String(s.nama_kelas).trim() !== "") {
+      return String(s.nama_kelas).trim();
+    }
+    if (s.kelas_id && kelasList.length > 0) {
+      const foundK = kelasList.find((k) => String(k.id) === String(s.kelas_id));
+      if (foundK && foundK.nama_kelas) return String(foundK.nama_kelas).trim();
+    }
+    if (s.tingkat_diniyah && String(s.tingkat_diniyah).trim() !== "") {
+      return String(s.tingkat_diniyah).trim();
+    }
+    return "";
+  };
+
+  // Daftar opsi kelas unik dari master kelas + data santri
+  const availableKelasOptions = React.useMemo(() => {
+    const setK = new Set();
+    (kelasList || []).forEach((k) => {
+      if (k.nama_kelas && String(k.nama_kelas).trim()) {
+        setK.add(String(k.nama_kelas).trim());
+      }
+    });
+    (santriList || []).forEach((s) => {
+      const lbl = getSantriKelasLabel(s);
+      if (lbl) setK.add(lbl);
+    });
+    return Array.from(setK);
+  }, [kelasList, santriList]);
+
+  // Santri yang sesuai dengan filter kelas aktif
+  const santriInSelectedKelas = santriList.filter((s) => {
+    if (filterManualKelas === "Semua") return true;
+    const sKelas = getSantriKelasLabel(s);
+    return (
+      sKelas.toLowerCase() === filterManualKelas.toLowerCase() ||
+      String(s.kelas_id) === String(filterManualKelas)
+    );
+  });
+
   const handleMarkAllRemainingHadir = () => {
-    const unrecorded = santriList.filter((s) => !getSantriCurrentLog(s));
+    const unrecorded = santriInSelectedKelas.filter((s) => !getSantriCurrentLog(s));
     if (unrecorded.length === 0) {
       toastSuccess("Semua santri sudah diabsen");
       return;
@@ -1835,13 +1883,15 @@ export default function MobilePresensi() {
     toastSuccess(`${unrecorded.length} santri ditandai Hadir`);
   };
 
-  // Filter santri untuk tab manual
-  const filteredSantri = santriList.filter((s) => {
+  // Filter santri untuk tab manual (Cari + Kelas + Status)
+  const filteredSantri = santriInSelectedKelas.filter((s) => {
     const q = searchManual.toLowerCase();
+    const sKelas = getSantriKelasLabel(s).toLowerCase();
     const matchSearch =
       s.nama_santri?.toLowerCase().includes(q) ||
       s.nis?.toLowerCase().includes(q) ||
-      s.nama_asrama?.toLowerCase().includes(q);
+      s.nama_asrama?.toLowerCase().includes(q) ||
+      sKelas.includes(q);
 
     if (!matchSearch) return false;
     if (filterManualStatus === "Semua") return true;
@@ -1937,34 +1987,38 @@ export default function MobilePresensi() {
   const sessionPercent =
     sessionTotal > 0 ? Math.round((sessionSudahCount / sessionTotal) * 100) : 0;
 
-  // Perhitungan statistik riwayat (sesuai tanggal filter yang dipilih & Kategori Aktif murni dari database)
+  // Perhitungan statistik riwayat (sesuai tanggal filter & pencarian yang dipilih & Kategori Aktif murni dari database)
   const riwayatLogsForStats = riwayatLogsCombined.filter((l) => {
     if (activeKategori === "berjamaah") {
       if (!isLogBerjamaah(l)) return false;
     } else if (activeKategori === "mengaji") {
       if (isLogBerjamaah(l)) return false;
     }
+    const q = searchRiwayat.toLowerCase();
+    const matchSearch =
+      !q ||
+      (l.nama_santri || "").toLowerCase().includes(q) ||
+      (l.kegiatan || "").toLowerCase().includes(q) ||
+      (l.nis || "").toLowerCase().includes(q);
     const itemTgl = normalizeDateStr(l.tanggal);
-    return (
+    const matchTgl =
       (!filterTanggalDari || itemTgl >= filterTanggalDari) &&
-      (!filterTanggalSampai || itemTgl <= filterTanggalSampai)
-    );
+      (!filterTanggalSampai || itemTgl <= filterTanggalSampai);
+    return matchSearch && matchTgl;
   });
 
   const countTotalRiwayat = riwayatLogsForStats.length;
-  const countHadir = riwayatLogsForStats.filter((l) =>
-    (l.status_kehadiran || l.status || "").toLowerCase().includes("hadir"),
+  const countHadir = riwayatLogsForStats.filter(
+    (l) => simplifyStatus(l.status_kehadiran || l.status) === "Hadir",
   ).length;
-  const countSakit = riwayatLogsForStats.filter((l) =>
-    (l.status_kehadiran || l.status || "").toLowerCase().includes("sakit"),
+  const countSakit = riwayatLogsForStats.filter(
+    (l) => simplifyStatus(l.status_kehadiran || l.status) === "Sakit",
   ).length;
-  const countIzin = riwayatLogsForStats.filter((l) =>
-    (l.status_kehadiran || l.status || "").toLowerCase().includes("izin"),
+  const countIzin = riwayatLogsForStats.filter(
+    (l) => simplifyStatus(l.status_kehadiran || l.status) === "Izin",
   ).length;
   const countAlpa = riwayatLogsForStats.filter(
-    (l) =>
-      (l.status_kehadiran || l.status || "").toLowerCase().includes("alpa") ||
-      (l.status_kehadiran || l.status || "").toLowerCase().includes("alpha"),
+    (l) => simplifyStatus(l.status_kehadiran || l.status) === "Alfa",
   ).length;
 
   // Badge notifikasi tab riwayat: sinkron dengan data tanggal aktif & kategori aktif
@@ -1993,11 +2047,13 @@ export default function MobilePresensi() {
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
-          gap: "8px",
-          background: "#e2e8f0",
-          padding: "5px",
-          borderRadius: "18px",
-          marginBottom: "14px",
+          gap: "6px",
+          background: "#ffffff",
+          padding: "4px",
+          borderRadius: "14px",
+          marginBottom: "10px",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
         }}
       >
         <button
@@ -2007,9 +2063,9 @@ export default function MobilePresensi() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: "8px",
-            padding: "11px 14px",
-            borderRadius: "14px",
+            gap: "6px",
+            padding: "7px 10px",
+            borderRadius: "10px",
             border: "none",
             background:
               activeKategori === "berjamaah"
@@ -2017,16 +2073,16 @@ export default function MobilePresensi() {
                 : "transparent",
             color: activeKategori === "berjamaah" ? "#ffffff" : "#64748b",
             fontWeight: 800,
-            fontSize: "0.88rem",
+            fontSize: "0.75rem",
             cursor: "pointer",
             boxShadow:
               activeKategori === "berjamaah"
-                ? "0 4px 14px rgba(2, 132, 199, 0.4)"
+                ? "0 3px 10px rgba(2, 132, 199, 0.3)"
                 : "none",
             transition: "all 0.2s ease",
           }}
         >
-          <span>🕌</span>
+          <span style={{ fontSize: "0.85rem" }}>🕌</span>
           <span>Berjamaah</span>
         </button>
 
@@ -2037,9 +2093,9 @@ export default function MobilePresensi() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: "8px",
-            padding: "11px 14px",
-            borderRadius: "14px",
+            gap: "6px",
+            padding: "7px 10px",
+            borderRadius: "10px",
             border: "none",
             background:
               activeKategori === "mengaji"
@@ -2047,92 +2103,40 @@ export default function MobilePresensi() {
                 : "transparent",
             color: activeKategori === "mengaji" ? "#ffffff" : "#64748b",
             fontWeight: 800,
-            fontSize: "0.88rem",
+            fontSize: "0.75rem",
             cursor: "pointer",
             boxShadow:
               activeKategori === "mengaji"
-                ? "0 4px 14px rgba(5, 150, 105, 0.4)"
+                ? "0 3px 10px rgba(5, 150, 105, 0.3)"
                 : "none",
             transition: "all 0.2s ease",
           }}
         >
-          <span>📖</span>
+          <span style={{ fontSize: "0.85rem" }}>📖</span>
           <span>Mengaji</span>
         </button>
       </div>
 
-      {/* HEADER: Sesi Kegiatan Pesantren Modern Card */}
+      {/* HEADER: Sesi Kegiatan Pesantren Modern Card (Compact) */}
       <div
         style={{
           background:
             activeKategori === "berjamaah"
-              ? "linear-gradient(135deg, #0284c7 0%, #0369a1 40%, #1e40af 100%)"
-              : "linear-gradient(135deg, #065f46 0%, #047857 40%, #064e3b 100%)",
-          borderRadius: "24px",
-          padding: "16px 18px",
+              ? "linear-gradient(135deg, #0284c7 0%, #0369a1 45%, #1e40af 100%)"
+              : "linear-gradient(135deg, #059669 0%, #047857 45%, #064e3b 100%)",
+          borderRadius: "18px",
+          padding: "12px 14px",
           color: "#ffffff",
-          marginBottom: "14px",
+          marginBottom: "10px",
           boxShadow:
             activeKategori === "berjamaah"
-              ? "0 10px 25px -4px rgba(2, 132, 199, 0.38)"
-              : "0 10px 25px -4px rgba(5, 150, 105, 0.38)",
+              ? "0 6px 18px -4px rgba(2, 132, 199, 0.32)"
+              : "0 6px 18px -4px rgba(5, 150, 105, 0.32)",
           position: "relative",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "10px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <span
-              style={{
-                width: "8px",
-                height: "8px",
-                borderRadius: "50%",
-                background: "#22c55e",
-                boxShadow: "0 0 8px #22c55e",
-                display: "inline-block",
-              }}
-            />
-            <span
-              style={{
-                background: "rgba(255,255,255,0.18)",
-                fontSize: "0.68rem",
-                fontWeight: 800,
-                padding: "3px 9px",
-                borderRadius: "999px",
-                letterSpacing: "0.04em",
-              }}
-            >
-              {activeKategori === "berjamaah"
-                ? "SESI SHALAT BERJAMAAH"
-                : "SESI KEGIATAN MENGAJI"}
-            </span>
-          </div>
-
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "4px",
-              background: "rgba(15, 23, 42, 0.35)",
-              padding: "3px 10px",
-              borderRadius: "999px",
-              fontSize: "0.72rem",
-              color: "#e0f2fe",
-              fontWeight: 700,
-            }}
-          >
-            <span>📍 {selectedKegiatan?.tempat || "Komplek Pesantren"}</span>
-          </div>
-        </div>
-
         {/* Dropdown Kegiatan Stylized (Master Kegiatan Database) */}
-        <div style={{ position: "relative", marginBottom: "12px" }}>
+        <div style={{ position: "relative", marginBottom: "8px" }}>
           <select
             value={selectedKegiatan?.id || ""}
             onChange={(e) => {
@@ -2146,13 +2150,13 @@ export default function MobilePresensi() {
             }}
             style={{
               width: "100%",
-              padding: "12px 38px 12px 14px",
-              borderRadius: "14px",
-              border: "1.5px solid rgba(255, 255, 255, 0.35)",
-              background: "rgba(255, 255, 255, 0.18)",
+              padding: "9px 32px 9px 12px",
+              borderRadius: "11px",
+              border: "1px solid rgba(255, 255, 255, 0.32)",
+              background: "rgba(255, 255, 255, 0.16)",
               backdropFilter: "blur(10px)",
               color: "#ffffff",
-              fontSize: "0.94rem",
+              fontSize: "0.82rem",
               fontWeight: 800,
               outline: "none",
               appearance: "none",
@@ -2170,11 +2174,11 @@ export default function MobilePresensi() {
             ))}
           </select>
           <ChevronDown
-            size={18}
+            size={15}
             color="#ffffff"
             style={{
               position: "absolute",
-              right: "14px",
+              right: "11px",
               top: "50%",
               transform: "translateY(-50%)",
               pointerEvents: "none",
@@ -2185,12 +2189,12 @@ export default function MobilePresensi() {
         {/* Location & Progress Bar */}
         <div
           style={{
-            background: "rgba(0, 0, 0, 0.22)",
-            borderRadius: "12px",
-            padding: "8px 12px",
+            background: "rgba(0, 0, 0, 0.2)",
+            borderRadius: "10px",
+            padding: "6px 10px",
             display: "flex",
             flexDirection: "column",
-            gap: "6px",
+            gap: "5px",
           }}
         >
           <div
@@ -2198,7 +2202,7 @@ export default function MobilePresensi() {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              fontSize: "0.72rem",
+              fontSize: "0.66rem",
               color: "#e0f2fe",
             }}
           >
@@ -2211,7 +2215,7 @@ export default function MobilePresensi() {
           <div
             style={{
               width: "100%",
-              height: "5px",
+              height: "4px",
               borderRadius: "999px",
               background: "rgba(255, 255, 255, 0.25)",
               overflow: "hidden",
@@ -2235,11 +2239,13 @@ export default function MobilePresensi() {
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(4, 1fr)",
-          background: "#e2e8f0",
-          borderRadius: "16px",
-          padding: "4px",
-          marginBottom: "16px",
+          background: "#ffffff",
+          borderRadius: "13px",
+          padding: "3.5px",
+          marginBottom: "12px",
           gap: "4px",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
         }}
       >
         {/* Tab 1: Wajah AI */}
@@ -2249,23 +2255,28 @@ export default function MobilePresensi() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: "4px",
-            padding: "9px 2px",
-            borderRadius: "12px",
+            gap: "3.5px",
+            padding: "7px 2px",
+            borderRadius: "9px",
             border: "none",
-            background: activeMode === "face" ? "#ffffff" : "transparent",
-            color: activeMode === "face" ? "#059669" : "#64748b",
+            background:
+              activeMode === "face"
+                ? "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)"
+                : "transparent",
+            color: activeMode === "face" ? "#047857" : "#64748b",
             fontWeight: 800,
-            fontSize: "0.74rem",
+            fontSize: "0.68rem",
             cursor: "pointer",
             boxShadow:
-              activeMode === "face" ? "0 4px 10px rgba(0,0,0,0.08)" : "none",
+              activeMode === "face"
+                ? "inset 0 0 0 1px #6ee7b7, 0 2px 6px rgba(5, 150, 105, 0.12)"
+                : "none",
             transition: "all 0.15s ease",
             whiteSpace: "nowrap",
           }}
         >
           <Smile
-            size={15}
+            size={13}
             color={activeMode === "face" ? "#059669" : "#64748b"}
           />
           <span>Wajah AI</span>
@@ -2278,23 +2289,28 @@ export default function MobilePresensi() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: "4px",
-            padding: "9px 2px",
-            borderRadius: "12px",
+            gap: "3.5px",
+            padding: "7px 2px",
+            borderRadius: "9px",
             border: "none",
-            background: activeMode === "qr" ? "#ffffff" : "transparent",
-            color: activeMode === "qr" ? "#0284c7" : "#64748b",
+            background:
+              activeMode === "qr"
+                ? "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)"
+                : "transparent",
+            color: activeMode === "qr" ? "#0369a1" : "#64748b",
             fontWeight: 800,
-            fontSize: "0.74rem",
+            fontSize: "0.68rem",
             cursor: "pointer",
             boxShadow:
-              activeMode === "qr" ? "0 4px 10px rgba(0,0,0,0.08)" : "none",
+              activeMode === "qr"
+                ? "inset 0 0 0 1px #7dd3fc, 0 2px 6px rgba(2, 132, 199, 0.12)"
+                : "none",
             transition: "all 0.15s ease",
             whiteSpace: "nowrap",
           }}
         >
           <QrCode
-            size={15}
+            size={13}
             color={activeMode === "qr" ? "#0284c7" : "#64748b"}
           />
           <span>Scan QR</span>
@@ -2307,23 +2323,28 @@ export default function MobilePresensi() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: "4px",
-            padding: "9px 2px",
-            borderRadius: "12px",
+            gap: "3.5px",
+            padding: "7px 2px",
+            borderRadius: "9px",
             border: "none",
-            background: activeMode === "manual" ? "#ffffff" : "transparent",
-            color: activeMode === "manual" ? "#0d9488" : "#64748b",
+            background:
+              activeMode === "manual"
+                ? "linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%)"
+                : "transparent",
+            color: activeMode === "manual" ? "#0f766e" : "#64748b",
             fontWeight: 800,
-            fontSize: "0.74rem",
+            fontSize: "0.68rem",
             cursor: "pointer",
             boxShadow:
-              activeMode === "manual" ? "0 4px 10px rgba(0,0,0,0.08)" : "none",
+              activeMode === "manual"
+                ? "inset 0 0 0 1px #5eead4, 0 2px 6px rgba(13, 148, 136, 0.12)"
+                : "none",
             transition: "all 0.15s ease",
             whiteSpace: "nowrap",
           }}
         >
           <UserCheck
-            size={15}
+            size={13}
             color={activeMode === "manual" ? "#0d9488" : "#64748b"}
           />
           <span>Manual</span>
@@ -2337,23 +2358,28 @@ export default function MobilePresensi() {
             alignItems: "center",
             justifyContent: "center",
             gap: "3px",
-            padding: "9px 2px",
-            borderRadius: "12px",
+            padding: "7px 2px",
+            borderRadius: "9px",
             border: "none",
-            background: activeMode === "riwayat" ? "#ffffff" : "transparent",
-            color: activeMode === "riwayat" ? "#7c3aed" : "#64748b",
+            background:
+              activeMode === "riwayat"
+                ? "linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)"
+                : "transparent",
+            color: activeMode === "riwayat" ? "#6d28d9" : "#64748b",
             fontWeight: 800,
-            fontSize: "0.74rem",
+            fontSize: "0.68rem",
             cursor: "pointer",
             boxShadow:
-              activeMode === "riwayat" ? "0 4px 10px rgba(0,0,0,0.08)" : "none",
+              activeMode === "riwayat"
+                ? "inset 0 0 0 1px #c4b5fd, 0 2px 6px rgba(124, 58, 237, 0.12)"
+                : "none",
             transition: "all 0.15s ease",
             position: "relative",
             whiteSpace: "nowrap",
           }}
         >
           <History
-            size={15}
+            size={13}
             color={activeMode === "riwayat" ? "#7c3aed" : "#64748b"}
           />
           <span>Riwayat</span>
@@ -2362,7 +2388,7 @@ export default function MobilePresensi() {
               style={{
                 background: activeMode === "riwayat" ? "#7c3aed" : "#94a3b8",
                 color: "#ffffff",
-                fontSize: "0.58rem",
+                fontSize: "0.54rem",
                 fontWeight: 800,
                 padding: "1px 4px",
                 borderRadius: "999px",
@@ -2953,44 +2979,99 @@ export default function MobilePresensi() {
       ========================================================================= */}
       {activeMode === "manual" && (
         <div>
-          {/* Search Bar Santri Modern */}
+          {/* Search Bar & Filter Kelas Santri Modern */}
           <div
             style={{
-              background: "#ffffff",
-              borderRadius: "16px",
-              padding: "4px 14px",
-              border: "1.5px solid #e2e8f0",
               display: "flex",
-              alignItems: "center",
-              gap: "10px",
+              gap: "8px",
               marginBottom: "10px",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
             }}
           >
-            <Search size={18} color="#0284c7" />
-            <input
-              type="text"
-              placeholder="Cari nama santri, NIS, atau asrama..."
-              value={searchManual}
-              onChange={(e) => setSearchManual(e.target.value)}
+            {/* Input Pencarian */}
+            <div
               style={{
-                width: "100%",
-                padding: "10px 0",
-                border: "none",
-                outline: "none",
-                fontSize: "0.85rem",
-                fontWeight: 600,
-                color: "#1e293b",
+                flex: 1,
+                background: "#ffffff",
+                borderRadius: "16px",
+                padding: "4px 12px",
+                border: "1.5px solid #e2e8f0",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
               }}
-            />
-            {searchManual && (
-              <X
-                size={16}
-                color="#94a3b8"
-                onClick={() => setSearchManual("")}
-                style={{ cursor: "pointer" }}
+            >
+              <Search size={17} color="#0284c7" style={{ flexShrink: 0 }} />
+              <input
+                type="text"
+                placeholder="Cari santri, NIS, asrama..."
+                value={searchManual}
+                onChange={(e) => setSearchManual(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "9px 0",
+                  border: "none",
+                  outline: "none",
+                  fontSize: "0.82rem",
+                  fontWeight: 600,
+                  color: "#1e293b",
+                }}
               />
-            )}
+              {searchManual && (
+                <X
+                  size={15}
+                  color="#94a3b8"
+                  onClick={() => setSearchManual("")}
+                  style={{ cursor: "pointer", flexShrink: 0 }}
+                />
+              )}
+            </div>
+
+            {/* Dropdown Filter Kelas */}
+            <div style={{ position: "relative", minWidth: "132px", maxWidth: "155px" }}>
+              <select
+                value={filterManualKelas}
+                onChange={(e) => setFilterManualKelas(e.target.value)}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  padding: "0 28px 0 11px",
+                  borderRadius: "16px",
+                  border:
+                    filterManualKelas !== "Semua"
+                      ? "1.5px solid #0284c7"
+                      : "1.5px solid #e2e8f0",
+                  background:
+                    filterManualKelas !== "Semua" ? "#f0f9ff" : "#ffffff",
+                  color:
+                    filterManualKelas !== "Semua" ? "#0369a1" : "#334155",
+                  fontSize: "0.76rem",
+                  fontWeight: 800,
+                  outline: "none",
+                  appearance: "none",
+                  cursor: "pointer",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
+                }}
+              >
+                <option value="Semua">Semua Kelas</option>
+                {availableKelasOptions.map((namaKls) => (
+                  <option key={namaKls} value={namaKls}>
+                    {namaKls}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={15}
+                color={filterManualKelas !== "Semua" ? "#0284c7" : "#64748b"}
+                style={{
+                  position: "absolute",
+                  right: "10px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  pointerEvents: "none",
+                }}
+              />
+            </div>
           </div>
 
           {/* Quick Filter Status Pills + Quick Action */}
@@ -3006,14 +3087,18 @@ export default function MobilePresensi() {
             }}
           >
             <div style={{ display: "flex", gap: "6px" }}>
-              {[
-                { key: "Semua", label: `Semua (${santriList.length})` },
-                {
-                  key: "Belum",
-                  label: `Belum (${sessionTotal - sessionSudahCount})`,
-                },
-                { key: "Hadir", label: "Hadir" },
-              ].map((f) => (
+              {(() => {
+                const klsTotal = santriInSelectedKelas.length;
+                const klsSudah = santriInSelectedKelas.filter((s) =>
+                  getSantriCurrentLog(s)
+                ).length;
+                const klsBelum = Math.max(0, klsTotal - klsSudah);
+                return [
+                  { key: "Semua", label: `Semua (${klsTotal})` },
+                  { key: "Belum", label: `Belum (${klsBelum})` },
+                  { key: "Hadir", label: `Hadir (${klsSudah})` },
+                ];
+              })().map((f) => (
                 <button
                   key={f.key}
                   type="button"
@@ -3259,6 +3344,23 @@ export default function MobilePresensi() {
                         >
                           {santri.nama_asrama || "Mukim"}
                         </span>
+                        {getSantriKelasLabel(santri) && (
+                          <>
+                            <span>•</span>
+                            <span
+                              style={{
+                                background: "#eff6ff",
+                                color: "#1d4ed8",
+                                padding: "1px 6px",
+                                borderRadius: "4px",
+                                fontWeight: 700,
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {getSantriKelasLabel(santri)}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -3406,194 +3508,15 @@ export default function MobilePresensi() {
       ========================================================================= */}
       {activeMode === "riwayat" && (
         <div>
-          {/* Riwayat Category Indicator Banner */}
-          <div
-            style={{
-              background:
-                activeKategori === "berjamaah" ? "#e0f2fe" : "#ecfdf5",
-              border: `1.5px solid ${activeKategori === "berjamaah" ? "#7dd3fc" : "#a7f3d0"}`,
-              borderRadius: "16px",
-              padding: "10px 14px",
-              marginBottom: "12px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ fontSize: "1.15rem" }}>
-                {activeKategori === "berjamaah" ? "🕌" : "📖"}
-              </span>
-              <div>
-                <div
-                  style={{
-                    fontSize: "0.82rem",
-                    fontWeight: 800,
-                    color:
-                      activeKategori === "berjamaah" ? "#0369a1" : "#047857",
-                  }}
-                >
-                  {activeKategori === "berjamaah"
-                    ? "Riwayat Khusus Shalat Berjamaah"
-                    : "Riwayat Khusus Kegiatan Mengaji"}
-                </div>
-                <div style={{ fontSize: "0.68rem", color: "#64748b" }}>
-                  {activeKategori === "berjamaah"
-                    ? "Hanya menampilkan absensi shalat 5 waktu"
-                    : "Hanya menampilkan absensi mengaji & materi santri"}
-                </div>
-              </div>
-            </div>
-            <span
-              style={{
-                fontSize: "0.72rem",
-                fontWeight: 800,
-                background:
-                  activeKategori === "berjamaah" ? "#0284c7" : "#059669",
-                color: "#ffffff",
-                padding: "3px 9px",
-                borderRadius: "999px",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {filteredRiwayat.length} Data
-            </span>
-          </div>
-
-          {/* 4 Summary Mini Cards */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
-              gap: "8px",
-              marginBottom: "14px",
-            }}
-          >
-            <div
-              style={{
-                background: "#ffffff",
-                padding: "10px 4px",
-                borderRadius: "14px",
-                textAlign: "center",
-                border: "1px solid #e2e8f0",
-                boxShadow: "0 2px 5px rgba(0,0,0,0.02)",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "1.15rem",
-                  fontWeight: 800,
-                  color: "#0284c7",
-                }}
-              >
-                {countTotalRiwayat}
-              </div>
-              <div
-                style={{
-                  fontSize: "0.66rem",
-                  color: "#64748b",
-                  fontWeight: 700,
-                }}
-              >
-                Total
-              </div>
-            </div>
-            <div
-              style={{
-                background: "#ecfdf5",
-                padding: "10px 4px",
-                borderRadius: "14px",
-                textAlign: "center",
-                border: "1px solid #a7f3d0",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "1.15rem",
-                  fontWeight: 800,
-                  color: "#059669",
-                }}
-              >
-                {countHadir}
-              </div>
-              <div
-                style={{
-                  fontSize: "0.66rem",
-                  color: "#047857",
-                  fontWeight: 700,
-                }}
-              >
-                Hadir
-              </div>
-            </div>
-            <div
-              style={{
-                background: "#f5f3ff",
-                padding: "10px 4px",
-                borderRadius: "14px",
-                textAlign: "center",
-                border: "1px solid #ddd6fe",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "1.15rem",
-                  fontWeight: 800,
-                  color: "#7c3aed",
-                }}
-              >
-                {countSakit}
-              </div>
-              <div
-                style={{
-                  fontSize: "0.66rem",
-                  color: "#6d28d9",
-                  fontWeight: 700,
-                }}
-              >
-                Sakit
-              </div>
-            </div>
-            <div
-              style={{
-                background: "#fef2f2",
-                padding: "10px 4px",
-                borderRadius: "14px",
-                textAlign: "center",
-                border: "1px solid #fecdd3",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "1.15rem",
-                  fontWeight: 800,
-                  color: "#dc2626",
-                }}
-              >
-                {countIzin + countAlpa}
-              </div>
-              <div
-                style={{
-                  fontSize: "0.66rem",
-                  color: "#b91c1c",
-                  fontWeight: 700,
-                }}
-              >
-                Izin/Alfa
-              </div>
-            </div>
-          </div>
-
           {/* Filter Tanggal Riwayat (Dari - Sampai, Otomatis Per Bulan) */}
           <div
             style={{
               background: "#ffffff",
-              borderRadius: "16px",
-              padding: "12px 14px",
-              border: "1.5px solid #e2e8f0",
-              marginBottom: "12px",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
+              borderRadius: "14px",
+              padding: "10px 12px",
+              border: "1px solid #e2e8f0",
+              marginBottom: "10px",
+              boxShadow: "0 2px 6px rgba(15, 23, 42, 0.03)",
             }}
           >
             <div
@@ -3610,14 +3533,14 @@ export default function MobilePresensi() {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "6px",
-                  fontSize: "0.74rem",
+                  gap: "5px",
+                  fontSize: "0.7rem",
                   fontWeight: 800,
-                  color: "#7c3aed",
+                  color: "#6d28d9",
                 }}
               >
-                <Calendar size={16} />
-                <span>Filter Tanggal (Otomatis Per Bulan)</span>
+                <Calendar size={14} />
+                <span>Filter Tanggal</span>
               </div>
 
               <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
@@ -3632,10 +3555,10 @@ export default function MobilePresensi() {
                     background: "#f5f3ff",
                     border: "1px solid #ddd6fe",
                     color: "#7c3aed",
-                    fontSize: "0.66rem",
+                    fontSize: "0.62rem",
                     fontWeight: 800,
-                    padding: "4px 8px",
-                    borderRadius: "7px",
+                    padding: "3.5px 7px",
+                    borderRadius: "6px",
                     cursor: "pointer",
                   }}
                 >
@@ -3652,10 +3575,10 @@ export default function MobilePresensi() {
                     background: "#ecfdf5",
                     border: "1px solid #bbf7d0",
                     color: "#059669",
-                    fontSize: "0.66rem",
+                    fontSize: "0.62rem",
                     fontWeight: 800,
-                    padding: "4px 8px",
-                    borderRadius: "7px",
+                    padding: "3.5px 7px",
+                    borderRadius: "6px",
                     cursor: "pointer",
                   }}
                 >
@@ -3672,10 +3595,10 @@ export default function MobilePresensi() {
                       background: "#f8fafc",
                       border: "1px solid #e2e8f0",
                       color: "#64748b",
-                      fontSize: "0.66rem",
+                      fontSize: "0.62rem",
                       fontWeight: 700,
-                      padding: "4px 8px",
-                      borderRadius: "7px",
+                      padding: "3.5px 7px",
+                      borderRadius: "6px",
                       cursor: "pointer",
                     }}
                   >
@@ -3692,10 +3615,10 @@ export default function MobilePresensi() {
                     background: "#eff6ff",
                     border: "1px solid #bfdbfe",
                     color: "#1d4ed8",
-                    fontSize: "0.66rem",
+                    fontSize: "0.62rem",
                     fontWeight: 800,
-                    padding: "4px 8px",
-                    borderRadius: "7px",
+                    padding: "3.5px 7px",
+                    borderRadius: "6px",
                     cursor: "pointer",
                     display: "inline-flex",
                     alignItems: "center",
@@ -3703,7 +3626,7 @@ export default function MobilePresensi() {
                   }}
                   title="Refresh Riwayat Langsung dari Database MySQL"
                 >
-                  <RefreshCw size={11} /> Sync
+                  <RefreshCw size={10} /> Sync
                 </button>
               </div>
             </div>
@@ -3719,10 +3642,10 @@ export default function MobilePresensi() {
                 <label
                   style={{
                     display: "block",
-                    fontSize: "0.64rem",
+                    fontSize: "0.6rem",
                     fontWeight: 700,
                     color: "#64748b",
-                    marginBottom: "3px",
+                    marginBottom: "2px",
                   }}
                 >
                   Dari Tanggal
@@ -3734,10 +3657,10 @@ export default function MobilePresensi() {
                   style={{
                     width: "100%",
                     boxSizing: "border-box",
-                    padding: "7px 8px",
-                    borderRadius: "10px",
+                    padding: "6px 8px",
+                    borderRadius: "8px",
                     border: "1px solid #cbd5e1",
-                    fontSize: "0.78rem",
+                    fontSize: "0.72rem",
                     fontWeight: 700,
                     color: "#0f172a",
                     background: "#f8fafc",
@@ -3750,10 +3673,10 @@ export default function MobilePresensi() {
                 <label
                   style={{
                     display: "block",
-                    fontSize: "0.64rem",
+                    fontSize: "0.6rem",
                     fontWeight: 700,
                     color: "#64748b",
-                    marginBottom: "3px",
+                    marginBottom: "2px",
                   }}
                 >
                   Sampai Tanggal
@@ -3765,10 +3688,10 @@ export default function MobilePresensi() {
                   style={{
                     width: "100%",
                     boxSizing: "border-box",
-                    padding: "7px 8px",
-                    borderRadius: "10px",
+                    padding: "6px 8px",
+                    borderRadius: "8px",
                     border: "1px solid #cbd5e1",
-                    fontSize: "0.78rem",
+                    fontSize: "0.72rem",
                     fontWeight: 700,
                     color: "#0f172a",
                     background: "#f8fafc",
@@ -3783,35 +3706,35 @@ export default function MobilePresensi() {
           <div
             style={{
               background: "#ffffff",
-              borderRadius: "16px",
-              padding: "4px 14px",
-              border: "1.5px solid #e2e8f0",
+              borderRadius: "12px",
+              padding: "2px 12px",
+              border: "1px solid #e2e8f0",
               display: "flex",
               alignItems: "center",
-              gap: "10px",
+              gap: "8px",
               marginBottom: "10px",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
+              boxShadow: "0 2px 6px rgba(15, 23, 42, 0.02)",
             }}
           >
-            <Search size={18} color="#7c3aed" />
+            <Search size={15} color="#7c3aed" />
             <input
               type="text"
-              placeholder="Cari di riwayat presensi..."
+              placeholder="Cari nama santri, NIS, atau kegiatan..."
               value={searchRiwayat}
               onChange={(e) => setSearchRiwayat(e.target.value)}
               style={{
                 width: "100%",
-                padding: "10px 0",
+                padding: "8px 0",
                 border: "none",
                 outline: "none",
-                fontSize: "0.85rem",
+                fontSize: "0.76rem",
                 fontWeight: 600,
                 color: "#1e293b",
               }}
             />
             {searchRiwayat && (
               <X
-                size={16}
+                size={14}
                 color="#94a3b8"
                 onClick={() => setSearchRiwayat("")}
                 style={{ cursor: "pointer" }}
@@ -3819,42 +3742,102 @@ export default function MobilePresensi() {
             )}
           </div>
 
-          {/* Filter Pills Status */}
+          {/* Filter Pills Status dengan Badge Notifikasi Angka */}
           <div
             style={{
-              display: "flex",
-              gap: "6px",
-              overflowX: "auto",
-              paddingBottom: "4px",
-              marginBottom: "14px",
+              display: "grid",
+              gridTemplateColumns: "repeat(5, 1fr)",
+              gap: "5px",
+              background: "#ffffff",
+              padding: "4px",
+              borderRadius: "13px",
+              border: "1px solid #e2e8f0",
+              marginBottom: "12px",
+              boxShadow: "0 2px 8px rgba(15, 23, 42, 0.03)",
             }}
           >
-            {["Semua", "Hadir", "Sakit", "Izin", "Alfa"].map((st) => {
-              const active = filterStatusRiwayat === st;
+            {[
+              {
+                label: "Semua",
+                count: countTotalRiwayat,
+                activeBg: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+                activeShadow: "0 3px 8px rgba(2, 132, 199, 0.28)",
+                badgeBg: "#e0f2fe",
+                badgeColor: "#0369a1",
+              },
+              {
+                label: "Hadir",
+                count: countHadir,
+                activeBg: "linear-gradient(135deg, #059669 0%, #047857 100%)",
+                activeShadow: "0 3px 8px rgba(5, 150, 105, 0.28)",
+                badgeBg: "#ecfdf5",
+                badgeColor: "#047857",
+              },
+              {
+                label: "Sakit",
+                count: countSakit,
+                activeBg: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)",
+                activeShadow: "0 3px 8px rgba(124, 58, 237, 0.28)",
+                badgeBg: "#f5f3ff",
+                badgeColor: "#6d28d9",
+              },
+              {
+                label: "Izin",
+                count: countIzin,
+                activeBg: "linear-gradient(135deg, #d97706 0%, #b45309 100%)",
+                activeShadow: "0 3px 8px rgba(217, 119, 6, 0.28)",
+                badgeBg: "#fffbeb",
+                badgeColor: "#b45309",
+              },
+              {
+                label: "Alfa",
+                count: countAlpa,
+                activeBg: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
+                activeShadow: "0 3px 8px rgba(220, 38, 38, 0.28)",
+                badgeBg: "#fef2f2",
+                badgeColor: "#b91c1c",
+              },
+            ].map((tab) => {
+              const active = filterStatusRiwayat === tab.label;
               return (
                 <button
-                  key={st}
+                  key={tab.label}
                   type="button"
-                  onClick={() => setFilterStatusRiwayat(st)}
+                  onClick={() => setFilterStatusRiwayat(tab.label)}
                   style={{
-                    padding: "5px 12px",
-                    borderRadius: "999px",
-                    fontSize: "0.72rem",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "3.5px",
+                    padding: "6px 2px",
+                    borderRadius: "9px",
+                    fontSize: "0.66rem",
                     fontWeight: 800,
-                    border: active
-                      ? "1.5px solid #7c3aed"
-                      : "1px solid #e2e8f0",
-                    background: active ? "#7c3aed" : "#ffffff",
-                    color: active ? "#ffffff" : "#64748b",
+                    border: "none",
+                    background: active ? tab.activeBg : "transparent",
+                    color: active ? "#ffffff" : "#475569",
                     cursor: "pointer",
-                    boxShadow: active
-                      ? "0 3px 8px rgba(124, 58, 237, 0.25)"
-                      : "none",
+                    boxShadow: active ? tab.activeShadow : "none",
                     whiteSpace: "nowrap",
                     transition: "all 0.15s ease",
                   }}
                 >
-                  {st}
+                  <span>{tab.label}</span>
+                  <span
+                    style={{
+                      background: active
+                        ? "rgba(255, 255, 255, 0.24)"
+                        : tab.badgeBg,
+                      color: active ? "#ffffff" : tab.badgeColor,
+                      fontSize: "0.58rem",
+                      fontWeight: 800,
+                      padding: "1px 4.5px",
+                      borderRadius: "999px",
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {tab.count}
+                  </span>
                 </button>
               );
             })}

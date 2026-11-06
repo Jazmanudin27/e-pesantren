@@ -24,13 +24,15 @@ app.use(express.text({ type: ['text/*', 'application/octet-stream', 'text/plain'
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve Static Frontend Build (Vite /dist) & Public PWA Assets first (agar /manifest.json & /sw.js tidak tertahan router)
+const distPath = path.join(__dirname, 'dist');
+const publicPath = path.join(__dirname, 'public');
+app.use(express.static(distPath));
+app.use(express.static(publicPath));
+
 // REST API Router (E-Sekolah Architecture - Handles both /api and Nginx stripped paths)
 app.use('/api', apiRoutes);
 app.use('/', apiRoutes);
-
-// Serve Static Frontend Build (Vite /dist)
-const distPath = path.join(__dirname, 'dist');
-app.use(express.static(distPath));
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));

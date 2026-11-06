@@ -30,18 +30,82 @@ export const ensureNotifikasiTable = async () => {
 };
 
 /**
+ * Helper menyusun kalimat notifikasi presensi yang sopan, etis, dan profesional
+ * berdasarkan status kehadiran (Hadir, Terlambat, Sakit, Izin, Alfa).
+ * Tanpa menyertakan istilah teknis seperti "(Manual Musyrif)" atau "(Wajah AI)".
+ */
+export const buildAbsensiNotifText = ({
+  namaSantri = 'Ananda',
+  kegiatan = 'Kegiatan Pesantren',
+  status = 'Hadir',
+  waktu = ''
+}) => {
+  const st = String(status || 'Hadir').trim();
+  const stLower = st.toLowerCase();
+  const jamStr = waktu ? ` pukul ${String(waktu).slice(0, 5)} WIB` : '';
+  const sapaan = namaSantri && namaSantri !== 'Ananda' ? `ananda ${namaSantri}` : 'ananda';
+
+  if (stLower.includes('sakit')) {
+    return {
+      judul: `Informasi Kesehatan • ${kegiatan}`,
+      pesan: `Diberitahukan bahwa ${sapaan} hari ini berhalangan mengikuti ${kegiatan} dikarenakan sedang kurang sehat (Sakit). Mohon doa dari Bapak/Ibu agar ananda lekas diberikan kesembuhan.`
+    };
+  }
+
+  if (stLower.includes('izin')) {
+    return {
+      judul: `Keterangan Izin • ${kegiatan}`,
+      pesan: `Diberitahukan bahwa ${sapaan} tercatat Izin pada kegiatan ${kegiatan}${jamStr} sesuai keterangan yang terdaftar di kepengurusan pondok.`
+    };
+  }
+
+  if (stLower.includes('alfa') || stLower.includes('alpa') || stLower.includes('tanpa')) {
+    return {
+      judul: `Pemberitahuan Kehadiran • ${kegiatan}`,
+      pesan: `Diberitahukan bahwa ${sapaan} tercatat belum hadir (Alfa) pada kegiatan ${kegiatan}${jamStr}. Pengurus asrama sedang melakukan pemantauan dan pembinaan.`
+    };
+  }
+
+  if (stLower.includes('terlambat') || stLower.includes('telat')) {
+    return {
+      judul: `Kehadiran ${kegiatan} • Terlambat`,
+      pesan: `Diberitahukan bahwa ${sapaan} telah hadir mengikuti kegiatan ${kegiatan}${jamStr} dengan catatan sedikit terlambat dari jadwal.`
+    };
+  }
+
+  // Default: Hadir / Hadir Tepat Waktu
+  return {
+    judul: `Kehadiran ${kegiatan} • Hadir`,
+    pesan: `Alhamdulillah, ${sapaan} telah tercatat hadir mengikuti kegiatan ${kegiatan}${jamStr} dengan tertib.`
+  };
+};
+
+/**
  * Helper Fire-and-Forget: Mencatat notifikasi untuk santri (atau broadcast jika santri_id = null)
- * Tidak pernah memblokir proses utama & otomatis memangkas log lama agar database tetap ringan.
+ * Jika dalam 15 menit terakhir sudah ada notifikasi dengan santri & kategori yang sama (misal ralat klik Sakit -> Izin),
+ * maka otomatis meng-update notifikasi tersebut agar rapi dan memicu banner ulang.
  */
 export const createWaliNotification = async ({
   santri_id = null,
   kategori = 'info',
   judul = 'Pemberitahuan Pesantren',
   pesan = '',
-  target_tab = 'beranda'
+  target_tab = 'beranda',
+  replaceRecentSameCategory = false
 }) => {
   try {
     await ensureNotifikasiTable();
+
+    if (replaceRecentSameCategory && santri_id) {
+      // Hapus notif sebelumnya di kategori yang sama yang baru dibuat < 10 menit lalu (saat musyrif salah klik status)
+      await pool.query(
+        `DELETE FROM notifikasi_wali 
+         WHERE santri_id = ? AND kategori = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE)
+         ORDER BY id DESC LIMIT 1`,
+        [santri_id, kategori]
+      ).catch(() => {});
+    }
+
     await pool.query(
       `INSERT INTO notifikasi_wali (santri_id, kategori, judul, pesan, target_tab, is_read, created_at)
        VALUES (?, ?, ?, ?, ?, 0, NOW())`,

@@ -1,9 +1,9 @@
 {
-  "id": "/?source=pwa",
+  "id": "/",
   "name": "NWF Mobile",
   "short_name": "NWF Mobile",
   "description": "NWF Mobile - Aplikasi Pesantren & Portal Wali Santri",
-  "start_url": "/?source=pwa",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "fullscreen"],
@@ -14,27 +14,15 @@
   "icons": [
     {
       "src": "/nwf.png",
-      "sizes": "192x192",
+      "sizes": "192x192 512x512 1379x1379 any",
       "type": "image/png",
       "purpose": "any"
     },
     {
       "src": "/nwf.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/nwf.png",
-      "sizes": "512x512",
+      "sizes": "192x192 512x512 1379x1379 any",
       "type": "image/png",
       "purpose": "maskable"
-    },
-    {
-      "src": "/nwf.png",
-      "sizes": "1379x1379",
-      "type": "image/png",
-      "purpose": "any"
     }
   ]
 }
