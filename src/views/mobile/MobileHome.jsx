@@ -475,15 +475,6 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               </span>
             </div>
           </div>
-                letterSpacing: "0.05em",
-                textTransform: "uppercase",
-                marginTop: "3px",
-                lineHeight: 1,
-              }}
-            >
-              Ponpes Nurul Wafa
-            </span>
-          </div>
 
           {/* Header Action: Single Logout Button */}
           <button
