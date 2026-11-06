@@ -327,69 +327,116 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
       </div>
 
       <div style={{ padding: '0 16px' }}>
-        {/* HERO STAT CARD */}
+        {/* HERO STAT CARD TAGIHAN (ROYAL SAPPHIRE FINTECH GRADIENT) */}
         <div style={{
-          background: 'linear-gradient(135deg, #0284c7 0%, #0c4a6e 100%)',
-          borderRadius: '20px',
-          padding: '16px 16px 14px',
+          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 45%, #172554 100%)',
+          borderRadius: '22px',
+          padding: '18px 18px 16px',
           color: '#ffffff',
-          boxShadow: '0 8px 24px -4px rgba(2, 132, 199, 0.35)',
-          marginBottom: '14px',
+          border: '1px solid rgba(191, 219, 254, 0.45)',
+          boxShadow: '0 12px 28px -4px rgba(37, 99, 235, 0.42), 0 4px 10px rgba(0, 0, 0, 0.06)',
+          marginBottom: '16px',
+          position: 'relative',
+          overflow: 'hidden',
           transition: 'all 0.25s ease'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+          {/* Ambient Glow */}
+          <div style={{
+            position: 'absolute',
+            top: '-30px',
+            right: '-30px',
+            width: '120px',
+            height: '120px',
+            borderRadius: '50%',
+            background: 'rgba(147, 197, 253, 0.25)',
+            filter: 'blur(30px)',
+            pointerEvents: 'none'
+          }} />
+
+          {/* Watermark */}
+          <div style={{
+            position: 'absolute',
+            right: '-8px',
+            bottom: '-12px',
+            fontSize: '5.5rem',
+            opacity: 0.1,
+            userSelect: 'none',
+            pointerEvents: 'none'
+          }}>
+            💳
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px', position: 'relative', zIndex: 2 }}>
             <div>
               <div style={{
-                fontSize: '0.65rem',
-                fontWeight: 700,
+                fontSize: '0.66rem',
+                fontWeight: 800,
                 color: '#bae6fd',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px'
               }}>
                 TOTAL SELURUH TAGIHAN
               </div>
-              <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#ffffff', marginTop: '2px', letterSpacing: '-0.3px' }}>
+              <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#ffffff', marginTop: '2px', letterSpacing: '-0.3px', textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
                 {summary.formattedTotalBelumBayar || 'Rp 0'}
               </div>
-              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.85)', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.88)', marginTop: '2px' }}>
                 SPP bulanan, uang masuk & administrasi santri
               </div>
             </div>
 
             <div style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '14px',
-              background: 'rgba(255, 255, 255, 0.16)',
-              border: '1px solid rgba(255, 255, 255, 0.25)',
+              width: '46px',
+              height: '46px',
+              borderRadius: '16px',
+              background: 'rgba(255, 255, 255, 0.2)',
+              border: '1.5px solid rgba(255, 255, 255, 0.35)',
+              backdropFilter: 'blur(6px)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#ffffff',
-              fontSize: '1.4rem'
+              fontSize: '1.5rem',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
             }}>
               💳
             </div>
           </div>
 
-          {/* 2 Mini Counters */}
+          {/* 2 Mini Counters with Frosted Glass */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
             gap: '8px',
-            background: 'rgba(0, 0, 0, 0.2)',
-            padding: '10px 12px',
-            borderRadius: '14px'
+            position: 'relative',
+            zIndex: 2
           }}>
-            <div>
-              <div style={{ fontSize: '0.62rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>Tunggakan SPP Bulanan</div>
-              <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#7dd3fc', marginTop: '2px' }}>
+            <div style={{
+              background: 'rgba(0, 0, 0, 0.22)',
+              backdropFilter: 'blur(6px)',
+              padding: '9px 12px',
+              borderRadius: '12px',
+              border: '1px solid rgba(255, 255, 255, 0.12)'
+            }}>
+              <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#bae6fd', textTransform: 'uppercase' }}>
+                Tunggakan SPP Bulanan
+              </div>
+              <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#ffffff', marginTop: '3px' }}>
                 {summary.formattedBulanan || 'Rp 0'}
               </div>
             </div>
-            <div>
-              <div style={{ fontSize: '0.62rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>Sisa Biaya Awal Masuk</div>
-              <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#fef08a', marginTop: '2px' }}>
+
+            <div style={{
+              background: 'rgba(0, 0, 0, 0.22)',
+              backdropFilter: 'blur(6px)',
+              padding: '9px 12px',
+              borderRadius: '12px',
+              border: '1px solid rgba(255, 255, 255, 0.12)'
+            }}>
+              <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#fed7aa', textTransform: 'uppercase' }}>
+                Sisa Biaya Awal Masuk
+              </div>
+              <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#fef08a', marginTop: '3px' }}>
                 {summary.formattedSisaBiayaMasuk || 'Rp 0'}
               </div>
             </div>

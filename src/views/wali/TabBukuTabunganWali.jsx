@@ -66,73 +66,116 @@ const TabBukuTabunganWali = ({
       </div>
 
       <div style={{ padding: '0 16px' }}>
-        {/* HERO STAT CARD TABUNGAN */}
+        {/* HERO STAT CARD TABUNGAN (LUXURY FINTECH GRADIENT) */}
         <div style={{
-          background: 'linear-gradient(135deg, #0d766e 0%, #044e42 100%)',
-          borderRadius: '20px',
-          padding: '16px 16px 14px',
+          background: 'linear-gradient(135deg, #059669 0%, #0d9488 45%, #064e3b 100%)',
+          borderRadius: '22px',
+          padding: '18px 18px 16px',
           color: '#ffffff',
-          boxShadow: '0 8px 24px -4px rgba(13, 118, 110, 0.35)',
-          marginBottom: '14px',
+          border: '1px solid rgba(167, 243, 208, 0.45)',
+          boxShadow: '0 12px 28px -4px rgba(5, 150, 105, 0.42), 0 4px 10px rgba(0, 0, 0, 0.06)',
+          marginBottom: '16px',
+          position: 'relative',
+          overflow: 'hidden',
           transition: 'all 0.25s ease'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+          {/* Ambient Glow */}
+          <div style={{
+            position: 'absolute',
+            top: '-30px',
+            right: '-30px',
+            width: '120px',
+            height: '120px',
+            borderRadius: '50%',
+            background: 'rgba(110, 231, 183, 0.25)',
+            filter: 'blur(30px)',
+            pointerEvents: 'none'
+          }} />
+
+          {/* Watermark */}
+          <div style={{
+            position: 'absolute',
+            right: '-8px',
+            bottom: '-12px',
+            fontSize: '5.5rem',
+            opacity: 0.1,
+            userSelect: 'none',
+            pointerEvents: 'none'
+          }}>
+            💰
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px', position: 'relative', zIndex: 2 }}>
             <div>
               <div style={{
-                fontSize: '0.65rem',
-                fontWeight: 700,
-                color: '#99f6e4',
+                fontSize: '0.66rem',
+                fontWeight: 800,
+                color: '#a7f3d0',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px'
               }}>
                 SALDO TABUNGAN SANTRI
               </div>
-              <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#ffffff', marginTop: '2px', letterSpacing: '-0.3px' }}>
+              <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#ffffff', marginTop: '2px', letterSpacing: '-0.3px', textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
                 {formatRp(tabunganData?.saldo_saat_ini || 0)}
               </div>
-              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.85)', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.88)', marginTop: '2px' }}>
                 Uang saku santri terkelola aman & amanah
               </div>
             </div>
 
             <div style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '14px',
-              background: 'rgba(255, 255, 255, 0.16)',
-              border: '1px solid rgba(255, 255, 255, 0.25)',
+              width: '46px',
+              height: '46px',
+              borderRadius: '16px',
+              background: 'rgba(255, 255, 255, 0.2)',
+              border: '1.5px solid rgba(255, 255, 255, 0.35)',
+              backdropFilter: 'blur(6px)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#ffffff',
-              fontSize: '1.4rem'
+              fontSize: '1.5rem',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
             }}>
               💰
             </div>
           </div>
 
-          {/* 2 Mini Counters */}
+          {/* 2 Mini Counters with Frosted Glass */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
             gap: '8px',
-            background: 'rgba(0, 0, 0, 0.22)',
-            padding: '10px 12px',
-            borderRadius: '14px'
+            position: 'relative',
+            zIndex: 2
           }}>
-            <div>
-              <div style={{ fontSize: '0.62rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                <ArrowDownLeft size={11} color="#4ade80" /> Total Uang Masuk
+            <div style={{
+              background: 'rgba(0, 0, 0, 0.22)',
+              backdropFilter: 'blur(6px)',
+              padding: '9px 12px',
+              borderRadius: '12px',
+              border: '1px solid rgba(255, 255, 255, 0.12)'
+            }}>
+              <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#a7f3d0', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase' }}>
+                <ArrowDownLeft size={12} color="#4ade80" strokeWidth={2.5} /> Total Uang Masuk
               </div>
-              <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#4ade80', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#4ade80', marginTop: '3px' }}>
                 +{formatRp(tabunganData?.total_masuk || 0)}
               </div>
             </div>
-            <div>
-              <div style={{ fontSize: '0.62rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                <ArrowUpRight size={11} color="#fca5a5" /> Total Pengambilan
+
+            <div style={{
+              background: 'rgba(0, 0, 0, 0.22)',
+              backdropFilter: 'blur(6px)',
+              padding: '9px 12px',
+              borderRadius: '12px',
+              border: '1px solid rgba(255, 255, 255, 0.12)'
+            }}>
+              <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#fecdd3', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase' }}>
+                <ArrowUpRight size={12} color="#fca5a5" strokeWidth={2.5} /> Total Pengambilan
               </div>
-              <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#fca5a5', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#fca5a5', marginTop: '3px' }}>
                 -{formatRp(tabunganData?.total_keluar || 0)}
               </div>
             </div>
