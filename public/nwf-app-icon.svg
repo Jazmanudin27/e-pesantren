@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#064e3b" />
+      <stop offset="50%" stop-color="#0d766e" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a7f3d0" stop-opacity="0.85" />
+      <stop offset="50%" stop-color="#fde68a" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#34d399" stop-opacity="0.85" />
+    </linearGradient>
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#022c22" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <!-- Full Bleed Luxury Emerald Background (Safe for Maskable & Adaptive Icons) -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+
+  <!-- Decorative Subtle Radial Glow -->
+  <circle cx="256" cy="256" r="220" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2" />
+
+  <!-- Outer Gold-Mint Accent Ring inside 80% Maskable Safe Zone -->
+  <circle cx="256" cy="256" r="184" fill="none" stroke="url(#ringGrad)" stroke-width="5" />
+
+  <!-- Crisp White Center Badge so Green Lotus Logo Contrasts Perfectly -->
+  <circle cx="256" cy="256" r="172" fill="#ffffff" filter="url(#cardShadow)" />
+
+  <!-- NWF Logo Scaled to 58% (296x296) Centered -> Never Clipped or Cut Off -->
+  <image
+    href="/nwf.png"
+    xlink:href="/nwf.png"
+    x="108"
+    y="108"
+    width="296"
+    height="296"
+    preserveAspectRatio="xMidYMid meet"
+  />
+</svg>
+

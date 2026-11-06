@@ -74,11 +74,17 @@ const TabBerandaWali = ({
   onNavigateTab,
   handleLogoutAction
 }) => {
-  // Hitung akumulasi presensi santri
-  const countHadir = presensiList.filter(p => (p.status || '').toLowerCase() === 'hadir').length;
-  const countSakit = presensiList.filter(p => (p.status || '').toLowerCase() === 'sakit').length;
-  const countIzin = presensiList.filter(p => (p.status || '').toLowerCase() === 'izin').length;
-  const countAlfa = presensiList.filter(p => ['alfa', 'tanpa keterangan', 'absen'].includes((p.status || '').toLowerCase())).length;
+  // Hitung akumulasi presensi santri (support 'Hadir', 'Hadir Tepat Waktu', 'Terlambat', 'Alfa', 'Alpha')
+  const countHadir = presensiList.filter(p => {
+    const st = (p.status || '').toLowerCase();
+    return st.includes('hadir') || st.includes('tepat') || st.includes('terlambat') || st.includes('masbuq');
+  }).length;
+  const countSakit = presensiList.filter(p => (p.status || '').toLowerCase().includes('sakit')).length;
+  const countIzin = presensiList.filter(p => (p.status || '').toLowerCase().includes('izin')).length;
+  const countAlfa = presensiList.filter(p => {
+    const st = (p.status || '').toLowerCase();
+    return st.includes('alfa') || st.includes('alpha') || st.includes('tanpa keterangan') || st.includes('absen');
+  }).length;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -104,26 +110,40 @@ const TabBerandaWali = ({
             style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', userSelect: 'none' }}
           >
             <div style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '13px',
-              background: '#ffffff',
+              width: '44px',
+              height: '44px',
+              borderRadius: '14px',
+              background: 'linear-gradient(145deg, rgba(255,255,255,0.28) 0%, rgba(167,243,208,0.15) 100%)',
+              border: '1.5px solid rgba(255, 255, 255, 0.42)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '6px',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.16)',
+              padding: '3.5px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.18)',
               flexShrink: 0
             }}>
-              <img 
-                src="/nwf.png" 
-                alt="NWF Logo" 
-                style={{ 
-                  width: '100%', 
-                  height: '100%', 
-                  objectFit: 'contain'
-                }} 
-              />
+              <div style={{
+                width: '100%',
+                height: '100%',
+                borderRadius: '10px',
+                background: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '4.5px',
+                boxSizing: 'border-box'
+              }}>
+                <img 
+                  src="/nwf.png" 
+                  alt="NWF Logo" 
+                  style={{ 
+                    width: '26px', 
+                    height: '26px', 
+                    objectFit: 'contain',
+                    display: 'block'
+                  }} 
+                />
+              </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>

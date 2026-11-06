@@ -165,17 +165,20 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
     };
   }, []);
 
-  // Scroll ke atas saat ganti tab
+  // Scroll ke atas & segarkan data di latar belakang saat ganti tab
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     if (document.body) document.body.scrollTop = 0;
     if (document.documentElement) document.documentElement.scrollTop = 0;
+    if (selectedSantriId && ["beranda", "absensi", "perizinan", "tahfidz", "praktek", "pelanggaran"].includes(currentTab)) {
+      fetchWaliData(selectedSantriId, true);
+    }
   }, [currentTab]);
 
   // Ambil data monitoring wali santri
-  const fetchWaliData = async (targetId = selectedSantriId) => {
+  const fetchWaliData = async (targetId = selectedSantriId, silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       let sessionNisn = "";
       let sessionNama = "";
       try {
@@ -211,9 +214,9 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
         }
       }
     } catch (err) {
-      console.warn("Gagal memuat data portal wali:", err.message);
+      if (!silent) console.warn("Gagal memuat data portal wali:", err.message);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -513,6 +516,8 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
         if (new_notifications.length > 0) {
           const newest = new_notifications[0];
           showShopeeHeadsUpNotification(newest);
+          // Segarkan otomatis data presensi/perizinan/tahfidz saat notifikasi baru masuk
+          fetchWaliData(targetId, true);
         } else if (lastSeenId === 0 && notifications.length > 0) {
           // Pertama kali buka & ada notifikasi yang belum dibaca -> munculkan 1x di atas layar
           const firstUnread = notifications.find((n) => Number(n.is_read) === 0);

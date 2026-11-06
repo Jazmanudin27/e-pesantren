@@ -3,6 +3,7 @@ import AdminLayout from './components/AdminLayout';
 import MobileLayout from './components/MobileLayout';
 import PortalWaliSantri from './views/wali/PortalWaliSantri';
 import SplashScreen from './components/SplashScreen';
+import PWAInstallModal from './components/PWAInstallModal';
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -63,6 +64,7 @@ export default function App() {
   return (
     <>
       {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
+      {(mode === 'mobile' || mode === 'wali') && <PWAInstallModal />}
       {mode === 'wali' ? (
         <PortalWaliSantri onLogout={() => { window.location.hash = '#login'; setMode(getMode()); }} />
       ) : mode === 'mobile' ? (

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, 
   Fingerprint, 
@@ -18,11 +18,22 @@ export default function TabAbsensiWali({
   const [absensiStatusFilter, setAbsensiStatusFilter] = useState('Semua');
 
   const isMengaji = (r) => {
+    const tipe = String(r.tipe_presensi || '').toLowerCase();
+    const name = String(r.nama_sesi || r.nama_kegiatan || r.kegiatan || '').toLowerCase();
     const kat = String(r.kategori_sesi || '').toLowerCase();
-    const name = String(r.nama_sesi || '').toLowerCase();
+
+    if (/shalat|sholat|subuh|shubuh|dzuhur|ashar|maghrib|isya|dhuha/i.test(name)) {
+      return false;
+    }
+    if (tipe === 'kegiatan' || tipe === 'mengaji') {
+      return true;
+    }
+    if (tipe === 'berjamaah') {
+      return false;
+    }
     return kat.includes('ngaji') || kat.includes('pengajian') || kat.includes('taklim') || kat.includes('halaqah') ||
            name.includes('ngaji') || name.includes('kitab') || name.includes('sorogan') || name.includes('diniyah') || 
-           name.includes('bandongan') || name.includes('taklim') || name.includes('materi');
+           name.includes('bandongan') || name.includes('taklim') || name.includes('materi') || name.includes('pegon') || name.includes('tahfidz');
   };
 
   const normalizeRowDate = (tgl) => {
@@ -49,17 +60,36 @@ export default function TabAbsensiWali({
   const listBerjamaah = dateFilteredPresensi.filter(r => !isMengaji(r));
   const listMengaji = dateFilteredPresensi.filter(r => isMengaji(r));
 
+  // Otomatis arahkan ke tab yang memiliki data jika tab berjamaah masih 0 tetapi mengaji sudah ada isinya
+  useEffect(() => {
+    if (listBerjamaah.length === 0 && listMengaji.length > 0 && absensiSubTab === 'berjamaah') {
+      setAbsensiSubTab('mengaji');
+    } else if (listMengaji.length === 0 && listBerjamaah.length > 0 && absensiSubTab === 'mengaji') {
+      setAbsensiSubTab('berjamaah');
+    }
+  }, [listBerjamaah.length, listMengaji.length]);
+
   const currentList = absensiSubTab === 'berjamaah' ? listBerjamaah : listMengaji;
 
   // Hitung statistik untuk subtab aktif
-  const totalHadir = currentList.filter(r => (r.status || '').toLowerCase().includes('hadir') || (r.status || '').toLowerCase().includes('tepat')).length;
+  const totalHadir = currentList.filter(r => {
+    const st = (r.status || '').toLowerCase();
+    return st.includes('hadir') || st.includes('tepat') || st.includes('terlambat') || st.includes('masbuq');
+  }).length;
   const totalSakit = currentList.filter(r => (r.status || '').toLowerCase().includes('sakit')).length;
   const totalIzin = currentList.filter(r => (r.status || '').toLowerCase().includes('izin')).length;
-  const totalAlfa = currentList.filter(r => (r.status || '').toLowerCase().includes('alfa') || (r.status || '').toLowerCase().includes('absen')).length;
+  const totalAlfa = currentList.filter(r => {
+    const st = (r.status || '').toLowerCase();
+    return st.includes('alfa') || st.includes('alpha') || st.includes('absen');
+  }).length;
 
   const filteredList = currentList.filter(row => {
     if (absensiStatusFilter === 'Semua') return true;
-    return (row.status || '').toLowerCase().includes(absensiStatusFilter.toLowerCase());
+    const st = (row.status || '').toLowerCase();
+    const flt = absensiStatusFilter.toLowerCase();
+    if (flt === 'hadir') return st.includes('hadir') || st.includes('tepat') || st.includes('terlambat') || st.includes('masbuq');
+    if (flt === 'alfa') return st.includes('alfa') || st.includes('alpha') || st.includes('absen');
+    return st.includes(flt);
   });
 
   return (

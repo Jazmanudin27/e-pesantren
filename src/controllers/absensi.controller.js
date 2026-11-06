@@ -50,6 +50,25 @@ export const ensureAbsensiTablesAndColumns = async () => {
       await pool.query(`ALTER TABLE absensi_jamaah_mengaji MODIFY COLUMN sesi_id INT NULL`);
     } catch (e) {}
 
+    // 3b. Ubah kolom status dari ENUM terbatas menjadi VARCHAR(100) agar 'Hadir' dan 'Alfa' tidak terpotong menjadi '' (kosong)
+    try {
+      await pool.query(`ALTER TABLE absensi_jamaah_mengaji MODIFY COLUMN status VARCHAR(100) NOT NULL DEFAULT 'Hadir'`);
+    } catch (e) {}
+
+    // 3c. Hapus UNIQUE KEY lama uq_absensi_sesi_santri (tanggal, sesi_id, santri_id) agar multi-sesi di hari yang sama tidak bentrok Duplicate Entry
+    try {
+      await pool.query(`ALTER TABLE absensi_jamaah_mengaji DROP INDEX uq_absensi_sesi_santri`);
+    } catch (e) {}
+
+    // 3d. Pulihkan baris absensi yang status-nya sempat kosong ('') akibat ENUM lama
+    try {
+      await pool.query(`
+        UPDATE absensi_jamaah_mengaji
+        SET status = 'Hadir'
+        WHERE status IS NULL OR TRIM(status) = ''
+      `);
+    } catch (e) {}
+
     // 4. Pastikan kolom metode_presensi VARCHAR (bisa simpan Wajah AI, QR Code, Fingerprint, dll)
     try {
       await pool.query(`ALTER TABLE absensi_jamaah_mengaji MODIFY COLUMN metode_presensi VARCHAR(100) DEFAULT 'Fingerprint'`);
@@ -403,22 +422,22 @@ export const createAbsensiFingerprint = async (req, res) => {
     const finalStatus = status || status_kehadiran || 'Hadir';
     const finalSantriId = parseInt(santri_id) || 1;
     const finalKegiatan = kegiatan || nama_sesi || 'Kegiatan Pesantren';
-    const isShalat = /shalat|sholat|subuh|dzuhur|ashar|maghrib|isya/i.test(finalKegiatan);
+    const isShalat = /shalat|sholat|subuh|shubuh|dzuhur|ashar|maghrib|isya|dhuha/i.test(finalKegiatan);
     const finalTipe = tipe_presensi || (isShalat ? 'Berjamaah' : 'Kegiatan');
     const finalKet = keterangan || keteledoran_keterangan || (metode_presensi || 'Scan Presensi');
     
-    // finalSesiId hanya di-assign integer jika memang shalat/valid di kegiatan_sesi
-    let parsedSesiId = parseInt(sesi_id);
-    if (isNaN(parsedSesiId) || parsedSesiId <= 0) {
-      parsedSesiId = isShalat ? 1 : null;
+    // finalSesiId hanya di-assign integer jika memang shalat (agar id materi_hafalan seperti Pegon id=1 tidak bentrok dengan kegiatan_sesi id=1 Shalat Subuh)
+    let parsedSesiId = isShalat ? parseInt(sesi_id) : null;
+    if (isShalat && (isNaN(parsedSesiId) || parsedSesiId <= 0)) {
+      parsedSesiId = 1;
     }
 
     // 1. CEK APAKAH SUDAH ADA RECORD (HARI YANG SAMA + KEGIATAN YANG SAMA + SANTRI YANG SAMA)
     const [existing] = await pool.query(`
       SELECT id FROM absensi_jamaah_mengaji 
       WHERE tanggal = ? AND santri_id = ? AND (
-        (nama_kegiatan IS NOT NULL AND nama_kegiatan = ?) OR 
-        (nama_kegiatan IS NULL AND sesi_id IS NOT NULL AND sesi_id = ?)
+        LOWER(TRIM(COALESCE(nama_kegiatan, ''))) = LOWER(TRIM(?))
+        OR (nama_kegiatan IS NULL AND sesi_id IS NOT NULL AND sesi_id = ?)
       )
       ORDER BY id DESC LIMIT 1
     `, [tgl, finalSantriId, finalKegiatan, parsedSesiId]).catch(() => [[]]);

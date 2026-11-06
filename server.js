@@ -34,6 +34,11 @@ app.use(express.static(publicPath));
 app.use('/api', apiRoutes);
 app.use('/', apiRoutes);
 
+// Fallback route for dynamic PWA icons before Service Worker claims the client
+app.get(['/pwa-icon-192.png', '/pwa-icon-512.png', '/pwa-icon-maskable-512.png'], (req, res) => {
+  res.sendFile(path.join(publicPath, 'nwf.png'));
+});
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });

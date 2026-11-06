@@ -1,5 +1,6 @@
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
+import { ensureAbsensiTablesAndColumns, syncActivePerizinanToAbsensi } from './absensi.controller.js';
 import bcrypt from 'bcryptjs';
 
 /**
@@ -7,7 +8,22 @@ import bcrypt from 'bcryptjs';
  */
 export const getWaliSantriData = async (req, res) => {
   try {
+    await ensureAbsensiTablesAndColumns();
+    await syncActivePerizinanToAbsensi();
+
     let santriId = null;
+
+    // Prioritas 0: Jika santri_id eksplisit dikirim (misal dari selectedSantriId yang sama dengan notifikasi), gunakan langsung jika valid
+    if (req.query.santri_id && parseInt(req.query.santri_id) > 0) {
+      const [byExplicitId] = await pool.query(
+        'SELECT id FROM santri WHERE id = ? LIMIT 1',
+        [parseInt(req.query.santri_id)]
+      );
+      if (byExplicitId && byExplicitId.length > 0) {
+        santriId = byExplicitId[0].id;
+      }
+    }
+
     let rawSearch = req.query.nisn || req.query.nis || req.query.nama || req.query.username || (req.user && (req.user.nama_santri || req.user.username || req.user.nama));
 
     // Bersihkan format pembungkus jika ada "(Wali ...)" atau "Orang Tua Santri"
@@ -21,10 +37,11 @@ export const getWaliSantriData = async (req, res) => {
       if (cleanSearch.toLowerCase().startsWith('wali santri ')) cleanSearch = cleanSearch.substring(12).trim();
       if (cleanSearch.toLowerCase().startsWith('wali ')) cleanSearch = cleanSearch.substring(5).trim();
       if (cleanSearch.toLowerCase().startsWith('orang tua santri')) cleanSearch = cleanSearch.replace(/^orang tua santri/i, '').replace(/^[^\w]+/, '').trim();
+      if (cleanSearch === '-') cleanSearch = '';
     }
 
     // Prioritas 1: Cari tepat berdasarkan cleanSearch (NISN / NIS / username / nama_santri) dari akun login
-    if (cleanSearch) {
+    if (!santriId && cleanSearch) {
       const [bySearch] = await pool.query(
         `SELECT id FROM santri 
          WHERE LOWER(TRIM(nisn)) = LOWER(TRIM(?)) 
@@ -154,34 +171,62 @@ export const getWaliSantriData = async (req, res) => {
       praktekIbadah = [];
     }
 
-    // 4. Data Presensi Berjamaah & Mengaji (Fingerprint)
+    // 4. Data Presensi Berjamaah & Mengaji (Fingerprint / Wajah AI / QR / Manual)
     let presensiJamaah = [];
     try {
-      let absSql = `
+      const absSql = `
         SELECT 
-          a.*,
-          ks.nama_sesi,
-          ks.kategori as kategori_sesi,
+          a.id,
+          a.santri_id,
+          a.sesi_id,
+          a.device_id,
+          DATE_FORMAT(a.tanggal, '%Y-%m-%d') as tanggal,
+          a.waktu_scan,
+          COALESCE(NULLIF(TRIM(a.status), ''), 'Hadir') as status,
+          COALESCE(NULLIF(TRIM(a.status), ''), 'Hadir') as status_kehadiran,
+          a.metode_presensi,
+          a.keterangan,
+          a.nama_kegiatan,
+          COALESCE(NULLIF(TRIM(a.nama_kegiatan), ''), ks.nama_sesi, 'Presensi Santri') as nama_sesi,
+          COALESCE(NULLIF(TRIM(a.nama_kegiatan), ''), ks.nama_sesi, 'Presensi Santri') as kegiatan,
+          COALESCE(NULLIF(TRIM(a.tipe_presensi), ''), CASE 
+            WHEN COALESCE(a.nama_kegiatan, ks.nama_sesi, '') REGEXP 'shalat|sholat|subuh|shubuh|dzuhur|ashar|maghrib|isya|dhuha' THEN 'Berjamaah'
+            ELSE 'Kegiatan'
+          END) as tipe_presensi,
+          CASE
+            WHEN COALESCE(a.tipe_presensi, '') = 'Kegiatan' THEN 'Pengajian / Mengaji'
+            WHEN COALESCE(a.nama_kegiatan, ks.nama_sesi, '') REGEXP 'shalat|sholat|subuh|shubuh|dzuhur|ashar|maghrib|isya|dhuha' THEN 'Shalat Berjamaah'
+            ELSE COALESCE(ks.kategori, 'Pengajian / Mengaji')
+          END as kategori_sesi,
           ks.jam_target
         FROM absensi_jamaah_mengaji a
         LEFT JOIN kegiatan_sesi ks ON a.sesi_id = ks.id
-        WHERE a.santri_id = ?
+        LEFT JOIN absensi_deleted_logs adl ON (adl.santri_id = a.santri_id AND adl.tanggal = a.tanggal)
+        WHERE a.santri_id = ? AND adl.id IS NULL
+        ORDER BY a.tanggal DESC, a.waktu_scan DESC, a.id DESC
+        LIMIT 500
       `;
-      const absParams = [santriId];
-      if (req.query.tgl_dari) {
-        absSql += ` AND a.tanggal >= ?`;
-        absParams.push(req.query.tgl_dari);
-      }
-      if (req.query.tgl_sampai) {
-        absSql += ` AND a.tanggal <= ?`;
-        absParams.push(req.query.tgl_sampai);
-      }
-      absSql += ` ORDER BY a.tanggal DESC, a.waktu_scan DESC, a.id DESC LIMIT 500`;
 
-      const [absRows] = await pool.query(absSql, absParams);
+      const [absRows] = await pool.query(absSql, [santriId]);
       presensiJamaah = absRows || [];
     } catch (e) {
-      presensiJamaah = [];
+      try {
+        const [fallbackRows] = await pool.query(`
+          SELECT 
+            a.*,
+            DATE_FORMAT(a.tanggal, '%Y-%m-%d') as tanggal,
+            COALESCE(NULLIF(TRIM(a.status), ''), 'Hadir') as status,
+            COALESCE(NULLIF(TRIM(a.nama_kegiatan), ''), 'Presensi Santri') as nama_sesi,
+            COALESCE(NULLIF(TRIM(a.tipe_presensi), ''), 'Berjamaah') as tipe_presensi
+          FROM absensi_jamaah_mengaji a
+          WHERE a.santri_id = ?
+          ORDER BY a.tanggal DESC, a.id DESC
+          LIMIT 500
+        `, [santriId]);
+        presensiJamaah = fallbackRows || [];
+      } catch (e2) {
+        presensiJamaah = [];
+      }
     }
 
     // 5. Data Perizinan Pulang & Keluar Pondok

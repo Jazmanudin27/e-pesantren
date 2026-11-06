@@ -2,8 +2,9 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/nwf.png" />
-    <link rel="apple-touch-icon" href="/nwf.png" />
+    <link rel="icon" type="image/svg+xml" href="/nwf-app-icon.svg" />
+    <link rel="alternate icon" type="image/png" href="/pwa-icon-192.png" />
+    <link rel="apple-touch-icon" href="/pwa-icon-192.png" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#0d766e" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -17,10 +18,22 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Amiri:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-    <!-- Midtrans Snap JS SDK (Sandbox) & Telemetry Suppressor -->
+    <!-- Midtrans Snap JS SDK (Sandbox) & Telemetry Suppressor + Early PWA Prompt Capture -->
     <script>
       (function() {
-        // Redam pesan error telemetri Faro GoPay yang diblokir oleh AdBlocker di browser
+        // 1. Tangkap event beforeinstallprompt sedini mungkin (sebelum React mount / saat SplashScreen)
+        window.__deferredPwaPrompt = null;
+        window.addEventListener('beforeinstallprompt', function(e) {
+          e.preventDefault();
+          window.__deferredPwaPrompt = e;
+          window.dispatchEvent(new CustomEvent('pwa-install-available', { detail: e }));
+        });
+        window.addEventListener('appinstalled', function() {
+          window.__deferredPwaPrompt = null;
+          window.dispatchEvent(new CustomEvent('pwa-app-installed'));
+        });
+
+        // 2. Redam pesan error telemetri Faro GoPay yang diblokir oleh AdBlocker di browser
         const origConsoleError = console.error;
         console.error = function(...args) {
           const str = args.map(a => String(a?.message || a || '')).join(' ');
