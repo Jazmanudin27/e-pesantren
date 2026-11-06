@@ -278,16 +278,17 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: '90px' }}>
       
-      {/* Top Header Bar */}
+      {/* Top Header Bar Terpadu Emerald Green (Persis Absensi) */}
       <div style={{
         background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-        padding: '16px 16px 24px',
+        padding: '16px 16px 20px',
         color: '#ffffff',
         borderBottomLeftRadius: '24px',
         borderBottomRightRadius: '24px',
-        boxShadow: '0 8px 20px rgba(5, 150, 105, 0.25)'
+        boxShadow: '0 8px 20px rgba(5, 150, 105, 0.25)',
+        marginBottom: '16px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {onBack && (
               <button 
@@ -301,97 +302,157 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
               <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
                 Tagihan & Pembayaran
               </h2>
-              <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '2px' }}>
-                Santri: {data?.santri?.nama_santri || 'Santri Nurul Wafa'} (NISN: {data?.santri?.nisn || data?.santri?.nis || '-'})
-              </div>
             </div>
           </div>
 
           <button 
             onClick={fetchKeuangan}
-            style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', width: '34px', height: '34px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-            title="Refresh Tagihan"
+            style={{
+              width: '34px',
+              height: '34px',
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.2)',
+              border: 'none',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer'
+            }}
+            title="Segarkan Data Tagihan"
           >
-            <RotateCw size={16} />
+            <RotateCw size={17} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
+      </div>
 
-        {/* 3 SUMMARY CARDS - SESUAI CONTOH PROMPT */}
+      <div style={{ padding: '0 16px' }}>
+        {/* HERO STAT CARD */}
         <div style={{
-          background: 'rgba(255, 255, 255, 0.16)',
-          backdropFilter: 'blur(10px)',
-          borderRadius: '18px',
-          border: '1px solid rgba(255, 255, 255, 0.25)',
-          padding: '16px'
+          background: 'linear-gradient(135deg, #0284c7 0%, #0c4a6e 100%)',
+          borderRadius: '20px',
+          padding: '16px 16px 14px',
+          color: '#ffffff',
+          boxShadow: '0 8px 24px -4px rgba(2, 132, 199, 0.35)',
+          marginBottom: '14px',
+          transition: 'all 0.25s ease'
         }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#e6fffa', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            TOTAL SELURUH TAGIHAN BELUM DIBAYAR
-          </div>
-          <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#ffffff', margin: '4px 0 12px', letterSpacing: '-0.5px' }}>
-            {summary.formattedTotalBelumBayar || 'Rp 0'}
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
-            <div style={{ background: 'rgba(0,0,0,0.15)', padding: '10px', borderRadius: '12px' }}>
-              <div style={{ fontSize: '0.68rem', color: '#a7f3d0', fontWeight: 600 }}>Tunggakan SPP Bulanan</div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff', marginTop: '2px' }}>
-                {summary.formattedBulanan || 'Rp 0'}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+            <div>
+              <div style={{
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                color: '#bae6fd',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                TOTAL SELURUH TAGIHAN
+              </div>
+              <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#ffffff', marginTop: '2px', letterSpacing: '-0.3px' }}>
+                {summary.formattedTotalBelumBayar || 'Rp 0'}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.85)', marginTop: '2px' }}>
+                SPP bulanan, uang masuk & administrasi santri
               </div>
             </div>
 
-            <div style={{ background: 'rgba(0,0,0,0.15)', padding: '10px', borderRadius: '12px' }}>
-              <div style={{ fontSize: '0.68rem', color: '#a7f3d0', fontWeight: 600 }}>Sisa Biaya Awal Masuk</div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff', marginTop: '2px' }}>
+            <div style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '14px',
+              background: 'rgba(255, 255, 255, 0.16)',
+              border: '1px solid rgba(255, 255, 255, 0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ffffff',
+              fontSize: '1.4rem'
+            }}>
+              💳
+            </div>
+          </div>
+
+          {/* 2 Mini Counters */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '8px',
+            background: 'rgba(0, 0, 0, 0.2)',
+            padding: '10px 12px',
+            borderRadius: '14px'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.62rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>Tunggakan SPP Bulanan</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#7dd3fc', marginTop: '2px' }}>
+                {summary.formattedBulanan || 'Rp 0'}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.62rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>Sisa Biaya Awal Masuk</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#fef08a', marginTop: '2px' }}>
                 {summary.formattedSisaBiayaMasuk || 'Rp 0'}
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Switch Sub-Tabs */}
-      <div style={{ padding: '14px 16px 0', display: 'flex', gap: '8px' }}>
-        <button
-          onClick={() => setActiveSubTab('tagihan')}
-          style={{
-            flex: 1,
-            padding: '10px',
-            borderRadius: '12px',
-            border: 'none',
-            fontSize: '0.82rem',
-            fontWeight: 800,
-            cursor: 'pointer',
-            background: activeSubTab === 'tagihan' ? '#059669' : '#e2e8f0',
-            color: activeSubTab === 'tagihan' ? '#fff' : '#64748b',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px'
-          }}
-        >
-          <CreditCard size={15} /> Tagihan Belum Lunas
-        </button>
-
-        <button
-          onClick={() => setActiveSubTab('riwayat')}
-          style={{
-            flex: 1,
-            padding: '10px',
-            borderRadius: '12px',
-            border: 'none',
-            fontSize: '0.82rem',
-            fontWeight: 800,
-            cursor: 'pointer',
-            background: activeSubTab === 'riwayat' ? '#059669' : '#e2e8f0',
-            color: activeSubTab === 'riwayat' ? '#fff' : '#64748b',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px'
-          }}
-        >
-          <FileText size={15} /> Riwayat & Kuitansi
-        </button>
+        {/* 2 SEGMENT TABS: TAGIHAN AKTIF & RIWAYAT PEMBAYARAN */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '4px',
+          background: '#e2e8f0',
+          padding: '3px',
+          borderRadius: '14px',
+          marginBottom: '4px'
+        }}>
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('tagihan')}
+            style={{
+              padding: '9px 12px',
+              borderRadius: '11px',
+              border: 'none',
+              fontSize: '0.78rem',
+              fontWeight: activeSubTab === 'tagihan' ? 800 : 600,
+              cursor: 'pointer',
+              background: activeSubTab === 'tagihan' ? '#ffffff' : 'transparent',
+              color: activeSubTab === 'tagihan' ? '#0f172a' : '#64748b',
+              boxShadow: activeSubTab === 'tagihan' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
+            }}
+          >
+            <CreditCard size={14} color={activeSubTab === 'tagihan' ? '#0284c7' : '#64748b'} />
+            Tagihan Belum Lunas
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('riwayat')}
+            style={{
+              padding: '9px 12px',
+              borderRadius: '11px',
+              border: 'none',
+              fontSize: '0.78rem',
+              fontWeight: activeSubTab === 'riwayat' ? 800 : 600,
+              cursor: 'pointer',
+              background: activeSubTab === 'riwayat' ? '#ffffff' : 'transparent',
+              color: activeSubTab === 'riwayat' ? '#0f172a' : '#64748b',
+              boxShadow: activeSubTab === 'riwayat' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
+            }}
+          >
+            <FileText size={14} color={activeSubTab === 'riwayat' ? '#0284c7' : '#64748b'} />
+            Riwayat & Kuitansi
+          </button>
+        </div>
       </div>
 
       {/* SUB-TAB 1: TAGIHAN AKTIF */}

@@ -1,0 +1,26 @@
+{
+  "name": "NWF Mobile - PP. Nurul Wafa",
+  "short_name": "NWF Mobile",
+  "description": "Aplikasi Mobile Pesantren & Portal Wali Santri Pondok Pesantren Nurul Wafa",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d766e",
+  "theme_color": "#0d766e",
+  "icons": [
+    {
+      "src": "/nwf.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/nwf.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
+
