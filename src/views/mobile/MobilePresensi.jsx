@@ -60,6 +60,17 @@ const getTodayDateStr = () => {
   return `${year}-${month}-${day}`;
 };
 
+const getCurrentMonthRange = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+  return {
+    dari: `${year}-${month}-01`,
+    sampai: `${year}-${month}-${String(lastDay).padStart(2, "0")}`,
+  };
+};
+
 const normalizeDateStr = (rawDate) => {
   if (!rawDate) return "";
   if (typeof rawDate === "string") {
@@ -115,8 +126,9 @@ export default function MobilePresensi() {
   // Riwayat State
   const [searchRiwayat, setSearchRiwayat] = useState("");
   const [filterStatusRiwayat, setFilterStatusRiwayat] = useState("Semua");
-  const [filterTanggalRiwayat, setFilterTanggalRiwayat] =
-    useState(getTodayDateStr);
+  const defaultMonthRange = getCurrentMonthRange();
+  const [filterTanggalDari, setFilterTanggalDari] = useState(defaultMonthRange.dari);
+  const [filterTanggalSampai, setFilterTanggalSampai] = useState(defaultMonthRange.sampai);
 
   // Audio & Sound
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -1911,7 +1923,8 @@ export default function MobilePresensi() {
 
     const itemTgl = normalizeDateStr(log.tanggal);
     const matchTanggal =
-      !filterTanggalRiwayat || itemTgl === filterTanggalRiwayat;
+      (!filterTanggalDari || itemTgl >= filterTanggalDari) &&
+      (!filterTanggalSampai || itemTgl <= filterTanggalSampai);
 
     return matchSearch && matchStatus && matchTanggal;
   });
@@ -1931,9 +1944,10 @@ export default function MobilePresensi() {
     } else if (activeKategori === "mengaji") {
       if (isLogBerjamaah(l)) return false;
     }
+    const itemTgl = normalizeDateStr(l.tanggal);
     return (
-      !filterTanggalRiwayat ||
-      normalizeDateStr(l.tanggal) === filterTanggalRiwayat
+      (!filterTanggalDari || itemTgl >= filterTanggalDari) &&
+      (!filterTanggalSampai || itemTgl <= filterTanggalSampai)
     );
   });
 
@@ -3571,18 +3585,14 @@ export default function MobilePresensi() {
             </div>
           </div>
 
-          {/* Filter Tanggal Riwayat (Sesuai Permintaan) */}
+          {/* Filter Tanggal Riwayat (Dari - Sampai, Otomatis Per Bulan) */}
           <div
             style={{
               background: "#ffffff",
               borderRadius: "16px",
-              padding: "10px 14px",
+              padding: "12px 14px",
               border: "1.5px solid #e2e8f0",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "10px",
-              marginBottom: "10px",
+              marginBottom: "12px",
               boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
             }}
           >
@@ -3590,101 +3600,182 @@ export default function MobilePresensi() {
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "8px",
-                flex: 1,
+                justifyContent: "space-between",
+                marginBottom: "8px",
+                flexWrap: "wrap",
+                gap: "6px",
               }}
             >
-              <Calendar size={18} color="#7c3aed" />
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <span
-                  style={{
-                    fontSize: "0.64rem",
-                    fontWeight: 800,
-                    color: "#64748b",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Filter Tanggal Riwayat
-                </span>
-                <input
-                  type="date"
-                  value={filterTanggalRiwayat}
-                  onChange={(e) => setFilterTanggalRiwayat(e.target.value)}
-                  style={{
-                    border: "none",
-                    outline: "none",
-                    fontSize: "0.86rem",
-                    fontWeight: 800,
-                    color: "#1e293b",
-                    background: "transparent",
-                    cursor: "pointer",
-                    padding: 0,
-                  }}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-              <button
-                type="button"
-                onClick={() => {
-                  fetchData();
-                  toastSuccess("Sinkronisasi ulang dari MySQL...");
-                }}
+              <div
                 style={{
-                  background: "#f0fdf4",
-                  border: "1px solid #bbf7d0",
-                  color: "#15803d",
-                  fontSize: "0.72rem",
-                  fontWeight: 800,
-                  padding: "5px 8px",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  display: "inline-flex",
+                  display: "flex",
                   alignItems: "center",
-                  gap: "4px",
+                  gap: "6px",
+                  fontSize: "0.74rem",
+                  fontWeight: 800,
+                  color: "#7c3aed",
                 }}
-                title="Refresh Riwayat Langsung dari Database MySQL"
               >
-                <RefreshCw size={12} /> Sync
-              </button>
-              {filterTanggalRiwayat !== getTodayDateStr() && (
+                <Calendar size={16} />
+                <span>Filter Tanggal (Otomatis Per Bulan)</span>
+              </div>
+
+              <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
                 <button
                   type="button"
-                  onClick={() => setFilterTanggalRiwayat(getTodayDateStr())}
+                  onClick={() => {
+                    const r = getCurrentMonthRange();
+                    setFilterTanggalDari(r.dari);
+                    setFilterTanggalSampai(r.sampai);
+                  }}
                   style={{
                     background: "#f5f3ff",
                     border: "1px solid #ddd6fe",
                     color: "#7c3aed",
-                    fontSize: "0.72rem",
+                    fontSize: "0.66rem",
                     fontWeight: 800,
-                    padding: "5px 10px",
-                    borderRadius: "8px",
+                    padding: "4px 8px",
+                    borderRadius: "7px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Bulan Ini
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const today = getTodayDateStr();
+                    setFilterTanggalDari(today);
+                    setFilterTanggalSampai(today);
+                  }}
+                  style={{
+                    background: "#ecfdf5",
+                    border: "1px solid #bbf7d0",
+                    color: "#059669",
+                    fontSize: "0.66rem",
+                    fontWeight: 800,
+                    padding: "4px 8px",
+                    borderRadius: "7px",
                     cursor: "pointer",
                   }}
                 >
                   Hari Ini
                 </button>
-              )}
-              {filterTanggalRiwayat && (
+                {(filterTanggalDari || filterTanggalSampai) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilterTanggalDari("");
+                      setFilterTanggalSampai("");
+                    }}
+                    style={{
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      color: "#64748b",
+                      fontSize: "0.66rem",
+                      fontWeight: 700,
+                      padding: "4px 8px",
+                      borderRadius: "7px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Semua
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => setFilterTanggalRiwayat("")}
-                  style={{
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    color: "#64748b",
-                    fontSize: "0.72rem",
-                    fontWeight: 700,
-                    padding: "5px 10px",
-                    borderRadius: "8px",
-                    cursor: "pointer",
+                  onClick={() => {
+                    fetchData();
+                    toastSuccess("Sinkronisasi ulang dari MySQL...");
                   }}
-                  title="Tampilkan seluruh riwayat"
+                  style={{
+                    background: "#eff6ff",
+                    border: "1px solid #bfdbfe",
+                    color: "#1d4ed8",
+                    fontSize: "0.66rem",
+                    fontWeight: 800,
+                    padding: "4px 8px",
+                    borderRadius: "7px",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "3px",
+                  }}
+                  title="Refresh Riwayat Langsung dari Database MySQL"
                 >
-                  Semua
+                  <RefreshCw size={11} /> Sync
                 </button>
-              )}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "8px",
+              }}
+            >
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.64rem",
+                    fontWeight: 700,
+                    color: "#64748b",
+                    marginBottom: "3px",
+                  }}
+                >
+                  Dari Tanggal
+                </label>
+                <input
+                  type="date"
+                  value={filterTanggalDari}
+                  onChange={(e) => setFilterTanggalDari(e.target.value)}
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding: "7px 8px",
+                    borderRadius: "10px",
+                    border: "1px solid #cbd5e1",
+                    fontSize: "0.78rem",
+                    fontWeight: 700,
+                    color: "#0f172a",
+                    background: "#f8fafc",
+                    outline: "none",
+                  }}
+                />
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.64rem",
+                    fontWeight: 700,
+                    color: "#64748b",
+                    marginBottom: "3px",
+                  }}
+                >
+                  Sampai Tanggal
+                </label>
+                <input
+                  type="date"
+                  value={filterTanggalSampai}
+                  onChange={(e) => setFilterTanggalSampai(e.target.value)}
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding: "7px 8px",
+                    borderRadius: "10px",
+                    border: "1px solid #cbd5e1",
+                    fontSize: "0.78rem",
+                    fontWeight: 700,
+                    color: "#0f172a",
+                    background: "#f8fafc",
+                    outline: "none",
+                  }}
+                />
+              </div>
             </div>
           </div>
 

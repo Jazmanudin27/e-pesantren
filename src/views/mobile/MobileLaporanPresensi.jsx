@@ -52,7 +52,20 @@ export default function MobileLaporanPresensi() {
     return statusStr;
   };
 
-  const [filterTanggal, setFilterTanggal] = useState(getTodayDateStr);
+  const getCurrentMonthRange = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+    return {
+      dari: `${year}-${month}-01`,
+      sampai: `${year}-${month}-${String(lastDay).padStart(2, "0")}`,
+    };
+  };
+
+  const defaultMonthRange = getCurrentMonthRange();
+  const [filterTanggalDari, setFilterTanggalDari] = useState(defaultMonthRange.dari);
+  const [filterTanggalSampai, setFilterTanggalSampai] = useState(defaultMonthRange.sampai);
   const [selectedStatusTab, setSelectedStatusTab] = useState("Semua");
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -152,22 +165,25 @@ export default function MobileLaporanPresensi() {
         : sp.tgl_kembali_rencana || sp.tgl_kembali_aktual,
     );
 
-    if (tglMulai && filterTanggal < tglMulai) return false;
-    if (tglSelesai && filterTanggal > tglSelesai && !st.includes("terlambat"))
+    if (tglMulai && filterTanggalSampai && filterTanggalSampai < tglMulai) return false;
+    if (tglSelesai && filterTanggalDari && filterTanggalDari > tglSelesai && !st.includes("terlambat"))
       return false;
 
     return true;
   });
 
-  // Gabungkan logs hari ini dengan active perizinan jika belum tercatat atau statusnya belum Izin
+  // Gabungkan logs rentang tanggal dengan active perizinan jika belum tercatat atau statusnya belum Izin
   const logsForSelectedDate = (() => {
     const list = [
-      ...presensiLogs.filter(
-        (l) => normalizeDateStr(l.tanggal) === filterTanggal,
-      ),
+      ...presensiLogs.filter((l) => {
+        const itemDate = normalizeDateStr(l.tanggal);
+        if (filterTanggalDari && itemDate && itemDate < filterTanggalDari) return false;
+        if (filterTanggalSampai && itemDate && itemDate > filterTanggalSampai) return false;
+        return true;
+      }),
     ];
 
-    // Pastikan santri yang izin/sakit pada tanggal ini ada di list
+    // Pastikan santri yang izin/sakit pada rentang tanggal ini ada di list
     activePerizinanOnDate.forEach((sp) => {
       const isSakit =
         (sp.jenis_izin || "").toLowerCase().includes("sakit") ||
@@ -190,7 +206,7 @@ export default function MobileLaporanPresensi() {
         nis: sp.nis,
         nama_asrama: sp.nama_asrama || "-",
         nama_kamar: sp.nama_kamar || "-",
-        tanggal: filterTanggal,
+        tanggal: normalizeDateStr(sp.tgl_keluar_aktual || sp.tgl_keluar_rencana) || filterTanggalDari,
         waktu_scan: "00:00:00",
         status_kehadiran: st,
         status: st,
@@ -348,45 +364,175 @@ export default function MobileLaporanPresensi() {
           Terintegrasi otomatis dengan perizinan santri (izin pulang / sakit).
         </p>
 
-        {/* Date Filter Picker in Banner */}
+        {/* Date Filter Picker in Banner (Dari - Sampai, Otomatis Per Bulan) */}
         <div
           style={{
             marginTop: "14px",
-            background: "rgba(255, 255, 255, 0.16)",
-            borderRadius: "12px",
-            padding: "8px 12px",
+            background: "rgba(0, 0, 0, 0.2)",
+            borderRadius: "14px",
+            padding: "10px 12px",
             display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
+            flexDirection: "column",
+            gap: "8px",
           }}
         >
-          <span
+          <div
             style={{
-              fontSize: "0.76rem",
-              fontWeight: 700,
               display: "flex",
               alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
               gap: "6px",
             }}
           >
-            <Calendar size={14} /> Tanggal:
-          </span>
-          <input
-            type="date"
-            value={filterTanggal}
-            onChange={(e) => setFilterTanggal(e.target.value)}
+            <span
+              style={{
+                fontSize: "0.72rem",
+                fontWeight: 800,
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                color: "#e0f2fe",
+              }}
+            >
+              <Calendar size={14} /> Filter Tanggal (Otomatis Per Bulan)
+            </span>
+
+            <div style={{ display: "flex", gap: "4px" }}>
+              <button
+                type="button"
+                onClick={() => {
+                  const r = getCurrentMonthRange();
+                  setFilterTanggalDari(r.dari);
+                  setFilterTanggalSampai(r.sampai);
+                }}
+                style={{
+                  background: "rgba(255, 255, 255, 0.2)",
+                  border: "1px solid rgba(255, 255, 255, 0.3)",
+                  color: "#ffffff",
+                  fontSize: "0.64rem",
+                  fontWeight: 800,
+                  padding: "3px 8px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                Bulan Ini
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const today = getTodayDateStr();
+                  setFilterTanggalDari(today);
+                  setFilterTanggalSampai(today);
+                }}
+                style={{
+                  background: "rgba(255, 255, 255, 0.2)",
+                  border: "1px solid rgba(255, 255, 255, 0.3)",
+                  color: "#ffffff",
+                  fontSize: "0.64rem",
+                  fontWeight: 800,
+                  padding: "3px 8px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                Hari Ini
+              </button>
+              {(filterTanggalDari || filterTanggalSampai) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterTanggalDari("");
+                    setFilterTanggalSampai("");
+                  }}
+                  style={{
+                    background: "rgba(0, 0, 0, 0.25)",
+                    border: "1px solid rgba(255, 255, 255, 0.2)",
+                    color: "#cbd5e1",
+                    fontSize: "0.64rem",
+                    fontWeight: 700,
+                    padding: "3px 8px",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Semua
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div
             style={{
-              background: "#ffffff",
-              border: "none",
-              borderRadius: "8px",
-              padding: "4px 8px",
-              fontSize: "0.76rem",
-              fontWeight: 700,
-              color: "#0f172a",
-              outline: "none",
-              cursor: "pointer",
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "8px",
             }}
-          />
+          >
+            <div>
+              <span
+                style={{
+                  display: "block",
+                  fontSize: "0.62rem",
+                  fontWeight: 700,
+                  color: "rgba(255, 255, 255, 0.8)",
+                  marginBottom: "2px",
+                }}
+              >
+                Dari
+              </span>
+              <input
+                type="date"
+                value={filterTanggalDari}
+                onChange={(e) => setFilterTanggalDari(e.target.value)}
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  background: "#ffffff",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "6px 8px",
+                  fontSize: "0.76rem",
+                  fontWeight: 700,
+                  color: "#0f172a",
+                  outline: "none",
+                  cursor: "pointer",
+                }}
+              />
+            </div>
+            <div>
+              <span
+                style={{
+                  display: "block",
+                  fontSize: "0.62rem",
+                  fontWeight: 700,
+                  color: "rgba(255, 255, 255, 0.8)",
+                  marginBottom: "2px",
+                }}
+              >
+                Sampai
+              </span>
+              <input
+                type="date"
+                value={filterTanggalSampai}
+                onChange={(e) => setFilterTanggalSampai(e.target.value)}
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  background: "#ffffff",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "6px 8px",
+                  fontSize: "0.76rem",
+                  fontWeight: 700,
+                  color: "#0f172a",
+                  outline: "none",
+                  cursor: "pointer",
+                }}
+              />
+            </div>
+          </div>
         </div>
 
         {/* 4 KPI Boxes */}

@@ -97,6 +97,22 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   const [absensiSubTab, setAbsensiSubTab] = useState('berjamaah'); // 'berjamaah' | 'mengaji'
   const [profileSection, setProfileSection] = useState('semua'); // 'semua' | 'biodata' | 'asrama' | 'diniyah' | 'kitab' | 'asatidz' | 'keamanan'
 
+  // Helper rentang tanggal bulan berjalan (Awal bulan s/d Akhir bulan)
+  const getCurrentMonthRange = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+    return {
+      dari: `${year}-${month}-01`,
+      sampai: `${year}-${month}-${String(lastDay).padStart(2, '0')}`
+    };
+  };
+
+  const initialMonthRange = getCurrentMonthRange();
+  const [absensiTglDari, setAbsensiTglDari] = useState(initialMonthRange.dari);
+  const [absensiTglSampai, setAbsensiTglSampai] = useState(initialMonthRange.sampai);
+
   // Password Update Form State
   const [passwordForm, setPasswordForm] = useState({
     username_baru: '',
@@ -203,6 +219,8 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
       if (sessionNisn) params.append('nisn', sessionNisn);
       if (sessionNama) params.append('nama', sessionNama);
       if (targetId) params.append('santri_id', targetId);
+      if (absensiTglDari) params.append('tgl_dari', absensiTglDari);
+      if (absensiTglSampai) params.append('tgl_sampai', absensiTglSampai);
       const qStr = params.toString();
       if (qStr) url += `?${qStr}`;
 
@@ -343,6 +361,12 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
     fetchLatestFeed();
     fetchSantriTabungan();
   }, [selectedSantriId]);
+
+  useEffect(() => {
+    if (selectedSantriId) {
+      fetchWaliData(selectedSantriId);
+    }
+  }, [absensiTglDari, absensiTglSampai]);
 
   const handleSantriChange = (newId) => {
     setSelectedSantriId(newId);
@@ -1311,126 +1335,135 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
-            {/* SECTION MENU: 9 ITEMS KLASIK, MODERN & ELEGAN (CARD PUTIH PERSIS MOBILE ADMIN) */}
-            <div style={{ padding: '16px 14px 4px' }}>
+            {/* SECTION MENU LAYANAN: DIBUNGKUS CARD BG PUTIH & FONT LEBIH KECIL */}
+            <div style={{ padding: '14px 14px 4px' }}>
               <div style={{
-                fontSize: '0.85rem',
-                fontWeight: 800,
-                color: '#0f172a',
-                marginBottom: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                letterSpacing: '-0.2px'
+                background: '#ffffff',
+                borderRadius: '22px',
+                padding: '16px 12px 14px',
+                border: '1px solid #f1f5f9',
+                boxShadow: '0 4px 18px -2px rgba(15, 23, 42, 0.06)'
               }}>
-                <span style={{
-                  width: '4px',
-                  height: '15px',
-                  background: '#0d766e',
-                  borderRadius: '4px'
-                }} />
-                Menu Layanan Santri
-              </div>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(4, 1fr)',
-                gap: '14px 6px',
-                justifyItems: 'center'
-              }}>
-                {/* 1. Tabungan Santri */}
-                <div onClick={() => setCurrentTab('tabungan')} style={menuCardStyle}>
-                  <div style={{
-                    ...squircleIconStyle,
-                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                    boxShadow: '0 8px 18px -2px rgba(16, 185, 129, 0.45)'
-                  }}>
-                    <Wallet size={26} strokeWidth={2.3} color="#ffffff" />
-                  </div>
-                  <span style={menuLabelStyle}>Tabungan</span>
+                <div style={{
+                  fontSize: '0.84rem',
+                  fontWeight: 800,
+                  color: '#0f172a',
+                  marginBottom: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  letterSpacing: '-0.2px'
+                }}>
+                  <span style={{
+                    width: '4px',
+                    height: '14px',
+                    background: '#0d766e',
+                    borderRadius: '4px'
+                  }} />
+                  Menu Layanan Santri
                 </div>
 
-                {/* 2. Bayar SPP / Tagihan */}
-                <div onClick={() => setCurrentTab('tagihan')} style={menuCardStyle}>
-                  <div style={{
-                    ...squircleIconStyle,
-                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                    boxShadow: '0 8px 18px -2px rgba(59, 130, 246, 0.45)'
-                  }}>
-                    <CreditCard size={26} strokeWidth={2.3} color="#ffffff" />
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: '12px 4px',
+                  justifyItems: 'center'
+                }}>
+                  {/* 1. Tabungan Santri */}
+                  <div onClick={() => setCurrentTab('tabungan')} style={menuCardStyle}>
+                    <div style={{
+                      ...squircleIconStyle,
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      boxShadow: '0 6px 16px -2px rgba(16, 185, 129, 0.38)'
+                    }}>
+                      <Wallet size={23} strokeWidth={2.3} color="#ffffff" />
+                    </div>
+                    <span style={menuLabelStyle}>Tabungan</span>
                   </div>
-                  <span style={menuLabelStyle}>Bayar SPP</span>
-                </div>
 
-                {/* 3. Presensi Sholat / Berjamaah */}
-                <div onClick={() => setCurrentTab('absensi')} style={menuCardStyle}>
-                  <div style={{
-                    ...squircleIconStyle,
-                    background: 'linear-gradient(135deg, #06b6d4 0%, #0284c7 100%)',
-                    boxShadow: '0 8px 18px -2px rgba(6, 182, 212, 0.45)'
-                  }}>
-                    <Fingerprint size={26} strokeWidth={2.3} color="#ffffff" />
+                  {/* 2. Bayar SPP / Tagihan */}
+                  <div onClick={() => setCurrentTab('tagihan')} style={menuCardStyle}>
+                    <div style={{
+                      ...squircleIconStyle,
+                      background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                      boxShadow: '0 6px 16px -2px rgba(59, 130, 246, 0.38)'
+                    }}>
+                      <CreditCard size={23} strokeWidth={2.3} color="#ffffff" />
+                    </div>
+                    <span style={menuLabelStyle}>Bayar SPP</span>
                   </div>
-                  <span style={menuLabelStyle}>Berjamaah</span>
-                </div>
 
-                {/* 4. Tahfidz */}
-                <div onClick={() => setCurrentTab('hafalan')} style={menuCardStyle}>
-                  <div style={{
-                    ...squircleIconStyle,
-                    background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
-                    boxShadow: '0 8px 18px -2px rgba(168, 85, 247, 0.45)'
-                  }}>
-                    <BookOpen size={26} strokeWidth={2.3} color="#ffffff" />
+                  {/* 3. Presensi Sholat / Berjamaah */}
+                  <div onClick={() => setCurrentTab('absensi')} style={menuCardStyle}>
+                    <div style={{
+                      ...squircleIconStyle,
+                      background: 'linear-gradient(135deg, #06b6d4 0%, #0284c7 100%)',
+                      boxShadow: '0 6px 16px -2px rgba(6, 182, 212, 0.38)'
+                    }}>
+                      <Fingerprint size={23} strokeWidth={2.3} color="#ffffff" />
+                    </div>
+                    <span style={menuLabelStyle}>Berjamaah</span>
                   </div>
-                  <span style={menuLabelStyle}>Tahfidz</span>
-                </div>
 
-                {/* 5. Perizinan Pulang */}
-                <div onClick={() => setCurrentTab('perizinan')} style={menuCardStyle}>
-                  <div style={{
-                    ...squircleIconStyle,
-                    background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-                    boxShadow: '0 8px 18px -2px rgba(249, 115, 22, 0.45)'
-                  }}>
-                    <Clock size={26} strokeWidth={2.3} color="#ffffff" />
+                  {/* 4. Tahfidz */}
+                  <div onClick={() => setCurrentTab('hafalan')} style={menuCardStyle}>
+                    <div style={{
+                      ...squircleIconStyle,
+                      background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                      boxShadow: '0 6px 16px -2px rgba(168, 85, 247, 0.38)'
+                    }}>
+                      <BookOpen size={23} strokeWidth={2.3} color="#ffffff" />
+                    </div>
+                    <span style={menuLabelStyle}>Tahfidz</span>
                   </div>
-                  <span style={menuLabelStyle}>Perizinan</span>
-                </div>
 
-                {/* 6. Praktek Ibadah */}
-                <div onClick={() => setCurrentTab('praktek')} style={menuCardStyle}>
-                  <div style={{
-                    ...squircleIconStyle,
-                    background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
-                    boxShadow: '0 8px 18px -2px rgba(20, 184, 166, 0.45)'
-                  }}>
-                    <HeartHandshake size={26} strokeWidth={2.3} color="#ffffff" />
+                  {/* 5. Perizinan Pulang */}
+                  <div onClick={() => setCurrentTab('perizinan')} style={menuCardStyle}>
+                    <div style={{
+                      ...squircleIconStyle,
+                      background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                      boxShadow: '0 6px 16px -2px rgba(249, 115, 22, 0.38)'
+                    }}>
+                      <Clock size={23} strokeWidth={2.3} color="#ffffff" />
+                    </div>
+                    <span style={menuLabelStyle}>Perizinan</span>
                   </div>
-                  <span style={menuLabelStyle}>Praktek</span>
-                </div>
 
-                {/* 7. Perkembangan Santri (sebelumnya Rapor) */}
-                <div onClick={() => setCurrentTab('laporan')} style={menuCardStyle}>
-                  <div style={{
-                    ...squircleIconStyle,
-                    background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)',
-                    boxShadow: '0 8px 18px -2px rgba(2, 132, 199, 0.45)'
-                  }}>
-                    <Award size={26} strokeWidth={2.3} color="#ffffff" />
+                  {/* 6. Praktek Ibadah */}
+                  <div onClick={() => setCurrentTab('praktek')} style={menuCardStyle}>
+                    <div style={{
+                      ...squircleIconStyle,
+                      background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
+                      boxShadow: '0 6px 16px -2px rgba(20, 184, 166, 0.38)'
+                    }}>
+                      <HeartHandshake size={23} strokeWidth={2.3} color="#ffffff" />
+                    </div>
+                    <span style={menuLabelStyle}>Praktek</span>
                   </div>
-                  <span style={menuLabelStyle}>Perkembangan</span>
-                </div>
 
-                {/* 8. Tata Tertib */}
-                <div onClick={() => setCurrentTab('pelanggaran')} style={menuCardStyle}>
-                  <div style={{
-                    ...squircleIconStyle,
-                    background: 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
-                    boxShadow: '0 8px 18px -2px rgba(244, 63, 94, 0.45)'
-                  }}>
-                    <ShieldAlert size={26} strokeWidth={2.3} color="#ffffff" />
+                  {/* 7. Perkembangan Santri (sebelumnya Rapor) */}
+                  <div onClick={() => setCurrentTab('laporan')} style={menuCardStyle}>
+                    <div style={{
+                      ...squircleIconStyle,
+                      background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)',
+                      boxShadow: '0 6px 16px -2px rgba(2, 132, 199, 0.38)'
+                    }}>
+                      <Award size={23} strokeWidth={2.3} color="#ffffff" />
+                    </div>
+                    <span style={menuLabelStyle}>Perkembangan</span>
                   </div>
-                  <span style={menuLabelStyle}>Tata Tertib</span>
+
+                  {/* 8. Tata Tertib */}
+                  <div onClick={() => setCurrentTab('pelanggaran')} style={menuCardStyle}>
+                    <div style={{
+                      ...squircleIconStyle,
+                      background: 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
+                      boxShadow: '0 6px 16px -2px rgba(244, 63, 94, 0.38)'
+                    }}>
+                      <ShieldAlert size={23} strokeWidth={2.3} color="#ffffff" />
+                    </div>
+                    <span style={menuLabelStyle}>Tata Tertib</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2098,9 +2131,6 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                     <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
                       Profil Lengkap Santri
                     </h2>
-                    <div style={{ fontSize: '0.74rem', color: '#a7f3d0', marginTop: '2px' }}>
-                      Santri: {rawSantriName} (NISN: {displayNisn})
-                    </div>
                   </div>
                 </div>
 
@@ -2114,396 +2144,539 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
-            {/* Santri Profile Content */}
-
-            {/* Profile Santri Hero Card */}
-            <div style={{
-              background: 'linear-gradient(135deg, #0284c7 0%, #1e40af 100%)',
-              borderRadius: '24px',
-              padding: '20px 18px',
-              color: '#ffffff',
-              boxShadow: '0 10px 24px -4px rgba(2, 132, 199, 0.4)',
-              marginBottom: '16px',
-              textAlign: 'center',
-              position: 'relative'
-            }}>
+            {/* Container Body with Consistent 16px Padding */}
+            <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              
+              {/* HERO ID CARD SANTRI (DESAIN LUXURY KARTU IDENTITAS DIGITAL) */}
               <div style={{
-                width: '74px',
-                height: '74px',
+                background: 'linear-gradient(135deg, #0d766e 0%, #042f2e 100%)',
                 borderRadius: '24px',
-                background: '#ffffff',
-                color: '#0284c7',
-                fontSize: '1.6rem',
-                fontWeight: 900,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 10px',
-                border: '3px solid rgba(255, 255, 255, 0.8)',
-                boxShadow: '0 6px 16px rgba(0,0,0,0.2)'
+                padding: '20px 18px 16px',
+                color: '#ffffff',
+                boxShadow: '0 10px 28px -4px rgba(13, 118, 110, 0.45)',
+                position: 'relative',
+                overflow: 'hidden'
               }}>
-                {initial}
-              </div>
+                {/* Background Watermark Accent */}
+                <div style={{
+                  position: 'absolute',
+                  right: '-15px',
+                  top: '-15px',
+                  fontSize: '7rem',
+                  opacity: 0.08,
+                  userSelect: 'none',
+                  pointerEvents: 'none'
+                }}>
+                  🕌
+                </div>
 
-              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#ffffff' }}>
-                {santri.nama_santri || rawSantriName}
-              </h3>
-              <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#bae6fd' }}>
-                NISN: <strong>{displayNisn}</strong>
-              </p>
+                {/* Top Badge Card */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{
+                      fontSize: '0.62rem',
+                      fontWeight: 800,
+                      color: '#5eead4',
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase'
+                    }}>
+                      KARTU SANTRI DIGITAL
+                    </span>
+                  </div>
+                  <span style={{
+                    background: '#10b981',
+                    color: '#ffffff',
+                    fontSize: '0.65rem',
+                    fontWeight: 800,
+                    padding: '3px 10px',
+                    borderRadius: '999px',
+                    boxShadow: '0 2px 6px rgba(16, 185, 129, 0.4)'
+                  }}>
+                    ● {santri.status || 'Aktif Santri'}
+                  </span>
+                </div>
 
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '10px' }}>
-                <span style={{ background: '#10b981', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '3px 10px', borderRadius: '999px' }}>
-                  {santri.status || 'Aktif'}
-                </span>
-                <span style={{ background: 'rgba(255,255,255,0.22)', color: '#ffffff', fontSize: '0.68rem', fontWeight: 700, padding: '3px 10px', borderRadius: '999px' }}>
-                  {santri.status_santri || 'Mukim'}
-                </span>
-              </div>
-
-
-            </div>
-
-            {/* Quick Section Filter Pills */}
-            <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '6px', marginBottom: '14px' }}>
-              {[
-                { id: 'semua', label: 'Semua Data' },
-                { id: 'biodata', label: 'Biodata Santri' },
-                { id: 'asrama', label: 'Asrama & Kobong' },
-                { id: 'diniyah', label: 'Madrasah Diniyah' },
-                { id: 'kitab', label: 'Kitab Kuning' },
-                { id: 'asatidz', label: 'Dewan Asatidz' },
-                { id: 'keamanan', label: 'Keamanan Akun' }
-              ].map(pill => (
-                <button
-                  key={pill.id}
-                  onClick={() => setProfileSection(pill.id)}
-                  style={{
-                    whiteSpace: 'nowrap',
-                    padding: '6px 12px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    background: profileSection === pill.id ? '#0284c7' : '#ffffff',
-                    color: profileSection === pill.id ? '#ffffff' : '#64748b',
-                    boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
-                  }}
-                >
-                  {pill.label}
-                </button>
-              ))}
-            </div>
-
-            {/* ===================================================================
-                SECTION 1: BIODATA SANTRI & WALI
-            =================================================================== */}
-            {(profileSection === 'semua' || profileSection === 'biodata') && (
-              <div style={{ ...infoCardBox, marginBottom: '14px' }}>
-                <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0284c7', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <User size={15} /> Biodata Santri & Orang Tua / Wali
-                </div>
-                <div style={infoRow}>
-                  <span style={infoLabel}>Nama Lengkap:</span>
-                  <span style={infoValue}>{santri.nama_santri || rawSantriName}</span>
-                </div>
-                <div style={infoRow}>
-                  <span style={infoLabel}>NISN:</span>
-                  <span style={{ ...infoValue, fontWeight: 800, color: '#0369a1' }}>{displayNisn}</span>
-                </div>
-                <div style={infoRow}>
-                  <span style={infoLabel}>Kode Santri:</span>
-                  <span style={infoValue}>{santri.kode_santri || '-'}</span>
-                </div>
-                <div style={infoRow}>
-                  <span style={infoLabel}>Jenis Kelamin:</span>
-                  <span style={infoValue}>{santri.jk === 'P' ? 'Akhwat (Perempuan)' : 'Ikhwan (Laki-laki)'}</span>
-                </div>
-                <div style={infoRow}>
-                  <span style={infoLabel}>Tahun Masuk:</span>
-                  <span style={infoValue}>Tahun Ajaran {santri.tahun_masuk || '2026/2027'}</span>
-                </div>
-                <div style={infoRow}>
-                  <span style={infoLabel}>Nama Orang Tua / Wali:</span>
-                  <span style={{ ...infoValue, color: '#0f172a', fontWeight: 800 }}>{santri.nama_wali || '-'} ({santri.hubungan_wali || 'Orang Tua'})</span>
-                </div>
-                <div style={infoRow}>
-                  <span style={infoLabel}>No. WhatsApp Wali:</span>
-                  <span style={{ ...infoValue, color: '#059669', fontWeight: 700 }}>{santri.no_wa_wali || '-'}</span>
-                </div>
-                <div style={infoRow}>
-                  <span style={infoLabel}>Alamat Rumah Asal:</span>
-                  <span style={infoValue}>{santri.alamat_asal || '-'}</span>
-                </div>
-              </div>
-            )}
-
-            {/* ===================================================================
-                SECTION 2: PENEMPATAN ASRAMA & KOBONG
-            =================================================================== */}
-            {(profileSection === 'semua' || profileSection === 'asrama') && (
-              <div style={{ ...infoCardBox, marginBottom: '14px' }}>
-                <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Building size={15} /> Penempatan Asrama & Kobong Santri
-                </div>
-                <div style={infoRow}>
-                  <span style={infoLabel}>Gedung Asrama:</span>
-                  <span style={{ ...infoValue, fontWeight: 800 }}>{santri.nama_asrama || '-'}</span>
-                </div>
-                <div style={infoRow}>
-                  <span style={infoLabel}>Kamar Kobong:</span>
-                  <span style={infoValue}>{santri.nama_kamar ? `${santri.nama_kamar} ${santri.kode_kamar ? `(${santri.kode_kamar})` : ''}` : '-'}</span>
-                </div>
-                <div style={infoRow}>
-                  <span style={infoLabel}>Asatidz Pembina Kobong:</span>
-                  <span style={{ ...infoValue, color: '#0284c7', fontWeight: 700 }}>{santri.pembina_asrama || '-'}</span>
-                </div>
-                <div style={infoRow}>
-                  <span style={infoLabel}>Kontak WhatsApp Pembina:</span>
-                  <span style={{ ...infoValue, color: '#059669', fontWeight: 700 }}>{santri.no_hp_pembina || '-'}</span>
-                </div>
-                {/* Direct Action Button WhatsApp Pembina */}
-                {santri.no_hp_pembina && (
-                  <a
-                    href={`https://wa.me/${String(santri.no_hp_pembina).replace(/[^0-9]/g, '')}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{
+                {/* Avatar & Main Info */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '14px' }}>
+                  <div style={{ position: 'relative' }}>
+                    <div style={{
+                      width: '68px',
+                      height: '68px',
+                      borderRadius: '22px',
+                      background: 'linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%)',
+                      color: '#0d766e',
+                      fontSize: '1.65rem',
+                      fontWeight: 900,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px',
-                      background: '#ecfdf5',
-                      color: '#059669',
-                      border: '1px solid #a7f3d0',
-                      padding: '9px 12px',
-                      borderRadius: '10px',
-                      fontSize: '0.76rem',
-                      fontWeight: 700,
-                      textDecoration: 'none',
-                      marginTop: '4px'
-                    }}
-                  >
-                    <MessageCircle size={15} /> Hubungi Pembina Kobong via WhatsApp
-                  </a>
-                )}
-              </div>
-            )}
-
-            {/* ===================================================================
-                SECTION 3: TINGKAT MADRASAH DINIYAH & KELAS
-            =================================================================== */}
-            {(profileSection === 'semua' || profileSection === 'diniyah') && (
-              <div style={{ ...infoCardBox, marginBottom: '14px' }}>
-                <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <GraduationCap size={15} /> Jenjang Madrasah Diniyah & Kelas
-                </div>
-                <div style={infoRow}>
-                  <span style={infoLabel}>Tingkat Diniyah:</span>
-                  <span style={{ ...infoValue, fontWeight: 800, color: '#d97706' }}>{santri.tingkat_diniyah || '-'}</span>
-                </div>
-                <div style={infoRow}>
-                  <span style={infoLabel}>Wali Kelas Diniyah:</span>
-                  <span style={infoValue}>{santri.wali_kelas || '-'}</span>
-                </div>
-                <div style={infoRow}>
-                  <span style={infoLabel}>Jadwal Taklim & Belajar:</span>
-                  <span style={infoValue}>Bada Subuh & Bada Maghrib</span>
-                </div>
-                <div style={infoRow}>
-                  <span style={infoLabel}>Target Hafalan:</span>
-                  <span style={infoValue}>30 Juz & Mutun Ilmiyyah</span>
-                </div>
-              </div>
-            )}
-
-            {/* ===================================================================
-                SECTION 4: KURIKULUM & KAJIAN KITAB KUNING
-            =================================================================== */}
-            {(profileSection === 'semua' || profileSection === 'kitab') && (
-              <div style={{ ...infoCardBox, marginBottom: '14px' }}>
-                <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#059669', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <BookOpen size={15} /> Kurikulum & Kajian Kitab Kuning
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                  {kitabList.length === 0 ? (
-                    <div style={{ fontSize: '0.74rem', color: '#94a3b8', fontStyle: 'italic', padding: '6px 0' }}>
-                      Kurikulum kitab kuning mengikuti jenjang madrasah diniyah santri.
+                      boxShadow: '0 6px 18px rgba(0, 0, 0, 0.25)',
+                      border: '2.5px solid rgba(255, 255, 255, 0.85)'
+                    }}>
+                      {initial}
                     </div>
-                  ) : (
-                    kitabList.map((k, idx) => (
-                      <div key={idx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#0f172a' }}>{k.judul}</div>
-                          <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{k.bidang}</div>
-                        </div>
-                        <span className={`badge ${k.badge}`} style={{ fontSize: '0.66rem' }}>{k.status}</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* ===================================================================
-                SECTION 5: DEWAN ASATIDZ & MUSYRIF PEMBINA
-            =================================================================== */}
-            {(profileSection === 'semua' || profileSection === 'asatidz') && (
-              <div style={{ ...infoCardBox, marginBottom: '14px' }}>
-                <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0d9488', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <UserCheck size={15} /> Dewan Asatidz & Musyrif Pembina
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                  {asatidzList.length === 0 ? (
-                    <div style={{ fontSize: '0.74rem', color: '#94a3b8', fontStyle: 'italic', padding: '6px 0' }}>
-                      Belum ada pembina yang ditugaskan untuk santri ini.
-                    </div>
-                  ) : (
-                    asatidzList.map((g, idx) => (
-                      <div key={idx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#0f172a' }}>{g.nama}</div>
-                          <div style={{ fontSize: '0.7rem', color: '#0284c7', fontWeight: 600 }}>{g.peran}</div>
-                        </div>
-                        {g.hp ? (
-                          <a
-                            href={`https://wa.me/${g.hp.replace(/[^0-9]/g, '')}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              background: '#ecfdf5',
-                              color: '#059669',
-                              padding: '5px 9px',
-                              borderRadius: '8px',
-                              fontSize: '0.7rem',
-                              fontWeight: 700,
-                              textDecoration: 'none'
-                            }}
-                          >
-                            <Phone size={12} /> Chat WA
-                          </a>
-                        ) : null}
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* ===================================================================
-                SECTION 6: KEAMANAN & KREDENSIAL LOGIN WALI
-            =================================================================== */}
-            {(profileSection === 'semua' || profileSection === 'keamanan') && (
-              <div style={{ ...infoCardBox, marginBottom: '14px' }}>
-                <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0284c7', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Key size={15} /> Pengaturan Kredensial Login Wali Santri
-                </div>
-
-                <form onSubmit={handleUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '4px' }}>
-                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '8px 10px', fontSize: '0.72rem', color: '#166534', lineHeight: 1.4 }}>
-                    🔒 Ganti username dan password khusus untuk Bapak/Ibu Wali Santri agar login lebih mudah dan aman.
+                    <span style={{
+                      position: 'absolute',
+                      bottom: '-2px',
+                      right: '-2px',
+                      width: '18px',
+                      height: '18px',
+                      borderRadius: '50%',
+                      background: '#10b981',
+                      border: '2.5px solid #0d766e',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ffffff' }} />
+                    </span>
                   </div>
 
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <h3 style={{
+                      margin: 0,
+                      fontSize: '1.2rem',
+                      fontWeight: 900,
+                      color: '#ffffff',
+                      letterSpacing: '-0.3px',
+                      lineHeight: 1.25,
+                      textShadow: '0 2px 8px rgba(0, 0, 0, 0.25)'
+                    }}>
+                      {santri.nama_santri || rawSantriName}
+                    </h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                      <span style={{
+                        background: 'rgba(255, 255, 255, 0.16)',
+                        color: '#bae6fd',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        fontFamily: 'monospace'
+                      }}>
+                        NISN: {displayNisn}
+                      </span>
+                      <span style={{
+                        background: 'rgba(255, 255, 255, 0.16)',
+                        color: '#99f6e4',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: '6px'
+                      }}>
+                        {santri.jk === 'P' ? 'Akhwat' : 'Ikhwan'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3 Quick Glass Counters: Asrama, Kamar, Diniyah */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '6px',
+                  background: 'rgba(0, 0, 0, 0.22)',
+                  padding: '8px 10px',
+                  borderRadius: '14px',
+                  textAlign: 'center'
+                }}>
                   <div>
-                    <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      Username Login Wali
-                    </label>
-                    <input
-                      type="text"
-                      value={passwordForm.username_baru}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, username_baru: e.target.value })}
-                      style={inputFieldStyle}
-                      placeholder="Contoh: waliahmad"
-                    />
+                    <div style={{ fontSize: '0.6rem', color: '#99f6e4', fontWeight: 700, textTransform: 'uppercase' }}>Asrama</div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#ffffff', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {santri.nama_asrama || '-'}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.6rem', color: '#99f6e4', fontWeight: 700, textTransform: 'uppercase' }}>Kamar / Kobong</div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#ffffff', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {santri.nama_kamar || '-'}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.6rem', color: '#99f6e4', fontWeight: 700, textTransform: 'uppercase' }}>Diniyah</div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#fef08a', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {santri.tingkat_diniyah || 'Ula'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Segmented Section Filter Pills (Horizontal Scroll) */}
+              <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
+                {[
+                  { id: 'semua', label: 'Semua Data', icon: '📋' },
+                  { id: 'biodata', label: 'Biodata Santri', icon: '👤' },
+                  { id: 'asrama', label: 'Asrama & Kobong', icon: '🏛️' },
+                  { id: 'diniyah', label: 'Madrasah & Kitab', icon: '📖' },
+                  { id: 'asatidz', label: 'Dewan Asatidz', icon: '👨‍🏫' },
+                  { id: 'keamanan', label: 'Keamanan Akun', icon: '🔐' }
+                ].map(pill => {
+                  const isActive = profileSection === pill.id;
+                  return (
+                    <button
+                      key={pill.id}
+                      onClick={() => setProfileSection(pill.id)}
+                      style={{
+                        whiteSpace: 'nowrap',
+                        padding: '8px 12px',
+                        borderRadius: '12px',
+                        border: isActive ? '1.5px solid #059669' : '1px solid #e2e8f0',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        background: isActive ? '#ecfdf5' : '#ffffff',
+                        color: isActive ? '#065f46' : '#64748b',
+                        boxShadow: isActive ? '0 3px 8px rgba(5, 150, 105, 0.15)' : 'none',
+                        transition: 'all 0.15s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}
+                    >
+                      <span>{pill.icon}</span>
+                      <span>{pill.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* ===================================================================
+                  SECTION 1: BIODATA SANTRI & WALI
+              =================================================================== */}
+              {(profileSection === 'semua' || profileSection === 'biodata') && (
+                <div style={infoCardBox}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#0f766e', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '6px', borderBottom: '1px solid #f1f5f9' }}>
+                    <div style={{ width: '26px', height: '26px', borderRadius: '8px', background: '#ccfbf1', color: '#0d9488', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <User size={15} />
+                    </div>
+                    <span>Biodata Santri & Orang Tua / Wali</span>
                   </div>
 
-                  <div>
-                    <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      Password Baru
-                    </label>
-                    <div style={{ position: 'relative' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '9px', marginTop: '2px' }}>
+                    <div style={infoRow}>
+                      <span style={infoLabel}>Nama Lengkap:</span>
+                      <span style={{ ...infoValue, color: '#0f172a', fontWeight: 800 }}>{santri.nama_santri || rawSantriName}</span>
+                    </div>
+                    <div style={infoRow}>
+                      <span style={infoLabel}>NISN Santri:</span>
+                      <span style={{ ...infoValue, color: '#0284c7', fontWeight: 800, fontFamily: 'monospace' }}>{displayNisn}</span>
+                    </div>
+                    <div style={infoRow}>
+                      <span style={infoLabel}>Jenis Kelamin:</span>
+                      <span style={infoValue}>{santri.jk === 'P' ? 'Akhwat (Perempuan)' : 'Ikhwan (Laki-laki)'}</span>
+                    </div>
+                    <div style={infoRow}>
+                      <span style={infoLabel}>Status Santri:</span>
+                      <span style={{ ...infoValue, color: '#059669', fontWeight: 800 }}>{santri.status_santri || 'Santri Mukim (Menetap)'}</span>
+                    </div>
+                    <div style={infoRow}>
+                      <span style={infoLabel}>Tahun Masuk:</span>
+                      <span style={infoValue}>Tahun Ajaran {santri.tahun_masuk || '2026/2027'}</span>
+                    </div>
+                    <div style={{ height: '1px', background: '#f1f5f9', margin: '2px 0' }} />
+                    <div style={infoRow}>
+                      <span style={infoLabel}>Nama Orang Tua / Wali:</span>
+                      <span style={{ ...infoValue, color: '#0f172a', fontWeight: 800 }}>{santri.nama_wali || '-'} ({santri.hubungan_wali || 'Orang Tua'})</span>
+                    </div>
+                    <div style={infoRow}>
+                      <span style={infoLabel}>No. WhatsApp Wali:</span>
+                      <span style={{ ...infoValue, color: '#059669', fontWeight: 800 }}>{santri.no_wa_wali || '-'}</span>
+                    </div>
+                    <div style={infoRow}>
+                      <span style={infoLabel}>Alamat Rumah Asal:</span>
+                      <span style={{ ...infoValue, maxWidth: '60%', textAlign: 'right' }}>{santri.alamat_asal || '-'}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ===================================================================
+                  SECTION 2: PENEMPATAN ASRAMA & KOBONG
+              =================================================================== */}
+              {(profileSection === 'semua' || profileSection === 'asrama') && (
+                <div style={infoCardBox}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#4f46e5', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '6px', borderBottom: '1px solid #f1f5f9' }}>
+                    <div style={{ width: '26px', height: '26px', borderRadius: '8px', background: '#e0e7ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Building size={15} />
+                    </div>
+                    <span>Penempatan Asrama & Kobong Santri</span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '9px', marginTop: '2px' }}>
+                    <div style={infoRow}>
+                      <span style={infoLabel}>Gedung Asrama:</span>
+                      <span style={{ ...infoValue, color: '#4338ca', fontWeight: 900 }}>{santri.nama_asrama || '-'}</span>
+                    </div>
+                    <div style={infoRow}>
+                      <span style={infoLabel}>Kamar / Kobong:</span>
+                      <span style={{ ...infoValue, fontWeight: 800 }}>{santri.nama_kamar ? `${santri.nama_kamar} ${santri.kode_kamar ? `(${santri.kode_kamar})` : ''}` : '-'}</span>
+                    </div>
+                    <div style={infoRow}>
+                      <span style={infoLabel}>Asatidz Pembina Kobong:</span>
+                      <span style={{ ...infoValue, color: '#0284c7', fontWeight: 800 }}>{santri.pembina_asrama || '-'}</span>
+                    </div>
+                    <div style={infoRow}>
+                      <span style={infoLabel}>Kontak WhatsApp Pembina:</span>
+                      <span style={{ ...infoValue, color: '#059669', fontWeight: 800 }}>{santri.no_hp_pembina || '-'}</span>
+                    </div>
+
+                    {/* Direct Action Button WhatsApp Pembina */}
+                    {santri.no_hp_pembina && (
+                      <a
+                        href={`https://wa.me/${String(santri.no_hp_pembina).replace(/[^0-9]/g, '')}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+                          color: '#065f46',
+                          border: '1px solid #a7f3d0',
+                          padding: '10px 14px',
+                          borderRadius: '12px',
+                          fontSize: '0.78rem',
+                          fontWeight: 800,
+                          textDecoration: 'none',
+                          marginTop: '4px',
+                          boxShadow: '0 2px 6px rgba(5, 150, 105, 0.1)'
+                        }}
+                      >
+                        <MessageCircle size={16} color="#059669" /> Hubungi Pembina Kobong via WhatsApp
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ===================================================================
+                  SECTION 3: TINGKAT MADRASAH DINIYAH & KURIKULUM KITAB
+              =================================================================== */}
+              {(profileSection === 'semua' || profileSection === 'diniyah') && (
+                <div style={infoCardBox}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#b45309', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '6px', borderBottom: '1px solid #f1f5f9' }}>
+                    <div style={{ width: '26px', height: '26px', borderRadius: '8px', background: '#fef3c7', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <GraduationCap size={15} />
+                    </div>
+                    <span>Madrasah Diniyah & Kajian Kitab</span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '9px', marginTop: '2px' }}>
+                    <div style={infoRow}>
+                      <span style={infoLabel}>Jenjang Diniyah:</span>
+                      <span style={{ ...infoValue, color: '#b45309', fontWeight: 900 }}>{santri.tingkat_diniyah || 'Tingkat Ula'}</span>
+                    </div>
+                    <div style={infoRow}>
+                      <span style={infoLabel}>Wali Kelas Diniyah:</span>
+                      <span style={{ ...infoValue, fontWeight: 800 }}>{santri.wali_kelas || 'Ust. Pembina Diniyah'}</span>
+                    </div>
+                    <div style={infoRow}>
+                      <span style={infoLabel}>Jadwal Taklim:</span>
+                      <span style={infoValue}>Bada Subuh & Bada Maghrib</span>
+                    </div>
+                    <div style={infoRow}>
+                      <span style={infoLabel}>Target Hafalan:</span>
+                      <span style={{ ...infoValue, color: '#7c3aed', fontWeight: 800 }}>30 Juz & Mutun Ilmiyyah</span>
+                    </div>
+
+                    <div style={{ marginTop: '6px' }}>
+                      <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>
+                        Kajian Kitab Kuning Aktif:
+                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {[
+                          { judul: 'Safinatun Najah', bidang: 'Fiqih Ibadah', status: 'Aktif Belajar', color: '#059669', bg: '#ecfdf5' },
+                          { judul: 'Al-Jurumiyyah', bidang: 'Bahasa Arab & Nahwu', status: 'Aktif Belajar', color: '#0284c7', bg: '#e0f2fe' },
+                          { judul: 'Ta\'limul Muta\'allim', bidang: 'Adab & Akhlak Santri', status: 'Kajian Rutin', color: '#7c3aed', bg: '#f5f3ff' }
+                        ].map((k, idx) => (
+                          <div key={idx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                              <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#0f172a' }}>📖 {k.judul}</div>
+                              <div style={{ fontSize: '0.68rem', color: '#64748b' }}>{k.bidang}</div>
+                            </div>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: k.color, background: k.bg, padding: '3px 8px', borderRadius: '6px' }}>
+                              {k.status}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ===================================================================
+                  SECTION 4: DEWAN ASATIDZ & MUSYRIF PEMBINA
+              =================================================================== */}
+              {(profileSection === 'semua' || profileSection === 'asatidz') && (
+                <div style={infoCardBox}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#0d9488', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '6px', borderBottom: '1px solid #f1f5f9' }}>
+                    <div style={{ width: '26px', height: '26px', borderRadius: '8px', background: '#ccfbf1', color: '#0d9488', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <UserCheck size={15} />
+                    </div>
+                    <span>Dewan Asatidz & Musyrif Pembina</span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                    {asatidzList.length === 0 ? (
+                      <div style={{ fontSize: '0.74rem', color: '#94a3b8', fontStyle: 'italic', padding: '6px 0' }}>
+                        Belum ada pembina yang ditugaskan untuk santri ini.
+                      </div>
+                    ) : (
+                      asatidzList.map((g, idx) => (
+                        <div key={idx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <div style={{ fontWeight: 800, fontSize: '0.84rem', color: '#0f172a' }}>{g.nama}</div>
+                            <div style={{ fontSize: '0.7rem', color: '#0284c7', fontWeight: 700 }}>{g.peran}</div>
+                          </div>
+                          {g.hp ? (
+                            <a
+                              href={`https://wa.me/${g.hp.replace(/[^0-9]/g, '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                background: '#ecfdf5',
+                                color: '#059669',
+                                padding: '6px 10px',
+                                borderRadius: '8px',
+                                fontSize: '0.72rem',
+                                fontWeight: 800,
+                                textDecoration: 'none'
+                              }}
+                            >
+                              <Phone size={13} /> Chat WA
+                            </a>
+                          ) : null}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ===================================================================
+                  SECTION 5: KEAMANAN & KREDENSIAL LOGIN WALI
+              =================================================================== */}
+              {(profileSection === 'semua' || profileSection === 'keamanan') && (
+                <div style={infoCardBox}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#0284c7', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '6px', borderBottom: '1px solid #f1f5f9' }}>
+                    <div style={{ width: '26px', height: '26px', borderRadius: '8px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Key size={15} />
+                    </div>
+                    <span>Kredensial Login Orang Tua / Wali</span>
+                  </div>
+
+                  <form onSubmit={handleUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '4px' }}>
+                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '10px 12px', fontSize: '0.72rem', color: '#166534', lineHeight: 1.4, display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                      <span>🔒</span>
+                      <div>
+                        Ganti username dan password khusus untuk Bapak/Ibu Wali Santri agar login ke portal mobile lebih mudah dan terjaga keamanannya.
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                        Username Login Wali
+                      </label>
+                      <input
+                        type="text"
+                        value={passwordForm.username_baru}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, username_baru: e.target.value })}
+                        style={{ ...inputFieldStyle, borderRadius: '12px', border: '1.5px solid #cbd5e1' }}
+                        placeholder="Contoh: waliahmad"
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                        Password Baru
+                      </label>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type={showPass ? 'text' : 'password'}
+                          value={passwordForm.password_baru}
+                          onChange={(e) => setPasswordForm({ ...passwordForm, password_baru: e.target.value })}
+                          style={{ ...inputFieldStyle, borderRadius: '12px', border: '1.5px solid #cbd5e1' }}
+                          placeholder="Minimal 4 karakter"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPass(!showPass)}
+                          style={{ position: 'absolute', right: '12px', top: '10px', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+                        >
+                          {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 800, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                        Konfirmasi Password Baru
+                      </label>
                       <input
                         type={showPass ? 'text' : 'password'}
-                        value={passwordForm.password_baru}
-                        onChange={(e) => setPasswordForm({ ...passwordForm, password_baru: e.target.value })}
-                        style={inputFieldStyle}
-                        placeholder="Minimal 4 karakter"
+                        value={passwordForm.konfirmasi_password}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, konfirmasi_password: e.target.value })}
+                        style={{ ...inputFieldStyle, borderRadius: '12px', border: '1.5px solid #cbd5e1' }}
+                        placeholder="Ulangi password baru"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowPass(!showPass)}
-                        style={{ position: 'absolute', right: '12px', top: '10px', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
-                      >
-                        {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
                     </div>
-                  </div>
 
-                  <div>
-                    <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      Konfirmasi Password Baru
-                    </label>
-                    <input
-                      type={showPass ? 'text' : 'password'}
-                      value={passwordForm.konfirmasi_password}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, konfirmasi_password: e.target.value })}
-                      style={inputFieldStyle}
-                      placeholder="Ulangi password baru"
-                    />
-                  </div>
+                    <button
+                      type="submit"
+                      disabled={updatingPass}
+                      style={{
+                        background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '12px',
+                        padding: '12px',
+                        fontWeight: 900,
+                        fontSize: '0.84rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        boxShadow: '0 4px 12px rgba(2, 132, 199, 0.35)',
+                        opacity: updatingPass ? 0.75 : 1
+                      }}
+                    >
+                      <Save size={16} />
+                      {updatingPass ? 'Menyimpan...' : 'Simpan Kredensial Akun'}
+                    </button>
+                  </form>
+                </div>
+              )}
 
-                  <button
-                    type="submit"
-                    disabled={updatingPass}
-                    style={{
-                      background: '#0284c7',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '10px',
-                      padding: '11px',
-                      fontWeight: 800,
-                      fontSize: '0.82rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      boxShadow: '0 4px 10px rgba(2, 132, 199, 0.3)'
-                    }}
-                  >
-                    <Save size={15} />
-                    {updatingPass ? 'Menyimpan...' : 'Simpan Kredensial Akun'}
-                  </button>
-                </form>
-              </div>
-            )}
+              {/* Logout Button in Profile */}
+              <button
+                onClick={handleLogoutAction}
+                style={{
+                  width: '100%',
+                  background: '#fff1f2',
+                  color: '#e11d48',
+                  border: '1.5px solid #fecdd3',
+                  padding: '13px',
+                  borderRadius: '14px',
+                  fontSize: '0.84rem',
+                  fontWeight: 900,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  marginBottom: '10px'
+                }}
+              >
+                <LogOut size={16} /> Keluar dari Akun Wali Santri
+              </button>
 
-            {/* Logout Button in Profile */}
-            <button
-              onClick={handleLogoutAction}
-              style={{
-                width: '100%',
-                background: '#fee2e2',
-                color: '#b91c1c',
-                border: '1px solid #fecaca',
-                padding: '12px',
-                borderRadius: '14px',
-                fontSize: '0.82rem',
-                fontWeight: 800,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                cursor: 'pointer'
-              }}
-            >
-              <LogOut size={16} /> Keluar dari Portal Wali Santri
-            </button>
-
+            </div>
           </div>
         )}
 
@@ -2874,8 +3047,29 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                        name.includes('bandongan') || name.includes('taklim') || name.includes('materi');
               };
 
-              const listBerjamaah = presensi.filter(r => !isMengaji(r));
-              const listMengaji = presensi.filter(r => isMengaji(r));
+              const normalizeRowDate = (tgl) => {
+                if (!tgl) return '';
+                if (typeof tgl === 'string') {
+                  const m = tgl.match(/^(\d{4}-\d{2}-\d{2})/);
+                  if (m) return m[1];
+                }
+                const d = new Date(tgl);
+                if (!isNaN(d.getTime())) {
+                  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                }
+                return String(tgl).split('T')[0];
+              };
+
+              // Filter tanggal 'dari' - 'sampai'
+              const dateFilteredPresensi = presensi.filter(r => {
+                const itemDate = normalizeRowDate(r.tanggal);
+                if (absensiTglDari && itemDate && itemDate < absensiTglDari) return false;
+                if (absensiTglSampai && itemDate && itemDate > absensiTglSampai) return false;
+                return true;
+              });
+
+              const listBerjamaah = dateFilteredPresensi.filter(r => !isMengaji(r));
+              const listMengaji = dateFilteredPresensi.filter(r => isMengaji(r));
 
               const currentList = absensiSubTab === 'berjamaah' ? listBerjamaah : listMengaji;
 
@@ -2964,6 +3158,137 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                       <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#2dd4bf' }}>{totalAlfa}</div>
                         <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>Alfa</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CARD FILTER TANGGAL DARI - SAMPAI (OTOMATIS PER BULAN) */}
+                  <div style={{
+                    background: '#ffffff',
+                    borderRadius: '16px',
+                    padding: '12px 14px',
+                    border: '1.5px solid #e2e8f0',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                    marginBottom: '12px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', fontWeight: 800, color: '#0f766e' }}>
+                        <Calendar size={15} />
+                        <span>Filter Tanggal (Otomatis Per Bulan)</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const r = getCurrentMonthRange();
+                            setAbsensiTglDari(r.dari);
+                            setAbsensiTglSampai(r.sampai);
+                          }}
+                          style={{
+                            background: '#ecfdf5',
+                            border: '1px solid #a7f3d0',
+                            color: '#047857',
+                            fontSize: '0.64rem',
+                            fontWeight: 800,
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Bulan Ini
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const now = new Date();
+                            const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                            const y = lastMonthDate.getFullYear();
+                            const m = String(lastMonthDate.getMonth() + 1).padStart(2, '0');
+                            const lDay = new Date(y, lastMonthDate.getMonth() + 1, 0).getDate();
+                            setAbsensiTglDari(`${y}-${m}-01`);
+                            setAbsensiTglSampai(`${y}-${m}-${String(lDay).padStart(2, '0')}`);
+                          }}
+                          style={{
+                            background: '#f1f5f9',
+                            border: '1px solid #cbd5e1',
+                            color: '#475569',
+                            fontSize: '0.64rem',
+                            fontWeight: 700,
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Bulan Lalu
+                        </button>
+                        {(absensiTglDari || absensiTglSampai) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAbsensiTglDari('');
+                              setAbsensiTglSampai('');
+                            }}
+                            style={{
+                              background: '#f8fafc',
+                              border: '1px solid #e2e8f0',
+                              color: '#64748b',
+                              fontSize: '0.64rem',
+                              fontWeight: 700,
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Semua
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.64rem', fontWeight: 700, color: '#64748b', marginBottom: '3px' }}>
+                          Dari Tanggal
+                        </label>
+                        <input
+                          type="date"
+                          value={absensiTglDari}
+                          onChange={(e) => setAbsensiTglDari(e.target.value)}
+                          style={{
+                            width: '100%',
+                            boxSizing: 'border-box',
+                            padding: '7px 8px',
+                            borderRadius: '10px',
+                            border: '1px solid #cbd5e1',
+                            fontSize: '0.76rem',
+                            fontWeight: 700,
+                            color: '#0f172a',
+                            background: '#f8fafc',
+                            outline: 'none'
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.64rem', fontWeight: 700, color: '#64748b', marginBottom: '3px' }}>
+                          Sampai Tanggal
+                        </label>
+                        <input
+                          type="date"
+                          value={absensiTglSampai}
+                          onChange={(e) => setAbsensiTglSampai(e.target.value)}
+                          style={{
+                            width: '100%',
+                            boxSizing: 'border-box',
+                            padding: '7px 8px',
+                            borderRadius: '10px',
+                            border: '1px solid #cbd5e1',
+                            fontSize: '0.76rem',
+                            fontWeight: 700,
+                            color: '#0f172a',
+                            background: '#f8fafc',
+                            outline: 'none'
+                          }}
+                        />
                       </div>
                     </div>
                   </div>
@@ -4728,15 +5053,15 @@ const menuCardStyle = {
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  gap: '6px',
+  gap: '5px',
   cursor: 'pointer',
   userSelect: 'none'
 };
 
 const squircleIconStyle = {
-  width: '58px',
-  height: '58px',
-  borderRadius: '20px',
+  width: '50px',
+  height: '50px',
+  borderRadius: '16px',
   color: '#ffffff',
   display: 'flex',
   alignItems: 'center',
@@ -4745,12 +5070,12 @@ const squircleIconStyle = {
 };
 
 const menuLabelStyle = {
-  fontSize: '0.72rem',
+  fontSize: '0.62rem',
   fontWeight: 700,
   color: '#334155',
   textAlign: 'center',
-  lineHeight: 1.2,
-  maxWidth: '82px',
+  lineHeight: 1.15,
+  maxWidth: '74px',
   wordBreak: 'break-word',
   display: '-webkit-box',
   WebkitLineClamp: 2,

@@ -157,7 +157,7 @@ export const getWaliSantriData = async (req, res) => {
     // 4. Data Presensi Berjamaah & Mengaji (Fingerprint)
     let presensiJamaah = [];
     try {
-      const [absRows] = await pool.query(`
+      let absSql = `
         SELECT 
           a.*,
           ks.nama_sesi,
@@ -166,9 +166,19 @@ export const getWaliSantriData = async (req, res) => {
         FROM absensi_jamaah_mengaji a
         LEFT JOIN kegiatan_sesi ks ON a.sesi_id = ks.id
         WHERE a.santri_id = ?
-        ORDER BY a.tanggal DESC, a.waktu_scan DESC, a.id DESC
-        LIMIT 60
-      `, [santriId]);
+      `;
+      const absParams = [santriId];
+      if (req.query.tgl_dari) {
+        absSql += ` AND a.tanggal >= ?`;
+        absParams.push(req.query.tgl_dari);
+      }
+      if (req.query.tgl_sampai) {
+        absSql += ` AND a.tanggal <= ?`;
+        absParams.push(req.query.tgl_sampai);
+      }
+      absSql += ` ORDER BY a.tanggal DESC, a.waktu_scan DESC, a.id DESC LIMIT 500`;
+
+      const [absRows] = await pool.query(absSql, absParams);
       presensiJamaah = absRows || [];
     } catch (e) {
       presensiJamaah = [];
