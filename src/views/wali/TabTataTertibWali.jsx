@@ -160,3 +160,4 @@ const TabTataTertibWali = ({ pelanggaran = [], onBack }) => {
 };
 
 export default TabTataTertibWali;
+

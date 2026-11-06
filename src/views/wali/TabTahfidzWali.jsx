@@ -475,3 +475,4 @@ export default function TabTahfidzWali({ santri = {}, tahfidz = [], rawSantriNam
     </div>
   );
 }
+

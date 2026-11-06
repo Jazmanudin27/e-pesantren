@@ -70,3 +70,4 @@ const TabNotifikasiWali = ({ rawSantriName = '', displayNisn = '', onBack }) => 
 };
 
 export default TabNotifikasiWali;
+
