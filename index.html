@@ -17,7 +17,26 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Amiri:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-    <!-- Midtrans Snap JS SDK (Sandbox) -->
+    <!-- Midtrans Snap JS SDK (Sandbox) & Telemetry Suppressor -->
+    <script>
+      (function() {
+        // Redam pesan error telemetri Faro GoPay yang diblokir oleh AdBlocker di browser
+        const origConsoleError = console.error;
+        console.error = function(...args) {
+          const str = args.map(a => String(a?.message || a || '')).join(' ');
+          if (str.includes('faro') || str.includes('katulampa') || str.includes('gopay.sh') || str.includes('ERR_BLOCKED_BY_CLIENT')) {
+            return;
+          }
+          origConsoleError.apply(console, args);
+        };
+        window.addEventListener('unhandledrejection', function(e) {
+          const reasonStr = String(e?.reason?.message || e?.reason || '');
+          if (reasonStr.includes('faro') || reasonStr.includes('gopay.sh') || reasonStr.includes('Failed to fetch')) {
+            e.preventDefault();
+          }
+        });
+      })();
+    </script>
     <script type="text/javascript" src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="SB-Mid-client-gtkZiSrCZjZHYwwZ"></script>
   </head>
   <body>
