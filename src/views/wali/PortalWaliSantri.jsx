@@ -732,31 +732,31 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
             </div>
 
-            {/* 2. CARD TABUNGAN SANTRI & KEUANGAN SPP (DESAIN EMERALD TEAL PERSIS CONTOH USER) */}
-            <div style={{ padding: '12px 14px 0', position: 'relative', zIndex: 11 }}>
+            {/* 2. CARD TABUNGAN SANTRI & KEUANGAN SPP (DESAIN EMERALD TEAL LEBIH KOMPAK) */}
+            <div style={{ padding: '10px 14px 0', position: 'relative', zIndex: 11 }}>
               <div
                 style={{
                   background: financeActiveTab === 'tabungan' ? '#044e42' : '#0f3c5c',
-                  borderRadius: '26px',
-                  padding: '20px 18px',
+                  borderRadius: '20px',
+                  padding: '14px 14px 12px',
                   boxShadow: financeActiveTab === 'tabungan'
-                    ? '0 12px 28px -6px rgba(4, 78, 66, 0.45)'
-                    : '0 12px 28px -6px rgba(15, 60, 92, 0.45)',
+                    ? '0 8px 20px -4px rgba(4, 78, 66, 0.4)'
+                    : '0 8px 20px -4px rgba(15, 60, 92, 0.4)',
                   position: 'relative',
                   overflow: 'hidden',
                   color: '#ffffff',
                   transition: 'background 0.2s ease, box-shadow 0.2s ease'
                 }}
               >
-                {/* Tab Switcher: Tabungan & Tagihan (Kapsul Modern di dalam Card) */}
+                {/* Tab Switcher: Tabungan & Tagihan (Kapsul Lebih Ramping) */}
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
-                  gap: '6px',
+                  gap: '4px',
                   background: 'rgba(0, 0, 0, 0.22)',
-                  padding: '4px',
-                  borderRadius: '14px',
-                  marginBottom: '16px'
+                  padding: '3px',
+                  borderRadius: '12px',
+                  marginBottom: '12px'
                 }}>
                   <button
                     type="button"
@@ -766,19 +766,19 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                       background: financeActiveTab === 'tabungan' ? '#ffffff' : 'transparent',
                       color: financeActiveTab === 'tabungan' ? '#044e42' : 'rgba(255, 255, 255, 0.8)',
                       fontWeight: 700,
-                      fontSize: '13px',
-                      padding: '6px 10px',
-                      borderRadius: '10px',
+                      fontSize: '12px',
+                      padding: '5px 8px',
+                      borderRadius: '8px',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '5px',
-                      boxShadow: financeActiveTab === 'tabungan' ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
+                      gap: '4px',
+                      boxShadow: financeActiveTab === 'tabungan' ? '0 2px 6px rgba(0,0,0,0.15)' : 'none',
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    <Wallet size={14} color={financeActiveTab === 'tabungan' ? '#044e42' : 'rgba(255, 255, 255, 0.8)'} />
+                    <Wallet size={13} color={financeActiveTab === 'tabungan' ? '#044e42' : 'rgba(255, 255, 255, 0.8)'} />
                     <span>Tabungan</span>
                   </button>
 
@@ -790,24 +790,24 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                       background: financeActiveTab === 'tagihan' ? '#ffffff' : 'transparent',
                       color: financeActiveTab === 'tagihan' ? '#0f3c5c' : 'rgba(255, 255, 255, 0.8)',
                       fontWeight: 700,
-                      fontSize: '13px',
-                      padding: '6px 10px',
-                      borderRadius: '10px',
+                      fontSize: '12px',
+                      padding: '5px 8px',
+                      borderRadius: '8px',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '5px',
-                      boxShadow: financeActiveTab === 'tagihan' ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
+                      gap: '4px',
+                      boxShadow: financeActiveTab === 'tagihan' ? '0 2px 6px rgba(0,0,0,0.15)' : 'none',
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    <CreditCard size={14} color={financeActiveTab === 'tagihan' ? '#0f3c5c' : 'rgba(255, 255, 255, 0.8)'} />
+                    <CreditCard size={13} color={financeActiveTab === 'tagihan' ? '#0f3c5c' : 'rgba(255, 255, 255, 0.8)'} />
                     <span>Tagihan</span>
                     {(keuanganSummary?.totalBelumBayar || 0) > 0 && (
                       <span style={{
-                        width: '6px',
-                        height: '6px',
+                        width: '5px',
+                        height: '5px',
                         borderRadius: '50%',
                         background: '#ef4444'
                       }} />
@@ -815,14 +815,14 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   </button>
                 </div>
 
-                {/* KONTEN TAB 1: TABUNGAN SANTRI (PERSIS FOTO CONTOH USER) */}
+                {/* KONTEN TAB 1: TABUNGAN SANTRI */}
                 {financeActiveTab === 'tabungan' && (
                   <div>
-                    {/* Header: Title + Big Icon Kotak Transparan Kanan Atas */}
+                    {/* Header: Title + Icon */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{
-                          fontSize: '0.82rem',
+                          fontSize: '0.7rem',
                           fontWeight: 800,
                           color: '#5eead4',
                           letterSpacing: '0.04em',
@@ -832,12 +832,12 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                           SALDO TABUNGAN SANTRI
                         </div>
                         <div style={{
-                          fontSize: '2.1rem',
+                          fontSize: '1.55rem',
                           fontWeight: 900,
                           color: '#ffffff',
-                          letterSpacing: '-0.8px',
+                          letterSpacing: '-0.5px',
                           lineHeight: 1.1,
-                          marginTop: '6px'
+                          marginTop: '4px'
                         }}>
                           {formatRp(tabunganData?.saldo_saat_ini || 0)}
                         </div>
@@ -847,9 +847,9 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                         onClick={() => setCurrentTab('tabungan')}
                         title="Buka Buku Kas"
                         style={{
-                          width: '46px',
-                          height: '46px',
-                          borderRadius: '16px',
+                          width: '38px',
+                          height: '38px',
+                          borderRadius: '12px',
                           background: 'rgba(255, 255, 255, 0.12)',
                           display: 'flex',
                           alignItems: 'center',
@@ -857,42 +857,42 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                           color: '#5eead4',
                           cursor: 'pointer',
                           flexShrink: 0,
-                          marginLeft: '12px',
+                          marginLeft: '10px',
                           transition: 'transform 0.15s ease'
                         }}
                       >
-                        <Wallet size={24} strokeWidth={2.4} />
+                        <Wallet size={19} strokeWidth={2.4} />
                       </div>
                     </div>
 
-                    {/* Garis Tipis Halus (Divider Sesuai Contoh) */}
+                    {/* Garis Tipis Halus */}
                     <div style={{
                       height: '1px',
                       background: 'rgba(255, 255, 255, 0.15)',
-                      margin: '18px 0 14px'
+                      margin: '12px 0 10px'
                     }} />
 
                     {/* Sub Footer: TOTAL UANG MASUK & TOTAL PENGAMBILAN */}
                     <div style={{
                       display: 'grid',
                       gridTemplateColumns: '1fr 1fr',
-                      gap: '12px'
+                      gap: '8px'
                     }}>
                       <div>
                         <div style={{
-                          fontSize: '0.72rem',
+                          fontSize: '0.62rem',
                           fontWeight: 800,
                           color: '#99f6e4',
-                          letterSpacing: '0.04em',
+                          letterSpacing: '0.03em',
                           textTransform: 'uppercase'
                         }}>
                           TOTAL UANG MASUK
                         </div>
                         <div style={{
-                          fontSize: '1.05rem',
+                          fontSize: '0.86rem',
                           fontWeight: 900,
                           color: '#ffffff',
-                          marginTop: '3px',
+                          marginTop: '2px',
                           letterSpacing: '-0.2px'
                         }}>
                           +{formatRp(tabunganData?.total_masuk || 0)}
@@ -901,19 +901,19 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
 
                       <div>
                         <div style={{
-                          fontSize: '0.72rem',
+                          fontSize: '0.62rem',
                           fontWeight: 800,
                           color: '#fecdd3',
-                          letterSpacing: '0.04em',
+                          letterSpacing: '0.03em',
                           textTransform: 'uppercase'
                         }}>
                           TOTAL PENGAMBILAN
                         </div>
                         <div style={{
-                          fontSize: '1.05rem',
+                          fontSize: '0.86rem',
                           fontWeight: 900,
                           color: '#ffffff',
-                          marginTop: '3px',
+                          marginTop: '2px',
                           letterSpacing: '-0.2px'
                         }}>
                           -{formatRp(tabunganData?.total_keluar || 0)}
@@ -923,29 +923,29 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   </div>
                 )}
 
-                {/* KONTEN TAB 2: TAGIHAN KEUANGAN (GAYA IDENTIK DENGAN CONTOH) */}
+                {/* KONTEN TAB 2: TAGIHAN KEUANGAN */}
                 {financeActiveTab === 'tagihan' && (
                   <div>
-                    {/* Header: Title + Big Icon Kotak Transparan Kanan Atas */}
+                    {/* Header: Title + Icon */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{
-                          fontSize: '0.82rem',
+                          fontSize: '0.7rem',
                           fontWeight: 800,
                           color: '#7dd3fc',
                           letterSpacing: '0.04em',
                           textTransform: 'uppercase',
                           lineHeight: 1.2
                         }}>
-                          TOTAL TAGIHAN SPP & KEUANGAN
+                          TOTAL TAGIHAN KEUANGAN
                         </div>
                         <div style={{
-                          fontSize: '2.1rem',
+                          fontSize: '1.55rem',
                           fontWeight: 900,
                           color: '#ffffff',
-                          letterSpacing: '-0.8px',
+                          letterSpacing: '-0.5px',
                           lineHeight: 1.1,
-                          marginTop: '6px'
+                          marginTop: '4px'
                         }}>
                           {keuanganSummary?.formattedTotalBelumBayar || 'Rp 0'}
                         </div>
@@ -955,9 +955,9 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                         onClick={() => setCurrentTab('tagihan')}
                         title="Buka Rincian Tagihan"
                         style={{
-                          width: '46px',
-                          height: '46px',
-                          borderRadius: '16px',
+                          width: '38px',
+                          height: '38px',
+                          borderRadius: '12px',
                           background: 'rgba(255, 255, 255, 0.12)',
                           display: 'flex',
                           alignItems: 'center',
@@ -965,42 +965,42 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                           color: '#7dd3fc',
                           cursor: 'pointer',
                           flexShrink: 0,
-                          marginLeft: '12px',
+                          marginLeft: '10px',
                           transition: 'transform 0.15s ease'
                         }}
                       >
-                        <CreditCard size={24} strokeWidth={2.4} />
+                        <CreditCard size={19} strokeWidth={2.4} />
                       </div>
                     </div>
 
-                    {/* Garis Tipis Halus (Divider Sesuai Contoh) */}
+                    {/* Garis Tipis Halus */}
                     <div style={{
                       height: '1px',
                       background: 'rgba(255, 255, 255, 0.15)',
-                      margin: '18px 0 14px'
+                      margin: '12px 0 10px'
                     }} />
 
                     {/* Sub Footer: SPP BULANAN & BIAYA AWAL MASUK */}
                     <div style={{
                       display: 'grid',
                       gridTemplateColumns: '1fr 1fr',
-                      gap: '12px'
+                      gap: '8px'
                     }}>
                       <div>
                         <div style={{
-                          fontSize: '0.72rem',
+                          fontSize: '0.62rem',
                           fontWeight: 800,
                           color: '#bae6fd',
-                          letterSpacing: '0.04em',
+                          letterSpacing: '0.03em',
                           textTransform: 'uppercase'
                         }}>
                           SPP BULANAN
                         </div>
                         <div style={{
-                          fontSize: '1.05rem',
+                          fontSize: '0.86rem',
                           fontWeight: 900,
                           color: '#ffffff',
-                          marginTop: '3px',
+                          marginTop: '2px',
                           letterSpacing: '-0.2px'
                         }}>
                           {keuanganSummary?.formattedBulanan || 'Rp 0'}
@@ -1009,19 +1009,19 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
 
                       <div>
                         <div style={{
-                          fontSize: '0.72rem',
+                          fontSize: '0.62rem',
                           fontWeight: 800,
                           color: '#bae6fd',
-                          letterSpacing: '0.04em',
+                          letterSpacing: '0.03em',
                           textTransform: 'uppercase'
                         }}>
                           SISA BIAYA MASUK
                         </div>
                         <div style={{
-                          fontSize: '1.05rem',
+                          fontSize: '0.86rem',
                           fontWeight: 900,
                           color: '#ffffff',
-                          marginTop: '3px',
+                          marginTop: '2px',
                           letterSpacing: '-0.2px'
                         }}>
                           {keuanganSummary?.formattedSisaBiayaMasuk || 'Rp 0'}
