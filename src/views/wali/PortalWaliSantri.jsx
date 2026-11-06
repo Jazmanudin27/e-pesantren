@@ -765,20 +765,20 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                       border: 'none',
                       background: financeActiveTab === 'tabungan' ? '#ffffff' : 'transparent',
                       color: financeActiveTab === 'tabungan' ? '#044e42' : 'rgba(255, 255, 255, 0.8)',
-                      fontWeight: 800,
-                      fontSize: '0.82rem',
-                      padding: '8px 12px',
+                      fontWeight: 700,
+                      fontSize: '13px',
+                      padding: '6px 10px',
                       borderRadius: '10px',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px',
+                      gap: '5px',
                       boxShadow: financeActiveTab === 'tabungan' ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    <Wallet size={16} color={financeActiveTab === 'tabungan' ? '#044e42' : 'rgba(255, 255, 255, 0.8)'} />
+                    <Wallet size={14} color={financeActiveTab === 'tabungan' ? '#044e42' : 'rgba(255, 255, 255, 0.8)'} />
                     <span>Tabungan</span>
                   </button>
 
@@ -789,25 +789,25 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                       border: 'none',
                       background: financeActiveTab === 'tagihan' ? '#ffffff' : 'transparent',
                       color: financeActiveTab === 'tagihan' ? '#0f3c5c' : 'rgba(255, 255, 255, 0.8)',
-                      fontWeight: 800,
-                      fontSize: '0.82rem',
-                      padding: '8px 12px',
+                      fontWeight: 700,
+                      fontSize: '13px',
+                      padding: '6px 10px',
                       borderRadius: '10px',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px',
+                      gap: '5px',
                       boxShadow: financeActiveTab === 'tagihan' ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    <CreditCard size={16} color={financeActiveTab === 'tagihan' ? '#0f3c5c' : 'rgba(255, 255, 255, 0.8)'} />
+                    <CreditCard size={14} color={financeActiveTab === 'tagihan' ? '#0f3c5c' : 'rgba(255, 255, 255, 0.8)'} />
                     <span>Tagihan</span>
                     {(keuanganSummary?.totalBelumBayar || 0) > 0 && (
                       <span style={{
-                        width: '7px',
-                        height: '7px',
+                        width: '6px',
+                        height: '6px',
                         borderRadius: '50%',
                         background: '#ef4444'
                       }} />
