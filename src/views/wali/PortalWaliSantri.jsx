@@ -156,12 +156,27 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
     if ('scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual';
     }
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    const scrollToTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      if (document.body) document.body.scrollTop = 0;
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+    };
+    scrollToTop();
+    const t1 = setTimeout(scrollToTop, 50);
+    const t2 = setTimeout(scrollToTop, 150);
+    const t3 = setTimeout(scrollToTop, 400);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
   }, []);
 
   // Scroll ke atas saat ganti tab
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    if (document.body) document.body.scrollTop = 0;
+    if (document.documentElement) document.documentElement.scrollTop = 0;
   }, [currentTab]);
 
   // Ambil data monitoring wali santri
@@ -293,7 +308,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
 
   const fetchLatestFeed = async () => {
     try {
-      const res = await axios.get('/api/informasi-kegiatan/feed?limit=2');
+      const res = await axios.get('/api/informasi-kegiatan/feed?limit=6');
       if (res.data?.success) {
         setLatestFeed(res.data.data.feed || []);
       }
@@ -502,7 +517,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   }
 
   return (
-    <div style={{
+    <div id="wali" style={{
       minHeight: '100vh',
       background: '#f1f5f9',
       display: 'flex',
@@ -510,7 +525,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
     }}>
       {/* Mobile Frame Container: 100% on phone, max 430px on desktop */}
-      <div style={{
+      <div id="top-portal-wali" style={{
         width: '100%',
         maxWidth: '430px',
         minHeight: '100vh',
@@ -1114,6 +1129,193 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   </div>
                   <span style={menuLabelStyle}>Tata Tertib</span>
                 </div>
+              </div>
+            </div>
+
+            {/* 3. SLIDER KEGIATAN & AGENDA PESANTREN */}
+            <div style={{ padding: '12px 14px 4px' }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '10px'
+              }}>
+                <div style={{
+                  fontSize: '0.85rem',
+                  fontWeight: 800,
+                  color: '#0f172a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  letterSpacing: '-0.2px'
+                }}>
+                  <span style={{
+                    width: '4px',
+                    height: '15px',
+                    background: '#059669',
+                    borderRadius: '4px'
+                  }} />
+                  Kegiatan Pesantren
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCurrentTab('kegiatan')}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#059669',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '2px',
+                    padding: 0
+                  }}
+                >
+                  Lihat Semua <ChevronRight size={13} />
+                </button>
+              </div>
+
+              {/* Horizontal Scroll Carousel */}
+              <div style={{
+                display: 'flex',
+                gap: '10px',
+                overflowX: 'auto',
+                paddingBottom: '8px',
+                scrollSnapType: 'x mandatory',
+                WebkitOverflowScrolling: 'touch'
+              }}>
+                {(latestFeed && latestFeed.length > 0 ? latestFeed : [
+                  {
+                    id: 'fb-1',
+                    judul: "Kajian Kitab Kuning & Sorogan Santri",
+                    kategori: 'Pengajian',
+                    konten: "Kajian fiqih ibadah & nahwu ba'da Subuh dan Maghrib bersama dewan asatidz.",
+                    tanggal_publikasi: 'Harian'
+                  },
+                  {
+                    id: 'fb-2',
+                    judul: "Setoran Tahfidz & Tasmi' Al-Qur'an",
+                    kategori: 'Tahfidz',
+                    konten: "Muroja'ah rutin santri dan evaluasi mutqin hafalan bersama musyrif asrama.",
+                    tanggal_publikasi: 'Mingguan'
+                  },
+                  {
+                    id: 'fb-3',
+                    judul: "Muhadhoroh & Latihan Khitobah 3 Bahasa",
+                    kategori: 'Ekstrakurikuler',
+                    konten: "Pembinaan public speaking santri dalam Bahasa Arab, Inggris, dan Indonesia.",
+                    tanggal_publikasi: 'Kamis Malam'
+                  },
+                  {
+                    id: 'fb-4',
+                    judul: "Disiplin Presensi Sholat Berjamaah",
+                    kategori: 'Ibadah',
+                    konten: "Pemantauan kehadiran sholat fardhu & tahajud di Masjid Jami' Pesantren.",
+                    tanggal_publikasi: 'Wajib'
+                  }
+                ]).map((item, idx) => {
+                  const gradientList = [
+                    'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                    'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                    'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+                    'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)'
+                  ];
+                  const bgGrad = gradientList[idx % gradientList.length];
+
+                  return (
+                    <div
+                      key={item.id || idx}
+                      onClick={() => setCurrentTab('kegiatan')}
+                      style={{
+                        flex: '0 0 215px',
+                        scrollSnapAlign: 'start',
+                        background: '#ffffff',
+                        borderRadius: '16px',
+                        border: '1px solid #f1f5f9',
+                        boxShadow: '0 4px 14px -3px rgba(15, 23, 42, 0.08)',
+                        overflow: 'hidden',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        transition: 'transform 0.15s ease'
+                      }}
+                    >
+                      {/* Banner Visual */}
+                      <div style={{
+                        height: '75px',
+                        background: item.lampiran_url ? `url(${item.lampiran_url}) center/cover no-repeat` : bgGrad,
+                        padding: '8px 10px',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        justifyContent: 'space-between',
+                        position: 'relative',
+                        color: '#ffffff'
+                      }}>
+                        <span style={{
+                          background: 'rgba(0, 0, 0, 0.35)',
+                          backdropFilter: 'blur(4px)',
+                          color: '#ffffff',
+                          fontSize: '0.6rem',
+                          fontWeight: 700,
+                          padding: '2px 7px',
+                          borderRadius: '8px',
+                          letterSpacing: '0.02em'
+                        }}>
+                          {item.kategori || 'Kegiatan'}
+                        </span>
+                        <Sparkles size={14} style={{ opacity: 0.8 }} />
+                      </div>
+
+                      {/* Info Body */}
+                      <div style={{ padding: '9px 10px 10px', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{
+                            fontSize: '0.78rem',
+                            fontWeight: 800,
+                            color: '#0f172a',
+                            lineHeight: 1.25,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                          }}>
+                            {item.judul}
+                          </div>
+                          <div style={{
+                            fontSize: '0.66rem',
+                            color: '#64748b',
+                            marginTop: '4px',
+                            lineHeight: 1.3,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                          }}>
+                            {item.konten}
+                          </div>
+                        </div>
+
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '0.62rem',
+                          color: '#059669',
+                          fontWeight: 700,
+                          marginTop: '8px',
+                          paddingTop: '6px',
+                          borderTop: '1px solid #f8fafc'
+                        }}>
+                          <Calendar size={11} />
+                          <span>{item.tanggal_publikasi ? (typeof item.tanggal_publikasi === 'string' && item.tanggal_publikasi.includes('-') ? new Date(item.tanggal_publikasi).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : item.tanggal_publikasi) : 'Pesantren'}</span>
+                          <span style={{ marginLeft: 'auto', color: '#94a3b8' }}>Lihat &rarr;</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
