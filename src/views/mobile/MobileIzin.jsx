@@ -1126,62 +1126,296 @@ export default function MobileIzin() {
                 </select>
               </div>
 
-              {/* Jenis Izin */}
+              {/* Jenis Izin Interaktif */}
               <div>
                 <label
                   style={{
                     display: "block",
                     fontSize: "0.78rem",
-                    fontWeight: 700,
-                    color: "#334155",
-                    marginBottom: "4px",
+                    fontWeight: 800,
+                    color: "#1e293b",
+                    marginBottom: "8px",
                   }}
                 >
-                  Jenis Izin *
+                  Kategori / Jenis Izin *
                 </label>
-                <select
-                  value={formData.jenis_izin}
-                  onChange={(e) =>
-                    setFormData({ ...formData, jenis_izin: e.target.value })
-                  }
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "12px",
-                    border: "1.5px solid #cbd5e1",
-                    fontSize: "0.85rem",
-                    background: "#ffffff",
-                    outline: "none",
-                  }}
-                >
-                  <option value="Izin Pulang">
-                    Izin Pulang (Keluarga / Liburan)
-                  </option>
-                  <option value="Izin Berobat">
-                    Izin Berobat (Klinik / RS)
-                  </option>
-                  <option value="Izin Keluar Komplek">
-                    Izin Keluar Komplek (Singkat)
-                  </option>
-                  <option value="Izin Khusus">
-                    Izin Khusus (Mendesak / Takziyah)
-                  </option>
-                </select>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px" }}>
+                  {[
+                    { key: "Izin Pulang", label: "Izin Pulang", sub: "Keluarga & Liburan", icon: "🏡", color: "#ea580c", bg: "#fff7ed", border: "#fdba74" },
+                    { key: "Izin Berobat", label: "Izin Berobat", sub: "Klinik & Dokter", icon: "🏥", color: "#e11d48", bg: "#fff1f2", border: "#fecdd3" },
+                    { key: "Izin Keluar Komplek", label: "Keluar Komplek", sub: "Keperluan Singkat", icon: "🚶‍♂️", color: "#0284c7", bg: "#f0f9ff", border: "#bae6fd" },
+                    { key: "Izin Khusus", label: "Izin Khusus", sub: "Lomba & Acara Luar", icon: "🏆", color: "#7c3aed", bg: "#f5f3ff", border: "#ddd6fe" }
+                  ].map((kat) => {
+                    const isSelected = formData.jenis_izin === kat.key;
+                    return (
+                      <div
+                        key={kat.key}
+                        onClick={() => setFormData({ ...formData, jenis_izin: kat.key })}
+                        style={{
+                          padding: "10px 12px",
+                          borderRadius: "14px",
+                          cursor: "pointer",
+                          border: isSelected ? `2px solid ${kat.color}` : "1.5px solid #e2e8f0",
+                          background: isSelected ? kat.bg : "#ffffff",
+                          boxShadow: isSelected ? `0 4px 14px ${kat.color}25` : "0 2px 4px rgba(0,0,0,0.02)",
+                          transition: "all 0.18s ease",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "10px"
+                        }}
+                      >
+                        <span style={{ fontSize: "1.35rem", lineHeight: 1 }}>{kat.icon}</span>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: "0.82rem", fontWeight: 800, color: isSelected ? kat.color : "#1e293b", lineHeight: 1.2 }}>
+                            {kat.label}
+                          </div>
+                          <div style={{ fontSize: "0.66rem", color: isSelected ? kat.color : "#64748b", marginTop: "2px", lineHeight: 1.1 }}>
+                            {kat.sub}
+                          </div>
+                        </div>
+                        {isSelected && (
+                          <span style={{
+                            width: "16px",
+                            height: "16px",
+                            borderRadius: "50%",
+                            background: kat.color,
+                            color: "#fff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "10px",
+                            fontWeight: 900
+                          }}>
+                            ✓
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Keperluan */}
-              <div>
-                <label
+              {/* Rencana Keluar & Rencana Kembali dengan Preset Cepat */}
+              <div
+                style={{
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "16px",
+                  padding: "14px"
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                  <label
+                    style={{
+                      fontSize: "0.78rem",
+                      fontWeight: 800,
+                      color: "#1e293b",
+                      margin: 0,
+                    }}
+                  >
+                    Jadwal Keluar & Batas Kembali *
+                  </label>
+                  <span style={{ fontSize: "0.66rem", fontWeight: 700, color: "#0284c7" }}>
+                    Preset Cepat:
+                  </span>
+                </div>
+
+                {/* 4 Chips Preset Durasi Cepat */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "6px", marginBottom: "12px" }}>
+                  {[
+                    { label: "Sore Ini", days: 0, hour: 17 },
+                    { label: "1 Hari", days: 1, hour: 17 },
+                    { label: "2 Hari", days: 2, hour: 17 },
+                    { label: "3 Hari", days: 3, hour: 17 }
+                  ].map((p, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        const now = new Date();
+                        const pad = (n) => String(n).padStart(2, "0");
+                        const nowStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+                        const ret = new Date(now.getTime() + p.days * 24 * 60 * 60 * 1000);
+                        ret.setHours(p.hour, 0, 0, 0);
+                        const retStr = `${ret.getFullYear()}-${pad(ret.getMonth() + 1)}-${pad(ret.getDate())}T${pad(ret.getHours())}:${pad(ret.getMinutes())}`;
+                        setFormData({ ...formData, tgl_keluar_rencana: nowStr, tgl_kembali_rencana: retStr });
+                      }}
+                      style={{
+                        padding: "6px 4px",
+                        borderRadius: "10px",
+                        border: "1px solid #cbd5e1",
+                        background: "#ffffff",
+                        color: "#334155",
+                        fontSize: "0.72rem",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
+                        textAlign: "center"
+                      }}
+                    >
+                      ⏱️ {p.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div
                   style={{
-                    display: "block",
-                    fontSize: "0.78rem",
-                    fontWeight: 700,
-                    color: "#334155",
-                    marginBottom: "4px",
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "10px",
                   }}
                 >
-                  Keperluan / Alasan Izin *
-                </label>
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "0.72rem",
+                        fontWeight: 700,
+                        color: "#475569",
+                        marginBottom: "4px",
+                      }}
+                    >
+                      Waktu Keluar *
+                    </label>
+                    <input
+                      type="datetime-local"
+                      required
+                      value={formData.tgl_keluar_rencana}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          tgl_keluar_rencana: e.target.value,
+                        })
+                      }
+                      style={{
+                        width: "100%",
+                        padding: "9px 10px",
+                        borderRadius: "10px",
+                        border: "1.5px solid #cbd5e1",
+                        fontSize: "0.78rem",
+                        fontWeight: 700,
+                        color: "#0f172a",
+                        background: "#ffffff",
+                        boxSizing: "border-box",
+                        outline: "none",
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "0.72rem",
+                        fontWeight: 700,
+                        color: "#475569",
+                        marginBottom: "4px",
+                      }}
+                    >
+                      Batas Kembali *
+                    </label>
+                    <input
+                      type="datetime-local"
+                      required
+                      value={formData.tgl_kembali_rencana}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          tgl_kembali_rencana: e.target.value,
+                        })
+                      }
+                      style={{
+                        width: "100%",
+                        padding: "9px 10px",
+                        borderRadius: "10px",
+                        border: "1.5px solid #cbd5e1",
+                        fontSize: "0.78rem",
+                        fontWeight: 700,
+                        color: "#0f172a",
+                        background: "#ffffff",
+                        boxSizing: "border-box",
+                        outline: "none",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Live Estimasi Durasi Badge */}
+                {(() => {
+                  if (!formData.tgl_keluar_rencana || !formData.tgl_kembali_rencana) return null;
+                  const st = new Date(formData.tgl_keluar_rencana);
+                  const en = new Date(formData.tgl_kembali_rencana);
+                  const diffMs = en - st;
+                  if (isNaN(diffMs) || diffMs <= 0) return null;
+                  const totalHours = Math.round(diffMs / (1000 * 60 * 60));
+                  const days = Math.floor(totalHours / 24);
+                  const hours = totalHours % 24;
+                  const durStr = days > 0 ? (hours > 0 ? `${days} Hari ${hours} Jam` : `${days} Hari`) : `${hours} Jam`;
+                  return (
+                    <div style={{
+                      marginTop: "10px",
+                      padding: "6px 10px",
+                      borderRadius: "8px",
+                      background: "#ecfdf5",
+                      border: "1px solid #a7f3d0",
+                      color: "#065f46",
+                      fontSize: "0.72rem",
+                      fontWeight: 800,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px"
+                    }}>
+                      <Clock size={13} color="#059669" />
+                      <span>Estimasi Durasi: <strong>{durStr}</strong> ({totalHours} Jam)</span>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Keperluan dengan Template Cepat */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                  <label
+                    style={{
+                      fontSize: "0.78rem",
+                      fontWeight: 800,
+                      color: "#1e293b",
+                      margin: 0,
+                    }}
+                  >
+                    Keperluan / Alasan Izin *
+                  </label>
+                  <span style={{ fontSize: "0.66rem", color: "#64748b" }}>Isi cepat:</span>
+                </div>
+
+                {/* Template Chips */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginBottom: "8px" }}>
+                  {[
+                    "Pernikahan Saudara",
+                    "Silaturahmi Keluarga",
+                    "Periksa Dokter / Berobat",
+                    "Keperluan Mendesak",
+                    "Libur Terjadwal Pondok"
+                  ].map((tpl, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, keperluan: tpl })}
+                      style={{
+                        padding: "4px 9px",
+                        borderRadius: "8px",
+                        border: formData.keperluan === tpl ? "1px solid #0284c7" : "1px solid #e2e8f0",
+                        background: formData.keperluan === tpl ? "#e0f2fe" : "#f8fafc",
+                        color: formData.keperluan === tpl ? "#0369a1" : "#475569",
+                        fontSize: "0.7rem",
+                        fontWeight: 700,
+                        cursor: "pointer"
+                      }}
+                    >
+                      + {tpl}
+                    </button>
+                  ))}
+                </div>
+
                 <textarea
                   required
                   rows={2}
@@ -1195,79 +1429,13 @@ export default function MobileIzin() {
                     padding: "10px 12px",
                     borderRadius: "12px",
                     border: "1.5px solid #cbd5e1",
-                    fontSize: "0.85rem",
+                    fontSize: "0.82rem",
                     boxSizing: "border-box",
                     outline: "none",
+                    resize: "none"
                   }}
                 />
               </div>
-
-              {/* Rencana Keluar & Rencana Kembali */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "10px",
-                }}
-              >
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "0.78rem",
-                      fontWeight: 700,
-                      color: "#334155",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    Rencana Keluar *
-                  </label>
-                  <input
-                    type="datetime-local"
-                    required
-                    value={formData.tgl_keluar_rencana}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        tgl_keluar_rencana: e.target.value,
-                      })
-                    }
-                    style={{
-                      width: "100%",
-                      padding: "10px 10px",
-                      borderRadius: "12px",
-                      border: "1.5px solid #cbd5e1",
-                      fontSize: "0.82rem",
-                      boxSizing: "border-box",
-                      outline: "none",
-                    }}
-                  />
-                </div>
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "0.78rem",
-                      fontWeight: 700,
-                      color: "#334155",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    Batas Kembali *
-                  </label>
-                  <input
-                    type="datetime-local"
-                    required
-                    value={formData.tgl_kembali_rencana}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        tgl_kembali_rencana: e.target.value,
-                      })
-                    }
-                    style={{
-                      width: "100%",
-                      padding: "10px 10px",
                       borderRadius: "12px",
                       border: "1.5px solid #cbd5e1",
                       fontSize: "0.82rem",

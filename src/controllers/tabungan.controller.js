@@ -1,5 +1,6 @@
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
+import { createMidtransSnapToken } from '../services/midtrans.service.js';
 
 let isTabunganTablesInitialized = false;
 
@@ -554,4 +555,59 @@ export const batalTransaksiTabungan = async (req, res) => {
     connection.release();
   }
 };
+
+/**
+ * 6. POST /api/tabungan/topup-midtrans - Generate Midtrans Snap Token untuk Top Up Saldo Tabungan
+ */
+export const topupMidtransTabungan = async (req, res) => {
+  try {
+    await ensureTabunganTables();
+    const { santri_id, nominal, keterangan = '' } = req.body;
+    const nom = parseFloat(nominal);
+
+    if (!santri_id) {
+      return sendError(res, 'santri_id wajib diisi', 400);
+    }
+    if (isNaN(nom) || nom < 5000) {
+      return sendError(res, 'Nominal pengisian minimal Rp 5.000', 400);
+    }
+
+    const [santriRows] = await pool.query(
+      'SELECT id, nama_santri, nama_wali, no_wa_wali, no_hp_wali FROM santri WHERE id = ?',
+      [santri_id]
+    );
+    if (!santriRows || santriRows.length === 0) {
+      return sendError(res, 'Santri tidak ditemukan', 404);
+    }
+
+    const santri = santriRows[0];
+    const timestamp = Date.now();
+    const nomorTransaksi = `TOPUP-${santri_id}-${timestamp}`;
+
+    // Buat snap token resmi Midtrans
+    const snapResult = await createMidtransSnapToken({
+      nomorTransaksi,
+      totalBayar: nom,
+      santriNama: santri.nama_santri || 'Santri',
+      noWaWali: santri.no_wa_wali || santri.no_hp_wali || '081234567890',
+      items: [{
+        tagihan_id: 99999,
+        judul_tagihan: `Isi Saldo Tabungan ${santri.nama_santri || ''}`.substring(0, 45),
+        nominal_alokasi: nom
+      }]
+    });
+
+    return sendSuccess(res, 'Snap token pembayaran Midtrans berhasil dibuat', {
+      nomor_transaksi: nomorTransaksi,
+      snap_token: snapResult.token,
+      payment_url: snapResult.redirect_url,
+      nominal: nom,
+      santri_id
+    });
+  } catch (err) {
+    console.error('[TOPUP MIDTRANS TABUNGAN ERROR]', err);
+    return sendError(res, 'Gagal membuat sesi pembayaran Midtrans: ' + err.message, 500);
+  }
+};
+
 

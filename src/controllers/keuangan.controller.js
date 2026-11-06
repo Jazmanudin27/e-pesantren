@@ -1614,6 +1614,40 @@ export const webhookMidtransHandler = async (req, res) => {
 
   const connection = await pool.getConnection();
   try {
+    // 1. Handle Top Up Saldo Tabungan via Midtrans
+    if (orderId.startsWith('TOPUP-') || orderId.startsWith('TB-')) {
+      const parts = orderId.split('-');
+      const targetSantriId = parseInt(parts[1]);
+      const grossAmount = parseFloat(payload.gross_amount || 0);
+
+      if (targetSantriId && grossAmount > 0) {
+        await connection.beginTransaction();
+        await connection.query('INSERT IGNORE INTO santri_tabungan (santri_id, saldo) VALUES (?, 0.00)', [targetSantriId]);
+        const [tRows] = await connection.query('SELECT id, saldo FROM santri_tabungan WHERE santri_id = ? FOR UPDATE', [targetSantriId]);
+        const saldoSebelum = parseFloat(tRows[0]?.saldo || 0);
+        const saldoSesudah = saldoSebelum + grossAmount;
+
+        // Idempoten
+        const [existingLog] = await connection.query('SELECT id FROM santri_tabungan_transaksi WHERE kode_transaksi = ?', [orderId]);
+        if (existingLog && existingLog.length > 0) {
+          await connection.rollback();
+          return res.status(200).json({ status: 'OK', message: 'Top up tabungan already settled' });
+        }
+
+        await connection.query(
+          `INSERT INTO santri_tabungan_transaksi 
+           (tabungan_id, santri_id, kode_transaksi, jenis_transaksi, nominal, saldo_sebelum, saldo_sesudah, keterangan, tanggal_transaksi, admin_nama)
+           VALUES (?, ?, ?, 'masuk', ?, ?, ?, ?, CURDATE(), ?)`,
+          [tRows[0].id, targetSantriId, orderId, grossAmount, saldoSebelum, saldoSesudah, 'Isi Saldo Tabungan via Midtrans Online', 'Midtrans Webhook']
+        );
+        await connection.query('UPDATE santri_tabungan SET saldo = ? WHERE id = ?', [saldoSesudah, tRows[0].id]);
+        await connection.commit();
+        console.log(`[MIDTRANS TOPUP SETTLED] Santri ID ${targetSantriId} bertambah saldo Rp ${grossAmount}`);
+        return res.status(200).json({ status: 'OK', message: 'Top up successfully processed' });
+      }
+    }
+
+    // 2. Handle Pembayaran Tagihan Rutin Santri
     await connection.beginTransaction();
 
     const [trxRows] = await connection.query(`

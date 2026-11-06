@@ -122,8 +122,8 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   // Top Up Saldo Tabungan State
   const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
   const [submittingTopUp, setSubmittingTopUp] = useState(false);
-  const [topUpNominal, setTopUpNominal] = useState(50000);
-  const [topUpKeterangan, setTopUpKeterangan] = useState('Uang saku santri via Wali');
+  const [topUpNominal, setTopUpNominal] = useState('50.000');
+  const [topUpKeterangan, setTopUpKeterangan] = useState('');
 
   // Live Clock & Greeting
   const [currentTimeStr, setCurrentTimeStr] = useState('');
@@ -456,35 +456,78 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
 
   const handleTopUpSubmit = async (e) => {
     e.preventDefault();
-    const nom = parseFloat(topUpNominal);
+    const rawNom = String(topUpNominal).replace(/[^0-9]/g, '');
+    const nom = parseFloat(rawNom);
     if (!nom || isNaN(nom) || nom <= 0) {
       showError('Nominal Tidak Valid', 'Silakan masukkan nominal pengisian saldo yang benar.');
       return;
     }
     if (nom < 5000) {
-      showError('Minimal Setor', 'Nominal pengisian minimal Rp 5.000.');
+      showError('Minimal Pengisian', 'Nominal pengisian saldo tabungan minimal Rp 5.000.');
       return;
     }
+
+    const targetId = selectedSantriId || santri?.id;
     try {
       setSubmittingTopUp(true);
-      const res = await axios.post('/api/tabungan/setor', {
-        santri_id: selectedSantriId || santri?.id,
+
+      // Request Snap Token Midtrans untuk Top Up Tabungan
+      const res = await axios.post('/api/tabungan/topup-midtrans', {
+        santri_id: targetId,
         nominal: nom,
-        keterangan: (topUpKeterangan || '').trim() || 'Pengisian Saldo via Wali Santri',
-        admin_nama: `Wali (${rawSantriName})`
+        keterangan: (topUpKeterangan || '').trim() || 'Top Up Saldo Tabungan via Midtrans'
       });
-      if (res.data?.success) {
-        toastSuccess('Pengisian Berhasil!', `Saldo tabungan ananda berhasil diisi sebesar Rp ${nom.toLocaleString('id-ID')}.`);
-        setIsTopUpModalOpen(false);
-        setTopUpNominal(50000);
-        setTopUpKeterangan('Uang saku santri via Wali');
-        fetchSantriTabungan(selectedSantriId || santri?.id);
-        fetchKeuanganOverview(selectedSantriId || santri?.id);
+
+      if (res.data?.success && res.data?.data?.snap_token) {
+        const { snap_token, payment_url } = res.data.data;
+
+        if (window.snap) {
+          window.snap.pay(snap_token, {
+            onSuccess: async function (result) {
+              toastSuccess('Pembayaran Berhasil!', `Saldo tabungan ananda berhasil diisi sebesar Rp ${nom.toLocaleString('id-ID')}.`);
+              setIsTopUpModalOpen(false);
+              setTopUpNominal('');
+              setTopUpKeterangan('');
+              fetchSantriTabungan(targetId);
+              fetchKeuanganOverview(targetId);
+            },
+            onPending: function (result) {
+              toastSuccess('Menunggu Pembayaran', 'Selesaikan pembayaran via Midtrans sesuai instruksi.');
+              setIsTopUpModalOpen(false);
+            },
+            onError: function (result) {
+              showError('Pembayaran Gagal', result?.status_message || 'Transaksi pembayaran dibatalkan atau gagal.');
+            },
+            onClose: function () {
+              fetchSantriTabungan(targetId);
+            }
+          });
+        } else if (payment_url) {
+          window.open(payment_url, '_blank');
+        } else {
+          showError('Gagal', 'Sistem pembayaran Midtrans Snap tidak dapat dimuat.');
+        }
       } else {
-        showError('Gagal', res.data?.message || 'Gagal mengisi saldo tabungan.');
+        // Fallback langsung jika Midtrans offline
+        const fallbackRes = await axios.post('/api/tabungan/setor', {
+          santri_id: targetId,
+          nominal: nom,
+          keterangan: (topUpKeterangan || '').trim() || 'Pengisian Saldo via Wali Santri',
+          admin_nama: `Wali (${rawSantriName})`
+        });
+        if (fallbackRes.data?.success) {
+          toastSuccess('Pengisian Berhasil!', `Saldo tabungan ananda berhasil diisi sebesar Rp ${nom.toLocaleString('id-ID')}.`);
+          setIsTopUpModalOpen(false);
+          setTopUpNominal('');
+          setTopUpKeterangan('');
+          fetchSantriTabungan(targetId);
+          fetchKeuanganOverview(targetId);
+        } else {
+          showError('Gagal', fallbackRes.data?.message || 'Gagal mengisi saldo tabungan.');
+        }
       }
     } catch (err) {
-      showError('Gagal Mengisi Saldo', err.response?.data?.message || err.message);
+      showError('Gagal Top Up Saldo', err.response?.data?.message || err.message);
     } finally {
       setSubmittingTopUp(false);
     }
@@ -3734,15 +3777,15 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
         )}
 
         {/* =========================================================================
-            MODAL AJUKAN IZIN SANTRI (WALI SANTRI)
+            MODAL AJUKAN IZIN SANTRI (WALI SANTRI) - MODERN & INTERAKTIF
         ========================================================================= */}
         {isAjukanIzinOpen && (
           <div style={{
             position: 'fixed',
             inset: 0,
-            zIndex: 9999,
-            backgroundColor: 'rgba(15, 23, 42, 0.65)',
-            backdropFilter: 'blur(4px)',
+            zIndex: 99999,
+            backgroundColor: 'rgba(15, 23, 42, 0.72)',
+            backdropFilter: 'blur(6px)',
             display: 'flex',
             alignItems: 'flex-end',
             justifyContent: 'center',
@@ -3752,49 +3795,54 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               background: '#ffffff',
               width: '100%',
               maxWidth: '480px',
-              borderTopLeftRadius: '24px',
-              borderTopRightRadius: '24px',
-              maxHeight: '92vh',
+              borderTopLeftRadius: '28px',
+              borderTopRightRadius: '28px',
+              maxHeight: '94vh',
               overflowY: 'auto',
               display: 'flex',
               flexDirection: 'column',
-              boxShadow: '0 -10px 25px rgba(0,0,0,0.15)',
+              boxShadow: '0 -12px 36px rgba(0,0,0,0.22)',
               animation: 'slideUp 0.25s ease-out'
             }}>
+              {/* Drag Handle Bar */}
+              <div style={{ width: '40px', height: '4px', background: '#cbd5e1', borderRadius: '4px', margin: '12px auto 2px' }} />
+
               {/* Modal Header */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '16px 20px',
+                padding: '12px 20px 14px',
                 borderBottom: '1px solid #f1f5f9',
                 position: 'sticky',
                 top: 0,
                 background: '#ffffff',
                 zIndex: 10
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <div style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '10px',
-                    background: '#ecfdf5',
-                    color: '#059669',
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '13px',
+                    background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                    color: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 12px rgba(249, 115, 22, 0.35)'
                   }}>
-                    <DoorOpen size={18} />
+                    <DoorOpen size={20} strokeWidth={2.3} />
                   </div>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
+                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.3px' }}>
                       Ajukan Izin Santri
                     </h3>
-                    <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748b' }}>
-                      {santri?.nama_santri || rawSantriName} (NISN: {displayNisn})
+                    <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: '#64748b' }}>
+                      Santri: <strong style={{ color: '#0284c7' }}>{santri?.nama_santri || rawSantriName}</strong> (NISN: {displayNisn})
                     </p>
                   </div>
                 </div>
+
                 <button
                   type="button"
                   onClick={() => setIsAjukanIzinOpen(false)}
@@ -3816,184 +3864,412 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               </div>
 
               {/* Form Body */}
-              <form onSubmit={handleSubmitIzin} style={{ padding: '16px 20px 28px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <form onSubmit={handleSubmitIzin} style={{ padding: '16px 20px 32px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                
+                {/* 1. KATEGORI / JENIS IZIN DENGAN KARTU INTERAKTIF */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                    Kategori / Jenis Izin <span style={{ color: '#ef4444' }}>*</span>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', fontWeight: 800, color: '#1e293b', marginBottom: '8px' }}>
+                    <span>Pilih Kategori Izin</span>
+                    <span style={{ color: '#ef4444' }}>*</span>
                   </label>
-                  <select
-                    value={formIzin.jenis_izin}
-                    onChange={(e) => setFormIzin({ ...formIzin, jenis_izin: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      borderRadius: '12px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '0.84rem',
-                      color: '#0f172a',
-                      background: '#ffffff',
-                      outline: 'none'
-                    }}
-                  >
-                    <option value="Izin Pulang">Izin Pulang (Keluarga)</option>
-                    <option value="Izin Berobat">Izin Berobat (Kesehatan / Rumah Sakit)</option>
-                    <option value="Izin Keluar Komplek">Izin Keluar Komplek Pondok</option>
-                    <option value="Izin Khusus">Izin Khusus (Lomba / Acara Luar)</option>
-                  </select>
-                </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                      Rencana Keluar <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <input
-                      type="datetime-local"
-                      required
-                      value={formIzin.tgl_keluar_rencana}
-                      onChange={(e) => setFormIzin({ ...formIzin, tgl_keluar_rencana: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '9px 10px',
-                        borderRadius: '12px',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '0.78rem',
-                        color: '#0f172a',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                      Rencana Kembali <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <input
-                      type="datetime-local"
-                      required
-                      value={formIzin.tgl_kembali_rencana}
-                      onChange={(e) => setFormIzin({ ...formIzin, tgl_kembali_rencana: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '9px 10px',
-                        borderRadius: '12px',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '0.78rem',
-                        color: '#0f172a',
-                        outline: 'none'
-                      }}
-                    />
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                    {[
+                      { key: 'Izin Pulang', label: 'Izin Pulang', sub: 'Keluarga & Liburan', icon: '🏡', color: '#ea580c', bg: '#fff7ed', border: '#fdba74' },
+                      { key: 'Izin Berobat', label: 'Izin Berobat', sub: 'Klinik & Dokter', icon: '🏥', color: '#e11d48', bg: '#fff1f2', border: '#fecdd3' },
+                      { key: 'Izin Keluar Komplek', label: 'Keluar Komplek', sub: 'Keperluan Singkat', icon: '🚶‍♂️', color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd' },
+                      { key: 'Izin Khusus', label: 'Izin Khusus', sub: 'Lomba & Acara Luar', icon: '🏆', color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' }
+                    ].map((kat) => {
+                      const isSelected = formIzin.jenis_izin === kat.key;
+                      return (
+                        <div
+                          key={kat.key}
+                          onClick={() => setFormIzin({ ...formIzin, jenis_izin: kat.key })}
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: '14px',
+                            cursor: 'pointer',
+                            border: isSelected ? `2px solid ${kat.color}` : '1.5px solid #e2e8f0',
+                            background: isSelected ? kat.bg : '#ffffff',
+                            boxShadow: isSelected ? `0 4px 14px ${kat.color}25` : '0 2px 4px rgba(0,0,0,0.02)',
+                            transition: 'all 0.18s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            position: 'relative'
+                          }}
+                        >
+                          <span style={{ fontSize: '1.4rem', lineHeight: 1 }}>{kat.icon}</span>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontSize: '0.82rem', fontWeight: 800, color: isSelected ? kat.color : '#1e293b', lineHeight: 1.2 }}>
+                              {kat.label}
+                            </div>
+                            <div style={{ fontSize: '0.66rem', color: isSelected ? kat.color : '#64748b', marginTop: '2px', lineHeight: 1.1 }}>
+                              {kat.sub}
+                            </div>
+                          </div>
+                          {isSelected && (
+                            <span style={{
+                              width: '16px',
+                              height: '16px',
+                              borderRadius: '50%',
+                              background: kat.color,
+                              color: '#fff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '10px',
+                              fontWeight: 900
+                            }}>
+                              ✓
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
+                {/* 2. ESTIMASI DURASI & JADWAL KELUAR - KEMBALI */}
+                <div style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '16px',
+                  padding: '14px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <label style={{ fontSize: '0.76rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                      Jadwal Keluar & Rencana Kembali
+                    </label>
+
+                    {/* Quick Duration Buttons */}
+                    <span style={{ fontSize: '0.66rem', fontWeight: 700, color: '#0284c7' }}>
+                      Pilih Cepat:
+                    </span>
+                  </div>
+
+                  {/* 4 Chips Preset Durasi Cepat */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', marginBottom: '12px' }}>
+                    {[
+                      { label: 'Sore Ini', days: 0, hour: 17 },
+                      { label: '1 Hari', days: 1, hour: 17 },
+                      { label: '2 Hari', days: 2, hour: 17 },
+                      { label: '3 Hari', days: 3, hour: 17 }
+                    ].map((p, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          const now = new Date();
+                          const pad = (n) => String(n).padStart(2, '0');
+                          const nowStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+                          const ret = new Date(now.getTime() + p.days * 24 * 60 * 60 * 1000);
+                          ret.setHours(p.hour, 0, 0, 0);
+                          const retStr = `${ret.getFullYear()}-${pad(ret.getMonth() + 1)}-${pad(ret.getDate())}T${pad(ret.getHours())}:${pad(ret.getMinutes())}`;
+                          setFormIzin({ ...formIzin, tgl_keluar_rencana: nowStr, tgl_kembali_rencana: retStr });
+                        }}
+                        style={{
+                          padding: '6px 4px',
+                          borderRadius: '10px',
+                          border: '1px solid #cbd5e1',
+                          background: '#ffffff',
+                          color: '#334155',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          textAlign: 'center'
+                        }}
+                      >
+                        ⏱️ {p.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                        Waktu Keluar <span style={{ color: '#ef4444' }}>*</span>
+                      </span>
+                      <input
+                        type="datetime-local"
+                        required
+                        value={formIzin.tgl_keluar_rencana}
+                        onChange={(e) => setFormIzin({ ...formIzin, tgl_keluar_rencana: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: '9px 10px',
+                          borderRadius: '10px',
+                          border: '1.5px solid #cbd5e1',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          color: '#0f172a',
+                          background: '#ffffff',
+                          outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                        Rencana Kembali <span style={{ color: '#ef4444' }}>*</span>
+                      </span>
+                      <input
+                        type="datetime-local"
+                        required
+                        value={formIzin.tgl_kembali_rencana}
+                        onChange={(e) => setFormIzin({ ...formIzin, tgl_kembali_rencana: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: '9px 10px',
+                          borderRadius: '10px',
+                          border: '1.5px solid #cbd5e1',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          color: '#0f172a',
+                          background: '#ffffff',
+                          outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Dynamic Duration Badge */}
+                  {(() => {
+                    if (!formIzin.tgl_keluar_rencana || !formIzin.tgl_kembali_rencana) return null;
+                    const st = new Date(formIzin.tgl_keluar_rencana);
+                    const en = new Date(formIzin.tgl_kembali_rencana);
+                    const diffMs = en - st;
+                    if (isNaN(diffMs) || diffMs <= 0) {
+                      return (
+                        <div style={{ marginTop: '8px', fontSize: '0.7rem', color: '#dc2626', fontWeight: 700 }}>
+                          ⚠️ Waktu kembali harus lebih lambat dari waktu keluar.
+                        </div>
+                      );
+                    }
+                    const totalHours = Math.round(diffMs / (1000 * 60 * 60));
+                    const days = Math.floor(totalHours / 24);
+                    const hours = totalHours % 24;
+                    const durStr = days > 0 ? (hours > 0 ? `${days} Hari ${hours} Jam` : `${days} Hari`) : `${hours} Jam`;
+                    return (
+                      <div style={{
+                        marginTop: '10px',
+                        padding: '6px 10px',
+                        borderRadius: '8px',
+                        background: '#ecfdf5',
+                        border: '1px solid #a7f3d0',
+                        color: '#065f46',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        <Clock size={13} color="#059669" />
+                        <span>Estimasi Durasi Izin: <strong>{durStr}</strong> ({totalHours} Jam)</span>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* 3. ALASAN / KEPERLUAN DENGAN TEMPLATE CEPAT */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                    Alasan / Keperluan Izin <span style={{ color: '#ef4444' }}>*</span>
-                  </label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <label style={{ fontSize: '0.76rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                      Alasan / Keperluan Izin <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <span style={{ fontSize: '0.66rem', color: '#64748b' }}>Klik template untuk isi cepat:</span>
+                  </div>
+
+                  {/* Template Keperluan Chips */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '8px' }}>
+                    {[
+                      'Pernikahan Saudara',
+                      'Silaturahmi Keluarga',
+                      'Periksa Dokter / Berobat',
+                      'Keperluan Mendesak',
+                      'Libur Terjadwal Pondok'
+                    ].map((tpl, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setFormIzin({ ...formIzin, keperluan: tpl })}
+                        style={{
+                          padding: '4px 9px',
+                          borderRadius: '8px',
+                          border: formIzin.keperluan === tpl ? '1px solid #059669' : '1px solid #e2e8f0',
+                          background: formIzin.keperluan === tpl ? '#ecfdf5' : '#f8fafc',
+                          color: formIzin.keperluan === tpl ? '#047857' : '#475569',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        + {tpl}
+                      </button>
+                    ))}
+                  </div>
+
                   <textarea
                     rows={3}
                     required
-                    placeholder="Contoh: Menghadiri acara pernikahan keluarga di kampung / kontrol ke dokter..."
+                    placeholder="Tuliskan keterangan detail keperluan izin santri..."
                     value={formIzin.keperluan}
                     onChange={(e) => setFormIzin({ ...formIzin, keperluan: e.target.value })}
                     style={{
                       width: '100%',
                       padding: '10px 12px',
                       borderRadius: '12px',
-                      border: '1px solid #cbd5e1',
+                      border: '1.5px solid #cbd5e1',
                       fontSize: '0.82rem',
                       color: '#0f172a',
                       outline: 'none',
-                      resize: 'none'
+                      resize: 'none',
+                      boxSizing: 'border-box'
                     }}
                   />
                 </div>
 
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                    Nama Penjemput (Mahrom)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Nama orang tua atau wali penjemput"
-                    value={formIzin.nama_penjemput_mahrom}
-                    onChange={(e) => setFormIzin({ ...formIzin, nama_penjemput_mahrom: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '9px 12px',
-                      borderRadius: '12px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '0.82rem',
-                      color: '#0f172a',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                      Hubungan Mahrom
-                    </label>
-                    <select
-                      value={formIzin.hubungan_mahrom}
-                      onChange={(e) => setFormIzin({ ...formIzin, hubungan_mahrom: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '9px 10px',
-                        borderRadius: '12px',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '0.78rem',
-                        color: '#0f172a',
-                        background: '#ffffff',
-                        outline: 'none'
-                      }}
-                    >
-                      <option value="Orang Tua">Orang Tua</option>
-                      <option value="Kakak Kandung">Kakak Kandung</option>
-                      <option value="Paman / Bibi">Paman / Bibi</option>
-                      <option value="Kakek / Nenek">Kakek / Nenek</option>
-                      <option value="Wali Mahrom">Wali Mahrom Lain</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                      No. WhatsApp Penjemput
-                    </label>
-                    <input
-                      type="tel"
-                      placeholder="08xxxxxxxxxx"
-                      value={formIzin.no_hp_penjemput}
-                      onChange={(e) => setFormIzin({ ...formIzin, no_hp_penjemput: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '9px 10px',
-                        borderRadius: '12px',
-                        border: '1px solid #cbd5e1',
-                        fontSize: '0.78rem',
-                        color: '#0f172a',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Info Note */}
+                {/* 4. PENJEMPUT & MAHROM (IDENTITAS PENDAMPING) */}
                 <div style={{
                   background: '#f8fafc',
                   border: '1px solid #e2e8f0',
-                  borderRadius: '10px',
-                  padding: '10px',
-                  fontSize: '0.72rem',
-                  color: '#64748b',
-                  lineHeight: 1.4
+                  borderRadius: '16px',
+                  padding: '14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px'
                 }}>
-                  ℹ️ Permohonan izin akan diverifikasi oleh Dewan Pengasuh. Santri wajib melapor ke Pos Keamanan saat keluar gerbang pesantren dan kembali tepat waktu.
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label style={{ fontSize: '0.76rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                      Identitas Penjemput (Mahrom)
+                    </label>
+                    {santri?.nama_wali && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormIzin({
+                            ...formIzin,
+                            nama_penjemput_mahrom: santri.nama_wali,
+                            hubungan_mahrom: santri.hubungan_wali || 'Orang Tua',
+                            no_hp_penjemput: santri.no_wa_wali || formIzin.no_hp_penjemput
+                          });
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#0284c7',
+                          fontSize: '0.7rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          padding: 0
+                        }}
+                      >
+                        Gunakan Data Wali ↗
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Quick Hubungan Mahrom Chips */}
+                  <div>
+                    <span style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: '#64748b', marginBottom: '5px' }}>
+                      Pilih Hubungan Mahrom:
+                    </span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                      {['Orang Tua', 'Ayah Kandung', 'Ibu Kandung', 'Kakak Kandung', 'Paman / Bibi', 'Kakek / Nenek'].map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setFormIzin({ ...formIzin, hubungan_mahrom: m })}
+                          style={{
+                            padding: '4px 8px',
+                            borderRadius: '8px',
+                            border: formIzin.hubungan_mahrom === m ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
+                            background: formIzin.hubungan_mahrom === m ? '#e0f2fe' : '#ffffff',
+                            color: formIzin.hubungan_mahrom === m ? '#0369a1' : '#475569',
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {m}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '10px' }}>
+                    <div>
+                      <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                        Nama Penjemput
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="Contoh: Bpk. Ridwan"
+                        value={formIzin.nama_penjemput_mahrom}
+                        onChange={(e) => setFormIzin({ ...formIzin, nama_penjemput_mahrom: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: '9px 10px',
+                          borderRadius: '10px',
+                          border: '1.5px solid #cbd5e1',
+                          fontSize: '0.78rem',
+                          color: '#0f172a',
+                          background: '#ffffff',
+                          outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                        No. WhatsApp
+                      </span>
+                      <input
+                        type="tel"
+                        placeholder="08xxxxxxxxxx"
+                        value={formIzin.no_hp_penjemput}
+                        onChange={(e) => setFormIzin({ ...formIzin, no_hp_penjemput: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: '9px 10px',
+                          borderRadius: '10px',
+                          border: '1.5px solid #cbd5e1',
+                          fontSize: '0.78rem',
+                          color: '#0f172a',
+                          background: '#ffffff',
+                          outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                {/* Submit buttons */}
-                <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                {/* Guidance Info Alert */}
+                <div style={{
+                  background: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  borderRadius: '12px',
+                  padding: '10px 12px',
+                  fontSize: '0.72rem',
+                  color: '#166534',
+                  lineHeight: 1.4,
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '8px'
+                }}>
+                  <span style={{ fontSize: '1rem', lineHeight: 1 }}>🛡️</span>
+                  <div>
+                    Permohonan izin akan diverifikasi otomatis oleh Dewan Pengasuh. Santri wajib melapor ke Pos Keamanan saat keluar gerbang pesantren & kembali tepat waktu.
+                  </div>
+                </div>
+
+                {/* Submit Action Buttons */}
+                <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
                   <button
                     type="button"
                     onClick={() => setIsAjukanIzinOpen(false)}
@@ -4001,12 +4277,12 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                     style={{
                       flex: 1,
                       padding: '12px',
-                      borderRadius: '12px',
-                      border: '1px solid #cbd5e1',
+                      borderRadius: '14px',
+                      border: '1.5px solid #cbd5e1',
                       background: '#ffffff',
                       color: '#475569',
-                      fontSize: '0.82rem',
-                      fontWeight: 700,
+                      fontSize: '0.84rem',
+                      fontWeight: 800,
                       cursor: 'pointer'
                     }}
                   >
@@ -4018,18 +4294,19 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                     style={{
                       flex: 2,
                       padding: '12px',
-                      borderRadius: '12px',
+                      borderRadius: '14px',
                       border: 'none',
-                      background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                      background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
                       color: '#ffffff',
-                      fontSize: '0.84rem',
-                      fontWeight: 800,
+                      fontSize: '0.86rem',
+                      fontWeight: 900,
                       cursor: submittingIzin ? 'not-allowed' : 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '8px',
-                      boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
+                      boxShadow: '0 6px 18px rgba(5, 150, 105, 0.35)',
+                      opacity: submittingIzin ? 0.75 : 1
                     }}
                   >
                     {submittingIzin ? (
@@ -4039,7 +4316,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                       </>
                     ) : (
                       <>
-                        <Check size={16} />
+                        <Check size={18} strokeWidth={2.8} />
                         Kirim Permohonan Izin
                       </>
                     )}
@@ -4164,75 +4441,104 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                     Pilih Nominal Cepat:
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                    {[20000, 50000, 100000, 200000, 500000, 1000000].map((nom) => (
-                      <button
-                        key={nom}
-                        type="button"
-                        onClick={() => setTopUpNominal(nom)}
-                        style={{
-                          padding: '10px 6px',
-                          borderRadius: '12px',
-                          border: parseFloat(topUpNominal) === nom ? '2px solid #059669' : '1px solid #e2e8f0',
-                          background: parseFloat(topUpNominal) === nom ? '#ecfdf5' : '#ffffff',
-                          color: parseFloat(topUpNominal) === nom ? '#047857' : '#334155',
-                          fontWeight: 800,
-                          fontSize: '0.78rem',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        {formatRp(nom)}
-                      </button>
-                    ))}
+                    {[20000, 50000, 100000, 200000, 500000, 1000000].map((nom) => {
+                      const currentVal = Number(String(topUpNominal).replace(/[^0-9]/g, '') || 0);
+                      const isSelected = currentVal === nom;
+                      return (
+                        <button
+                          key={nom}
+                          type="button"
+                          onClick={() => setTopUpNominal(String(nom))}
+                          style={{
+                            padding: '10px 6px',
+                            borderRadius: '12px',
+                            border: isSelected ? '2px solid #059669' : '1px solid #e2e8f0',
+                            background: isSelected ? '#ecfdf5' : '#ffffff',
+                            color: isSelected ? '#047857' : '#334155',
+                            fontWeight: 800,
+                            fontSize: '0.78rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          Rp {nom.toLocaleString('id-ID')}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* Input Nominal Manual */}
+                {/* Input Nominal Manual dengan Pemisah Ribuan & Posisi di Kanan */}
                 <div>
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>
                     Nominal Pengisian (Rp) <span style={{ color: '#ef4444' }}>*</span>
                   </label>
-                  <input
-                    type="number"
-                    min="5000"
-                    step="1000"
-                    required
-                    value={topUpNominal}
-                    onChange={(e) => setTopUpNominal(e.target.value)}
-                    placeholder="Contoh: 50000"
-                    style={{
-                      width: '100%',
-                      padding: '12px 14px',
-                      borderRadius: '12px',
-                      border: '1.5px solid #cbd5e1',
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <div style={{
+                      position: 'absolute',
+                      left: '12px',
+                      fontWeight: 900,
+                      color: '#059669',
                       fontSize: '1rem',
-                      fontWeight: 800,
-                      color: '#0f172a',
-                      outline: 'none',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                  <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '4px' }}>
-                    Nominal: <strong style={{ color: '#059669' }}>{formatRp(topUpNominal || 0)}</strong> (Minimal Rp 5.000)
+                      userSelect: 'none',
+                      background: '#ecfdf5',
+                      padding: '3px 8px',
+                      borderRadius: '8px',
+                      border: '1px solid #a7f3d0'
+                    }}>
+                      Rp
+                    </div>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      required
+                      value={(() => {
+                        const clean = String(topUpNominal).replace(/[^0-9]/g, '');
+                        return clean ? Number(clean).toLocaleString('id-ID') : '';
+                      })()}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^0-9]/g, '');
+                        setTopUpNominal(raw);
+                      }}
+                      placeholder="0"
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px 12px 58px',
+                        borderRadius: '12px',
+                        border: '2px solid #059669',
+                        fontSize: '1.25rem',
+                        fontWeight: 900,
+                        color: '#0f172a',
+                        textAlign: 'right',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        letterSpacing: '0.5px',
+                        boxShadow: '0 2px 8px rgba(5, 150, 105, 0.1)'
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b', marginTop: '5px' }}>
+                    <span>Minimal isi saldo: <strong>Rp 5.000</strong></span>
+                    <span style={{ color: '#059669', fontWeight: 800 }}>Pemisah ribuan aktif</span>
                   </div>
                 </div>
 
-                {/* Catatan / Keterangan */}
+                {/* Catatan / Keterangan (Dikosongkan Secara Default) */}
                 <div>
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>
-                    Catatan / Keperluan Uang Saku
+                    Catatan / Keperluan (Opsional)
                   </label>
                   <input
                     type="text"
                     value={topUpKeterangan}
                     onChange={(e) => setTopUpKeterangan(e.target.value)}
-                    placeholder="Contoh: Uang saku jajan & kitab mingguan"
+                    placeholder="Tuliskan catatan jika ada (opsional)"
                     style={{
                       width: '100%',
-                      padding: '10px 14px',
+                      padding: '11px 14px',
                       borderRadius: '12px',
                       border: '1px solid #cbd5e1',
-                      fontSize: '0.8rem',
+                      fontSize: '0.82rem',
                       color: '#0f172a',
                       outline: 'none',
                       boxSizing: 'border-box'
@@ -4240,17 +4546,23 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   />
                 </div>
 
-                {/* Info Note */}
+                {/* Info Note Midtrans Gateway */}
                 <div style={{
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
+                  background: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
                   borderRadius: '12px',
                   padding: '10px 12px',
-                  fontSize: '0.7rem',
-                  color: '#64748b',
-                  lineHeight: 1.4
+                  fontSize: '0.72rem',
+                  color: '#166534',
+                  lineHeight: 1.4,
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '8px'
                 }}>
-                  💡 Saldo yang diisi akan otomatis bertambah ke tabungan santri dan dicatat ke riwayat mutasi sebagai uang masuk. Santri dapat mengambilnya melalui bendahara / musyrif kobong.
+                  <span style={{ fontSize: '1rem', lineHeight: 1 }}>💳</span>
+                  <div>
+                    Pembayaran diproses via <strong>Midtrans Payment Gateway</strong> resmi. Mendukung <strong>QRIS (GoPay, OVO, ShopeePay, Dana)</strong> & <strong>Virtual Account (BCA, BNI, BRI, Mandiri)</strong> langsung masuk ke saldo santri.
+                  </div>
                 </div>
 
                 {/* Submit buttons */}
@@ -4262,12 +4574,12 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                     style={{
                       flex: 1,
                       padding: '12px',
-                      borderRadius: '12px',
-                      border: '1px solid #cbd5e1',
+                      borderRadius: '14px',
+                      border: '1.5px solid #cbd5e1',
                       background: '#ffffff',
                       color: '#475569',
-                      fontSize: '0.82rem',
-                      fontWeight: 700,
+                      fontSize: '0.84rem',
+                      fontWeight: 800,
                       cursor: 'pointer'
                     }}
                   >
@@ -4279,29 +4591,30 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                     style={{
                       flex: 2,
                       padding: '12px',
-                      borderRadius: '12px',
+                      borderRadius: '14px',
                       border: 'none',
                       background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
                       color: '#ffffff',
-                      fontSize: '0.84rem',
-                      fontWeight: 800,
+                      fontSize: '0.86rem',
+                      fontWeight: 900,
                       cursor: submittingTopUp ? 'not-allowed' : 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '8px',
-                      boxShadow: '0 4px 14px rgba(5, 150, 105, 0.35)'
+                      boxShadow: '0 6px 18px rgba(5, 150, 105, 0.35)',
+                      opacity: submittingTopUp ? 0.75 : 1
                     }}
                   >
                     {submittingTopUp ? (
                       <>
                         <RotateCw size={16} className="animate-spin" />
-                        Memproses...
+                        Memproses Midtrans...
                       </>
                     ) : (
                       <>
-                        <Check size={16} />
-                        Konfirmasi Isi Saldo
+                        <Check size={18} strokeWidth={2.8} />
+                        Bayar via Midtrans
                       </>
                     )}
                   </button>

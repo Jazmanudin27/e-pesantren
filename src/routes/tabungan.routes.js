@@ -4,7 +4,8 @@ import {
   getSantriTabunganDetail,
   tambahSaldoSantri,
   tarikSaldoSantri,
-  batalTransaksiTabungan
+  batalTransaksiTabungan,
+  topupMidtransTabungan
 } from '../controllers/tabungan.controller.js';
 
 const router = express.Router();
@@ -17,6 +18,9 @@ router.get('/santri/:id', getSantriTabunganDetail);
 
 // POST /api/tabungan/setor - Penambahan saldo / Saldo Awal (Admin)
 router.post('/setor', tambahSaldoSantri);
+
+// POST /api/tabungan/topup-midtrans - Generate Midtrans Snap Token untuk Top Up Saldo
+router.post('/topup-midtrans', topupMidtransTabungan);
 
 // POST /api/tabungan/tarik - Pengambilan saldo tabungan (Admin)
 router.post('/tarik', tarikSaldoSantri);
