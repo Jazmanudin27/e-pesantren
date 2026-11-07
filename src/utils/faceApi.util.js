@@ -151,18 +151,19 @@ export const extractDescriptorFromDataUrl = (dataUrl) => {
   });
 };
 
-// 6. Pencocokan Vektor Biometrik (Euclidean Distance dengan Ambang Batas 0.50 Optimal)
-// Ambang batas standar face-api: distance < 0.50 = orang yang sama; distance >= 0.50 = orang berbeda / tolak
-export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, threshold = 0.50) => {
+// 6. Pencocokan Vektor Biometrik (Euclidean Distance dengan Ambang Batas 0.58 Optimal)
+// Ambang batas standar face-api: distance < 0.58 = orang yang sama; distance >= 0.58 = orang berbeda / tolak
+export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, threshold = 0.58) => {
   if (!liveDescriptor || !registeredProfilesList || !window.faceapi) return null;
   if (!isValidDescriptor(liveDescriptor)) return null;
 
   const faceapi = window.faceapi;
-  const matchThreshold = Math.min(Math.max(Number(threshold) || 0.50, 0.35), 0.55);
+  const matchThreshold = Math.min(Math.max(Number(threshold) || 0.58, 0.40), 0.65);
   let bestMatch = null;
   let minDistance = 999;
   let secondMinDistance = 999;
   let bestSantriId = null;
+  let validCount = 0;
 
   for (const prof of registeredProfilesList) {
     if (!prof) continue;
@@ -171,6 +172,7 @@ export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, thre
       try { targetDescriptor = JSON.parse(targetDescriptor); } catch (e) {}
     }
     if (isValidDescriptor(targetDescriptor)) {
+      validCount++;
       const dist = faceapi.euclideanDistance(liveDescriptor, targetDescriptor);
       const profId = String(prof.santri_id || prof.id || '');
       if (dist < minDistance) {
@@ -186,15 +188,28 @@ export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, thre
     }
   }
 
-  if (!bestMatch || minDistance >= matchThreshold) return null;
+  // Debug log real-time ke console browser DevTools
+  if (Math.random() < 0.25) {
+    console.log(`[FACE-AI] Profil Terdaftar: ${validCount} | Jarak Terbaik: ${minDistance < 900 ? minDistance.toFixed(3) : 'None'} (Target: < ${matchThreshold}) | Santri: ${bestMatch?.nama || bestMatch?.nama_santri || 'None'}`);
+  }
 
-  // Anti-bocor: jika jarak di area batas (> 0.46) dan selisih dengan kandidat santri lain terlalu tipis (< 0.015), tolak agar tidak salah orang
-  if (minDistance > 0.46 && secondMinDistance < 999 && (secondMinDistance - minDistance) < 0.015) {
-    return null;
+  if (validCount === 0) {
+    return { error: 'no_profiles', validCount: 0 };
+  }
+
+  if (!bestMatch || minDistance >= matchThreshold) {
+    return {
+      error: 'no_match',
+      validCount,
+      bestDistance: minDistance,
+      threshold: matchThreshold,
+      candidate: bestMatch
+    };
   }
 
   return {
     ...bestMatch,
+    success: true,
     distance: minDistance,
     confidence: Math.round(Math.max(0, (1 - minDistance / matchThreshold) * 100))
   };

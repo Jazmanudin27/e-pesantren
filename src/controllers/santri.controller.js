@@ -1,8 +1,17 @@
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
 
+let hasCheckedFaceDescriptorCol = false;
+
 export const getAllSantri = async (req, res) => {
   try {
+    if (!hasCheckedFaceDescriptorCol) {
+      try {
+        await pool.query("ALTER TABLE santri ADD COLUMN face_descriptor LONGTEXT NULL AFTER foto");
+      } catch (eCol) {}
+      hasCheckedFaceDescriptorCol = true;
+    }
+
     const { 
       page = 1, 
       limit = 25, 

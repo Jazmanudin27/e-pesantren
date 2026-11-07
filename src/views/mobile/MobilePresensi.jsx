@@ -1130,19 +1130,27 @@ export default function MobilePresensi() {
                 }
 
                 setFaceDetected(true);
-                // Ambang batas akurat 0.50 (toleran variasi cahaya & sudut kemiringan santri)
+                // Ambang batas akurat 0.58 (toleran variasi pencahayaan & sudut kemiringan santri)
                 const matched = matchFaceDescriptor(
                   faceRes.descriptor,
                   registeredList,
-                  0.50,
+                  0.58,
                 );
-                if (matched) {
+
+                if (matched && matched.error === 'no_profiles') {
+                  matchedStreakRef.current = { id: null, count: 0 };
+                  setFaceStatusText("⚠️ Belum Ada Data Wajah Terdaftar di Sistem");
+                  return;
+                }
+
+                if (matched && !matched.error && (matched.santri_id || matched.id)) {
+                  const mId = String(matched.santri_id || matched.id);
                   const dbSantri = (santriListRef.current || []).find(
-                    (s) => String(s.id) === String(matched.santri_id),
-                  );
+                    (s) => String(s.id) === mId,
+                  ) || matched;
                   if (dbSantri) {
                     matchedSantri = dbSantri;
-                    displayName = dbSantri.nama_santri;
+                    displayName = dbSantri.nama_santri || dbSantri.nama || 'Santri';
                   }
                 }
               } else {

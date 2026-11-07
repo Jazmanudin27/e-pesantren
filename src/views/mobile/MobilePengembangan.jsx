@@ -177,21 +177,27 @@ export default function MobilePengembangan() {
         for (const s of santriList) {
           if (isCancelled) return;
           const photoUrl = s.foto || s.foto_santri;
-          if (
-            photoUrl &&
-            (!currentProfiles[s.id] || !currentProfiles[s.id].foto)
-          ) {
-            currentProfiles[s.id] = {
-              santri_id: s.id,
-              nama: s.nama_santri,
-              nis: s.nis,
-              asrama: s.nama_asrama || "",
-              kamar: s.nama_kamar || "",
-              foto: photoUrl,
-              descriptor: currentProfiles[s.id]?.descriptor || null,
-              registered_at: new Date().toISOString(),
-            };
-            changed = true;
+          let sDesc = null;
+          if (s.face_descriptor) {
+            try {
+              sDesc = typeof s.face_descriptor === 'string' ? JSON.parse(s.face_descriptor) : s.face_descriptor;
+            } catch (e) {}
+          }
+
+          if (photoUrl || sDesc) {
+            if (!currentProfiles[s.id] || (!currentProfiles[s.id].descriptor && sDesc)) {
+              currentProfiles[s.id] = {
+                santri_id: s.id,
+                nama: s.nama_santri,
+                nis: s.nis,
+                asrama: s.nama_asrama || "",
+                kamar: s.nama_kamar || "",
+                foto: photoUrl || currentProfiles[s.id]?.foto || "",
+                descriptor: sDesc || currentProfiles[s.id]?.descriptor || null,
+                registered_at: new Date().toISOString(),
+              };
+              changed = true;
+            }
           }
 
           if (
@@ -216,10 +222,25 @@ export default function MobilePengembangan() {
         }
 
         if (changed && !isCancelled) {
-          localStorage.setItem(
-            "epesantren_face_profiles",
-            JSON.stringify(currentProfiles),
-          );
+          try {
+            const lightMap = {};
+            Object.keys(currentProfiles).forEach((k) => {
+              const p = currentProfiles[k];
+              lightMap[k] = {
+                santri_id: p.santri_id,
+                nama: p.nama,
+                nis: p.nis,
+                asrama: p.asrama || "",
+                kamar: p.kamar || "",
+                descriptor: p.descriptor,
+                registered_at: p.registered_at,
+              };
+            });
+            localStorage.setItem(
+              "epesantren_face_profiles",
+              JSON.stringify(lightMap),
+            );
+          } catch (eStorage) {}
         }
       } catch (e) {}
     };
@@ -501,7 +522,42 @@ export default function MobilePengembangan() {
             localStorage.getItem("epesantren_face_profiles") || "{}",
           );
         } catch (e) {}
-        const registeredList = Object.values(registeredMap);
+
+        // Kumpulkan semua profil wajah terdaftar dari Database (santriList) + localStorage
+        const registeredList = [];
+        const seenIds = new Set();
+
+        (santriListRef.current || []).forEach((s) => {
+          let desc = null;
+          if (s.face_descriptor) {
+            try {
+              desc = typeof s.face_descriptor === 'string' ? JSON.parse(s.face_descriptor) : s.face_descriptor;
+            } catch (e) {}
+          }
+          if (!desc && registeredMap[s.id]?.descriptor) {
+            desc = registeredMap[s.id].descriptor;
+          }
+          if (desc) {
+            registeredList.push({
+              santri_id: s.id,
+              id: s.id,
+              nama_santri: s.nama_santri,
+              nama: s.nama_santri,
+              nis: s.nis,
+              descriptor: desc,
+              foto: s.foto || s.foto_santri
+            });
+            seenIds.add(String(s.id));
+          }
+        });
+
+        Object.values(registeredMap).forEach((p) => {
+          const pId = String(p.santri_id || p.id || '');
+          if (pId && !seenIds.has(pId) && p.descriptor) {
+            registeredList.push(p);
+            seenIds.add(pId);
+          }
+        });
 
         if (isFaceModelReady()) {
           const faceRes = await detectFaceDescriptor(video);
@@ -513,31 +569,34 @@ export default function MobilePengembangan() {
           }
 
           setIsFaceDetected(true);
-          // Ambang batas optimal 0.50
+          // Ambang batas optimal 0.58 (toleran terhadap pencahayaan & sudut kemiringan)
           const matched = matchFaceDescriptor(
             faceRes.descriptor,
             registeredList,
-            0.50,
+            0.58,
           );
 
-          if (matched) {
-            const fullSantri = (santriListRef.current || []).find(
-              (s) => String(s.id) === String(matched.santri_id),
-            );
-            if (!fullSantri) {
-              matchedStreakRef.current = { id: null, count: 0 };
-              setFaceStatusText("⛔ Wajah Belum Terdaftar di Sistem");
-              return;
-            }
-            const displayName = fullSantri.nama_santri;
+          if (matched && matched.error === 'no_profiles') {
+            matchedStreakRef.current = { id: null, count: 0 };
+            setFaceStatusText("⚠️ Belum Ada Data Wajah Terdaftar di Sistem");
+            return;
+          }
 
-            if (matchedStreakRef.current.id === fullSantri.id) {
+          if (matched && !matched.error && (matched.santri_id || matched.id)) {
+            const mId = String(matched.santri_id || matched.id);
+            const fullSantri = (santriListRef.current || []).find(
+              (s) => String(s.id) === mId,
+            ) || matched;
+            const displayName = fullSantri.nama_santri || fullSantri.nama || 'Santri';
+
+            if (matchedStreakRef.current.id === mId) {
               matchedStreakRef.current.count += 1;
             } else {
-              matchedStreakRef.current = { id: fullSantri.id, count: 1 };
+              matchedStreakRef.current = { id: mId, count: 1 };
             }
 
-            if (matchedStreakRef.current.count >= 2) {
+            // Jika skor sangat meyakinkan (< 0.50), langsung kenali tanpa tunggu 2 frame
+            if (matchedStreakRef.current.count >= 2 || (matched.distance && matched.distance < 0.50)) {
               handleFaceRecognized(fullSantri, displayName);
             } else {
               setFaceStatusText(`Memverifikasi: ${displayName}...`);
