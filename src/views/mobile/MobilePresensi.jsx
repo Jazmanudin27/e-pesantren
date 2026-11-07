@@ -341,7 +341,7 @@ export default function MobilePresensi() {
       setLoading(true);
       const [resSantri, resAbs, resIzin, resMateri, resSesi, resKelas] =
         await Promise.all([
-          axios.get("/api/santri?all=true"),
+          axios.get(`/api/santri?all=true&_t=${Date.now()}`),
           axios
             .get("/api/absensi/fingerprint")
             .catch(() => ({ data: { data: [] } })),
@@ -1130,16 +1130,16 @@ export default function MobilePresensi() {
                 }
 
                 setFaceDetected(true);
-                // Ambang batas akurat 0.58 (toleran variasi pencahayaan & sudut kemiringan santri)
+                // Ambang batas optimal 0.62 (toleran variasi pencahayaan & sudut kemiringan santri)
                 const matched = matchFaceDescriptor(
                   faceRes.descriptor,
                   registeredList,
-                  0.58,
+                  0.62,
                 );
 
                 if (matched && matched.error === 'no_profiles') {
                   matchedStreakRef.current = { id: null, count: 0 };
-                  setFaceStatusText("⚠️ Belum Ada Data Wajah Terdaftar di Sistem");
+                  setFaceStatusText("⚠️ Belum Ada Biometrik Wajah di Sistem (0 Profil)");
                   return;
                 }
 
@@ -1180,7 +1180,10 @@ export default function MobilePresensi() {
                   boxY - 12,
                 );
 
-                setFaceStatusText("⛔ Wajah Belum Terdaftar di Sistem");
+                const distInfo = (matched && typeof matched.bestDistance === 'number' && matched.bestDistance < 900)
+                  ? ` (Jarak: ${matched.bestDistance.toFixed(2)} | Target: < ${matched.threshold?.toFixed(2) || '0.62'})`
+                  : '';
+                setFaceStatusText(`⛔ Belum Cocok${distInfo}`);
                 return;
               }
 

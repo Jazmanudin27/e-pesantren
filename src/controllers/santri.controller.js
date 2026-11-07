@@ -5,6 +5,10 @@ let hasCheckedFaceDescriptorCol = false;
 
 export const getAllSantri = async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     if (!hasCheckedFaceDescriptorCol) {
       try {
         await pool.query("ALTER TABLE santri ADD COLUMN face_descriptor LONGTEXT NULL AFTER foto");

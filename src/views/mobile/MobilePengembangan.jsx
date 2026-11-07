@@ -258,7 +258,7 @@ export default function MobilePengembangan() {
         axios
           .get("/api/perkembangan-ikhwan/master?gender=Semua")
           .catch(() => ({ data: { data: [] } })),
-        axios.get("/api/santri?all=true").catch(() => ({ data: { data: [] } })),
+        axios.get(`/api/santri?all=true&_t=${Date.now()}`).catch(() => ({ data: { data: [] } })),
         axios
           .get("/api/perkembangan-ikhwan/rekap?limit=200")
           .catch(() => ({ data: { data: [] } })),
@@ -569,16 +569,16 @@ export default function MobilePengembangan() {
           }
 
           setIsFaceDetected(true);
-          // Ambang batas optimal 0.58 (toleran terhadap pencahayaan & sudut kemiringan)
+          // Ambang batas optimal 0.62 (toleran terhadap pencahayaan & sudut kemiringan)
           const matched = matchFaceDescriptor(
             faceRes.descriptor,
             registeredList,
-            0.58,
+            0.62,
           );
 
           if (matched && matched.error === 'no_profiles') {
             matchedStreakRef.current = { id: null, count: 0 };
-            setFaceStatusText("⚠️ Belum Ada Data Wajah Terdaftar di Sistem");
+            setFaceStatusText("⚠️ Belum Ada Biometrik Wajah di Sistem (0 Profil)");
             return;
           }
 
@@ -595,15 +595,18 @@ export default function MobilePengembangan() {
               matchedStreakRef.current = { id: mId, count: 1 };
             }
 
-            // Jika skor sangat meyakinkan (< 0.50), langsung kenali tanpa tunggu 2 frame
-            if (matchedStreakRef.current.count >= 2 || (matched.distance && matched.distance < 0.50)) {
+            // Jika skor sangat meyakinkan (< 0.55), langsung kenali tanpa tunggu 2 frame
+            if (matchedStreakRef.current.count >= 2 || (matched.distance && matched.distance < 0.55)) {
               handleFaceRecognized(fullSantri, displayName);
             } else {
               setFaceStatusText(`Memverifikasi: ${displayName}...`);
             }
           } else {
             matchedStreakRef.current = { id: null, count: 0 };
-            setFaceStatusText("⛔ Wajah Belum Terdaftar di Sistem");
+            const distInfo = (matched && typeof matched.bestDistance === 'number' && matched.bestDistance < 900)
+              ? ` (Jarak: ${matched.bestDistance.toFixed(2)} | Target: < ${matched.threshold?.toFixed(2) || '0.62'})`
+              : '';
+            setFaceStatusText(`⛔ Belum Cocok${distInfo}`);
           }
         } else {
           setFaceStatusText("Memuat model pengenalan wajah AI...");

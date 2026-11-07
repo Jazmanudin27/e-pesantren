@@ -160,37 +160,72 @@ export default function MobileHome({ onChangeTab, onLogout }) {
     return () => clearInterval(interval);
   }, []);
 
-  // Load Realtime Data: Santri & Rekap Absensi
+  // Lazy Load State
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [isDetailLoaded, setIsDetailLoaded] = useState(false);
+
+  // Load Ringan Khusus Beranda (Hanya Ambil Rekap Ringkas & Feed Kegiatan, TANPA tarik santri/perizinan massal)
   const loadData = async () => {
     try {
-      const [resSantri, resAbsensi, resIzin, resSesi, resMateri, resFeed] =
+      const [resStats, resFeed] = await Promise.allSettled([
+        axios.get("/api/dashboard/stats"),
+        axios.get("/api/informasi-kegiatan/feed?limit=6"),
+      ]);
+
+      if (resFeed.status === "fulfilled" && resFeed.value.data?.success) {
+        setLatestFeed(resFeed.value.data.data?.feed || []);
+      }
+
+      if (resStats.status === "fulfilled" && resStats.value.data?.success) {
+        const d = resStats.value.data.data || {};
+        const s = d.stats || {};
+        const totalSantri = s.total_santri || 0;
+        setStats((prev) => ({
+          ...prev,
+          total_santri: totalSantri,
+          total_halaqah: s.total_halaqah || 0,
+          total_izin_aktif: s.total_izin_aktif || 0,
+        }));
+
+        if (d.rekap_absensi) {
+          const hadir = d.rekap_absensi.hadir || 0;
+          const sakit = d.rekap_absensi.sakit || 0;
+          const izin = d.rekap_absensi.izin || 0;
+          const belum = totalSantri > 0 ? Math.max(0, totalSantri - (hadir + sakit + izin)) : (d.rekap_absensi.alfa || 0);
+
+          setRekapAbsensi({
+            hadir,
+            sakit,
+            izin,
+            alfa: belum,
+            total: totalSantri,
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("Notice loading mobile home lightweight data:", err.message);
+    }
+  };
+
+  // Lazy Load Data Detail (Hanya dipanggil saat user membuka modal rincian santri / absensi)
+  const loadDetailData = async () => {
+    if (isDetailLoaded || loadingDetail) return;
+    setLoadingDetail(true);
+    try {
+      const [resSantri, resAbsensi, resIzin, resSesi, resMateri] =
         await Promise.allSettled([
           axios.get("/api/santri?all=true"),
           axios.get("/api/absensi/fingerprint"),
           axios.get("/api/perizinan"),
           axios.get("/api/absensi/sesi"),
           axios.get("/api/materi-hafalan"),
-          axios.get("/api/informasi-kegiatan/feed?limit=6"),
         ]);
-
-      if (resFeed.status === "fulfilled" && resFeed.value.data?.success) {
-        setLatestFeed(resFeed.value.data.data?.feed || []);
-      }
 
       let allSantri = [];
       if (resSantri.status === "fulfilled" && resSantri.value.data?.success) {
         allSantri =
           resSantri.value.data.data?.data || resSantri.value.data.data || [];
-        const totalCount =
-          resSantri.value.data.data?.total ||
-          resSantri.value.data.total ||
-          allSantri.length;
-
         setSantriMasterList(allSantri);
-        setStats((prev) => ({
-          ...prev,
-          total_santri: totalCount || allSantri.length,
-        }));
       }
 
       if (resSesi.status === "fulfilled" && resSesi.value.data?.success) {
@@ -239,11 +274,14 @@ export default function MobileHome({ onChangeTab, onLogout }) {
           );
         });
 
-        setStats((prev) => ({ ...prev, total_izin_aktif: activeIzin.length }));
         setRawActiveIzin(activeIzin);
       }
+
+      setIsDetailLoaded(true);
     } catch (err) {
-      console.warn("Notice loading mobile home data:", err.message);
+      console.warn("Notice loading detail data:", err.message);
+    } finally {
+      setLoadingDetail(false);
     }
   };
 
@@ -435,12 +473,17 @@ export default function MobileHome({ onChangeTab, onLogout }) {
   ]);
 
   useEffect(() => {
-    setRekapAbsensi(computedRekap);
-  }, [computedRekap]);
+    if (isDetailLoaded) {
+      setRekapAbsensi(computedRekap);
+    }
+  }, [computedRekap, isDetailLoaded]);
 
   const handleOpenStatusModal = (statusKey) => {
     setSelectedStatusTab(statusKey);
     setIsDetailModalOpen(true);
+    if (!isDetailLoaded) {
+      loadDetailData();
+    }
   };
 
   const handleOpenAccountInfo = () => {
@@ -722,6 +765,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               onClick={() => {
                 setActiveKategoriRekap("kegiatan");
                 setSelectedKegiatan("Semua");
+                if (!isDetailLoaded) {
+                  loadDetailData();
+                }
               }}
               style={{
                 border: "none",
@@ -1839,7 +1885,17 @@ export default function MobileHome({ onChangeTab, onLogout }) {
               gap: "8px",
             }}
           >
-            {filteredModalList.length > 0 ? (
+            {loadingDetail ? (
+              <div style={{ padding: "40px 16px", textAlign: "center", color: "#64748b" }}>
+                <RefreshCw size={26} className="animate-spin" style={{ margin: "0 auto 10px", color: "#059669" }} />
+                <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#334155" }}>
+                  Memuat rincian data santri...
+                </div>
+                <div style={{ fontSize: "0.72rem", color: "#94a3b8", marginTop: "4px" }}>
+                  Mengambil data absensi &amp; status santri
+                </div>
+              </div>
+            ) : filteredModalList.length > 0 ? (
               filteredModalList.map((item, idx) => (
                 <div
                   key={item.id || idx}

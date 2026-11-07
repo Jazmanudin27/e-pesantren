@@ -85,10 +85,10 @@ export const detectFaceDescriptor = async (mediaElement) => {
 
   try {
     const faceapi = window.faceapi;
-    // InputSize 320 + scoreThreshold 0.40 optimal untuk kamera depan mobile/webcam
+    // InputSize 416 menghasilkan ekstraksi fitur wajah yang jauh lebih presisi dibanding 320
     const options = new faceapi.TinyFaceDetectorOptions({
-      inputSize: 320,
-      scoreThreshold: 0.40
+      inputSize: 416,
+      scoreThreshold: 0.35
     });
 
     const detection = await faceapi
@@ -96,7 +96,7 @@ export const detectFaceDescriptor = async (mediaElement) => {
       .withFaceLandmarks()
       .withFaceDescriptor();
 
-    if (!detection || !detection.detection || detection.detection.score < 0.40) return null;
+    if (!detection || !detection.detection || detection.detection.score < 0.35) return null;
 
     return {
       box: detection.detection.box, // { x, y, width, height }
@@ -122,14 +122,24 @@ export const isValidDescriptor = (arr) => {
   let sumSq = 0;
   let allZero = true;
   for (let i = 0; i < 128; i++) {
-    const v = target[i];
-    if (typeof v !== 'number' || isNaN(v)) return false;
+    const v = Number(target[i]);
+    if (isNaN(v)) return false;
     if (v !== 0) allZero = false;
     sumSq += v * v;
   }
   if (allZero) return false;
-  // Unit vector ter-normalisasi face-api memiliki panjang kuadrat ~ 1.0 (antara 0.5 s/d 1.5)
-  return sumSq > 0.5 && sumSq < 1.5;
+  return sumSq > 0.4 && sumSq < 1.6;
+};
+
+// 4c. Pure JavaScript Euclidean Distance (100% aman tanpa ketergantungan tipe data)
+export const computeEuclideanDistance = (a, b) => {
+  if (!a || !b) return 999;
+  let sum = 0;
+  for (let i = 0; i < 128; i++) {
+    const diff = (Number(a[i]) || 0) - (Number(b[i]) || 0);
+    sum += diff * diff;
+  }
+  return Math.sqrt(sum);
 };
 
 // 5. Ekstraksi Descriptor dari Image Data URL (Untuk Foto Terdaftar)
@@ -151,14 +161,13 @@ export const extractDescriptorFromDataUrl = (dataUrl) => {
   });
 };
 
-// 6. Pencocokan Vektor Biometrik (Euclidean Distance dengan Ambang Batas 0.58 Optimal)
-// Ambang batas standar face-api: distance < 0.58 = orang yang sama; distance >= 0.58 = orang berbeda / tolak
-export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, threshold = 0.58) => {
-  if (!liveDescriptor || !registeredProfilesList || !window.faceapi) return null;
+// 6. Pencocokan Vektor Biometrik (Euclidean Distance dengan Ambang Batas 0.62)
+// Standar face-api: distance < 0.62 = orang yang sama; distance >= 0.62 = orang berbeda / tolak
+export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, threshold = 0.62) => {
+  if (!liveDescriptor || !registeredProfilesList) return null;
   if (!isValidDescriptor(liveDescriptor)) return null;
 
-  const faceapi = window.faceapi;
-  const matchThreshold = Math.min(Math.max(Number(threshold) || 0.58, 0.40), 0.65);
+  const matchThreshold = Math.min(Math.max(Number(threshold) || 0.62, 0.40), 0.68);
   let bestMatch = null;
   let minDistance = 999;
   let secondMinDistance = 999;
@@ -173,7 +182,7 @@ export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, thre
     }
     if (isValidDescriptor(targetDescriptor)) {
       validCount++;
-      const dist = faceapi.euclideanDistance(liveDescriptor, targetDescriptor);
+      const dist = computeEuclideanDistance(liveDescriptor, targetDescriptor);
       const profId = String(prof.santri_id || prof.id || '');
       if (dist < minDistance) {
         if (bestSantriId && bestSantriId !== profId) {
@@ -189,8 +198,8 @@ export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, thre
   }
 
   // Debug log real-time ke console browser DevTools
-  if (Math.random() < 0.25) {
-    console.log(`[FACE-AI] Profil Terdaftar: ${validCount} | Jarak Terbaik: ${minDistance < 900 ? minDistance.toFixed(3) : 'None'} (Target: < ${matchThreshold}) | Santri: ${bestMatch?.nama || bestMatch?.nama_santri || 'None'}`);
+  if (Math.random() < 0.3) {
+    console.log(`[FACE-AI] Profil Terdaftar: ${validCount} | Jarak Terbaik: ${minDistance < 900 ? minDistance.toFixed(3) : 'None'} (Target: < ${matchThreshold}) | Kandidat: ${bestMatch?.nama || bestMatch?.nama_santri || 'None'}`);
   }
 
   if (validCount === 0) {
