@@ -103,6 +103,16 @@ export default function MobileLogin({ onLoginSuccess, onBackToOnboarding }) {
         ) {
           detectedRole = "wali";
           detectedType = "Wali Santri";
+        } else if (
+          rawRole.includes("bendahara") ||
+          rawRole.includes("keuangan") ||
+          rawType.includes("bendahara") ||
+          rawType.includes("keuangan") ||
+          cleanUser.toLowerCase().includes("bendahara") ||
+          cleanUser.toLowerCase().includes("keuangan")
+        ) {
+          detectedRole = "bendahara";
+          detectedType = "Bendahara / Keuangan";
         } else if (rawRole === "admin" || rawType.includes("admin")) {
           detectedRole = "admin";
           detectedType = "Administrator";

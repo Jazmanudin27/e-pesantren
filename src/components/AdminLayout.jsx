@@ -77,10 +77,23 @@ export default function AdminLayout() {
   const isLaporanTab = (tab) => ['laporan-presensi', 'laporan-tahfidz'].includes(tab);
   const isKeuanganTab = (tab) => ['keuangan-admin', 'keuangan', 'keuangan-kasir', 'keuangan-rekap', 'keuangan-spp', 'tagihan', 'tabungan-santri', 'tabungan', 'laporan-infak', 'infak'].includes(tab);
 
+  const isBendaharaUser = (user) => {
+    if (!user) return false;
+    const r = String(user.role || '').toLowerCase();
+    const t = String(user.userType || '').toLowerCase();
+    const u = String(user.username || '').toLowerCase();
+    return r.includes('bendahara') || r.includes('keuangan') || t.includes('bendahara') || t.includes('keuangan') || u.includes('bendahara') || u.includes('keuangan');
+  };
+
   // Get initial tab from URL hash
   const getInitialTab = () => {
     const hash = window.location.hash.replace('#', '');
     if (hash) return hash;
+    try {
+      const saved = localStorage.getItem('desktop_session') || sessionStorage.getItem('desktop_session');
+      const u = saved ? JSON.parse(saved) : null;
+      if (isBendaharaUser(u)) return 'keuangan-admin';
+    } catch (e) {}
     return 'dashboard';
   };
 
@@ -91,7 +104,14 @@ export default function AdminLayout() {
   const [isMasterOpen, setIsMasterOpen] = useState(() => isMasterTab(initialTab));
   const [isSettingsOpen, setIsSettingsOpen] = useState(() => isSettingsTab(initialTab));
   const [isLaporanOpen, setIsLaporanOpen] = useState(() => isLaporanTab(initialTab));
-  const [isKeuanganOpen, setIsKeuanganOpen] = useState(() => isKeuanganTab(initialTab));
+  const [isKeuanganOpen, setIsKeuanganOpen] = useState(() => {
+    try {
+      const saved = localStorage.getItem('desktop_session') || sessionStorage.getItem('desktop_session');
+      const u = saved ? JSON.parse(saved) : null;
+      if (isBendaharaUser(u)) return true;
+    } catch (e) {}
+    return isKeuanganTab(initialTab);
+  });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -130,6 +150,20 @@ export default function AdminLayout() {
       return null;
     }
   });
+
+  const isPureBendahara = Boolean(currentUser && isBendaharaUser(currentUser) && !String(currentUser.role || '').toLowerCase().includes('super'));
+
+  // Auto-switch tab ke Keuangan jika login sebagai Bendahara & tab masih dashboard
+  useEffect(() => {
+    if (currentUser && isBendaharaUser(currentUser)) {
+      setIsKeuanganOpen(true);
+      const hash = window.location.hash.replace('#', '');
+      if (!hash || hash === 'dashboard') {
+        setActiveTab('keuangan-admin');
+        window.location.hash = '#keuangan-admin';
+      }
+    }
+  }, [currentUser]);
 
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -445,6 +479,63 @@ export default function AdminLayout() {
 
     return (
       <nav className="sidebar-menu">
+        {/* KHUSUS ROLE BENDAHARA / KEUANGAN: PRIORITASKAN MENU KEUANGAN DI PALING ATAS */}
+        {isPureBendahara && (
+          <>
+            <div className="menu-category" style={{ color: '#10b981', fontWeight: 800 }}>LAYANAN BENDAHARA</div>
+            <button 
+              className={`nav-link ${activeTab === 'keuangan-admin' || activeTab === 'keuangan' || activeTab === 'keuangan-kasir' ? 'active' : ''}`}
+              onClick={() => handleTabClick('keuangan-admin')}
+            >
+              <div className="nav-link-left">
+                <CreditCard size={15} style={{ color: '#059669' }} />
+                <span>Kasir &amp; Tagihan SPP</span>
+              </div>
+            </button>
+
+            <button 
+              className={`nav-link ${activeTab === 'keuangan-rekap' ? 'active' : ''}`}
+              onClick={() => handleTabClick('keuangan-rekap')}
+            >
+              <div className="nav-link-left">
+                <BarChart3 size={15} style={{ color: '#0284c7' }} />
+                <span>Rekap Kas &amp; Piutang</span>
+              </div>
+            </button>
+
+            <button 
+              className={`nav-link ${activeTab === 'tabungan-santri' || activeTab === 'tabungan' ? 'active' : ''}`}
+              onClick={() => handleTabClick('tabungan-santri')}
+            >
+              <div className="nav-link-left">
+                <Wallet size={15} style={{ color: '#0d9488' }} />
+                <span>Buku Tabungan Santri</span>
+              </div>
+            </button>
+
+            <button 
+              className={`nav-link ${activeTab === 'laporan-infak' || activeTab === 'infak' ? 'active' : ''}`}
+              onClick={() => handleTabClick('laporan-infak')}
+            >
+              <div className="nav-link-left">
+                <Heart size={15} style={{ color: '#ec4899' }} />
+                <span>Infak &amp; Sedekah</span>
+              </div>
+            </button>
+
+            <button 
+              className={`nav-link ${activeTab === 'whatsapp-gateway' || activeTab === 'whatsapp' || activeTab === 'wa-broadcast' ? 'active' : ''}`}
+              onClick={() => handleTabClick('whatsapp-gateway')}
+            >
+              <div className="nav-link-left">
+                <Send size={15} style={{ color: '#10b981' }} />
+                <span>Broadcast Tagihan WA</span>
+              </div>
+            </button>
+            <div style={{ height: '8px' }} />
+          </>
+        )}
+
         <div className="menu-category">MAIN MENU</div>
         <button 
           className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
@@ -823,7 +914,12 @@ export default function AdminLayout() {
           </div>
           <div className="tenant-info">
             <div className="tenant-name">PP. NURUL WAFA</div>
-            <span className="tenant-badge">ADMIN</span>
+            <span 
+              className="tenant-badge"
+              style={isPureBendahara ? { background: '#059669', color: '#ffffff', borderColor: '#10b981' } : {}}
+            >
+              {isPureBendahara ? 'BENDAHARA' : 'ADMIN'}
+            </span>
           </div>
         </div>
 

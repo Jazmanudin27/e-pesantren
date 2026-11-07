@@ -136,9 +136,15 @@ export default function MobileLayout() {
         try {
           const sess = JSON.parse(localStorage.getItem('mobile_session') || '{}');
           const r = String(sess.role || sess.userType || '').toLowerCase();
+          const u = String(sess.username || '').toLowerCase();
           if (r.includes('wali') || r.includes('santri')) {
             setMobileTab('portal-wali');
             localStorage.setItem('mobileTab', 'portal-wali');
+            return;
+          }
+          if (r.includes('bendahara') || r.includes('keuangan') || u.includes('bendahara') || u.includes('keuangan')) {
+            setMobileTab('keuangan-spp');
+            localStorage.setItem('mobileTab', 'keuangan-spp');
             return;
           }
         } catch (e) {}
@@ -181,9 +187,21 @@ export default function MobileLayout() {
 
   const handleLoginSuccess = (userSession) => {
     const role = String(userSession?.role || '').toLowerCase();
+    const uName = String(userSession?.username || '').toLowerCase();
     if (role === 'wali' || role === 'wali santri') {
       window.location.hash = '#wali';
       window.location.reload();
+      return;
+    }
+    if (role.includes('bendahara') || role.includes('keuangan') || uName.includes('bendahara') || uName.includes('keuangan')) {
+      localStorage.setItem('mobileTab', 'keuangan-spp');
+      setMobileTab('keuangan-spp');
+      if (isMobileDomain) {
+        window.location.hash = 'keuangan-spp';
+      } else {
+        window.location.hash = 'mobile/keuangan-spp';
+      }
+      setSession(userSession);
       return;
     }
     localStorage.setItem('mobileTab', 'home');

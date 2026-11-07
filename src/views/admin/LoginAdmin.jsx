@@ -47,9 +47,13 @@ export default function LoginAdmin({ onLoginSuccess }) {
         const userObj = res.data.user || {};
         
         // Data akun dan peran resmi dari Database
-        const detectedRole = res.data.role || userObj.role || 'admin';
-        const detectedType = res.data.userType || userObj.userType || 
-          (detectedRole === 'asatidz' ? 'Ustadz / Guru' : detectedRole === 'asrama' ? 'Pembina Asrama' : 'Administrator');
+        const rawRole = String(res.data.role || userObj.role || '').toLowerCase();
+        const rawType = String(res.data.userType || userObj.userType || '').toLowerCase();
+        const isBnd = rawRole.includes('bendahara') || rawRole.includes('keuangan') || rawType.includes('bendahara') || rawType.includes('keuangan') || cleanU.toLowerCase().includes('bendahara') || cleanU.toLowerCase().includes('keuangan');
+
+        const detectedRole = isBnd ? 'bendahara' : (res.data.role || userObj.role || 'admin');
+        const detectedType = isBnd ? 'Bendahara / Keuangan' : (res.data.userType || userObj.userType || 
+          (detectedRole === 'asatidz' ? 'Ustadz / Guru' : detectedRole === 'asrama' ? 'Pembina Asrama' : 'Administrator'));
 
         const sessionData = {
           token: res.data.token || '',
@@ -68,6 +72,10 @@ export default function LoginAdmin({ onLoginSuccess }) {
           localStorage.setItem('desktop_session', JSON.stringify(sessionData));
         } else {
           sessionStorage.setItem('desktop_session', JSON.stringify(sessionData));
+        }
+
+        if (isBnd) {
+          window.location.hash = '#keuangan-admin';
         }
 
         setLoading(false);
