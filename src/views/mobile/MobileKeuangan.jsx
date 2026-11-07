@@ -894,91 +894,6 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
               </div>
             ) : (
               <div style={{ marginTop: '14px' }}>
-                {/* 1. Filter Jenjang Sekolah */}
-                <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', overflowX: 'auto', paddingBottom: '2px' }}>
-                  {[
-                    { id: 'semua', label: 'Semua Sekolah' },
-                    { id: 'SMP', label: 'SMP' },
-                    { id: 'SMA', label: 'SMA' },
-                    { id: 'SMK', label: 'SMK' }
-                  ].map((f) => {
-                    const active = kasirFilterSekolah === f.id;
-                    return (
-                      <button
-                        key={f.id}
-                        onClick={() => {
-                          setKasirFilterSekolah(f.id);
-                          setKasirFilterKelas('semua');
-                        }}
-                        style={{
-                          padding: '6px 14px',
-                          borderRadius: '20px',
-                          fontSize: '0.72rem',
-                          fontWeight: 800,
-                          border: active ? '1px solid #059669' : '1px solid #cbd5e1',
-                          background: active ? 'linear-gradient(135deg, #059669 0%, #047857 100%)' : '#ffffff',
-                          color: active ? '#ffffff' : '#475569',
-                          boxShadow: active ? '0 3px 8px rgba(5, 150, 105, 0.3)' : 'none',
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap',
-                          outline: 'none',
-                          WebkitTapHighlightColor: 'transparent'
-                        }}
-                      >
-                        {f.label}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* 2. Filter Kelas Dinamis */}
-                {availableKelasList.length > 0 && (
-                  <div style={{ display: 'flex', gap: '5px', marginBottom: '10px', overflowX: 'auto', paddingBottom: '2px' }}>
-                    <button
-                      onClick={() => setKasirFilterKelas('semua')}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '16px',
-                        fontSize: '0.67rem',
-                        fontWeight: 700,
-                        border: kasirFilterKelas === 'semua' ? '1px solid #0284c7' : '1px solid #e2e8f0',
-                        background: kasirFilterKelas === 'semua' ? '#0284c7' : '#f8fafc',
-                        color: kasirFilterKelas === 'semua' ? '#ffffff' : '#64748b',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        outline: 'none',
-                        WebkitTapHighlightColor: 'transparent'
-                      }}
-                    >
-                      Semua Kelas
-                    </button>
-                    {availableKelasList.map((kls) => {
-                      const active = kasirFilterKelas.toLowerCase() === String(kls).toLowerCase();
-                      return (
-                        <button
-                          key={kls}
-                          onClick={() => setKasirFilterKelas(kls)}
-                          style={{
-                            padding: '4px 10px',
-                            borderRadius: '16px',
-                            fontSize: '0.67rem',
-                            fontWeight: 700,
-                            border: active ? '1px solid #0284c7' : '1px solid #e2e8f0',
-                            background: active ? '#0284c7' : '#f8fafc',
-                            color: active ? '#ffffff' : '#64748b',
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap',
-                            outline: 'none',
-                            WebkitTapHighlightColor: 'transparent'
-                          }}
-                        >
-                          {kls}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
                 {/* Info Jumlah Santri */}
                 <div style={{
                   display: 'flex',
@@ -996,16 +911,14 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                       : `Menampilkan ${displayedSantri.length} dari ${filteredKasirSantri.length} Santri Tersedia`}
                   </span>
 
-                  {(kasirFilterSekolah !== 'semua' || kasirFilterKelas !== 'semua' || santriSearch.trim()) && (
+                  {santriSearch.trim() && (
                     <span
                       onClick={() => {
-                        setKasirFilterSekolah('semua');
-                        setKasirFilterKelas('semua');
                         setSantriSearch('');
                       }}
                       style={{ color: '#059669', cursor: 'pointer', fontSize: '0.67rem' }}
                     >
-                      Reset Filter ✕
+                      Reset Cari ✕
                     </span>
                   )}
                 </div>
