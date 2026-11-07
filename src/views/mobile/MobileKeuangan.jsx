@@ -351,8 +351,8 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
             boxShadow: '0 4px 16px -2px rgba(0,0,0,0.05)',
             marginBottom: '16px'
           }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '8px' }}>
-              Santri yang Melakukan Pembayaran
+            <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.2px', marginBottom: '10px' }}>
+              Daftar Santri
             </div>
 
             {/* Input Search Santri */}
@@ -533,16 +533,15 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                   })}
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
-                    Pilih Santri Penerima Bayar
-                  </span>
-                  <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
-                    Sentuh santri untuk buka tagihan
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '55vh', overflowY: 'auto' }}>
+                {/* Gridview Daftar Santri 2 Kolom (Nama, Foto/Avatar, NISN, Sekolah) */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '10px',
+                  maxHeight: '60vh',
+                  overflowY: 'auto',
+                  padding: '2px'
+                }}>
                   {(santriList || [])
                     .filter((s) => {
                       if (kasirFilterSekolah !== 'semua') {
@@ -554,11 +553,12 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                       return (
                         (s.nama_santri || '').toLowerCase().includes(q) ||
                         (s.nis || '').toLowerCase().includes(q) ||
+                        (s.nisn || '').toLowerCase().includes(q) ||
                         (s.nama_asrama || '').toLowerCase().includes(q) ||
                         (s.nama_sekolah || '').toLowerCase().includes(q)
                       );
                     })
-                    .slice(0, 40)
+                    .slice(0, 60)
                     .map((s) => {
                       const skLabel = s.nama_sekolah || (s.tingkat_sekolah ? `Kelas ${s.tingkat_sekolah}` : 'Santri NWF');
                       const isSMP = skLabel.toUpperCase().includes('SMP');
@@ -571,6 +571,8 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                       else if (isSMA) { badgeBg = '#fef3c7'; badgeColor = '#b45309'; }
                       else if (isSMK) { badgeBg = '#f3e8ff'; badgeColor = '#7e22ce'; }
 
+                      const photoUrl = s.foto || s.foto_santri;
+
                       return (
                         <div
                           key={s.id}
@@ -578,77 +580,91 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                           style={{
                             background: '#ffffff',
                             borderRadius: '16px',
-                            padding: '12px 14px',
+                            padding: '14px 10px 12px',
                             border: '1px solid #e2e8f0',
                             display: 'flex',
+                            flexDirection: 'column',
                             alignItems: 'center',
-                            justifyContent: 'space-between',
-                            boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                            textAlign: 'center',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
                             cursor: 'pointer',
-                            transition: 'all 0.18s ease'
+                            transition: 'all 0.15s ease',
+                            userSelect: 'none',
+                            outline: 'none',
+                            WebkitTapHighlightColor: 'transparent'
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <div style={{
-                              width: '40px',
-                              height: '40px',
-                              borderRadius: '12px',
-                              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-                              color: '#ffffff',
-                              fontWeight: 800,
-                              fontSize: '0.82rem',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexShrink: 0
-                            }}>
-                              {(s.nama_santri || 'S').slice(0, 2).toUpperCase()}
-                            </div>
-
-                            <div>
-                              <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
-                                {s.nama_santri}
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                                <span style={{ fontSize: '0.68rem', color: '#64748b' }}>
-                                  NIS: {s.nis || '-'}
-                                </span>
-                                <span style={{
-                                  fontSize: '0.64rem',
-                                  fontWeight: 800,
-                                  background: badgeBg,
-                                  color: badgeColor,
-                                  padding: '1px 6px',
-                                  borderRadius: '4px'
-                                }}>
-                                  {skLabel}
-                                </span>
-                              </div>
-                            </div>
+                          {/* Foto Santri / Avatar */}
+                          <div style={{
+                            width: '48px',
+                            height: '48px',
+                            borderRadius: '50%',
+                            overflow: 'hidden',
+                            background: 'linear-gradient(135deg, #059669 0%, #0d9488 100%)',
+                            color: '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 800,
+                            fontSize: '0.92rem',
+                            marginBottom: '8px',
+                            boxShadow: '0 4px 10px rgba(5, 150, 105, 0.22)',
+                            border: '2px solid #ffffff'
+                          }}>
+                            {photoUrl ? (
+                              <img
+                                src={photoUrl}
+                                alt={s.nama_santri}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                              />
+                            ) : (
+                              (s.nama_santri || 'S').slice(0, 2).toUpperCase()
+                            )}
                           </div>
 
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSelectSantri(s);
-                            }}
-                            style={{
-                              background: '#ecfdf5',
-                              border: '1px solid #a7f3d0',
-                              color: '#047857',
-                              padding: '6px 14px',
-                              borderRadius: '10px',
-                              fontWeight: 800,
-                              fontSize: '0.74rem',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <span>Bayar</span>
-                            <ChevronRight size={14} />
-                          </button>
+                          {/* Nama Santri */}
+                          <div style={{
+                            fontWeight: 800,
+                            fontSize: '0.82rem',
+                            color: '#0f172a',
+                            lineHeight: 1.25,
+                            maxHeight: '2.5em',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            marginBottom: '4px'
+                          }}>
+                            {s.nama_santri}
+                          </div>
+
+                          {/* Foto NISN / NIS */}
+                          <div style={{
+                            fontSize: '0.66rem',
+                            color: '#64748b',
+                            fontWeight: 600,
+                            marginBottom: '6px'
+                          }}>
+                            NISN: {s.nisn || s.nis || '-'}
+                          </div>
+
+                          {/* Sekolah Badge */}
+                          <span style={{
+                            fontSize: '0.62rem',
+                            fontWeight: 800,
+                            background: badgeBg,
+                            color: badgeColor,
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            maxWidth: '100%',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {skLabel}
+                          </span>
                         </div>
                       );
                     })}

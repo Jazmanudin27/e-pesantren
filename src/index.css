@@ -1605,15 +1605,32 @@ body {
   box-shadow: none !important;
 }
 
-.mobile-fab-center {
-  background: transparent;
-  border: none;
+/* ALL MOBILE BOTTOM NAVIGATION BUTTONS & TAPS (ADMIN, WALI, BENDAHARA) */
+.mobile-bottom-nav,
+.mobile-bottom-nav *,
+.mobile-bottom-nav button,
+.mobile-bottom-nav button:focus,
+.mobile-bottom-nav button:focus-visible,
+.mobile-bottom-nav button:active {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none !important;
+}
+
+.mobile-fab-center,
+.mobile-fab-center:focus,
+.mobile-fab-center:focus-visible,
+.mobile-fab-center:active {
+  background: transparent !important;
+  border: none !important;
   padding: 0;
   cursor: pointer;
   transform: translateY(-16px);
   position: relative;
-  outline: none;
+  outline: none !important;
+  box-shadow: none !important;
   user-select: none;
+  -webkit-tap-highlight-color: transparent !important;
 }
 
 .fab-inner-glow {

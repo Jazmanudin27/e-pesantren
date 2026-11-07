@@ -1,21 +1,16 @@
 import React from 'react';
 import {
   CreditCard,
-  DollarSign,
-  Wallet,
-  BarChart3,
-  Heart,
-  Users,
   Receipt,
+  Wallet,
+  Heart,
   AlertTriangle,
-  Building2,
-  Smartphone,
   RotateCw
 } from 'lucide-react';
 
 const squircleIconStyle = {
-  width: '50px',
-  height: '50px',
+  width: '48px',
+  height: '48px',
   borderRadius: '16px',
   display: 'flex',
   alignItems: 'center',
@@ -31,11 +26,13 @@ const menuCardStyle = {
   cursor: 'pointer',
   textAlign: 'center',
   width: '100%',
-  userSelect: 'none'
+  userSelect: 'none',
+  outline: 'none',
+  WebkitTapHighlightColor: 'transparent'
 };
 
 const menuLabelStyle = {
-  fontSize: '0.67rem',
+  fontSize: '0.66rem',
   fontWeight: 700,
   color: '#334155',
   lineHeight: 1.2,
@@ -49,76 +46,42 @@ export default function MenuLayananKeuangan({
   onRefresh,
   loading
 }) {
+  // Hanya 5 Menu Resmi: Kasir, Histori, Tabungan, Infak Ponpes, Tunggakan
   const menuList = [
     {
       id: 'keuangan-kasir',
-      name: 'Kasir Loket',
+      name: 'Kasir',
       gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
       shadow: '0 6px 16px -2px rgba(16, 185, 129, 0.38)',
-      icon: <CreditCard size={23} strokeWidth={2.3} color="#ffffff" />
-    },
-    {
-      id: 'keuangan-spp',
-      name: 'Tagihan SPP',
-      gradient: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-      shadow: '0 6px 16px -2px rgba(59, 130, 246, 0.38)',
-      icon: <DollarSign size={23} strokeWidth={2.3} color="#ffffff" />
-    },
-    {
-      id: 'keuangan-masuk',
-      name: 'Biaya Masuk',
-      gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-      shadow: '0 6px 16px -2px rgba(245, 158, 11, 0.38)',
-      icon: <Building2 size={23} strokeWidth={2.3} color="#ffffff" />
+      icon: <CreditCard size={22} strokeWidth={2.3} color="#ffffff" />
     },
     {
       id: 'keuangan-rekap',
-      name: 'Rekap Kas',
-      gradient: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-      shadow: '0 6px 16px -2px rgba(139, 92, 246, 0.38)',
-      icon: <BarChart3 size={23} strokeWidth={2.3} color="#ffffff" />
+      name: 'Histori',
+      gradient: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+      shadow: '0 6px 16px -2px rgba(59, 130, 246, 0.38)',
+      icon: <Receipt size={22} strokeWidth={2.3} color="#ffffff" />
     },
     {
       id: 'tabungan',
       name: 'Tabungan',
       gradient: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
       shadow: '0 6px 16px -2px rgba(20, 184, 166, 0.38)',
-      icon: <Wallet size={23} strokeWidth={2.3} color="#ffffff" />
+      icon: <Wallet size={22} strokeWidth={2.3} color="#ffffff" />
     },
     {
       id: 'laporan-infak',
       name: 'Infak Ponpes',
       gradient: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
       shadow: '0 6px 16px -2px rgba(236, 72, 153, 0.38)',
-      icon: <Heart size={23} strokeWidth={2.3} color="#ffffff" />
-    },
-    {
-      id: 'whatsapp-gateway',
-      name: 'Broadcast WA',
-      gradient: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-      shadow: '0 6px 16px -2px rgba(34, 197, 94, 0.38)',
-      icon: <Smartphone size={23} strokeWidth={2.3} color="#ffffff" />
-    },
-    {
-      id: 'keuangan-transaksi',
-      name: 'QRIS & VA',
-      gradient: 'linear-gradient(135deg, #06b6d4 0%, #0284c7 100%)',
-      shadow: '0 6px 16px -2px rgba(6, 182, 212, 0.38)',
-      icon: <Receipt size={23} strokeWidth={2.3} color="#ffffff" />
+      icon: <Heart size={22} strokeWidth={2.3} color="#ffffff" />
     },
     {
       id: 'keuangan-tunggakan',
       name: 'Tunggakan',
       gradient: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
       shadow: '0 6px 16px -2px rgba(239, 68, 68, 0.38)',
-      icon: <AlertTriangle size={23} strokeWidth={2.3} color="#ffffff" />
-    },
-    {
-      id: 'master-santri',
-      name: 'Data Santri',
-      gradient: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
-      shadow: '0 6px 16px -2px rgba(100, 116, 139, 0.38)',
-      icon: <Users size={23} strokeWidth={2.3} color="#ffffff" />
+      icon: <AlertTriangle size={22} strokeWidth={2.3} color="#ffffff" />
     }
   ];
 
@@ -127,7 +90,7 @@ export default function MenuLayananKeuangan({
       background: '#ffffff',
       borderRadius: '18px',
       border: '1px solid #e2e8f0',
-      padding: '14px 12px',
+      padding: '14px 10px',
       boxShadow: '0 10px 25px -4px rgba(13, 118, 110, 0.14), 0 2px 6px rgba(0, 0, 0, 0.04)',
       marginBottom: '18px'
     }}>
@@ -136,7 +99,8 @@ export default function MenuLayananKeuangan({
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '14px'
+        marginBottom: '12px',
+        padding: '0 4px'
       }}>
         <div style={{
           fontSize: '0.82rem',
@@ -167,7 +131,9 @@ export default function MenuLayananKeuangan({
             alignItems: 'center',
             gap: '4px',
             fontSize: '0.74rem',
-            fontWeight: 700
+            fontWeight: 700,
+            outline: 'none',
+            WebkitTapHighlightColor: 'transparent'
           }}
         >
           <RotateCw size={12} className={loading ? 'animate-spin' : ''} />
@@ -175,11 +141,11 @@ export default function MenuLayananKeuangan({
         </button>
       </div>
 
-      {/* Grid Menu Icons Persis Style Orang Tua */}
+      {/* Grid 5 Menu Layanan (Kasir, Histori, Tabungan, Infak Ponpes, Tunggakan) */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '14px 4px',
+        gridTemplateColumns: 'repeat(5, 1fr)',
+        gap: '4px',
         justifyItems: 'center'
       }}>
         {menuList.map((m) => (
