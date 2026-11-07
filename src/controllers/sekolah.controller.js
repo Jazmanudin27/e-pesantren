@@ -260,29 +260,33 @@ export const ensureSekolahTablesAndMapping = async () => {
     `, [smaId]);
 
     // g. Pastikan semua master komponen biaya per jenjang tersedia di keuangan_komponen_biaya
-    const [existingKomp] = await pool.query('SELECT kode_komponen FROM keuangan_komponen_biaya');
-    const kompCodes = new Set((existingKomp || []).map(k => k.kode_komponen));
+    try {
+      const [existingKomp] = await pool.query('SELECT nama_komponen FROM keuangan_komponen_biaya');
+      const kompNames = new Set((existingKomp || []).map(k => (k.nama_komponen || '').toLowerCase()));
 
-    const standardComponents = [
-      { kode: 'SPP-SMP', nama: 'SPP Bulanan SMP', kat: 'Bulanan', nom: 505000, desc: 'SPP & Makan Santri Jenjang SMP (Rp 505.000 / bln)' },
-      { kode: 'SPP-SMA', nama: 'SPP Bulanan SMA', kat: 'Bulanan', nom: 565000, desc: 'SPP & Makan Santri Jenjang SMA (Rp 565.000 / bln)' },
-      { kode: 'SPP-SMK', nama: 'SPP Bulanan SMK', kat: 'Bulanan', nom: 565000, desc: 'SPP & Makan Santri Jenjang SMK (Rp 565.000 / bln)' },
-      { kode: 'AWAL-SMP', nama: 'Biaya Awal Masuk SMP', kat: 'Biaya Masuk', nom: 1890000, desc: 'Adm Sekolah (890rb) + Adm Pesantren (1jt) Jenjang SMP' },
-      { kode: 'AWAL-SMA', nama: 'Biaya Awal Masuk SMA', kat: 'Biaya Masuk', nom: 2040000, desc: 'Adm Sekolah (1.04jt) + Adm Pesantren (1jt) Jenjang SMA' },
-      { kode: 'AWAL-SMK', nama: 'Biaya Awal Masuk SMK', kat: 'Biaya Masuk', nom: 2400000, desc: 'Adm Sekolah (1.4jt) + Adm Pesantren (1jt) Jenjang SMK' },
-      { kode: 'ADM-PESANTREN', nama: 'Adm Pesantren', kat: 'Biaya Masuk', nom: 1000000, desc: 'Adm Pesantren Nurul Wafa (Rp 1.000.000)' },
-      { kode: 'ADM-SEK-SMP', nama: 'Adm Sekolah SMP', kat: 'Biaya Masuk', nom: 890000, desc: 'Adm Sekolah SMP Nurul Wafa (Rp 890.000)' },
-      { kode: 'ADM-SEK-SMA', nama: 'Adm Sekolah SMA', kat: 'Biaya Masuk', nom: 1040000, desc: 'Adm Sekolah SMA Nurul Wafa (Rp 1.040.000)' },
-      { kode: 'ADM-SEK-SMK', nama: 'Adm Sekolah SMK', kat: 'Biaya Masuk', nom: 1400000, desc: 'Adm Sekolah SMK Nurul Wafa (Rp 1.400.000)' }
-    ];
+      const standardComponents = [
+        { nama: 'SPP Bulanan SMP', kat: 'Bulanan', nom: 505000, desc: 'SPP & Makan Santri Jenjang SMP (Rp 505.000 / bln)' },
+        { nama: 'SPP Bulanan SMA', kat: 'Bulanan', nom: 565000, desc: 'SPP & Makan Santri Jenjang SMA (Rp 565.000 / bln)' },
+        { nama: 'SPP Bulanan SMK', kat: 'Bulanan', nom: 565000, desc: 'SPP & Makan Santri Jenjang SMK (Rp 565.000 / bln)' },
+        { nama: 'Biaya Awal Masuk SMP', kat: 'Biaya Masuk', nom: 1890000, desc: 'Adm Sekolah (890rb) + Adm Pesantren (1jt) Jenjang SMP' },
+        { nama: 'Biaya Awal Masuk SMA', kat: 'Biaya Masuk', nom: 2040000, desc: 'Adm Sekolah (1.04jt) + Adm Pesantren (1jt) Jenjang SMA' },
+        { nama: 'Biaya Awal Masuk SMK', kat: 'Biaya Masuk', nom: 2400000, desc: 'Adm Sekolah (1.4jt) + Adm Pesantren (1jt) Jenjang SMK' },
+        { nama: 'Adm Pesantren', kat: 'Biaya Masuk', nom: 1000000, desc: 'Adm Pesantren Nurul Wafa (Rp 1.000.000)' },
+        { nama: 'Adm Sekolah SMP', kat: 'Biaya Masuk', nom: 890000, desc: 'Adm Sekolah SMP Nurul Wafa (Rp 890.000)' },
+        { nama: 'Adm Sekolah SMA', kat: 'Biaya Masuk', nom: 1040000, desc: 'Adm Sekolah SMA Nurul Wafa (Rp 1.040.000)' },
+        { nama: 'Adm Sekolah SMK', kat: 'Biaya Masuk', nom: 1400000, desc: 'Adm Sekolah SMK Nurul Wafa (Rp 1.400.000)' }
+      ];
 
-    for (const c of standardComponents) {
-      if (!kompCodes.has(c.kode)) {
-        await pool.query(`
-          INSERT INTO keuangan_komponen_biaya (kode_komponen, nama_komponen, kategori, nominal_default, deskripsi, is_active)
-          VALUES (?, ?, ?, ?, ?, 1)
-        `, [c.kode, c.nama, c.kat, c.nom, c.desc]);
+      for (const c of standardComponents) {
+        if (!kompNames.has(c.nama.toLowerCase())) {
+          await pool.query(`
+            INSERT INTO keuangan_komponen_biaya (nama_komponen, kategori, nominal_default, deskripsi, is_active)
+            VALUES (?, ?, ?, ?, 1)
+          `, [c.nama, c.kat, c.nom, c.desc]);
+        }
       }
+    } catch (e) {
+      console.warn('[KOMP BIAYA SEED NOTICE]', e.message);
     }
 
     isSekolahDbInitialized = true;
@@ -402,20 +406,22 @@ export const recalculateSekolahTotals = async (jenjang, connection = pool) => {
       WHERE id = ?
     `, [total_adm_sekolah, total_adm_pesantren, total_spp, total_spp, total_masuk, sekolahId]);
 
-    // Update master komponen biaya di keuangan
-    await connection.query(`
-      UPDATE keuangan_komponen_biaya 
-      SET nominal_default = ? 
-      WHERE kode_komponen = ?
-    `, [total_adm_sekolah + total_adm_pesantren, `AWAL-${jenjang}`]);
-
-    if (total_spp > 0) {
+    // Update master komponen biaya di keuangan jika ada
+    try {
       await connection.query(`
         UPDATE keuangan_komponen_biaya 
         SET nominal_default = ? 
-        WHERE kode_komponen = ?
-      `, [total_spp, `SPP-${jenjang}`]);
-    }
+        WHERE nama_komponen LIKE ?
+      `, [total_adm_sekolah + total_adm_pesantren, `%Awal Masuk%${jenjang}%`]);
+
+      if (total_spp > 0) {
+        await connection.query(`
+          UPDATE keuangan_komponen_biaya 
+          SET nominal_default = ? 
+          WHERE nama_komponen LIKE ?
+        `, [total_spp, `%SPP%${jenjang}%`]);
+      }
+    } catch (e) {}
   } catch (err) {
     console.warn('[RECALCULATE TOTALS NOTICE]', err.message);
   }
@@ -575,24 +581,26 @@ export const generateTagihanAwalMasukSekolah = async (req, res) => {
     let totalSkipped = 0;
 
     // Ambil master komponen biaya untuk mengisi kolom komponen_id di keuangan_tagihan
-    let [allKomp] = await connection.query('SELECT id, kode_komponen, nama_komponen, kategori FROM keuangan_komponen_biaya');
+    let [allKomp] = await connection.query('SELECT id, nama_komponen, kategori FROM keuangan_komponen_biaya');
     if (!allKomp || allKomp.length === 0) {
       const [insRes] = await connection.query(`
-        INSERT INTO keuangan_komponen_biaya (kode_komponen, nama_komponen, kategori, nominal_default, is_active)
-        VALUES ('AWAL-MASUK', 'Biaya Awal Masuk', 'Biaya Masuk', 1000000, 1)
+        INSERT INTO keuangan_komponen_biaya (nama_komponen, kategori, nominal_default, is_active)
+        VALUES ('Biaya Awal Masuk', 'Biaya Masuk', 1000000, 1)
       `);
-      allKomp = [{ id: insRes.insertId, kode_komponen: 'AWAL-MASUK', nama_komponen: 'Biaya Awal Masuk', kategori: 'Biaya Masuk' }];
+      allKomp = [{ id: insRes.insertId, nama_komponen: 'Biaya Awal Masuk', kategori: 'Biaya Masuk' }];
     }
 
     const getKomponenIdForItem = (itemJudul, jKey) => {
       const jLower = (jKey || '').toLowerCase();
       let match = null;
       if (itemJudul.toLowerCase().includes('pesantren')) {
-        match = (allKomp || []).find(k => k.kode_komponen === 'ADM-PESANTREN' || (k.nama_komponen && k.nama_komponen.toLowerCase().includes('pesantren')));
+        match = (allKomp || []).find(k => k.nama_komponen && k.nama_komponen.toLowerCase().includes('pesantren'));
       } else if (itemJudul.toLowerCase().includes('adm sekolah')) {
-        match = (allKomp || []).find(k => k.kode_komponen === `ADM-SEK-${jKey}` || (k.nama_komponen && k.nama_komponen.toLowerCase().includes('adm sekolah') && k.nama_komponen.toLowerCase().includes(jLower)));
+        match = (allKomp || []).find(k => k.nama_komponen && k.nama_komponen.toLowerCase().includes('adm sekolah') && k.nama_komponen.toLowerCase().includes(jLower)) ||
+                (allKomp || []).find(k => k.nama_komponen && k.nama_komponen.toLowerCase().includes('adm sekolah'));
       } else if (itemJudul.toLowerCase().includes('awal masuk')) {
-        match = (allKomp || []).find(k => k.kode_komponen === `AWAL-${jKey}` || (k.nama_komponen && k.nama_komponen.toLowerCase().includes('awal masuk')));
+        match = (allKomp || []).find(k => k.nama_komponen && k.nama_komponen.toLowerCase().includes('awal masuk') && k.nama_komponen.toLowerCase().includes(jLower)) ||
+                (allKomp || []).find(k => k.nama_komponen && k.nama_komponen.toLowerCase().includes('awal masuk'));
       }
       if (match) return match.id;
       const fallbackKomp = (allKomp || []).find(k => k.kategori !== 'Bulanan') || allKomp[0];
