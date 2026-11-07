@@ -71,6 +71,26 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
   const [laporanSearch, setLaporanSearch] = useState('');
   const [laporanFilterSekolah, setLaporanFilterSekolah] = useState('semua');
   const [kasirFilterSekolah, setKasirFilterSekolah] = useState('semua');
+  const [kasirFilterKelas, setKasirFilterKelas] = useState('semua');
+
+  // Daftar filter kelas dinamis berdasarkan sekolah yang dipilih
+  const availableKelasList = React.useMemo(() => {
+    const list = [];
+    if (kasirFilterSekolah === 'SMP') {
+      list.push('Kelas 7', 'Kelas 8', 'Kelas 9');
+    } else if (kasirFilterSekolah === 'SMA' || kasirFilterSekolah === 'SMK') {
+      list.push('Kelas 10', 'Kelas 11', 'Kelas 12');
+    } else {
+      list.push('Kelas 7', 'Kelas 8', 'Kelas 9', 'Kelas 10', 'Kelas 11', 'Kelas 12');
+    }
+    (santriList || []).forEach(s => {
+      const k = s.tingkat_sekolah || s.nama_kelas;
+      if (k && !list.some(x => x.toLowerCase() === String(k).toLowerCase())) {
+        list.push(k);
+      }
+    });
+    return list;
+  }, [kasirFilterSekolah, santriList]);
 
   // Sync initial tab jika berubah dari luar: hanya kasir atau laporan
   useEffect(() => {
@@ -502,10 +522,10 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
               </div>
             ) : (
               <div style={{ marginTop: '14px' }}>
-                {/* Filter Jenjang Sekolah Kasir */}
-                <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', overflowX: 'auto', paddingBottom: '2px' }}>
+                {/* 1. Filter Jenjang Sekolah */}
+                <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', overflowX: 'auto', paddingBottom: '2px' }}>
                   {[
-                    { id: 'semua', label: 'Semua Siswa' },
+                    { id: 'semua', label: 'Semua Sekolah' },
                     { id: 'SMP', label: 'SMP' },
                     { id: 'SMA', label: 'SMA' },
                     { id: 'SMK', label: 'SMK' }
@@ -514,17 +534,23 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                     return (
                       <button
                         key={f.id}
-                        onClick={() => setKasirFilterSekolah(f.id)}
+                        onClick={() => {
+                          setKasirFilterSekolah(f.id);
+                          setKasirFilterKelas('semua');
+                        }}
                         style={{
-                          padding: '5px 12px',
+                          padding: '6px 14px',
                           borderRadius: '20px',
                           fontSize: '0.72rem',
-                          fontWeight: 700,
-                          border: active ? '1px solid #059669' : '1px solid #e2e8f0',
-                          background: active ? '#059669' : '#f8fafc',
-                          color: active ? '#ffffff' : '#64748b',
+                          fontWeight: 800,
+                          border: active ? '1px solid #059669' : '1px solid #cbd5e1',
+                          background: active ? 'linear-gradient(135deg, #059669 0%, #047857 100%)' : '#ffffff',
+                          color: active ? '#ffffff' : '#475569',
+                          boxShadow: active ? '0 3px 8px rgba(5, 150, 105, 0.3)' : 'none',
                           cursor: 'pointer',
-                          whiteSpace: 'nowrap'
+                          whiteSpace: 'nowrap',
+                          outline: 'none',
+                          WebkitTapHighlightColor: 'transparent'
                         }}
                       >
                         {f.label}
@@ -533,20 +559,74 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                   })}
                 </div>
 
-                {/* Gridview Daftar Santri 2 Kolom (Nama, Foto/Avatar, NISN, Sekolah) */}
+                {/* 2. Filter Kelas Dinamis */}
+                {availableKelasList.length > 0 && (
+                  <div style={{ display: 'flex', gap: '5px', marginBottom: '10px', overflowX: 'auto', paddingBottom: '2px' }}>
+                    <button
+                      onClick={() => setKasirFilterKelas('semua')}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '16px',
+                        fontSize: '0.67rem',
+                        fontWeight: 700,
+                        border: kasirFilterKelas === 'semua' ? '1px solid #0284c7' : '1px solid #e2e8f0',
+                        background: kasirFilterKelas === 'semua' ? '#0284c7' : '#f8fafc',
+                        color: kasirFilterKelas === 'semua' ? '#ffffff' : '#64748b',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        outline: 'none',
+                        WebkitTapHighlightColor: 'transparent'
+                      }}
+                    >
+                      Semua Kelas
+                    </button>
+                    {availableKelasList.map((kls) => {
+                      const active = kasirFilterKelas.toLowerCase() === String(kls).toLowerCase();
+                      return (
+                        <button
+                          key={kls}
+                          onClick={() => setKasirFilterKelas(kls)}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: '16px',
+                            fontSize: '0.67rem',
+                            fontWeight: 700,
+                            border: active ? '1px solid #0284c7' : '1px solid #e2e8f0',
+                            background: active ? '#0284c7' : '#f8fafc',
+                            color: active ? '#ffffff' : '#64748b',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            outline: 'none',
+                            WebkitTapHighlightColor: 'transparent'
+                          }}
+                        >
+                          {kls}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Info Jumlah Santri */}
                 <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: '10px',
-                  maxHeight: '60vh',
-                  overflowY: 'auto',
-                  padding: '2px'
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '10px',
+                  padding: '0 2px',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  color: '#64748b'
                 }}>
-                  {(santriList || [])
-                    .filter((s) => {
+                  <span>
+                    {(santriList || []).filter((s) => {
                       if (kasirFilterSekolah !== 'semua') {
                         const sk = String(s.nama_sekolah || s.tingkat_sekolah || '').toUpperCase();
                         if (!sk.includes(kasirFilterSekolah)) return false;
+                      }
+                      if (kasirFilterKelas !== 'semua') {
+                        const kl = String(s.tingkat_sekolah || s.nama_kelas || '').toLowerCase();
+                        if (!kl.includes(kasirFilterKelas.toLowerCase())) return false;
                       }
                       if (!santriSearch.trim()) return true;
                       const q = santriSearch.toLowerCase();
@@ -557,19 +637,95 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                         (s.nama_asrama || '').toLowerCase().includes(q) ||
                         (s.nama_sekolah || '').toLowerCase().includes(q)
                       );
-                    })
-                    .slice(0, 60)
-                    .map((s) => {
+                    }).length} Santri Tersedia
+                  </span>
+
+                  {(kasirFilterSekolah !== 'semua' || kasirFilterKelas !== 'semua') && (
+                    <span
+                      onClick={() => {
+                        setKasirFilterSekolah('semua');
+                        setKasirFilterKelas('semua');
+                      }}
+                      style={{ color: '#059669', cursor: 'pointer', fontSize: '0.67rem' }}
+                    >
+                      Reset Filter ✕
+                    </span>
+                  )}
+                </div>
+
+                {/* Gridview Daftar Santri 2 Kolom (Card Modern) */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '10px',
+                  maxHeight: '58vh',
+                  overflowY: 'auto',
+                  padding: '2px'
+                }}>
+                  {(() => {
+                    const filtered = (santriList || []).filter((s) => {
+                      if (kasirFilterSekolah !== 'semua') {
+                        const sk = String(s.nama_sekolah || s.tingkat_sekolah || '').toUpperCase();
+                        if (!sk.includes(kasirFilterSekolah)) return false;
+                      }
+                      if (kasirFilterKelas !== 'semua') {
+                        const kl = String(s.tingkat_sekolah || s.nama_kelas || '').toLowerCase();
+                        if (!kl.includes(kasirFilterKelas.toLowerCase())) return false;
+                      }
+                      if (!santriSearch.trim()) return true;
+                      const q = santriSearch.toLowerCase();
+                      return (
+                        (s.nama_santri || '').toLowerCase().includes(q) ||
+                        (s.nis || '').toLowerCase().includes(q) ||
+                        (s.nisn || '').toLowerCase().includes(q) ||
+                        (s.nama_asrama || '').toLowerCase().includes(q) ||
+                        (s.nama_sekolah || '').toLowerCase().includes(q)
+                      );
+                    });
+
+                    if (filtered.length === 0) {
+                      return (
+                        <div style={{
+                          gridColumn: '1 / -1',
+                          padding: '30px 16px',
+                          textAlign: 'center',
+                          background: '#f8fafc',
+                          borderRadius: '16px',
+                          border: '1px dashed #cbd5e1',
+                          color: '#64748b'
+                        }}>
+                          <Users size={32} color="#94a3b8" style={{ margin: '0 auto 8px' }} />
+                          <div style={{ fontWeight: 800, fontSize: '0.85rem' }}>Santri Tidak Ditemukan</div>
+                          <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px' }}>
+                            Ubah kata kunci pencarian atau ganti filter sekolah &amp; kelas
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return filtered.slice(0, 60).map((s) => {
                       const skLabel = s.nama_sekolah || (s.tingkat_sekolah ? `Kelas ${s.tingkat_sekolah}` : 'Santri NWF');
+                      const klsLabel = s.tingkat_sekolah || s.nama_kelas || '-';
                       const isSMP = skLabel.toUpperCase().includes('SMP');
                       const isSMA = skLabel.toUpperCase().includes('SMA');
                       const isSMK = skLabel.toUpperCase().includes('SMK');
 
                       let badgeBg = '#f1f5f9';
                       let badgeColor = '#475569';
-                      if (isSMP) { badgeBg = '#e0f2fe'; badgeColor = '#0369a1'; }
-                      else if (isSMA) { badgeBg = '#fef3c7'; badgeColor = '#b45309'; }
-                      else if (isSMK) { badgeBg = '#f3e8ff'; badgeColor = '#7e22ce'; }
+                      let cardAccent = '#059669';
+                      if (isSMP) {
+                        badgeBg = '#e0f2fe';
+                        badgeColor = '#0369a1';
+                        cardAccent = '#0284c7';
+                      } else if (isSMA) {
+                        badgeBg = '#fef3c7';
+                        badgeColor = '#b45309';
+                        cardAccent = '#d97706';
+                      } else if (isSMK) {
+                        badgeBg = '#f3e8ff';
+                        badgeColor = '#7e22ce';
+                        cardAccent = '#7c3aed';
+                      }
 
                       const photoUrl = s.foto || s.foto_santri;
 
@@ -579,25 +735,60 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                           onClick={() => handleSelectSantri(s)}
                           style={{
                             background: '#ffffff',
-                            borderRadius: '16px',
-                            padding: '14px 10px 12px',
+                            borderRadius: '18px',
+                            padding: '12px 10px 10px',
                             border: '1px solid #e2e8f0',
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
                             textAlign: 'center',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+                            boxShadow: '0 4px 14px rgba(15, 23, 42, 0.05)',
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
                             userSelect: 'none',
                             outline: 'none',
-                            WebkitTapHighlightColor: 'transparent'
+                            WebkitTapHighlightColor: 'transparent',
+                            position: 'relative',
+                            overflow: 'hidden'
                           }}
                         >
-                          {/* Foto Santri / Avatar */}
+                          {/* Top Badges: Sekolah & Kelas */}
                           <div style={{
-                            width: '48px',
-                            height: '48px',
+                            width: '100%',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '8px'
+                          }}>
+                            <span style={{
+                              fontSize: '0.62rem',
+                              fontWeight: 800,
+                              background: badgeBg,
+                              color: badgeColor,
+                              padding: '2px 7px',
+                              borderRadius: '6px',
+                              letterSpacing: '0.2px'
+                            }}>
+                              {isSMP ? 'SMP' : isSMA ? 'SMA' : isSMK ? 'SMK' : 'NWF'}
+                            </span>
+
+                            <span style={{
+                              fontSize: '0.62rem',
+                              fontWeight: 700,
+                              background: '#f8fafc',
+                              color: '#64748b',
+                              border: '1px solid #e2e8f0',
+                              padding: '1px 6px',
+                              borderRadius: '6px'
+                            }}>
+                              {klsLabel}
+                            </span>
+                          </div>
+
+                          {/* Foto Santri / Avatar Bulat Mewah */}
+                          <div style={{
+                            width: '54px',
+                            height: '54px',
                             borderRadius: '50%',
                             overflow: 'hidden',
                             background: 'linear-gradient(135deg, #059669 0%, #0d9488 100%)',
@@ -605,11 +796,11 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontWeight: 800,
-                            fontSize: '0.92rem',
-                            marginBottom: '8px',
-                            boxShadow: '0 4px 10px rgba(5, 150, 105, 0.22)',
-                            border: '2px solid #ffffff'
+                            fontWeight: 900,
+                            fontSize: '0.96rem',
+                            marginBottom: '7px',
+                            boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)',
+                            border: '2.5px solid #ffffff'
                           }}>
                             {photoUrl ? (
                               <img
@@ -640,34 +831,47 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                             {s.nama_santri}
                           </div>
 
-                          {/* Foto NISN / NIS */}
+                          {/* NISN / NIS */}
                           <div style={{
-                            fontSize: '0.66rem',
+                            fontSize: '0.65rem',
                             color: '#64748b',
                             fontWeight: 600,
-                            marginBottom: '6px'
+                            background: '#f8fafc',
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            border: '1px solid #f1f5f9',
+                            marginBottom: '6px',
+                            width: '100%',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
                           }}>
                             NISN: {s.nisn || s.nis || '-'}
                           </div>
 
-                          {/* Sekolah Badge */}
-                          <span style={{
-                            fontSize: '0.62rem',
+                          {/* Micro Button Aksi: Buka Bayar */}
+                          <div style={{
+                            width: '100%',
+                            marginTop: 'auto',
+                            padding: '5px 8px',
+                            borderRadius: '9px',
+                            background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+                            border: '1px solid #a7f3d0',
+                            color: '#047857',
+                            fontSize: '0.68rem',
                             fontWeight: 800,
-                            background: badgeBg,
-                            color: badgeColor,
-                            padding: '2px 8px',
-                            borderRadius: '6px',
-                            maxWidth: '100%',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '3px'
                           }}>
-                            {skLabel}
-                          </span>
+                            <span>Pilih Santri</span>
+                            <ChevronRight size={12} />
+                          </div>
                         </div>
                       );
-                    })}
+                    });
+                  })()}
                 </div>
               </div>
             )}
