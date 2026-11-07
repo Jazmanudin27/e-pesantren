@@ -869,33 +869,12 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                             padding: '2px 8px',
                             borderRadius: '6px',
                             border: '1px solid #f1f5f9',
-                            marginBottom: '6px',
                             width: '100%',
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis'
                           }}>
                             NISN: {s.nisn || s.nis || '-'}
-                          </div>
-
-                          {/* Micro Button Aksi: Buka Bayar */}
-                          <div style={{
-                            width: '100%',
-                            marginTop: 'auto',
-                            padding: '5px 8px',
-                            borderRadius: '9px',
-                            background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
-                            border: '1px solid #a7f3d0',
-                            color: '#047857',
-                            fontSize: '0.68rem',
-                            fontWeight: 800,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '3px'
-                          }}>
-                            <span>Pilih Santri</span>
-                            <ChevronRight size={12} />
                           </div>
                         </div>
                       );

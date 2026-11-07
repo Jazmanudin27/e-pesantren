@@ -48,7 +48,8 @@ export default function ModalGenerateTagihan({
 
   // Tab 1: Biaya Awal Masuk State
   const [jenjangMasuk, setJenjangMasuk] = useState('SMP'); // 'SMP' | 'SMA' | 'SMK' | 'SEMUA'
-  const [modePaketMasuk, setModePaketMasuk] = useState('paket'); // 'paket' (3 rincian) | 'total' (1 tagihan)
+  const [kategoriMasuk, setKategoriMasuk] = useState('semua'); // 'semua' | 'sekolah' | 'pesantren'
+  const [modePaketMasuk, setModePaketMasuk] = useState('paket'); // 'paket' (2 rincian) | 'total' (1 tagihan)
   const [showItemBreakdown, setShowItemBreakdown] = useState(true);
 
   // Live Database Items State (Per Jenjang)
@@ -131,15 +132,15 @@ export default function ModalGenerateTagihan({
 
   const admSekolahItems = filteredItems.filter((i) => i.kategori_komponen === 'Adm Sekolah');
   const admPesantrenItems = filteredItems.filter((i) => i.kategori_komponen === 'Adm Pesantren');
-  const sppItem = filteredItems.find((i) => i.kategori_komponen === 'SPP') || {
-    biaya: currentTargetJenjang === 'SMP' ? 505000 : 565000,
-    uraian: 'Makan dan SPP Sekolah'
-  };
 
   const totalAdmSekolah = admSekolahItems.reduce((acc, i) => acc + (parseFloat(i.biaya) || 0), 0);
   const totalAdmPesantren = admPesantrenItems.reduce((acc, i) => acc + (parseFloat(i.biaya) || 0), 0);
-  const totalSppJuli = parseFloat(sppItem.biaya) || (currentTargetJenjang === 'SMP' ? 505000 : 565000);
-  const grandTotalMasuk = totalAdmSekolah + totalAdmPesantren + totalSppJuli;
+  const grandTotalMasuk =
+    kategoriMasuk === 'sekolah'
+      ? totalAdmSekolah
+      : kategoriMasuk === 'pesantren'
+      ? totalAdmPesantren
+      : totalAdmSekolah + totalAdmPesantren;
 
   // 1. Simpan Tambah Item Baru
   const handleSaveAdd = async (kategori) => {
@@ -229,6 +230,12 @@ export default function ModalGenerateTagihan({
   const handleGenerateAwalMasuk = async (e) => {
     e?.preventDefault();
     const jenjangLabel = jenjangMasuk === 'SEMUA' ? 'Seluruh Jenjang (SMP, SMA, SMK)' : `Jenjang ${jenjangMasuk}`;
+    const katLabel =
+      kategoriMasuk === 'sekolah'
+        ? 'ADM SEKOLAH'
+        : kategoriMasuk === 'pesantren'
+        ? 'ADM PESANTREN'
+        : 'ADM SEKOLAH & PESANTREN';
     const nominalLabel =
       jenjangMasuk === 'SEMUA'
         ? 'sesuai data rincian database tiap sekolah'
@@ -236,7 +243,7 @@ export default function ModalGenerateTagihan({
 
     const ok = await showConfirm(
       'Konfirmasi Simpan Tagihan ke Database',
-      `Terbitkan Tagihan Biaya Awal Masuk 2026/2027 untuk santri ${jenjangLabel} (${nominalLabel})?\n\nTagihan akan langsung disimpan ke database keuangan_tagihan. Santri yang sudah punya tagihan otomatis dilewati.`,
+      `Terbitkan Tagihan ${katLabel} 2026/2027 untuk santri ${jenjangLabel} (${nominalLabel})?\n\nTagihan akan langsung disimpan ke database keuangan_tagihan. Santri yang sudah punya tagihan otomatis dilewati.`,
       'Ya, Simpan ke Database',
       'Batal'
     );
@@ -247,7 +254,8 @@ export default function ModalGenerateTagihan({
       const res = await axios.post('/api/sekolah/generate-tagihan-masuk', {
         jenjang: jenjangMasuk,
         tahun_ajaran: '2026/2027',
-        mode: modePaketMasuk
+        mode: modePaketMasuk,
+        kategori: kategoriMasuk
       });
 
       if (res.data?.success) {
@@ -493,6 +501,48 @@ export default function ModalGenerateTagihan({
               </div>
             </div>
 
+            {/* 2. Filter Kategori Biaya (Sekolah vs Pesantren) */}
+            <div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
+                2. Filter Kategori Biaya:
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                {[
+                  { id: 'semua', label: 'Semua Kategori', sub: 'Sekolah & Ponpes', color: '#059669', bg: '#ecfdf5' },
+                  { id: 'sekolah', label: 'Adm Sekolah', sub: 'Gedung, Kaos, dll', color: '#7e22ce', bg: '#faf5ff' },
+                  { id: 'pesantren', label: 'Adm Pesantren', sub: 'Infaq, Dapur, dll', color: '#0284c7', bg: '#f0f9ff' }
+                ].map((k) => {
+                  const active = kategoriMasuk === k.id;
+                  return (
+                    <button
+                      key={k.id}
+                      type="button"
+                      onClick={() => {
+                        setKategoriMasuk(k.id);
+                        setEditingItemId(null);
+                        setAddingKategori(null);
+                      }}
+                      style={{
+                        padding: '8px 4px',
+                        borderRadius: '12px',
+                        border: active ? `2px solid ${k.color}` : '1px solid #cbd5e1',
+                        background: active ? k.bg : '#ffffff',
+                        color: active ? k.color : '#475569',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        boxShadow: active ? `0 3px 8px ${k.color}25` : 'none',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <div style={{ fontSize: '0.74rem', fontWeight: 800 }}>{k.label}</div>
+                      <div style={{ fontSize: '0.58rem', fontWeight: 600, opacity: 0.8, marginTop: '2px' }}>{k.sub}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Tabel Rincian Interaktif dengan Kemampuan Tambah, Edit, Hapus */}
             <div style={{ border: '1px solid #cbd5e1', borderRadius: '16px', overflow: 'hidden', background: '#ffffff', boxShadow: '0 4px 14px rgba(0,0,0,0.04)' }}>
               
@@ -523,20 +573,20 @@ export default function ModalGenerateTagihan({
                 </button>
               </div>
 
-              {/* 3 Kotak Subtotal Otomatis */}
-              <div style={{ padding: '10px 12px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', background: '#f1f5f9' }}>
-                <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '10px', padding: '6px 8px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#7e22ce' }}>ADM SEKOLAH</div>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#6b21a8' }}>{formatRp(totalAdmSekolah)}</div>
-                </div>
-                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '6px 8px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#15803d' }}>ADM PESANTREN</div>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#14532d' }}>{formatRp(totalAdmPesantren)}</div>
-                </div>
-                <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '6px 8px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#1d4ed8' }}>SPP JULI</div>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#1e3a8a' }}>{formatRp(totalSppJuli)}</div>
-                </div>
+              {/* Kotak Subtotal Otomatis Sesuai Filter Kategori */}
+              <div style={{ padding: '10px 12px', display: 'grid', gridTemplateColumns: kategoriMasuk === 'semua' ? 'repeat(2, 1fr)' : '1fr', gap: '8px', background: '#f1f5f9' }}>
+                {(kategoriMasuk === 'semua' || kategoriMasuk === 'sekolah') && (
+                  <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '10px', padding: '8px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#7e22ce' }}>ADM SEKOLAH</div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#6b21a8' }}>{formatRp(totalAdmSekolah)}</div>
+                  </div>
+                )}
+                {(kategoriMasuk === 'semua' || kategoriMasuk === 'pesantren') && (
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '8px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#15803d' }}>ADM PESANTREN</div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#14532d' }}>{formatRp(totalAdmPesantren)}</div>
+                  </div>
+                )}
               </div>
 
               {/* List Detail Items dengan Tombol Edit, Tambah & Hapus */}
@@ -544,6 +594,7 @@ export default function ModalGenerateTagihan({
                 <div style={{ maxHeight: '280px', overflowY: 'auto', padding: '8px 12px' }}>
                   
                   {/* SEKSI 1: ADM SEKOLAH */}
+                  {(kategoriMasuk === 'semua' || kategoriMasuk === 'sekolah') && (
                   <div style={{ marginBottom: '14px' }}>
                     <div style={{
                       display: 'flex',
@@ -696,8 +747,10 @@ export default function ModalGenerateTagihan({
                       })}
                     </div>
                   </div>
+                  )}
 
                   {/* SEKSI 2: ADM PESANTREN */}
+                  {(kategoriMasuk === 'semua' || kategoriMasuk === 'pesantren') && (
                   <div style={{ marginBottom: '14px' }}>
                     <div style={{
                       display: 'flex',
@@ -709,7 +762,7 @@ export default function ModalGenerateTagihan({
                       marginBottom: '6px'
                     }}>
                       <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#15803d' }}>
-                        2. Adm Pesantren ({admPesantrenItems.length} Item)
+                        {kategoriMasuk === 'pesantren' ? '1.' : '2.'} Adm Pesantren ({admPesantrenItems.length} Item)
                       </span>
                       <button
                         type="button"
@@ -850,24 +903,7 @@ export default function ModalGenerateTagihan({
                       })}
                     </div>
                   </div>
-
-                  {/* SEKSI 3: SPP JULI */}
-                  <div>
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      background: '#eff6ff',
-                      padding: '6px 10px',
-                      borderRadius: '8px',
-                      fontSize: '0.72rem',
-                      fontWeight: 800,
-                      color: '#1d4ed8'
-                    }}>
-                      <span>3. SPP Juli (Makan & SPP Sekolah)</span>
-                      <span>{formatRp(totalSppJuli)}</span>
-                    </div>
-                  </div>
+                  )}
 
                 </div>
               )}
@@ -883,7 +919,13 @@ export default function ModalGenerateTagihan({
                 fontWeight: 800,
                 fontSize: '0.86rem'
               }}>
-                <span>TOTAL RINCIAN AWAL MASUK:</span>
+                <span>
+                  {kategoriMasuk === 'sekolah'
+                    ? 'TOTAL ADM SEKOLAH:'
+                    : kategoriMasuk === 'pesantren'
+                    ? 'TOTAL ADM PESANTREN:'
+                    : 'TOTAL RINCIAN AWAL MASUK:'}
+                </span>
                 <span style={{ color: '#a7f3d0', fontSize: '1rem' }}>{formatRp(grandTotalMasuk)}</span>
               </div>
             </div>
@@ -891,53 +933,77 @@ export default function ModalGenerateTagihan({
             {/* Pilihan Format Tagihan di Database */}
             <div>
               <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
-                2. Format Penyimpanan Tagihan di Database:
+                3. Format Penyimpanan Tagihan di Database:
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <label
-                  onClick={() => setModePaketMasuk('paket')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '8px',
-                    padding: '10px',
-                    borderRadius: '12px',
-                    border: modePaketMasuk === 'paket' ? '2px solid #059669' : '1px solid #cbd5e1',
-                    background: modePaketMasuk === 'paket' ? '#ecfdf5' : '#ffffff',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <input type="radio" checked={modePaketMasuk === 'paket'} onChange={() => {}} style={{ accentColor: '#059669', marginTop: '2px' }} />
-                  <div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a' }}>3 Pos Terpisah</div>
-                    <div style={{ fontSize: '0.62rem', color: '#64748b', lineHeight: 1.2, marginTop: '2px' }}>
-                      Adm Sekolah, Adm Pesantren, & SPP Juli disimpan per pos
+              {kategoriMasuk === 'semua' ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <label
+                    onClick={() => setModePaketMasuk('paket')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '8px',
+                      padding: '10px',
+                      borderRadius: '12px',
+                      border: modePaketMasuk === 'paket' ? '2px solid #059669' : '1px solid #cbd5e1',
+                      background: modePaketMasuk === 'paket' ? '#ecfdf5' : '#ffffff',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <input type="radio" checked={modePaketMasuk === 'paket'} onChange={() => {}} style={{ accentColor: '#059669', marginTop: '2px' }} />
+                    <div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a' }}>2 Pos Terpisah</div>
+                      <div style={{ fontSize: '0.62rem', color: '#64748b', lineHeight: 1.2, marginTop: '2px' }}>
+                        Adm Sekolah & Adm Pesantren disimpan per pos
+                      </div>
                     </div>
-                  </div>
-                </label>
+                  </label>
 
-                <label
-                  onClick={() => setModePaketMasuk('total')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '8px',
-                    padding: '10px',
-                    borderRadius: '12px',
-                    border: modePaketMasuk === 'total' ? '2px solid #059669' : '1px solid #cbd5e1',
-                    background: modePaketMasuk === 'total' ? '#ecfdf5' : '#ffffff',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <input type="radio" checked={modePaketMasuk === 'total'} onChange={() => {}} style={{ accentColor: '#059669', marginTop: '2px' }} />
+                  <label
+                    onClick={() => setModePaketMasuk('total')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '8px',
+                      padding: '10px',
+                      borderRadius: '12px',
+                      border: modePaketMasuk === 'total' ? '2px solid #059669' : '1px solid #cbd5e1',
+                      background: modePaketMasuk === 'total' ? '#ecfdf5' : '#ffffff',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <input type="radio" checked={modePaketMasuk === 'total'} onChange={() => {}} style={{ accentColor: '#059669', marginTop: '2px' }} />
+                    <div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a' }}>1 Tagihan Total</div>
+                      <div style={{ fontSize: '0.62rem', color: '#64748b', lineHeight: 1.2, marginTop: '2px' }}>
+                        Semua rincian digabung dalam 1 tagihan total masuk
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              ) : (
+                <div style={{
+                  padding: '10px 12px',
+                  borderRadius: '12px',
+                  background: kategoriMasuk === 'sekolah' ? '#faf5ff' : '#f0f9ff',
+                  border: `1.5px solid ${kategoriMasuk === 'sekolah' ? '#d8b4fe' : '#bae6fd'}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
                   <div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a' }}>1 Tagihan Total</div>
-                    <div style={{ fontSize: '0.62rem', color: '#64748b', lineHeight: 1.2, marginTop: '2px' }}>
-                      Semua rincian digabung dalam 1 tagihan total masuk
+                    <div style={{ fontSize: '0.76rem', fontWeight: 800, color: kategoriMasuk === 'sekolah' ? '#7e22ce' : '#0369a1' }}>
+                      Pos Tunggal: {kategoriMasuk === 'sekolah' ? 'Adm Sekolah' : 'Adm Pesantren'}
+                    </div>
+                    <div style={{ fontSize: '0.64rem', color: '#64748b', marginTop: '2px' }}>
+                      Hanya tagihan {kategoriMasuk === 'sekolah' ? 'Adm Sekolah' : 'Adm Pesantren'} yang diterbitkan ke database
                     </div>
                   </div>
-                </label>
-              </div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: kategoriMasuk === 'sekolah' ? '#6b21a8' : '#0284c7' }}>
+                    {formatRp(grandTotalMasuk)}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Proteksi Notice */}
@@ -952,7 +1018,7 @@ export default function ModalGenerateTagihan({
             }}>
               <ShieldCheck size={18} color="#059669" style={{ flexShrink: 0 }} />
               <div style={{ fontSize: '0.68rem', color: '#065f46', lineHeight: 1.3 }}>
-                <strong>Aman Anti-Duplikat:</strong> Sistem memeriksa santri yang sudah memiliki tagihan awal masuk. Tagihan yang sudah ada dilewati otomatis.
+                <strong>Aman Anti-Duplikat:</strong> Sistem memeriksa santri yang sudah memiliki tagihan. Tagihan yang sudah ada dilewati otomatis.
               </div>
             </div>
 
@@ -966,7 +1032,12 @@ export default function ModalGenerateTagihan({
                 padding: '13px',
                 borderRadius: '14px',
                 border: 'none',
-                background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                background:
+                  kategoriMasuk === 'sekolah'
+                    ? 'linear-gradient(135deg, #7e22ce 0%, #6b21a8 100%)'
+                    : kategoriMasuk === 'pesantren'
+                    ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)'
+                    : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
                 color: '#ffffff',
                 fontWeight: 800,
                 fontSize: '0.86rem',
@@ -975,11 +1046,19 @@ export default function ModalGenerateTagihan({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                boxShadow: '0 4px 16px rgba(5, 150, 105, 0.35)'
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)'
               }}
             >
               <RotateCw size={16} className={loading ? 'animate-spin' : ''} />
-              <span>{loading ? 'Menyimpan Tagihan ke Database...' : 'Simpan & Terbitkan Tagihan Masuk'}</span>
+              <span>
+                {loading
+                  ? 'Menyimpan Tagihan ke Database...'
+                  : kategoriMasuk === 'sekolah'
+                  ? `Simpan & Terbitkan Adm Sekolah (${formatRp(grandTotalMasuk)})`
+                  : kategoriMasuk === 'pesantren'
+                  ? `Simpan & Terbitkan Adm Pesantren (${formatRp(grandTotalMasuk)})`
+                  : `Simpan & Terbitkan Tagihan Masuk (${formatRp(grandTotalMasuk)})`}
+              </span>
             </button>
           </div>
         )}

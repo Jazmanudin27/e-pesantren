@@ -194,12 +194,13 @@ export const ensureSekolahTablesAndMapping = async () => {
             [sId, jenjangKey, 'Adm Pesantren', item.uraian, item.biaya, urut++]
           );
         }
-        await pool.query(
-          'INSERT INTO sekolah_rincian_biaya (sekolah_id, jenjang, kategori_komponen, uraian, biaya, urutan) VALUES (?, ?, ?, ?, ?, ?)',
-          [sId, jenjangKey, 'SPP', data.spp_juli.uraian, data.spp_juli.biaya, urut++]
-        );
       }
     }
+
+    // Bersihkan SPP Juli dari tabel rincian awal masuk jika sebelumnya sempat terisi
+    try {
+      await pool.query("DELETE FROM sekolah_rincian_biaya WHERE kategori_komponen = 'SPP' OR uraian LIKE '%Makan dan SPP%'");
+    } catch (e) {}
 
     // 6. Mapping Santri ke Sekolah & Kelas Formal Sesuai Aturan User:
     // - Kelas ngaji 1, 2, 3 -> Masuk ke SMP (Kelas 7, 8, 9)
@@ -515,7 +516,8 @@ export const generateTagihanAwalMasukSekolah = async (req, res) => {
     const {
       jenjang = 'SMP', // 'SMP' | 'SMA' | 'SMK' | 'SEMUA'
       tahun_ajaran = '2026/2027',
-      mode = 'paket', // 'paket' (Adm Sekolah + Adm Pesantren + SPP Juli) | 'total' (1 tagihan total)
+      mode = 'paket', // 'paket' (Adm Sekolah + Adm Pesantren) | 'total' (1 tagihan total)
+      kategori = 'semua', // 'semua' | 'sekolah' | 'pesantren'
       santri_id
     } = req.body;
 
@@ -573,32 +575,44 @@ export const generateTagihanAwalMasukSekolah = async (req, res) => {
       const master = getTotalsForJenjang(jKey);
 
       const billItems = [];
-      if (mode === 'total') {
-        billItems.push({
-          judul: `Biaya Awal Masuk ${jKey} ${tahun_ajaran}`,
-          kategori: 'Biaya Masuk',
-          periode: `TA ${tahun_ajaran}`,
-          total: master.total_masuk_juli
-        });
-      } else {
+      const totalMasukTanpaSpp = master.total_adm_sekolah + master.total_adm_pesantren;
+
+      if (kategori === 'sekolah') {
         billItems.push({
           judul: `Adm Sekolah ${jKey} ${tahun_ajaran}`,
           kategori: 'Biaya Masuk',
           periode: `TA ${tahun_ajaran}`,
           total: master.total_adm_sekolah
         });
+      } else if (kategori === 'pesantren') {
         billItems.push({
           judul: `Adm Pesantren ${tahun_ajaran}`,
           kategori: 'Biaya Masuk',
           periode: `TA ${tahun_ajaran}`,
           total: master.total_adm_pesantren
         });
-        billItems.push({
-          judul: `SPP & Makan Juli 2026 (${jKey})`,
-          kategori: 'Bulanan',
-          periode: 'Juli 2026',
-          total: master.nominal_spp
-        });
+      } else {
+        if (mode === 'total') {
+          billItems.push({
+            judul: `Biaya Awal Masuk ${jKey} ${tahun_ajaran}`,
+            kategori: 'Biaya Masuk',
+            periode: `TA ${tahun_ajaran}`,
+            total: totalMasukTanpaSpp
+          });
+        } else {
+          billItems.push({
+            judul: `Adm Sekolah ${jKey} ${tahun_ajaran}`,
+            kategori: 'Biaya Masuk',
+            periode: `TA ${tahun_ajaran}`,
+            total: master.total_adm_sekolah
+          });
+          billItems.push({
+            judul: `Adm Pesantren ${tahun_ajaran}`,
+            kategori: 'Biaya Masuk',
+            periode: `TA ${tahun_ajaran}`,
+            total: master.total_adm_pesantren
+          });
+        }
       }
 
       for (const item of billItems) {
