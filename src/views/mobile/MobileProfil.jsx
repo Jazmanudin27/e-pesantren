@@ -15,14 +15,17 @@ import {
   ChevronRight,
   UserCheck,
   Calendar,
-  Settings
+  Settings,
+  Heart
 } from "lucide-react";
 import ModalSiklusSpp from "../keuangan/components/ModalSiklusSpp";
+import ModalTambahProgramInfak from "../keuangan/components/ModalTambahProgramInfak";
 import { toastSuccess, toastError } from "../../utils/alert.util";
 
 export default function MobileProfil({ onChangeTab, onLogout }) {
-  // State Pengaturan Siklus SPP
+  // State Pengaturan Siklus SPP & Program Infak
   const [isSiklusModalOpen, setIsSiklusModalOpen] = useState(false);
+  const [isProgramModalOpen, setIsProgramModalOpen] = useState(false);
   const [siklusForm, setSiklusForm] = useState({
     tgl_terbit_spp: 5,
     tgl_jatuh_tempo_spp: 10,
@@ -395,6 +398,52 @@ export default function MobileProfil({ onChangeTab, onLogout }) {
           </div>
           <ChevronRight size={16} color="#94a3b8" />
         </button>
+
+        {/* Tombol Kelola Program Infak & Sedekah */}
+        <button
+          type="button"
+          onClick={() => setIsProgramModalOpen(true)}
+          style={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "12px 0",
+            border: "none",
+            borderTop: "1px solid #f1f5f9",
+            background: "transparent",
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div
+              style={{
+                width: "38px",
+                height: "38px",
+                borderRadius: "10px",
+                background: "#ecfdf5",
+                color: "#059669",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "1px solid #a7f3d0",
+                flexShrink: 0
+              }}
+            >
+              <Heart size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#1e293b" }}>
+                Program Infak &amp; Sedekah
+              </div>
+              <div style={{ fontSize: "0.7rem", color: "#64748b", marginTop: "2px" }}>
+                Tambah / atur pos wakaf &amp; donasi sukarela
+              </div>
+            </div>
+          </div>
+          <ChevronRight size={16} color="#94a3b8" />
+        </button>
       </div>
 
       {/* Account Settings Menu */}
@@ -527,6 +576,12 @@ export default function MobileProfil({ onChangeTab, onLogout }) {
         setSiklusForm={setSiklusForm}
         savingSiklus={savingSiklus}
         onSaveSiklus={handleSaveSiklus}
+      />
+
+      {/* Modal Tambah Program Infak */}
+      <ModalTambahProgramInfak
+        isOpen={isProgramModalOpen}
+        onClose={() => setIsProgramModalOpen(false)}
       />
     </div>
   );

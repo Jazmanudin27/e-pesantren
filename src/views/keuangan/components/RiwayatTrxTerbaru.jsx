@@ -75,11 +75,11 @@ export default function RiwayatTrxTerbaru({
                 </div>
               </div>
 
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '0.86rem', fontWeight: 900, color: '#059669' }}>
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#059669' }}>
                   {formatRp(trx.total_bayar)}
                 </div>
-                <div style={{ fontSize: '0.66rem', color: '#94a3b8' }}>
+                <div style={{ fontSize: '0.64rem', color: '#94a3b8', marginTop: '1px' }}>
                   {trx.tanggal_bayar ? String(trx.tanggal_bayar).slice(0, 10) : 'Hari ini'}
                 </div>
               </div>

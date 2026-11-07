@@ -205,38 +205,11 @@ export default function LaporanInfakAdminView({ onBackToHome }) {
             <div>
               <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span>Infak &amp; Sedekah</span>
-                <span style={{ fontSize: '0.62rem', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '2px 7px', borderRadius: '8px', fontWeight: 800 }}>
-                  Terpisah SPP
-                </span>
               </h2>
-              <div style={{ fontSize: '0.72rem', color: '#a7f3d0', marginTop: '2px' }}>
-                Penerimaan Donasi Sukarela Orang Tua Santri
-              </div>
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <button
-              type="button"
-              onClick={() => setIsModalProgramOpen(true)}
-              style={{
-                background: 'rgba(255, 255, 255, 0.22)',
-                border: '1px solid rgba(255, 255, 255, 0.35)',
-                color: '#ffffff',
-                padding: '7px 12px',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                fontSize: '0.74rem',
-                fontWeight: 800,
-                cursor: 'pointer'
-              }}
-            >
-              <Plus size={15} />
-              <span>Program</span>
-            </button>
-
             <button
               type="button"
               onClick={fetchLaporan}
