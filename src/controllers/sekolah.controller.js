@@ -269,7 +269,11 @@ export const ensureSekolahTablesAndMapping = async () => {
       { kode: 'SPP-SMK', nama: 'SPP Bulanan SMK', kat: 'Bulanan', nom: 565000, desc: 'SPP & Makan Santri Jenjang SMK (Rp 565.000 / bln)' },
       { kode: 'AWAL-SMP', nama: 'Biaya Awal Masuk SMP', kat: 'Biaya Masuk', nom: 1890000, desc: 'Adm Sekolah (890rb) + Adm Pesantren (1jt) Jenjang SMP' },
       { kode: 'AWAL-SMA', nama: 'Biaya Awal Masuk SMA', kat: 'Biaya Masuk', nom: 2040000, desc: 'Adm Sekolah (1.04jt) + Adm Pesantren (1jt) Jenjang SMA' },
-      { kode: 'AWAL-SMK', nama: 'Biaya Awal Masuk SMK', kat: 'Biaya Masuk', nom: 2400000, desc: 'Adm Sekolah (1.4jt) + Adm Pesantren (1jt) Jenjang SMK' }
+      { kode: 'AWAL-SMK', nama: 'Biaya Awal Masuk SMK', kat: 'Biaya Masuk', nom: 2400000, desc: 'Adm Sekolah (1.4jt) + Adm Pesantren (1jt) Jenjang SMK' },
+      { kode: 'ADM-PESANTREN', nama: 'Adm Pesantren', kat: 'Biaya Masuk', nom: 1000000, desc: 'Adm Pesantren Nurul Wafa (Rp 1.000.000)' },
+      { kode: 'ADM-SEK-SMP', nama: 'Adm Sekolah SMP', kat: 'Biaya Masuk', nom: 890000, desc: 'Adm Sekolah SMP Nurul Wafa (Rp 890.000)' },
+      { kode: 'ADM-SEK-SMA', nama: 'Adm Sekolah SMA', kat: 'Biaya Masuk', nom: 1040000, desc: 'Adm Sekolah SMA Nurul Wafa (Rp 1.040.000)' },
+      { kode: 'ADM-SEK-SMK', nama: 'Adm Sekolah SMK', kat: 'Biaya Masuk', nom: 1400000, desc: 'Adm Sekolah SMK Nurul Wafa (Rp 1.400.000)' }
     ];
 
     for (const c of standardComponents) {
@@ -570,6 +574,31 @@ export const generateTagihanAwalMasukSekolah = async (req, res) => {
     let totalGenerated = 0;
     let totalSkipped = 0;
 
+    // Ambil master komponen biaya untuk mengisi kolom komponen_id di keuangan_tagihan
+    let [allKomp] = await connection.query('SELECT id, kode_komponen, nama_komponen, kategori FROM keuangan_komponen_biaya');
+    if (!allKomp || allKomp.length === 0) {
+      const [insRes] = await connection.query(`
+        INSERT INTO keuangan_komponen_biaya (kode_komponen, nama_komponen, kategori, nominal_default, is_active)
+        VALUES ('AWAL-MASUK', 'Biaya Awal Masuk', 'Biaya Masuk', 1000000, 1)
+      `);
+      allKomp = [{ id: insRes.insertId, kode_komponen: 'AWAL-MASUK', nama_komponen: 'Biaya Awal Masuk', kategori: 'Biaya Masuk' }];
+    }
+
+    const getKomponenIdForItem = (itemJudul, jKey) => {
+      const jLower = (jKey || '').toLowerCase();
+      let match = null;
+      if (itemJudul.toLowerCase().includes('pesantren')) {
+        match = (allKomp || []).find(k => k.kode_komponen === 'ADM-PESANTREN' || (k.nama_komponen && k.nama_komponen.toLowerCase().includes('pesantren')));
+      } else if (itemJudul.toLowerCase().includes('adm sekolah')) {
+        match = (allKomp || []).find(k => k.kode_komponen === `ADM-SEK-${jKey}` || (k.nama_komponen && k.nama_komponen.toLowerCase().includes('adm sekolah') && k.nama_komponen.toLowerCase().includes(jLower)));
+      } else if (itemJudul.toLowerCase().includes('awal masuk')) {
+        match = (allKomp || []).find(k => k.kode_komponen === `AWAL-${jKey}` || (k.nama_komponen && k.nama_komponen.toLowerCase().includes('awal masuk')));
+      }
+      if (match) return match.id;
+      const fallbackKomp = (allKomp || []).find(k => k.kategori !== 'Bulanan') || allKomp[0];
+      return fallbackKomp?.id || 1;
+    };
+
     for (const santri of targetSantri) {
       const jKey = (santri.jenjang || (santri.nama_sekolah?.includes('SMA') ? 'SMA' : santri.nama_sekolah?.includes('SMK') ? 'SMK' : 'SMP')).toUpperCase();
       const master = getTotalsForJenjang(jKey);
@@ -628,12 +657,13 @@ export const generateTagihanAwalMasukSekolah = async (req, res) => {
           continue;
         }
 
+        const targetKomponenId = getKomponenIdForItem(item.judul, jKey);
         const kodeTagihan = `TGH-${santri.id}-${Date.now().toString().slice(-5)}-${Math.floor(100 + Math.random() * 900)}`;
         await connection.query(`
           INSERT INTO keuangan_tagihan 
-          (kode_tagihan, santri_id, judul_tagihan, kategori, periode_bulan, total_tagihan, sudah_dibayar, sisa_tagihan, status, jatuh_tempo)
-          VALUES (?, ?, ?, ?, ?, ?, 0, ?, 'Belum Dibayar', '2026-07-10')
-        `, [kodeTagihan, santri.id, item.judul, item.kategori, item.periode, item.total, item.total]);
+          (kode_tagihan, santri_id, komponen_id, judul_tagihan, kategori, periode_bulan, total_tagihan, sudah_dibayar, sisa_tagihan, status, jatuh_tempo)
+          VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, 'Belum Dibayar', '2026-07-10')
+        `, [kodeTagihan, santri.id, targetKomponenId, item.judul, item.kategori, item.periode, item.total, item.total]);
 
         totalGenerated++;
       }
