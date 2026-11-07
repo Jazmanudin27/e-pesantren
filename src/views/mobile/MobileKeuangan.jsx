@@ -894,44 +894,68 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
               </div>
             ) : (
               <div style={{ marginTop: '14px' }}>
-                {/* Info Jumlah Santri */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '10px',
-                  padding: '0 2px',
-                  fontSize: '0.7rem',
-                  fontWeight: 700,
-                  color: '#64748b'
-                }}>
-                  <span>
-                    {santriSearch.trim()
-                      ? `${filteredKasirSantri.length} Santri Ditemukan`
-                      : `Menampilkan ${displayedSantri.length} dari ${filteredKasirSantri.length} Santri Tersedia`}
-                  </span>
+                {!santriSearch.trim() ? (
+                  /* State Awal Bersih: Tanpa render 50-600 santri, hanya petunjuk pencarian */
+                  <div style={{
+                    padding: '36px 16px',
+                    textAlign: 'center',
+                    background: '#f8fafc',
+                    borderRadius: '16px',
+                    border: '1.5px dashed #cbd5e1',
+                    margin: '6px 0'
+                  }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '50%',
+                      background: '#ecfdf5',
+                      color: '#059669',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 10px',
+                      boxShadow: '0 4px 10px rgba(5, 150, 105, 0.1)'
+                    }}>
+                      <Search size={22} />
+                    </div>
+                    <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>
+                      Cari Santri untuk Memulai Kasir
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px', maxWidth: '280px', margin: '4px auto 0', lineHeight: 1.3 }}>
+                      Ketik nama santri atau NIS pada kolom pencarian di atas
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Info Jumlah Santri */}
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '10px',
+                      padding: '0 2px',
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      color: '#64748b'
+                    }}>
+                      <span>{filteredKasirSantri.length} Santri Ditemukan</span>
+                      <span
+                        onClick={() => setSantriSearch('')}
+                        style={{ color: '#ef4444', cursor: 'pointer', fontSize: '0.67rem', fontWeight: 700 }}
+                      >
+                        Reset Cari ✕
+                      </span>
+                    </div>
 
-                  {santriSearch.trim() && (
-                    <span
-                      onClick={() => {
-                        setSantriSearch('');
-                      }}
-                      style={{ color: '#059669', cursor: 'pointer', fontSize: '0.67rem' }}
-                    >
-                      Reset Cari ✕
-                    </span>
-                  )}
-                </div>
-
-                {/* Gridview Daftar Santri 2 Kolom (Card Modern) */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: '10px',
-                  maxHeight: '58vh',
-                  overflowY: 'auto',
-                  padding: '2px'
-                }}>
+                    {/* Gridview Daftar Santri 2 Kolom (Card Modern) */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(2, 1fr)',
+                      gap: '10px',
+                      maxHeight: '58vh',
+                      overflowY: 'auto',
+                      padding: '2px'
+                    }}>
                   {(() => {
                     if (displayedSantri.length === 0) {
                       return (
@@ -1103,8 +1127,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                           );
                         })}
 
-                        {/* Tombol Muat 50 Santri Lagi jika belum mencari */}
-                        {!santriSearch.trim() && filteredKasirSantri.length > displayedSantri.length && (
+                        {filteredKasirSantri.length > displayedSantri.length && (
                           <button
                             type="button"
                             onClick={() => setSantriDisplayLimit((prev) => prev + 50)}
@@ -1125,15 +1148,17 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                               margin: '6px 0 10px'
                             }}
                           >
-                            <span>+ Muat 50 Santri Lagi (Tersisa {filteredKasirSantri.length - displayedSantri.length})</span>
+                            <span>+ Muat Hasil Lainnya (Tersisa {filteredKasirSantri.length - displayedSantri.length})</span>
                           </button>
                         )}
                       </>
                     );
                   })()}
                 </div>
-              </div>
+              </>
             )}
+          </div>
+        )}
           </div>
 
           {/* Rincian Tagihan Santri */}
