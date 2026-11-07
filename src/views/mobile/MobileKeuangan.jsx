@@ -518,7 +518,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                           {s.nama_santri}
                         </div>
                         <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                          NIS: {s.nis || '-'} • Asrama: {s.nama_asrama || '-'}
+                          NIS: {s.nis || '-'} • {s.nama_asrama || '-'} • <b style={{ color: '#0369a1' }}>{s.nama_sekolah || 'SMP'} ({s.tingkat_sekolah || '-'})</b>
                         </div>
                       </div>
                       <ChevronRight size={16} color="#94a3b8" />
@@ -560,7 +560,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                       {selectedSantri.nama_santri}
                     </div>
                     <div style={{ fontSize: '0.72rem', color: '#047857' }}>
-                      NIS: {selectedSantri.nis || '-'} • {selectedSantri.nama_asrama || 'Asrama'}
+                      NIS: {selectedSantri.nis || '-'} • {selectedSantri.nama_asrama || 'Asrama'} • <b>{selectedSantri.nama_sekolah || 'SMP Nurul Wafa'} ({selectedSantri.tingkat_sekolah || '-'})</b>
                     </div>
                   </div>
                 </div>

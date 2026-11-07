@@ -38,6 +38,19 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
   const [recentTrx, setRecentTrx] = useState([]);
   const [saldoTabunganTotal, setSaldoTabunganTotal] = useState(0);
 
+  // State Pengaturan Siklus Tagihan SPP
+  const [siklusSpp, setSiklusSpp] = useState({
+    tgl_terbit_spp: 5,
+    tgl_jatuh_tempo_spp: 10
+  });
+  const [isSiklusModalOpen, setIsSiklusModalOpen] = useState(false);
+  const [siklusForm, setSiklusForm] = useState({
+    tgl_terbit_spp: 5,
+    tgl_jatuh_tempo_spp: 10,
+    apply_to_existing: true
+  });
+  const [savingSiklus, setSavingSiklus] = useState(false);
+
   const sessionData = (() => {
     try {
       return JSON.parse(localStorage.getItem('mobile_session') || '{}');
@@ -53,6 +66,14 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
       if (res.data?.success && res.data.data) {
         setSummary(res.data.data.summary || {});
         setRecentTrx((res.data.data.transaksiTerakhir || []).slice(0, 5));
+        if (res.data.data.siklusSpp) {
+          setSiklusSpp(res.data.data.siklusSpp);
+          setSiklusForm({
+            tgl_terbit_spp: res.data.data.siklusSpp.tgl_terbit_spp || 5,
+            tgl_jatuh_tempo_spp: res.data.data.siklusSpp.tgl_jatuh_tempo_spp || 10,
+            apply_to_existing: true
+          });
+        }
       }
 
       // Ambil juga total saldo tabungan jika ada
@@ -71,6 +92,23 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
       console.warn('Gagal memuat rekap keuangan beranda:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveSiklus = async (e) => {
+    e?.preventDefault();
+    try {
+      setSavingSiklus(true);
+      const res = await axios.post('/api/keuangan/siklus-spp', siklusForm);
+      if (res.data?.success) {
+        toastSuccess('Siklus Disimpan', res.data.message || 'Pengaturan siklus SPP berhasil disimpan.');
+        setIsSiklusModalOpen(false);
+        fetchKeuanganSummary();
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal menyimpan pengaturan siklus SPP');
+    } finally {
+      setSavingSiklus(false);
     }
   };
 
@@ -301,6 +339,49 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
             </div>
           </div>
         </div>
+
+        {/* Siklus Tagihan SPP Card & Setting Shortcut */}
+        <div style={{
+          marginTop: '12px',
+          background: 'rgba(255, 255, 255, 0.15)',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255, 255, 255, 0.25)',
+          borderRadius: '14px',
+          padding: '10px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          color: '#ffffff'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Calendar size={18} color="#a7f3d0" />
+            <div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 800 }}>
+                Siklus SPP: Terbit tgl {siklusSpp.tgl_terbit_spp || 5} • Batas Bayar: tgl {siklusSpp.tgl_jatuh_tempo_spp || 10}
+              </div>
+              <div style={{ fontSize: '0.65rem', opacity: 0.85 }}>
+                Lewat tgl {siklusSpp.tgl_jatuh_tempo_spp || 10} otomatis berstatus Tunggakan
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setIsSiklusModalOpen(true)}
+            style={{
+              background: '#ffffff',
+              color: '#047857',
+              border: 'none',
+              padding: '5px 10px',
+              borderRadius: '8px',
+              fontSize: '0.72rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
+            }}
+          >
+            Atur
+          </button>
+        </div>
       </div>
 
       {/* 2. BODY CONTENT */}
@@ -475,6 +556,174 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
           </div>
         </div>
       </div>
+
+      {/* 5. MODAL ATUR SIKLUS TAGIHAN SPP & JATUH TEMPO */}
+      {isSiklusModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+          zIndex: 99999
+        }}>
+          <div style={{
+            background: '#ffffff',
+            width: '100%',
+            maxWidth: '480px',
+            borderTopLeftRadius: '24px',
+            borderTopRightRadius: '24px',
+            padding: '24px 20px',
+            boxShadow: '0 -10px 30px rgba(0,0,0,0.15)',
+            animation: 'slideUp 0.25s ease'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Calendar size={18} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                    Atur Siklus Tagihan SPP
+                  </h3>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    Tanggal terbit bulanan &amp; batas maksimal bayar
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsSiklusModalOpen(false)}
+                style={{ background: '#f1f5f9', border: 'none', width: '30px', height: '30px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveSiklus} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  Tanggal Terbit Tagihan (Setiap Bulan)
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '0.84rem', color: '#64748b' }}>Setiap Tanggal</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="28"
+                    value={siklusForm.tgl_terbit_spp}
+                    onChange={(e) => setSiklusForm({ ...siklusForm, tgl_terbit_spp: parseInt(e.target.value) || 5 })}
+                    style={{
+                      width: '70px',
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.9rem',
+                      fontWeight: 800,
+                      textAlign: 'center'
+                    }}
+                  />
+                  <span style={{ fontSize: '0.84rem', color: '#64748b' }}>tiap bulan</span>
+                </div>
+                <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px', display: 'block' }}>
+                  Mulai tanggal ini, tagihan bulan berjalan mulai ditagihkan ke wali santri.
+                </span>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  Tanggal Maksimal Pembayaran (Batas Jatuh Tempo)
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '0.84rem', color: '#64748b' }}>Maksimal Tanggal</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="28"
+                    value={siklusForm.tgl_jatuh_tempo_spp}
+                    onChange={(e) => setSiklusForm({ ...siklusForm, tgl_jatuh_tempo_spp: parseInt(e.target.value) || 10 })}
+                    style={{
+                      width: '70px',
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid #ef4444',
+                      fontSize: '0.9rem',
+                      fontWeight: 800,
+                      color: '#dc2626',
+                      textAlign: 'center'
+                    }}
+                  />
+                  <span style={{ fontSize: '0.84rem', color: '#64748b' }}>tiap bulan</span>
+                </div>
+                <div style={{
+                  background: '#fef2f2',
+                  border: '1px solid #fee2e2',
+                  borderRadius: '10px',
+                  padding: '8px 12px',
+                  marginTop: '6px',
+                  fontSize: '0.72rem',
+                  color: '#991b1b',
+                  lineHeight: 1.4
+                }}>
+                  ⚠️ <strong>Ketentuan Tunggakan:</strong> Pembayaran yang dilakukan setelah tanggal <strong>{siklusForm.tgl_jatuh_tempo_spp}</strong> otomatis tercatat resmi sebagai <strong>Tunggakan</strong>.
+                </div>
+              </div>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '4px' }}>
+                <input
+                  type="checkbox"
+                  checked={siklusForm.apply_to_existing}
+                  onChange={(e) => setSiklusForm({ ...siklusForm, apply_to_existing: e.target.checked })}
+                  style={{ accentColor: '#059669', width: '16px', height: '16px' }}
+                />
+                <span style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 600 }}>
+                  Terapkan juga ke seluruh tagihan berjalan yang belum lunas
+                </span>
+              </label>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsSiklusModalOpen(false)}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    borderRadius: '12px',
+                    border: '1px solid #cbd5e1',
+                    background: '#f8fafc',
+                    color: '#475569',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingSiklus}
+                  style={{
+                    flex: 2,
+                    padding: '12px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                  }}
+                >
+                  {savingSiklus ? 'Menyimpan...' : 'Simpan Pengaturan Siklus'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

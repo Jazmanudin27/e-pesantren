@@ -15,6 +15,9 @@ export const getAllSantri = async (req, res) => {
       tahun,
       kelas_id,
       kelas,
+      sekolah_id,
+      sekolah,
+      jenjang,
       all = 'false'
     } = req.query;
 
@@ -89,6 +92,18 @@ export const getAllSantri = async (req, res) => {
       params.push(`%${kelas}%`, `%${kelas}%`);
     }
 
+    // Sekolah filter
+    if (sekolah_id && sekolah_id !== 'Semua') {
+      whereConditions.push("s.sekolah_id = ?");
+      params.push(sekolah_id);
+    } else if (sekolah && sekolah !== 'Semua Sekolah' && sekolah !== 'Semua') {
+      whereConditions.push("(s.nama_sekolah LIKE ? OR sk.nama_sekolah LIKE ? OR sk.jenjang = ?)");
+      params.push(`%${sekolah}%`, `%${sekolah}%`, sekolah);
+    } else if (jenjang && jenjang !== 'Semua') {
+      whereConditions.push("(sk.jenjang = ? OR s.nama_sekolah LIKE ?)");
+      params.push(jenjang, `%${jenjang}%`);
+    }
+
     const whereClause = whereConditions.length > 0 ? ` WHERE ${whereConditions.join(' AND ')} ` : '';
 
     // Count filtered records
@@ -97,6 +112,7 @@ export const getAllSantri = async (req, res) => {
       FROM santri s
       LEFT JOIN asrama a ON s.asrama_id = a.id
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+      LEFT JOIN sekolah sk ON s.sekolah_id = sk.id
       ${whereClause}
     `;
     const [countRows] = await pool.query(countSql, params);
@@ -109,11 +125,14 @@ export const getAllSantri = async (req, res) => {
              a.gender as asrama_gender, 
              k.nama_kamar,
              COALESCE(kl.mustahiq, s.mustahiq) as mustahiq,
-             COALESCE(kl.munawwib, s.munawwib) as munawwib
+             COALESCE(kl.munawwib, s.munawwib) as munawwib,
+             COALESCE(sk.nama_sekolah, s.nama_sekolah) as nama_sekolah,
+             sk.jenjang as sekolah_jenjang
       FROM santri s
       LEFT JOIN asrama a ON s.asrama_id = a.id
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
       LEFT JOIN kelas kl ON (s.kelas_id = kl.id OR s.nama_kelas = kl.nama_kelas)
+      LEFT JOIN sekolah sk ON s.sekolah_id = sk.id
       ${whereClause}
       ORDER BY s.id ASC
     `;
@@ -236,6 +255,9 @@ export const createSantri = async (req, res) => {
     addCol('tingkat_diniyah', tingkat_diniyah || 'Wustho');
     addCol('nama_kelas', req.body.nama_kelas || null);
     addCol('kelas_id', req.body.kelas_id || null);
+    addCol('sekolah_id', req.body.sekolah_id || null);
+    addCol('nama_sekolah', req.body.nama_sekolah || null);
+    addCol('tingkat_sekolah', req.body.tingkat_sekolah || null);
     addCol('fingerprint_pin', fingerprint_pin || null);
     addCol('rfid_card_uid', rfid_card_uid || null);
     addCol('nama_wali', nama_wali || '');
@@ -322,6 +344,9 @@ export const updateSantri = async (req, res) => {
     if (tingkat_diniyah !== undefined) addIfColExists('tingkat_diniyah', tingkat_diniyah || 'Wustho');
     if (req.body.nama_kelas !== undefined) addIfColExists('nama_kelas', req.body.nama_kelas);
     if (req.body.kelas_id !== undefined) addIfColExists('kelas_id', req.body.kelas_id);
+    if (req.body.sekolah_id !== undefined) addIfColExists('sekolah_id', req.body.sekolah_id);
+    if (req.body.nama_sekolah !== undefined) addIfColExists('nama_sekolah', req.body.nama_sekolah);
+    if (req.body.tingkat_sekolah !== undefined) addIfColExists('tingkat_sekolah', req.body.tingkat_sekolah);
 
     if (finalFoto !== undefined) addIfColExists('foto', finalFoto);
     if (username !== undefined && String(username).trim() !== '') addIfColExists('username', String(username).trim());

@@ -13,6 +13,8 @@ import { ensureInfakTables } from './src/controllers/infak.controller.js';
 import { ensurePesanTable } from './src/controllers/pesan.controller.js';
 import { ensureInformasiTable } from './src/controllers/informasiKegiatan.controller.js';
 import { ensureWhatsAppTables } from './src/services/whatsapp.service.js';
+import { ensureSekolahTablesAndMapping } from './src/controllers/sekolah.controller.js';
+import { ensureSiklusSppTable } from './src/controllers/keuangan.controller.js';
 
 dotenv.config();
 
@@ -70,6 +72,8 @@ app.listen(PORT, '0.0.0.0', async () => {
     await ensurePesanTable();
     await ensureInformasiTable();
     await ensureWhatsAppTables();
+    await ensureSiklusSppTable();
+    await ensureSekolahTablesAndMapping();
   } catch (e) {
     console.warn('[E-PESANTREN] Init DB notice:', e.message);
   }

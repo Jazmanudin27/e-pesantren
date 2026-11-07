@@ -97,6 +97,7 @@ export default function SantriView() {
   const [filterTingkat, setFilterTingkat] = useState('Semua Tingkat');
   const [filterTahun, setFilterTahun] = useState('Tahun 2026/2027');
   const [filterStatus, setFilterStatus] = useState('Semua Status');
+  const [filterSekolah, setFilterSekolah] = useState('Semua Sekolah');
 
   // Server-side Pagination & Stats
   const [page, setPage] = useState(1);
@@ -464,6 +465,7 @@ export default function SantriView() {
       const targetTingkat = overrideParams.tingkat !== undefined ? overrideParams.tingkat : filterTingkat;
       const targetTahun = overrideParams.tahun !== undefined ? overrideParams.tahun : filterTahun;
       const targetStatus = overrideParams.status !== undefined ? overrideParams.status : filterStatus;
+      const targetSekolah = overrideParams.sekolah !== undefined ? overrideParams.sekolah : filterSekolah;
 
       const res = await axios.get('/api/santri', {
         params: {
@@ -474,7 +476,8 @@ export default function SantriView() {
           asrama: targetAsrama,
           tingkat: targetTingkat,
           tahun: targetTahun,
-          status: targetStatus
+          status: targetStatus,
+          sekolah: targetSekolah !== 'Semua Sekolah' ? targetSekolah : undefined
         }
       });
 
@@ -523,8 +526,8 @@ export default function SantriView() {
   }, [search]);
 
   useEffect(() => {
-    fetchSantri({ page, tab: activeFilterTab, asrama: filterAsrama, tingkat: filterTingkat, tahun: filterTahun, status: filterStatus });
-  }, [page, activeFilterTab, filterAsrama, filterTingkat, filterTahun, filterStatus]);
+    fetchSantri({ page, tab: activeFilterTab, asrama: filterAsrama, tingkat: filterTingkat, tahun: filterTahun, status: filterStatus, sekolah: filterSekolah });
+  }, [page, activeFilterTab, filterAsrama, filterTingkat, filterTahun, filterStatus, filterSekolah]);
 
   useEffect(() => {
     fetchAsramaData();
@@ -573,6 +576,9 @@ export default function SantriView() {
       tahun_masuk: '2026/2027',
       capaian_hafalan_juz: 0,
       tingkat_diniyah: 'Wustho',
+      sekolah_id: 1,
+      nama_sekolah: 'SMP Nurul Wafa',
+      tingkat_sekolah: 'Kelas 7',
       foto: '',
       nisn: '',
       username: '',
@@ -609,6 +615,9 @@ export default function SantriView() {
       tahun_masuk: santri.tahun_masuk || '2026/2027',
       capaian_hafalan_juz: santri.capaian_hafalan_juz || 0,
       tingkat_diniyah: santri.tingkat_diniyah || 'Wustho',
+      sekolah_id: santri.sekolah_id || 1,
+      nama_sekolah: santri.nama_sekolah || 'SMP Nurul Wafa',
+      tingkat_sekolah: santri.tingkat_sekolah || 'Kelas 7',
       foto: santri.foto || santri.foto_santri || '',
       username: santri.username || santri.nisn || santri.nis || '',
       password: santri.password || '123456'
@@ -916,6 +925,13 @@ export default function SantriView() {
           placeholder="Semua Status"
           options={['Semua Status', 'Aktif', 'Alumni', 'Boyong']}
         />
+        <SearchableSelect 
+          style={{ minWidth: '140px', flex: '1 1 130px', maxWidth: '190px' }}
+          value={filterSekolah}
+          onChange={(val) => { setFilterSekolah(val || 'Semua Sekolah'); setPage(1); }}
+          placeholder="Semua Sekolah"
+          options={['Semua Sekolah', 'SMP Nurul Wafa', 'SMA Nurul Wafa', 'SMK Nurul Wafa']}
+        />
       </div>
 
       {/* 5. DATA TABLE (SERVERSIDE) */}
@@ -932,7 +948,8 @@ export default function SantriView() {
                 <tr>
                   <th className="td-center" style={{ width: '45px' }}>NO</th>
                   <th>NAMA SANTRI & NIS</th>
-                  <th className="td-center">KELAS</th>
+                  <th className="td-center">KELAS NGAJI</th>
+                  <th className="td-center">SEKOLAH FORMAL</th>
                   <th className="td-center">GENDER</th>
                   <th>ASRAMA & KOBONG</th>
                   <th className="td-center">STATUS</th>
@@ -942,7 +959,7 @@ export default function SantriView() {
               <tbody>
                 {santriList.length === 0 ? (
                   <tr>
-                    <td colSpan="7" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
+                    <td colSpan="8" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
                       <Users size={32} style={{ margin: '0 auto 8px', opacity: 0.4 }} />
                       <div style={{ fontWeight: 600, color: '#334155' }}>Tidak ada data santri yang cocok</div>
                       <div style={{ fontSize: '0.75rem', marginTop: '2px' }}>Silakan periksa kata kunci pencarian atau reset filter.</div>
@@ -959,6 +976,18 @@ export default function SantriView() {
                         <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>NIS: {row.nis}</div>
                       </td>
                       <td className="td-center">
+                        <span className="badge badge-info" style={{ fontSize: '0.72rem' }}>
+                          {row.nama_kelas || '-'}
+                        </span>
+                      </td>
+                      <td className="td-center">
+                        <span className="badge" style={{ background: '#e0f2fe', color: '#0369a1', fontWeight: 800, fontSize: '0.7rem' }}>
+                          🏫 {row.nama_sekolah || 'SMP Nurul Wafa'}
+                        </span>
+                        <div style={{ fontSize: '0.66rem', color: '#64748b', marginTop: '2px', fontWeight: 600 }}>
+                          {row.tingkat_sekolah || '-'}
+                        </div>
+                      </td>
                         <span
                           className="badge"
                           style={{
@@ -1862,6 +1891,50 @@ export default function SantriView() {
                           value={formData.tingkat_diniyah}
                           onChange={(val) => setFormData({ ...formData, tingkat_diniyah: val })}
                           placeholder="-- Tingkat --"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Sekolah Formal & Kelas Formal */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '10px', background: '#f0fdf4', padding: '10px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                      <div>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#166534', display: 'block', marginBottom: '3px' }}>
+                          🏫 SEKOLAH FORMAL
+                        </label>
+                        <SearchableSelect
+                          options={[
+                            { value: 'SMP Nurul Wafa', label: 'SMP Nurul Wafa', sublabel: 'Jenjang SMP' },
+                            { value: 'SMA Nurul Wafa', label: 'SMA Nurul Wafa', sublabel: 'Jenjang SMA' },
+                            { value: 'SMK Nurul Wafa', label: 'SMK Nurul Wafa', sublabel: 'Jenjang SMK' }
+                          ]}
+                          value={formData.nama_sekolah}
+                          onChange={(val) => {
+                            const sId = val.includes('SMP') ? 1 : val.includes('SMA') ? 2 : 3;
+                            setFormData({
+                              ...formData,
+                              nama_sekolah: val,
+                              sekolah_id: sId
+                            });
+                          }}
+                          placeholder="-- Pilih Sekolah --"
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#166534', display: 'block', marginBottom: '3px' }}>
+                          TINGKAT / KELAS SEKOLAH
+                        </label>
+                        <SearchableSelect
+                          options={[
+                            { value: 'Kelas 7', label: 'Kelas 7 (SMP)' },
+                            { value: 'Kelas 8', label: 'Kelas 8 (SMP)' },
+                            { value: 'Kelas 9', label: 'Kelas 9 (SMP)' },
+                            { value: 'Kelas 10', label: 'Kelas 10 (SMA/SMK)' },
+                            { value: 'Kelas 11', label: 'Kelas 11 (SMA/SMK)' },
+                            { value: 'Kelas 12', label: 'Kelas 12 (SMA/SMK)' }
+                          ]}
+                          value={formData.tingkat_sekolah}
+                          onChange={(val) => setFormData({ ...formData, tingkat_sekolah: val })}
+                          placeholder="-- Kelas Formal --"
                         />
                       </div>
                     </div>

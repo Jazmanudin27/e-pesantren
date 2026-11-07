@@ -18,7 +18,9 @@ import {
   cekStatusMidtransAdmin,
   webhookBniHandler,
   webhookIpaymuHandler,
-  webhookMidtransHandler
+  webhookMidtransHandler,
+  getSiklusSpp,
+  updateSiklusSpp
 } from '../controllers/keuangan.controller.js';
 
 const router = express.Router();
@@ -45,6 +47,11 @@ router.get('/wali/kuitansi', getKuitansiPembayaran);
 
 // Endpoint Admin Desktop
 router.get('/admin/rekap', getRekapKeuanganAdmin);
+router.get('/rekap', getRekapKeuanganAdmin);
+router.get('/siklus-spp', getSiklusSpp);
+router.post('/siklus-spp', updateSiklusSpp);
+router.get('/admin/siklus-spp', getSiklusSpp);
+router.post('/admin/siklus-spp', updateSiklusSpp);
 router.post('/admin/tagihan', createTagihanAdmin);
 router.put('/admin/tagihan/:id', updateTagihanAdmin);
 router.delete('/admin/tagihan/:id', deleteTagihanAdmin);

@@ -5,48 +5,193 @@ import { createBniVirtualAccount } from '../services/bni.service.js';
 import { createIpaymuTransaction } from '../services/ipaymu.service.js';
 import { chargeMidtransDirect, createMidtransSnapToken, checkMidtransTransactionStatus } from '../services/midtrans.service.js';
 import { createWaliNotification } from './notifikasi.controller.js';
+import { ensureSekolahTablesAndMapping } from './sekolah.controller.js';
+
+let isSiklusSppTableInitialized = false;
+
+/**
+ * Pastikan tabel keuangan_siklus_spp tersedia
+ */
+export const ensureSiklusSppTable = async () => {
+  if (isSiklusSppTableInitialized) return;
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS \`keuangan_siklus_spp\` (
+        \`id\` INT PRIMARY KEY DEFAULT 1,
+        \`tgl_terbit_spp\` INT NOT NULL DEFAULT 5,
+        \`tgl_jatuh_tempo_spp\` INT NOT NULL DEFAULT 10,
+        \`keterangan\` VARCHAR(255) DEFAULT 'Tagihan terbit per tgl 5, batas akhir tgl 10. Lewat tgl 10 otomatis berstatus tunggakan.',
+        \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    const [rows] = await pool.query('SELECT id FROM keuangan_siklus_spp WHERE id = 1');
+    if (!rows || rows.length === 0) {
+      await pool.query(`
+        INSERT INTO keuangan_siklus_spp (id, tgl_terbit_spp, tgl_jatuh_tempo_spp)
+        VALUES (1, 5, 10)
+      `);
+    }
+    isSiklusSppTableInitialized = true;
+    await ensureSekolahTablesAndMapping();
+  } catch (err) {
+    console.warn('[SIKLUS SPP DB INIT NOTICE]', err.message);
+  }
+};
+
+/**
+ * Mengambil pengaturan tanggal siklus & jatuh tempo SPP
+ */
+export const getSiklusSppData = async () => {
+  await ensureSiklusSppTable();
+  try {
+    const [rows] = await pool.query('SELECT * FROM keuangan_siklus_spp WHERE id = 1 LIMIT 1');
+    return rows[0] || { tgl_terbit_spp: 5, tgl_jatuh_tempo_spp: 10 };
+  } catch (e) {
+    return { tgl_terbit_spp: 5, tgl_jatuh_tempo_spp: 10 };
+  }
+};
+
+/**
+ * GET /api/keuangan/siklus-spp
+ */
+export const getSiklusSpp = async (req, res) => {
+  try {
+    const data = await getSiklusSppData();
+    return sendSuccess(res, 'Pengaturan siklus SPP berhasil diambil', data);
+  } catch (err) {
+    return sendError(res, err.message, 500);
+  }
+};
+
+/**
+ * POST /api/keuangan/siklus-spp
+ * Menyimpan tanggal terbit dan batas akhir pembayaran (jatuh tempo) SPP
+ * dan otomatis mengupdate tagihan yang belum lunas
+ */
+export const updateSiklusSpp = async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    await ensureSiklusSppTable();
+    const { tgl_terbit_spp, tgl_jatuh_tempo_spp, apply_to_existing = true } = req.body;
+    
+    const terbit = Math.max(1, Math.min(28, parseInt(tgl_terbit_spp) || 5));
+    const tempo = Math.max(1, Math.min(28, parseInt(tgl_jatuh_tempo_spp) || 10));
+
+    await connection.beginTransaction();
+
+    await connection.query(`
+      UPDATE keuangan_siklus_spp SET
+        tgl_terbit_spp = ?,
+        tgl_jatuh_tempo_spp = ?,
+        keterangan = CONCAT('Tagihan terbit per tgl ', ?, ', batas akhir tgl ', ?, '. Lewat tgl ', ?, ' berstatus tunggakan.'),
+        updated_at = NOW()
+      WHERE id = 1
+    `, [terbit, tempo, terbit, tempo, tempo]);
+
+    let affectedCount = 0;
+    if (apply_to_existing) {
+      const padTempo = String(tempo).padStart(2, '0');
+      const [upRes] = await connection.query(`
+        UPDATE keuangan_tagihan
+        SET jatuh_tempo = CONCAT(DATE_FORMAT(jatuh_tempo, '%Y-%m-'), ?)
+        WHERE kategori = 'Bulanan' 
+          AND status != 'Lunas' 
+          AND jatuh_tempo IS NOT NULL
+      `, [padTempo]);
+      affectedCount = upRes.affectedRows || 0;
+    }
+
+    await connection.commit();
+    return sendSuccess(res, `Pengaturan siklus SPP berhasil disimpan: Terbit tgl ${terbit}, Jatuh Tempo tgl ${tempo}. (${affectedCount} tagihan berjalan otomatis disesuaikan).`, {
+      tgl_terbit_spp: terbit,
+      tgl_jatuh_tempo_spp: tempo,
+      tagihan_updated: affectedCount
+    });
+  } catch (err) {
+    await connection.rollback();
+    return sendError(res, `Gagal menyimpan siklus SPP: ${err.message}`, 500);
+  } finally {
+    connection.release();
+  }
+};
 
 /**
  * Helper Internal: Generate Auto Tagihan (SPP Bulanan Okt 2026 - Jun 2027 + Tagihan Bebas Non-Bulanan) untuk 1 Santri
  */
+/**
+ * Helper Internal: Generate Auto Tagihan Berdasarkan Sekolah (SMP: 505rb, SMA: 565rb, SMK: 565rb)
+ */
 const ensureAutoTagihanForSantri = async (santriId, connectionOrPool = pool) => {
-  // Pastikan komponen biaya default tersedia
-  let [kompRows] = await connectionOrPool.query('SELECT * FROM keuangan_komponen_biaya WHERE is_active = 1 ORDER BY id ASC');
-  if (!kompRows || kompRows.length === 0) {
-    await connectionOrPool.query(`
-      INSERT INTO keuangan_komponen_biaya (kode_komponen, nama_komponen, kategori, nominal_default, deskripsi, is_active)
-      VALUES
-        ('SPP-BLN', 'SPP Bulanan', 'Bulanan', 350000, 'Tagihan SPP & Syahriah Rutin Bulanan', 1),
-        ('DSP-MSK', 'Uang Pangkal & Daftar Ulang', 'Biaya Masuk', 1500000, 'Tagihan Tipe Bebas Non-Bulanan (Bisa Dicicil)', 1)
-    `);
-    const [recheck] = await connectionOrPool.query('SELECT * FROM keuangan_komponen_biaya WHERE is_active = 1 ORDER BY id ASC');
-    kompRows = recheck;
-  }
+  // Ambil data sekolah & jenjang santri
+  let jenjang = 'SMP';
+  let namaSekolah = 'SMP Nurul Wafa';
+  try {
+    const [sRows] = await connectionOrPool.query(`
+      SELECT s.id, s.nama_santri, s.nama_kelas, s.sekolah_id, s.nama_sekolah, s.tingkat_sekolah, sk.jenjang
+      FROM santri s
+      LEFT JOIN sekolah sk ON s.sekolah_id = sk.id
+      WHERE s.id = ?
+    `, [santriId]);
+    if (sRows && sRows.length > 0) {
+      const s = sRows[0];
+      if (s.jenjang) {
+        jenjang = s.jenjang;
+        namaSekolah = s.nama_sekolah || `${jenjang} Nurul Wafa`;
+      } else if (String(s.nama_sekolah || '').toUpperCase().includes('SMA')) {
+        jenjang = 'SMA';
+        namaSekolah = 'SMA Nurul Wafa';
+      } else if (String(s.nama_sekolah || '').toUpperCase().includes('SMK')) {
+        jenjang = 'SMK';
+        namaSekolah = 'SMK Nurul Wafa';
+      } else if (String(s.nama_sekolah || '').toUpperCase().includes('SMP')) {
+        jenjang = 'SMP';
+        namaSekolah = 'SMP Nurul Wafa';
+      } else {
+        const kStr = String(s.nama_kelas || '');
+        if (kStr.includes('1 Wustho') || kStr.includes('2 Wustho') || kStr.includes('3 Wustho') || kStr.includes('Kelas 1') || kStr.includes('Kelas 2') || kStr.includes('Kelas 3')) {
+          jenjang = 'SMP';
+          namaSekolah = 'SMP Nurul Wafa';
+        } else {
+          jenjang = 'SMA';
+          namaSekolah = 'SMA Nurul Wafa';
+        }
+      }
+    }
+  } catch (e) {}
 
-  const kompBulanan = kompRows.find(k => k.kategori === 'Bulanan') || {
-    id: kompRows[0]?.id || 1,
-    nama_komponen: 'SPP Bulanan',
-    kategori: 'Bulanan',
-    nominal_default: 350000
-  };
+  // Tarif Resmi Sesuai Jenjang Sekolah
+  // SMP: SPP Rp 505.000 | Biaya Awal Rp 1.890.000
+  // SMA: SPP Rp 565.000 | Biaya Awal Rp 2.040.000
+  // SMK: SPP Rp 565.000 | Biaya Awal Rp 2.400.000
+  const nominalSpp = jenjang === 'SMP' ? 505000 : 565000;
+  const nominalAwal = jenjang === 'SMP' ? 1890000 : jenjang === 'SMA' ? 2040000 : 2400000;
+  const judulSpp = `SPP Bulanan ${jenjang}`;
+  const judulAwal = `Biaya Awal Masuk ${jenjang} (Adm Sekolah & Pesantren)`;
 
-  const kompBebas = kompRows.find(k => k.kategori !== 'Bulanan') || {
-    id: kompRows[1]?.id || kompRows[0]?.id || 2,
-    nama_komponen: 'Uang Pangkal & Daftar Ulang',
-    kategori: 'Biaya Masuk',
-    nominal_default: 1500000
-  };
+  // Cari komponen ID di keuangan_komponen_biaya
+  let [kompRows] = await connectionOrPool.query('SELECT * FROM keuangan_komponen_biaya WHERE is_active = 1');
+  let kompBulanan = (kompRows || []).find(k => k.kategori === 'Bulanan' && String(k.nama_komponen || '').includes(jenjang)) ||
+                    (kompRows || []).find(k => k.kategori === 'Bulanan');
+  let kompBebas = (kompRows || []).find(k => k.kategori !== 'Bulanan' && String(k.nama_komponen || '').includes(jenjang)) ||
+                  (kompRows || []).find(k => k.kategori !== 'Bulanan');
+
+  const bulananId = kompBulanan?.id || 1;
+  const bebasId = kompBebas?.id || 2;
+
+  const siklus = await getSiklusSppData();
+  const padTempo = String(siklus.tgl_jatuh_tempo_spp || 10).padStart(2, '0');
 
   const periodeBulananList = [
-    { bulan: 'Oktober 2026', jatuhTempo: '2026-10-10', prefix: '2610' },
-    { bulan: 'November 2026', jatuhTempo: '2026-11-10', prefix: '2611' },
-    { bulan: 'Desember 2026', jatuhTempo: '2026-12-10', prefix: '2612' },
-    { bulan: 'Januari 2027', jatuhTempo: '2027-01-10', prefix: '2701' },
-    { bulan: 'Februari 2027', jatuhTempo: '2027-02-10', prefix: '2702' },
-    { bulan: 'Maret 2027', jatuhTempo: '2027-03-10', prefix: '2703' },
-    { bulan: 'April 2027', jatuhTempo: '2027-04-10', prefix: '2704' },
-    { bulan: 'Mei 2027', jatuhTempo: '2027-05-10', prefix: '2705' },
-    { bulan: 'Juni 2027', jatuhTempo: '2027-06-10', prefix: '2706' }
+    { bulan: 'Oktober 2026', jatuhTempo: `2026-10-${padTempo}`, prefix: '2610' },
+    { bulan: 'November 2026', jatuhTempo: `2026-11-${padTempo}`, prefix: '2611' },
+    { bulan: 'Desember 2026', jatuhTempo: `2026-12-${padTempo}`, prefix: '2612' },
+    { bulan: 'Januari 2027', jatuhTempo: `2027-01-${padTempo}`, prefix: '2701' },
+    { bulan: 'Februari 2027', jatuhTempo: `2027-02-${padTempo}`, prefix: '2702' },
+    { bulan: 'Maret 2027', jatuhTempo: `2027-03-${padTempo}`, prefix: '2703' },
+    { bulan: 'April 2027', jatuhTempo: `2027-04-${padTempo}`, prefix: '2704' },
+    { bulan: 'Mei 2027', jatuhTempo: `2027-05-${padTempo}`, prefix: '2705' },
+    { bulan: 'Juni 2027', jatuhTempo: `2027-06-${padTempo}`, prefix: '2706' }
   ];
 
   const [existingRows] = await connectionOrPool.query(
@@ -56,7 +201,7 @@ const ensureAutoTagihanForSantri = async (santriId, connectionOrPool = pool) => 
 
   let insertedCount = 0;
 
-  // 1. Generate 9 Bulan SPP Rutin (Oktober 2026 - Juni 2027)
+  // 1. Generate 9 Bulan SPP Rutin (Oktober 2026 - Juni 2027) Sesuai Tarif Sekolah
   for (let i = 0; i < periodeBulananList.length; i++) {
     const p = periodeBulananList[i];
     const alreadyExists = (existingRows || []).some(
@@ -64,26 +209,24 @@ const ensureAutoTagihanForSantri = async (santriId, connectionOrPool = pool) => 
     );
     if (!alreadyExists) {
       const invCode = `INV-${p.prefix}${String(santriId).padStart(2, '0')}${i + 1}`;
-      const nom = parseFloat(kompBulanan.nominal_default || 350000);
       await connectionOrPool.query(`
         INSERT INTO keuangan_tagihan
         (kode_tagihan, santri_id, komponen_id, judul_tagihan, kategori, periode_bulan, total_tagihan, sudah_dibayar, sisa_tagihan, status, jatuh_tempo)
         VALUES (?, ?, ?, ?, 'Bulanan', ?, ?, 0.00, ?, 'Belum Dibayar', ?)
-      `, [invCode, santriId, kompBulanan.id, 'SPP Bulanan', p.bulan, nom, nom, p.jatuhTempo]);
+      `, [invCode, santriId, bulananId, judulSpp, p.bulan, nominalSpp, nominalSpp, p.jatuhTempo]);
       insertedCount++;
     }
   }
 
-  // 2. Generate 1 Tagihan Tipe Bebas (Non-Bulanan / Satu Kali Bayar)
+  // 2. Generate Tagihan Biaya Masuk Awal Sesuai Jenjang Sekolah
   const bebasExists = (existingRows || []).some(r => r.kategori !== 'Bulanan');
   if (!bebasExists) {
     const invBebas = `INV-2699${String(santriId).padStart(3, '0')}`;
-    const nomBebas = parseFloat(kompBebas.nominal_default || 1500000);
     await connectionOrPool.query(`
       INSERT INTO keuangan_tagihan
       (kode_tagihan, santri_id, komponen_id, judul_tagihan, kategori, periode_bulan, total_tagihan, sudah_dibayar, sisa_tagihan, status, jatuh_tempo)
-      VALUES (?, ?, ?, ?, ?, 'TA 2026/2027 (Satu Kali Bayar)', ?, 0.00, ?, 'Belum Dibayar', '2027-06-30')
-    `, [invBebas, santriId, kompBebas.id, kompBebas.nama_komponen, kompBebas.kategori || 'Biaya Masuk', nomBebas, nomBebas]);
+      VALUES (?, ?, ?, ?, 'Biaya Masuk', 'TA 2026/2027 (Awal Masuk)', ?, 0.00, ?, 'Belum Dibayar', '2027-06-30')
+    `, [invBebas, santriId, bebasId, judulAwal, nominalAwal, nominalAwal]);
     insertedCount++;
   }
 
@@ -108,12 +251,15 @@ export const getDashboardKeuanganWali = async (req, res) => {
       return sendError(res, 'Santri ID tidak ditemukan', 404);
     }
 
-    // Ambil Data Santri
+    // Ambil Data Santri Beserta Sekolah
     const [santriRows] = await pool.query(`
-      SELECT s.id, s.kode_santri, s.nis, s.nama_santri, s.nama_wali, s.no_wa_wali, s.status_santri, a.nama_asrama, k.nama_kamar
+      SELECT s.id, s.kode_santri, s.nis, s.nama_santri, s.nama_wali, s.no_wa_wali, s.status_santri, 
+             s.sekolah_id, COALESCE(sk.nama_sekolah, s.nama_sekolah) as nama_sekolah, s.tingkat_sekolah, sk.jenjang as sekolah_jenjang,
+             a.nama_asrama, k.nama_kamar
       FROM santri s
       LEFT JOIN asrama a ON s.asrama_id = a.id
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+      LEFT JOIN sekolah sk ON s.sekolah_id = sk.id
       WHERE s.id = ? LIMIT 1
     `, [santriId]);
 
@@ -772,6 +918,8 @@ export const getRekapKeuanganAdmin = async (req, res) => {
         s.nama_santri,
         s.nama_wali,
         s.no_wa_wali,
+        s.nama_sekolah,
+        s.tingkat_sekolah,
         a.nama_asrama,
         k.nama_kamar,
         COALESCE(SUM(CASE WHEN t.kategori = 'Bulanan' THEN t.sisa_tagihan ELSE 0 END), 0) as tunggakan_bulanan,
@@ -781,7 +929,7 @@ export const getRekapKeuanganAdmin = async (req, res) => {
       LEFT JOIN asrama a ON s.asrama_id = a.id
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
       LEFT JOIN keuangan_tagihan t ON s.id = t.santri_id AND t.status != 'Lunas'
-      GROUP BY s.id, s.nis, s.nama_santri, s.nama_wali, s.no_wa_wali, a.nama_asrama, k.nama_kamar
+      GROUP BY s.id, s.nis, s.nama_santri, s.nama_wali, s.no_wa_wali, s.nama_sekolah, s.tingkat_sekolah, a.nama_asrama, k.nama_kamar
       HAVING total_tunggakan > 0
       ORDER BY total_tunggakan DESC
       LIMIT 100
@@ -800,6 +948,8 @@ export const getRekapKeuanganAdmin = async (req, res) => {
         s.nis,
         s.nama_wali,
         s.no_wa_wali,
+        s.nama_sekolah,
+        s.tingkat_sekolah,
         a.nama_asrama,
         k.nama_kamar,
         kb.nama_komponen
@@ -812,11 +962,16 @@ export const getRekapKeuanganAdmin = async (req, res) => {
       LIMIT 150
     `);
 
+    const siklusSpp = await getSiklusSppData();
+
     return sendSuccess(res, 'Rekap keuangan admin berhasil dimuat', {
       summary: {
         ...summary[0],
-        total_kas_masuk_sah: kasMasukRiil[0]?.total_kas_masuk_sah != null ? Number(kasMasukRiil[0].total_kas_masuk_sah) : 0
+        total_kas_masuk_sah: kasMasukRiil[0]?.total_kas_masuk_sah != null ? Number(kasMasukRiil[0].total_kas_masuk_sah) : 0,
+        tgl_terbit_spp: siklusSpp.tgl_terbit_spp || 5,
+        tgl_jatuh_tempo_spp: siklusSpp.tgl_jatuh_tempo_spp || 10
       },
+      siklusSpp,
       transaksiTerakhir: transaksiTerakhir || [],
       transaksiPending: transaksiPending || [],
       transaksiMidtrans: transaksiMidtrans || [],
@@ -1101,6 +1256,7 @@ export const generateAutoTagihanAdmin = async (req, res) => {
       bulan_selesai = 6,
       tahun_selesai = 2027,
       filter_kamar = '', // '' = Semua Kamar/Asrama (Semua Santri Aktif), atau nama_asrama, atau 'SANTRI:<id>'
+      filter_sekolah = '', // '' = Semua Sekolah, atau nama_sekolah/jenjang 'SMP', 'SMA', 'SMK'
       santri_id
     } = req.body;
 
@@ -1150,6 +1306,9 @@ export const generateAutoTagihanAdmin = async (req, res) => {
       'Desember'
     ];
 
+    const siklus = await getSiklusSppData();
+    const padTempo = String(siklus.tgl_jatuh_tempo_spp || 10).padStart(2, '0');
+
     const daftarPeriode = [];
     const bMulai = Math.min(12, Math.max(1, parseInt(bulan_mulai) || 7));
     const tMulai = parseInt(tahun_mulai) || 2026;
@@ -1160,7 +1319,7 @@ export const generateAutoTagihanAdmin = async (req, res) => {
       const namaBln = NAMA_BULAN[bMulai];
       daftarPeriode.push({
         periode_bulan: `${namaBln} ${tMulai}`,
-        jatuh_tempo: `${tMulai}-${String(bMulai).padStart(2, '0')}-10`,
+        jatuh_tempo: `${tMulai}-${String(bMulai).padStart(2, '0')}-${padTempo}`,
         prefix: `${String(tMulai).slice(-2)}${String(bMulai).padStart(2, '0')}`
       });
     } else {
@@ -1172,7 +1331,7 @@ export const generateAutoTagihanAdmin = async (req, res) => {
         const namaBln = NAMA_BULAN[curM];
         daftarPeriode.push({
           periode_bulan: `${namaBln} ${curY}`,
-          jatuh_tempo: `${curY}-${String(curM).padStart(2, '0')}-10`,
+          jatuh_tempo: `${curY}-${String(curM).padStart(2, '0')}-${padTempo}`,
           prefix: `${String(curY).slice(-2)}${String(curM).padStart(2, '0')}`
         });
         curM++;
@@ -1191,10 +1350,11 @@ export const generateAutoTagihanAdmin = async (req, res) => {
 
     // 3. Ambil daftar santri target sesuai filter kamar/kelas
     let santriQuery = `
-      SELECT s.id, s.nama_santri, a.nama_asrama, k.nama_kamar
+      SELECT s.id, s.nama_santri, s.nama_sekolah, s.tingkat_sekolah, sk.jenjang, a.nama_asrama, k.nama_kamar
       FROM santri s
       LEFT JOIN asrama a ON s.asrama_id = a.id
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+      LEFT JOIN sekolah sk ON s.sekolah_id = sk.id
       WHERE 1=1
     `;
     const queryParams = [];
@@ -1209,6 +1369,11 @@ export const generateAutoTagihanAdmin = async (req, res) => {
     } else if (filter_kamar && filter_kamar.trim() !== '') {
       santriQuery += ' AND (a.nama_asrama = ? OR k.nama_kamar = ?)';
       queryParams.push(filter_kamar.trim(), filter_kamar.trim());
+    }
+
+    if (filter_sekolah && filter_sekolah !== 'Semua' && filter_sekolah.trim() !== '') {
+      santriQuery += ' AND (s.sekolah_id = ? OR s.nama_sekolah LIKE ? OR sk.jenjang = ?)';
+      queryParams.push(filter_sekolah, `%${filter_sekolah}%`, filter_sekolah);
     }
 
     santriQuery += ' ORDER BY s.id ASC';
@@ -1246,6 +1411,14 @@ export const generateAutoTagihanAdmin = async (req, res) => {
         const randSuffix = String(s.id).padStart(2, '0') + String(i + 1).padStart(2, '0');
         const invCode = `INV-${p.prefix}${randSuffix}`;
 
+        let targetNominal = nominal;
+        let targetJudul = komp.nama_komponen;
+        if (komp.kategori === 'Bulanan' && String(komp.nama_komponen).toLowerCase().includes('spp')) {
+          const isSmp = s.jenjang === 'SMP' || String(s.nama_sekolah || '').toUpperCase().includes('SMP');
+          targetNominal = isSmp ? 505000 : 565000;
+          targetJudul = isSmp ? 'SPP Bulanan SMP' : (s.jenjang === 'SMK' ? 'SPP Bulanan SMK' : 'SPP Bulanan SMA');
+        }
+
         await connection.query(
           `INSERT INTO keuangan_tagihan
            (kode_tagihan, santri_id, komponen_id, judul_tagihan, kategori, periode_bulan, total_tagihan, sudah_dibayar, sisa_tagihan, status, jatuh_tempo)
@@ -1254,11 +1427,11 @@ export const generateAutoTagihanAdmin = async (req, res) => {
             invCode,
             s.id,
             komp.id,
-            komp.nama_komponen,
+            targetJudul,
             komp.kategori || 'Bulanan',
             p.periode_bulan,
-            nominal,
-            nominal,
+            targetNominal,
+            targetNominal,
             p.jatuh_tempo
           ]
         );

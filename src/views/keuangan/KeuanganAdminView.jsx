@@ -68,8 +68,14 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
     tahun_mulai: '2026',
     bulan_selesai: '6',
     tahun_selesai: '2027',
-    filter_kamar: ''
+    filter_kamar: '',
+    filter_sekolah: ''
   });
+
+  // Filter Sekolah & Modal Rincian Awal Masuk
+  const [filterSekolahKasir, setFilterSekolahKasir] = useState('Semua');
+  const [isRincianBiayaModalOpen, setIsRincianBiayaModalOpen] = useState(false);
+  const [rincianBiayaTab, setRincianBiayaTab] = useState('SMP'); // 'SMP' | 'SMA' | 'SMK'
 
   const NAMA_BULAN_MAP = {
     '1': 'Januari',
@@ -128,6 +134,15 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
     deskripsi: ''
   });
 
+  // Modal Siklus & Jatuh Tempo SPP Bulanan
+  const [isSiklusModalOpen, setIsSiklusModalOpen] = useState(false);
+  const [savingSiklus, setSavingSiklus] = useState(false);
+  const [siklusData, setSiklusData] = useState({
+    tgl_terbit_spp: 5,
+    tgl_jatuh_tempo_spp: 10,
+    apply_to_existing: true
+  });
+
   const formatRupiah = (val) => `Rp ${Math.round(parseFloat(val || 0)).toLocaleString('id-ID')}`;
 
   // Helper formatting angka ribuan (titik) untuk input nominal
@@ -155,12 +170,13 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Load Daftar Santri & Rekap Awal
+  // Load Daftar Santri, Rekap Awal & Konfigurasi Siklus SPP
   const fetchInitialData = async () => {
     try {
-      const [resSantri, resRekap] = await Promise.all([
+      const [resSantri, resRekap, resSiklus] = await Promise.all([
         axios.get('/api/santri?all=true&limit=all').catch(() => ({ data: { data: [] } })),
-        axios.get('/api/keuangan/admin/rekap').catch(() => ({ data: { data: {} } }))
+        axios.get('/api/keuangan/admin/rekap').catch(() => ({ data: { data: {} } })),
+        axios.get('/api/keuangan/admin/siklus-spp').catch(() => ({ data: { success: false } }))
       ]);
 
       const sList = resSantri.data?.data || [];
@@ -176,10 +192,33 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
         });
       }
 
-      // Biarkan kosong di awal agar kasir mencari nama santri terlebih dahulu
-      // (Tidak auto-select santri pertama)
+      if (resSiklus.data?.success && resSiklus.data?.data) {
+        setSiklusData({
+          tgl_terbit_spp: resSiklus.data.data.tgl_terbit_spp || 5,
+          tgl_jatuh_tempo_spp: resSiklus.data.data.tgl_jatuh_tempo_spp || 10,
+          apply_to_existing: true
+        });
+      }
     } catch (err) {
       console.warn('Gagal memuat data awal keuangan:', err.message);
+    }
+  };
+
+  const handleSimpanSiklus = async (e) => {
+    e?.preventDefault();
+    try {
+      setSavingSiklus(true);
+      const res = await axios.post('/api/keuangan/admin/siklus-spp', siklusData);
+      if (res.data?.success) {
+        toastSuccess('Siklus Tersimpan!', res.data.message || 'Konfigurasi siklus SPP diperbarui.');
+        setIsSiklusModalOpen(false);
+        if (selectedSantriId) await fetchSantriTagihan(selectedSantriId);
+        await fetchRekap();
+      }
+    } catch (err) {
+      showError('Gagal Menyimpan Siklus', err.response?.data?.message || err.message);
+    } finally {
+      setSavingSiklus(false);
     }
   };
 
@@ -249,9 +288,34 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
     setIsSantriDropdownOpen(false);
   };
 
-  // Cek apakah periode termasuk bulan lalu (Tunggakan)
-  const isTunggakanBulanLalu = (periodeStr = '') => {
+  // Cek apakah tagihan telah melewati jatuh tempo (Tunggakan)
+  const isTunggakanBulanLalu = (periodeStr = '', jatuhTempo = null) => {
+    if (jatuhTempo) {
+      const jt = new Date(jatuhTempo);
+      if (!isNaN(jt.getTime())) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return today > jt;
+      }
+    }
     const p = String(periodeStr).toLowerCase();
+    const curYear = new Date().getFullYear();
+    const curMonth = new Date().getMonth() + 1;
+    const curDay = new Date().getDate();
+    const dueDay = siklusData?.tgl_jatuh_tempo_spp || 10;
+
+    const bulanIndexMap = {
+      januari: 1, februari: 2, maret: 3, april: 4, mei: 5, juni: 6,
+      juli: 7, agustus: 8, september: 9, oktober: 10, november: 11, desember: 12
+    };
+
+    for (const [namaBulan, idx] of Object.entries(bulanIndexMap)) {
+      if (p.includes(namaBulan)) {
+        if (idx < curMonth) return true; // Bulan lalu pasti tunggakan
+        if (idx === curMonth && curDay > dueDay) return true; // Bulan ini jika lewat tanggal jatuh tempo
+        return false;
+      }
+    }
     return p.includes('juli 2026') || p.includes('agustus 2026') || p.includes('september 2026') || p.includes('oktober 2026');
   };
 
@@ -425,7 +489,8 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
         tahun_mulai: parseInt(autoGenForm.tahun_mulai),
         bulan_selesai: parseInt(autoGenForm.bulan_selesai),
         tahun_selesai: parseInt(autoGenForm.tahun_selesai),
-        filter_kamar: autoGenForm.filter_kamar
+        filter_kamar: autoGenForm.filter_kamar,
+        filter_sekolah: autoGenForm.filter_sekolah
       });
 
       if (res.data?.success) {
@@ -586,12 +651,19 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
 
   // Filter santri untuk autocomplete search bar
   const filteredSantriDropdown = santriList.filter((s) => {
+    if (filterSekolahKasir !== 'Semua') {
+      const matchSekolah = String(s.nama_sekolah || '').toUpperCase().includes(filterSekolahKasir) ||
+                           String(s.sekolah_jenjang || '').toUpperCase() === filterSekolahKasir;
+      if (!matchSekolah) return false;
+    }
     if (!santriSearchText.trim()) return true;
     const q = santriSearchText.toLowerCase();
     return (
       (s.nama_santri || '').toLowerCase().includes(q) ||
       (s.nis || '').toLowerCase().includes(q) ||
-      (s.nama_asrama || '').toLowerCase().includes(q)
+      (s.nama_asrama || '').toLowerCase().includes(q) ||
+      (s.nama_sekolah || '').toLowerCase().includes(q) ||
+      (s.tingkat_sekolah || '').toLowerCase().includes(q)
     );
   });
 
@@ -660,6 +732,48 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
             onClick={() => setIsKomponenModalOpen(true)}
           >
             <FileText size={14} /> Master Pos Biaya
+          </button>
+          <button
+            type="button"
+            className="btn"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: '#f8fafc',
+              color: '#0369a1',
+              border: '1px solid #7dd3fc',
+              padding: '6px 14px',
+              borderRadius: '6px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+            onClick={() => setIsSiklusModalOpen(true)}
+            title="Atur Tanggal Terbit Tagihan & Batas Jatuh Tempo SPP"
+          >
+            <Calendar size={14} /> Siklus & Jatuh Tempo SPP
+          </button>
+          <button
+            type="button"
+            className="btn"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: '#ecfdf5',
+              color: '#065f46',
+              border: '1px solid #6ee7b7',
+              padding: '6px 14px',
+              borderRadius: '6px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+            onClick={() => setIsRincianBiayaModalOpen(true)}
+            title="Lihat Rincian Biaya Awal Masuk 2026/2027 (SMP, SMA, SMK)"
+          >
+            <FileText size={14} /> 📋 Rincian Biaya Sekolah
           </button>
         </div>
       </div>
@@ -962,7 +1076,24 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
               />
             </div>
 
-            {/* 4. Tombol Aksi */}
+            {/* 3b. Filter Berdasarkan Jenjang Sekolah */}
+            <div style={{ marginTop: '12px' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', marginBottom: '8px' }}>
+                4. Filter Jenjang Sekolah
+              </label>
+              <select
+                value={autoGenForm.filter_sekolah}
+                onChange={(e) => setAutoGenForm({ ...autoGenForm, filter_sekolah: e.target.value })}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', fontWeight: 700, background: '#fff' }}
+              >
+                <option value="">Semua Sekolah (SMP, SMA, SMK)</option>
+                <option value="SMP">Hanya SMP Nurul Wafa (Tarif SPP: Rp 505.000)</option>
+                <option value="SMA">Hanya SMA Nurul Wafa (Tarif SPP: Rp 565.000)</option>
+                <option value="SMK">Hanya SMK Nurul Wafa (Tarif SPP: Rp 565.000)</option>
+              </select>
+            </div>
+
+            {/* 5. Tombol Aksi */}
             <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
               <button
                 type="submit"
@@ -1015,8 +1146,30 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
       {viewMode === 'kasir' && (
         <div>
           {/* 1. FILTER SEARCH BAR STRIP (STANDAR MASTER SANTRI) */}
-          <div className="filter-search-box" style={{ marginBottom: '12px' }}>
-            <div className="filter-search-input" ref={searchBoxRef} style={{ position: 'relative' }}>
+          <div className="filter-search-box" style={{ marginBottom: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ minWidth: '150px' }}>
+              <select
+                value={filterSekolahKasir}
+                onChange={(e) => setFilterSekolahKasir(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '6px 10px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  color: '#1e293b',
+                  background: '#f8fafc'
+                }}
+              >
+                <option value="Semua">🏫 Semua Sekolah</option>
+                <option value="SMP">SMP Nurul Wafa</option>
+                <option value="SMA">SMA Nurul Wafa</option>
+                <option value="SMK">SMK Nurul Wafa</option>
+              </select>
+            </div>
+
+            <div className="filter-search-input" ref={searchBoxRef} style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
               <Search size={15} color="#94a3b8" />
               <input
                 type="text"
@@ -1026,7 +1179,7 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
                   setSantriSearchText(e.target.value);
                   setIsSantriDropdownOpen(true);
                 }}
-                placeholder="Cari nama santri, NIS, atau asrama..."
+                placeholder="Cari nama santri, NIS, asrama, atau sekolah..."
               />
               {santriSearchText && (
                 <button
@@ -1080,7 +1233,7 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
                       <div>
                         <div style={{ fontWeight: 700, fontSize: '0.78rem', color: '#0f172a' }}>{s.nama_santri}</div>
                         <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
-                          NIS: {s.nis} • {s.nama_asrama || 'Asrama'}
+                          NIS: {s.nis} • {s.nama_asrama || 'Asrama'} • <b style={{ color: '#0369a1' }}>{s.nama_sekolah || 'SMP Nurul Wafa'} ({s.tingkat_sekolah || '-'})</b>
                         </div>
                       </div>
                       <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0284c7' }}>Pilih</span>
@@ -1106,6 +1259,9 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
                 </span>
                 <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>
                   {activeSantriObj.nama_asrama || 'Asrama Pondok'}
+                </span>
+                <span className="badge" style={{ fontSize: '0.65rem', background: '#e0f2fe', color: '#0369a1', fontWeight: 800 }}>
+                  🏫 {activeSantriObj.nama_sekolah || 'SMP Nurul Wafa'} {activeSantriObj.tingkat_sekolah ? `(${activeSantriObj.tingkat_sekolah})` : ''}
                 </span>
               </div>
             )}
@@ -1288,7 +1444,7 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
                     <tbody>
                       {tagihanBulanan.map((b) => {
                         const isChecked = selectedPayMap[b.id] !== undefined;
-                        const isMenunggak = isTunggakanBulanLalu(b.periode_bulan);
+                        const isMenunggak = isTunggakanBulanLalu(b.periode_bulan, b.jatuh_tempo);
                         const sisa = Math.round(parseFloat(b.sisa_tagihan || 0));
 
                         return (
@@ -2415,6 +2571,254 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PENGATURAN SIKLUS & JATUH TEMPO SPP */}
+      {isSiklusModalOpen && (
+        <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div className="modal-card" style={{ maxWidth: '480px', width: '92%', borderRadius: '14px', overflow: 'hidden', background: '#ffffff', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #f1f5f9', background: '#0284c7', color: '#ffffff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, fontSize: '0.95rem' }}>
+                <Calendar size={18} /> Pengaturan Siklus & Jatuh Tempo SPP
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSiklusModalOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: '#ffffff', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSimpanSiklus} style={{ padding: '20px' }}>
+              <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '0.78rem', color: '#0369a1', lineHeight: 1.5 }}>
+                💡 <b>Aturan Otomatis:</b> Tagihan SPP terbit setiap <b>Tanggal Terbit</b>. Bila santri belum membayar melewati <b>Tanggal Jatuh Tempo</b>, tagihan otomatis berubah status menjadi <b>Tunggakan SPP</b>.
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                    📅 Tanggal Terbit Tagihan
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748b' }}>Tgl</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="28"
+                      required
+                      value={siklusData.tgl_terbit_spp}
+                      onChange={(e) => setSiklusData({ ...siklusData, tgl_terbit_spp: parseInt(e.target.value) || 1 })}
+                      style={{ width: '100%', padding: '8px 12px', border: '1.5px solid #cbd5e1', borderRadius: '8px', fontWeight: 800, fontSize: '0.9rem', textAlign: 'center' }}
+                    />
+                  </div>
+                  <span style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '4px', display: 'block' }}>Default: Tanggal 5</span>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                    ⏰ Batas Jatuh Tempo (Maks)
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748b' }}>Tgl</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="31"
+                      required
+                      value={siklusData.tgl_jatuh_tempo_spp}
+                      onChange={(e) => setSiklusData({ ...siklusData, tgl_jatuh_tempo_spp: parseInt(e.target.value) || 1 })}
+                      style={{ width: '100%', padding: '8px 12px', border: '1.5px solid #f87171', borderRadius: '8px', fontWeight: 800, fontSize: '0.9rem', textAlign: 'center', color: '#b91c1c', background: '#fef2f2' }}
+                    />
+                  </div>
+                  <span style={{ fontSize: '0.68rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>Lewat tgl ini = Tunggakan</span>
+                </div>
+              </div>
+
+              <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.76rem', fontWeight: 600, color: '#334155' }}>
+                  <input
+                    type="checkbox"
+                    checked={siklusData.apply_to_existing}
+                    onChange={(e) => setSiklusData({ ...siklusData, apply_to_existing: e.target.checked })}
+                    style={{ accentColor: '#0284c7', width: '15px', height: '15px' }}
+                  />
+                  Terapkan perubahan tanggal jatuh tempo ini ke semua tagihan SPP yang belum lunas
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsSiklusModalOpen(false)}
+                  className="btn btn-outline"
+                  style={{ fontSize: '0.8rem' }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingSiklus}
+                  className="btn btn-primary"
+                  style={{ background: '#0284c7', borderColor: '#0284c7', fontSize: '0.8rem', fontWeight: 700 }}
+                >
+                  <Save size={14} /> {savingSiklus ? 'Menyimpan...' : 'Simpan Pengaturan'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL RINCIAN BIAYA AWAL MASUK PER JENJANG SEKOLAH (SMP / SMA / SMK) */}
+      {isRincianBiayaModalOpen && (
+        <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div className="modal-card" style={{ maxWidth: '640px', width: '95%', maxHeight: '90vh', overflowY: 'auto', borderRadius: '14px', background: '#ffffff', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #e2e8f0', background: '#0f766e', color: '#ffffff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, fontSize: '0.95rem' }}>
+                <FileText size={18} /> RINCIAN AWAL MASUK 2026/2027
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsRincianBiayaModalOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: '#ffffff', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ padding: '16px 20px' }}>
+              {/* Tab Pilihan Jenjang */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', background: '#f1f5f9', padding: '4px', borderRadius: '8px' }}>
+                {['SMP', 'SMA', 'SMK'].map((j) => (
+                  <button
+                    key={j}
+                    type="button"
+                    onClick={() => setRincianBiayaTab(j)}
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      fontWeight: 800,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      background: rincianBiayaTab === j ? '#0f766e' : 'transparent',
+                      color: rincianBiayaTab === j ? '#ffffff' : '#475569',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    Jenjang {j} ({j === 'SMP' ? 'Rp 2.395.000' : j === 'SMA' ? 'Rp 2.605.000' : 'Rp 2.965.000'})
+                  </button>
+                ))}
+              </div>
+
+              {/* Tabel Rincian Resmi Sesuai Lampiran */}
+              <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid #cbd5e1', textAlign: 'left' }}>
+                      <th style={{ padding: '8px 10px', borderRight: '1px solid #cbd5e1' }}>KOMPONEN</th>
+                      <th style={{ padding: '8px 10px', borderRight: '1px solid #cbd5e1' }}>URAIAN BIAYA</th>
+                      <th style={{ padding: '8px 10px', textAlign: 'right', borderRight: '1px solid #cbd5e1' }}>BIAYA</th>
+                      <th style={{ padding: '8px 10px', textAlign: 'right' }}>SUBTOTAL</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* Adm Sekolah */}
+                    <tr style={{ background: '#faf5ff' }}>
+                      <td rowSpan={rincianBiayaTab === 'SMK' ? 10 : rincianBiayaTab === 'SMA' ? 8 : 7} style={{ verticalAlign: 'top', padding: '8px 10px', fontWeight: 800, color: '#7e22ce', borderRight: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1' }}>
+                        Adm Sekolah
+                      </td>
+                      <td style={{ padding: '6px 10px', borderRight: '1px solid #cbd5e1' }}>Pendaftaran</td>
+                      <td style={{ padding: '6px 10px', textAlign: 'right', borderRight: '1px solid #cbd5e1' }}>Rp 100.000</td>
+                      <td rowSpan={rincianBiayaTab === 'SMK' ? 10 : rincianBiayaTab === 'SMA' ? 8 : 7} style={{ verticalAlign: 'middle', textAlign: 'right', padding: '8px 10px', fontWeight: 800, fontSize: '0.85rem', color: '#1e293b', borderBottom: '1px solid #cbd5e1' }}>
+                        {rincianBiayaTab === 'SMK' ? 'Rp 1.400.000' : rincianBiayaTab === 'SMA' ? 'Rp 1.040.000' : 'Rp 890.000'}
+                      </td>
+                    </tr>
+                    <tr><td style={{ padding: '4px 10px', borderRight: '1px solid #cbd5e1' }}>Kartu Siswa</td><td style={{ padding: '4px 10px', textAlign: 'right', borderRight: '1px solid #cbd5e1' }}>Rp 15.000</td></tr>
+                    <tr><td style={{ padding: '4px 10px', borderRight: '1px solid #cbd5e1' }}>Logo</td><td style={{ padding: '4px 10px', textAlign: 'right', borderRight: '1px solid #cbd5e1' }}>Rp 25.000</td></tr>
+                    <tr><td style={{ padding: '4px 10px', borderRight: '1px solid #cbd5e1' }}>Kaos</td><td style={{ padding: '4px 10px', textAlign: 'right', borderRight: '1px solid #cbd5e1' }}>Rp 100.000</td></tr>
+                    <tr><td style={{ padding: '4px 10px', borderRight: '1px solid #cbd5e1' }}>Kemeja</td><td style={{ padding: '4px 10px', textAlign: 'right', borderRight: '1px solid #cbd5e1' }}>Rp 100.000</td></tr>
+                    {(rincianBiayaTab === 'SMA' || rincianBiayaTab === 'SMK') && (
+                      <tr><td style={{ padding: '4px 10px', borderRight: '1px solid #cbd5e1' }}>Almamater</td><td style={{ padding: '4px 10px', textAlign: 'right', borderRight: '1px solid #cbd5e1' }}>Rp 150.000</td></tr>
+                    )}
+                    {rincianBiayaTab === 'SMK' && (
+                      <tr><td style={{ padding: '4px 10px', borderRight: '1px solid #cbd5e1' }}>Baju Praktek</td><td style={{ padding: '4px 10px', textAlign: 'right', borderRight: '1px solid #cbd5e1' }}>Rp 110.000</td></tr>
+                    )}
+                    <tr><td style={{ padding: '4px 10px', borderRight: '1px solid #cbd5e1' }}>Sampul Raport</td><td style={{ padding: '4px 10px', textAlign: 'right', borderRight: '1px solid #cbd5e1' }}>Rp 50.000</td></tr>
+                    {rincianBiayaTab === 'SMK' && (
+                      <tr><td style={{ padding: '4px 10px', borderRight: '1px solid #cbd5e1' }}>Alat Praktek</td><td style={{ padding: '4px 10px', textAlign: 'right', borderRight: '1px solid #cbd5e1' }}>Rp 250.000</td></tr>
+                    )}
+                    <tr style={{ borderBottom: '1px solid #cbd5e1' }}>
+                      <td style={{ padding: '4px 10px', borderRight: '1px solid #cbd5e1' }}>Bangunan</td>
+                      <td style={{ padding: '4px 10px', textAlign: 'right', borderRight: '1px solid #cbd5e1' }}>Rp 500.000</td>
+                    </tr>
+
+                    {/* Adm Pesantren */}
+                    <tr style={{ background: '#f0fdf4' }}>
+                      <td rowSpan={10} style={{ verticalAlign: 'top', padding: '8px 10px', fontWeight: 800, color: '#15803d', borderRight: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1' }}>
+                        Adm Pesantren
+                      </td>
+                      <td style={{ padding: '4px 10px', borderRight: '1px solid #cbd5e1' }}>K. Mahrom</td>
+                      <td style={{ padding: '4px 10px', textAlign: 'right', borderRight: '1px solid #cbd5e1' }}>Rp 15.000</td>
+                      <td rowSpan={10} style={{ verticalAlign: 'middle', textAlign: 'right', padding: '8px 10px', fontWeight: 800, fontSize: '0.85rem', color: '#15803d', borderBottom: '1px solid #cbd5e1' }}>
+                        Rp 1.000.000
+                      </td>
+                    </tr>
+                    <tr><td style={{ padding: '4px 10px', borderRight: '1px solid #cbd5e1' }}>B. Raport</td><td style={{ padding: '4px 10px', textAlign: 'right', borderRight: '1px solid #cbd5e1' }}>Rp 60.000</td></tr>
+                    <tr><td style={{ padding: '4px 10px', borderRight: '1px solid #cbd5e1' }}>Tafrij</td><td style={{ padding: '4px 10px', textAlign: 'right', borderRight: '1px solid #cbd5e1' }}>Rp 50.000</td></tr>
+                    <tr><td style={{ padding: '4px 10px', borderRight: '1px solid #cbd5e1' }}>Mufrodat</td><td style={{ padding: '4px 10px', textAlign: 'right', borderRight: '1px solid #cbd5e1' }}>Rp 30.000</td></tr>
+                    <tr><td style={{ padding: '4px 10px', borderRight: '1px solid #cbd5e1' }}>Buku Muhafadoh</td><td style={{ padding: '4px 10px', textAlign: 'right', borderRight: '1px solid #cbd5e1' }}>Rp 20.000</td></tr>
+                    <tr><td style={{ padding: '4px 10px', borderRight: '1px solid #cbd5e1' }}>Nametag</td><td style={{ padding: '4px 10px', textAlign: 'right', borderRight: '1px solid #cbd5e1' }}>Rp 15.000</td></tr>
+                    <tr><td style={{ padding: '4px 10px', borderRight: '1px solid #cbd5e1' }}>Infaq</td><td style={{ padding: '4px 10px', textAlign: 'right', borderRight: '1px solid #cbd5e1' }}>Rp 500.000</td></tr>
+                    <tr><td style={{ padding: '4px 10px', borderRight: '1px solid #cbd5e1' }}>OPPN</td><td style={{ padding: '4px 10px', textAlign: 'right', borderRight: '1px solid #cbd5e1' }}>Rp 100.000</td></tr>
+                    <tr><td style={{ padding: '4px 10px', borderRight: '1px solid #cbd5e1' }}>Ziarah</td><td style={{ padding: '4px 10px', textAlign: 'right', borderRight: '1px solid #cbd5e1' }}>Rp 120.000</td></tr>
+                    <tr style={{ borderBottom: '1px solid #cbd5e1' }}>
+                      <td style={{ padding: '4px 10px', borderRight: '1px solid #cbd5e1' }}>Peralatan Dapur</td>
+                      <td style={{ padding: '4px 10px', textAlign: 'right', borderRight: '1px solid #cbd5e1' }}>Rp 90.000</td>
+                    </tr>
+
+                    {/* SPP Juli */}
+                    <tr style={{ background: '#eff6ff', borderBottom: '2px solid #0f766e' }}>
+                      <td style={{ padding: '8px 10px', fontWeight: 800, color: '#1d4ed8', borderRight: '1px solid #cbd5e1' }}>
+                        SPP Rutin
+                      </td>
+                      <td style={{ padding: '8px 10px', fontWeight: 700, borderRight: '1px solid #cbd5e1' }}>Makan dan SPP Sekolah (Juli)</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, borderRight: '1px solid #cbd5e1' }}>
+                        {rincianBiayaTab === 'SMP' ? 'Rp 505.000' : 'Rp 565.000'}
+                      </td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 800, color: '#1d4ed8' }}>
+                        {rincianBiayaTab === 'SMP' ? 'Rp 505.000' : 'Rp 565.000'}
+                      </td>
+                    </tr>
+
+                    {/* Grand Total */}
+                    <tr style={{ background: '#0f766e', color: '#ffffff', fontWeight: 800, fontSize: '0.88rem' }}>
+                      <td colSpan={3} style={{ padding: '12px 14px', textAlign: 'right' }}>
+                        TOTAL RINCIAN AWAL MASUK ({rincianBiayaTab}):
+                      </td>
+                      <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                        {rincianBiayaTab === 'SMK' ? 'Rp 2.965.000' : rincianBiayaTab === 'SMA' ? 'Rp 2.605.000' : 'Rp 2.395.000'}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsRincianBiayaModalOpen(false)}
+                  className="btn btn-primary"
+                  style={{ background: '#0f766e', borderColor: '#0f766e', fontSize: '0.82rem', fontWeight: 700 }}
+                >
+                  Tutup Rincian
+                </button>
+              </div>
             </div>
           </div>
         </div>
