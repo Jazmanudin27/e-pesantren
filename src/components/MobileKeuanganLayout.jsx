@@ -94,6 +94,8 @@ export default function MobileKeuanganLayout() {
       case 'spp':
       case 'keuangan-kasir':
       case 'kasir':
+      case 'keuangan-generate':
+      case 'generate':
         return <MobileKeuangan initialSubTab="kasir" onBackToHome={() => handleSelectTab('home')} />;
       case 'keuangan-rekap':
       case 'laporan':

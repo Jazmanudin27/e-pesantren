@@ -8,6 +8,7 @@ import RiwayatTrxTerbaru from "./components/RiwayatTrxTerbaru";
 import ModalKuitansi from "./components/ModalKuitansi";
 import ModalSiklusSpp from "./components/ModalSiklusSpp";
 import ModalDetailKasMasuk from "./components/ModalDetailKasMasuk";
+import ModalGenerateTagihan from "./components/ModalGenerateTagihan";
 
 export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
   const [loading, setLoading] = useState(true);
@@ -25,6 +26,7 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
 
   // State Modal Detail Rincian Kas Masuk & Kuitansi
   const [isDetailKasModalOpen, setIsDetailKasModalOpen] = useState(false);
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [kuitansiModal, setKuitansiModal] = useState({
     isOpen: false,
     data: null,
@@ -298,10 +300,11 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
 
       {/* 3. BODY CONTENT */}
       <div style={{ padding: "12px 14px 0" }}>
-        {/* 4. MENU LAYANAN KEUANGAN (GRID 10 MENU) */}
+        {/* 4. MENU LAYANAN KEUANGAN (GRID 6 MENU) */}
         <MenuLayananKeuangan
           onChangeTab={onChangeTab}
           onOpenDetailKas={() => setIsDetailKasModalOpen(true)}
+          onOpenGenerate={() => setIsGenerateModalOpen(true)}
           onRefresh={fetchKeuanganSummary}
           loading={loading}
         />
@@ -344,6 +347,13 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
         data={kuitansiModal.data}
         onClose={() => setKuitansiModal({ isOpen: false, data: null })}
         formatRp={formatRp}
+      />
+
+      {/* 9. MODAL GENERATE TAGIHAN SESUAI SEKOLAH (PERSIS GAMBAR DOKUMEN 2026/2027) */}
+      <ModalGenerateTagihan
+        isOpen={isGenerateModalOpen}
+        onClose={() => setIsGenerateModalOpen(false)}
+        onGenerated={fetchKeuanganSummary}
       />
     </div>
   );

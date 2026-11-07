@@ -368,3 +368,115 @@ export const assignSantriSekolah = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/sekolah/generate-tagihan-masuk
+ * Generate tagihan awal masuk resmi sesuai rincian dokumen (SMP/SMA/SMK) ke tabel keuangan_tagihan
+ */
+export const generateTagihanAwalMasukSekolah = async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    await ensureSekolahTablesAndMapping();
+    const {
+      jenjang = 'SMP', // 'SMP' | 'SMA' | 'SMK' | 'SEMUA'
+      tahun_ajaran = '2026/2027',
+      mode = 'paket', // 'paket' (Adm Sekolah + Adm Pesantren + SPP Juli) | 'total' (1 tagihan total)
+      santri_id
+    } = req.body;
+
+    await connection.beginTransaction();
+
+    let sqlSantri = `
+      SELECT s.id, s.nama_santri, s.nis, s.nama_sekolah, s.tingkat_sekolah, sk.jenjang
+      FROM santri s
+      LEFT JOIN sekolah sk ON s.sekolah_id = sk.id
+      WHERE 1=1
+    `;
+    const params = [];
+    if (santri_id) {
+      sqlSantri += ' AND s.id = ?';
+      params.push(santri_id);
+    } else if (jenjang && jenjang !== 'SEMUA') {
+      sqlSantri += ' AND (sk.jenjang = ? OR s.nama_sekolah LIKE ?)';
+      params.push(jenjang.toUpperCase(), `%${jenjang}%`);
+    }
+
+    const [targetSantri] = await connection.query(sqlSantri, params);
+    if (!targetSantri || targetSantri.length === 0) {
+      await connection.rollback();
+      return sendError(res, 'Tidak ada santri yang sesuai dengan filter sekolah tersebut', 404);
+    }
+
+    let totalGenerated = 0;
+    let totalSkipped = 0;
+
+    for (const santri of targetSantri) {
+      const jKey = (santri.jenjang || (santri.nama_sekolah?.includes('SMA') ? 'SMA' : santri.nama_sekolah?.includes('SMK') ? 'SMK' : 'SMP')).toUpperCase();
+      const master = RINCIAN_AWAL_MASUK_MASTER[jKey] || RINCIAN_AWAL_MASUK_MASTER.SMP;
+
+      const billItems = [];
+      if (mode === 'total') {
+        billItems.push({
+          judul: `Biaya Awal Masuk ${jKey} ${tahun_ajaran}`,
+          kategori: 'Biaya Masuk',
+          periode: `TA ${tahun_ajaran}`,
+          total: master.total_masuk_juli
+        });
+      } else {
+        billItems.push({
+          judul: `Adm Sekolah ${jKey} ${tahun_ajaran}`,
+          kategori: 'Biaya Masuk',
+          periode: `TA ${tahun_ajaran}`,
+          total: master.total_adm_sekolah
+        });
+        billItems.push({
+          judul: `Adm Pesantren ${tahun_ajaran}`,
+          kategori: 'Biaya Masuk',
+          periode: `TA ${tahun_ajaran}`,
+          total: master.total_adm_pesantren
+        });
+        billItems.push({
+          judul: `SPP & Makan Juli 2026 (${jKey})`,
+          kategori: 'Bulanan',
+          periode: 'Juli 2026',
+          total: master.nominal_spp
+        });
+      }
+
+      for (const item of billItems) {
+        // Cek anti duplikat
+        const [existing] = await connection.query(`
+          SELECT id FROM keuangan_tagihan 
+          WHERE santri_id = ? AND (judul_tagihan = ? OR (periode_bulan = ? AND kategori = ?))
+          LIMIT 1
+        `, [santri.id, item.judul, item.periode, item.kategori]);
+
+        if (existing && existing.length > 0) {
+          totalSkipped++;
+          continue;
+        }
+
+        const kodeTagihan = `TGH-${santri.id}-${Date.now().toString().slice(-5)}-${Math.floor(100 + Math.random() * 900)}`;
+        await connection.query(`
+          INSERT INTO keuangan_tagihan 
+          (kode_tagihan, santri_id, judul_tagihan, kategori, periode_bulan, total_tagihan, sudah_dibayar, sisa_tagihan, status, jatuh_tempo)
+          VALUES (?, ?, ?, ?, ?, ?, 0, ?, 'Belum Dibayar', '2026-07-10')
+        `, [kodeTagihan, santri.id, item.judul, item.kategori, item.periode, item.total, item.total]);
+
+        totalGenerated++;
+      }
+    }
+
+    await connection.commit();
+    return sendSuccess(res, `Berhasil generate ${totalGenerated} tagihan awal masuk (${totalSkipped} dilewati karena sudah ada)`, {
+      total_generated: totalGenerated,
+      total_skipped: totalSkipped,
+      total_santri: targetSantri.length
+    });
+  } catch (err) {
+    await connection.rollback();
+    return sendError(res, `Gagal generate tagihan: ${err.message}`, 500);
+  } finally {
+    connection.release();
+  }
+};
+

@@ -23,9 +23,11 @@ import {
   Share2,
   DollarSign,
   Calendar,
-  Users
+  Users,
+  Sparkles
 } from 'lucide-react';
 import { toastSuccess, showError, showConfirm } from '../../utils/alert.util';
+import ModalGenerateTagihan from '../keuangan/components/ModalGenerateTagihan';
 
 export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }) {
   // Sub-tabs: 'kasir' | 'laporan'
@@ -49,6 +51,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
   const [selectedSantri, setSelectedSantri] = useState(null);
   const [santriSearch, setSantriSearch] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [santriTagihan, setSantriTagihan] = useState({ bulanan: [], bebas: [], riwayat: [] });
   const [loadingTagihan, setLoadingTagihan] = useState(false);
 
@@ -319,15 +322,15 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
       paddingBottom: activeTab === 'kasir' && selectedSantri ? '100px' : '36px',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
     }}>
-      {/* Top Header Terpadu Emerald Green (Persis Header Ortu / Wali: Cuma Back & Title Saja) */}
+      {/* Top Header Terpadu Emerald Green (Persis Header Ortu / Admin) */}
       <div style={{
-        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-        padding: '16px 16px 20px',
+        background: 'linear-gradient(180deg, #0b6b60 0%, #0d766e 70%, #095c53 100%)',
+        padding: '14px 16px 36px',
         color: '#ffffff',
-        borderBottomLeftRadius: '24px',
-        borderBottomRightRadius: '24px',
-        boxShadow: '0 8px 20px rgba(5, 150, 105, 0.25)',
-        marginBottom: '16px'
+        borderBottomLeftRadius: '28px',
+        borderBottomRightRadius: '28px',
+        position: 'relative',
+        boxShadow: '0 8px 20px rgba(11, 107, 96, 0.25)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {onBackToHome && (
@@ -335,11 +338,11 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
               onClick={onBackToHome}
               style={{
                 background: 'rgba(255, 255, 255, 0.2)',
-                border: 'none',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
                 color: '#ffffff',
-                width: '34px',
-                height: '34px',
-                borderRadius: '50%',
+                width: '36px',
+                height: '36px',
+                borderRadius: '12px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -351,8 +354,8 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
             </button>
           )}
           <div>
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px', color: '#ffffff' }}>
-              {activeTab === 'laporan' ? 'Laporan Kas' : 'Kasir'}
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px', color: '#ffffff' }}>
+              {activeTab === 'laporan' ? 'Laporan Kas' : activeTab === 'tunggakan' ? 'Tunggakan Santri' : activeTab === 'transaksi' ? 'Histori Transaksi' : 'Kasir'}
             </h2>
           </div>
         </div>
@@ -362,18 +365,43 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
           TAB 1: KASIR BAYAR MOBILE (POS MODERN)
       ========================================================================= */}
       {activeTab === 'kasir' && (
-        <div style={{ padding: '16px 14px' }}>
+        <div style={{ padding: '0 14px', marginTop: '-24px', position: 'relative', zIndex: 10 }}>
           {/* Card Santri Selector */}
           <div style={{
             background: '#ffffff',
-            borderRadius: '20px',
-            padding: '16px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 4px 16px -2px rgba(0,0,0,0.05)',
+            borderRadius: '22px',
+            padding: '14px',
+            border: '1px solid #e6f0ed',
+            boxShadow: '0 10px 24px -4px rgba(11, 107, 96, 0.16), 0 2px 8px rgba(0, 0, 0, 0.04)',
             marginBottom: '16px'
           }}>
-            <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.2px', marginBottom: '10px' }}>
-              Daftar Santri
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.2px' }}>
+                Daftar Santri
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsGenerateModalOpen(true)}
+                style={{
+                  background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '4px 10px',
+                  borderRadius: '10px',
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  boxShadow: '0 2px 6px rgba(139, 92, 246, 0.28)',
+                  outline: 'none',
+                  WebkitTapHighlightColor: 'transparent'
+                }}
+              >
+                <Sparkles size={12} />
+                <span>Gen. Tagihan</span>
+              </button>
             </div>
 
             {/* Input Search Santri */}
@@ -1171,7 +1199,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
           TAB 2: LAPORAN KAS & REKAP KEUANGAN
       ========================================================================= */}
       {activeTab === 'laporan' && (
-        <div style={{ padding: '16px 14px' }}>
+        <div style={{ padding: '0 14px', marginTop: '-24px', position: 'relative', zIndex: 10 }}>
           {/* 3 Metric Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '14px' }}>
             <div style={{
@@ -1542,7 +1570,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
           TAB 3: STATUS SPP BULANAN SANTRI
       ========================================================================= */}
       {activeTab === 'spp' && (
-        <div style={{ padding: '16px 14px' }}>
+        <div style={{ padding: '0 14px', marginTop: '-24px', position: 'relative', zIndex: 10 }}>
           {/* Filter Bar */}
           <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
             <div style={{
@@ -1630,7 +1658,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
           TAB 4: REKAP TUNGGAKAN SANTRI
       ========================================================================= */}
       {activeTab === 'tunggakan' && (
-        <div style={{ padding: '16px 14px' }}>
+        <div style={{ padding: '0 14px', marginTop: '-24px', position: 'relative', zIndex: 10 }}>
           <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#be123c', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <AlertTriangle size={15} />
             <span>Santri dengan Piutang / Tunggakan Aktif</span>
@@ -1728,7 +1756,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
 
       {/* TAB 5: Histori Pembayaran Selesai (Semua Selesai: Offline & Online, Bukan Pending) */}
       {activeTab === 'transaksi' && (
-        <div style={{ padding: '16px 14px' }}>
+        <div style={{ padding: '0 14px', marginTop: '-24px', position: 'relative', zIndex: 10 }}>
           <div style={{ marginBottom: '14px' }}>
             <div style={{ fontSize: '0.82rem', fontWeight: 900, color: '#0f172a', textTransform: 'uppercase' }}>
               Histori Pembayaran Selesai
@@ -2147,6 +2175,14 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
           </div>
         </div>
       )}
+
+      {/* MODAL GENERATE TAGIHAN SESUAI SEKOLAH (PERSIS RINCIAN DOKUMEN 2026/2027 & SPP BULANAN) */}
+      <ModalGenerateTagihan
+        isOpen={isGenerateModalOpen}
+        onClose={() => setIsGenerateModalOpen(false)}
+        onGenerated={fetchRekapAndSantri}
+        initialSekolah={kasirFilterSekolah}
+      />
     </div>
   );
 }

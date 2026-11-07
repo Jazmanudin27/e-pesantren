@@ -5,7 +5,8 @@ import {
   Wallet,
   Heart,
   AlertTriangle,
-  RotateCw
+  RotateCw,
+  Sparkles
 } from 'lucide-react';
 
 const squircleIconStyle = {
@@ -43,10 +44,11 @@ const menuLabelStyle = {
 export default function MenuLayananKeuangan({
   onChangeTab,
   onOpenDetailKas,
+  onOpenGenerate,
   onRefresh,
   loading
 }) {
-  // Hanya 5 Menu Resmi: Kasir, Histori, Tabungan, Infak Ponpes, Tunggakan
+  // 6 Menu Layanan Keuangan (4 Kolom per Baris): Kasir, Histori, Tabungan, Infak Ponpes, Tunggakan, Gen. Tagihan
   const menuList = [
     {
       id: 'keuangan-kasir',
@@ -82,6 +84,13 @@ export default function MenuLayananKeuangan({
       gradient: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
       shadow: '0 6px 16px -2px rgba(239, 68, 68, 0.38)',
       icon: <AlertTriangle size={22} strokeWidth={2.3} color="#ffffff" />
+    },
+    {
+      id: 'keuangan-generate',
+      name: 'Gen. Tagihan',
+      gradient: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+      shadow: '0 6px 16px -2px rgba(139, 92, 246, 0.38)',
+      icon: <Sparkles size={22} strokeWidth={2.3} color="#ffffff" />
     }
   ];
 
@@ -154,6 +163,9 @@ export default function MenuLayananKeuangan({
             onClick={() => {
               if (m.id === 'keuangan-rekap') {
                 onOpenDetailKas();
+              } else if (m.id === 'keuangan-generate') {
+                if (onOpenGenerate) onOpenGenerate();
+                else onChangeTab(m.id);
               } else {
                 onChangeTab(m.id);
               }
