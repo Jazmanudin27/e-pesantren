@@ -67,6 +67,9 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
     data: null
   });
 
+  // Modal Pilih Metode Pembayaran (Cash, QRIS Midtrans, Transfer Bank)
+  const [isMetodeModalOpen, setIsMetodeModalOpen] = useState(false);
+
   // Filter List SPP & Transaksi & Laporan
   const [sppFilter, setSppFilter] = useState('semua'); // 'semua' | 'nunggak' | 'lunas'
   const [sppSearch, setSppSearch] = useState('');
@@ -288,25 +291,9 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
   const selectedIds = Object.keys(selectedPayMap);
   const totalBayar = selectedIds.reduce((sum, id) => sum + (parseFloat(selectedPayMap[id]) || 0), 0);
 
-  // Proses Pembayaran Kasir
-  const handleProsesBayar = async () => {
-    if (!selectedSantri) {
-      showError('Santri Belum Dipilih', 'Silakan pilih santri terlebih dahulu.');
-      return;
-    }
-    if (selectedIds.length === 0 || totalBayar <= 0) {
-      showError('Pilih Tagihan', 'Centang minimal 1 tagihan untuk dibayarkan.');
-      return;
-    }
-
-    const ok = await showConfirm(
-      'Konfirmasi Pembayaran Kasir',
-      `Terima pembayaran untuk ${selectedSantri.nama_santri} sebesar Rp ${totalBayar.toLocaleString('id-ID')} via ${metodeBayar}?`,
-      'Ya, Bayar Sekarang',
-      'Batal'
-    );
-    if (!ok) return;
-
+  // 1. Proses Pembayaran Tunai Langsung
+  const handleProsesBayarTunai = async () => {
+    setIsMetodeModalOpen(false);
     setProcessingPay(true);
     try {
       const itemsPayload = selectedIds.map((id) => ({
@@ -316,8 +303,8 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
 
       const res = await axios.post('/api/keuangan/admin/bayar-langsung', {
         santri_id: parseInt(selectedSantri.id),
-        metode_pembayaran: metodeBayar.includes('QRIS') ? 'QRIS' : 'Virtual Account',
-        channel_pembayaran: metodeBayar,
+        metode_pembayaran: 'Tunai',
+        channel_pembayaran: 'Tunai / Kasir',
         items: itemsPayload
       });
 
@@ -342,7 +329,63 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
         fetchRekapAndSantri();
       }
     } catch (err) {
-      showError('Gagal Bayar', err.response?.data?.message || err.message);
+      showError('Gagal Bayar Tunai', err.response?.data?.message || err.message);
+    } finally {
+      setProcessingPay(false);
+    }
+  };
+
+  // 2. Proses Pembayaran via Midtrans (QRIS Dinamis atau Virtual Account Bank)
+  const handleProsesBayarMidtrans = async (metode = 'QRIS') => {
+    setIsMetodeModalOpen(false);
+    setProcessingPay(true);
+    try {
+      const itemsPayload = selectedIds.map((id) => ({
+        tagihan_id: parseInt(id),
+        nominal: parseFloat(selectedPayMap[id]) || 0
+      }));
+
+      const res = await axios.post('/api/keuangan/wali/bayar', {
+        santri_id: parseInt(selectedSantri.id),
+        items: itemsPayload,
+        metode_pembayaran: metode,
+        channel_pembayaran: metode === 'QRIS' ? 'QRIS Midtrans' : 'Virtual Account Midtrans'
+      });
+
+      if (res.data?.success && res.data.data?.snap_token) {
+        const snapToken = res.data.data.snap_token;
+        if (window.snap) {
+          window.snap.pay(snapToken, {
+            onSuccess: function () {
+              toastSuccess('Pembayaran Berhasil!', 'Pembayaran via Midtrans telah terverifikasi.');
+              setSelectedPayMap({});
+              fetchTagihanSantri(selectedSantri.id);
+              fetchRekapAndSantri();
+            },
+            onPending: function () {
+              toastSuccess('Menunggu Pembayaran', 'Transaksi Midtrans berhasil dibuat.');
+              setSelectedPayMap({});
+              fetchTagihanSantri(selectedSantri.id);
+              fetchRekapAndSantri();
+            },
+            onError: function (result) {
+              showError('Gagal Bayar', result?.status_message || 'Pembayaran via Midtrans gagal.');
+            },
+            onClose: function () {
+              fetchTagihanSantri(selectedSantri.id);
+              fetchRekapAndSantri();
+            }
+          });
+        } else if (res.data.data?.payment_url) {
+          window.open(res.data.data.payment_url, '_blank');
+        } else {
+          showError('Midtrans Belum Siap', 'Script Midtrans Snap belum siap di browser.');
+        }
+      } else {
+        showError('Gagal Midtrans', res.data?.message || 'Gagal membuat transaksi Midtrans.');
+      }
+    } catch (err) {
+      showError('Gagal Bayar Midtrans', err.response?.data?.message || err.message);
     } finally {
       setProcessingPay(false);
     }
@@ -957,41 +1000,6 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  {/* Metode Pembayaran Card */}
-                  <div style={{
-                    background: '#ffffff',
-                    borderRadius: '18px',
-                    padding: '14px',
-                    border: '1px solid #e2e8f0'
-                  }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '8px' }}>
-                      Pilih Metode Kasir
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-                      {['Tunai / Kasir', 'Transfer Bank', 'QRIS Dinamis'].map((m) => {
-                        const isSel = metodeBayar === m;
-                        return (
-                          <button
-                            key={m}
-                            onClick={() => setMetodeBayar(m)}
-                            style={{
-                              padding: '8px 4px',
-                              borderRadius: '10px',
-                              border: isSel ? '1.5px solid #059669' : '1px solid #e2e8f0',
-                              background: isSel ? '#ecfdf5' : '#f8fafc',
-                              color: isSel ? '#065f46' : '#64748b',
-                              fontSize: '0.72rem',
-                              fontWeight: isSel ? 800 : 600,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            {m}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
                   {/* 1. Tagihan SPP Bulanan */}
                   <div style={{
                     background: '#ffffff',
@@ -1276,18 +1284,19 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
             </>
           )}
 
-          {/* Sticky Checkout Bottom Bar */}
-          {selectedSantri && (
+          {/* Sticky Checkout Bottom Bar (Muncul Tepat di Atas Bottom Nav Bar saat Ada Tagihan Dicentang) */}
+          {selectedSantri && selectedIds.length > 0 && (
             <div style={{
               position: 'fixed',
-              bottom: 0,
+              bottom: '60px',
               left: 0,
               right: 0,
-              zIndex: 90,
+              zIndex: 120,
               background: '#ffffff',
-              borderTop: '1px solid #e2e8f0',
-              padding: '12px 16px 20px',
-              boxShadow: '0 -8px 24px rgba(0,0,0,0.12)',
+              borderTop: '1.5px solid #10b981',
+              borderRadius: '18px 18px 0 0',
+              padding: '11px 16px',
+              boxShadow: '0 -6px 20px rgba(0,0,0,0.12)',
               maxWidth: '430px',
               margin: '0 auto',
               display: 'flex',
@@ -1296,43 +1305,35 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
               boxSizing: 'border-box'
             }}>
               <div>
-                <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                <div style={{ fontSize: '0.67rem', color: '#64748b', fontWeight: 700 }}>
                   {selectedIds.length} Tagihan Dipilih
                 </div>
-                <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#059669' }}>
+                <div style={{ fontSize: '1.08rem', fontWeight: 900, color: '#059669' }}>
                   Rp {totalBayar.toLocaleString('id-ID')}
                 </div>
               </div>
 
               <button
-                onClick={handleProsesBayar}
-                disabled={processingPay || selectedIds.length === 0}
+                type="button"
+                onClick={() => setIsMetodeModalOpen(true)}
+                disabled={processingPay}
                 style={{
-                  background: selectedIds.length > 0 ? 'linear-gradient(135deg, #059669, #047857)' : '#cbd5e1',
+                  background: 'linear-gradient(135deg, #059669, #047857)',
                   color: '#ffffff',
                   border: 'none',
-                  padding: '12px 20px',
-                  borderRadius: '14px',
+                  padding: '10px 18px',
+                  borderRadius: '12px',
                   fontWeight: 800,
-                  fontSize: '0.85rem',
+                  fontSize: '0.84rem',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
-                  cursor: selectedIds.length > 0 ? 'pointer' : 'not-allowed',
-                  boxShadow: selectedIds.length > 0 ? '0 6px 16px rgba(5, 150, 105, 0.4)' : 'none'
+                  gap: '6px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(5, 150, 105, 0.35)'
                 }}
               >
-                {processingPay ? (
-                  <>
-                    <RotateCw size={16} className="spin" />
-                    <span>Memproses...</span>
-                  </>
-                ) : (
-                  <>
-                    <CreditCard size={16} />
-                    <span>Bayar Sekarang</span>
-                  </>
-                )}
+                <span>Bayar Kasir</span>
+                <ChevronRight size={16} />
               </button>
             </div>
           )}
@@ -2315,6 +2316,173 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                   Selesai & Tutup
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PILIH METODE PEMBAYARAN KASIR (TUNAI / CASH, QRIS MIDTRANS, TRANSFER VA MIDTRANS) */}
+      {isMetodeModalOpen && selectedSantri && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(3px)',
+          zIndex: 300,
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            width: '100%',
+            maxWidth: '430px',
+            borderTopLeftRadius: '24px',
+            borderTopRightRadius: '24px',
+            padding: '20px 18px 30px',
+            boxShadow: '0 -10px 30px rgba(0,0,0,0.2)'
+          }}>
+            {/* Header Modal */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
+                  Pilih Metode Pembayaran
+                </h3>
+                <p style={{ margin: '3px 0 0', fontSize: '0.72rem', color: '#64748b' }}>
+                  {selectedSantri.nama_santri} • {selectedIds.length} Tagihan Dipilih
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMetodeModalOpen(false)}
+                style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Total Ringkasan Banner */}
+            <div style={{
+              background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+              border: '1px solid #a7f3d0',
+              borderRadius: '14px',
+              padding: '12px 14px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '16px'
+            }}>
+              <div>
+                <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#065f46' }}>TOTAL TAGIHAN DIPILIH</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#047857' }}>
+                  Rp {totalBayar.toLocaleString('id-ID')}
+                </div>
+              </div>
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, background: '#059669', color: '#ffffff', padding: '3px 8px', borderRadius: '8px' }}>
+                Kasir NWF
+              </span>
+            </div>
+
+            {/* 3 Pilihan Metode Pembayaran */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* 1. Tunai / Cash Langsung */}
+              <button
+                type="button"
+                onClick={handleProsesBayarTunai}
+                disabled={processingPay}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '13px 14px',
+                  borderRadius: '16px',
+                  border: '1.5px solid #10b981',
+                  background: '#ffffff',
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Wallet size={22} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '0.86rem', color: '#0f172a' }}>
+                      Tunai / Cash (Kasir Langsung)
+                    </div>
+                    <div style={{ fontSize: '0.67rem', color: '#64748b', marginTop: '2px' }}>
+                      Diterima uang tunai • Kuitansi langsung sah & siap kirim WA
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={18} color="#059669" />
+              </button>
+
+              {/* 2. QRIS Dinamis Midtrans */}
+              <button
+                type="button"
+                onClick={() => handleProsesBayarMidtrans('QRIS')}
+                disabled={processingPay}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '13px 14px',
+                  borderRadius: '16px',
+                  border: '1.5px solid #0284c7',
+                  background: '#ffffff',
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#f0f9ff', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Zap size={22} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '0.86rem', color: '#0f172a' }}>
+                      QRIS Dinamis (Midtrans)
+                    </div>
+                    <div style={{ fontSize: '0.67rem', color: '#64748b', marginTop: '2px' }}>
+                      Scan QRIS via BCA, Mandiri, GoPay, OVO, Dana, ShopeePay
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={18} color="#0284c7" />
+              </button>
+
+              {/* 3. Transfer Virtual Account Bank Midtrans */}
+              <button
+                type="button"
+                onClick={() => handleProsesBayarMidtrans('Virtual Account')}
+                disabled={processingPay}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '13px 14px',
+                  borderRadius: '16px',
+                  border: '1.5px solid #8b5cf6',
+                  background: '#ffffff',
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#f5f3ff', color: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <CreditCard size={22} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '0.86rem', color: '#0f172a' }}>
+                      Transfer Bank / VA (Midtrans)
+                    </div>
+                    <div style={{ fontSize: '0.67rem', color: '#64748b', marginTop: '2px' }}>
+                      Virtual Account BCA, BNI, BRI, Mandiri, Permata
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={18} color="#8b5cf6" />
+              </button>
             </div>
           </div>
         </div>
