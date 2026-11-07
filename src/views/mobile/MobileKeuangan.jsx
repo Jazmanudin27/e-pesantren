@@ -1370,7 +1370,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                     </div>
                   )}
 
-                  {/* 2. Biaya Masuk & Rincian Satuan (Simple & Elegan) */}
+                  {/* 2. Biaya Masuk Satuan Dikelompokkan per Kategori (Adm Pesantren / Adm Sekolah) */}
                   {santriTagihan.bebas.length > 0 && (
                     <div style={{
                       background: '#ffffff',
@@ -1379,10 +1379,10 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                       border: '1px solid #e2e8f0',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
                     }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                         <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <Building size={16} color="#059669" />
-                          <span>Biaya Masuk & Rincian</span>
+                          <span>Biaya Masuk</span>
                           <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b' }}>
                             ({santriTagihan.bebas.filter((t) => t.status === 'Lunas').length} / {santriTagihan.bebas.length} Lunas)
                           </span>
@@ -1408,106 +1408,127 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                         </button>
                       </div>
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                        {santriTagihan.bebas.map((t) => {
-                          const isLunas = t.status === 'Lunas';
-                          const isChecked = selectedPayMap[t.id] !== undefined;
-                          const sisa = parseFloat(t.sisa_tagihan || t.total_tagihan || 0);
-
-                          // Parsing nama & kategori agar tampilan super bersih & rapi
+                      {/* Grouping Items by Category */}
+                      {(() => {
+                        const grouped = santriTagihan.bebas.reduce((acc, t) => {
                           const matchKat = t.judul_tagihan.match(/\(([^)]+)\)/);
-                          const kategoriTag = matchKat ? matchKat[1] : (t.kategori || 'Masuk');
-                          const cleanName = t.judul_tagihan.replace(/\s*\([^)]*\)/, '');
-                          const isPes = kategoriTag.toLowerCase().includes('pesantren');
+                          const cat = matchKat ? matchKat[1].trim() : (t.kategori || 'Adm Pesantren');
+                          if (!acc[cat]) acc[cat] = [];
+                          acc[cat].push(t);
+                          return acc;
+                        }, {});
 
-                          return (
-                            <div
-                              key={t.id}
-                              onClick={() => !isLunas && handleTogglePay(t.id, sisa)}
-                              style={{
-                                padding: '7px 12px',
-                                borderRadius: '11px',
-                                border: isChecked ? '1.5px solid #059669' : '1px solid #f1f5f9',
-                                background: isChecked ? '#f0fdf4' : isLunas ? '#f8fafc' : '#ffffff',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                cursor: isLunas ? 'default' : 'pointer',
-                                transition: 'all 0.15s ease',
-                                boxShadow: isChecked ? '0 2px 8px rgba(5, 150, 105, 0.08)' : '0 1px 3px rgba(0,0,0,0.02)'
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                {!isLunas && (
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {Object.entries(grouped).map(([kategoriName, itemsInCat]) => {
+                              const lunasCount = itemsInCat.filter((t) => t.status === 'Lunas').length;
+
+                              return (
+                                <div key={kategoriName} style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                  {/* Sub-header Kategori (Misal: Adm Pesantren / Adm Sekolah) */}
                                   <div style={{
-                                    width: '18px',
-                                    height: '18px',
-                                    borderRadius: '5px',
-                                    border: isChecked ? 'none' : '1.5px solid #94a3b8',
-                                    background: isChecked ? '#059669' : '#ffffff',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: '#ffffff',
-                                    flexShrink: 0
+                                    justifyContent: 'space-between',
+                                    padding: '6px 10px',
+                                    borderRadius: '8px',
+                                    background: '#f8fafc',
+                                    borderLeft: '3.5px solid #059669',
+                                    marginBottom: '2px'
                                   }}>
-                                    {isChecked && <Check size={12} strokeWidth={3} />}
-                                  </div>
-                                )}
-                                <div>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', lineHeight: 1.2 }}>
-                                    <span style={{
-                                      fontWeight: 800,
-                                      fontSize: '0.8rem',
-                                      color: isLunas ? '#64748b' : '#0f172a'
-                                    }}>
-                                      {cleanName}
+                                    <span style={{ fontWeight: 800, fontSize: '0.78rem', color: '#0f172a' }}>
+                                      {kategoriName}
                                     </span>
-                                    <span style={{
-                                      fontSize: '0.58rem',
-                                      fontWeight: 700,
-                                      padding: '1px 5px',
-                                      borderRadius: '4px',
-                                      background: isPes ? '#e0f2fe' : '#f3e8ff',
-                                      color: isPes ? '#0369a1' : '#7e22ce'
-                                    }}>
-                                      {kategoriTag}
+                                    <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 700 }}>
+                                      {lunasCount} / {itemsInCat.length} Lunas
                                     </span>
                                   </div>
-                                  <div style={{ fontSize: '0.64rem', color: '#94a3b8', marginTop: '1px', lineHeight: 1.1 }}>
-                                    {t.periode_bulan || 'TA 2026/2027'}
-                                  </div>
-                                </div>
-                              </div>
 
-                              <div style={{ textAlign: 'right' }}>
-                                {isLunas ? (
-                                  <span style={{
-                                    fontSize: '0.62rem',
-                                    fontWeight: 800,
-                                    background: '#dcfce7',
-                                    color: '#15803d',
-                                    padding: '2px 7px',
-                                    borderRadius: '5px'
-                                  }}>
-                                    Lunas
-                                  </span>
-                                ) : (
-                                  <div>
-                                    <div style={{ fontWeight: 800, fontSize: '0.82rem', color: isChecked ? '#059669' : '#0f172a' }}>
-                                      Rp {sisa.toLocaleString('id-ID')}
-                                    </div>
-                                    {sisa < parseFloat(t.total_tagihan || 0) && (
-                                      <div style={{ fontSize: '0.6rem', color: '#64748b' }}>
-                                        dari Rp {Number(t.total_tagihan || 0).toLocaleString('id-ID')}
+                                  {/* Daftar Item Rincian Bersih Tanpa Label Berulang */}
+                                  {itemsInCat.map((t) => {
+                                    const isLunas = t.status === 'Lunas';
+                                    const isChecked = selectedPayMap[t.id] !== undefined;
+                                    const sisa = parseFloat(t.sisa_tagihan || t.total_tagihan || 0);
+                                    const cleanName = t.judul_tagihan.replace(/\s*\([^)]*\)/g, '').trim();
+
+                                    return (
+                                      <div
+                                        key={t.id}
+                                        onClick={() => !isLunas && handleTogglePay(t.id, sisa)}
+                                        style={{
+                                          padding: '7px 12px',
+                                          borderRadius: '11px',
+                                          border: isChecked ? '1.5px solid #059669' : '1px solid #f1f5f9',
+                                          background: isChecked ? '#f0fdf4' : isLunas ? '#f8fafc' : '#ffffff',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'space-between',
+                                          cursor: isLunas ? 'default' : 'pointer',
+                                          transition: 'all 0.15s ease',
+                                          boxShadow: isChecked ? '0 2px 8px rgba(5, 150, 105, 0.08)' : '0 1px 3px rgba(0,0,0,0.02)'
+                                        }}
+                                      >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                          {!isLunas && (
+                                            <div style={{
+                                              width: '18px',
+                                              height: '18px',
+                                              borderRadius: '5px',
+                                              border: isChecked ? 'none' : '1.5px solid #94a3b8',
+                                              background: isChecked ? '#059669' : '#ffffff',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              color: '#ffffff',
+                                              flexShrink: 0
+                                            }}>
+                                              {isChecked && <Check size={12} strokeWidth={3} />}
+                                            </div>
+                                          )}
+                                          <div>
+                                            <div style={{ fontWeight: 800, fontSize: '0.8rem', color: isLunas ? '#64748b' : '#0f172a', lineHeight: 1.2 }}>
+                                              {cleanName}
+                                            </div>
+                                            <div style={{ fontSize: '0.64rem', color: '#94a3b8', marginTop: '1px', lineHeight: 1.1 }}>
+                                              {t.periode_bulan || 'TA 2026/2027'}
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        <div style={{ textAlign: 'right' }}>
+                                          {isLunas ? (
+                                            <span style={{
+                                              fontSize: '0.62rem',
+                                              fontWeight: 800,
+                                              background: '#dcfce7',
+                                              color: '#15803d',
+                                              padding: '2px 7px',
+                                              borderRadius: '5px'
+                                            }}>
+                                              Lunas
+                                            </span>
+                                          ) : (
+                                            <div>
+                                              <div style={{ fontWeight: 800, fontSize: '0.82rem', color: isChecked ? '#059669' : '#0f172a' }}>
+                                                Rp {sisa.toLocaleString('id-ID')}
+                                              </div>
+                                              {sisa < parseFloat(t.total_tagihan || 0) && (
+                                                <div style={{ fontSize: '0.6rem', color: '#64748b' }}>
+                                                  dari Rp {Number(t.total_tagihan || 0).toLocaleString('id-ID')}
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                       </div>
                     </div>
                   )}
