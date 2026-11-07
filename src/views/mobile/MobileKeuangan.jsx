@@ -27,8 +27,11 @@ import {
 import { toastSuccess, showError, showConfirm } from '../../utils/alert.util';
 
 export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }) {
-  // Sub-tabs: 'kasir' | 'laporan' | 'spp' | 'tunggakan' | 'transaksi'
-  const [activeTab, setActiveTab] = useState(initialSubTab);
+  // Sub-tabs: 'kasir' | 'laporan'
+  const [activeTab, setActiveTab] = useState(() => {
+    if (initialSubTab === 'keuangan-rekap' || initialSubTab === 'laporan' || initialSubTab === 'rekap') return 'laporan';
+    return 'kasir';
+  });
 
   // Data Global Keuangan
   const [loading, setLoading] = useState(false);
@@ -59,23 +62,21 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
     data: null
   });
 
-  // Filter List SPP & Transaksi
+  // Filter List SPP & Transaksi & Laporan
   const [sppFilter, setSppFilter] = useState('semua'); // 'semua' | 'nunggak' | 'lunas'
   const [sppSearch, setSppSearch] = useState('');
   const [filterTrxTab, setFilterTrxTab] = useState('Berhasil'); // 'Berhasil' | 'Pending'
   const [midtransFilter, setMidtransFilter] = useState('semua'); // 'semua' | 'Berhasil' | 'Pending' | 'Batal'
   const [checkingMidtransId, setCheckingMidtransId] = useState(null);
+  const [laporanSearch, setLaporanSearch] = useState('');
+  const [laporanFilterSekolah, setLaporanFilterSekolah] = useState('semua');
 
-  // Sync initial tab jika berubah dari luar
+  // Sync initial tab jika berubah dari luar: hanya kasir atau laporan
   useEffect(() => {
-    if (initialSubTab) {
-      if (initialSubTab === 'keuangan-kasir' || initialSubTab === 'kasir') setActiveTab('kasir');
-      else if (initialSubTab === 'keuangan-rekap' || initialSubTab === 'laporan') setActiveTab('laporan');
-      else if (initialSubTab === 'keuangan-spp' || initialSubTab === 'spp') setActiveTab('spp');
-      else if (initialSubTab === 'keuangan-tunggakan' || initialSubTab === 'tunggakan') setActiveTab('tunggakan');
-      else if (initialSubTab === 'keuangan-transaksi' || initialSubTab === 'transaksi') setActiveTab('transaksi');
-      else if (initialSubTab === 'keuangan-midtrans' || initialSubTab === 'midtrans') setActiveTab('midtrans');
-      else setActiveTab(initialSubTab);
+    if (initialSubTab === 'keuangan-rekap' || initialSubTab === 'laporan' || initialSubTab === 'rekap') {
+      setActiveTab('laporan');
+    } else {
+      setActiveTab('kasir');
     }
   }, [initialSubTab]);
 
@@ -296,130 +297,42 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
       paddingBottom: activeTab === 'kasir' && selectedSantri ? '100px' : '36px',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
     }}>
-      {/* =========================================================================
-          TOP MODERN EMERALD PILL HEADER FOR FINANCIAL DASHBOARD
-      ========================================================================= */}
+      {/* Top Header Terpadu Emerald Green (Persis Header Ortu / Wali: Cuma Back & Title Saja) */}
       <div style={{
-        background: 'linear-gradient(135deg, #064e3b 0%, #047857 50%, #065f46 100%)',
-        padding: '16px 14px 22px',
+        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+        padding: '16px 16px 20px',
         color: '#ffffff',
-        boxShadow: '0 8px 24px -6px rgba(4, 120, 87, 0.35)',
         borderBottomLeftRadius: '24px',
-        borderBottomRightRadius: '24px'
+        borderBottomRightRadius: '24px',
+        boxShadow: '0 8px 20px rgba(5, 150, 105, 0.25)',
+        marginBottom: '16px'
       }}>
-        {/* Top Title & Refresh */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {onBackToHome && (
-              <button
-                onClick={onBackToHome}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  border: '1px solid rgba(255, 255, 255, 0.25)',
-                  color: '#ffffff',
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer'
-                }}
-                title="Kembali ke Beranda"
-              >
-                <ArrowLeft size={18} />
-              </button>
-            )}
-            <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
-              background: 'rgba(255, 255, 255, 0.2)',
-              backdropFilter: 'blur(8px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '1px solid rgba(255, 255, 255, 0.25)'
-            }}>
-              <Wallet size={20} color="#ffffff" />
-            </div>
-            <div>
-              <h2 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, letterSpacing: '-0.2px' }}>
-                Admin Keuangan
-              </h2>
-              <div style={{ fontSize: '0.68rem', color: '#a7f3d0', fontWeight: 500 }}>
-                Pesantren Nurul Wafa • Mobile Suite
-              </div>
-            </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {onBackToHome && (
+            <button
+              onClick={onBackToHome}
+              style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: 'none',
+                color: '#ffffff',
+                width: '34px',
+                height: '34px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+              title="Kembali"
+            >
+              <ArrowLeft size={18} />
+            </button>
+          )}
+          <div>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px', color: '#ffffff' }}>
+              {activeTab === 'laporan' ? 'Laporan Kas' : 'Kasir'}
+            </h2>
           </div>
-
-          <button
-            onClick={fetchRekapAndSantri}
-            disabled={loading}
-            style={{
-              background: 'rgba(255, 255, 255, 0.18)',
-              border: '1px solid rgba(255, 255, 255, 0.25)',
-              color: '#ffffff',
-              padding: '6px 12px',
-              borderRadius: '10px',
-              fontSize: '0.72rem',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer'
-            }}
-          >
-            <RotateCw size={14} className={loading ? 'spin' : ''} />
-            <span>Sinkron</span>
-          </button>
-        </div>
-
-        {/* Horizontal Scrollable Tabs */}
-        <div style={{
-          display: 'flex',
-          gap: '6px',
-          overflowX: 'auto',
-          paddingBottom: '2px',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none'
-        }}>
-          {[
-            { id: 'kasir', label: 'Kasir Bayar', icon: CreditCard },
-            { id: 'laporan', label: 'Laporan Kas', icon: BarChart3 },
-            { id: 'spp', label: 'Tagihan SPP', icon: FileText },
-            { id: 'tunggakan', label: 'Tunggakan', icon: AlertTriangle },
-            { id: 'transaksi', label: 'Histori Selesai', icon: Receipt },
-            { id: 'midtrans', label: 'Histori Midtrans', icon: Zap }
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 14px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  background: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.16)',
-                  color: isActive ? '#065f46' : '#f0fdf4',
-                  fontWeight: isActive ? 800 : 600,
-                  fontSize: '0.75rem',
-                  whiteSpace: 'nowrap',
-                  cursor: 'pointer',
-                  transition: 'all 0.18s ease',
-                  boxShadow: isActive ? '0 4px 12px rgba(0,0,0,0.15)' : 'none'
-                }}
-              >
-                <Icon size={14} color={isActive ? '#059669' : '#d1fae5'} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
         </div>
       </div>
 
@@ -587,17 +500,74 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                 </button>
               </div>
             ) : (
-              <div style={{
-                marginTop: '12px',
-                padding: '14px',
-                textAlign: 'center',
-                background: '#f8fafc',
-                borderRadius: '12px',
-                border: '1px dashed #cbd5e1',
-                color: '#64748b',
-                fontSize: '0.78rem'
-              }}>
-                🔍 Ketik nama santri di atas untuk memuat tagihan SPP & Kasir
+              <div style={{ marginTop: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
+                    Pilih Santri ({santriList.length})
+                  </span>
+                  <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+                    Klik 'Bayar' untuk buka tagihan
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '58vh', overflowY: 'auto' }}>
+                  {(santriList || [])
+                    .filter((s) => {
+                      if (!santriSearch.trim()) return true;
+                      const q = santriSearch.toLowerCase();
+                      return (
+                        (s.nama_santri || '').toLowerCase().includes(q) ||
+                        (s.nis || '').toLowerCase().includes(q) ||
+                        (s.nama_asrama || '').toLowerCase().includes(q) ||
+                        (s.nama_sekolah || '').toLowerCase().includes(q)
+                      );
+                    })
+                    .slice(0, 40)
+                    .map((s) => (
+                      <div
+                        key={s.id}
+                        style={{
+                          background: '#ffffff',
+                          borderRadius: '14px',
+                          padding: '12px 14px',
+                          border: '1px solid #e2e8f0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>
+                            {s.nama_santri}
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
+                            NIS: {s.nis || '-'} • Asrama: {s.nama_asrama || '-'} • <b style={{ color: '#059669' }}>{s.nama_sekolah || 'SMP'} ({s.tingkat_sekolah || '-'})</b>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => handleSelectSantri(s)}
+                          style={{
+                            background: '#ecfdf5',
+                            border: '1px solid #a7f3d0',
+                            color: '#047857',
+                            padding: '6px 14px',
+                            borderRadius: '10px',
+                            fontWeight: 800,
+                            fontSize: '0.75rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <span>Bayar</span>
+                          <ChevronRight size={14} />
+                        </button>
+                      </div>
+                    ))}
+                </div>
               </div>
             )}
           </div>
@@ -1002,12 +972,263 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
               justifyContent: 'center',
               gap: '8px',
               cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(5, 150, 105, 0.3)'
+              boxShadow: '0 4px 12px rgba(5, 150, 105, 0.3)',
+              marginBottom: '20px'
             }}
           >
             <CreditCard size={18} />
             <span>Buka Loket Kasir Pembayaran</span>
           </button>
+
+          {/* Rincian Transaksi Kas Masuk Sah */}
+          <div style={{ marginBottom: '14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Receipt size={18} color="#059669" />
+                <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>
+                  Rincian Transaksi Kas Masuk Sah
+                </span>
+              </div>
+              <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 800, background: '#ecfdf5', padding: '2px 8px', borderRadius: '8px', border: '1px solid #a7f3d0' }}>
+                {(rekapData.transaksiTerakhir || []).length} Transaksi Sah
+              </span>
+            </div>
+
+            {/* Filter & Search Bar */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              background: '#ffffff',
+              border: '1px solid #cbd5e1',
+              borderRadius: '12px',
+              padding: '8px 12px',
+              marginBottom: '10px'
+            }}>
+              <Search size={16} color="#64748b" />
+              <input
+                type="text"
+                placeholder="Cari santri, NIS, no kuitansi..."
+                value={laporanSearch}
+                onChange={(e) => setLaporanSearch(e.target.value)}
+                style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', fontSize: '0.8rem' }}
+              />
+              {laporanSearch && (
+                <button
+                  onClick={() => setLaporanSearch('')}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* Filter Sekolah */}
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', overflowX: 'auto', paddingBottom: '2px' }}>
+              {[
+                { id: 'semua', label: 'Semua Sekolah' },
+                { id: 'SMP', label: 'SMP' },
+                { id: 'SMA', label: 'SMA' },
+                { id: 'SMK', label: 'SMK' }
+              ].map((f) => {
+                const active = laporanFilterSekolah === f.id;
+                return (
+                  <button
+                    key={f.id}
+                    onClick={() => setLaporanFilterSekolah(f.id)}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: '20px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      border: active ? '1px solid #059669' : '1px solid #e2e8f0',
+                      background: active ? '#059669' : '#ffffff',
+                      color: active ? '#ffffff' : '#64748b',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {f.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Daftar Transaksi */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {(() => {
+                const list = (rekapData.transaksiTerakhir || []).filter((trx) => {
+                  if (laporanFilterSekolah !== 'semua') {
+                    const sk = String(trx.nama_sekolah || trx.tingkat_sekolah || '').toUpperCase();
+                    if (!sk.includes(laporanFilterSekolah)) return false;
+                  }
+                  if (laporanSearch.trim()) {
+                    const q = laporanSearch.toLowerCase();
+                    const sName = String(trx.nama_santri || '').toLowerCase();
+                    const sNis = String(trx.nis || '').toLowerCase();
+                    const sNo = String(trx.nomor_transaksi || trx.nomor_kuitansi || '').toLowerCase();
+                    const sItem = String(trx.rincian_item || trx.keterangan || '').toLowerCase();
+                    return sName.includes(q) || sNis.includes(q) || sNo.includes(q) || sItem.includes(q);
+                  }
+                  return true;
+                });
+
+                if (list.length === 0) {
+                  return (
+                    <div style={{
+                      padding: '32px 16px',
+                      textAlign: 'center',
+                      background: '#ffffff',
+                      borderRadius: '16px',
+                      border: '1px dashed #cbd5e1',
+                      color: '#64748b',
+                      fontSize: '0.8rem'
+                    }}>
+                      <Receipt size={32} color="#94a3b8" style={{ margin: '0 auto 8px' }} />
+                      <div>Belum ada transaksi kas masuk sah yang sesuai filter.</div>
+                    </div>
+                  );
+                }
+
+                return list.map((trx, idx) => {
+                  const sekolahLabel = trx.nama_sekolah || (trx.tingkat_sekolah ? `Kelas ${trx.tingkat_sekolah}` : 'Santri NWF');
+                  const isSMP = sekolahLabel.toUpperCase().includes('SMP');
+                  const isSMA = sekolahLabel.toUpperCase().includes('SMA');
+                  const isSMK = sekolahLabel.toUpperCase().includes('SMK');
+
+                  let badgeBg = '#f1f5f9';
+                  let badgeColor = '#475569';
+                  if (isSMP) { badgeBg = '#e0f2fe'; badgeColor = '#0369a1'; }
+                  else if (isSMA) { badgeBg = '#fef3c7'; badgeColor = '#b45309'; }
+                  else if (isSMK) { badgeBg = '#f3e8ff'; badgeColor = '#7e22ce'; }
+
+                  return (
+                    <div
+                      key={trx.id || idx}
+                      style={{
+                        background: '#ffffff',
+                        borderRadius: '16px',
+                        padding: '14px',
+                        border: '1px solid #e2e8f0',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px'
+                      }}
+                    >
+                      {/* Top Bar Card */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>
+                          #{trx.nomor_transaksi || `TRX-${trx.id}`}
+                        </span>
+                        <span style={{
+                          fontSize: '0.66rem',
+                          fontWeight: 800,
+                          background: '#dcfce7',
+                          color: '#15803d',
+                          padding: '2px 7px',
+                          borderRadius: '6px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px'
+                        }}>
+                          <CheckCircle2 size={11} /> Sah / Lunas
+                        </span>
+                      </div>
+
+                      {/* Info Santri & Nominal */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>
+                            {trx.nama_santri || 'Santri'}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                            <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                              NIS: {trx.nis || '-'}
+                            </span>
+                            <span style={{
+                              fontSize: '0.64rem',
+                              fontWeight: 800,
+                              background: badgeBg,
+                              color: badgeColor,
+                              padding: '1px 6px',
+                              borderRadius: '4px'
+                            }}>
+                              {sekolahLabel}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#047857' }}>
+                            Rp {Number(trx.total_bayar || 0).toLocaleString('id-ID')}
+                          </div>
+                          <div style={{ fontSize: '0.66rem', color: '#64748b', marginTop: '1px' }}>
+                            {trx.tanggal_bayar ? new Date(trx.tanggal_bayar).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Hari ini'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Rincian Tagihan */}
+                      <div style={{
+                        background: '#f8fafc',
+                        padding: '8px 10px',
+                        borderRadius: '10px',
+                        fontSize: '0.72rem',
+                        color: '#334155',
+                        lineHeight: 1.4,
+                        border: '1px solid #f1f5f9'
+                      }}>
+                        <div style={{ fontWeight: 700, color: '#64748b', marginBottom: '2px', fontSize: '0.66rem' }}>
+                          ITEM DIBAYAR:
+                        </div>
+                        <div>
+                          {trx.rincian_item || trx.keterangan || 'Pembayaran Tagihan Santri'}
+                        </div>
+                      </div>
+
+                      {/* Footer: Metode & Kuitansi */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px', borderTop: '1px solid #f1f5f9' }}>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <CreditCard size={12} color="#059669" />
+                          <span>{trx.metode_pembayaran || 'Kasir'} {trx.channel_pembayaran ? `(${trx.channel_pembayaran})` : ''}</span>
+                        </div>
+
+                        <button
+                          onClick={() => setKuitansiModal({
+                            isOpen: true,
+                            data: {
+                              ...trx,
+                              kuitansi_nomor: trx.nomor_kuitansi || trx.nomor_transaksi || `KW-${trx.id}`,
+                              total_dibayar: trx.total_bayar,
+                              santri: { nama_santri: trx.nama_santri, nis: trx.nis, kelas: trx.nama_sekolah || trx.tingkat_sekolah },
+                              items_dibayar: [{ judul: trx.rincian_item || trx.keterangan || 'Pembayaran Kasir', nominal: trx.total_bayar }]
+                            }
+                          })}
+                          style={{
+                            background: '#ecfdf5',
+                            border: '1px solid #a7f3d0',
+                            color: '#047857',
+                            padding: '4px 10px',
+                            borderRadius: '8px',
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <Receipt size={12} />
+                          <span>Lihat Kuitansi</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
         </div>
       )}
 

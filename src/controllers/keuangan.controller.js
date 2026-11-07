@@ -861,15 +861,23 @@ export const getRekapKeuanganAdmin = async (req, res) => {
         p.*,
         s.nama_santri,
         s.nis,
+        s.nama_sekolah,
+        s.tingkat_sekolah,
         a.nama_asrama,
-        k.nama_kamar
+        k.nama_kamar,
+        (
+          SELECT GROUP_CONCAT(CONCAT(t.judul_tagihan, ' (Rp ', FORMAT(d.nominal_alokasi, 0, 'id_ID'), ')') SEPARATOR ', ')
+          FROM keuangan_transaksi_detail d
+          JOIN keuangan_tagihan t ON d.tagihan_id = t.id
+          WHERE d.transaksi_id = p.id
+        ) as rincian_item
       FROM keuangan_transaksi_pembayaran p
       JOIN santri s ON p.santri_id = s.id
       LEFT JOIN asrama a ON s.asrama_id = a.id
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
       WHERE p.status_pembayaran = 'Berhasil'
       ORDER BY p.tanggal_bayar DESC, p.id DESC
-      LIMIT 50
+      LIMIT 150
     `);
 
     // 2b. Transaksi Menunggu Pembayaran (Pending) - Terpisah dari Laporan Kas

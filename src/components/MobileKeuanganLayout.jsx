@@ -91,7 +91,6 @@ export default function MobileKeuanganLayout() {
         return <MobileHomeKeuangan onChangeTab={handleSelectTab} onLogout={handleLogout} />;
       case 'keuangan-spp':
       case 'spp':
-        return <MobileKeuangan initialSubTab="spp" onBackToHome={() => handleSelectTab('home')} />;
       case 'keuangan-kasir':
       case 'kasir':
         return <MobileKeuangan initialSubTab="kasir" onBackToHome={() => handleSelectTab('home')} />;
@@ -146,15 +145,15 @@ export default function MobileKeuanganLayout() {
             <span>Beranda</span>
           </button>
 
-          {/* 2. SPP */}
+          {/* 2. Kasir Pembayaran */}
           <button
-            className={`mobile-nav-item ${(activeTab === 'keuangan-spp' || activeTab === 'spp' || activeTab === 'keuangan-masuk') ? 'active' : ''}`}
-            onClick={() => handleSelectTab('keuangan-spp')}
+            className={`mobile-nav-item ${(activeTab === 'keuangan-kasir' || activeTab === 'kasir' || activeTab === 'keuangan-spp' || activeTab === 'spp') ? 'active' : ''}`}
+            onClick={() => handleSelectTab('keuangan-kasir')}
           >
-            <div className={`nav-icon-wrapper ${(activeTab === 'keuangan-spp' || activeTab === 'spp' || activeTab === 'keuangan-masuk') ? 'active' : ''}`}>
-              <FileText size={20} />
+            <div className={`nav-icon-wrapper ${(activeTab === 'keuangan-kasir' || activeTab === 'kasir' || activeTab === 'keuangan-spp' || activeTab === 'spp') ? 'active' : ''}`}>
+              <CreditCard size={20} />
             </div>
-            <span>SPP</span>
+            <span>Kasir</span>
           </button>
 
           {/* 3. Center Floating Action Button: Loket Kasir Bayar */}
