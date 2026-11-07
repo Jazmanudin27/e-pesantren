@@ -530,6 +530,9 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
       if (res.data?.success) {
         toastSuccess('Status Midtrans', res.data.message || 'Status berhasil diperbarui');
         fetchRekapAndSantri();
+        if (selectedSantri) {
+          fetchTagihanSantri(selectedSantri.id);
+        }
       } else {
         showError('Midtrans Notice', res.data?.message || 'Gagal cek status');
       }
@@ -537,6 +540,81 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
       showError('Gagal Cek Status', e.response?.data?.message || e.message);
     } finally {
       setCheckingMidtransId(null);
+    }
+  };
+
+  // Lanjutkan Pembayaran Midtrans yang Pending (Buka Kembali Popup Snap QRIS / VA)
+  const handleLanjutkanBayarMidtrans = async (trx) => {
+    setProcessingPay(true);
+    try {
+      let snapToken = trx.snap_token;
+      if (!snapToken) {
+        const res = await axios.post('/api/keuangan/wali/lanjutkan', {
+          transaksi_id: trx.id,
+          nomor_transaksi: trx.nomor_transaksi
+        });
+        if (res.data?.success && res.data.data?.snap_token) {
+          snapToken = res.data.data.snap_token;
+        } else {
+          showError('Gagal Lanjut Bayar', res.data?.message || 'Token transaksi tidak ditemukan.');
+          return;
+        }
+      }
+
+      if (window.snap) {
+        window.snap.pay(snapToken, {
+          onSuccess: function () {
+            toastSuccess('Pembayaran Berhasil!', 'Pembayaran via Midtrans telah terverifikasi.');
+            if (selectedSantri) fetchTagihanSantri(selectedSantri.id);
+            fetchRekapAndSantri();
+          },
+          onPending: function () {
+            toastSuccess('Menunggu Pembayaran', 'Silakan selesaikan pembayaran sesuai instruksi QRIS/VA.');
+            if (selectedSantri) fetchTagihanSantri(selectedSantri.id);
+            fetchRekapAndSantri();
+          },
+          onError: function (result) {
+            showError('Gagal Bayar', result?.status_message || 'Pembayaran via Midtrans gagal.');
+          },
+          onClose: function () {
+            if (selectedSantri) fetchTagihanSantri(selectedSantri.id);
+            fetchRekapAndSantri();
+          }
+        });
+      } else {
+        showError('Midtrans Belum Siap', 'Script Midtrans Snap belum siap di browser.');
+      }
+    } catch (e) {
+      showError('Gagal Lanjut Bayar', e.response?.data?.message || e.message);
+    } finally {
+      setProcessingPay(false);
+    }
+  };
+
+  // Batalkan transaksi pending agar tagihan bisa dibayar tunai / dibuat QRIS baru
+  const handleBatalkanPending = async (trx) => {
+    const confirmed = await showConfirm(
+      'Batalkan Transaksi Pending?',
+      `Batalkan ${trx.nomor_transaksi}? Tagihan akan kembali belum dibayar sehingga bisa dibayar tunai atau dibuat QRIS baru.`,
+      'Ya, Batalkan',
+      'Tidak'
+    );
+    if (!confirmed) return;
+
+    try {
+      const res = await axios.post('/api/keuangan/wali/batal', {
+        transaksi_id: trx.id,
+        nomor_transaksi: trx.nomor_transaksi
+      });
+      if (res.data?.success) {
+        toastSuccess('Transaksi Dibatalkan', res.data.message || 'Transaksi berhasil dibatalkan.');
+        if (selectedSantri) fetchTagihanSantri(selectedSantri.id);
+        fetchRekapAndSantri();
+      } else {
+        showError('Gagal Batalkan', res.data?.message || 'Gagal membatalkan transaksi.');
+      }
+    } catch (e) {
+      showError('Gagal Batalkan', e.response?.data?.message || e.message);
     }
   };
 
@@ -1556,10 +1634,10 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                                 );
                               })()}
 
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                                 <div>
                                   <div style={{ fontSize: '0.64rem', color: '#94a3b8' }}>Total Nominal</div>
-                                  <div style={{ fontSize: '0.96rem', fontWeight: 900, color: '#059669' }}>
+                                  <div style={{ fontSize: '0.96rem', fontWeight: 900, color: isBerhasil ? '#059669' : isPending ? '#d97706' : '#64748b' }}>
                                     Rp {Number(trx.total_bayar || 0).toLocaleString('id-ID')}
                                   </div>
                                   <div style={{ fontSize: '0.64rem', color: '#64748b', marginTop: '1px' }}>
@@ -1635,6 +1713,79 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                                     >
                                       <Send size={12} />
                                       <span>WA</span>
+                                    </button>
+                                  </div>
+                                )}
+
+                                {isPending && (
+                                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleLanjutkanBayarMidtrans(trx)}
+                                      disabled={processingPay}
+                                      style={{
+                                        padding: '6px 11px',
+                                        borderRadius: '8px',
+                                        border: 'none',
+                                        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                                        color: '#ffffff',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 800,
+                                        cursor: processingPay ? 'not-allowed' : 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        boxShadow: '0 2px 6px rgba(5, 150, 105, 0.25)'
+                                      }}
+                                      title="Buka kembali popup pembayaran QRIS / Virtual Account"
+                                    >
+                                      <Zap size={12} />
+                                      <span>Lanjut Bayar</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCekStatusMidtrans(trx)}
+                                      disabled={checkingMidtransId === trx.id}
+                                      style={{
+                                        padding: '6px 9px',
+                                        borderRadius: '8px',
+                                        border: '1px solid #fed7aa',
+                                        background: '#fff7ed',
+                                        color: '#c2410c',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 700,
+                                        cursor: checkingMidtransId === trx.id ? 'not-allowed' : 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '3px'
+                                      }}
+                                      title="Cek apakah pembayaran sudah masuk di Midtrans"
+                                    >
+                                      <RotateCw size={11} className={checkingMidtransId === trx.id ? 'spin' : ''} />
+                                      <span>{checkingMidtransId === trx.id ? 'Cek...' : 'Cek Status'}</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => handleBatalkanPending(trx)}
+                                      style={{
+                                        padding: '6px 8px',
+                                        borderRadius: '8px',
+                                        border: '1px solid #fecaca',
+                                        background: '#fff1f2',
+                                        color: '#e11d48',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '2px'
+                                      }}
+                                      title="Batalkan transaksi agar tagihan bisa dibayar tunai"
+                                    >
+                                      <X size={11} />
+                                      <span>Batal</span>
                                     </button>
                                   </div>
                                 )}
