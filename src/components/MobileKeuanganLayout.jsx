@@ -39,7 +39,7 @@ export default function MobileKeuanganLayout() {
 
   const [activeTab, setActiveTab] = useState(() => {
     const hash = window.location.hash.replace('#', '');
-    if (hash && hash !== 'mobile' && hash !== 'home') return hash;
+    if (hash && hash !== 'mobile' && hash !== 'home' && hash !== 'keuangan-spp') return hash;
     return 'home';
   });
 
@@ -80,6 +80,7 @@ export default function MobileKeuanganLayout() {
         onLoginSuccess={(newSession) => {
           setSession(newSession);
           setActiveTab('home');
+          window.location.hash = '';
         }}
       />
     );

@@ -837,6 +837,40 @@ export const getRekapKeuanganAdmin = async (req, res) => {
       return sendError(res, 'Akses Ditolak: Fitur keuangan khusus untuk Admin Keuangan / Bendahara.', 403);
     }
 
+    // 0. Auto-Clean Fake / Dummy Data Tanpa Rincian
+    try {
+      // Hapus transaksi orphan / dummy / test
+      await pool.query(`
+        DELETE FROM keuangan_transaksi_pembayaran 
+        WHERE santri_id IS NULL 
+           OR santri_id NOT IN (SELECT id FROM santri)
+           OR nomor_transaksi LIKE '%DUMMY%' 
+           OR nomor_transaksi LIKE '%TEST%'
+      `);
+
+      // Hapus transaksi Berhasil yang tidak memiliki rincian detail pembayaran sama sekali
+      await pool.query(`
+        DELETE p FROM keuangan_transaksi_pembayaran p
+        LEFT JOIN keuangan_transaksi_detail d ON p.id = d.transaksi_id
+        WHERE d.id IS NULL
+      `);
+
+      // Reset tagihan yang sudah_dibayar jika tidak ada transaksi sah yang mencatatnya
+      await pool.query(`
+        UPDATE keuangan_tagihan t
+        SET sudah_dibayar = 0, sisa_tagihan = total_tagihan, status = 'Belum Dibayar'
+        WHERE t.sudah_dibayar > 0
+          AND t.id NOT IN (
+            SELECT d.tagihan_id 
+            FROM keuangan_transaksi_detail d
+            JOIN keuangan_transaksi_pembayaran p ON d.transaksi_id = p.id
+            WHERE p.status_pembayaran = 'Berhasil'
+          )
+      `);
+    } catch (cleanErr) {
+      console.warn('[AUTO CLEAN NOTICE]', cleanErr.message);
+    }
+
     // 1. Ringkasan Global
     const [summary] = await pool.query(`
       SELECT 
@@ -848,7 +882,7 @@ export const getRekapKeuanganAdmin = async (req, res) => {
       FROM keuangan_tagihan
     `);
 
-    // 1b. Kas Masuk Riil dari Transaksi Berhasil (Hanya Pembayaran Sah)
+    // 1b. Kas Masuk Riil dari Transaksi Berhasil (Hanya Pembayaran Sah Berdasar Detail Valid)
     const [kasMasukRiil] = await pool.query(`
       SELECT COALESCE(SUM(total_bayar), 0) as total_kas_masuk_sah
       FROM keuangan_transaksi_pembayaran
@@ -859,10 +893,10 @@ export const getRekapKeuanganAdmin = async (req, res) => {
     const [transaksiTerakhir] = await pool.query(`
       SELECT 
         p.*,
-        s.nama_santri,
-        s.nis,
-        s.nama_sekolah,
-        s.tingkat_sekolah,
+        COALESCE(s.nama_santri, p.keterangan, 'Santri NWF') as nama_santri,
+        COALESCE(s.nis, '-') as nis,
+        COALESCE(s.nama_sekolah, 'SMP') as nama_sekolah,
+        COALESCE(s.tingkat_sekolah, '-') as tingkat_sekolah,
         a.nama_asrama,
         k.nama_kamar,
         (
@@ -872,7 +906,7 @@ export const getRekapKeuanganAdmin = async (req, res) => {
           WHERE d.transaksi_id = p.id
         ) as rincian_item
       FROM keuangan_transaksi_pembayaran p
-      JOIN santri s ON p.santri_id = s.id
+      LEFT JOIN santri s ON p.santri_id = s.id
       LEFT JOIN asrama a ON s.asrama_id = a.id
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
       WHERE p.status_pembayaran = 'Berhasil'
@@ -2018,6 +2052,53 @@ export const cekStatusMidtransAdmin = async (req, res) => {
     return sendError(res, `Gagal memproses sinkronisasi Midtrans: ${err.message}`, 500);
   } finally {
     connection.release();
+  }
+};
+
+/**
+ * Endpoint Khusus Admin / Bendahara: Bersihkan Semua Transaksi Fake / Dummy / Tanpa Rincian
+ */
+export const bersihkanFakeDataKeuangan = async (req, res) => {
+  try {
+    let deletedCount = 0;
+
+    // 1. Hapus transaksi pembayaran fake/orphan yang tidak memiliki santri valid
+    const [del1] = await pool.query(`
+      DELETE FROM keuangan_transaksi_pembayaran 
+      WHERE santri_id IS NULL 
+         OR santri_id NOT IN (SELECT id FROM santri)
+         OR nomor_transaksi LIKE '%DUMMY%' 
+         OR nomor_transaksi LIKE '%TEST%'
+    `);
+    deletedCount += (del1.affectedRows || 0);
+
+    // 2. Hapus transaksi yang tidak memiliki detail rincian tagihan sama sekali
+    const [del2] = await pool.query(`
+      DELETE p FROM keuangan_transaksi_pembayaran p
+      LEFT JOIN keuangan_transaksi_detail d ON p.id = d.transaksi_id
+      WHERE d.id IS NULL
+    `);
+    deletedCount += (del2.affectedRows || 0);
+
+    // 3. Reset tagihan yang sudah_dibayar jika tidak ada transaksi yang mencatatnya
+    const [upd] = await pool.query(`
+      UPDATE keuangan_tagihan t
+      SET sudah_dibayar = 0, sisa_tagihan = total_tagihan, status = 'Belum Dibayar'
+      WHERE t.sudah_dibayar > 0
+        AND t.id NOT IN (
+          SELECT d.tagihan_id 
+          FROM keuangan_transaksi_detail d
+          JOIN keuangan_transaksi_pembayaran p ON d.transaksi_id = p.id
+          WHERE p.status_pembayaran = 'Berhasil'
+        )
+    `);
+
+    return sendSuccess(res, `Pembersihan berhasil. ${deletedCount} transaksi fake tanpa rincian dihapus, ${upd.affectedRows || 0} tagihan disinkronkan.`, {
+      deleted_transactions: deletedCount,
+      reset_tagihan: upd.affectedRows || 0
+    });
+  } catch (err) {
+    return sendError(res, `Gagal membersihkan data fake: ${err.message}`, 500);
   }
 };
 

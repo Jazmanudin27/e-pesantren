@@ -70,6 +70,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
   const [checkingMidtransId, setCheckingMidtransId] = useState(null);
   const [laporanSearch, setLaporanSearch] = useState('');
   const [laporanFilterSekolah, setLaporanFilterSekolah] = useState('semua');
+  const [kasirFilterSekolah, setKasirFilterSekolah] = useState('semua');
 
   // Sync initial tab jika berubah dari luar: hanya kasir atau laporan
   useEffect(() => {
@@ -500,19 +501,54 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                 </button>
               </div>
             ) : (
-              <div style={{ marginTop: '12px' }}>
+              <div style={{ marginTop: '14px' }}>
+                {/* Filter Jenjang Sekolah Kasir */}
+                <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', overflowX: 'auto', paddingBottom: '2px' }}>
+                  {[
+                    { id: 'semua', label: 'Semua Siswa' },
+                    { id: 'SMP', label: 'SMP' },
+                    { id: 'SMA', label: 'SMA' },
+                    { id: 'SMK', label: 'SMK' }
+                  ].map((f) => {
+                    const active = kasirFilterSekolah === f.id;
+                    return (
+                      <button
+                        key={f.id}
+                        onClick={() => setKasirFilterSekolah(f.id)}
+                        style={{
+                          padding: '5px 12px',
+                          borderRadius: '20px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          border: active ? '1px solid #059669' : '1px solid #e2e8f0',
+                          background: active ? '#059669' : '#f8fafc',
+                          color: active ? '#ffffff' : '#64748b',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {f.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
-                    Pilih Santri ({santriList.length})
+                    Pilih Santri Penerima Bayar
                   </span>
                   <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
-                    Klik 'Bayar' untuk buka tagihan
+                    Sentuh santri untuk buka tagihan
                   </span>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '58vh', overflowY: 'auto' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '55vh', overflowY: 'auto' }}>
                   {(santriList || [])
                     .filter((s) => {
+                      if (kasirFilterSekolah !== 'semua') {
+                        const sk = String(s.nama_sekolah || s.tingkat_sekolah || '').toUpperCase();
+                        if (!sk.includes(kasirFilterSekolah)) return false;
+                      }
                       if (!santriSearch.trim()) return true;
                       const q = santriSearch.toLowerCase();
                       return (
@@ -523,50 +559,99 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                       );
                     })
                     .slice(0, 40)
-                    .map((s) => (
-                      <div
-                        key={s.id}
-                        style={{
-                          background: '#ffffff',
-                          borderRadius: '14px',
-                          padding: '12px 14px',
-                          border: '1px solid #e2e8f0',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-                        }}
-                      >
-                        <div>
-                          <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>
-                            {s.nama_santri}
-                          </div>
-                          <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
-                            NIS: {s.nis || '-'} • Asrama: {s.nama_asrama || '-'} • <b style={{ color: '#059669' }}>{s.nama_sekolah || 'SMP'} ({s.tingkat_sekolah || '-'})</b>
-                          </div>
-                        </div>
+                    .map((s) => {
+                      const skLabel = s.nama_sekolah || (s.tingkat_sekolah ? `Kelas ${s.tingkat_sekolah}` : 'Santri NWF');
+                      const isSMP = skLabel.toUpperCase().includes('SMP');
+                      const isSMA = skLabel.toUpperCase().includes('SMA');
+                      const isSMK = skLabel.toUpperCase().includes('SMK');
 
-                        <button
+                      let badgeBg = '#f1f5f9';
+                      let badgeColor = '#475569';
+                      if (isSMP) { badgeBg = '#e0f2fe'; badgeColor = '#0369a1'; }
+                      else if (isSMA) { badgeBg = '#fef3c7'; badgeColor = '#b45309'; }
+                      else if (isSMK) { badgeBg = '#f3e8ff'; badgeColor = '#7e22ce'; }
+
+                      return (
+                        <div
+                          key={s.id}
                           onClick={() => handleSelectSantri(s)}
                           style={{
-                            background: '#ecfdf5',
-                            border: '1px solid #a7f3d0',
-                            color: '#047857',
-                            padding: '6px 14px',
-                            borderRadius: '10px',
-                            fontWeight: 800,
-                            fontSize: '0.75rem',
+                            background: '#ffffff',
+                            borderRadius: '16px',
+                            padding: '12px 14px',
+                            border: '1px solid #e2e8f0',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '4px',
-                            cursor: 'pointer'
+                            justifyContent: 'space-between',
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                            cursor: 'pointer',
+                            transition: 'all 0.18s ease'
                           }}
                         >
-                          <span>Bayar</span>
-                          <ChevronRight size={14} />
-                        </button>
-                      </div>
-                    ))}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '12px',
+                              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                              color: '#ffffff',
+                              fontWeight: 800,
+                              fontSize: '0.82rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}>
+                              {(s.nama_santri || 'S').slice(0, 2).toUpperCase()}
+                            </div>
+
+                            <div>
+                              <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
+                                {s.nama_santri}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                                <span style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                                  NIS: {s.nis || '-'}
+                                </span>
+                                <span style={{
+                                  fontSize: '0.64rem',
+                                  fontWeight: 800,
+                                  background: badgeBg,
+                                  color: badgeColor,
+                                  padding: '1px 6px',
+                                  borderRadius: '4px'
+                                }}>
+                                  {skLabel}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSelectSantri(s);
+                            }}
+                            style={{
+                              background: '#ecfdf5',
+                              border: '1px solid #a7f3d0',
+                              color: '#047857',
+                              padding: '6px 14px',
+                              borderRadius: '10px',
+                              fontWeight: 800,
+                              fontSize: '0.74rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <span>Bayar</span>
+                            <ChevronRight size={14} />
+                          </button>
+                        </div>
+                      );
+                    })}
                 </div>
               </div>
             )}

@@ -20,7 +20,8 @@ import {
   webhookIpaymuHandler,
   webhookMidtransHandler,
   getSiklusSpp,
-  updateSiklusSpp
+  updateSiklusSpp,
+  bersihkanFakeDataKeuangan
 } from '../controllers/keuangan.controller.js';
 
 const router = express.Router();
@@ -58,6 +59,7 @@ router.delete('/admin/tagihan/:id', deleteTagihanAdmin);
 router.post('/admin/generate-auto', generateAutoTagihanAdmin);
 router.post('/admin/bayar-langsung', bayarTagihanLangsungAdmin);
 router.post('/admin/cek-status-midtrans', cekStatusMidtransAdmin);
+router.post('/admin/bersihkan-fake-data', bersihkanFakeDataKeuangan);
 
 // Endpoint Master Komponen Biaya
 router.post('/admin/komponen', createKomponenAdmin);

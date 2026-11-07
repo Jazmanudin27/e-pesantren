@@ -145,8 +145,8 @@ export default function MobileLayout() {
             return;
           }
           if (r.includes('bendahara') || r.includes('keuangan') || u.includes('bendahara') || u.includes('keuangan')) {
-            setMobileTab('keuangan-spp');
-            localStorage.setItem('mobileTab', 'keuangan-spp');
+            setMobileTab('home');
+            localStorage.setItem('mobileTab', 'home');
             return;
           }
         } catch (e) {}
@@ -196,12 +196,12 @@ export default function MobileLayout() {
       return;
     }
     if (role.includes('bendahara') || role.includes('keuangan') || uName.includes('bendahara') || uName.includes('keuangan')) {
-      localStorage.setItem('mobileTab', 'keuangan-spp');
-      setMobileTab('keuangan-spp');
+      localStorage.setItem('mobileTab', 'home');
+      setMobileTab('home');
       if (isMobileDomain) {
-        window.location.hash = 'keuangan-spp';
+        window.location.hash = '';
       } else {
-        window.location.hash = 'mobile/keuangan-spp';
+        window.location.hash = 'mobile';
       }
       setSession(userSession);
       return;
