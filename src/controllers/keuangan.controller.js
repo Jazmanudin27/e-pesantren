@@ -2290,7 +2290,7 @@ export const bersihkanFakeDataKeuangan = async (req, res) => {
  */
 export const getSantriKasirSearch = async (req, res) => {
   try {
-    const { q = '', limit = 100 } = req.query;
+    const { q = '', limit = 200 } = req.query;
     let querySql = `
       SELECT 
         s.id, 
@@ -2299,9 +2299,10 @@ export const getSantriKasirSearch = async (req, res) => {
         s.nama_santri, 
         s.nama_wali, 
         s.no_wa_wali, 
-        s.tingkat_sekolah, 
-        COALESCE(sk.nama_sekolah, s.nama_sekolah) as nama_sekolah, 
-        sk.jenjang as sekolah_jenjang,
+        COALESCE(s.nama_kelas, kl.nama_kelas, s.tingkat_sekolah, '-') as nama_kelas,
+        COALESCE(s.tingkat_sekolah, kl.nama_kelas, s.nama_kelas, '-') as tingkat_sekolah, 
+        COALESCE(sk.nama_sekolah, s.nama_sekolah, 'SMP Nurul Wafa') as nama_sekolah, 
+        COALESCE(sk.jenjang, 'SMP') as sekolah_jenjang,
         a.nama_asrama, 
         k.nama_kamar,
         CASE 
@@ -2314,6 +2315,7 @@ export const getSantriKasirSearch = async (req, res) => {
       LEFT JOIN asrama a ON s.asrama_id = a.id
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
       LEFT JOIN sekolah sk ON s.sekolah_id = sk.id
+      LEFT JOIN kelas kl ON (s.kelas_id = kl.id OR s.nama_kelas = kl.nama_kelas)
     `;
     const params = [];
 
@@ -2325,11 +2327,12 @@ export const getSantriKasirSearch = async (req, res) => {
           s.nis LIKE ? OR 
           s.nisn LIKE ? OR 
           s.nama_wali LIKE ? OR 
+          s.nama_kelas LIKE ? OR 
           a.nama_asrama LIKE ? OR 
           k.nama_kamar LIKE ?
         )
       `;
-      params.push(term, term, term, term, term, term);
+      params.push(term, term, term, term, term, term, term);
     }
 
     querySql += ` ORDER BY s.nama_santri ASC LIMIT ?`;

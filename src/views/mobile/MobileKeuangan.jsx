@@ -131,13 +131,10 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
     });
   }, [santriList, kasirFilterSekolah, kasirFilterKelas, santriSearch]);
 
-  // Santri yang ditampilkan di grid: 50 saat browsing, atau semua yang cocok (sampai 100) saat searching
+  // Santri yang ditampilkan di grid: 50 saat browsing, atau bertahap sesuai santriDisplayLimit
   const displayedSantri = React.useMemo(() => {
-    if (santriSearch.trim()) {
-      return filteredKasirSantri.slice(0, 100);
-    }
     return filteredKasirSantri.slice(0, santriDisplayLimit);
-  }, [filteredKasirSantri, santriSearch, santriDisplayLimit]);
+  }, [filteredKasirSantri, santriDisplayLimit]);
 
   // Sync initial tab jika berubah dari luar: hanya kasir atau laporan
   useEffect(() => {
@@ -201,7 +198,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
     if (!santriSearch.trim()) return;
     const timer = setTimeout(async () => {
       try {
-        const res = await axios.get(`/api/keuangan/kasir/santri-search?q=${encodeURIComponent(santriSearch.trim())}&limit=50`);
+        const res = await axios.get(`/api/keuangan/kasir/santri-search?q=${encodeURIComponent(santriSearch.trim())}&limit=150`);
         if (res.data?.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
           setSantriList((prev) => {
             const map = new Map((prev || []).map((item) => [item.id, item]));
@@ -1018,7 +1015,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                       <>
                         {displayedSantri.map((s) => {
                           const skLabel = s.nama_sekolah || (s.tingkat_sekolah ? `Kelas ${s.tingkat_sekolah}` : 'Santri NWF');
-                          const klsLabel = s.tingkat_sekolah || s.nama_kelas || '-';
+                          const klsLabel = (s.nama_kelas && s.nama_kelas !== '-') ? s.nama_kelas : (s.tingkat_sekolah || '-');
                           const isSMP = skLabel.toUpperCase().includes('SMP');
                           const isSMA = skLabel.toUpperCase().includes('SMA');
                           const isSMK = skLabel.toUpperCase().includes('SMK');
