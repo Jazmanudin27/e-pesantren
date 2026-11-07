@@ -227,10 +227,16 @@ export default function MobileHome({ onChangeTab, onLogout }) {
           resIzin.value.data.data?.data || resIzin.value.data.data || [];
         const activeIzin = izinArr.filter((i) => {
           const st = String(i.status || "").toLowerCase();
-          if (st.includes("tolak") || st.includes("batal") || st.includes("kembali")) {
+          if (
+            st.includes("tolak") ||
+            st.includes("batal") ||
+            st.includes("kembali")
+          ) {
             return false;
           }
-          return st.includes("aktif") || st.includes("luar") || st.includes("setuju");
+          return (
+            st.includes("aktif") || st.includes("luar") || st.includes("setuju")
+          );
         });
 
         setStats((prev) => ({ ...prev, total_izin_aktif: activeIzin.length }));
@@ -326,9 +332,15 @@ export default function MobileHome({ onChangeTab, onLogout }) {
       const sid = iz.santri_id;
       if (sid && !loggedSantriMap.has(String(sid))) {
         const isSakit =
-          String(iz.jenis_izin || "").toLowerCase().includes("sakit") ||
-          String(iz.jenis_izin || "").toLowerCase().includes("berobat") ||
-          String(iz.keperluan || "").toLowerCase().includes("sakit");
+          String(iz.jenis_izin || "")
+            .toLowerCase()
+            .includes("sakit") ||
+          String(iz.jenis_izin || "")
+            .toLowerCase()
+            .includes("berobat") ||
+          String(iz.keperluan || "")
+            .toLowerCase()
+            .includes("sakit");
         const stIzin = isSakit ? "Sakit" : "Izin";
         loggedSantriMap.set(String(sid), {
           id: `izin-${iz.id}`,
@@ -359,7 +371,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
     const totalSantriCount = stats.total_santri || santriMasterList.length;
     const sudahInputCount = hadir + sakit + izin;
     const belumAbsen =
-      totalSantriCount > 0 ? Math.max(0, totalSantriCount - sudahInputCount) : 0;
+      totalSantriCount > 0
+        ? Math.max(0, totalSantriCount - sudahInputCount)
+        : 0;
 
     const mappedLogged = Array.from(loggedSantriMap.values()).map((l) => {
       const st = (l.status_kehadiran || l.status || "Hadir").toLowerCase();
@@ -376,7 +390,8 @@ export default function MobileHome({ onChangeTab, onLogout }) {
         santri_id: l.santri_id,
         nama_santri: l.nama_santri || masterSantri?.nama_santri,
         nis: l.nisn || l.nis || masterSantri?.nisn || masterSantri?.nis,
-        nama_kelas: masterSantri?.nama_kelas || masterSantri?.tingkat_diniyah || "",
+        nama_kelas:
+          masterSantri?.nama_kelas || masterSantri?.tingkat_diniyah || "",
         nama_asrama: l.nama_asrama || masterSantri?.nama_asrama,
         nama_kamar: l.nama_kamar || masterSantri?.nama_kamar,
         nama_sesi: l.nama_sesi || l.kegiatan || "Presensi",
@@ -518,7 +533,8 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 width: "44px",
                 height: "44px",
                 borderRadius: "14px",
-                background: "linear-gradient(145deg, rgba(255,255,255,0.28) 0%, rgba(167,243,208,0.15) 100%)",
+                background:
+                  "linear-gradient(145deg, rgba(255,255,255,0.28) 0%, rgba(167,243,208,0.15) 100%)",
                 border: "1.5px solid rgba(255, 255, 255, 0.42)",
                 display: "flex",
                 alignItems: "center",
@@ -555,7 +571,9 @@ export default function MobileHome({ onChangeTab, onLogout }) {
             </div>
 
             <div style={{ display: "flex", flexDirection: "column" }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: "3px" }}>
+              <div
+                style={{ display: "flex", alignItems: "baseline", gap: "3px" }}
+              >
                 <span
                   style={{
                     fontWeight: 900,
