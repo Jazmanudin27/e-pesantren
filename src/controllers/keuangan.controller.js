@@ -5,7 +5,7 @@ import { createBniVirtualAccount } from '../services/bni.service.js';
 import { createIpaymuTransaction } from '../services/ipaymu.service.js';
 import { chargeMidtransDirect, createMidtransSnapToken, checkMidtransTransactionStatus } from '../services/midtrans.service.js';
 import { createWaliNotification } from './notifikasi.controller.js';
-import { ensureSekolahTablesAndMapping } from './sekolah.controller.js';
+import { ensureSekolahTablesAndMapping, RINCIAN_AWAL_MASUK_MASTER } from './sekolah.controller.js';
 
 let isSiklusSppTableInitialized = false;
 
@@ -264,6 +264,91 @@ export const getDashboardKeuanganWali = async (req, res) => {
     `, [santriId]);
 
     const santri = santriRows[0] || {};
+    const jenjangSantri = santri.sekolah_jenjang || (santri.nama_sekolah?.includes('SMA') ? 'SMA' : santri.nama_sekolah?.includes('SMK') ? 'SMK' : 'SMP');
+
+    // Otomatis pecah/unpack tagihan gelondongan lama yang belum dibayar menjadi rincian item satuan
+    try {
+      const [lumpRows] = await pool.query(`
+        SELECT * FROM keuangan_tagihan 
+        WHERE santri_id = ? 
+          AND status = 'Belum Dibayar' 
+          AND sudah_dibayar = 0
+          AND (
+            judul_tagihan LIKE 'Adm Pesantren%' OR 
+            judul_tagihan LIKE 'Adm Sekolah%' OR 
+            judul_tagihan LIKE 'Biaya Awal Masuk%'
+          )
+      `, [santriId]);
+
+      if (lumpRows && lumpRows.length > 0) {
+        let jKey = jenjangSantri.toUpperCase();
+        if (jKey.includes('SMA')) jKey = 'SMA';
+        else if (jKey.includes('SMK')) jKey = 'SMK';
+        else jKey = 'SMP';
+
+        const [liveDbItems] = await pool.query(
+          'SELECT * FROM sekolah_rincian_biaya WHERE jenjang = ? ORDER BY kategori_komponen ASC, urutan ASC',
+          [jKey]
+        );
+
+        const staticMaster = RINCIAN_AWAL_MASUK_MASTER[jKey] || RINCIAN_AWAL_MASUK_MASTER.SMP;
+        let sekItems = (liveDbItems || []).filter(i => i.kategori_komponen === 'Adm Sekolah');
+        let pesItems = (liveDbItems || []).filter(i => i.kategori_komponen === 'Adm Pesantren');
+
+        if (sekItems.length === 0) {
+          sekItems = (staticMaster.adm_sekolah || []).map(i => ({ ...i, kategori_komponen: 'Adm Sekolah' }));
+        }
+        if (pesItems.length === 0) {
+          pesItems = (staticMaster.adm_pesantren || []).map(i => ({ ...i, kategori_komponen: 'Adm Pesantren' }));
+        }
+
+        const [allKomp] = await pool.query('SELECT id, nama_komponen, kategori FROM keuangan_komponen_biaya');
+        const getKompId = (judul) => {
+          let m = null;
+          if (judul.toLowerCase().includes('pesantren')) {
+            m = (allKomp || []).find(k => k.nama_komponen && k.nama_komponen.toLowerCase().includes('pesantren'));
+          } else {
+            m = (allKomp || []).find(k => k.nama_komponen && k.nama_komponen.toLowerCase().includes('sekolah'));
+          }
+          return m?.id || allKomp?.[0]?.id || 1;
+        };
+
+        for (const lump of lumpRows) {
+          const isPesantren = lump.judul_tagihan.toLowerCase().includes('pesantren');
+          const isSekolah = lump.judul_tagihan.toLowerCase().includes('sekolah');
+          const isBoth = lump.judul_tagihan.toLowerCase().includes('awal masuk');
+
+          const itemsToCreate = [];
+          if (isPesantren || isBoth) itemsToCreate.push(...pesItems);
+          if (isSekolah || isBoth) itemsToCreate.push(...sekItems);
+
+          if (itemsToCreate.length > 0) {
+            await pool.query('DELETE FROM keuangan_tagihan WHERE id = ?', [lump.id]);
+
+            for (const item of itemsToCreate) {
+              const itemJudul = `${item.uraian} (${item.kategori_komponen})`;
+              const kId = getKompId(itemJudul);
+              const kodeTagihan = `TGH-${santriId}-${Date.now().toString().slice(-5)}-${Math.floor(100 + Math.random() * 900)}`;
+
+              const [exists] = await pool.query(
+                'SELECT id FROM keuangan_tagihan WHERE santri_id = ? AND judul_tagihan = ? LIMIT 1',
+                [santriId, itemJudul]
+              );
+
+              if (!exists || exists.length === 0) {
+                await pool.query(`
+                  INSERT INTO keuangan_tagihan
+                  (kode_tagihan, santri_id, komponen_id, judul_tagihan, kategori, periode_bulan, total_tagihan, sudah_dibayar, sisa_tagihan, status, jatuh_tempo)
+                  VALUES (?, ?, ?, ?, 'Biaya Masuk', ?, ?, 0, ?, 'Belum Dibayar', '2026-07-10')
+                `, [kodeTagihan, santriId, kId, itemJudul, lump.periode_bulan || 'TA 2026/2027', item.biaya, item.biaya]);
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[UNPACK GELONDONGAN NOTICE]', e.message);
+    }
 
     // Pastikan master komponen minimal tersedia di database
     const [kompCheck] = await pool.query('SELECT COUNT(*) as total FROM keuangan_komponen_biaya');
