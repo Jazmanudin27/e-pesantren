@@ -1120,6 +1120,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 bg: "linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)",
                 shadow: "0 6px 16px -2px rgba(20, 184, 166, 0.38)",
               },
+              {
+                label: "Mesin FP",
+                tab: "master-device",
+                icon: HardDrive,
+                bg: "linear-gradient(135deg, #64748b 0%, #334155 100%)",
+                shadow: "0 6px 16px -2px rgba(71, 85, 105, 0.38)",
+              },
             ].map((item) => {
               const IconComp = item.icon;
               return (

@@ -21,6 +21,8 @@ import perkembanganIkhwanRoutes from './perkembanganIkhwan.routes.js';
 import kurikulumRoutes from './kurikulum.routes.js';
 import admsRoutes from './adms.routes.js';
 import tabunganRoutes from './tabungan.routes.js';
+import infakRoutes from './infak.routes.js';
+import pesanRoutes from './pesan.routes.js';
 
 const router = express.Router();
 
@@ -47,5 +49,7 @@ router.use('/laporan-perkembangan', laporanRoutes); // /api/laporan-perkembangan
 router.use('/informasi-kegiatan', informasiRoutes); // /api/informasi-kegiatan/feed, dll
 router.use('/perkembangan-ikhwan', perkembanganIkhwanRoutes); // /api/perkembangan-ikhwan/master, santri-kelas, dll
 router.use('/kurikulum', kurikulumRoutes); // /api/kurikulum/matriks, /api/kurikulum/jadwal
+router.use('/infak', infakRoutes); // /api/infak/program, /api/infak/santri/:id, /api/infak/create-payment, /api/infak/laporan
+router.use('/pesan', pesanRoutes); // /api/pesan/wali/:santri_id, /api/pesan/admin/threads, /api/pesan/admin/reply
 
 export default router;

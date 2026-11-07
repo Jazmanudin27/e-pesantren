@@ -315,17 +315,83 @@ export default function MobileKegiatan() {
     },
   ];
 
-  // Fetch kegiatan dari API
+  // Helper Cek Kategori Tab
+  const isBerjamaah = (keg) => {
+    if (keg._source === "materi_hafalan") return false;
+    const kat = (keg.kategori || "").toLowerCase();
+    const nama = (keg.nama_sesi || "").toLowerCase();
+    return (
+      kat.includes("shalat") ||
+      kat.includes("berjamaah") ||
+      kat.includes("ibadah") ||
+      nama.includes("shalat") ||
+      nama.includes("subuh") ||
+      nama.includes("dzuhur") ||
+      nama.includes("ashar") ||
+      nama.includes("maghrib") ||
+      nama.includes("isya") ||
+      nama.includes("dhuha")
+    );
+  };
+
+  // Fetch kegiatan dari API (/api/absensi/sesi untuk Berjamaah & /api/materi-hafalan untuk Master Kegiatan Mengaji)
   const fetchKegiatan = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("/api/absensi/sesi");
-      if (
-        res.data?.success &&
-        Array.isArray(res.data.data) &&
-        res.data.data.length > 0
-      ) {
-        setKegiatanList(res.data.data);
+      const [resSesi, resMateri] = await Promise.all([
+        axios.get("/api/absensi/sesi").catch(() => ({ data: { data: [] } })),
+        axios.get("/api/materi-hafalan").catch(() => ({ data: { data: [] } })),
+      ]);
+
+      const rawSesi = Array.isArray(resSesi.data?.data) ? resSesi.data.data : [];
+      const rawMateri = Array.isArray(resMateri.data?.data) ? resMateri.data.data : [];
+
+      const isShalatWord = (str) =>
+        /shalat|sholat|subuh|shubuh|dzuhur|zuhur|ashar|asar|maghrib|magrib|isya|dhuha|berjamaah/i.test(
+          String(str || ""),
+        );
+
+      const merged = [...rawSesi];
+      const existingNames = new Set(
+        rawSesi.map((s) => String(s.nama_sesi || "").trim().toLowerCase()),
+      );
+
+      rawMateri.forEach((m, idx) => {
+        const namaMateri = String(m.nama_materi || "").trim();
+        if (!namaMateri) return;
+        if (isShalatWord(namaMateri) && isShalatWord(m.kategori)) return;
+        if (existingNames.has(namaMateri.toLowerCase())) return;
+        existingNames.add(namaMateri.toLowerCase());
+
+        merged.push({
+          id: `materi-${m.id}`,
+          materi_id: m.id,
+          _source: "materi_hafalan",
+          kode_sesi: `KJN-${String(m.id || idx + 1).padStart(2, "0")}`,
+          nama_sesi: namaMateri,
+          kategori: m.kategori || "Pengajian / Mengaji",
+          target_hafalan: m.target_hafalan || "",
+          keterangan: m.deskripsi || m.target_hafalan || "",
+          tipe_peserta: "Wajib Sesuai Kelas / Tingkatan",
+          target_gender: "Semua",
+          jam_mulai_presensi: "18:30",
+          jam_target: "18:45",
+          jam_toleransi_telat: "19:00",
+          jam_tutup_presensi: "20:00",
+          hari_aktif: "Setiap Hari",
+          is_active: 1,
+        });
+      });
+
+      // Jika di database belum ada kegiatan mengaji atau API materi belum termuat, gabungkan defaultSeeds kategori Mengaji
+      const hasMengaji = merged.some((k) => !isBerjamaah(k));
+      if (!hasMengaji) {
+        const mengajiSeeds = defaultSeeds.filter((k) => !isBerjamaah(k));
+        merged.push(...mengajiSeeds);
+      }
+
+      if (merged.length > 0) {
+        setKegiatanList(merged);
       } else {
         const local = JSON.parse(
           localStorage.getItem("mobile_kegiatan_list") || "null",
@@ -347,24 +413,6 @@ export default function MobileKegiatan() {
     fetchKegiatan();
   }, []);
 
-  // Helper Cek Kategori Tab
-  const isBerjamaah = (keg) => {
-    const kat = (keg.kategori || "").toLowerCase();
-    const nama = (keg.nama_sesi || "").toLowerCase();
-    return (
-      kat.includes("shalat") ||
-      kat.includes("berjamaah") ||
-      kat.includes("ibadah") ||
-      nama.includes("shalat") ||
-      nama.includes("subuh") ||
-      nama.includes("dzuhur") ||
-      nama.includes("ashar") ||
-      nama.includes("maghrib") ||
-      nama.includes("isya") ||
-      nama.includes("dhuha")
-    );
-  };
-
   // Filter List sesuai Tab Aktif, Hari, dan Search
   const listBerjamaah = kegiatanList.filter(isBerjamaah);
   const listMengaji = kegiatanList.filter((k) => !isBerjamaah(k));
@@ -379,6 +427,8 @@ export default function MobileKegiatan() {
       return (
         item.nama_sesi?.toLowerCase().includes(q) ||
         item.kode_sesi?.toLowerCase().includes(q) ||
+        item.kategori?.toLowerCase().includes(q) ||
+        item.keterangan?.toLowerCase().includes(q) ||
         item.hari_aktif?.toLowerCase().includes(q)
       );
     }
@@ -392,9 +442,13 @@ export default function MobileKegiatan() {
     const isTabBerjamaah = activeTab === "berjamaah";
     setFormData({
       ...initialForm,
+      _source: isTabBerjamaah ? "kegiatan_sesi" : "materi_hafalan",
+      materi_id: null,
       kode_sesi: isTabBerjamaah ? `SHLT-${suffix}` : `KJN-${suffix}`,
-      kategori: isTabBerjamaah ? "Shalat Berjamaah" : "Pengajian / Mengaji",
-      nama_sesi: isTabBerjamaah ? "Shalat Berjamaah " : "Kajian Kitab ",
+      kategori: isTabBerjamaah ? "Shalat Berjamaah" : "Nahwu & Shorof",
+      nama_sesi: "",
+      target_hafalan: "",
+      keterangan: "",
       jam_mulai_presensi: isTabBerjamaah ? "04:15" : "18:30",
       jam_target: isTabBerjamaah ? "04:35" : "18:50",
       jam_toleransi_telat: isTabBerjamaah ? "04:40" : "18:55",
@@ -412,13 +466,16 @@ export default function MobileKegiatan() {
     const daysArr = parseDaysToArray(keg.hari_aktif);
     setFormData({
       id: keg.id,
+      materi_id: keg.materi_id || null,
+      _source: keg._source || "kegiatan_sesi",
       kode_sesi: keg.kode_sesi || "",
       nama_sesi: keg.nama_sesi || "",
       kategori:
         keg.kategori ||
         (activeTab === "berjamaah"
           ? "Shalat Berjamaah"
-          : "Pengajian / Mengaji"),
+          : "Nahwu & Shorof"),
+      target_hafalan: keg.target_hafalan || "",
       tipe_peserta: keg.tipe_peserta || "Wajib Semua Santri",
       target_gender: keg.target_gender || "Semua",
       jam_mulai_presensi: keg.jam_mulai_presensi
@@ -441,6 +498,20 @@ export default function MobileKegiatan() {
 
   // Duplikasi Kegiatan Cepat
   const handleDuplicate = async (keg) => {
+    if (keg._source === "materi_hafalan") {
+      try {
+        await axios.post("/api/materi-hafalan", {
+          nama_materi: `${keg.nama_sesi} (Salinan)`,
+          kategori: keg.kategori || "Kitab Kuning",
+          target_hafalan: keg.target_hafalan || "",
+          deskripsi: keg.keterangan || "",
+        });
+        toastSuccess(`Kegiatan "${keg.nama_sesi} (Salinan)" berhasil disalin!`);
+        fetchKegiatan();
+        return;
+      } catch (e) {}
+    }
+
     const daysArr = parseDaysToArray(keg.hari_aktif);
     const newKeg = {
       ...keg,
@@ -469,6 +540,17 @@ export default function MobileKegiatan() {
   // Toggle Aktif / Nonaktif
   const handleToggleStatus = async (keg) => {
     const newStatus = keg.is_active == 1 ? 0 : 1;
+    if (keg._source === "materi_hafalan") {
+      setKegiatanList((prev) =>
+        prev.map((item) =>
+          item.id === keg.id ? { ...item, is_active: newStatus } : item,
+        ),
+      );
+      toastSuccess(
+        `Status "${keg.nama_sesi}" diubah menjadi ${newStatus == 1 ? "Aktif" : "Nonaktif"}.`,
+      );
+      return;
+    }
     try {
       await axios.put(`/api/absensi/sesi/${keg.id}`, {
         ...keg,
@@ -501,7 +583,11 @@ export default function MobileKegiatan() {
     if (!ok) return;
 
     try {
-      await axios.delete(`/api/absensi/sesi/${keg.id}`);
+      if (keg._source === "materi_hafalan" && keg.materi_id) {
+        await axios.delete(`/api/materi-hafalan/${keg.materi_id}`);
+      } else {
+        await axios.delete(`/api/absensi/sesi/${keg.id}`);
+      }
       toastSuccess(`Kegiatan "${keg.nama_sesi}" berhasil dihapus.`);
       fetchKegiatan();
     } catch (e) {
@@ -536,16 +622,43 @@ export default function MobileKegiatan() {
       showError("Validasi Gagal", "Nama kegiatan santri wajib diisi!");
       return;
     }
-    if (!formData.selected_days || formData.selected_days.length === 0) {
-      showError(
-        "Validasi Gagal",
-        "Pilih minimal satu hari pelaksanaan kegiatan!",
-      );
-      return;
-    }
 
     try {
       setSubmitting(true);
+
+      // Jika di tab Mengaji & sumbernya materi_hafalan, simpan ke tabel materi_hafalan
+      if (
+        formData._source === "materi_hafalan" ||
+        (activeTab === "mengaji" && formMode === "add")
+      ) {
+        const materiPayload = {
+          nama_materi: formData.nama_sesi.trim(),
+          kategori: formData.kategori || "Kitab Kuning",
+          target_hafalan: formData.target_hafalan || formData.keterangan || "",
+          deskripsi: formData.keterangan || formData.target_hafalan || "",
+        };
+
+        if (formMode === "add") {
+          await axios.post("/api/materi-hafalan", materiPayload);
+          toastSuccess(`Kegiatan "${materiPayload.nama_materi}" berhasil ditambahkan!`);
+        } else {
+          const targetId = formData.materi_id || String(formData.id).replace("materi-", "");
+          await axios.put(`/api/materi-hafalan/${targetId}`, materiPayload);
+          toastSuccess(`Kegiatan "${materiPayload.nama_materi}" berhasil diperbarui!`);
+        }
+        setIsModalOpen(false);
+        fetchKegiatan();
+        return;
+      }
+
+      if (!formData.selected_days || formData.selected_days.length === 0) {
+        showError(
+          "Validasi Gagal",
+          "Pilih minimal satu hari pelaksanaan kegiatan!",
+        );
+        return;
+      }
+
       const formattedDays = formatDaysToString(formData.selected_days);
       const payload = {
         ...formData,
@@ -1053,127 +1166,188 @@ export default function MobileKegiatan() {
                     </button>
                   </div>
 
-                  {/* 4 Jadwal Waktu Grid (Mulai, Target/Adzan, Toleransi, Tutup) */}
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(4, 1fr)",
-                      gap: "6px",
-                      background: "#f8fafc",
-                      borderRadius: "12px",
-                      padding: "8px 10px",
-                      marginTop: "10px",
-                      marginLeft: "6px",
-                      border: "1px solid #f1f5f9",
-                    }}
-                  >
-                    {/* 1. Buka */}
-                    <div style={{ textAlign: "center" }}>
-                      <div
-                        style={{
-                          fontSize: "0.56rem",
-                          color: "#64748b",
-                          fontWeight: 600,
-                        }}
-                      >
-                        Buka Presensi
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "0.8rem",
-                          fontWeight: 800,
-                          color: "#0f172a",
-                          marginTop: "1px",
-                        }}
-                      >
-                        {keg.jam_mulai_presensi?.slice(0, 5) || "04:15"}
-                      </div>
-                    </div>
-
-                    {/* 2. Target / Iqomah */}
+                  {/* 4 Jadwal Waktu Grid (Berjamaah) ATAU Detail Kitab & Materi (Master Kegiatan Mengaji) */}
+                  {keg._source === "materi_hafalan" ? (
                     <div
                       style={{
-                        textAlign: "center",
-                        borderLeft: "1px solid #e2e8f0",
+                        background: "#f8fafc",
+                        borderRadius: "12px",
+                        padding: "9px 11px",
+                        marginTop: "10px",
+                        marginLeft: "6px",
+                        border: "1px solid #f1f5f9",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "4px",
                       }}
                     >
                       <div
                         style={{
-                          fontSize: "0.56rem",
-                          color: "#0d766e",
-                          fontWeight: 700,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          flexWrap: "wrap",
                         }}
                       >
-                        {activeTab === "berjamaah" ? "Iqomah" : "Mulai Masuk"}
+                        <span
+                          style={{
+                            fontSize: "0.62rem",
+                            fontWeight: 800,
+                            color: "#0369a1",
+                            background: "#e0f2fe",
+                            border: "1px solid #bae6fd",
+                            padding: "2px 8px",
+                            borderRadius: "999px",
+                          }}
+                        >
+                          {keg.kategori || "Kitab & Pengajian"}
+                        </span>
+                        {keg.target_hafalan && (
+                          <span
+                            style={{
+                              fontSize: "0.66rem",
+                              fontWeight: 700,
+                              color: "#334155",
+                            }}
+                          >
+                            • {keg.target_hafalan}
+                          </span>
+                        )}
                       </div>
-                      <div
-                        style={{
-                          fontSize: "0.8rem",
-                          fontWeight: 900,
-                          color: "#0d766e",
-                          marginTop: "1px",
-                        }}
-                      >
-                        {keg.jam_target?.slice(0, 5) || "04:40"}
-                      </div>
+                      {keg.keterangan && keg.keterangan !== keg.target_hafalan && (
+                        <div
+                          style={{
+                            fontSize: "0.68rem",
+                            color: "#64748b",
+                            lineHeight: 1.35,
+                          }}
+                        >
+                          {keg.keterangan}
+                        </div>
+                      )}
                     </div>
-
-                    {/* 3. Toleransi Telat */}
+                  ) : (
                     <div
                       style={{
-                        textAlign: "center",
-                        borderLeft: "1px solid #e2e8f0",
+                        display: "grid",
+                        gridTemplateColumns: "repeat(4, 1fr)",
+                        gap: "6px",
+                        background: "#f8fafc",
+                        borderRadius: "12px",
+                        padding: "8px 10px",
+                        marginTop: "10px",
+                        marginLeft: "6px",
+                        border: "1px solid #f1f5f9",
                       }}
                     >
-                      <div
-                        style={{
-                          fontSize: "0.56rem",
-                          color: "#d97706",
-                          fontWeight: 700,
-                        }}
-                      >
-                        Batas Telat
+                      {/* 1. Buka */}
+                      <div style={{ textAlign: "center" }}>
+                        <div
+                          style={{
+                            fontSize: "0.56rem",
+                            color: "#64748b",
+                            fontWeight: 600,
+                          }}
+                        >
+                          Buka Presensi
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.8rem",
+                            fontWeight: 800,
+                            color: "#0f172a",
+                            marginTop: "1px",
+                          }}
+                        >
+                          {keg.jam_mulai_presensi?.slice(0, 5) || "04:15"}
+                        </div>
                       </div>
-                      <div
-                        style={{
-                          fontSize: "0.8rem",
-                          fontWeight: 800,
-                          color: "#b45309",
-                          marginTop: "1px",
-                        }}
-                      >
-                        {keg.jam_toleransi_telat?.slice(0, 5) || "04:45"}
-                      </div>
-                    </div>
 
-                    {/* 4. Tutup Sesi */}
-                    <div
-                      style={{
-                        textAlign: "center",
-                        borderLeft: "1px solid #e2e8f0",
-                      }}
-                    >
+                      {/* 2. Target / Iqomah */}
                       <div
                         style={{
-                          fontSize: "0.56rem",
-                          color: "#e11d48",
-                          fontWeight: 700,
+                          textAlign: "center",
+                          borderLeft: "1px solid #e2e8f0",
                         }}
                       >
-                        Tutup Presensi
+                        <div
+                          style={{
+                            fontSize: "0.56rem",
+                            color: "#0d766e",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {activeTab === "berjamaah" ? "Iqomah" : "Mulai Masuk"}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.8rem",
+                            fontWeight: 900,
+                            color: "#0d766e",
+                            marginTop: "1px",
+                          }}
+                        >
+                          {keg.jam_target?.slice(0, 5) || "04:40"}
+                        </div>
                       </div>
+
+                      {/* 3. Toleransi Telat */}
                       <div
                         style={{
-                          fontSize: "0.8rem",
-                          fontWeight: 800,
-                          color: "#e11d48",
-                          marginTop: "1px",
+                          textAlign: "center",
+                          borderLeft: "1px solid #e2e8f0",
                         }}
                       >
-                        {keg.jam_tutup_presensi?.slice(0, 5) || "05:15"}
+                        <div
+                          style={{
+                            fontSize: "0.56rem",
+                            color: "#d97706",
+                            fontWeight: 700,
+                          }}
+                        >
+                          Batas Telat
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.8rem",
+                            fontWeight: 800,
+                            color: "#b45309",
+                            marginTop: "1px",
+                          }}
+                        >
+                          {keg.jam_toleransi_telat?.slice(0, 5) || "04:45"}
+                        </div>
+                      </div>
+
+                      {/* 4. Tutup Sesi */}
+                      <div
+                        style={{
+                          textAlign: "center",
+                          borderLeft: "1px solid #e2e8f0",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: "0.56rem",
+                            color: "#e11d48",
+                            fontWeight: 700,
+                          }}
+                        >
+                          Tutup Presensi
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.8rem",
+                            fontWeight: 800,
+                            color: "#e11d48",
+                            marginTop: "1px",
+                          }}
+                        >
+                          {keg.jam_tutup_presensi?.slice(0, 5) || "05:15"}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Footer Meta & Actions */}
                   <div
@@ -1498,22 +1672,62 @@ export default function MobileKegiatan() {
                       </>
                     ) : (
                       <>
-                        <option value="Pengajian / Mengaji">
-                          Pengajian / Mengaji
-                        </option>
-                        <option value="Sorogan Kitab">Sorogan Kitab</option>
-                        <option value="Bandongan Kitab">Bandongan Kitab</option>
-                        <option value="Tahfidz Al-Qur'an">
-                          Tahfidz Al-Qur'an
-                        </option>
-                        <option value="Madrasah Diniyah">
-                          Madrasah Diniyah
-                        </option>
+                        <option value="Nahwu & Shorof">Nahwu & Shorof</option>
+                        <option value="Fiqih">Fiqih</option>
+                        <option value="Tajwid & Al-Qur'an">Tajwid & Al-Qur'an</option>
+                        <option value="Muhafadzoh (Hafalan)">Muhafadzoh (Hafalan)</option>
+                        <option value="Akhlak & Adab">Akhlak & Adab</option>
+                        <option value="Aqidah & Tauhid">Aqidah & Tauhid</option>
+                        <option value="Ushul Fiqih">Ushul Fiqih</option>
+                        <option value="Tasawwuf & Adab">Tasawwuf & Adab</option>
+                        <option value="Tafsir & Ulumul Quran">Tafsir & Ulumul Quran</option>
+                        <option value="Praktek & Ubudiyah">Praktek & Ubudiyah</option>
+                        <option value="Bahasa & Penulisan">Bahasa & Penulisan</option>
+                        <option value="Qiroatul Kitab">Qiroatul Kitab</option>
+                        <option value="Bahtsul Masail & Diskusi">Bahtsul Masail & Diskusi</option>
+                        <option value="Doa & Wirid">Doa & Wirid</option>
+                        <option value="Pengajian / Mengaji">Pengajian / Mengaji</option>
                       </>
                     )}
                   </select>
                 </div>
               </div>
+
+              {activeTab === "mengaji" && (
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.72rem",
+                      fontWeight: 700,
+                      color: "#334155",
+                      marginBottom: "5px",
+                    }}
+                  >
+                    DESKRIPSI / KITAB ACUAN
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Matan Al-Ajurumiyyah / Fathul Qorib"
+                    value={formData.keterangan || formData.target_hafalan || ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        keterangan: e.target.value,
+                        target_hafalan: e.target.value,
+                      })
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "9px 12px",
+                      borderRadius: "10px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "0.8rem",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+              )}
 
               {/* Grid 4 Waktu Pelaksanaan */}
               <div>

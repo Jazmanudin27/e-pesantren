@@ -25,7 +25,10 @@ import TabNotifikasiWali from "./TabNotifikasiWali";
 import TabTagihanKeuangan from "./TabTagihanKeuangan";
 import TabLaporanPerkembangan from "./TabLaporanPerkembangan";
 import TabInformasiKegiatan from "./TabInformasiKegiatan";
+import TabInfakSedekahWali from "./TabInfakSedekahWali";
+import TabPesanWali from "./TabPesanWali";
 import ModalTagihanJatuhTempo from "./ModalTagihanJatuhTempo";
+import ModalPengumumanWali from "./ModalPengumumanWali";
 
 import {
   showConfirm,
@@ -50,6 +53,8 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   const [isPendingModalOpen, setIsPendingModalOpen] = useState(true);
   const [processingPending, setProcessingPending] = useState(false);
   const [latestFeed, setLatestFeed] = useState([]);
+  const [pengumumanAktifList, setPengumumanAktifList] = useState([]);
+  const [isPengumumanModalOpen, setIsPengumumanModalOpen] = useState(false);
   const [tagihanJatuhTempo, setTagihanJatuhTempo] = useState([]);
   const [isJatuhTempoModalOpen, setIsJatuhTempoModalOpen] = useState(false);
   const [notifikasiList, setNotifikasiList] = useState([]);
@@ -366,9 +371,48 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
 
   const fetchLatestFeed = async () => {
     try {
-      const res = await axios.get("/api/informasi-kegiatan/feed?limit=6");
+      const res = await axios.get("/api/informasi-kegiatan/feed?active_only=1&limit=15");
       if (res.data?.success) {
-        setLatestFeed(res.data.data.feed || []);
+        const rawFeed = res.data.data.feed || [];
+        const todayStr = new Date().toISOString().slice(0, 10);
+
+        // Filter pengumuman yang belum kadaluarsa (otomatis hilang sendiri jika lewat tgl_kadaluarsa)
+        const validPengumuman = rawFeed.filter((item) => {
+          if (!item.tgl_kadaluarsa) return true;
+          const expStr = String(item.tgl_kadaluarsa).slice(0, 10);
+          return expStr >= todayStr;
+        });
+
+        setLatestFeed(validPengumuman.slice(0, 6));
+        setPengumumanAktifList(validPengumuman);
+
+        if (validPengumuman.length > 0) {
+          // Cek apakah halaman dibuka karena reload (refresh) atau awal buka aplikasi
+          let isPageReload = false;
+          try {
+            const navEntries = window.performance?.getEntriesByType?.("navigation");
+            if (navEntries && navEntries.length > 0 && navEntries[0].type === "reload") {
+              isPageReload = true;
+            } else if (window.performance?.navigation?.type === 1) {
+              isPageReload = true;
+            }
+          } catch (e) {}
+
+          const alreadyShownInSession = sessionStorage.getItem("nwf_wali_pengumuman_shown_session") === "true";
+          const maxId = Math.max(...validPengumuman.map((p) => Number(p.id) || 0));
+          const lastSeenMaxId = Number(localStorage.getItem("nwf_wali_last_pengumuman_id") || 0);
+
+          // Munculkan modal hanya saat awal buka aplikasi (bukan saat reload), atau jika ada pengumuman baru dari Admin
+          if ((!isPageReload && !alreadyShownInSession) || maxId > lastSeenMaxId) {
+            sessionStorage.setItem("nwf_wali_pengumuman_shown_session", "true");
+            if (maxId > 0) {
+              localStorage.setItem("nwf_wali_last_pengumuman_id", String(maxId));
+            }
+            setIsPengumumanModalOpen(true);
+          } else {
+            sessionStorage.setItem("nwf_wali_pengumuman_shown_session", "true");
+          }
+        }
       }
     } catch (e) {}
   };
@@ -566,6 +610,12 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
         setUnreadNotifCount((prev) => Math.max(0, prev - 1));
       }
     } catch (e) {}
+
+    if (notif.target_tab === "pengumuman" || notif.kategori === "pengumuman") {
+      await fetchLatestFeed();
+      setIsPengumumanModalOpen(true);
+      return;
+    }
 
     if (
       notif.target_tab &&
@@ -1137,10 +1187,19 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
             handleBatalkanTransaksi={handleBatalkanTransaksi}
             formatRp={formatRp}
             unreadNotifCount={unreadNotifCount}
+            activePengumumanCount={pengumumanAktifList.length}
+            onOpenPengumumanModal={() => setIsPengumumanModalOpen(true)}
             onNavigateTab={setCurrentTab}
             handleLogoutAction={handleLogoutAction}
           />
         )}
+
+        {/* MODAL SLIDER PENGUMUMAN RESMI PESANTREN (BISA DIGESER & OTOMATIS HILANG JIKA KADALUARSA) */}
+        <ModalPengumumanWali
+          isOpen={isPengumumanModalOpen}
+          onClose={() => setIsPengumumanModalOpen(false)}
+          pengumumanList={pengumumanAktifList}
+        />
 
         {/* 2. BUKU TABUNGAN SANTRI TAB */}
         {currentTab === "tabungan" && (
@@ -1261,6 +1320,27 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
         {/* 12. TAB INFORMASI & KEGIATAN PESANTREN (LINIMASA / FEED) */}
         {currentTab === "informasi" && (
           <TabInformasiKegiatan onBack={() => setCurrentTab("beranda")} />
+        )}
+
+        {/* 13. TAB INFAK & SEDEKAH (SUKARELA & TERPISAH DARI SPP) */}
+        {currentTab === "infak" && (
+          <TabInfakSedekahWali
+            santriId={selectedSantriId}
+            santriName={rawSantriName}
+            waliName={santri?.nama_wali || "Orang Tua Santri"}
+            formatRp={formatRp}
+            onBack={() => setCurrentTab("beranda")}
+          />
+        )}
+
+        {/* 14. TAB PESAN & KOMUNIKASI (WALI SANTRI <-> ADMIN PESANTREN) */}
+        {currentTab === "pesan" && (
+          <TabPesanWali
+            santriId={selectedSantriId}
+            santriName={rawSantriName}
+            waliName={santri?.nama_wali || "Orang Tua Santri"}
+            onBack={() => setCurrentTab("beranda")}
+          />
         )}
 
         {/* =========================================================================

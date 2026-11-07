@@ -2,18 +2,142 @@ import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
 import { createWaliNotification } from './notifikasi.controller.js';
 
+let isInformasiTableReady = false;
+
+export const KATEGORI_PENGUMUMAN_RESMI = [
+  'Pengumuman Pesantren',
+  'Informasi Kegiatan',
+  'Jadwal Kegiatan',
+  'Liburan & Kepulangan Santri',
+  'Informasi Penting Lainnya'
+];
+
 /**
- * Mengambil Daftar Linimasa / Feed Informasi & Dokumentasi Kegiatan Pesantren
+ * Pastikan tabel pesantren_informasi_kegiatan beserta kolom tgl_kadaluarsa & is_popup tersedia
+ */
+export const ensureInformasiTable = async () => {
+  if (isInformasiTableReady) return;
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS pesantren_informasi_kegiatan (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        judul VARCHAR(255) NOT NULL,
+        kategori VARCHAR(100) NOT NULL DEFAULT 'Pengumuman Pesantren',
+        ringkasan VARCHAR(500) DEFAULT NULL,
+        konten TEXT NOT NULL,
+        foto_url LONGTEXT DEFAULT NULL,
+        video_url VARCHAR(500) DEFAULT NULL,
+        penulis VARCHAR(150) DEFAULT 'Humas Pondok Pesantren',
+        tanggal_publikasi DATE NOT NULL,
+        tgl_kadaluarsa DATE DEFAULT NULL,
+        is_pinned TINYINT(1) DEFAULT 0,
+        is_popup TINYINT(1) DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    const [cols] = await pool.query(`
+      SELECT COLUMN_NAME 
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_NAME = 'pesantren_informasi_kegiatan' AND TABLE_SCHEMA = DATABASE()
+    `);
+    const colNames = (cols || []).map(c => c.COLUMN_NAME.toLowerCase());
+
+    if (!colNames.includes('tgl_kadaluarsa')) {
+      try {
+        await pool.query(`ALTER TABLE pesantren_informasi_kegiatan ADD COLUMN tgl_kadaluarsa DATE DEFAULT NULL AFTER tanggal_publikasi`);
+      } catch (e) {}
+    }
+
+    if (!colNames.includes('is_popup')) {
+      try {
+        await pool.query(`ALTER TABLE pesantren_informasi_kegiatan ADD COLUMN is_popup TINYINT(1) DEFAULT 1 AFTER is_pinned`);
+      } catch (e) {}
+    }
+
+    try {
+      await pool.query(`ALTER TABLE pesantren_informasi_kegiatan MODIFY COLUMN foto_url LONGTEXT DEFAULT NULL`);
+    } catch (e) {}
+
+    // Jika tabel masih kosong, isi contoh pengumuman resmi agar fitur langsung siap digunakan
+    const [cnt] = await pool.query(`SELECT COUNT(*) AS total FROM pesantren_informasi_kegiatan`);
+    if (cnt && cnt[0].total === 0) {
+      const today = new Date();
+      const tglPub = today.toISOString().slice(0, 10);
+      const nextMonth = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+      const seeds = [
+        [
+          'Pengumuman Resmi Ketertiban & Kunjungan Wali Santri',
+          'Pengumuman Pesantren',
+          'Jadwal jam kunjung wali santri dan ketertiban penitipan barang di Pondok Pesantren Nurul Wafa.',
+          'Assalamu\'alaikum Wr. Wb.\nDiberitahukan kepada seluruh Bapak/Ibu Wali Santri Pondok Pesantren Nurul Wafa bahwa kunjungan wali santri dibuka setiap hari Ahad pukul 08.00 - 16.00 WIB. Demi menjaga kedisiplinan santri, dimohon tidak membawa perangkat elektronik (HP) ke area asrama.\nWassalamu\'alaikum Wr. Wb.',
+          'Pengasuh & Humas Pesantren',
+          tglPub,
+          nextMonth,
+          1,
+          1
+        ],
+        [
+          'Informasi Liburan & Jadwal Kepulangan Santri',
+          'Liburan & Kepulangan Santri',
+          'Ketentuan penjemputan kepulangan santri dan batas waktu kembali ke pondok pesantren.',
+          'Diberitahukan kepada Bapak/Ibu Wali Santri bahwa menjelang masa libur pesantren, penjemputan santri wajib dilakukan oleh orang tua/wali resmi dengan menunjukkan Kartu Wali / Konfirmasi Perizinan kepada pengurus keamanan pondok. Santri wajib kembali tepat waktu sesuai jadwal yang telah ditetapkan.',
+          'Bagian Keamanan & Perizinan',
+          tglPub,
+          nextMonth,
+          1,
+          1
+        ],
+        [
+          'Jadwal Kegiatan Pengajian Akbar & Istighotsah Bulanan',
+          'Jadwal Kegiatan',
+          'Agenda rutin pengajian akbar, khataman Al-Qur\'an, dan evaluasi muhafadzoh santri.',
+          'Seluruh santri wajib mengikuti kegiatan Istighotsah, Muhadhoroh, dan Evaluasi Kitab Kuning yang dilaksanakan secara berjamaah di Masjid Jami Pondok Pesantren Nurul Wafa. Mohon doa restu dari Bapak/Ibu Wali Santri agar kegiatan berjalan lancar dan penuh keberkahan.',
+          'Bagian Pendidikan & Taklim',
+          tglPub,
+          nextMonth,
+          0,
+          1
+        ]
+      ];
+
+      for (const s of seeds) {
+        await pool.query(
+          `INSERT INTO pesantren_informasi_kegiatan 
+           (judul, kategori, ringkasan, konten, penulis, tanggal_publikasi, tgl_kadaluarsa, is_pinned, is_popup)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          s
+        ).catch(() => {});
+      }
+    }
+
+    isInformasiTableReady = true;
+  } catch (err) {
+    console.warn('[INFORMASI DB INIT NOTICE]', err.message);
+  }
+};
+
+/**
+ * Mengambil Daftar Linimasa / Feed Informasi & Pengumuman Pesantren
+ * Jika query active_only=1 dikirim (misal untuk Modal Pengumuman Orang Tua),
+ * otomatis memfilter hanya pengumuman yang belum kadaluarsa (tgl_kadaluarsa IS NULL atau >= hari ini).
  */
 export const getFeedInformasi = async (req, res) => {
   try {
-    const { kategori, search, limit } = req.query;
+    await ensureInformasiTable();
+    const { kategori, search, limit, active_only } = req.query;
 
     let sql = `
       SELECT * FROM pesantren_informasi_kegiatan 
       WHERE 1=1
     `;
     const params = [];
+
+    if (String(active_only) === '1' || String(active_only) === 'true') {
+      sql += ` AND (tgl_kadaluarsa IS NULL OR DATE(tgl_kadaluarsa) >= CURDATE())`;
+      sql += ` AND (is_popup IS NULL OR is_popup = 1)`;
+    }
 
     if (kategori && kategori !== 'Semua') {
       sql += ' AND kategori = ?';
@@ -26,18 +150,25 @@ export const getFeedInformasi = async (req, res) => {
     }
 
     sql += ' ORDER BY is_pinned DESC, tanggal_publikasi DESC, id DESC';
-    sql += ` LIMIT ${parseInt(limit) || 30}`;
+    sql += ` LIMIT ${parseInt(limit) || 50}`;
 
     const [rows] = await pool.query(sql, params);
 
-    // Ambil daftar kategori unik untuk filter tab
+    // Ambil daftar kategori unik + gabungkan dengan 5 kategori resmi
     const [kategoriRows] = await pool.query(`
       SELECT DISTINCT kategori FROM pesantren_informasi_kegiatan ORDER BY kategori ASC
-    `);
+    `).catch(() => [[]]);
 
-    return sendSuccess(res, 'Feed informasi pesantren berhasil diambil', {
+    const mergedKategori = Array.from(
+      new Set([
+        ...KATEGORI_PENGUMUMAN_RESMI,
+        ...(kategoriRows || []).map(k => k.kategori).filter(Boolean)
+      ])
+    );
+
+    return sendSuccess(res, 'Feed informasi & pengumuman pesantren berhasil diambil', {
       feed: rows || [],
-      kategoriList: ['Semua', ...(kategoriRows || []).map(k => k.kategori)]
+      kategoriList: ['Semua', ...mergedKategori]
     });
   } catch (err) {
     return sendError(res, `Gagal memuat informasi: ${err.message}`, 500);
@@ -45,49 +176,150 @@ export const getFeedInformasi = async (req, res) => {
 };
 
 /**
- * Admin: Terbitkan Berita / Pengumuman Baru
+ * Admin: Terbitkan Pengumuman / Informasi Baru + Broadcast Notifikasi ke Orang Tua
  */
 export const createInformasi = async (req, res) => {
   try {
-    const { judul, kategori, ringkasan, konten, foto_url, video_url, penulis, tanggal_publikasi, is_pinned } = req.body;
+    await ensureInformasiTable();
+    const {
+      judul,
+      kategori,
+      ringkasan,
+      konten,
+      foto_url,
+      video_url,
+      penulis,
+      tanggal_publikasi,
+      tgl_kadaluarsa,
+      is_pinned,
+      is_popup
+    } = req.body;
 
     if (!judul || !konten) {
-      return sendError(res, 'Judul dan Isi Konten Informasi wajib diisi', 400);
+      return sendError(res, 'Judul dan Isi Konten Pengumuman wajib diisi', 400);
     }
 
     const tgl = tanggal_publikasi || new Date().toISOString().slice(0, 10);
+    const expDate = tgl_kadaluarsa && String(tgl_kadaluarsa).trim() !== '' ? tgl_kadaluarsa : null;
     const author = penulis || 'Humas Pondok Pesantren';
+    const finalKategori = kategori || 'Pengumuman Pesantren';
+    const popupFlag = is_popup === undefined ? 1 : (is_popup ? 1 : 0);
 
-    const [result] = await pool.query(`
-      INSERT INTO pesantren_informasi_kegiatan 
-      (judul, kategori, ringkasan, konten, foto_url, video_url, penulis, tanggal_publikasi, is_pinned)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [judul, kategori || 'Kegiatan Santri', ringkasan || null, konten, foto_url || null, video_url || null, author, tgl, is_pinned ? 1 : 0]);
+    const [result] = await pool.query(
+      `INSERT INTO pesantren_informasi_kegiatan 
+       (judul, kategori, ringkasan, konten, foto_url, video_url, penulis, tanggal_publikasi, tgl_kadaluarsa, is_pinned, is_popup)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        judul.trim(),
+        finalKategori,
+        ringkasan || null,
+        konten,
+        foto_url || null,
+        video_url || null,
+        author,
+        tgl,
+        expDate,
+        is_pinned ? 1 : 0,
+        popupFlag
+      ]
+    );
 
+    // Broadcast notifikasi real-time ke seluruh Orang Tua / Wali Santri
     createWaliNotification({
       santri_id: null, // Broadcast ke semua wali santri
-      kategori: 'kegiatan',
-      judul: `Info Kegiatan: ${judul}`,
-      pesan: ringkasan || String(konten || '').slice(0, 140),
-      target_tab: 'informasi'
+      kategori: 'pengumuman',
+      judul: `📢 ${finalKategori}: ${judul.trim()}`,
+      pesan: ringkasan || String(konten || '').replace(/\s+/g, ' ').slice(0, 160),
+      target_tab: 'pengumuman'
     });
 
-    return sendSuccess(res, 'Informasi kegiatan berhasil diterbitkan ke linimasa', { id: result.insertId });
+    return sendSuccess(res, 'Pengumuman berhasil diterbitkan & notifikasi telah dikirim ke Orang Tua', {
+      id: result.insertId
+    });
   } catch (err) {
-    return sendError(res, `Gagal membuat informasi: ${err.message}`, 500);
+    return sendError(res, `Gagal membuat pengumuman: ${err.message}`, 500);
   }
 };
 
 /**
- * Admin: Hapus Informasi
+ * Admin: Ubah / Edit Pengumuman
+ */
+export const updateInformasi = async (req, res) => {
+  try {
+    await ensureInformasiTable();
+    const { id } = req.params;
+    const {
+      judul,
+      kategori,
+      ringkasan,
+      konten,
+      foto_url,
+      video_url,
+      penulis,
+      tanggal_publikasi,
+      tgl_kadaluarsa,
+      is_pinned,
+      is_popup,
+      kirim_notif_ulang
+    } = req.body;
+
+    if (!judul || !konten) {
+      return sendError(res, 'Judul dan Isi Konten Pengumuman wajib diisi', 400);
+    }
+
+    const tgl = tanggal_publikasi || new Date().toISOString().slice(0, 10);
+    const expDate = tgl_kadaluarsa && String(tgl_kadaluarsa).trim() !== '' ? tgl_kadaluarsa : null;
+    const author = penulis || 'Humas Pondok Pesantren';
+    const finalKategori = kategori || 'Pengumuman Pesantren';
+    const popupFlag = is_popup === undefined ? 1 : (is_popup ? 1 : 0);
+
+    await pool.query(
+      `UPDATE pesantren_informasi_kegiatan 
+       SET judul = ?, kategori = ?, ringkasan = ?, konten = ?, foto_url = ?, video_url = ?,
+           penulis = ?, tanggal_publikasi = ?, tgl_kadaluarsa = ?, is_pinned = ?, is_popup = ?
+       WHERE id = ?`,
+      [
+        judul.trim(),
+        finalKategori,
+        ringkasan || null,
+        konten,
+        foto_url || null,
+        video_url || null,
+        author,
+        tgl,
+        expDate,
+        is_pinned ? 1 : 0,
+        popupFlag,
+        id
+      ]
+    );
+
+    if (kirim_notif_ulang) {
+      createWaliNotification({
+        santri_id: null,
+        kategori: 'pengumuman',
+        judul: `📢 [Update] ${finalKategori}: ${judul.trim()}`,
+        pesan: ringkasan || String(konten || '').replace(/\s+/g, ' ').slice(0, 160),
+        target_tab: 'pengumuman'
+      });
+    }
+
+    return sendSuccess(res, 'Pengumuman berhasil diperbarui');
+  } catch (err) {
+    return sendError(res, `Gagal memperbarui pengumuman: ${err.message}`, 500);
+  }
+};
+
+/**
+ * Admin: Hapus Pengumuman
  */
 export const deleteInformasi = async (req, res) => {
   try {
+    await ensureInformasiTable();
     const { id } = req.params;
     await pool.query('DELETE FROM pesantren_informasi_kegiatan WHERE id = ?', [id]);
-    return sendSuccess(res, 'Informasi berhasil dihapus');
+    return sendSuccess(res, 'Pengumuman berhasil dihapus');
   } catch (err) {
     return sendError(res, err.message, 500);
   }
 };
-

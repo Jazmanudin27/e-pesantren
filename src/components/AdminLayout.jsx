@@ -33,7 +33,9 @@ import {
   HeartHandshake,
   CreditCard,
   Calendar,
-  Wallet
+  Wallet,
+  Heart,
+  MessageSquare
 } from 'lucide-react';
 import DashboardAdmin from '../views/admin/DashboardAdmin';
 import SantriView from '../views/admin/SantriView';
@@ -52,6 +54,8 @@ import TataTertibView from '../views/admin/TataTertibView';
 import AbsensiFingerprintView from '../views/admin/AbsensiFingerprintView';
 import KeuanganAdminView from '../views/keuangan/KeuanganAdminView';
 import TabunganSantriAdminView from '../views/keuangan/TabunganSantriAdminView';
+import LaporanInfakAdminView from '../views/keuangan/LaporanInfakAdminView';
+import PesanKomunikasiAdminView from '../views/admin/PesanKomunikasiAdminView';
 import KurikulumPengajianView from '../views/admin/KurikulumPengajianView';
 import LaporanPerkembanganAdminView from '../views/admin/LaporanPerkembanganAdminView';
 import InformasiKegiatanAdminView from '../views/admin/InformasiKegiatanAdminView';
@@ -68,7 +72,7 @@ export default function AdminLayout() {
   const isMasterTab = (tab) => ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-materi', 'setting-shalat', 'setting-kegiatan', 'master-kegiatan'].includes(tab);
   const isSettingsTab = (tab) => ['master-device', 'manajemen-user', 'users'].includes(tab);
   const isLaporanTab = (tab) => ['laporan-presensi', 'laporan-tahfidz'].includes(tab);
-  const isKeuanganTab = (tab) => ['keuangan-admin', 'keuangan', 'keuangan-kasir', 'keuangan-rekap', 'keuangan-spp', 'tagihan', 'tabungan-santri', 'tabungan'].includes(tab);
+  const isKeuanganTab = (tab) => ['keuangan-admin', 'keuangan', 'keuangan-kasir', 'keuangan-rekap', 'keuangan-spp', 'tagihan', 'tabungan-santri', 'tabungan', 'laporan-infak', 'infak'].includes(tab);
 
   // Get initial tab from URL hash
   const getInitialTab = () => {
@@ -387,6 +391,16 @@ export default function AdminLayout() {
           return null;
         }
         return <TabunganSantriAdminView />;
+      case 'laporan-infak':
+      case 'infak':
+        if (!canAccessKeuangan(currentUser)) {
+          return null;
+        }
+        return <LaporanInfakAdminView />;
+      case 'pesan-komunikasi':
+      case 'pesan-admin':
+      case 'pesan':
+        return <PesanKomunikasiAdminView />;
       case 'perkembangan-santri-laki':
       case 'perkembangan-ikhwan':
         return <PerkembanganSantriLakiView />;
@@ -615,6 +629,26 @@ export default function AdminLayout() {
           </div>
         </button>
 
+        <button 
+          className={`nav-link ${['informasi-kegiatan', 'berita-pesantren', 'pengumuman'].includes(activeTab) ? 'active' : ''}`}
+          onClick={() => handleTabClick('informasi-kegiatan')}
+        >
+          <div className="nav-link-left">
+            <Bell size={15} style={{ color: '#f59e0b' }} />
+            <span>Informasi &amp; Pengumuman</span>
+          </div>
+        </button>
+
+        <button 
+          className={`nav-link ${['pesan-komunikasi', 'pesan-admin', 'pesan'].includes(activeTab) ? 'active' : ''}`}
+          onClick={() => handleTabClick('pesan-komunikasi')}
+        >
+          <div className="nav-link-left">
+            <MessageSquare size={15} style={{ color: '#0d9488' }} />
+            <span>Pesan Wali Santri</span>
+          </div>
+        </button>
+
 
         {canAccessKeuangan(currentUser) && (
           <>
@@ -654,6 +688,14 @@ export default function AdminLayout() {
                 >
                   <Wallet size={13} style={{ marginRight: '6px', color: '#0d9488' }} />
                   <span>Saldo Tabungan Santri</span>
+                </button>
+
+                <button 
+                  className={`nav-sublink ${activeTab === 'laporan-infak' || activeTab === 'infak' ? 'active' : ''}`}
+                  onClick={() => handleTabClick('laporan-infak')}
+                >
+                  <Heart size={13} style={{ marginRight: '6px', color: '#ec4899' }} />
+                  <span>Infak &amp; Sedekah</span>
                 </button>
               </div>
             )}

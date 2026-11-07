@@ -229,7 +229,7 @@ export default function PWAInstallModal() {
                 }}
               />
 
-              {/* Tombol Tutup X */}
+              {/* Tombol Tutup X (Hit target besar 44x44px, zIndex tertinggi 9999 agar pas & tidak meleset) */}
               <button
                 type="button"
                 onClick={(e) => {
@@ -238,31 +238,32 @@ export default function PWAInstallModal() {
                 }}
                 style={{
                   position: 'absolute',
-                  top: '12px',
-                  right: '12px',
-                  zIndex: 30,
-                  width: '34px',
-                  height: '34px',
+                  top: '10px',
+                  right: '10px',
+                  zIndex: 9999,
+                  width: '44px',
+                  height: '44px',
                   padding: 0,
                   lineHeight: 0,
                   borderRadius: '50%',
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  border: '1px solid rgba(255, 255, 255, 0.32)',
+                  background: 'rgba(255, 255, 255, 0.22)',
+                  border: '1px solid rgba(255, 255, 255, 0.38)',
                   color: '#ffffff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  touchAction: 'manipulation'
+                  touchAction: 'manipulation',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.18)'
                 }}
                 title="Tutup"
                 aria-label="Tutup"
               >
-                <X size={16} strokeWidth={2.5} style={{ pointerEvents: 'none' }} />
+                <X size={18} strokeWidth={2.6} style={{ pointerEvents: 'none' }} />
               </button>
 
               {/* App Icon Frame + Brand Identity */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative', zIndex: 2, paddingRight: '34px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative', zIndex: 2, paddingRight: '48px' }}>
                 {/* Pure White Squircle Icon (Background Putih Bersih Tanpa Hijau, Logo Proporsional) */}
                 <div
                   style={{

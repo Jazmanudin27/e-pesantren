@@ -9,6 +9,9 @@ import { ensurePraktekTables } from './src/controllers/praktek.controller.js';
 import { ensureAbsensiTablesAndColumns } from './src/controllers/absensi.controller.js';
 import { ensureTabunganTables } from './src/controllers/tabungan.controller.js';
 import { ensureNotifikasiTable } from './src/controllers/notifikasi.controller.js';
+import { ensureInfakTables } from './src/controllers/infak.controller.js';
+import { ensurePesanTable } from './src/controllers/pesan.controller.js';
+import { ensureInformasiTable } from './src/controllers/informasiKegiatan.controller.js';
 
 dotenv.config();
 
@@ -62,6 +65,9 @@ app.listen(PORT, '0.0.0.0', async () => {
     await ensureAbsensiTablesAndColumns();
     await ensureTabunganTables();
     await ensureNotifikasiTable();
+    await ensureInfakTables();
+    await ensurePesanTable();
+    await ensureInformasiTable();
   } catch (e) {
     console.warn('[E-PESANTREN] Init DB notice:', e.message);
   }

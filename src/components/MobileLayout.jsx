@@ -25,7 +25,9 @@ import {
   Zap,
   Layers,
   RotateCw,
-  Calendar
+  Calendar,
+  Heart,
+  MessageSquare
 } from 'lucide-react';
 import MobileHome from '../views/mobile/MobileHome';
 import MobileTahfidz from '../views/mobile/MobileTahfidz';
@@ -57,6 +59,8 @@ import InformasiKegiatanAdminView from '../views/admin/InformasiKegiatanAdminVie
 import TabInformasiKegiatan from '../views/wali/TabInformasiKegiatan';
 import PortalWaliSantri from '../views/wali/PortalWaliSantri';
 import MobileTabungan from '../views/mobile/MobileTabungan';
+import LaporanInfakAdminView from '../views/keuangan/LaporanInfakAdminView';
+import PesanKomunikasiAdminView from '../views/admin/PesanKomunikasiAdminView';
 import { canAccessKeuangan } from '../utils/authRole.util';
 
 export default function MobileLayout() {
@@ -253,6 +257,11 @@ export default function MobileLayout() {
       case 'keuangan-komponen': return 'Tarif Komponen Biaya';
       case 'keuangan-generate': return 'Generate Tagihan SPP';
       case 'tabungan': return 'Saldo Tabungan Santri';
+      case 'laporan-infak':
+      case 'infak': return 'Infak & Sedekah Pesantren';
+      case 'pesan-komunikasi':
+      case 'pesan-admin':
+      case 'pesan': return 'Pesan & Komunikasi Wali';
       case 'profil': return isBendahara ? 'Profil Bendahara' : 'Profil Asatidz & Admin';
       case 'portal-wali': return 'Portal Orang Tua (Wali)';
       default: return '';
@@ -344,6 +353,9 @@ export default function MobileLayout() {
       case 'informasi':
       case 'informasi-kegiatan':
         return <TabInformasiKegiatan onBack={() => handleSelectTab('home')} />;
+      case 'pengumuman':
+      case 'kelola-pengumuman':
+        return <InformasiKegiatanAdminView />;
       case 'kitab':
         return <MobileKitab />;
       case 'master-device':
@@ -369,6 +381,13 @@ export default function MobileLayout() {
         return <MobileKeuangan initialSubTab={mobileTab} onBackToHome={() => handleSelectTab('home')} />;
       case 'tabungan':
         return <MobileTabungan onBackToHome={() => handleSelectTab('home')} />;
+      case 'laporan-infak':
+      case 'infak':
+        return <LaporanInfakAdminView />;
+      case 'pesan-komunikasi':
+      case 'pesan-admin':
+      case 'pesan':
+        return <PesanKomunikasiAdminView />;
       case 'profil':
         return <MobileProfil onChangeTab={handleSelectTab} onLogout={handleLogout} />;
       default:
@@ -516,6 +535,9 @@ export default function MobileLayout() {
                       <button onClick={() => handleSelectTab('tabungan')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'tabungan' ? '#ccfbf1' : '#f8fafc', border: mobileTab === 'tabungan' ? '1px solid #0d9488' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                         <Wallet size={16} color="#0d9488" /> Tabungan Santri
                       </button>
+                      <button onClick={() => handleSelectTab('laporan-infak')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: (mobileTab === 'laporan-infak' || mobileTab === 'infak') ? '#fce7f3' : '#f8fafc', border: (mobileTab === 'laporan-infak' || mobileTab === 'infak') ? '1px solid #db2777' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                        <Heart size={16} color="#db2777" /> Infak &amp; Sedekah
+                      </button>
                     </div>
                   </div>
                 ) : (
@@ -545,6 +567,9 @@ export default function MobileLayout() {
                         </button>
                         <button onClick={() => handleSelectTab('tabungan')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'tabungan' ? '#ccfbf1' : '#f8fafc', border: mobileTab === 'tabungan' ? '1px solid #0d9488' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                           <Wallet size={16} color="#0d9488" /> Tabungan
+                        </button>
+                        <button onClick={() => handleSelectTab('pesan-komunikasi')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: (mobileTab === 'pesan-komunikasi' || mobileTab === 'pesan') ? '#ccfbf1' : '#f8fafc', border: (mobileTab === 'pesan-komunikasi' || mobileTab === 'pesan') ? '1px solid #0f766e' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                          <MessageSquare size={16} color="#0f766e" /> Pesan Wali
                         </button>
                       </div>
                     </div>
@@ -709,13 +734,13 @@ export default function MobileLayout() {
               </button>
 
               <button 
-                className={`mobile-nav-item ${mobileTab === 'tahfidz' ? 'active' : ''}`}
-                onClick={() => handleSelectTab('tahfidz')}
+                className={`mobile-nav-item ${(mobileTab === 'daftar-wajah' || mobileTab === 'wajah') ? 'active' : ''}`}
+                onClick={() => handleSelectTab('daftar-wajah')}
               >
-                <div className={`nav-icon-wrapper ${mobileTab === 'tahfidz' ? 'active' : ''}`}>
-                  <BookOpen size={20} />
+                <div className={`nav-icon-wrapper ${(mobileTab === 'daftar-wajah' || mobileTab === 'wajah') ? 'active' : ''}`}>
+                  <Smile size={20} />
                 </div>
-                <span>Tahfidz</span>
+                <span>Wajah AI</span>
               </button>
             </>
           )}

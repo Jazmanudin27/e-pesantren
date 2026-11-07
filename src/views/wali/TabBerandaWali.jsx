@@ -1,6 +1,7 @@
 import React from 'react';
 import { 
   Bell, 
+  Megaphone,
   LogOut, 
   User, 
   ChevronRight, 
@@ -17,7 +18,9 @@ import {
   ShieldAlert, 
   Sparkles, 
   Calendar, 
-  RotateCw 
+  RotateCw,
+  Heart,
+  MessageSquare 
 } from 'lucide-react';
 
 const squircleIconStyle = {
@@ -71,6 +74,8 @@ const TabBerandaWali = ({
   handleBatalkanTransaksi,
   formatRp = (n) => `Rp ${(n || 0).toLocaleString('id-ID')}`,
   unreadNotifCount = 0,
+  activePengumumanCount = 0,
+  onOpenPengumumanModal,
   onNavigateTab,
   handleLogoutAction
 }) => {
@@ -184,8 +189,56 @@ const TabBerandaWali = ({
             </div>
           </div>
 
-          {/* Top Action Buttons (Bell, Logout) */}
+          {/* Top Action Buttons (Toa Pengumuman, Bell Notifikasi, Logout) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* Tombol Icon Toa (Pengumuman Resmi Pesantren) di Sebelah Kiri Lonceng Notifikasi */}
+            <button
+              onClick={() => {
+                if (typeof onOpenPengumumanModal === 'function') {
+                  onOpenPengumumanModal();
+                } else {
+                  onNavigateTab('informasi');
+                }
+              }}
+              style={{
+                background: 'rgba(255, 255, 255, 0.15)',
+                border: 'none',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                padding: '7px',
+                borderRadius: '10px',
+                position: 'relative'
+              }}
+              title="Pengumuman Resmi Pesantren"
+            >
+              <Megaphone size={18} />
+              {activePengumumanCount > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-4px',
+                  minWidth: '17px',
+                  height: '17px',
+                  padding: '0 4px',
+                  borderRadius: '99px',
+                  background: '#f59e0b',
+                  color: '#ffffff',
+                  fontSize: '0.58rem',
+                  fontWeight: 900,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1.5px solid #0d766e',
+                  boxShadow: '0 2px 6px rgba(245, 158, 11, 0.5)'
+                }}>
+                  {activePengumumanCount > 99 ? '99+' : activePengumumanCount}
+                </span>
+              )}
+            </button>
+
             <button
               onClick={() => onNavigateTab('notifikasi')}
               style={{
@@ -1016,6 +1069,30 @@ const TabBerandaWali = ({
                 <ShieldAlert size={23} strokeWidth={2.3} color="#ffffff" />
               </div>
               <span style={menuLabelStyle}>Tata Tertib</span>
+            </div>
+
+            {/* 9. Infak & Sedekah */}
+            <div onClick={() => onNavigateTab('infak')} style={menuCardStyle}>
+              <div style={{
+                ...squircleIconStyle,
+                background: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
+                boxShadow: '0 6px 16px -2px rgba(236, 72, 153, 0.38)'
+              }}>
+                <Heart size={23} strokeWidth={2.3} color="#ffffff" />
+              </div>
+              <span style={menuLabelStyle}>Infak &amp; Doa</span>
+            </div>
+
+            {/* 10. Kirim Pesan / Hubungi Admin */}
+            <div onClick={() => onNavigateTab('pesan')} style={menuCardStyle}>
+              <div style={{
+                ...squircleIconStyle,
+                background: 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)',
+                boxShadow: '0 6px 16px -2px rgba(13, 148, 136, 0.38)'
+              }}>
+                <MessageSquare size={23} strokeWidth={2.3} color="#ffffff" />
+              </div>
+              <span style={menuLabelStyle}>Tanya Admin</span>
             </div>
           </div>
         </div>
