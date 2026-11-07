@@ -1,16 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import {
-  RotateCw,
-  LogOut
-} from 'lucide-react';
-import { showConfirm, toastSuccess } from '../../utils/alert.util';
-import CardKasMasuk from './components/CardKasMasuk';
-import MenuLayananKeuangan from './components/MenuLayananKeuangan';
-import RiwayatTrxTerbaru from './components/RiwayatTrxTerbaru';
-import ModalKuitansi from './components/ModalKuitansi';
-import ModalSiklusSpp from './components/ModalSiklusSpp';
-import ModalDetailKasMasuk from './components/ModalDetailKasMasuk';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { RotateCw, LogOut } from "lucide-react";
+import { showConfirm, toastSuccess } from "../../utils/alert.util";
+import CardKasMasuk from "./components/CardKasMasuk";
+import MenuLayananKeuangan from "./components/MenuLayananKeuangan";
+import RiwayatTrxTerbaru from "./components/RiwayatTrxTerbaru";
+import ModalKuitansi from "./components/ModalKuitansi";
+import ModalSiklusSpp from "./components/ModalSiklusSpp";
+import ModalDetailKasMasuk from "./components/ModalDetailKasMasuk";
 
 export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
   const [loading, setLoading] = useState(true);
@@ -20,7 +17,7 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
     total_nominal_terbayar: 0,
     total_nominal_tertunggak: 0,
     jumlah_tagihan_lunas: 0,
-    jumlah_tagihan_tertunggak: 0
+    jumlah_tagihan_tertunggak: 0,
   });
   const [recentTrx, setRecentTrx] = useState([]);
   const [allKasMasukTrx, setAllKasMasukTrx] = useState([]);
@@ -28,21 +25,24 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
 
   // State Modal Detail Rincian Kas Masuk & Kuitansi
   const [isDetailKasModalOpen, setIsDetailKasModalOpen] = useState(false);
-  const [kuitansiModal, setKuitansiModal] = useState({ isOpen: false, data: null });
+  const [kuitansiModal, setKuitansiModal] = useState({
+    isOpen: false,
+    data: null,
+  });
 
   // State Pengaturan Siklus Tagihan SPP
   const [isSiklusModalOpen, setIsSiklusModalOpen] = useState(false);
   const [siklusForm, setSiklusForm] = useState({
     tgl_terbit_spp: 5,
     tgl_jatuh_tempo_spp: 10,
-    apply_to_existing: true
+    apply_to_existing: true,
   });
   const [savingSiklus, setSavingSiklus] = useState(false);
 
   const fetchKeuanganSummary = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('/api/keuangan/admin/rekap');
+      const res = await axios.get("/api/keuangan/admin/rekap");
       if (res.data?.success && res.data.data) {
         setSummary(res.data.data.summary || {});
         const listTrx = res.data.data.transaksiTerakhir || [];
@@ -51,26 +51,30 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
         if (res.data.data.siklusSpp) {
           setSiklusForm({
             tgl_terbit_spp: res.data.data.siklusSpp.tgl_terbit_spp || 5,
-            tgl_jatuh_tempo_spp: res.data.data.siklusSpp.tgl_jatuh_tempo_spp || 10,
-            apply_to_existing: true
+            tgl_jatuh_tempo_spp:
+              res.data.data.siklusSpp.tgl_jatuh_tempo_spp || 10,
+            apply_to_existing: true,
           });
         }
       }
 
       // Ambil total saldo tabungan jika ada
       try {
-        const tabRes = await axios.get('/api/tabungan');
+        const tabRes = await axios.get("/api/tabungan");
         if (tabRes.data?.success && tabRes.data.data) {
-          const list = tabRes.data.data.santri_tabungan || tabRes.data.data || [];
+          const list =
+            tabRes.data.data.santri_tabungan || tabRes.data.data || [];
           if (Array.isArray(list)) {
-            const tot = list.reduce((acc, cur) => acc + (parseFloat(cur.saldo) || 0), 0);
+            const tot = list.reduce(
+              (acc, cur) => acc + (parseFloat(cur.saldo) || 0),
+              0,
+            );
             setSaldoTabunganTotal(tot);
           }
         }
       } catch (_) {}
-
     } catch (err) {
-      console.warn('Gagal memuat rekap keuangan beranda:', err);
+      console.warn("Gagal memuat rekap keuangan beranda:", err);
     } finally {
       setLoading(false);
     }
@@ -80,14 +84,19 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
     e?.preventDefault();
     try {
       setSavingSiklus(true);
-      const res = await axios.post('/api/keuangan/siklus-spp', siklusForm);
+      const res = await axios.post("/api/keuangan/siklus-spp", siklusForm);
       if (res.data?.success) {
-        toastSuccess('Siklus Disimpan', res.data.message || 'Pengaturan siklus SPP berhasil disimpan.');
+        toastSuccess(
+          "Siklus Disimpan",
+          res.data.message || "Pengaturan siklus SPP berhasil disimpan.",
+        );
         setIsSiklusModalOpen(false);
         fetchKeuanganSummary();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Gagal menyimpan pengaturan siklus SPP');
+      alert(
+        err.response?.data?.message || "Gagal menyimpan pengaturan siklus SPP",
+      );
     } finally {
       setSavingSiklus(false);
     }
@@ -97,14 +106,14 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
     fetchKeuanganSummary();
   }, []);
 
-  const formatRp = (num) => `Rp ${(Number(num) || 0).toLocaleString('id-ID')}`;
+  const formatRp = (num) => `Rp ${(Number(num) || 0).toLocaleString("id-ID")}`;
 
   const handleLogoutClick = async () => {
     const ok = await showConfirm(
-      'Konfirmasi Keluar',
-      'Keluar dari akun bendahara pesantren?',
-      'Ya, Keluar',
-      'Batal'
+      "Konfirmasi Keluar",
+      "Keluar dari akun bendahara pesantren?",
+      "Ya, Keluar",
+      "Batal",
     );
     if (ok && onLogout) {
       onLogout();
@@ -112,17 +121,18 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
   };
 
   return (
-    <div style={{ paddingBottom: '32px' }}>
+    <div style={{ paddingBottom: "32px" }}>
       {/* 1. TOP CURVED HEADER (PERSIS ADMIN: SINGKAT, ELEGAN, TIDAK PANJANG KE BAWAH) */}
       <div
         style={{
-          background: "linear-gradient(180deg, #0b6b60 0%, #0d766e 70%, #095c53 100%)",
+          background:
+            "linear-gradient(180deg, #0b6b60 0%, #0d766e 70%, #095c53 100%)",
           padding: "16px 16px 46px",
           color: "#ffffff",
           borderBottomLeftRadius: "28px",
           borderBottomRightRadius: "28px",
           position: "relative",
-          boxShadow: "0 10px 24px -4px rgba(11, 107, 96, 0.3)"
+          boxShadow: "0 10px 24px -4px rgba(11, 107, 96, 0.3)",
         }}
       >
         <div
@@ -184,7 +194,9 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
             </div>
 
             <div style={{ display: "flex", flexDirection: "column" }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: "3px" }}>
+              <div
+                style={{ display: "flex", alignItems: "baseline", gap: "3px" }}
+              >
                 <span
                   style={{
                     fontWeight: 900,
@@ -285,7 +297,7 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
       />
 
       {/* 3. BODY CONTENT */}
-      <div style={{ padding: '12px 14px 0' }}>
+      <div style={{ padding: "12px 14px 0" }}>
         {/* 4. MENU LAYANAN KEUANGAN (GRID 10 MENU) */}
         <MenuLayananKeuangan
           onChangeTab={onChangeTab}
@@ -300,7 +312,9 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
           loading={loading}
           formatRp={formatRp}
           onOpenDetailKas={() => setIsDetailKasModalOpen(true)}
-          onOpenKuitansi={(trx) => setKuitansiModal({ isOpen: true, data: trx })}
+          onOpenKuitansi={(trx) =>
+            setKuitansiModal({ isOpen: true, data: trx })
+          }
         />
       </div>
 

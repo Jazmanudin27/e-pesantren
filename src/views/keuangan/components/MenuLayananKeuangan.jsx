@@ -9,8 +9,8 @@ import {
 } from 'lucide-react';
 
 const squircleIconStyle = {
-  width: '48px',
-  height: '48px',
+  width: '50px',
+  height: '50px',
   borderRadius: '16px',
   display: 'flex',
   alignItems: 'center',
@@ -32,11 +32,11 @@ const menuCardStyle = {
 };
 
 const menuLabelStyle = {
-  fontSize: '0.66rem',
+  fontSize: '0.68rem',
   fontWeight: 700,
   color: '#334155',
-  lineHeight: 1.2,
-  maxWidth: '68px',
+  lineHeight: 1.25,
+  maxWidth: '72px',
   display: 'block'
 };
 
@@ -141,11 +141,11 @@ export default function MenuLayananKeuangan({
         </button>
       </div>
 
-      {/* Grid 5 Menu Layanan (Kasir, Histori, Tabungan, Infak Ponpes, Tunggakan) */}
+      {/* Grid 4 Kolom Menu Layanan (Kasir, Histori, Tabungan, Infak Ponpes, Tunggakan) */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(5, 1fr)',
-        gap: '4px',
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: '14px 6px',
         justifyItems: 'center'
       }}>
         {menuList.map((m) => (

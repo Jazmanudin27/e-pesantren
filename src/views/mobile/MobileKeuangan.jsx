@@ -22,7 +22,8 @@ import {
   Check,
   Share2,
   DollarSign,
-  Calendar
+  Calendar,
+  Users
 } from 'lucide-react';
 import { toastSuccess, showError, showConfirm } from '../../utils/alert.util';
 
