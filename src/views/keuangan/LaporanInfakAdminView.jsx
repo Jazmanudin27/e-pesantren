@@ -6,7 +6,6 @@ import {
   Filter,
   Plus,
   RotateCw,
-  Download,
   Calendar,
   CheckCircle2,
   Clock,
@@ -17,11 +16,16 @@ import {
   Building2,
   TrendingUp,
   X,
-  FileSpreadsheet
+  ArrowLeft,
+  ChevronRight,
+  User,
+  MessageSquareQuote,
+  Target,
+  Users
 } from 'lucide-react';
-import { toastSuccess, showError, showConfirm } from '../../utils/alert.util';
+import { toastSuccess, toastError, showConfirm } from '../../utils/alert.util';
 
-export default function LaporanInfakAdminView() {
+export default function LaporanInfakAdminView({ onBackToHome }) {
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState({
     total_terkumpul: 0,
@@ -30,6 +34,9 @@ export default function LaporanInfakAdminView() {
   });
   const [programs, setPrograms] = useState([]);
   const [transaksiList, setTransaksiList] = useState([]);
+
+  // Sub-tab: 'program' | 'transaksi'
+  const [activeTab, setActiveTab] = useState('program');
 
   // Filters
   const [search, setSearch] = useState('');
@@ -46,6 +53,11 @@ export default function LaporanInfakAdminView() {
     target_dana: '50000000'
   });
   const [submittingProgram, setSubmittingProgram] = useState(false);
+
+  // Modal Detail Transaksi
+  const [selectedTrx, setSelectedTrx] = useState(null);
+
+  const formatRp = (num) => `Rp ${(Number(num) || 0).toLocaleString('id-ID')}`;
 
   const fetchLaporan = async () => {
     try {
@@ -72,15 +84,10 @@ export default function LaporanInfakAdminView() {
     fetchLaporan();
   }, [filterProgram, filterStatus]);
 
-  const handleSearchSubmit = (e) => {
-    e?.preventDefault();
-    fetchLaporan();
-  };
-
   const handleCreateProgram = async (e) => {
     e.preventDefault();
     if (!programForm.nama_program.trim()) {
-      showError('Gagal', 'Nama program infak wajib diisi!');
+      toastError('Nama program infak wajib diisi!');
       return;
     }
 
@@ -91,7 +98,7 @@ export default function LaporanInfakAdminView() {
         target_dana: parseFloat(programForm.target_dana) || 0
       });
       if (res.data?.success) {
-        toastSuccess('Berhasil', 'Program infak & sedekah baru berhasil ditambahkan.');
+        toastSuccess('Program infak baru berhasil ditambahkan.');
         setIsModalProgramOpen(false);
         setProgramForm({
           kode_program: '',
@@ -102,10 +109,10 @@ export default function LaporanInfakAdminView() {
         });
         fetchLaporan();
       } else {
-        showError('Gagal', res.data?.message || 'Gagal menyimpan program.');
+        toastError(res.data?.message || 'Gagal menyimpan program.');
       }
     } catch (err) {
-      showError('Gagal', err.response?.data?.message || err.message || 'Terjadi kesalahan.');
+      toastError(err.response?.data?.message || err.message || 'Terjadi kesalahan.');
     } finally {
       setSubmittingProgram(false);
     }
@@ -123,411 +130,948 @@ export default function LaporanInfakAdminView() {
     try {
       const res = await axios.delete(`/api/infak/transaksi/${id}`);
       if (res.data?.success) {
-        toastSuccess('Dihapus', 'Pencatatan transaksi infak berhasil dihapus.');
+        toastSuccess('Pencatatan transaksi infak berhasil dihapus.');
+        if (selectedTrx?.id === id) setSelectedTrx(null);
         fetchLaporan();
       }
     } catch (err) {
-      showError('Gagal', err.response?.data?.message || 'Gagal menghapus transaksi.');
+      toastError(err.response?.data?.message || 'Gagal menghapus transaksi.');
     }
   };
 
-  const formatRp = (num) => `Rp ${(Number(num) || 0).toLocaleString('id-ID')}`;
+  // Filter list transaksi berdasarkan search input
+  const filteredTransaksi = React.useMemo(() => {
+    if (!search.trim()) return transaksiList;
+    const q = search.toLowerCase().trim();
+    return (transaksiList || []).filter((t) => {
+      return (
+        (t.nama_donatur || '').toLowerCase().includes(q) ||
+        (t.nama_santri || '').toLowerCase().includes(q) ||
+        (t.nama_program || '').toLowerCase().includes(q) ||
+        (t.kode_transaksi || '').toLowerCase().includes(q) ||
+        (t.doa_pesan || '').toLowerCase().includes(q)
+      );
+    });
+  }, [transaksiList, search]);
+
+  // Filter programs berdasarkan search input
+  const filteredPrograms = React.useMemo(() => {
+    if (!search.trim()) return programs;
+    const q = search.toLowerCase().trim();
+    return (programs || []).filter((p) => {
+      return (
+        (p.nama_program || '').toLowerCase().includes(q) ||
+        (p.kategori || '').toLowerCase().includes(q) ||
+        (p.deskripsi || '').toLowerCase().includes(q)
+      );
+    });
+  }, [programs, search]);
 
   return (
-    <div className="admin-content-inner" style={{ padding: '20px' }}>
-      {/* 1. TOP HEADER & CALL TO ACTION (DISAMAKAN PERSIS DENGAN INFORMASI & TABUNGAN) */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '18px',
-        flexWrap: 'wrap',
-        gap: '12px',
-        background: '#ffffff',
-        padding: '18px 20px',
-        borderRadius: '18px',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 4px 14px rgba(0,0,0,0.03)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
+    <div style={{ paddingBottom: '90px', background: '#f8fafc', minHeight: '100vh' }}>
+      {/* 1. TOP CURVED HEADER CARD (PERSIS TABUNGAN SANTRI) */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #0d766e 0%, #064e3b 100%)',
+          padding: '20px 16px 28px',
+          color: '#ffffff',
+          boxShadow: '0 4px 20px rgba(13, 118, 110, 0.25)',
+          borderBottomLeftRadius: '24px',
+          borderBottomRightRadius: '24px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {onBackToHome && (
+              <button
+                type="button"
+                onClick={onBackToHome}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.16)',
+                  border: 'none',
+                  color: '#ffffff',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                <ArrowLeft size={18} />
+              </button>
+            )}
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>Infak &amp; Sedekah</span>
+                <span style={{ fontSize: '0.62rem', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '2px 7px', borderRadius: '8px', fontWeight: 800 }}>
+                  Terpisah SPP
+                </span>
+              </h2>
+              <div style={{ fontSize: '0.72rem', color: '#a7f3d0', marginTop: '2px' }}>
+                Penerimaan Donasi Sukarela Orang Tua Santri
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button
+              type="button"
+              onClick={() => setIsModalProgramOpen(true)}
+              style={{
+                background: 'rgba(255, 255, 255, 0.22)',
+                border: '1px solid rgba(255, 255, 255, 0.35)',
+                color: '#ffffff',
+                padding: '7px 12px',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '0.74rem',
+                fontWeight: 800,
+                cursor: 'pointer'
+              }}
+            >
+              <Plus size={15} />
+              <span>Program</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={fetchLaporan}
+              style={{
+                background: 'rgba(255, 255, 255, 0.15)',
+                border: 'none',
+                color: '#ffffff',
+                width: '34px',
+                height: '34px',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+              title="Refresh Data"
+            >
+              <RotateCw size={16} className={loading ? 'animate-spin' : ''} />
+            </button>
+          </div>
+        </div>
+
+        {/* Global Total Saldo Glassmorphism Card (Persis Tabungan) */}
+        <div
+          style={{
+            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: '16px',
+            padding: '14px 16px',
+            marginTop: '8px',
+          }}
+        >
+          <div style={{ fontSize: '0.72rem', color: '#a7f3d0', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Total Donasi Infak &amp; Sedekah Masuk
+          </div>
+          <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#ffffff', marginTop: '4px', letterSpacing: '-0.5px' }}>
+            {formatRp(summary.total_terkumpul)}
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '8px',
+              marginTop: '12px',
+              paddingTop: '10px',
+              borderTop: '1px solid rgba(255, 255, 255, 0.15)',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '0.62rem', color: '#a7f3d0', fontWeight: 700 }}>DONASI DITERIMA</div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#ecfdf5', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <CheckCircle2 size={13} color="#34d399" />
+                <span>{summary.total_transaksi_berhasil || 0} Terverifikasi</span>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.62rem', color: '#fef08a', fontWeight: 700 }}>MENUNGGU PEMBAYARAN</div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#fef9c3', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Clock size={13} color="#facc15" />
+                <span>{summary.total_transaksi_pending || 0} Sesi Pending</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. SEARCH BAR & SEGMENTED TABS */}
+      <div style={{ padding: '14px 14px 6px' }}>
+        {/* Search Input */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            background: '#ffffff',
             borderRadius: '14px',
-            background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-            color: '#fff',
+            padding: '0 12px',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+            border: '1px solid #e2e8f0',
+            marginBottom: '12px'
+          }}
+        >
+          <Search size={18} color="#94a3b8" />
+          <input
+            type="text"
+            placeholder="Cari program, donatur, santri, kode..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '12px 10px',
+              border: 'none',
+              outline: 'none',
+              fontSize: '0.82rem',
+              color: '#1e293b',
+              background: 'transparent'
+            }}
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+
+        {/* Segmented Tab Switcher (Program vs Riwayat) */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '6px',
+          background: '#f1f5f9',
+          padding: '4px',
+          borderRadius: '14px',
+          border: '1px solid #e2e8f0',
+          marginBottom: '14px'
+        }}>
+          <button
+            type="button"
+            onClick={() => setActiveTab('program')}
+            style={{
+              padding: '10px 14px',
+              borderRadius: '11px',
+              border: 'none',
+              background: activeTab === 'program' ? '#ffffff' : 'transparent',
+              color: activeTab === 'program' ? '#065f46' : '#64748b',
+              fontWeight: 800,
+              fontSize: '0.8rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              boxShadow: activeTab === 'program' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <Sparkles size={15} color={activeTab === 'program' ? '#059669' : '#64748b'} />
+            <span>Program Infak</span>
+            <span style={{
+              fontSize: '0.62rem',
+              padding: '1px 6px',
+              borderRadius: '8px',
+              background: activeTab === 'program' ? '#ecfdf5' : '#e2e8f0',
+              color: activeTab === 'program' ? '#059669' : '#64748b',
+              fontWeight: 800
+            }}>
+              {programs.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('transaksi')}
+            style={{
+              padding: '10px 14px',
+              borderRadius: '11px',
+              border: 'none',
+              background: activeTab === 'transaksi' ? '#ffffff' : 'transparent',
+              color: activeTab === 'transaksi' ? '#065f46' : '#64748b',
+              fontWeight: 800,
+              fontSize: '0.8rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              boxShadow: activeTab === 'transaksi' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <Heart size={15} color={activeTab === 'transaksi' ? '#059669' : '#64748b'} />
+            <span>Riwayat Donasi</span>
+            <span style={{
+              fontSize: '0.62rem',
+              padding: '1px 6px',
+              borderRadius: '8px',
+              background: activeTab === 'transaksi' ? '#ecfdf5' : '#e2e8f0',
+              color: activeTab === 'transaksi' ? '#059669' : '#64748b',
+              fontWeight: 800
+            }}>
+              {transaksiList.length}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* 3. BODY CONTENT SESUAI TAB */}
+      <div style={{ padding: '0 14px' }}>
+        {/* ================= TAB 1: DAFTAR PROGRAM INFAK ================= */}
+        {activeTab === 'program' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {filteredPrograms.length === 0 ? (
+              <div style={{
+                background: '#ffffff',
+                borderRadius: '18px',
+                padding: '36px 20px',
+                textAlign: 'center',
+                border: '1px solid #e2e8f0'
+              }}>
+                <Heart size={36} color="#cbd5e1" style={{ margin: '0 auto 8px', display: 'block' }} />
+                <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1e293b' }}>
+                  Belum Ada Program Infak
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px', marginBottom: '14px' }}>
+                  Buat wadah program baru untuk penggalangan dana sukarela.
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsModalProgramOpen(true)}
+                  style={{
+                    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  + Tambah Program
+                </button>
+              </div>
+            ) : (
+              filteredPrograms.map((p) => {
+                const pct = p.target_dana > 0 ? Math.min(100, Math.round((p.terkumpul / p.target_dana) * 100)) : 0;
+                return (
+                  <div
+                    key={p.id}
+                    style={{
+                      background: '#ffffff',
+                      borderRadius: '18px',
+                      padding: '14px 16px',
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+                      <span style={{
+                        fontSize: '0.64rem',
+                        fontWeight: 800,
+                        color: '#047857',
+                        background: '#ecfdf5',
+                        border: '1px solid #a7f3d0',
+                        padding: '2px 8px',
+                        borderRadius: '6px'
+                      }}>
+                        {p.kategori || 'Infak Pesantren'}
+                      </span>
+                      <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px' }}>
+                        <Users size={12} color="#059669" />
+                        <span>{p.jumlah_donatur || 0} Donatur</span>
+                      </span>
+                    </div>
+
+                    <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a', lineHeight: 1.3, marginBottom: '6px' }}>
+                      {p.nama_program}
+                    </div>
+
+                    {p.deskripsi && (
+                      <div style={{ fontSize: '0.74rem', color: '#64748b', lineHeight: 1.35, marginBottom: '10px' }}>
+                        {p.deskripsi}
+                      </div>
+                    )}
+
+                    {/* Progress Bar & Nominal */}
+                    <div style={{ marginTop: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <div>
+                          <span style={{ fontSize: '0.64rem', color: '#64748b', fontWeight: 600 }}>Terkumpul: </span>
+                          <span style={{ fontSize: '0.84rem', fontWeight: 900, color: '#047857' }}>
+                            {formatRp(p.terkumpul)}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#059669' }}>
+                          {pct}%
+                        </span>
+                      </div>
+
+                      <div style={{
+                        width: '100%',
+                        height: '7px',
+                        background: '#f1f5f9',
+                        borderRadius: '999px',
+                        overflow: 'hidden'
+                      }}>
+                        <div
+                          style={{
+                            width: `${pct}%`,
+                            height: '100%',
+                            background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)',
+                            borderRadius: '999px',
+                            transition: 'width 0.4s ease'
+                          }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '0.66rem', color: '#94a3b8' }}>
+                        <span>Target: {formatRp(p.target_dana)}</span>
+                        <span>Sisa: {formatRp(Math.max(0, (p.target_dana || 0) - (p.terkumpul || 0)))}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+
+        {/* ================= TAB 2: RIWAYAT TRANSAKSI DONASI ================= */}
+        {activeTab === 'transaksi' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {/* Filter Status Selector */}
+            <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
+              {['Semua', 'Berhasil', 'Pending'].map((st) => (
+                <button
+                  key={st}
+                  type="button"
+                  onClick={() => setFilterStatus(st)}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    border: filterStatus === st ? '1px solid #059669' : '1px solid #cbd5e1',
+                    background: filterStatus === st ? '#ecfdf5' : '#ffffff',
+                    color: filterStatus === st ? '#059669' : '#64748b',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {st === 'Semua' ? 'Semua Status' : st === 'Berhasil' ? '✓ Berhasil' : '⏳ Pending'}
+                </button>
+              ))}
+            </div>
+
+            {filteredTransaksi.length === 0 ? (
+              <div style={{
+                background: '#ffffff',
+                borderRadius: '18px',
+                padding: '36px 20px',
+                textAlign: 'center',
+                border: '1px solid #e2e8f0',
+                marginTop: '6px'
+              }}>
+                <Heart size={36} color="#cbd5e1" style={{ margin: '0 auto 8px', display: 'block' }} />
+                <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1e293b' }}>
+                  Tidak Ada Transaksi Ditemukan
+                </div>
+                <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>
+                  Belum ada catatan penerimaan donasi infak dengan filter ini.
+                </div>
+              </div>
+            ) : (
+              filteredTransaksi.map((t) => {
+                const isSuccess = t.status === 'Berhasil';
+                return (
+                  <div
+                    key={t.id}
+                    onClick={() => setSelectedTrx(t)}
+                    style={{
+                      background: '#ffffff',
+                      borderRadius: '16px',
+                      padding: '12px 14px',
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        {/* Avatar / Icon Monogram */}
+                        <div style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '12px',
+                          background: isSuccess ? '#ecfdf5' : '#fffbeb',
+                          border: isSuccess ? '1px solid #a7f3d0' : '1px solid #fef08a',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: isSuccess ? '#059669' : '#d97706',
+                          fontWeight: 900,
+                          fontSize: '0.85rem',
+                          flexShrink: 0
+                        }}>
+                          {t.is_anonim ? 'HA' : (t.nama_donatur || 'D').slice(0, 2).toUpperCase()}
+                        </div>
+
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: '0.86rem', color: '#0f172a' }}>
+                            {t.is_anonim ? 'Hamba Allah (Anonim)' : t.nama_donatur}
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 700, marginTop: '1px' }}>
+                            {t.nama_program || 'Infak Pesantren'}
+                          </div>
+                          {t.nama_santri && (
+                            <div style={{ fontSize: '0.66rem', color: '#64748b' }}>
+                              Santri: <span style={{ fontWeight: 700, color: '#334155' }}>{t.nama_santri}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Nominal & Status Badge */}
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: 900, fontSize: '0.92rem', color: isSuccess ? '#047857' : '#d97706' }}>
+                          {formatRp(t.nominal)}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', marginTop: '3px' }}>
+                          <span style={{
+                            fontSize: '0.62rem',
+                            fontWeight: 800,
+                            padding: '1px 6px',
+                            borderRadius: '6px',
+                            background: isSuccess ? '#ecfdf5' : '#fffbeb',
+                            color: isSuccess ? '#059669' : '#b45309',
+                            border: isSuccess ? '1px solid #a7f3d0' : '1px solid #fde68a',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px'
+                          }}>
+                            {isSuccess ? <CheckCircle2 size={10} /> : <Clock size={10} />}
+                            <span>{t.status}</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Doa / Pesan Kutipan Singkat */}
+                    {t.doa_pesan && (
+                      <div style={{
+                        marginTop: '8px',
+                        padding: '6px 10px',
+                        borderRadius: '8px',
+                        background: '#f8fafc',
+                        border: '1px dashed #cbd5e1',
+                        fontSize: '0.7rem',
+                        color: '#475569',
+                        fontStyle: 'italic',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '5px'
+                      }}>
+                        <MessageSquareQuote size={13} color="#059669" style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          "{t.doa_pesan}"
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Footer Info: Tanggal & Metode */}
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: '8px',
+                      paddingTop: '6px',
+                      borderTop: '1px solid #f1f5f9',
+                      fontSize: '0.66rem',
+                      color: '#94a3b8'
+                    }}>
+                      <span>{t.kode_transaksi} • {new Date(t.tanggal_transaksi).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontWeight: 700, color: '#64748b' }}>
+                        {t.metode_pembayaran?.includes('QRIS') ? <QrCode size={11} /> : <CreditCard size={11} />}
+                        <span>{t.metode_pembayaran || 'QRIS'}</span>
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 4. MODAL DETAIL TRANSAKSI DONASI */}
+      {selectedTrx && (
+        <div
+          onClick={() => setSelectedTrx(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 999,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 6px 16px rgba(5, 150, 105, 0.3)'
-          }}>
-            <Heart size={24} />
-          </div>
-          <div>
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>Laporan Penerimaan Infak &amp; Sedekah</span>
-              <span style={{ fontSize: '0.68rem', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '2px 8px', borderRadius: '999px', fontWeight: 800 }}>
-                Pencatatan Terpisah
-              </span>
-            </h1>
-            <p style={{ color: '#64748b', fontSize: '0.8rem', margin: '3px 0 0' }}>
-              Fasilitas infak &amp; sedekah sukarela orang tua santri via QRIS / VA. Terpisah 100% dari tagihan administrasi SPP.
-            </p>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => setIsModalProgramOpen(true)}
+            padding: '16px'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+              background: '#ffffff',
+              borderRadius: '24px',
+              width: '100%',
+              maxWidth: '380px',
+              overflow: 'hidden',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
+              border: '1px solid #e2e8f0'
+            }}
+          >
+            {/* Header Modal */}
+            <div style={{
+              background: 'linear-gradient(135deg, #0d766e 0%, #064e3b 100%)',
               color: '#ffffff',
-              border: 'none',
-              padding: '9px 16px',
-              borderRadius: '10px',
-              fontSize: '0.8rem',
-              fontWeight: 800,
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)'
-            }}
-          >
-            <Plus size={16} /> Tambah Program Infak
-          </button>
-          <button
-            onClick={fetchLaporan}
-            style={{
+              padding: '18px 20px',
               display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: '#f8fafc',
-              border: '1px solid #cbd5e1',
-              padding: '8px 14px',
-              borderRadius: '10px',
-              cursor: 'pointer',
-              fontSize: '0.8rem',
-              fontWeight: 700,
-              color: '#334155'
-            }}
-            title="Segarkan Data"
-          >
-            <RotateCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
-          </button>
-        </div>
-      </div>
-
-      {/* 2. STATS OVERVIEW CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Total Terkumpul */}
-        <div className="bg-gradient-to-br from-emerald-600 to-teal-800 text-white p-5 rounded-2xl shadow-md relative overflow-hidden">
-          <div className="text-xs font-bold uppercase tracking-wider text-emerald-200">
-            Total Infak &amp; Sedekah Masuk
-          </div>
-          <div className="text-2xl md:text-3xl font-black tracking-tight mt-1">
-            {formatRp(summary.total_terkumpul)}
-          </div>
-          <div className="text-xs text-emerald-100 mt-2 flex items-center gap-1.5 font-semibold">
-            <CheckCircle2 size={14} /> {summary.total_transaksi_berhasil || 0} donasi terverifikasi masuk
-          </div>
-        </div>
-
-        {/* Program Aktif */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            Program Infak Aktif
-          </div>
-          <div className="text-2xl font-black text-slate-800 mt-1">
-            {programs.length} Program
-          </div>
-          <div className="text-xs text-teal-600 mt-2 font-semibold">
-            Masjid, Beasiswa Yatim, Wakaf Qur'an, Konsumsi
-          </div>
-        </div>
-
-        {/* Transaksi Pending */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            Sesi Menunggu Pembayaran
-          </div>
-          <div className="text-2xl font-black text-amber-600 mt-1">
-            {summary.total_transaksi_pending || 0} Transaksi
-          </div>
-          <div className="text-xs text-slate-500 mt-2 font-medium">
-            Sesi QRIS / VA yang belum diselesaikan orang tua
-          </div>
-        </div>
-      </div>
-
-      {/* 3. PROGRAM SUMMARY SLIDER CARDS */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-          <Sparkles size={16} className="text-emerald-600" />
-          Progres Alokasi Program Infak
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          {programs.map((p) => {
-            const pct = p.target_dana > 0 ? Math.min(100, Math.round((p.terkumpul / p.target_dana) * 100)) : 0;
-            return (
-              <div key={p.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                <div>
-                  <div className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded inline-block mb-1.5">
-                    {p.kategori}
-                  </div>
-                  <div className="text-xs font-extrabold text-slate-800 line-clamp-2 leading-tight">
-                    {p.nama_program}
-                  </div>
-                </div>
-                <div className="mt-3">
-                  <div className="flex justify-between items-center text-[11px] font-bold text-slate-600 mb-1">
-                    <span>{formatRp(p.terkumpul)}</span>
-                    <span className="text-emerald-600 font-extrabold">{pct}%</span>
-                  </div>
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                    <div className="bg-gradient-to-r from-emerald-500 to-teal-600 h-full rounded-full transition-all duration-300" style={{ width: `${pct}%` }} />
-                  </div>
-                  <div className="text-[10px] text-slate-400 mt-1 flex justify-between">
-                    <span>Target: {formatRp(p.target_dana)}</span>
-                    <span>{p.jumlah_donatur || 0} Donatur</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 4. FILTER & TABEL PENERIMAAN INFAK */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        {/* Filter Toolbar */}
-        <div className="p-4 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-50">
-          <form onSubmit={handleSearchSubmit} className="flex-1 max-w-md relative">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari nama donatur, santri, kode transaksi..."
-              className="w-full pl-10 pr-4 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-500 font-medium"
-            />
-          </form>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={filterProgram}
-              onChange={(e) => setFilterProgram(e.target.value)}
-              className="text-xs bg-white border border-slate-300 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none"
-            >
-              <option value="Semua">Semua Program Infak</option>
-              {programs.map((p) => (
-                <option key={p.id} value={p.id}>{p.nama_program}</option>
-              ))}
-            </select>
-
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="text-xs bg-white border border-slate-300 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none"
-            >
-              <option value="Semua">Semua Status</option>
-              <option value="Berhasil">Berhasil (Diterima)</option>
-              <option value="Pending">Menunggu Pembayaran</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Table Records */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-100 text-slate-600 text-[11px] uppercase tracking-wider font-extrabold border-b border-slate-200">
-                <th className="py-3 px-4">Tanggal &amp; Kode</th>
-                <th className="py-3 px-4">Nama Donatur / Santri</th>
-                <th className="py-3 px-4">Tujuan Program</th>
-                <th className="py-3 px-4 text-right">Nominal</th>
-                <th className="py-3 px-4">Metode Bayar</th>
-                <th className="py-3 px-4">Doa / Hajat</th>
-                <th className="py-3 px-4 text-center">Status</th>
-                <th className="py-3 px-4 text-center">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs">
-              {loading && transaksiList.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="text-center py-10 text-slate-400">
-                    Memuat data penerimaan infak...
-                  </td>
-                </tr>
-              ) : transaksiList.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="text-center py-12 text-slate-400">
-                    <Heart size={32} className="mx-auto mb-2 text-slate-300" />
-                    Belum ada transaksi infak dan sedekah yang tercatat.
-                  </td>
-                </tr>
-              ) : (
-                transaksiList.map((t) => {
-                  const isSuccess = t.status === 'Berhasil';
-                  return (
-                    <tr key={t.id} className="hover:bg-slate-50 transition">
-                      <td className="py-3.5 px-4 font-mono">
-                        <div className="font-bold text-slate-800 text-xs">{t.kode_transaksi}</div>
-                        <div className="text-[10px] text-slate-400">
-                          {new Date(t.tanggal_transaksi).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
-                        </div>
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        <div className="font-extrabold text-slate-800 flex items-center gap-1.5">
-                          {t.is_anonim ? (
-                            <span className="text-slate-500 italic">Hamba Allah (Anonim)</span>
-                          ) : (
-                            <span>{t.nama_donatur}</span>
-                          )}
-                        </div>
-                        {t.nama_santri && (
-                          <div className="text-[11px] text-slate-500 mt-0.5">
-                            Santri: <span className="font-semibold text-emerald-700">{t.nama_santri}</span>
-                          </div>
-                        )}
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        <span className="font-bold text-slate-700">{t.nama_program}</span>
-                      </td>
-
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="font-black text-emerald-600 text-sm">
-                          {formatRp(t.nominal)}
-                        </div>
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        <div className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
-                          {t.metode_pembayaran?.includes('QRIS') ? <QrCode size={12} /> : <CreditCard size={12} />}
-                          <span>{t.metode_pembayaran || 'QRIS'}</span>
-                        </div>
-                      </td>
-
-                      <td className="py-3.5 px-4 max-w-xs">
-                        {t.doa_pesan ? (
-                          <span className="text-[11px] text-slate-600 italic bg-amber-50 border border-amber-200 px-2 py-1 rounded block">
-                            "{t.doa_pesan}"
-                          </span>
-                        ) : (
-                          <span className="text-slate-300">-</span>
-                        )}
-                      </td>
-
-                      <td className="py-3.5 px-4 text-center">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${
-                          isSuccess
-                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                            : 'bg-amber-100 text-amber-800 border border-amber-300'
-                        }`}>
-                          {isSuccess ? <CheckCircle2 size={12} /> : <Clock size={12} />}
-                          {t.status}
-                        </span>
-                      </td>
-
-                      <td className="py-3.5 px-4 text-center">
-                        <button
-                          onClick={() => handleDeleteTransaksi(t.id, t.kode_transaksi)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                          title="Hapus Catatan"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* 5. MODAL TAMBAH PROGRAM INFAK */}
-      {isModalProgramOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white p-5 flex justify-between items-center">
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
               <div>
-                <h3 className="font-black text-base">Tambah Program Infak Baru</h3>
-                <p className="text-xs text-emerald-100">Buat wadah tujuan infak / sedekah bagi orang tua</p>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900 }}>Rincian Infak &amp; Sedekah</h3>
+                <div style={{ fontSize: '0.68rem', color: '#a7f3d0', marginTop: '2px' }}>
+                  {selectedTrx.kode_transaksi}
+                </div>
               </div>
               <button
-                onClick={() => setIsModalProgramOpen(false)}
-                className="text-white/80 hover:text-white p-1 rounded-lg"
+                type="button"
+                onClick={() => setSelectedTrx(null)}
+                style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', borderRadius: '8px', padding: '4px', cursor: 'pointer' }}
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleCreateProgram} className="p-5 space-y-4">
+            {/* Body Info */}
+            <div style={{ padding: '18px 20px' }}>
+              <div style={{ textAlign: 'center', marginBottom: '16px', paddingBottom: '14px', borderBottom: '1px dashed #cbd5e1' }}>
+                <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>
+                  Nominal Donasi
+                </div>
+                <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#047857', marginTop: '2px' }}>
+                  {formatRp(selectedTrx.nominal)}
+                </div>
+                <span style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  background: selectedTrx.status === 'Berhasil' ? '#ecfdf5' : '#fffbeb',
+                  color: selectedTrx.status === 'Berhasil' ? '#059669' : '#b45309',
+                  border: selectedTrx.status === 'Berhasil' ? '1px solid #a7f3d0' : '1px solid #fde68a',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  marginTop: '6px'
+                }}>
+                  {selectedTrx.status === 'Berhasil' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
+                  <span>{selectedTrx.status === 'Berhasil' ? 'Berhasil Terverifikasi' : 'Menunggu Pembayaran'}</span>
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.78rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#64748b' }}>Nama Donatur:</span>
+                  <span style={{ fontWeight: 800, color: '#0f172a' }}>
+                    {selectedTrx.is_anonim ? 'Hamba Allah (Anonim)' : selectedTrx.nama_donatur}
+                  </span>
+                </div>
+
+                {selectedTrx.nama_santri && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#64748b' }}>Santri Terkait:</span>
+                    <span style={{ fontWeight: 700, color: '#059669' }}>{selectedTrx.nama_santri}</span>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#64748b' }}>Program:</span>
+                  <span style={{ fontWeight: 800, color: '#0f172a' }}>{selectedTrx.nama_program}</span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#64748b' }}>Metode Bayar:</span>
+                  <span style={{ fontWeight: 700, color: '#334155' }}>{selectedTrx.metode_pembayaran || 'QRIS Midtrans'}</span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#64748b' }}>Waktu Donasi:</span>
+                  <span style={{ fontWeight: 700, color: '#334155' }}>
+                    {new Date(selectedTrx.tanggal_transaksi).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+                  </span>
+                </div>
+
+                {selectedTrx.doa_pesan && (
+                  <div style={{ marginTop: '8px', background: '#f8fafc', padding: '10px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#059669', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <MessageSquareQuote size={13} />
+                      <span>Doa &amp; Hajat Donatur:</span>
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: '#334155', fontStyle: 'italic', lineHeight: 1.35 }}>
+                      "{selectedTrx.doa_pesan}"
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ marginTop: '18px', display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteTransaksi(selectedTrx.id, selectedTrx.kode_transaksi)}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: '12px',
+                    border: '1px solid #fecaca',
+                    background: '#fef2f2',
+                    color: '#dc2626',
+                    fontSize: '0.76rem',
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '5px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Trash2 size={14} />
+                  <span>Hapus</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedTrx(null)}
+                  style={{
+                    flex: 2,
+                    padding: '10px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: '#f1f5f9',
+                    color: '#475569',
+                    fontSize: '0.76rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. MODAL TAMBAH PROGRAM INFAK */}
+      {isModalProgramOpen && (
+        <div
+          onClick={() => setIsModalProgramOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#ffffff',
+              borderRadius: '24px',
+              width: '100%',
+              maxWidth: '420px',
+              overflow: 'hidden',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
+              border: '1px solid #e2e8f0'
+            }}
+          >
+            {/* Header Modal */}
+            <div style={{
+              background: 'linear-gradient(135deg, #0d766e 0%, #064e3b 100%)',
+              color: '#ffffff',
+              padding: '18px 20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Nama Program Infak *</label>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900 }}>Tambah Program Infak</h3>
+                <div style={{ fontSize: '0.68rem', color: '#a7f3d0', marginTop: '2px' }}>
+                  Wadah donasi &amp; wakaf sukarela orang tua santri
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsModalProgramOpen(false)}
+                style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', borderRadius: '8px', padding: '4px', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleCreateProgram} style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                  Nama Program Infak *
+                </label>
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: Pengadaan Genset &amp; Pompa Air Asrama"
+                  placeholder="Contoh: Pembangunan &amp; Perluasan Masjid"
                   value={programForm.nama_program}
                   onChange={(e) => setProgramForm({ ...programForm, nama_program: e.target.value })}
-                  className="w-full text-xs border border-slate-300 rounded-xl p-2.5 outline-none focus:border-emerald-500"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '12px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.8rem',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Kategori Program</label>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                  Kategori Program
+                </label>
                 <select
                   value={programForm.kategori}
                   onChange={(e) => setProgramForm({ ...programForm, kategori: e.target.value })}
-                  className="w-full text-xs border border-slate-300 rounded-xl p-2.5 outline-none focus:border-emerald-500 font-semibold"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '12px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.8rem',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    fontWeight: 700,
+                    color: '#1e293b'
+                  }}
                 >
                   <option value="Wakaf &amp; Pembangunan">Wakaf &amp; Pembangunan</option>
-                  <option value="Beasiswa Pendidikan">Beasiswa Pendidikan &amp; Yatim</option>
-                  <option value="Wakaf Ilmu">Wakaf Ilmu &amp; Kitab</option>
-                  <option value="Sedekah Konsumsi">Sedekah Konsumsi / Berkah</option>
-                  <option value="Infak Umum">Infak &amp; Sedekah Operasional</option>
+                  <option value="Beasiswa Pendidikan">Beasiswa Santri &amp; Yatim</option>
+                  <option value="Wakaf Qur'an &amp; Kitab">Wakaf Qur'an &amp; Kitab</option>
+                  <option value="Sedekah Konsumsi">Sedekah Konsumsi &amp; Berkah</option>
+                  <option value="Infak Umum Pesantren">Infak Umum Pesantren</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Target Dana (Rp)</label>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                  Target Dana (Rp)
+                </label>
                 <input
                   type="number"
-                  placeholder="Contoh: 25000000"
+                  placeholder="50000000"
                   value={programForm.target_dana}
                   onChange={(e) => setProgramForm({ ...programForm, target_dana: e.target.value })}
-                  className="w-full text-xs border border-slate-300 rounded-xl p-2.5 outline-none focus:border-emerald-500 font-mono font-bold"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '12px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.8rem',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    fontWeight: 800,
+                    fontFamily: 'monospace'
+                  }}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Deskripsi Singkat</label>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                  Deskripsi Singkat (Opsional)
+                </label>
                 <textarea
                   rows={2}
                   placeholder="Jelaskan tujuan dan pemanfaatan infak ini..."
                   value={programForm.deskripsi}
                   onChange={(e) => setProgramForm({ ...programForm, deskripsi: e.target.value })}
-                  className="w-full text-xs border border-slate-300 rounded-xl p-2.5 outline-none focus:border-emerald-500"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '12px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.8rem',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
                 />
               </div>
 
-              <div className="pt-2 flex justify-end gap-2">
+              {/* Submit / Cancel Buttons */}
+              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
                 <button
                   type="button"
                   onClick={() => setIsModalProgramOpen(false)}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition"
+                  style={{
+                    flex: 1,
+                    padding: '11px',
+                    borderRadius: '12px',
+                    border: '1px solid #cbd5e1',
+                    background: '#f8fafc',
+                    color: '#64748b',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submittingProgram}
-                  className="px-5 py-2 text-xs font-black text-white bg-gradient-to-r from-emerald-600 to-teal-700 rounded-xl shadow hover:from-emerald-700 hover:to-teal-800 transition"
+                  style={{
+                    flex: 2,
+                    padding: '11px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                    color: '#ffffff',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(5, 150, 105, 0.3)'
+                  }}
                 >
                   {submittingProgram ? 'Menyimpan...' : 'Simpan Program'}
                 </button>
@@ -539,4 +1083,3 @@ export default function LaporanInfakAdminView() {
     </div>
   );
 }
-

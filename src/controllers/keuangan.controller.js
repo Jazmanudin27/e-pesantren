@@ -1022,6 +1022,63 @@ export const getHomeKeuanganSummary = async (req, res) => {
 };
 
 /**
+ * Admin / Mobile: Halaman Khusus Rincian Kas Masuk Sah (Ultra Cepat)
+ * Menampilkan transaksi yang sudah lunas dan rincian itemnya
+ */
+export const getKasMasukSahList = async (req, res) => {
+  try {
+    if (req.user && !canAccessKeuangan(req.user)) {
+      return sendError(res, 'Akses Ditolak: Fitur keuangan khusus untuk Admin Keuangan / Bendahara.', 403);
+    }
+
+    const { limit = 200 } = req.query;
+
+    const [
+      [totalRows],
+      [listTrx]
+    ] = await Promise.all([
+      pool.query(`
+        SELECT 
+          COALESCE(SUM(total_bayar), 0) as total_kas_masuk_sah,
+          COUNT(*) as total_transaksi
+        FROM keuangan_transaksi_pembayaran
+        WHERE status_pembayaran = 'Berhasil'
+      `),
+      pool.query(`
+        SELECT 
+          p.*,
+          COALESCE(s.nama_santri, p.keterangan, 'Santri NWF') as nama_santri,
+          COALESCE(s.nis, '-') as nis,
+          COALESCE(s.nama_sekolah, 'SMP') as nama_sekolah,
+          COALESCE(s.tingkat_sekolah, '-') as tingkat_sekolah,
+          a.nama_asrama,
+          k.nama_kamar,
+          (
+            SELECT GROUP_CONCAT(CONCAT(t.judul_tagihan, ' (Rp ', FORMAT(d.nominal_alokasi, 0, 'id_ID'), ')') SEPARATOR ', ')
+            FROM keuangan_transaksi_detail d
+            JOIN keuangan_tagihan t ON d.tagihan_id = t.id
+            WHERE d.transaksi_id = p.id
+          ) as rincian_item
+        FROM keuangan_transaksi_pembayaran p
+        LEFT JOIN santri s ON p.santri_id = s.id
+        LEFT JOIN asrama a ON s.asrama_id = a.id
+        LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+        WHERE p.status_pembayaran = 'Berhasil'
+        ORDER BY p.tanggal_bayar DESC, p.id DESC
+        LIMIT ?
+      `, [parseInt(limit) || 200])
+    ]);
+
+    return sendSuccess(res, 'Data kas masuk sah berhasil dimuat', {
+      summary: totalRows[0] || { total_kas_masuk_sah: 0, total_transaksi: 0 },
+      transaksi: listTrx || []
+    });
+  } catch (err) {
+    return sendError(res, `Gagal memuat kas masuk sah: ${err.message}`, 500);
+  }
+};
+
+/**
  * Admin: Rekap Seluruh Keuangan, Komponen, dan Tunggakan
  * Dioptimalkan dengan query paralel Promise.all dan subquery agregasi efisien
  */

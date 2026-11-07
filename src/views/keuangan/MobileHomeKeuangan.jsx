@@ -7,7 +7,6 @@ import MenuLayananKeuangan from "./components/MenuLayananKeuangan";
 import RiwayatTrxTerbaru from "./components/RiwayatTrxTerbaru";
 import ModalKuitansi from "./components/ModalKuitansi";
 import ModalSiklusSpp from "./components/ModalSiklusSpp";
-import ModalDetailKasMasuk from "./components/ModalDetailKasMasuk";
 import ModalGenerateTagihan from "./components/ModalGenerateTagihan";
 
 export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
@@ -24,8 +23,7 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
   const [allKasMasukTrx, setAllKasMasukTrx] = useState([]);
   const [saldoTabunganTotal, setSaldoTabunganTotal] = useState(0);
 
-  // State Modal Detail Rincian Kas Masuk & Kuitansi
-  const [isDetailKasModalOpen, setIsDetailKasModalOpen] = useState(false);
+  // State Modal Kuitansi & Generate Tagihan
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [kuitansiModal, setKuitansiModal] = useState({
     isOpen: false,
@@ -284,7 +282,7 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
         showBalance={showBalance}
         setShowBalance={setShowBalance}
         formatRp={formatRp}
-        onOpenDetailKas={() => setIsDetailKasModalOpen(true)}
+        onOpenDetailKas={() => onChangeTab("rincian-kas")}
         onChangeTab={onChangeTab}
       />
 
@@ -293,7 +291,7 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
         {/* 4. MENU LAYANAN KEUANGAN (GRID 6 MENU) */}
         <MenuLayananKeuangan
           onChangeTab={onChangeTab}
-          onOpenDetailKas={() => setIsDetailKasModalOpen(true)}
+          onOpenDetailKas={() => onChangeTab("rincian-kas")}
           onOpenGenerate={() => setIsGenerateModalOpen(true)}
           onRefresh={fetchKeuanganSummary}
           loading={loading}
@@ -304,7 +302,7 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
           recentTrx={recentTrx}
           loading={loading}
           formatRp={formatRp}
-          onOpenDetailKas={() => setIsDetailKasModalOpen(true)}
+          onOpenDetailKas={() => onChangeTab("rincian-kas")}
           onOpenKuitansi={(trx) =>
             setKuitansiModal({ isOpen: true, data: trx })
           }
@@ -321,17 +319,7 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
         onSaveSiklus={handleSaveSiklus}
       />
 
-      {/* 7. MODAL RINCIAN DETAIL KAS MASUK SAH */}
-      <ModalDetailKasMasuk
-        isOpen={isDetailKasModalOpen}
-        onClose={() => setIsDetailKasModalOpen(false)}
-        summary={summary}
-        allKasMasukTrx={allKasMasukTrx}
-        formatRp={formatRp}
-        onOpenKuitansi={(trx) => setKuitansiModal({ isOpen: true, data: trx })}
-      />
-
-      {/* 8. MODAL KUITANSI DIGITAL ELEGAN & CETAK NOTA */}
+      {/* 7. MODAL KUITANSI DIGITAL ELEGAN & CETAK NOTA */}
       <ModalKuitansi
         isOpen={kuitansiModal.isOpen}
         data={kuitansiModal.data}

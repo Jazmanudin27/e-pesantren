@@ -8,6 +8,7 @@ import {
   getKuitansiPembayaran,
   getRekapKeuanganAdmin,
   getHomeKeuanganSummary,
+  getKasMasukSahList,
   createTagihanAdmin,
   updateTagihanAdmin,
   deleteTagihanAdmin,
@@ -55,6 +56,8 @@ router.get('/wali/kuitansi', getKuitansiPembayaran);
 // Endpoint Admin Desktop & Beranda Cepat
 router.get('/admin/home-summary', getHomeKeuanganSummary);
 router.get('/home-summary', getHomeKeuanganSummary);
+router.get('/admin/kas-masuk-sah', getKasMasukSahList);
+router.get('/kas-masuk-sah', getKasMasukSahList);
 router.get('/admin/rekap', getRekapKeuanganAdmin);
 router.get('/rekap', getRekapKeuanganAdmin);
 router.get('/siklus-spp', getSiklusSpp);

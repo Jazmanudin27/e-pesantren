@@ -25,6 +25,7 @@ import MobileProfil from '../views/mobile/MobileProfil';
 import MobileSantri from '../views/mobile/MobileSantri';
 import MobileLogin from '../views/mobile/MobileLogin';
 import LaporanInfakAdminView from '../views/keuangan/LaporanInfakAdminView';
+import RincianKasMasukView from '../views/keuangan/RincianKasMasukView';
 import WhatsAppGatewayView from '../views/admin/WhatsAppGatewayView';
 
 export default function MobileKeuanganLayout() {
@@ -90,6 +91,10 @@ export default function MobileKeuanganLayout() {
     switch (activeTab) {
       case 'home':
         return <MobileHomeKeuangan onChangeTab={handleSelectTab} onLogout={handleLogout} />;
+      case 'rincian-kas':
+      case 'kas-masuk':
+      case 'rincian-kas-masuk':
+        return <RincianKasMasukView onBackToHome={() => handleSelectTab('home')} onChangeTab={handleSelectTab} />;
       case 'keuangan-spp':
       case 'spp':
       case 'keuangan-kasir':
