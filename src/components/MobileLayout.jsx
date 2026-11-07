@@ -65,6 +65,7 @@ import LaporanInfakAdminView from '../views/keuangan/LaporanInfakAdminView';
 import PesanKomunikasiAdminView from '../views/admin/PesanKomunikasiAdminView';
 import WhatsAppGatewayView from '../views/admin/WhatsAppGatewayView';
 import MobileHomeKeuangan from '../views/mobile/MobileHomeKeuangan';
+import MobileKeuanganLayout from './MobileKeuanganLayout';
 import { canAccessKeuangan } from '../utils/authRole.util';
 
 export default function MobileLayout() {
@@ -240,6 +241,11 @@ export default function MobileLayout() {
            uName.includes('bendahara') || uName.includes('keuangan') ||
            uType.includes('bendahara') || uType.includes('keuangan');
   })();
+
+  // JIKA ROLE BENDAHARA / KEUANGAN: ALIKAN 100% KE LAYOUT KHUSUS MOBILE KEUANGAN
+  if (isBendahara) {
+    return <MobileKeuanganLayout />;
+  }
 
   const getSubmenuTitle = () => {
     switch (mobileTab) {
