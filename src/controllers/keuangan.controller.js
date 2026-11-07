@@ -238,7 +238,7 @@ const ensureAutoTagihanForSantri = async (santriId, connectionOrPool = pool) => 
  */
 export const getDashboardKeuanganWali = async (req, res) => {
   try {
-    let santriId = req.query.santri_id || (req.user && (req.user.santri_id || req.user.id));
+    let santriId = req.params?.santriId || req.params?.santri_id || req.query?.santri_id || (req.user && (req.user.santri_id || req.user.id));
 
     if (!santriId) {
       const [first] = await pool.query('SELECT id FROM santri ORDER BY id ASC LIMIT 1');

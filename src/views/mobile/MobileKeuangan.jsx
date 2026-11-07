@@ -174,19 +174,41 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
 
   // Fetch Tagihan saat Santri dipilih
   const fetchTagihanSantri = async (santriId) => {
+    if (!santriId) return;
     setLoadingTagihan(true);
     setSelectedPayMap({});
     try {
-      const res = await axios.get(`/api/keuangan/tagihan/${santriId}`);
-      if (res.data?.success && res.data.data) {
-        setSantriTagihan({
-          bulanan: res.data.data.tagihanBulanan || [],
-          bebas: res.data.data.biayaAwalMasuk || res.data.data.tagihanBebas || [],
-          riwayat: res.data.data.riwayatTransaksi || []
+      let res = await axios.get(`/api/keuangan/tagihan/${santriId}`).catch(() => null);
+      if (!res?.data?.success) {
+        res = await axios.get(`/api/keuangan/wali/dashboard?santri_id=${santriId}`).catch(() => null);
+      }
+      if (res?.data?.success && res.data.data) {
+        const d = res.data.data;
+        const allBebas = [
+          ...(d.biayaAwalMasuk || []),
+          ...(d.tagihanLainnya || []),
+          ...(d.tagihanBebas || [])
+        ];
+        const uniqueBebas = [];
+        const seen = new Set();
+        allBebas.forEach((b) => {
+          if (b && b.id && !seen.has(b.id)) {
+            seen.add(b.id);
+            uniqueBebas.push(b);
+          }
         });
+
+        setSantriTagihan({
+          bulanan: d.tagihanBulanan || [],
+          bebas: uniqueBebas,
+          riwayat: d.riwayatTransaksi || []
+        });
+      } else {
+        setSantriTagihan({ bulanan: [], bebas: [], riwayat: [] });
       }
     } catch (err) {
       console.warn('Gagal memuat tagihan santri:', err);
+      setSantriTagihan({ bulanan: [], bebas: [], riwayat: [] });
     } finally {
       setLoadingTagihan(false);
     }
@@ -1018,6 +1040,45 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                       )}
                     </div>
                   </div>
+
+                  {/* State Jika Santri Belum Memiliki Tagihan Sama Sekali */}
+                  {santriTagihan.bulanan.length === 0 && santriTagihan.bebas.length === 0 && (
+                    <div style={{
+                      background: '#ffffff',
+                      borderRadius: '20px',
+                      padding: '24px 16px',
+                      textAlign: 'center',
+                      border: '1.5px dashed #cbd5e1'
+                    }}>
+                      <AlertTriangle size={32} color="#f59e0b" style={{ margin: '0 auto 10px', display: 'block' }} />
+                      <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1e293b', marginBottom: '4px' }}>
+                        Belum Ada Tagihan untuk Santri Ini
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '16px' }}>
+                        Santri ini belum memiliki tagihan SPP maupun Biaya Awal Masuk. Anda dapat menerbitkan tagihan secara instan.
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsGenerateModalOpen(true)}
+                        style={{
+                          padding: '10px 18px',
+                          borderRadius: '12px',
+                          border: 'none',
+                          background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                          color: '#ffffff',
+                          fontWeight: 800,
+                          fontSize: '0.8rem',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <Sparkles size={16} />
+                        <span>+ Terbitkan Tagihan Sekarang</span>
+                      </button>
+                    </div>
+                  )}
 
                   {/* 2. Biaya Bebas / Non-Bulanan (Biaya Masuk, Seragam, dll) */}
                   {santriTagihan.bebas.length > 0 && (
@@ -2149,8 +2210,18 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
       <ModalGenerateTagihan
         isOpen={isGenerateModalOpen}
         onClose={() => setIsGenerateModalOpen(false)}
-        onGenerated={fetchRekapAndSantri}
-        initialSekolah={kasirFilterSekolah}
+        onGenerated={() => {
+          fetchRekapAndSantri();
+          if (selectedSantri) {
+            fetchTagihanSantri(selectedSantri.id);
+          }
+        }}
+        initialSekolah={
+          selectedSantri
+            ? (selectedSantri.nama_sekolah?.includes('SMA') ? 'SMA' : selectedSantri.nama_sekolah?.includes('SMK') ? 'SMK' : 'SMP')
+            : (kasirFilterSekolah !== 'semua' ? kasirFilterSekolah : 'SMP')
+        }
+        targetSantri={selectedSantri}
       />
     </div>
   );

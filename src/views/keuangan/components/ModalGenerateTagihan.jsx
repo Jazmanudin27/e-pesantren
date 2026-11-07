@@ -40,7 +40,8 @@ export default function ModalGenerateTagihan({
   isOpen,
   onClose,
   onGenerated,
-  initialSekolah = ''
+  initialSekolah = '',
+  targetSantri = null
 }) {
   const [activeTab, setActiveTab] = useState('awal_masuk'); // 'awal_masuk' | 'spp_rutin'
   const [loading, setLoading] = useState(false);
@@ -50,6 +51,7 @@ export default function ModalGenerateTagihan({
   const [jenjangMasuk, setJenjangMasuk] = useState('SMP'); // 'SMP' | 'SMA' | 'SMK' | 'SEMUA'
   const [kategoriMasuk, setKategoriMasuk] = useState('semua'); // 'semua' | 'sekolah' | 'pesantren'
   const [modePaketMasuk, setModePaketMasuk] = useState('paket'); // 'paket' (2 rincian) | 'total' (1 tagihan)
+  const [scopeSantri, setScopeSantri] = useState(targetSantri ? 'single' : 'semua'); // 'single' | 'semua'
   const [showItemBreakdown, setShowItemBreakdown] = useState(true);
 
   // Live Database Items State (Per Jenjang)
@@ -76,13 +78,20 @@ export default function ModalGenerateTagihan({
   const [komponenList, setKomponenList] = useState([]);
   const [selectedKomponenId, setSelectedKomponenId] = useState('');
 
-  // Sync initialSekolah
+  // Sync initialSekolah & targetSantri
   useEffect(() => {
-    if (initialSekolah && initialSekolah !== 'semua') {
+    if (targetSantri) {
+      setScopeSantri('single');
+      const sk = String(targetSantri.nama_sekolah || '').toUpperCase();
+      if (sk.includes('SMA')) setJenjangMasuk('SMA');
+      else if (sk.includes('SMK')) setJenjangMasuk('SMK');
+      else setJenjangMasuk('SMP');
+    } else if (initialSekolah && initialSekolah !== 'semua') {
       setJenjangMasuk(initialSekolah);
       setSekolahSpp(initialSekolah);
+      setScopeSantri('semua');
     }
-  }, [initialSekolah]);
+  }, [initialSekolah, targetSantri, isOpen]);
 
   // Fetch Live Rincian Biaya dari Database
   const fetchLiveRincian = async () => {
@@ -229,7 +238,12 @@ export default function ModalGenerateTagihan({
   // 4. Generate Tagihan Awal Masuk ke Database
   const handleGenerateAwalMasuk = async (e) => {
     e?.preventDefault();
-    const jenjangLabel = jenjangMasuk === 'SEMUA' ? 'Seluruh Jenjang (SMP, SMA, SMK)' : `Jenjang ${jenjangMasuk}`;
+    const isSingle = scopeSantri === 'single' && targetSantri;
+    const targetLabel = isSingle
+      ? `Santri ${targetSantri.nama_santri} (${jenjangMasuk})`
+      : jenjangMasuk === 'SEMUA'
+      ? 'Seluruh Santri (SMP, SMA, SMK)'
+      : `Seluruh Santri Jenjang ${jenjangMasuk}`;
     const katLabel =
       kategoriMasuk === 'sekolah'
         ? 'ADM SEKOLAH'
@@ -237,13 +251,13 @@ export default function ModalGenerateTagihan({
         ? 'ADM PESANTREN'
         : 'ADM SEKOLAH & PESANTREN';
     const nominalLabel =
-      jenjangMasuk === 'SEMUA'
+      !isSingle && jenjangMasuk === 'SEMUA'
         ? 'sesuai data rincian database tiap sekolah'
         : formatRp(grandTotalMasuk);
 
     const ok = await showConfirm(
       'Konfirmasi Simpan Tagihan ke Database',
-      `Terbitkan Tagihan ${katLabel} 2026/2027 untuk santri ${jenjangLabel} (${nominalLabel})?\n\nTagihan akan langsung disimpan ke database keuangan_tagihan. Santri yang sudah punya tagihan otomatis dilewati.`,
+      `Terbitkan Tagihan ${katLabel} 2026/2027 untuk ${targetLabel} (${nominalLabel})?\n\nTagihan akan langsung disimpan ke database keuangan_tagihan.`,
       'Ya, Simpan ke Database',
       'Batal'
     );
@@ -255,7 +269,8 @@ export default function ModalGenerateTagihan({
         jenjang: jenjangMasuk,
         tahun_ajaran: '2026/2027',
         mode: modePaketMasuk,
-        kategori: kategoriMasuk
+        kategori: kategoriMasuk,
+        santri_id: isSingle ? targetSantri.id : undefined
       });
 
       if (res.data?.success) {
@@ -452,6 +467,63 @@ export default function ModalGenerateTagihan({
         {activeTab === 'awal_masuk' && (
           <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             
+            {/* Target Penerima Tagihan (Khusus Santri Terpilih vs Semua Santri) */}
+            {targetSantri && (
+              <div style={{
+                background: '#f8fafc',
+                border: '1.5px solid #cbd5e1',
+                borderRadius: '14px',
+                padding: '10px 12px'
+              }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
+                  Target Penerima Tagihan:
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setScopeSantri('single')}
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: '10px',
+                      border: scopeSantri === 'single' ? '2px solid #059669' : '1px solid #cbd5e1',
+                      background: scopeSantri === 'single' ? '#ecfdf5' : '#ffffff',
+                      color: scopeSantri === 'single' ? '#065f46' : '#64748b',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <div>👤 Khusus Santri Ini:</div>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
+                      {targetSantri.nama_santri}
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setScopeSantri('semua')}
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: '10px',
+                      border: scopeSantri === 'semua' ? '2px solid #059669' : '1px solid #cbd5e1',
+                      background: scopeSantri === 'semua' ? '#ecfdf5' : '#ffffff',
+                      color: scopeSantri === 'semua' ? '#065f46' : '#64748b',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <div>👥 Seluruh Santri:</div>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0f172a', marginTop: '2px' }}>
+                      Jenjang {jenjangMasuk}
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Pilihan Jenjang Sekolah */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>

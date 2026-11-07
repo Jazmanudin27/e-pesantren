@@ -38,8 +38,10 @@ router.get('/webhook/ipaymu', webhookIpaymuHandler);
 router.post('/webhook/bni', webhookBniHandler);
 router.get('/webhook/bni', (req, res) => res.json({ status: '000', message: 'BNI Webhook Endpoint Ready' }));
 
-// Endpoint Khusus Wali Santri (Mobile)
+// Endpoint Khusus Wali Santri (Mobile) & Kasir Tagihan
 router.get('/wali/dashboard', getDashboardKeuanganWali);
+router.get('/tagihan/:santriId', getDashboardKeuanganWali);
+router.get('/santri/:santriId', getDashboardKeuanganWali);
 router.post('/wali/bayar', buatTransaksiPembayaran);
 router.post('/wali/lanjutkan', lanjutkanPembayaran);
 router.post('/wali/batal', batalkanTransaksiPembayaran);

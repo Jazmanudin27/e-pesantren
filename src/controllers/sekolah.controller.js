@@ -653,12 +653,12 @@ export const generateTagihanAwalMasukSekolah = async (req, res) => {
       }
 
       for (const item of billItems) {
-        // Cek anti duplikat
+        // Cek anti duplikat persis per judul tagihan
         const [existing] = await connection.query(`
           SELECT id FROM keuangan_tagihan 
-          WHERE santri_id = ? AND (judul_tagihan = ? OR (periode_bulan = ? AND kategori = ?))
+          WHERE santri_id = ? AND judul_tagihan = ?
           LIMIT 1
-        `, [santri.id, item.judul, item.periode, item.kategori]);
+        `, [santri.id, item.judul]);
 
         if (existing && existing.length > 0) {
           totalSkipped++;
