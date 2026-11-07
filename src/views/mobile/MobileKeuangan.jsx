@@ -181,12 +181,20 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
   // Load Santri & Rekap secara non-blocking
   const fetchRekapAndSantri = () => {
     fetchSantriList();
-    fetchRekapKeuangan();
+    if (activeTab === 'laporan') {
+      fetchRekapKeuangan();
+    }
   };
 
   useEffect(() => {
-    fetchRekapAndSantri();
+    fetchSantriList();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'laporan') {
+      fetchRekapKeuangan();
+    }
+  }, [activeTab]);
 
   // Live search backend saat user mengetik kata kunci pencarian
   useEffect(() => {

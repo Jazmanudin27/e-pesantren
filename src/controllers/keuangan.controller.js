@@ -34,8 +34,34 @@ export const ensureSiklusSppTable = async () => {
     }
     isSiklusSppTableInitialized = true;
     await ensureSekolahTablesAndMapping();
+    ensureKeuanganIndexes();
   } catch (err) {
     console.warn('[SIKLUS SPP DB INIT NOTICE]', err.message);
+  }
+};
+
+let isIndexesEnsured = false;
+export const ensureKeuanganIndexes = async () => {
+  if (isIndexesEnsured) return;
+  try {
+    const indexes = [
+      'CREATE INDEX idx_tagihan_santri_status ON keuangan_tagihan(santri_id, status)',
+      'CREATE INDEX idx_tagihan_status ON keuangan_tagihan(status)',
+      'CREATE INDEX idx_transaksi_status_tgl ON keuangan_transaksi_pembayaran(status_pembayaran, tanggal_bayar)',
+      'CREATE INDEX idx_transaksi_santri ON keuangan_transaksi_pembayaran(santri_id)',
+      'CREATE INDEX idx_trx_detail_transaksi ON keuangan_transaksi_detail(transaksi_id)',
+      'CREATE INDEX idx_trx_detail_tagihan ON keuangan_transaksi_detail(tagihan_id)'
+    ];
+    for (const sql of indexes) {
+      try {
+        await pool.query(sql);
+      } catch (_) {
+        // ignore jika index sudah ada
+      }
+    }
+    isIndexesEnsured = true;
+  } catch (err) {
+    // ignore
   }
 };
 
@@ -914,7 +940,83 @@ export const getKuitansiPembayaran = async (req, res) => {
 };
 
 /**
+ * Admin: Ringkasan Cepat Dashboard Beranda (Ultra-Fast < 50ms)
+ * Hanya memuat ringkasan angka & transaksi terbaru tanpa payload besar
+ */
+export const getHomeKeuanganSummary = async (req, res) => {
+  try {
+    if (req.user && !canAccessKeuangan(req.user)) {
+      return sendError(res, 'Akses Ditolak: Fitur keuangan khusus untuk Admin Keuangan / Bendahara.', 403);
+    }
+
+    const [
+      [summaryRows],
+      [kasMasukRows],
+      [transaksiTerakhir],
+      siklusSpp
+    ] = await Promise.all([
+      pool.query(`
+        SELECT 
+          COALESCE(SUM(total_tagihan), 0) as total_nominal_tagihan,
+          COALESCE(SUM(sudah_dibayar), 0) as total_terbayar,
+          COALESCE(SUM(sisa_tagihan), 0) as total_tunggakan,
+          COUNT(CASE WHEN status != 'Lunas' THEN 1 END) as jumlah_tagihan_tertunggak,
+          COUNT(CASE WHEN status = 'Lunas' THEN 1 END) as jumlah_tagihan_lunas
+        FROM keuangan_tagihan
+      `),
+      pool.query(`
+        SELECT COALESCE(SUM(total_bayar), 0) as total_kas_masuk_sah
+        FROM keuangan_transaksi_pembayaran
+        WHERE status_pembayaran = 'Berhasil'
+      `),
+      pool.query(`
+        SELECT 
+          p.id,
+          p.santri_id,
+          p.nomor_transaksi,
+          p.total_bayar,
+          p.metode_pembayaran,
+          p.tanggal_bayar,
+          p.status_pembayaran,
+          p.created_at,
+          COALESCE(s.nama_santri, p.keterangan, 'Santri NWF') as nama_santri,
+          COALESCE(s.nis, '-') as nis,
+          COALESCE(s.nama_sekolah, 'SMP') as nama_sekolah,
+          COALESCE(s.tingkat_sekolah, '-') as tingkat_sekolah,
+          a.nama_asrama,
+          k.nama_kamar
+        FROM keuangan_transaksi_pembayaran p
+        LEFT JOIN santri s ON p.santri_id = s.id
+        LEFT JOIN asrama a ON s.asrama_id = a.id
+        LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+        WHERE p.status_pembayaran = 'Berhasil'
+        ORDER BY p.tanggal_bayar DESC, p.id DESC
+        LIMIT 25
+      `),
+      getSiklusSppData()
+    ]);
+
+    const summary = summaryRows[0] || {};
+    const kasMasukRiil = kasMasukRows[0]?.total_kas_masuk_sah != null ? Number(kasMasukRows[0].total_kas_masuk_sah) : 0;
+
+    return sendSuccess(res, 'Ringkasan beranda keuangan berhasil dimuat', {
+      summary: {
+        ...summary,
+        total_kas_masuk_sah: kasMasukRiil,
+        tgl_terbit_spp: siklusSpp.tgl_terbit_spp || 5,
+        tgl_jatuh_tempo_spp: siklusSpp.tgl_jatuh_tempo_spp || 10
+      },
+      siklusSpp,
+      transaksiTerakhir: transaksiTerakhir || []
+    });
+  } catch (err) {
+    return sendError(res, `Gagal memuat ringkasan beranda: ${err.message}`, 500);
+  }
+};
+
+/**
  * Admin: Rekap Seluruh Keuangan, Komponen, dan Tunggakan
+ * Dioptimalkan dengan query paralel Promise.all dan subquery agregasi efisien
  */
 export const getRekapKeuanganAdmin = async (req, res) => {
   try {
@@ -922,179 +1024,167 @@ export const getRekapKeuanganAdmin = async (req, res) => {
       return sendError(res, 'Akses Ditolak: Fitur keuangan khusus untuk Admin Keuangan / Bendahara.', 403);
     }
 
-    // 0. Auto-Clean Fake / Dummy Data Tanpa Rincian
-    try {
-      // Hapus transaksi orphan / dummy / test
-      await pool.query(`
-        DELETE FROM keuangan_transaksi_pembayaran 
-        WHERE santri_id IS NULL 
-           OR santri_id NOT IN (SELECT id FROM santri)
-           OR nomor_transaksi LIKE '%DUMMY%' 
-           OR nomor_transaksi LIKE '%TEST%'
-      `);
+    const [
+      [summaryRows],
+      [kasMasukRows],
+      [transaksiTerakhir],
+      [transaksiPending],
+      [transaksiMidtrans],
+      [tunggakanSantri],
+      [komponenBiaya],
+      [semuaTagihan],
+      siklusSpp
+    ] = await Promise.all([
+      // 1. Ringkasan Global
+      pool.query(`
+        SELECT 
+          COALESCE(SUM(total_tagihan), 0) as total_nominal_tagihan,
+          COALESCE(SUM(sudah_dibayar), 0) as total_terbayar,
+          COALESCE(SUM(sisa_tagihan), 0) as total_tunggakan,
+          COUNT(CASE WHEN status != 'Lunas' THEN 1 END) as jumlah_tagihan_tertunggak,
+          COUNT(CASE WHEN status = 'Lunas' THEN 1 END) as jumlah_tagihan_lunas
+        FROM keuangan_tagihan
+      `),
 
-      // Hapus transaksi Berhasil yang tidak memiliki rincian detail pembayaran sama sekali
-      await pool.query(`
-        DELETE p FROM keuangan_transaksi_pembayaran p
-        LEFT JOIN keuangan_transaksi_detail d ON p.id = d.transaksi_id
-        WHERE d.id IS NULL
-      `);
+      // 1b. Kas Masuk Riil dari Transaksi Berhasil
+      pool.query(`
+        SELECT COALESCE(SUM(total_bayar), 0) as total_kas_masuk_sah
+        FROM keuangan_transaksi_pembayaran
+        WHERE status_pembayaran = 'Berhasil'
+      `),
 
-      // Reset tagihan yang sudah_dibayar jika tidak ada transaksi sah yang mencatatnya
-      await pool.query(`
-        UPDATE keuangan_tagihan t
-        SET sudah_dibayar = 0, sisa_tagihan = total_tagihan, status = 'Belum Dibayar'
-        WHERE t.sudah_dibayar > 0
-          AND t.id NOT IN (
-            SELECT d.tagihan_id 
+      // 2. Transaksi Kas Masuk Terakhir (Hanya yang BERHASIL / LUNAS)
+      pool.query(`
+        SELECT 
+          p.*,
+          COALESCE(s.nama_santri, p.keterangan, 'Santri NWF') as nama_santri,
+          COALESCE(s.nis, '-') as nis,
+          COALESCE(s.nama_sekolah, 'SMP') as nama_sekolah,
+          COALESCE(s.tingkat_sekolah, '-') as tingkat_sekolah,
+          a.nama_asrama,
+          k.nama_kamar,
+          (
+            SELECT GROUP_CONCAT(CONCAT(t.judul_tagihan, ' (Rp ', FORMAT(d.nominal_alokasi, 0, 'id_ID'), ')') SEPARATOR ', ')
             FROM keuangan_transaksi_detail d
-            JOIN keuangan_transaksi_pembayaran p ON d.transaksi_id = p.id
-            WHERE p.status_pembayaran = 'Berhasil'
-          )
-      `);
-    } catch (cleanErr) {
-      console.warn('[AUTO CLEAN NOTICE]', cleanErr.message);
-    }
+            JOIN keuangan_tagihan t ON d.tagihan_id = t.id
+            WHERE d.transaksi_id = p.id
+          ) as rincian_item
+        FROM keuangan_transaksi_pembayaran p
+        LEFT JOIN santri s ON p.santri_id = s.id
+        LEFT JOIN asrama a ON s.asrama_id = a.id
+        LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+        WHERE p.status_pembayaran = 'Berhasil'
+        ORDER BY p.tanggal_bayar DESC, p.id DESC
+        LIMIT 100
+      `),
 
-    // 1. Ringkasan Global
-    const [summary] = await pool.query(`
-      SELECT 
-        COALESCE(SUM(total_tagihan), 0) as total_nominal_tagihan,
-        COALESCE(SUM(sudah_dibayar), 0) as total_terbayar,
-        COALESCE(SUM(sisa_tagihan), 0) as total_tunggakan,
-        COUNT(CASE WHEN status != 'Lunas' THEN 1 END) as jumlah_tagihan_tertunggak,
-        COUNT(CASE WHEN status = 'Lunas' THEN 1 END) as jumlah_tagihan_lunas
-      FROM keuangan_tagihan
-    `);
+      // 2b. Transaksi Menunggu Pembayaran (Pending)
+      pool.query(`
+        SELECT 
+          p.*,
+          s.nama_santri,
+          s.nis,
+          a.nama_asrama,
+          k.nama_kamar
+        FROM keuangan_transaksi_pembayaran p
+        JOIN santri s ON p.santri_id = s.id
+        LEFT JOIN asrama a ON s.asrama_id = a.id
+        LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+        WHERE p.status_pembayaran = 'Pending'
+        ORDER BY p.created_at DESC
+        LIMIT 50
+      `),
 
-    // 1b. Kas Masuk Riil dari Transaksi Berhasil (Hanya Pembayaran Sah Berdasar Detail Valid)
-    const [kasMasukRiil] = await pool.query(`
-      SELECT COALESCE(SUM(total_bayar), 0) as total_kas_masuk_sah
-      FROM keuangan_transaksi_pembayaran
-      WHERE status_pembayaran = 'Berhasil'
-    `);
+      // 2c. Seluruh Histori Transaksi Gateway Midtrans
+      pool.query(`
+        SELECT 
+          p.*,
+          s.nama_santri,
+          s.nis,
+          s.nama_wali,
+          s.no_wa_wali,
+          a.nama_asrama,
+          k.nama_kamar
+        FROM keuangan_transaksi_pembayaran p
+        JOIN santri s ON p.santri_id = s.id
+        LEFT JOIN asrama a ON s.asrama_id = a.id
+        LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+        WHERE p.snap_token IS NOT NULL 
+           OR p.nomor_transaksi LIKE 'TRX-%' 
+           OR p.metode_pembayaran IN ('QRIS', 'Virtual Account')
+        ORDER BY p.id DESC
+        LIMIT 100
+      `),
 
-    // 2. Transaksi Kas Masuk Terakhir (Hanya yang BERHASIL / LUNAS, PENDING TIDAK MASUK LAPORAN KAS)
-    const [transaksiTerakhir] = await pool.query(`
-      SELECT 
-        p.*,
-        COALESCE(s.nama_santri, p.keterangan, 'Santri NWF') as nama_santri,
-        COALESCE(s.nis, '-') as nis,
-        COALESCE(s.nama_sekolah, 'SMP') as nama_sekolah,
-        COALESCE(s.tingkat_sekolah, '-') as tingkat_sekolah,
-        a.nama_asrama,
-        k.nama_kamar,
-        (
-          SELECT GROUP_CONCAT(CONCAT(t.judul_tagihan, ' (Rp ', FORMAT(d.nominal_alokasi, 0, 'id_ID'), ')') SEPARATOR ', ')
-          FROM keuangan_transaksi_detail d
-          JOIN keuangan_tagihan t ON d.tagihan_id = t.id
-          WHERE d.transaksi_id = p.id
-        ) as rincian_item
-      FROM keuangan_transaksi_pembayaran p
-      LEFT JOIN santri s ON p.santri_id = s.id
-      LEFT JOIN asrama a ON s.asrama_id = a.id
-      LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
-      WHERE p.status_pembayaran = 'Berhasil'
-      ORDER BY p.tanggal_bayar DESC, p.id DESC
-      LIMIT 150
-    `);
+      // 3. Daftar Santri dengan Rekap Tunggakan (Pre-aggregated subquery cepat)
+      pool.query(`
+        SELECT 
+          s.id as santri_id,
+          s.nis,
+          s.nama_santri,
+          s.nama_wali,
+          s.no_wa_wali,
+          s.nama_sekolah,
+          s.tingkat_sekolah,
+          a.nama_asrama,
+          k.nama_kamar,
+          t.tunggakan_bulanan,
+          t.tunggakan_biaya_masuk,
+          t.total_tunggakan
+        FROM (
+          SELECT 
+            santri_id,
+            COALESCE(SUM(CASE WHEN kategori = 'Bulanan' THEN sisa_tagihan ELSE 0 END), 0) as tunggakan_bulanan,
+            COALESCE(SUM(CASE WHEN kategori = 'Biaya Masuk' THEN sisa_tagihan ELSE 0 END), 0) as tunggakan_biaya_masuk,
+            COALESCE(SUM(sisa_tagihan), 0) as total_tunggakan
+          FROM keuangan_tagihan
+          WHERE status != 'Lunas'
+          GROUP BY santri_id
+          HAVING total_tunggakan > 0
+          ORDER BY total_tunggakan DESC
+          LIMIT 100
+        ) t
+        JOIN santri s ON t.santri_id = s.id
+        LEFT JOIN asrama a ON s.asrama_id = a.id
+        LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+      `),
 
-    // 2b. Transaksi Menunggu Pembayaran (Pending) - Terpisah dari Laporan Kas
-    const [transaksiPending] = await pool.query(`
-      SELECT 
-        p.*,
-        s.nama_santri,
-        s.nis,
-        a.nama_asrama,
-        k.nama_kamar
-      FROM keuangan_transaksi_pembayaran p
-      JOIN santri s ON p.santri_id = s.id
-      LEFT JOIN asrama a ON s.asrama_id = a.id
-      LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
-      WHERE p.status_pembayaran = 'Pending'
-      ORDER BY p.created_at DESC
-      LIMIT 50
-    `);
+      // 4. Master Komponen Biaya
+      pool.query(`SELECT * FROM keuangan_komponen_biaya ORDER BY id ASC`),
 
-    // 2c. Seluruh Histori Transaksi Gateway Midtrans (Selesai, Pending, Batal/Expired)
-    const [transaksiMidtrans] = await pool.query(`
-      SELECT 
-        p.*,
-        s.nama_santri,
-        s.nis,
-        s.nama_wali,
-        s.no_wa_wali,
-        a.nama_asrama,
-        k.nama_kamar
-      FROM keuangan_transaksi_pembayaran p
-      JOIN santri s ON p.santri_id = s.id
-      LEFT JOIN asrama a ON s.asrama_id = a.id
-      LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
-      WHERE p.snap_token IS NOT NULL 
-         OR p.nomor_transaksi LIKE 'TRX-%' 
-         OR p.metode_pembayaran IN ('QRIS', 'Virtual Account')
-      ORDER BY p.id DESC
-      LIMIT 100
-    `);
+      // 5. Semua Daftar Tagihan Santri
+      pool.query(`
+        SELECT 
+          t.*,
+          s.nama_santri,
+          s.nis,
+          s.nama_wali,
+          s.no_wa_wali,
+          s.nama_sekolah,
+          s.tingkat_sekolah,
+          a.nama_asrama,
+          k.nama_kamar,
+          kb.nama_komponen
+        FROM keuangan_tagihan t
+        JOIN santri s ON t.santri_id = s.id
+        LEFT JOIN asrama a ON s.asrama_id = a.id
+        LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+        LEFT JOIN keuangan_komponen_biaya kb ON t.komponen_id = kb.id
+        ORDER BY t.id DESC
+        LIMIT 100
+      `),
 
-    // 3. Daftar Santri dengan Rekap Tunggakan
-    const [tunggakanSantri] = await pool.query(`
-      SELECT 
-        s.id as santri_id,
-        s.nis,
-        s.nama_santri,
-        s.nama_wali,
-        s.no_wa_wali,
-        s.nama_sekolah,
-        s.tingkat_sekolah,
-        a.nama_asrama,
-        k.nama_kamar,
-        COALESCE(SUM(CASE WHEN t.kategori = 'Bulanan' THEN t.sisa_tagihan ELSE 0 END), 0) as tunggakan_bulanan,
-        COALESCE(SUM(CASE WHEN t.kategori = 'Biaya Masuk' THEN t.sisa_tagihan ELSE 0 END), 0) as tunggakan_biaya_masuk,
-        COALESCE(SUM(t.sisa_tagihan), 0) as total_tunggakan
-      FROM santri s
-      LEFT JOIN asrama a ON s.asrama_id = a.id
-      LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
-      LEFT JOIN keuangan_tagihan t ON s.id = t.santri_id AND t.status != 'Lunas'
-      GROUP BY s.id, s.nis, s.nama_santri, s.nama_wali, s.no_wa_wali, s.nama_sekolah, s.tingkat_sekolah, a.nama_asrama, k.nama_kamar
-      HAVING total_tunggakan > 0
-      ORDER BY total_tunggakan DESC
-      LIMIT 100
-    `);
+      // Siklus SPP
+      getSiklusSppData()
+    ]);
 
-    // 4. Master Komponen Biaya
-    const [komponenBiaya] = await pool.query(`
-      SELECT * FROM keuangan_komponen_biaya ORDER BY id ASC
-    `);
-
-    // 5. Semua Daftar Tagihan Santri
-    const [semuaTagihan] = await pool.query(`
-      SELECT 
-        t.*,
-        s.nama_santri,
-        s.nis,
-        s.nama_wali,
-        s.no_wa_wali,
-        s.nama_sekolah,
-        s.tingkat_sekolah,
-        a.nama_asrama,
-        k.nama_kamar,
-        kb.nama_komponen
-      FROM keuangan_tagihan t
-      JOIN santri s ON t.santri_id = s.id
-      LEFT JOIN asrama a ON s.asrama_id = a.id
-      LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
-      LEFT JOIN keuangan_komponen_biaya kb ON t.komponen_id = kb.id
-      ORDER BY t.id DESC
-      LIMIT 150
-    `);
-
-    const siklusSpp = await getSiklusSppData();
+    const summary = summaryRows[0] || {};
+    const kasMasukRiil = kasMasukRows[0]?.total_kas_masuk_sah != null ? Number(kasMasukRows[0].total_kas_masuk_sah) : 0;
 
     return sendSuccess(res, 'Rekap keuangan admin berhasil dimuat', {
       summary: {
-        ...summary[0],
-        total_kas_masuk_sah: kasMasukRiil[0]?.total_kas_masuk_sah != null ? Number(kasMasukRiil[0].total_kas_masuk_sah) : 0,
+        ...summary,
+        total_kas_masuk_sah: kasMasukRiil,
         tgl_terbit_spp: siklusSpp.tgl_terbit_spp || 5,
         tgl_jatuh_tempo_spp: siklusSpp.tgl_jatuh_tempo_spp || 10
       },

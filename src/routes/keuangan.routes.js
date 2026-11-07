@@ -7,6 +7,7 @@ import {
   konfirmasiPembayaranBerhasil, 
   getKuitansiPembayaran,
   getRekapKeuanganAdmin,
+  getHomeKeuanganSummary,
   createTagihanAdmin,
   updateTagihanAdmin,
   deleteTagihanAdmin,
@@ -51,7 +52,9 @@ router.post('/wali/batal', batalkanTransaksiPembayaran);
 router.post('/wali/verifikasi', konfirmasiPembayaranBerhasil);
 router.get('/wali/kuitansi', getKuitansiPembayaran);
 
-// Endpoint Admin Desktop
+// Endpoint Admin Desktop & Beranda Cepat
+router.get('/admin/home-summary', getHomeKeuanganSummary);
+router.get('/home-summary', getHomeKeuanganSummary);
 router.get('/admin/rekap', getRekapKeuanganAdmin);
 router.get('/rekap', getRekapKeuanganAdmin);
 router.get('/siklus-spp', getSiklusSpp);

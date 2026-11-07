@@ -44,39 +44,40 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
   const fetchKeuanganSummary = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("/api/keuangan/admin/rekap");
-      if (res.data?.success && res.data.data) {
-        setSummary(res.data.data.summary || {});
-        const listTrx = res.data.data.transaksiTerakhir || [];
+
+      // Load summary keuangan & tabungan secara paralel agar tidak saling menunggu
+      const [summaryRes, tabRes] = await Promise.allSettled([
+        axios.get("/api/keuangan/admin/home-summary").catch(() => axios.get("/api/keuangan/admin/rekap")),
+        axios.get("/api/tabungan")
+      ]);
+
+      if (summaryRes.status === "fulfilled" && summaryRes.value?.data?.data) {
+        const d = summaryRes.value.data.data;
+        setSummary(d.summary || {});
+        const listTrx = d.transaksiTerakhir || [];
         setAllKasMasukTrx(listTrx);
         setRecentTrx(listTrx.slice(0, 5));
-        if (res.data.data.siklusSpp) {
+        if (d.siklusSpp) {
           setSiklusForm({
-            tgl_terbit_spp: res.data.data.siklusSpp.tgl_terbit_spp || 5,
-            tgl_jatuh_tempo_spp:
-              res.data.data.siklusSpp.tgl_jatuh_tempo_spp || 10,
+            tgl_terbit_spp: d.siklusSpp.tgl_terbit_spp || 5,
+            tgl_jatuh_tempo_spp: d.siklusSpp.tgl_jatuh_tempo_spp || 10,
             apply_to_existing: true,
           });
         }
       }
 
-      // Ambil total saldo tabungan jika ada
-      try {
-        const tabRes = await axios.get("/api/tabungan");
-        if (tabRes.data?.success && tabRes.data.data) {
-          const list =
-            tabRes.data.data.santri_tabungan || tabRes.data.data || [];
-          if (Array.isArray(list)) {
-            const tot = list.reduce(
-              (acc, cur) => acc + (parseFloat(cur.saldo) || 0),
-              0,
-            );
-            setSaldoTabunganTotal(tot);
-          }
+      if (tabRes.status === "fulfilled" && tabRes.value?.data?.data) {
+        const list = tabRes.value.data.data.santri_tabungan || tabRes.value.data.data || [];
+        if (Array.isArray(list)) {
+          const tot = list.reduce(
+            (acc, cur) => acc + (parseFloat(cur.saldo) || 0),
+            0,
+          );
+          setSaldoTabunganTotal(tot);
         }
-      } catch (_) {}
+      }
     } catch (err) {
-      console.warn("Gagal memuat rekap keuangan beranda:", err);
+      console.warn("Gagal memuat ringkasan beranda keuangan:", err);
     } finally {
       setLoading(false);
     }
