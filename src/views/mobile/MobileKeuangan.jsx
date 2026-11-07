@@ -752,61 +752,144 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
               </div>
             </div>
 
-            {/* Profil Santri Terpilih */}
+            {/* Profil Santri Terpilih (Desain Modern & Elegan) */}
             {selectedSantri ? (
               <div style={{
                 marginTop: '14px',
-                padding: '12px',
-                borderRadius: '14px',
-                background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
-                border: '1px solid #a7f3d0',
+                padding: '14px 16px',
+                borderRadius: '18px',
+                background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
+                border: '1.5px solid #a7f3d0',
+                boxShadow: '0 4px 14px rgba(5, 150, 105, 0.08)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between'
+                justifyContent: 'space-between',
+                gap: '12px'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{
-                    width: '42px',
-                    height: '42px',
-                    borderRadius: '12px',
-                    background: '#059669',
-                    color: '#ffffff',
-                    fontWeight: 800,
-                    fontSize: '1rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    {selectedSantri.nama_santri.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#065f46' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                  {/* Foto / Avatar Santri */}
+                  {(() => {
+                    const sPhoto = selectedSantri.foto
+                      ? (selectedSantri.foto.startsWith('http') || selectedSantri.foto.startsWith('/uploads') ? selectedSantri.foto : `/uploads/santri/${selectedSantri.foto}`)
+                      : null;
+                    return (
+                      <div style={{
+                        width: '46px',
+                        height: '46px',
+                        borderRadius: '14px',
+                        overflow: 'hidden',
+                        background: 'linear-gradient(135deg, #059669 0%, #0d9488 100%)',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 900,
+                        fontSize: '1rem',
+                        boxShadow: '0 4px 10px rgba(5, 150, 105, 0.25)',
+                        border: '2px solid #ffffff',
+                        flexShrink: 0
+                      }}>
+                        {sPhoto ? (
+                          <img
+                            src={sPhoto}
+                            alt={selectedSantri.nama_santri}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onError={(e) => { e.target.style.display = 'none'; }}
+                          />
+                        ) : (
+                          (selectedSantri.nama_santri || 'S').slice(0, 2).toUpperCase()
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Info Lengkap Santri */}
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{
+                      fontWeight: 900,
+                      fontSize: '0.94rem',
+                      color: '#0f172a',
+                      letterSpacing: '-0.2px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
                       {selectedSantri.nama_santri}
                     </div>
-                    <div style={{ fontSize: '0.72rem', color: '#047857' }}>
-                      NIS: {selectedSantri.nis || '-'} • {selectedSantri.nama_asrama || 'Asrama'} • <b>{selectedSantri.nama_sekolah || 'SMP Nurul Wafa'} ({selectedSantri.tingkat_sekolah || '-'})</b>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      flexWrap: 'wrap',
+                      marginTop: '3px'
+                    }}>
+                      <span style={{
+                        fontSize: '0.64rem',
+                        fontWeight: 700,
+                        padding: '1px 6px',
+                        borderRadius: '5px',
+                        background: '#f1f5f9',
+                        color: '#475569'
+                      }}>
+                        NIS: {selectedSantri.nis || '-'}
+                      </span>
+                      {selectedSantri.nama_asrama && (
+                        <span style={{
+                          fontSize: '0.64rem',
+                          fontWeight: 700,
+                          padding: '1px 6px',
+                          borderRadius: '5px',
+                          background: '#ecfdf5',
+                          color: '#047857',
+                          border: '1px solid #bbf7d0'
+                        }}>
+                          {selectedSantri.nama_asrama}
+                        </span>
+                      )}
+                      {(selectedSantri.nama_sekolah || selectedSantri.tingkat_sekolah) && (
+                        <span style={{
+                          fontSize: '0.64rem',
+                          fontWeight: 800,
+                          padding: '1px 6px',
+                          borderRadius: '5px',
+                          background: '#e0f2fe',
+                          color: '#0369a1'
+                        }}>
+                          {selectedSantri.nama_sekolah?.includes('SMA') ? 'SMA' : selectedSantri.nama_sekolah?.includes('SMK') ? 'SMK' : 'SMP'}
+                          {selectedSantri.tingkat_sekolah ? ` (${selectedSantri.tingkat_sekolah})` : ''}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
 
+                {/* Tombol Batal */}
                 <button
+                  type="button"
                   onClick={() => {
                     setSelectedSantri(null);
                     setSantriTagihan({ bulanan: [], bebas: [], riwayat: [] });
                     setSelectedPayMap({});
                   }}
                   style={{
-                    background: 'rgba(239, 68, 68, 0.1)',
-                    border: 'none',
-                    color: '#ef4444',
-                    padding: '4px 8px',
-                    borderRadius: '8px',
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    cursor: 'pointer'
+                    background: '#fff1f2',
+                    border: '1px solid #fecdd3',
+                    color: '#e11d48',
+                    padding: '6px 12px',
+                    borderRadius: '10px',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    flexShrink: 0,
+                    transition: 'all 0.15s ease'
                   }}
+                  title="Batalkan pilihan santri"
                 >
-                  Ganti
+                  <X size={13} strokeWidth={2.5} />
+                  <span>Batal</span>
                 </button>
               </div>
             ) : (
@@ -1529,7 +1612,6 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                           </div>
                         );
                       })()}
-                      </div>
                     </div>
                   )}
                     </>
