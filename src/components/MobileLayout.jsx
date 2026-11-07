@@ -64,7 +64,7 @@ import MobileTabungan from '../views/mobile/MobileTabungan';
 import LaporanInfakAdminView from '../views/keuangan/LaporanInfakAdminView';
 import PesanKomunikasiAdminView from '../views/admin/PesanKomunikasiAdminView';
 import WhatsAppGatewayView from '../views/admin/WhatsAppGatewayView';
-import MobileHomeKeuangan from '../views/mobile/MobileHomeKeuangan';
+import MobileHomeKeuangan from '../views/keuangan/MobileHomeKeuangan';
 import MobileKeuanganLayout from './MobileKeuanganLayout';
 import { canAccessKeuangan } from '../utils/authRole.util';
 

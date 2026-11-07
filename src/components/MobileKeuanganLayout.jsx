@@ -18,7 +18,7 @@ import {
   LogOut,
   Smartphone
 } from 'lucide-react';
-import MobileHomeKeuangan from '../views/mobile/MobileHomeKeuangan';
+import MobileHomeKeuangan from '../views/keuangan/MobileHomeKeuangan';
 import MobileKeuangan from '../views/mobile/MobileKeuangan';
 import MobileTabungan from '../views/mobile/MobileTabungan';
 import MobileProfil from '../views/mobile/MobileProfil';
