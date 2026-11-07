@@ -1010,7 +1010,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                       </span>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                       {santriTagihan.bulanan.map((t) => {
                         const isLunas = t.status === 'Lunas';
                         const isChecked = selectedPayMap[t.id] !== undefined;
@@ -1021,8 +1021,8 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                             key={t.id}
                             onClick={() => !isLunas && handleTogglePay(t.id, sisa)}
                             style={{
-                              padding: '12px',
-                              borderRadius: '12px',
+                              padding: '8px 12px',
+                              borderRadius: '11px',
                               border: isChecked ? '1.5px solid #059669' : '1px solid #e2e8f0',
                               background: isChecked ? '#f0fdf4' : isLunas ? '#f8fafc' : '#ffffff',
                               display: 'flex',
@@ -1031,12 +1031,12 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                               cursor: isLunas ? 'default' : 'pointer'
                             }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               {!isLunas && (
                                 <div style={{
-                                  width: '20px',
-                                  height: '20px',
-                                  borderRadius: '6px',
+                                  width: '18px',
+                                  height: '18px',
+                                  borderRadius: '5px',
                                   border: isChecked ? 'none' : '1.5px solid #94a3b8',
                                   background: isChecked ? '#059669' : '#ffffff',
                                   display: 'flex',
@@ -1044,14 +1044,14 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                                   justifyContent: 'center',
                                   color: '#ffffff'
                                 }}>
-                                  {isChecked && <Check size={14} strokeWidth={3} />}
+                                  {isChecked && <Check size={12} strokeWidth={3} />}
                                 </div>
                               )}
                               <div>
-                                <div style={{ fontWeight: 700, fontSize: '0.82rem', color: isLunas ? '#64748b' : '#0f172a' }}>
+                                <div style={{ fontWeight: 700, fontSize: '0.8rem', color: isLunas ? '#64748b' : '#0f172a' }}>
                                   {t.periode_bulan || t.judul_tagihan}
                                 </div>
-                                <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+                                <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
                                   Rp {Number(t.total_tagihan || 0).toLocaleString('id-ID')}
                                 </div>
                               </div>
@@ -1168,7 +1168,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                         </button>
                       </div>
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                         {santriTagihan.bebas.map((t) => {
                           const isLunas = t.status === 'Lunas';
                           const isChecked = selectedPayMap[t.id] !== undefined;
@@ -1185,8 +1185,8 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                               key={t.id}
                               onClick={() => !isLunas && handleTogglePay(t.id, sisa)}
                               style={{
-                                padding: '12px 14px',
-                                borderRadius: '14px',
+                                padding: '7px 12px',
+                                borderRadius: '11px',
                                 border: isChecked ? '1.5px solid #059669' : '1px solid #f1f5f9',
                                 background: isChecked ? '#f0fdf4' : isLunas ? '#f8fafc' : '#ffffff',
                                 display: 'flex',
@@ -1197,12 +1197,12 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                                 boxShadow: isChecked ? '0 2px 8px rgba(5, 150, 105, 0.08)' : '0 1px 3px rgba(0,0,0,0.02)'
                               }}
                             >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 {!isLunas && (
                                   <div style={{
-                                    width: '20px',
-                                    height: '20px',
-                                    borderRadius: '6px',
+                                    width: '18px',
+                                    height: '18px',
+                                    borderRadius: '5px',
                                     border: isChecked ? 'none' : '1.5px solid #94a3b8',
                                     background: isChecked ? '#059669' : '#ffffff',
                                     display: 'flex',
@@ -1211,22 +1211,22 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                                     color: '#ffffff',
                                     flexShrink: 0
                                   }}>
-                                    {isChecked && <Check size={14} strokeWidth={3} />}
+                                    {isChecked && <Check size={12} strokeWidth={3} />}
                                   </div>
                                 )}
                                 <div>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', lineHeight: 1.2 }}>
                                     <span style={{
                                       fontWeight: 800,
-                                      fontSize: '0.84rem',
+                                      fontSize: '0.8rem',
                                       color: isLunas ? '#64748b' : '#0f172a'
                                     }}>
                                       {cleanName}
                                     </span>
                                     <span style={{
-                                      fontSize: '0.6rem',
+                                      fontSize: '0.58rem',
                                       fontWeight: 700,
-                                      padding: '1px 6px',
+                                      padding: '1px 5px',
                                       borderRadius: '4px',
                                       background: isPes ? '#e0f2fe' : '#f3e8ff',
                                       color: isPes ? '#0369a1' : '#7e22ce'
@@ -1234,7 +1234,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                                       {kategoriTag}
                                     </span>
                                   </div>
-                                  <div style={{ fontSize: '0.67rem', color: '#94a3b8', marginTop: '1px' }}>
+                                  <div style={{ fontSize: '0.64rem', color: '#94a3b8', marginTop: '1px', lineHeight: 1.1 }}>
                                     {t.periode_bulan || 'TA 2026/2027'}
                                   </div>
                                 </div>
@@ -1243,22 +1243,22 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                               <div style={{ textAlign: 'right' }}>
                                 {isLunas ? (
                                   <span style={{
-                                    fontSize: '0.65rem',
+                                    fontSize: '0.62rem',
                                     fontWeight: 800,
                                     background: '#dcfce7',
                                     color: '#15803d',
-                                    padding: '2px 8px',
-                                    borderRadius: '6px'
+                                    padding: '2px 7px',
+                                    borderRadius: '5px'
                                   }}>
                                     Lunas
                                   </span>
                                 ) : (
                                   <div>
-                                    <div style={{ fontWeight: 800, fontSize: '0.84rem', color: isChecked ? '#059669' : '#0f172a' }}>
+                                    <div style={{ fontWeight: 800, fontSize: '0.82rem', color: isChecked ? '#059669' : '#0f172a' }}>
                                       Rp {sisa.toLocaleString('id-ID')}
                                     </div>
                                     {sisa < parseFloat(t.total_tagihan || 0) && (
-                                      <div style={{ fontSize: '0.64rem', color: '#64748b' }}>
+                                      <div style={{ fontSize: '0.6rem', color: '#64748b' }}>
                                         dari Rp {Number(t.total_tagihan || 0).toLocaleString('id-ID')}
                                       </div>
                                     )}
