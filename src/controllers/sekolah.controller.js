@@ -369,8 +369,144 @@ export const assignSantriSekolah = async (req, res) => {
 };
 
 /**
+ * Helper: Hitung Ulang Total Biaya per Jenjang Sekolah dan Sync ke Tabel Sekolah & Master Komponen
+ */
+export const recalculateSekolahTotals = async (jenjang, connection = pool) => {
+  try {
+    const [sekolahRows] = await connection.query('SELECT id FROM sekolah WHERE jenjang = ? LIMIT 1', [jenjang]);
+    const sekolahId = sekolahRows[0]?.id;
+    if (!sekolahId) return;
+
+    const [sumRows] = await connection.query(`
+      SELECT 
+        COALESCE(SUM(CASE WHEN kategori_komponen = 'Adm Sekolah' THEN biaya ELSE 0 END), 0) as total_adm_sekolah,
+        COALESCE(SUM(CASE WHEN kategori_komponen = 'Adm Pesantren' THEN biaya ELSE 0 END), 0) as total_adm_pesantren,
+        COALESCE(SUM(CASE WHEN kategori_komponen = 'SPP' THEN biaya ELSE 0 END), 0) as total_spp
+      FROM sekolah_rincian_biaya
+      WHERE jenjang = ?
+    `, [jenjang]);
+
+    const total_adm_sekolah = parseFloat(sumRows[0]?.total_adm_sekolah || 0);
+    const total_adm_pesantren = parseFloat(sumRows[0]?.total_adm_pesantren || 0);
+    const total_spp = parseFloat(sumRows[0]?.total_spp || 0);
+    const total_masuk = total_adm_sekolah + total_adm_pesantren + total_spp;
+
+    await connection.query(`
+      UPDATE sekolah 
+      SET nominal_adm_sekolah = ?, nominal_adm_pesantren = ?, nominal_spp = IF(? > 0, ?, nominal_spp), total_masuk = ?
+      WHERE id = ?
+    `, [total_adm_sekolah, total_adm_pesantren, total_spp, total_spp, total_masuk, sekolahId]);
+
+    // Update master komponen biaya di keuangan
+    await connection.query(`
+      UPDATE keuangan_komponen_biaya 
+      SET nominal_default = ? 
+      WHERE kode_komponen = ?
+    `, [total_adm_sekolah + total_adm_pesantren, `AWAL-${jenjang}`]);
+
+    if (total_spp > 0) {
+      await connection.query(`
+        UPDATE keuangan_komponen_biaya 
+        SET nominal_default = ? 
+        WHERE kode_komponen = ?
+      `, [total_spp, `SPP-${jenjang}`]);
+    }
+  } catch (err) {
+    console.warn('[RECALCULATE TOTALS NOTICE]', err.message);
+  }
+};
+
+/**
+ * POST /api/sekolah/rincian-biaya
+ * Tambah Item Rincian Biaya Baru ke Database
+ */
+export const tambahRincianBiayaSekolah = async (req, res) => {
+  try {
+    await ensureSekolahTablesAndMapping();
+    const { jenjang, kategori_komponen, uraian, biaya } = req.body;
+    if (!jenjang || !kategori_komponen || !uraian) {
+      return sendError(res, 'Jenjang, kategori, dan uraian wajib diisi', 400);
+    }
+
+    const [sekRows] = await pool.query('SELECT id FROM sekolah WHERE jenjang = ? LIMIT 1', [jenjang]);
+    const sekolah_id = sekRows[0]?.id || 1;
+
+    const [maxUrutan] = await pool.query(
+      'SELECT COALESCE(MAX(urutan), 0) + 1 as next_urutan FROM sekolah_rincian_biaya WHERE jenjang = ? AND kategori_komponen = ?',
+      [jenjang, kategori_komponen]
+    );
+
+    const [result] = await pool.query(`
+      INSERT INTO sekolah_rincian_biaya (sekolah_id, jenjang, kategori_komponen, uraian, biaya, urutan)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, [sekolah_id, jenjang, kategori_komponen, uraian.trim(), parseFloat(biaya) || 0, maxUrutan[0]?.next_urutan || 1]);
+
+    await recalculateSekolahTotals(jenjang);
+
+    return sendSuccess(res, 'Item rincian biaya berhasil ditambahkan ke database', { id: result.insertId });
+  } catch (err) {
+    return sendError(res, err.message, 500);
+  }
+};
+
+/**
+ * PUT /api/sekolah/rincian-biaya/:id
+ * Edit Item Rincian Biaya di Database
+ */
+export const updateRincianBiayaSekolah = async (req, res) => {
+  try {
+    await ensureSekolahTablesAndMapping();
+    const { id } = req.params;
+    const { uraian, biaya, kategori_komponen } = req.body;
+
+    const [existing] = await pool.query('SELECT jenjang FROM sekolah_rincian_biaya WHERE id = ?', [id]);
+    if (!existing || existing.length === 0) {
+      return sendError(res, 'Item rincian tidak ditemukan', 404);
+    }
+    const jenjang = existing[0].jenjang;
+
+    await pool.query(`
+      UPDATE sekolah_rincian_biaya 
+      SET uraian = COALESCE(?, uraian),
+          biaya = COALESCE(?, biaya),
+          kategori_komponen = COALESCE(?, kategori_komponen)
+      WHERE id = ?
+    `, [uraian !== undefined ? uraian.trim() : null, biaya !== undefined ? parseFloat(biaya) : null, kategori_komponen || null, id]);
+
+    await recalculateSekolahTotals(jenjang);
+
+    return sendSuccess(res, 'Item rincian biaya berhasil diperbarui');
+  } catch (err) {
+    return sendError(res, err.message, 500);
+  }
+};
+
+/**
+ * DELETE /api/sekolah/rincian-biaya/:id
+ * Hapus Item Rincian Biaya dari Database
+ */
+export const hapusRincianBiayaSekolah = async (req, res) => {
+  try {
+    await ensureSekolahTablesAndMapping();
+    const { id } = req.params;
+    const [existing] = await pool.query('SELECT jenjang, uraian FROM sekolah_rincian_biaya WHERE id = ?', [id]);
+    if (!existing || existing.length === 0) {
+      return sendError(res, 'Item rincian tidak ditemukan', 404);
+    }
+    const jenjang = existing[0].jenjang;
+
+    await pool.query('DELETE FROM sekolah_rincian_biaya WHERE id = ?', [id]);
+    await recalculateSekolahTotals(jenjang);
+
+    return sendSuccess(res, `Item "${existing[0].uraian}" berhasil dihapus dari database`);
+  } catch (err) {
+    return sendError(res, err.message, 500);
+  }
+};
+
+/**
  * POST /api/sekolah/generate-tagihan-masuk
- * Generate tagihan awal masuk resmi sesuai rincian dokumen (SMP/SMA/SMK) ke tabel keuangan_tagihan
+ * Generate tagihan awal masuk resmi sesuai rincian database (SMP/SMA/SMK) ke tabel keuangan_tagihan
  */
 export const generateTagihanAwalMasukSekolah = async (req, res) => {
   const connection = await pool.getConnection();
@@ -406,12 +542,35 @@ export const generateTagihanAwalMasukSekolah = async (req, res) => {
       return sendError(res, 'Tidak ada santri yang sesuai dengan filter sekolah tersebut', 404);
     }
 
+    // Ambil data rincian live dari database untuk kalkulasi tepat
+    const [liveItems] = await connection.query('SELECT * FROM sekolah_rincian_biaya ORDER BY jenjang ASC, kategori_komponen ASC, urutan ASC');
+
+    const getTotalsForJenjang = (jKey) => {
+      const itemsForJ = liveItems.filter(i => i.jenjang === jKey);
+      if (itemsForJ.length > 0) {
+        let admSek = 0, admPes = 0, spp = 0;
+        itemsForJ.forEach(i => {
+          const val = parseFloat(i.biaya) || 0;
+          if (i.kategori_komponen === 'Adm Sekolah') admSek += val;
+          else if (i.kategori_komponen === 'Adm Pesantren') admPes += val;
+          else if (i.kategori_komponen === 'SPP') spp += val;
+        });
+        return {
+          total_adm_sekolah: admSek,
+          total_adm_pesantren: admPes,
+          nominal_spp: spp,
+          total_masuk_juli: admSek + admPes + spp
+        };
+      }
+      return RINCIAN_AWAL_MASUK_MASTER[jKey] || RINCIAN_AWAL_MASUK_MASTER.SMP;
+    };
+
     let totalGenerated = 0;
     let totalSkipped = 0;
 
     for (const santri of targetSantri) {
       const jKey = (santri.jenjang || (santri.nama_sekolah?.includes('SMA') ? 'SMA' : santri.nama_sekolah?.includes('SMK') ? 'SMK' : 'SMP')).toUpperCase();
-      const master = RINCIAN_AWAL_MASUK_MASTER[jKey] || RINCIAN_AWAL_MASUK_MASTER.SMP;
+      const master = getTotalsForJenjang(jKey);
 
       const billItems = [];
       if (mode === 'total') {

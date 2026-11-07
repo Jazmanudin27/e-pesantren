@@ -12,106 +12,14 @@ import {
   Layers,
   FileText,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Edit2,
+  Trash2,
+  Plus,
+  Save,
+  Check
 } from 'lucide-react';
 import { toastSuccess, showError, showConfirm } from '../../../utils/alert.util';
-
-const RINCIAN_MASTER = {
-  SMK: {
-    jenjang: 'SMK',
-    nama_sekolah: 'SMK Nurul Wafa',
-    total_adm_sekolah: 1400000,
-    total_adm_pesantren: 1000000,
-    nominal_spp: 565000,
-    grand_total: 2965000,
-    adm_sekolah: [
-      { uraian: 'Pendaftaran', biaya: 100000 },
-      { uraian: 'Kartu Siswa', biaya: 15000 },
-      { uraian: 'Logo', biaya: 25000 },
-      { uraian: 'Kaos', biaya: 100000 },
-      { uraian: 'Kemeja', biaya: 100000 },
-      { uraian: 'Almamater', biaya: 150000 },
-      { uraian: 'Baju Praktek', biaya: 110000 },
-      { uraian: 'Sampul Raport', biaya: 50000 },
-      { uraian: 'Alat Praktek', biaya: 250000 },
-      { uraian: 'Bangunan', biaya: 500000 }
-    ],
-    adm_pesantren: [
-      { uraian: 'K. Mahrom', biaya: 15000 },
-      { uraian: 'B. Raport', biaya: 60000 },
-      { uraian: 'Tafrij', biaya: 50000 },
-      { uraian: 'Mufrodat', biaya: 30000 },
-      { uraian: 'Buku Muhafadoh', biaya: 20000 },
-      { uraian: 'Nametag', biaya: 15000 },
-      { uraian: 'Infaq', biaya: 500000 },
-      { uraian: 'OPPN', biaya: 100000 },
-      { uraian: 'Ziarah', biaya: 120000 },
-      { uraian: 'Peralatan Dapur', biaya: 90000 }
-    ],
-    spp_juli: { uraian: 'Makan dan SPP Sekolah', biaya: 565000 }
-  },
-  SMA: {
-    jenjang: 'SMA',
-    nama_sekolah: 'SMA Nurul Wafa',
-    total_adm_sekolah: 1040000,
-    total_adm_pesantren: 1000000,
-    nominal_spp: 565000,
-    grand_total: 2605000,
-    adm_sekolah: [
-      { uraian: 'Pendaftaran', biaya: 100000 },
-      { uraian: 'Kartu Siswa', biaya: 15000 },
-      { uraian: 'Logo', biaya: 25000 },
-      { uraian: 'Kaos', biaya: 100000 },
-      { uraian: 'Kemeja', biaya: 100000 },
-      { uraian: 'Almamater', biaya: 150000 },
-      { uraian: 'Sampul Raport', biaya: 50000 },
-      { uraian: 'Bangunan', biaya: 500000 }
-    ],
-    adm_pesantren: [
-      { uraian: 'K. Mahrom', biaya: 15000 },
-      { uraian: 'B. Raport', biaya: 60000 },
-      { uraian: 'Tafrij', biaya: 50000 },
-      { uraian: 'Mufrodat', biaya: 30000 },
-      { uraian: 'Buku Muhafadoh', biaya: 20000 },
-      { uraian: 'Nametag', biaya: 15000 },
-      { uraian: 'Infaq', biaya: 500000 },
-      { uraian: 'OPPN', biaya: 100000 },
-      { uraian: 'Ziarah', biaya: 120000 },
-      { uraian: 'Peralatan Dapur', biaya: 90000 }
-    ],
-    spp_juli: { uraian: 'Makan dan SPP Sekolah', biaya: 565000 }
-  },
-  SMP: {
-    jenjang: 'SMP',
-    nama_sekolah: 'SMP Nurul Wafa',
-    total_adm_sekolah: 890000,
-    total_adm_pesantren: 1000000,
-    nominal_spp: 505000,
-    grand_total: 2395000,
-    adm_sekolah: [
-      { uraian: 'Pendaftaran', biaya: 100000 },
-      { uraian: 'Kartu Siswa', biaya: 15000 },
-      { uraian: 'Logo', biaya: 25000 },
-      { uraian: 'Kaos', biaya: 100000 },
-      { uraian: 'Kemeja', biaya: 100000 },
-      { uraian: 'Sampul Raport', biaya: 50000 },
-      { uraian: 'Bangunan', biaya: 500000 }
-    ],
-    adm_pesantren: [
-      { uraian: 'K. Mahrom', biaya: 15000 },
-      { uraian: 'B. Raport', biaya: 60000 },
-      { uraian: 'Tafrij', biaya: 50000 },
-      { uraian: 'Mufrodat', biaya: 30000 },
-      { uraian: 'Buku Muhafadoh', biaya: 20000 },
-      { uraian: 'Nametag', biaya: 15000 },
-      { uraian: 'Infaq', biaya: 500000 },
-      { uraian: 'OPPN', biaya: 100000 },
-      { uraian: 'Ziarah', biaya: 120000 },
-      { uraian: 'Peralatan Dapur', biaya: 90000 }
-    ],
-    spp_juli: { uraian: 'Makan dan SPP Sekolah', biaya: 505000 }
-  }
-};
 
 const NAMA_BULAN = [
   { id: '1', name: 'Januari' },
@@ -136,11 +44,25 @@ export default function ModalGenerateTagihan({
 }) {
   const [activeTab, setActiveTab] = useState('awal_masuk'); // 'awal_masuk' | 'spp_rutin'
   const [loading, setLoading] = useState(false);
+  const [loadingItems, setLoadingItems] = useState(false);
 
   // Tab 1: Biaya Awal Masuk State
   const [jenjangMasuk, setJenjangMasuk] = useState('SMP'); // 'SMP' | 'SMA' | 'SMK' | 'SEMUA'
   const [modePaketMasuk, setModePaketMasuk] = useState('paket'); // 'paket' (3 rincian) | 'total' (1 tagihan)
   const [showItemBreakdown, setShowItemBreakdown] = useState(true);
+
+  // Live Database Items State (Per Jenjang)
+  const [liveDbItems, setLiveDbItems] = useState([]);
+
+  // State Edit Item
+  const [editingItemId, setEditingItemId] = useState(null);
+  const [editForm, setEditForm] = useState({ uraian: '', biaya: '' });
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  // State Tambah Item Baru
+  const [addingKategori, setAddingKategori] = useState(null); // 'Adm Sekolah' | 'Adm Pesantren' | null
+  const [addForm, setAddForm] = useState({ uraian: '', biaya: '' });
+  const [savingAdd, setSavingAdd] = useState(false);
 
   // Tab 2: SPP Bulanan State
   const [sekolahSpp, setSekolahSpp] = useState(initialSekolah || '');
@@ -161,9 +83,26 @@ export default function ModalGenerateTagihan({
     }
   }, [initialSekolah]);
 
-  // Load Komponen untuk SPP
+  // Fetch Live Rincian Biaya dari Database
+  const fetchLiveRincian = async () => {
+    try {
+      setLoadingItems(true);
+      const res = await axios.get('/api/sekolah/rincian-biaya');
+      if (res.data?.success && res.data.data?.items) {
+        setLiveDbItems(res.data.data.items);
+      }
+    } catch (e) {
+      console.warn('Gagal memuat live rincian biaya:', e.message);
+    } finally {
+      setLoadingItems(false);
+    }
+  };
+
+  // Load Initial Data
   useEffect(() => {
     if (!isOpen) return;
+    fetchLiveRincian();
+
     const fetchKomponen = async () => {
       try {
         const res = await axios.get('/api/keuangan/admin/rekap');
@@ -186,16 +125,114 @@ export default function ModalGenerateTagihan({
 
   const formatRp = (num) => `Rp ${(Number(num) || 0).toLocaleString('id-ID')}`;
 
-  const currentRincian = RINCIAN_MASTER[jenjangMasuk === 'SEMUA' ? 'SMP' : jenjangMasuk] || RINCIAN_MASTER.SMP;
+  // Filter Items sesuai Jenjang yang dipilih
+  const currentTargetJenjang = jenjangMasuk === 'SEMUA' ? 'SMP' : jenjangMasuk;
+  const filteredItems = liveDbItems.filter((i) => i.jenjang === currentTargetJenjang);
 
-  // Handler Generate Biaya Awal Masuk ke Database
+  const admSekolahItems = filteredItems.filter((i) => i.kategori_komponen === 'Adm Sekolah');
+  const admPesantrenItems = filteredItems.filter((i) => i.kategori_komponen === 'Adm Pesantren');
+  const sppItem = filteredItems.find((i) => i.kategori_komponen === 'SPP') || {
+    biaya: currentTargetJenjang === 'SMP' ? 505000 : 565000,
+    uraian: 'Makan dan SPP Sekolah'
+  };
+
+  const totalAdmSekolah = admSekolahItems.reduce((acc, i) => acc + (parseFloat(i.biaya) || 0), 0);
+  const totalAdmPesantren = admPesantrenItems.reduce((acc, i) => acc + (parseFloat(i.biaya) || 0), 0);
+  const totalSppJuli = parseFloat(sppItem.biaya) || (currentTargetJenjang === 'SMP' ? 505000 : 565000);
+  const grandTotalMasuk = totalAdmSekolah + totalAdmPesantren + totalSppJuli;
+
+  // 1. Simpan Tambah Item Baru
+  const handleSaveAdd = async (kategori) => {
+    if (!addForm.uraian.trim()) {
+      showError('Uraian Kosong', 'Silakan masukkan nama uraian item.');
+      return;
+    }
+    const biayaNum = parseFloat(addForm.biaya) || 0;
+    if (biayaNum <= 0) {
+      showError('Biaya Tidak Valid', 'Masukkan nominal biaya lebih dari Rp 0.');
+      return;
+    }
+
+    try {
+      setSavingAdd(true);
+      const res = await axios.post('/api/sekolah/rincian-biaya', {
+        jenjang: currentTargetJenjang,
+        kategori_komponen: kategori,
+        uraian: addForm.uraian.trim(),
+        biaya: biayaNum
+      });
+
+      if (res.data?.success) {
+        toastSuccess('Item Ditambahkan!', `"${addForm.uraian}" berhasil disimpan ke database.`);
+        setAddForm({ uraian: '', biaya: '' });
+        setAddingKategori(null);
+        await fetchLiveRincian();
+        if (onGenerated) onGenerated();
+      }
+    } catch (err) {
+      showError('Gagal Tambah Item', err.response?.data?.message || err.message);
+    } finally {
+      setSavingAdd(false);
+    }
+  };
+
+  // 2. Simpan Edit Item
+  const handleSaveEdit = async (item) => {
+    if (!editForm.uraian.trim()) {
+      showError('Uraian Kosong', 'Nama uraian tidak boleh kosong.');
+      return;
+    }
+    try {
+      setSavingEdit(true);
+      const res = await axios.put(`/api/sekolah/rincian-biaya/${item.id}`, {
+        uraian: editForm.uraian.trim(),
+        biaya: parseFloat(editForm.biaya) || 0,
+        kategori_komponen: item.kategori_komponen
+      });
+
+      if (res.data?.success) {
+        toastSuccess('Item Diperbarui!', `Perubahan pada "${editForm.uraian}" disimpan ke database.`);
+        setEditingItemId(null);
+        await fetchLiveRincian();
+        if (onGenerated) onGenerated();
+      }
+    } catch (err) {
+      showError('Gagal Simpan Perubahan', err.response?.data?.message || err.message);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  // 3. Hapus Item
+  const handleDeleteItem = async (item) => {
+    const ok = await showConfirm(
+      'Konfirmasi Hapus Item',
+      `Hapus item "${item.uraian}" (${formatRp(item.biaya)}) dari database ${item.jenjang}?`,
+      'Ya, Hapus Item',
+      'Batal'
+    );
+    if (!ok) return;
+
+    try {
+      const res = await axios.delete(`/api/sekolah/rincian-biaya/${item.id}`);
+      if (res.data?.success) {
+        toastSuccess('Item Dihapus!', res.data.message || 'Item berhasil dihapus dari database.');
+        await fetchLiveRincian();
+        if (onGenerated) onGenerated();
+      }
+    } catch (err) {
+      showError('Gagal Hapus Item', err.response?.data?.message || err.message);
+    }
+  };
+
+  // 4. Generate Tagihan Awal Masuk ke Database
   const handleGenerateAwalMasuk = async (e) => {
     e?.preventDefault();
     const jenjangLabel = jenjangMasuk === 'SEMUA' ? 'Seluruh Jenjang (SMP, SMA, SMK)' : `Jenjang ${jenjangMasuk}`;
     const nominalLabel =
       jenjangMasuk === 'SEMUA'
-        ? 'sesuai tarif tiap sekolah (SMP 2.395jt, SMA 2.605jt, SMK 2.965jt)'
-        : formatRp(currentRincian.grand_total);
+        ? 'sesuai data rincian database tiap sekolah'
+        : formatRp(grandTotalMasuk);
 
     const ok = await showConfirm(
       'Konfirmasi Simpan Tagihan ke Database',
@@ -227,7 +264,7 @@ export default function ModalGenerateTagihan({
     }
   };
 
-  // Handler Generate SPP Bulanan ke Database
+  // 5. Generate SPP Bulanan ke Database
   const handleGenerateSpp = async (e) => {
     e?.preventDefault();
     if (!selectedKomponenId) {
@@ -300,7 +337,7 @@ export default function ModalGenerateTagihan({
           background: '#ffffff',
           width: '100%',
           maxWidth: '540px',
-          maxHeight: '92vh',
+          maxHeight: '94vh',
           borderTopLeftRadius: '26px',
           borderTopRightRadius: '26px',
           overflowY: 'auto',
@@ -333,10 +370,10 @@ export default function ModalGenerateTagihan({
             </div>
             <div>
               <div style={{ fontWeight: 800, fontSize: '0.98rem', lineHeight: 1.2 }}>
-                Generate Tagihan Sesuai Sekolah
+                Kelola & Generate Tagihan Sekolah
               </div>
               <div style={{ fontSize: '0.67rem', color: '#a7f3d0' }}>
-                Simpan data tagihan resmi langsung ke database pesantren
+                Bisa edit, tambah & hapus item rincian masuk langsung di database
               </div>
             </div>
           </div>
@@ -360,7 +397,7 @@ export default function ModalGenerateTagihan({
           </button>
         </div>
 
-        {/* Tab Switcher: Awal Masuk (Gambar Dokumen) vs SPP Bulanan */}
+        {/* Tab Switcher: Awal Masuk vs SPP Bulanan */}
         <div style={{ padding: '12px 16px 0', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', background: '#e2e8f0', padding: '3px', borderRadius: '12px' }}>
             <button
@@ -403,28 +440,39 @@ export default function ModalGenerateTagihan({
           </div>
         </div>
 
-        {/* TAB 1: RINCIAN AWAL MASUK (PERSIS GAMBAR DOKUMEN 2026/2027) */}
+        {/* TAB 1: RINCIAN AWAL MASUK (INTERAKTIF: EDIT, TAMBAH, HAPUS DATABASE) */}
         {activeTab === 'awal_masuk' && (
           <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             
             {/* Pilihan Jenjang Sekolah */}
             <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
-                1. Pilih Jenjang Sekolah:
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a' }}>
+                  1. Pilih Jenjang Sekolah:
+                </span>
+                {loadingItems && (
+                  <span style={{ fontSize: '0.67rem', color: '#059669', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    <RotateCw size={11} className="animate-spin" /> Memuat data...
+                  </span>
+                )}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
                 {[
-                  { id: 'SMP', label: 'SMP', nominal: '2.395 jt' },
-                  { id: 'SMA', label: 'SMA', nominal: '2.605 jt' },
-                  { id: 'SMK', label: 'SMK', nominal: '2.965 jt' },
-                  { id: 'SEMUA', label: 'Semua', nominal: '3 Jenjang' }
+                  { id: 'SMP', label: 'SMP' },
+                  { id: 'SMA', label: 'SMA' },
+                  { id: 'SMK', label: 'SMK' },
+                  { id: 'SEMUA', label: 'Semua' }
                 ].map((j) => {
                   const active = jenjangMasuk === j.id;
                   return (
                     <button
                       key={j.id}
                       type="button"
-                      onClick={() => setJenjangMasuk(j.id)}
+                      onClick={() => {
+                        setJenjangMasuk(j.id);
+                        setEditingItemId(null);
+                        setAddingKategori(null);
+                      }}
                       style={{
                         padding: '8px 4px',
                         borderRadius: '12px',
@@ -432,119 +480,413 @@ export default function ModalGenerateTagihan({
                         background: active ? '#ecfdf5' : '#ffffff',
                         color: active ? '#065f46' : '#475569',
                         fontWeight: 800,
-                        fontSize: '0.76rem',
+                        fontSize: '0.78rem',
                         cursor: 'pointer',
                         textAlign: 'center',
                         boxShadow: active ? '0 3px 8px rgba(5, 150, 105, 0.2)' : 'none'
                       }}
                     >
-                      <div>{j.label}</div>
-                      <div style={{ fontSize: '0.62rem', fontWeight: 700, color: active ? '#047857' : '#94a3b8' }}>
-                        {j.nominal}
-                      </div>
+                      {j.label}
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Preview Tabel Rincian Resmi Sesuai Lampiran Gambar */}
-            {jenjangMasuk !== 'SEMUA' && (
-              <div style={{ border: '1px solid #cbd5e1', borderRadius: '14px', overflow: 'hidden', background: '#ffffff' }}>
-                {/* Header Strip Tabel */}
-                <div style={{
-                  padding: '9px 12px',
-                  background: '#f8fafc',
-                  borderBottom: '1px solid #e2e8f0',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
+            {/* Tabel Rincian Interaktif dengan Kemampuan Tambah, Edit, Hapus */}
+            <div style={{ border: '1px solid #cbd5e1', borderRadius: '16px', overflow: 'hidden', background: '#ffffff', boxShadow: '0 4px 14px rgba(0,0,0,0.04)' }}>
+              
+              {/* Top Banner Tabel */}
+              <div style={{
+                padding: '10px 14px',
+                background: '#f8fafc',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div>
                   <div style={{ fontWeight: 800, fontSize: '0.78rem', color: '#0f172a' }}>
-                    RINCIAN AWAL MASUK 2026/2027 ({currentRincian.jenjang})
+                    RINCIAN AWAL MASUK 2026/2027 ({currentTargetJenjang})
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowItemBreakdown(!showItemBreakdown)}
-                    style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
-                  >
-                    <span>{showItemBreakdown ? 'Kecilkan' : 'Lihat Detail'}</span>
-                    {showItemBreakdown ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                  </button>
-                </div>
-
-                {/* Sub-Ringkasan 3 Komponen Utama */}
-                <div style={{ padding: '10px 12px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', background: '#f1f5f9' }}>
-                  <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '8px', padding: '6px 8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#7e22ce' }}>ADM SEKOLAH</div>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#6b21a8' }}>{formatRp(currentRincian.total_adm_sekolah)}</div>
-                  </div>
-                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '6px 8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#15803d' }}>ADM PESANTREN</div>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#14532d' }}>{formatRp(currentRincian.total_adm_pesantren)}</div>
-                  </div>
-                  <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '6px 8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#1d4ed8' }}>SPP JULI</div>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#1e3a8a' }}>{formatRp(currentRincian.nominal_spp)}</div>
+                  <div style={{ fontSize: '0.64rem', color: '#64748b' }}>
+                    Data tersimpan langsung di tabel <code>sekolah_rincian_biaya</code>
                   </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setShowItemBreakdown(!showItemBreakdown)}
+                  style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px' }}
+                >
+                  <span>{showItemBreakdown ? 'Tutup Rincian' : 'Buka Rincian'}</span>
+                  {showItemBreakdown ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+              </div>
 
-                {/* Detail Tabel Lengkap (Persis di Foto) */}
-                {showItemBreakdown && (
-                  <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.7rem' }}>
-                      <thead>
-                        <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b' }}>
-                          <th style={{ padding: '6px 10px', textAlign: 'left' }}>KOMPONEN / URAIAN</th>
-                          <th style={{ padding: '6px 10px', textAlign: 'right' }}>BIAYA</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr style={{ background: '#faf5ff', fontWeight: 800, color: '#7e22ce' }}>
-                          <td colSpan={2} style={{ padding: '4px 10px' }}>Adm Sekolah ({currentRincian.adm_sekolah.length} Item)</td>
-                        </tr>
-                        {currentRincian.adm_sekolah.map((item, i) => (
-                          <tr key={`as-${i}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                            <td style={{ padding: '4px 10px 4px 18px', color: '#334155' }}>• {item.uraian}</td>
-                            <td style={{ padding: '4px 10px', textAlign: 'right', fontWeight: 600 }}>{formatRp(item.biaya)}</td>
-                          </tr>
-                        ))}
-
-                        <tr style={{ background: '#f0fdf4', fontWeight: 800, color: '#15803d' }}>
-                          <td colSpan={2} style={{ padding: '4px 10px' }}>Adm Pesantren (10 Item)</td>
-                        </tr>
-                        {currentRincian.adm_pesantren.map((item, i) => (
-                          <tr key={`ap-${i}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                            <td style={{ padding: '4px 10px 4px 18px', color: '#334155' }}>• {item.uraian}</td>
-                            <td style={{ padding: '4px 10px', textAlign: 'right', fontWeight: 600 }}>{formatRp(item.biaya)}</td>
-                          </tr>
-                        ))}
-
-                        <tr style={{ background: '#eff6ff', fontWeight: 800, color: '#1d4ed8' }}>
-                          <td style={{ padding: '6px 10px' }}>SPP Juli (Makan & SPP Sekolah)</td>
-                          <td style={{ padding: '6px 10px', textAlign: 'right' }}>{formatRp(currentRincian.nominal_spp)}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-
-                {/* Footer Total */}
-                <div style={{
-                  padding: '10px 14px',
-                  background: '#064e3b',
-                  color: '#ffffff',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  fontWeight: 800,
-                  fontSize: '0.86rem'
-                }}>
-                  <span>TOTAL BIAYA AWAL MASUK:</span>
-                  <span style={{ color: '#a7f3d0', fontSize: '0.98rem' }}>{formatRp(currentRincian.grand_total)}</span>
+              {/* 3 Kotak Subtotal Otomatis */}
+              <div style={{ padding: '10px 12px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', background: '#f1f5f9' }}>
+                <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '10px', padding: '6px 8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#7e22ce' }}>ADM SEKOLAH</div>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#6b21a8' }}>{formatRp(totalAdmSekolah)}</div>
+                </div>
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '6px 8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#15803d' }}>ADM PESANTREN</div>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#14532d' }}>{formatRp(totalAdmPesantren)}</div>
+                </div>
+                <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '6px 8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#1d4ed8' }}>SPP JULI</div>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#1e3a8a' }}>{formatRp(totalSppJuli)}</div>
                 </div>
               </div>
-            )}
+
+              {/* List Detail Items dengan Tombol Edit, Tambah & Hapus */}
+              {showItemBreakdown && (
+                <div style={{ maxHeight: '280px', overflowY: 'auto', padding: '8px 12px' }}>
+                  
+                  {/* SEKSI 1: ADM SEKOLAH */}
+                  <div style={{ marginBottom: '14px' }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: '#faf5ff',
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      marginBottom: '6px'
+                    }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#7e22ce' }}>
+                        1. Adm Sekolah ({admSekolahItems.length} Item)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAddingKategori(addingKategori === 'Adm Sekolah' ? null : 'Adm Sekolah');
+                          setAddForm({ uraian: '', biaya: '' });
+                        }}
+                        style={{
+                          background: '#7e22ce',
+                          color: '#ffffff',
+                          border: 'none',
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.64rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px'
+                        }}
+                      >
+                        <Plus size={11} /> {addingKategori === 'Adm Sekolah' ? 'Batal' : '+ Tambah Item'}
+                      </button>
+                    </div>
+
+                    {/* Form Tambah Item Adm Sekolah */}
+                    {addingKategori === 'Adm Sekolah' && (
+                      <div style={{ background: '#f5f3ff', border: '1.5px dashed #c084fc', borderRadius: '8px', padding: '8px', marginBottom: '8px' }}>
+                        <div style={{ fontSize: '0.67rem', fontWeight: 700, color: '#7e22ce', marginBottom: '4px' }}>
+                          Tambah Item Baru di Adm Sekolah:
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr auto', gap: '6px' }}>
+                          <input
+                            type="text"
+                            placeholder="Nama Item (cth: Seragam)"
+                            value={addForm.uraian}
+                            onChange={(e) => setAddForm({ ...addForm, uraian: e.target.value })}
+                            style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                          />
+                          <input
+                            type="number"
+                            placeholder="Biaya (Rp)"
+                            value={addForm.biaya}
+                            onChange={(e) => setAddForm({ ...addForm, biaya: e.target.value })}
+                            style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                          />
+                          <button
+                            type="button"
+                            disabled={savingAdd}
+                            onClick={() => handleSaveAdd('Adm Sekolah')}
+                            style={{ background: '#7e22ce', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            {savingAdd ? '...' : 'Simpan'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* List Items Adm Sekolah */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {admSekolahItems.map((item) => {
+                        const isEditing = editingItemId === item.id;
+                        return (
+                          <div
+                            key={item.id}
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              padding: '5px 8px',
+                              borderRadius: '6px',
+                              background: isEditing ? '#fef3c7' : '#ffffff',
+                              border: isEditing ? '1px solid #f59e0b' : '1px solid #f1f5f9',
+                              fontSize: '0.72rem'
+                            }}
+                          >
+                            {isEditing ? (
+                              <div style={{ display: 'flex', gap: '6px', width: '100%', alignItems: 'center' }}>
+                                <input
+                                  type="text"
+                                  value={editForm.uraian}
+                                  onChange={(e) => setEditForm({ ...editForm, uraian: e.target.value })}
+                                  style={{ flex: 1.4, padding: '4px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                                />
+                                <input
+                                  type="number"
+                                  value={editForm.biaya}
+                                  onChange={(e) => setEditForm({ ...editForm, biaya: e.target.value })}
+                                  style={{ flex: 1, padding: '4px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                                />
+                                <button
+                                  type="button"
+                                  disabled={savingEdit}
+                                  onClick={() => handleSaveEdit(item)}
+                                  style={{ background: '#10b981', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                                >
+                                  <Check size={12} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingItemId(null)}
+                                  style={{ background: '#e2e8f0', color: '#475569', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <span style={{ color: '#334155', fontWeight: 600 }}>• {item.uraian}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ fontWeight: 700, color: '#0f172a' }}>{formatRp(item.biaya)}</span>
+                                  <div style={{ display: 'flex', gap: '4px' }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingItemId(item.id);
+                                        setEditForm({ uraian: item.uraian, biaya: String(item.biaya) });
+                                      }}
+                                      style={{ background: 'none', border: 'none', color: '#0284c7', cursor: 'pointer', padding: '2px' }}
+                                      title="Edit Item"
+                                    >
+                                      <Edit2 size={13} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteItem(item)}
+                                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px' }}
+                                      title="Hapus Item"
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* SEKSI 2: ADM PESANTREN */}
+                  <div style={{ marginBottom: '14px' }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: '#f0fdf4',
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      marginBottom: '6px'
+                    }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#15803d' }}>
+                        2. Adm Pesantren ({admPesantrenItems.length} Item)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAddingKategori(addingKategori === 'Adm Pesantren' ? null : 'Adm Pesantren');
+                          setAddForm({ uraian: '', biaya: '' });
+                        }}
+                        style={{
+                          background: '#15803d',
+                          color: '#ffffff',
+                          border: 'none',
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.64rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px'
+                        }}
+                      >
+                        <Plus size={11} /> {addingKategori === 'Adm Pesantren' ? 'Batal' : '+ Tambah Item'}
+                      </button>
+                    </div>
+
+                    {/* Form Tambah Item Adm Pesantren */}
+                    {addingKategori === 'Adm Pesantren' && (
+                      <div style={{ background: '#ecfdf5', border: '1.5px dashed #86efac', borderRadius: '8px', padding: '8px', marginBottom: '8px' }}>
+                        <div style={{ fontSize: '0.67rem', fontWeight: 700, color: '#15803d', marginBottom: '4px' }}>
+                          Tambah Item Baru di Adm Pesantren:
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr auto', gap: '6px' }}>
+                          <input
+                            type="text"
+                            placeholder="Nama Item Pesantren"
+                            value={addForm.uraian}
+                            onChange={(e) => setAddForm({ ...addForm, uraian: e.target.value })}
+                            style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                          />
+                          <input
+                            type="number"
+                            placeholder="Biaya (Rp)"
+                            value={addForm.biaya}
+                            onChange={(e) => setAddForm({ ...addForm, biaya: e.target.value })}
+                            style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                          />
+                          <button
+                            type="button"
+                            disabled={savingAdd}
+                            onClick={() => handleSaveAdd('Adm Pesantren')}
+                            style={{ background: '#15803d', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            {savingAdd ? '...' : 'Simpan'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* List Items Adm Pesantren */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {admPesantrenItems.map((item) => {
+                        const isEditing = editingItemId === item.id;
+                        return (
+                          <div
+                            key={item.id}
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              padding: '5px 8px',
+                              borderRadius: '6px',
+                              background: isEditing ? '#fef3c7' : '#ffffff',
+                              border: isEditing ? '1px solid #f59e0b' : '1px solid #f1f5f9',
+                              fontSize: '0.72rem'
+                            }}
+                          >
+                            {isEditing ? (
+                              <div style={{ display: 'flex', gap: '6px', width: '100%', alignItems: 'center' }}>
+                                <input
+                                  type="text"
+                                  value={editForm.uraian}
+                                  onChange={(e) => setEditForm({ ...editForm, uraian: e.target.value })}
+                                  style={{ flex: 1.4, padding: '4px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                                />
+                                <input
+                                  type="number"
+                                  value={editForm.biaya}
+                                  onChange={(e) => setEditForm({ ...editForm, biaya: e.target.value })}
+                                  style={{ flex: 1, padding: '4px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                                />
+                                <button
+                                  type="button"
+                                  disabled={savingEdit}
+                                  onClick={() => handleSaveEdit(item)}
+                                  style={{ background: '#10b981', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                                >
+                                  <Check size={12} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingItemId(null)}
+                                  style={{ background: '#e2e8f0', color: '#475569', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <span style={{ color: '#334155', fontWeight: 600 }}>• {item.uraian}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ fontWeight: 700, color: '#0f172a' }}>{formatRp(item.biaya)}</span>
+                                  <div style={{ display: 'flex', gap: '4px' }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingItemId(item.id);
+                                        setEditForm({ uraian: item.uraian, biaya: String(item.biaya) });
+                                      }}
+                                      style={{ background: 'none', border: 'none', color: '#0284c7', cursor: 'pointer', padding: '2px' }}
+                                      title="Edit Item"
+                                    >
+                                      <Edit2 size={13} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteItem(item)}
+                                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px' }}
+                                      title="Hapus Item"
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* SEKSI 3: SPP JULI */}
+                  <div>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: '#eff6ff',
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      color: '#1d4ed8'
+                    }}>
+                      <span>3. SPP Juli (Makan & SPP Sekolah)</span>
+                      <span>{formatRp(totalSppJuli)}</span>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* Bottom Grand Total Strip */}
+              <div style={{
+                padding: '11px 14px',
+                background: '#064e3b',
+                color: '#ffffff',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontWeight: 800,
+                fontSize: '0.86rem'
+              }}>
+                <span>TOTAL RINCIAN AWAL MASUK:</span>
+                <span style={{ color: '#a7f3d0', fontSize: '1rem' }}>{formatRp(grandTotalMasuk)}</span>
+              </div>
+            </div>
 
             {/* Pilihan Format Tagihan di Database */}
             <div>
@@ -569,7 +911,7 @@ export default function ModalGenerateTagihan({
                   <div>
                     <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a' }}>3 Pos Terpisah</div>
                     <div style={{ fontSize: '0.62rem', color: '#64748b', lineHeight: 1.2, marginTop: '2px' }}>
-                      Adm Sekolah, Adm Pesantren, dan SPP Juli tersimpan rapi per pos
+                      Adm Sekolah, Adm Pesantren, & SPP Juli disimpan per pos
                     </div>
                   </div>
                 </label>
@@ -591,7 +933,7 @@ export default function ModalGenerateTagihan({
                   <div>
                     <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a' }}>1 Tagihan Total</div>
                     <div style={{ fontSize: '0.62rem', color: '#64748b', lineHeight: 1.2, marginTop: '2px' }}>
-                      Gabungan total langsung lunas/dicicil dalam 1 tagihan paket
+                      Semua rincian digabung dalam 1 tagihan total masuk
                     </div>
                   </div>
                 </label>
