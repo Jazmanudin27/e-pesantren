@@ -952,6 +952,7 @@ export const getHomeKeuanganSummary = async (req, res) => {
     const [
       [summaryRows],
       [kasMasukRows],
+      [tabunganRows],
       [transaksiTerakhir],
       siklusSpp
     ] = await Promise.all([
@@ -969,6 +970,10 @@ export const getHomeKeuanganSummary = async (req, res) => {
         FROM keuangan_transaksi_pembayaran
         WHERE status_pembayaran = 'Berhasil'
       `),
+      pool.query(`
+        SELECT COALESCE(SUM(saldo), 0) as total_saldo_tabungan
+        FROM santri_tabungan
+      `).catch(() => [[{ total_saldo_tabungan: 0 }]]),
       pool.query(`
         SELECT 
           p.id,
@@ -998,11 +1003,13 @@ export const getHomeKeuanganSummary = async (req, res) => {
 
     const summary = summaryRows[0] || {};
     const kasMasukRiil = kasMasukRows[0]?.total_kas_masuk_sah != null ? Number(kasMasukRows[0].total_kas_masuk_sah) : 0;
+    const totalTabungan = tabunganRows[0]?.total_saldo_tabungan != null ? Number(tabunganRows[0].total_saldo_tabungan) : 0;
 
     return sendSuccess(res, 'Ringkasan beranda keuangan berhasil dimuat', {
       summary: {
         ...summary,
         total_kas_masuk_sah: kasMasukRiil,
+        total_saldo_tabungan: totalTabungan,
         tgl_terbit_spp: siklusSpp.tgl_terbit_spp || 5,
         tgl_jatuh_tempo_spp: siklusSpp.tgl_jatuh_tempo_spp || 10
       },

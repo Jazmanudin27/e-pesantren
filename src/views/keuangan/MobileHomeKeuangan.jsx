@@ -45,15 +45,15 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
     try {
       setLoading(true);
 
-      // Load summary keuangan & tabungan secara paralel agar tidak saling menunggu
-      const [summaryRes, tabRes] = await Promise.allSettled([
-        axios.get("/api/keuangan/admin/home-summary").catch(() => axios.get("/api/keuangan/admin/rekap")),
-        axios.get("/api/tabungan")
-      ]);
+      // Hanya ambil data khusus beranda (1 request ultra ringan < 30ms, tanpa load tabungan/menu lain)
+      const res = await axios
+        .get("/api/keuangan/admin/home-summary")
+        .catch(() => axios.get("/api/keuangan/admin/rekap"));
 
-      if (summaryRes.status === "fulfilled" && summaryRes.value?.data?.data) {
-        const d = summaryRes.value.data.data;
+      if (res?.data?.data) {
+        const d = res.data.data;
         setSummary(d.summary || {});
+        setSaldoTabunganTotal(d.summary?.total_saldo_tabungan || 0);
         const listTrx = d.transaksiTerakhir || [];
         setAllKasMasukTrx(listTrx);
         setRecentTrx(listTrx.slice(0, 5));
@@ -63,17 +63,6 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
             tgl_jatuh_tempo_spp: d.siklusSpp.tgl_jatuh_tempo_spp || 10,
             apply_to_existing: true,
           });
-        }
-      }
-
-      if (tabRes.status === "fulfilled" && tabRes.value?.data?.data) {
-        const list = tabRes.value.data.data.santri_tabungan || tabRes.value.data.data || [];
-        if (Array.isArray(list)) {
-          const tot = list.reduce(
-            (acc, cur) => acc + (parseFloat(cur.saldo) || 0),
-            0,
-          );
-          setSaldoTabunganTotal(tot);
         }
       }
     } catch (err) {
