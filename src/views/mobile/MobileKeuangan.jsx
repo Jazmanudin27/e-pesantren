@@ -55,6 +55,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [santriTagihan, setSantriTagihan] = useState({ bulanan: [], bebas: [], riwayat: [] });
   const [loadingTagihan, setLoadingTagihan] = useState(false);
+  const [kasirSantriTab, setKasirSantriTab] = useState('tagihan'); // 'tagihan' | 'histori'
 
   // State Checklist Pembayaran Kasir: { [tagihan_id]: nominal_bayar }
   const [selectedPayMap, setSelectedPayMap] = useState({});
@@ -222,6 +223,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
     setSelectedSantri(santri);
     setSantriSearch('');
     setIsSearching(false);
+    setKasirSantriTab('tagihan');
     fetchTagihanSantri(santri.id);
   };
 
@@ -1000,14 +1002,96 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  {/* 1. Tagihan SPP Bulanan */}
+                  {/* SEGMENTED 2 TABS: TAGIHAN vs HISTORI BAYAR */}
                   <div style={{
-                    background: '#ffffff',
-                    borderRadius: '20px',
-                    padding: '16px',
-                    border: '1px solid #e2e8f0',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '6px',
+                    background: '#f1f5f9',
+                    padding: '4px',
+                    borderRadius: '16px',
+                    border: '1px solid #e2e8f0'
                   }}>
+                    <button
+                      type="button"
+                      onClick={() => setKasirSantriTab('tagihan')}
+                      style={{
+                        padding: '9px 12px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        background: kasirSantriTab === 'tagihan' ? '#ffffff' : 'transparent',
+                        color: kasirSantriTab === 'tagihan' ? '#065f46' : '#64748b',
+                        fontWeight: 800,
+                        fontSize: '0.8rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        boxShadow: kasirSantriTab === 'tagihan' ? '0 3px 10px rgba(0,0,0,0.06)' : 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <FileText size={15} />
+                      <span>Tagihan</span>
+                      <span style={{
+                        fontSize: '0.62rem',
+                        padding: '1px 6px',
+                        borderRadius: '10px',
+                        background: kasirSantriTab === 'tagihan' ? '#ecfdf5' : '#e2e8f0',
+                        color: kasirSantriTab === 'tagihan' ? '#059669' : '#64748b',
+                        fontWeight: 800
+                      }}>
+                        {santriTagihan.bulanan.length + santriTagihan.bebas.length}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setKasirSantriTab('histori')}
+                      style={{
+                        padding: '9px 12px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        background: kasirSantriTab === 'histori' ? '#ffffff' : 'transparent',
+                        color: kasirSantriTab === 'histori' ? '#065f46' : '#64748b',
+                        fontWeight: 800,
+                        fontSize: '0.8rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        boxShadow: kasirSantriTab === 'histori' ? '0 3px 10px rgba(0,0,0,0.06)' : 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <Clock size={15} />
+                      <span>Histori Bayar</span>
+                      <span style={{
+                        fontSize: '0.62rem',
+                        padding: '1px 6px',
+                        borderRadius: '10px',
+                        background: kasirSantriTab === 'histori' ? '#ecfdf5' : '#e2e8f0',
+                        color: kasirSantriTab === 'histori' ? '#059669' : '#64748b',
+                        fontWeight: 800
+                      }}>
+                        {santriTagihan.riwayat.length}
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* TAB 1: TAGIHAN SANTRI */}
+                  {kasirSantriTab === 'tagihan' && (
+                    <>
+                      {/* 1. Tagihan SPP Bulanan */}
+                      <div style={{
+                        background: '#ffffff',
+                        borderRadius: '20px',
+                        padding: '16px',
+                        border: '1px solid #e2e8f0',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+                      }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                       <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <FileText size={16} color="#059669" />
@@ -1279,13 +1363,173 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                       </div>
                     </div>
                   )}
+                    </>
+                  )}
+
+                  {/* ========================================================
+                      TAB 2: HISTORI PEMBAYARAN KASIR SANTRI
+                  ======================================================== */}
+                  {kasirSantriTab === 'histori' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {santriTagihan.riwayat && santriTagihan.riwayat.length > 0 ? (
+                        santriTagihan.riwayat.map((trx) => {
+                          const isBerhasil = trx.status_pembayaran === 'Berhasil';
+                          const isPending = trx.status_pembayaran === 'Pending';
+                          const badgeBg = isBerhasil ? '#dcfce7' : isPending ? '#fef3c7' : '#fee2e2';
+                          const badgeColor = isBerhasil ? '#15803d' : isPending ? '#b45309' : '#ef4444';
+
+                          return (
+                            <div
+                              key={trx.id}
+                              style={{
+                                background: '#ffffff',
+                                borderRadius: '18px',
+                                padding: '14px',
+                                border: '1px solid #e2e8f0',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                                <div>
+                                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0f172a' }}>
+                                    {trx.kuitansi_nomor || trx.nomor_transaksi}
+                                  </div>
+                                  <div style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: '2px' }}>
+                                    {trx.created_at ? new Date(trx.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '-'}
+                                  </div>
+                                </div>
+                                <span style={{
+                                  fontSize: '0.62rem',
+                                  fontWeight: 800,
+                                  padding: '2px 8px',
+                                  borderRadius: '6px',
+                                  background: badgeBg,
+                                  color: badgeColor
+                                }}>
+                                  {trx.status_pembayaran}
+                                </span>
+                              </div>
+
+                              <div style={{
+                                background: '#f8fafc',
+                                borderRadius: '10px',
+                                padding: '8px 10px',
+                                fontSize: '0.72rem',
+                                color: '#334155',
+                                marginBottom: '10px',
+                                lineHeight: 1.3
+                              }}>
+                                <div style={{ fontWeight: 600, color: '#64748b', fontSize: '0.64rem', marginBottom: '2px' }}>
+                                  Item yang Dibayar:
+                                </div>
+                                <div style={{ fontWeight: 700, color: '#0f172a' }}>
+                                  {trx.item_dibayar || 'Pembayaran Tagihan'}
+                                </div>
+                              </div>
+
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                  <div style={{ fontSize: '0.64rem', color: '#94a3b8' }}>Total Nominal</div>
+                                  <div style={{ fontSize: '0.96rem', fontWeight: 900, color: '#059669' }}>
+                                    Rp {Number(trx.total_bayar || 0).toLocaleString('id-ID')}
+                                  </div>
+                                  <div style={{ fontSize: '0.64rem', color: '#64748b', marginTop: '1px' }}>
+                                    Via {trx.channel_pembayaran || trx.metode_pembayaran || 'Kasir'}
+                                  </div>
+                                </div>
+
+                                {isBerhasil && (
+                                  <div style={{ display: 'flex', gap: '6px' }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => setKuitansiModal({
+                                        isOpen: true,
+                                        data: {
+                                          kuitansi_nomor: trx.kuitansi_nomor,
+                                          nama_santri: selectedSantri.nama_santri,
+                                          nis: selectedSantri.nis,
+                                          no_wa_wali: selectedSantri.no_wa_wali,
+                                          asrama: selectedSantri.nama_asrama || '-',
+                                          total_bayar: trx.total_bayar,
+                                          item_dibayar: trx.item_dibayar
+                                        }
+                                      })}
+                                      style={{
+                                        padding: '6px 10px',
+                                        borderRadius: '8px',
+                                        border: '1px solid #cbd5e1',
+                                        background: '#ffffff',
+                                        color: '#334155',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px'
+                                      }}
+                                    >
+                                      <Receipt size={13} />
+                                      <span>Kuitansi</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSendWaKuitansi({
+                                        kuitansi_nomor: trx.kuitansi_nomor,
+                                        nama_santri: selectedSantri.nama_santri,
+                                        nis: selectedSantri.nis,
+                                        no_wa_wali: selectedSantri.no_wa_wali,
+                                        total_bayar: trx.total_bayar
+                                      })}
+                                      style={{
+                                        padding: '6px 10px',
+                                        borderRadius: '8px',
+                                        border: 'none',
+                                        background: '#22c55e',
+                                        color: '#ffffff',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px'
+                                      }}
+                                    >
+                                      <Send size={12} />
+                                      <span>WA</span>
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div style={{
+                          background: '#ffffff',
+                          borderRadius: '20px',
+                          padding: '30px 16px',
+                          textAlign: 'center',
+                          border: '1px solid #e2e8f0'
+                        }}>
+                          <Clock size={32} color="#94a3b8" style={{ margin: '0 auto 8px', display: 'block' }} />
+                          <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#1e293b' }}>
+                            Belum Ada Riwayat Pembayaran
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px' }}>
+                            Santri ini belum memiliki histori transaksi yang tercatat di kasir.
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </>
           )}
 
           {/* Sticky Checkout Bottom Bar (Muncul Tepat di Atas Bottom Nav Bar saat Ada Tagihan Dicentang) */}
-          {selectedSantri && selectedIds.length > 0 && (
+          {selectedSantri && kasirSantriTab === 'tagihan' && selectedIds.length > 0 && (
             <div style={{
               position: 'fixed',
               bottom: '60px',
