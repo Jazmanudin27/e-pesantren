@@ -170,10 +170,30 @@ export const updatePerizinan = async (req, res) => {
 
     // Send WA Notification if status changed
     try {
-      const [[santri]] = await pool.query('SELECT nama_santri, no_wa_wali FROM santri WHERE id = ?', [santri_id]);
+      const [[santri]] = await pool.query('SELECT nama_santri, nama_wali, no_wa_wali FROM santri WHERE id = ?', [santri_id]);
       if (santri && santri.no_wa_wali) {
-        const msg = `[RUANG PONPES NOTIFIKASI IZIN]\n\nYth. Wali Santri ${santri.nama_santri},\nStatus izin santri telah diperbarui menjadi: *${cleanStatus}*.\nDisetujui/Diproses oleh: ${disetujui_oleh || 'Dewan Pengasuh'}.\n\nTerima kasih.`;
-        sendWANotification(santri.no_wa_wali, msg);
+        const msg = `*INFORMASI PERIZINAN SANTRI*
+_Pondok Pesantren Nurul Wafa_
+
+Assalamu'alaikum Wr. Wb.
+Yth. Bapak/Ibu Wali dari *${santri.nama_santri}*,
+
+Diberitahukan bahwa pengajuan *${cleanJenis}* ananda telah diperbarui:
+• Status: *${cleanStatus}*
+• Petugas/Pengasuh: ${disetujui_oleh || 'Dewan Pengasuh'}
+• Waktu Izin: ${sqlKeluarRencana ? String(sqlKeluarRencana).slice(0, 16) : '-'} s.d. ${sqlKembaliRencana ? String(sqlKembaliRencana).slice(0, 16) : '-'}
+• Keperluan: ${keperluan || '-'}
+
+Harap santri kembali ke pondok tepat waktu sesuai batas izin yang disetujui.
+
+Wassalamu'alaikum Wr. Wb.
+_Biro Perizinan & Keamanan Pesantren_`;
+
+        sendWANotification(santri.no_wa_wali, msg, {
+          santri_id,
+          target_nama: santri.nama_wali || santri.nama_santri,
+          kategori: 'perizinan'
+        });
       }
     } catch (e) {
       console.warn('Gagal kirim WA update status perizinan:', e.message);

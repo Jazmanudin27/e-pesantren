@@ -12,6 +12,7 @@ import { ensureNotifikasiTable } from './src/controllers/notifikasi.controller.j
 import { ensureInfakTables } from './src/controllers/infak.controller.js';
 import { ensurePesanTable } from './src/controllers/pesan.controller.js';
 import { ensureInformasiTable } from './src/controllers/informasiKegiatan.controller.js';
+import { ensureWhatsAppTables } from './src/services/whatsapp.service.js';
 
 dotenv.config();
 
@@ -68,6 +69,7 @@ app.listen(PORT, '0.0.0.0', async () => {
     await ensureInfakTables();
     await ensurePesanTable();
     await ensureInformasiTable();
+    await ensureWhatsAppTables();
   } catch (e) {
     console.warn('[E-PESANTREN] Init DB notice:', e.message);
   }

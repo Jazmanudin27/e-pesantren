@@ -46,10 +46,30 @@ export const createPelanggaran = async (req, res) => {
     // Send WA Notification to Wali if enabled
     if (wa_notif_wali !== 0) {
       try {
-        const [[santri]] = await pool.query('SELECT nama_santri, no_wa_wali FROM santri WHERE id = ?', [santri_id]);
+        const [[santri]] = await pool.query('SELECT nama_santri, nama_wali, no_wa_wali FROM santri WHERE id = ?', [santri_id]);
         if (santri && santri.no_wa_wali) {
-          const msg = `[RUANG PONPES DISIPLIN]\n\nYth. Wali Santri ${santri.nama_santri},\nDiberitahukan bahwa santri tercatat melakukan pelanggaran:\n- Kategori: ${kategori || 'Ringan'}\n- Ta'zir: ${bentuk_tazir}\n\nMohon bimbingan dan kerja samanya. Terima kasih.`;
-          sendWANotification(santri.no_wa_wali, msg);
+          const msg = `*PEMBERITAHUAN KEDISIPLINAN & TATA TERTIB*
+_Pondok Pesantren Nurul Wafa_
+
+Assalamu'alaikum Wr. Wb.
+Yth. Bapak/Ibu Wali dari *${santri.nama_santri}*,
+
+Diberitahukan bahwa ananda tercatat dalam pembinaan tata tertib pesantren:
+• Kategori: *${kategori || 'Ringan'}* (${poin_pelanggaran || 0} Poin)
+• Catatan: ${jenis_pelanggaran || 'Pelanggaran Disiplin'}
+• Bentuk Pembinaan/Ta'zir: *${bentuk_tazir}*
+• Status Ta'zir: ${status_tazir || 'Sedang Dalam Pembinaan'}
+
+Pemberitahuan ini bertujuan agar pihak keluarga dan dewan pengasuh dapat bersama-sama membimbing ananda menjadi pribadi yang lebih berakhlak dan disiplin.
+
+Wassalamu'alaikum Wr. Wb.
+_Biro Pengasuhan & Keamanan Santri_`;
+
+          sendWANotification(santri.no_wa_wali, msg, {
+            santri_id,
+            target_nama: santri.nama_wali || santri.nama_santri,
+            kategori: 'tazir'
+          });
         }
       } catch (e) {
         console.warn('Gagal kirim WA pelanggaran:', e.message);

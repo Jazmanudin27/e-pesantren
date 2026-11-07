@@ -35,7 +35,9 @@ import {
   Calendar,
   Wallet,
   Heart,
-  MessageSquare
+  MessageSquare,
+  Smartphone,
+  Send
 } from 'lucide-react';
 import DashboardAdmin from '../views/admin/DashboardAdmin';
 import SantriView from '../views/admin/SantriView';
@@ -63,6 +65,7 @@ import PerkembanganSantriLakiView from '../views/admin/PerkembanganSantriLakiVie
 import PerkembanganSantriPerempuanView from '../views/admin/PerkembanganSantriPerempuanView';
 import LoginAdmin from '../views/admin/LoginAdmin';
 import PortalWaliSantri from '../views/wali/PortalWaliSantri';
+import WhatsAppGatewayView from '../views/admin/WhatsAppGatewayView';
 import { canAccessKeuangan } from '../utils/authRole.util';
 import { showConfirm, toastSuccess } from '../utils/alert.util';
 
@@ -70,7 +73,7 @@ export default function AdminLayout() {
   const isAbsensiTab = (tab) => ['absensi-berjamaah', 'presensi-berjamaah', 'presensi', 'absensi-mengaji', 'presensi-kegiatan'].includes(tab);
   const isPengembanganTab = (tab) => ['perkembangan-santri-laki', 'perkembangan-ikhwan', 'perkembangan-santri-perempuan', 'perkembangan-santriwati', 'perkembangan-akhwat'].includes(tab);
   const isMasterTab = (tab) => ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-materi', 'setting-shalat', 'setting-kegiatan', 'master-kegiatan'].includes(tab);
-  const isSettingsTab = (tab) => ['master-device', 'manajemen-user', 'users'].includes(tab);
+  const isSettingsTab = (tab) => ['master-device', 'manajemen-user', 'users', 'whatsapp-gateway', 'whatsapp', 'wa-broadcast'].includes(tab);
   const isLaporanTab = (tab) => ['laporan-presensi', 'laporan-tahfidz'].includes(tab);
   const isKeuanganTab = (tab) => ['keuangan-admin', 'keuangan', 'keuangan-kasir', 'keuangan-rekap', 'keuangan-spp', 'tagihan', 'tabungan-santri', 'tabungan', 'laporan-infak', 'infak'].includes(tab);
 
@@ -414,6 +417,10 @@ export default function AdminLayout() {
       case 'informasi-kegiatan':
       case 'berita-pesantren':
         return <InformasiKegiatanAdminView />;
+      case 'whatsapp-gateway':
+      case 'whatsapp':
+      case 'wa-broadcast':
+        return <WhatsAppGatewayView />;
       case 'portal-wali':
       case 'wali-santri':
       case 'wali':
@@ -426,7 +433,7 @@ export default function AdminLayout() {
   const isAbsensiActive = ['absensi-berjamaah', 'presensi-berjamaah', 'presensi', 'absensi-mengaji', 'presensi-kegiatan'].includes(activeTab);
   const isPengembanganActive = isPengembanganTab(activeTab);
   const isMasterActive = ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-materi', 'kurikulum-pengajian', 'jadwal-mengajar', 'setting-shalat', 'setting-kegiatan', 'master-kegiatan'].includes(activeTab);
-  const isSettingsActive = ['master-device', 'manajemen-user', 'users'].includes(activeTab);
+  const isSettingsActive = ['master-device', 'manajemen-user', 'users', 'whatsapp-gateway', 'whatsapp', 'wa-broadcast'].includes(activeTab);
   const isLaporanActive = ['laporan-presensi', 'laporan-tahfidz'].includes(activeTab);
   const isKeuanganActive = isKeuanganTab(activeTab);
 
@@ -697,6 +704,14 @@ export default function AdminLayout() {
                   <Heart size={13} style={{ marginRight: '6px', color: '#ec4899' }} />
                   <span>Infak &amp; Sedekah</span>
                 </button>
+
+                <button 
+                  className={`nav-sublink ${activeTab === 'whatsapp-gateway' || activeTab === 'whatsapp' || activeTab === 'wa-broadcast' ? 'active' : ''}`}
+                  onClick={() => handleTabClick('whatsapp-gateway')}
+                >
+                  <Send size={13} style={{ marginRight: '6px', color: '#10b981' }} />
+                  <span>Broadcast Tagihan WA</span>
+                </button>
               </div>
             )}
           </>
@@ -764,6 +779,14 @@ export default function AdminLayout() {
             >
               <UserCog size={13} style={{ marginRight: '6px' }} />
               <span>Kelola Pengguna (Users)</span>
+            </button>
+
+            <button 
+              className={`nav-sublink ${activeTab === 'whatsapp-gateway' || activeTab === 'whatsapp' || activeTab === 'wa-broadcast' ? 'active' : ''}`}
+              onClick={() => handleTabClick('whatsapp-gateway')}
+            >
+              <Smartphone size={13} style={{ marginRight: '6px', color: '#10b981' }} />
+              <span>WhatsApp &amp; Broadcast</span>
             </button>
           </div>
         )}

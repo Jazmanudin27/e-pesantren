@@ -1,6 +1,7 @@
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
 import { createWaliNotification, buildAbsensiNotifText } from './notifikasi.controller.js';
+import { triggerAutoPresensiWA } from '../services/whatsapp.service.js';
 
 let isAbsensiTablesChecked = false;
 export const ensureAbsensiTablesAndColumns = async () => {
@@ -610,6 +611,15 @@ export const createAbsensiFingerprint = async (req, res) => {
         replaceRecentSameCategory: true
       });
 
+      // Kirim Notifikasi WA ke Orang Tua (Sakit / Izin / Alfa) secara asinkron
+      triggerAutoPresensiWA({
+        santri_id: finalSantriId,
+        nama_santri: req.body?.nama_santri,
+        kegiatan: finalKegiatan,
+        status: finalStatus,
+        waktu: scanTime
+      }).catch(() => {});
+
       return sendSuccess(res, 'Presensi berhasil diperbarui (tidak duplikat)', {
         id: existingId,
         metode_presensi: finalMetode,
@@ -653,6 +663,15 @@ export const createAbsensiFingerprint = async (req, res) => {
       pesan: notifCopy.pesan,
       target_tab: 'absensi'
     });
+
+    // Kirim Notifikasi WA ke Orang Tua (Sakit / Izin / Alfa) secara asinkron
+    triggerAutoPresensiWA({
+      santri_id: finalSantriId,
+      nama_santri: req.body?.nama_santri,
+      kegiatan: finalKegiatan,
+      status: finalStatus,
+      waktu: scanTime
+    }).catch(() => {});
 
     return sendSuccess(res, 'Presensi berhasil dicatat', {
       id: insertResult.insertId,
@@ -744,6 +763,14 @@ export const syncMobileAbsensi = async (req, res) => {
           pesan: notifCopy.pesan,
           target_tab: 'absensi'
         });
+
+        triggerAutoPresensiWA({
+          santri_id: item.santri_id,
+          nama_santri: item.nama_santri,
+          kegiatan: kegiatanName,
+          status: st,
+          waktu: scanTime
+        }).catch(() => {});
       }
       syncedCount++;
     }

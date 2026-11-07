@@ -27,7 +27,9 @@ import {
   RotateCw,
   Calendar,
   Heart,
-  MessageSquare
+  MessageSquare,
+  Smartphone,
+  Send
 } from 'lucide-react';
 import MobileHome from '../views/mobile/MobileHome';
 import MobileTahfidz from '../views/mobile/MobileTahfidz';
@@ -61,6 +63,7 @@ import PortalWaliSantri from '../views/wali/PortalWaliSantri';
 import MobileTabungan from '../views/mobile/MobileTabungan';
 import LaporanInfakAdminView from '../views/keuangan/LaporanInfakAdminView';
 import PesanKomunikasiAdminView from '../views/admin/PesanKomunikasiAdminView';
+import WhatsAppGatewayView from '../views/admin/WhatsAppGatewayView';
 import { canAccessKeuangan } from '../utils/authRole.util';
 
 export default function MobileLayout() {
@@ -262,6 +265,9 @@ export default function MobileLayout() {
       case 'pesan-komunikasi':
       case 'pesan-admin':
       case 'pesan': return 'Pesan & Komunikasi Wali';
+      case 'whatsapp-gateway':
+      case 'whatsapp':
+      case 'wa-broadcast': return 'WhatsApp & Broadcast';
       case 'profil': return isBendahara ? 'Profil Bendahara' : 'Profil Asatidz & Admin';
       case 'portal-wali': return 'Portal Orang Tua (Wali)';
       default: return '';
@@ -388,6 +394,10 @@ export default function MobileLayout() {
       case 'pesan-admin':
       case 'pesan':
         return <PesanKomunikasiAdminView />;
+      case 'whatsapp-gateway':
+      case 'whatsapp':
+      case 'wa-broadcast':
+        return <WhatsAppGatewayView />;
       case 'profil':
         return <MobileProfil onChangeTab={handleSelectTab} onLogout={handleLogout} />;
       default:
@@ -570,6 +580,9 @@ export default function MobileLayout() {
                         </button>
                         <button onClick={() => handleSelectTab('pesan-komunikasi')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: (mobileTab === 'pesan-komunikasi' || mobileTab === 'pesan') ? '#ccfbf1' : '#f8fafc', border: (mobileTab === 'pesan-komunikasi' || mobileTab === 'pesan') ? '1px solid #0f766e' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                           <MessageSquare size={16} color="#0f766e" /> Pesan Wali
+                        </button>
+                        <button onClick={() => handleSelectTab('whatsapp-gateway')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: (mobileTab === 'whatsapp-gateway' || mobileTab === 'whatsapp') ? '#dcfce7' : '#f8fafc', border: (mobileTab === 'whatsapp-gateway' || mobileTab === 'whatsapp') ? '1px solid #059669' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                          <Smartphone size={16} color="#059669" /> WA Broadcast
                         </button>
                       </div>
                     </div>
