@@ -1145,7 +1145,11 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 bg: "linear-gradient(135deg, #64748b 0%, #334155 100%)",
                 shadow: "0 6px 16px -2px rgba(71, 85, 105, 0.38)",
               },
-            ].map((item) => {
+            ].filter((item) => {
+              const isAdmin = String(sessionData?.role || '').toLowerCase().includes('admin');
+              if (isAdmin && item.tab === 'tabungan') return false;
+              return true;
+            }).map((item) => {
               const IconComp = item.icon;
               return (
                 <div

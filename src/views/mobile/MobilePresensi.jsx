@@ -475,9 +475,15 @@ export default function MobilePresensi() {
 
           for (const s of fetchedSantris) {
             const photoUrl = s.foto || s.foto_santri;
+            let dbDesc = null;
+            if (s.face_descriptor) {
+              try {
+                dbDesc = typeof s.face_descriptor === 'string' ? JSON.parse(s.face_descriptor) : s.face_descriptor;
+              } catch(e) {}
+            }
             if (
               photoUrl &&
-              (!currentLocalProfiles[s.id] || !currentLocalProfiles[s.id].foto)
+              (!currentLocalProfiles[s.id] || !currentLocalProfiles[s.id].foto || (!currentLocalProfiles[s.id].descriptor && dbDesc))
             ) {
               currentLocalProfiles[s.id] = {
                 santri_id: s.id,
@@ -486,7 +492,7 @@ export default function MobilePresensi() {
                 asrama: s.nama_asrama || "",
                 kamar: s.nama_kamar || "",
                 foto: photoUrl,
-                descriptor: null,
+                descriptor: dbDesc || currentLocalProfiles[s.id]?.descriptor || null,
                 biometricGrid: [],
                 biometricFeature: null,
                 registered_at: new Date().toISOString(),
@@ -497,10 +503,26 @@ export default function MobilePresensi() {
 
           if (profileChanged) {
             setRegisteredFaces(currentLocalProfiles);
-            localStorage.setItem(
-              "epesantren_face_profiles",
-              JSON.stringify(currentLocalProfiles),
-            );
+            try {
+              // Simpan versi ringan ke localStorage tanpa base64 foto raksasa
+              const lightMap = {};
+              Object.keys(currentLocalProfiles).forEach((k) => {
+                const p = currentLocalProfiles[k];
+                lightMap[k] = {
+                  santri_id: p.santri_id,
+                  nama: p.nama,
+                  nis: p.nis,
+                  asrama: p.asrama || "",
+                  kamar: p.kamar || "",
+                  descriptor: p.descriptor,
+                  registered_at: p.registered_at,
+                };
+              });
+              localStorage.setItem(
+                "epesantren_face_profiles",
+                JSON.stringify(lightMap),
+              );
+            } catch (eStorage) {}
           }
         } catch (eSync) {}
       }
@@ -1108,11 +1130,11 @@ export default function MobilePresensi() {
                 }
 
                 setFaceDetected(true);
-                // Ambang batas ketat 0.40 (mencegah false-positive / kebocoran wajah asing)
+                // Ambang batas akurat 0.50 (toleran variasi cahaya & sudut kemiringan santri)
                 const matched = matchFaceDescriptor(
                   faceRes.descriptor,
                   registeredList,
-                  0.4,
+                  0.50,
                 );
                 if (matched) {
                   const dbSantri = (santriListRef.current || []).find(
@@ -1131,7 +1153,11 @@ export default function MobilePresensi() {
 
               // 1. TOLAK JIKA WAJAH BEDA / TIDAK COCOK DENGAN DATA SANTRI
               if (!matchedSantri) {
-                matchedStreakRef.current = { id: null, count: 0 };
+                if (matchedStreakRef.current.grace) {
+                  matchedStreakRef.current = { id: null, count: 0, grace: false };
+                } else if (matchedStreakRef.current.count > 0) {
+                  matchedStreakRef.current.grace = true;
+                }
                 ctx.fillStyle = "rgba(239, 68, 68, 0.95)";
                 ctx.roundRect
                   ? ctx.roundRect(boxX, boxY - 30, boxW, 26, 6)
@@ -1150,15 +1176,16 @@ export default function MobilePresensi() {
                 return;
               }
 
-              // Verifikasi 2-Frame Konsekutif untuk Mencegah False-Positive
+              // Verifikasi frame konsekutif: jika skor sangat dekat (< 0.44), langsung diverifikasi
               if (matchedStreakRef.current.id === matchedSantri.id) {
                 matchedStreakRef.current.count += 1;
+                matchedStreakRef.current.grace = false;
               } else {
-                matchedStreakRef.current = { id: matchedSantri.id, count: 1 };
+                matchedStreakRef.current = { id: matchedSantri.id, count: 1, grace: false };
               }
 
-              // Wajib cocok 2 frame berurutan agar tidak bocor akibat noise kamera
-              if (matchedStreakRef.current.count < 2) {
+              const isSuperMatch = matched.distance && matched.distance < 0.44;
+              if (matchedStreakRef.current.count < 2 && !isSuperMatch) {
                 setFaceStatusText(`Memverifikasi: ${displayName}...`);
                 return;
               }

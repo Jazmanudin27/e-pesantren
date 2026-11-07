@@ -97,7 +97,13 @@ export default function MobileDaftarWajah() {
 
         resSantri.data.data.forEach((s) => {
           const photo = s.foto || s.foto_santri;
-          if (photo && (!updated[s.id] || !updated[s.id].foto)) {
+          let sDesc = null;
+          if (s.face_descriptor) {
+            try {
+              sDesc = typeof s.face_descriptor === 'string' ? JSON.parse(s.face_descriptor) : s.face_descriptor;
+            } catch (e) {}
+          }
+          if (photo && (!updated[s.id] || !updated[s.id].foto || (!updated[s.id].descriptor && sDesc))) {
             updated[s.id] = {
               santri_id: s.id,
               nama: s.nama_santri,
@@ -105,7 +111,7 @@ export default function MobileDaftarWajah() {
               asrama: s.nama_asrama || '',
               kamar: s.nama_kamar || '',
               foto: photo,
-              descriptor: null,
+              descriptor: sDesc || updated[s.id]?.descriptor || null,
               registered_at: new Date().toISOString()
             };
             changed = true;
@@ -333,31 +339,41 @@ export default function MobileDaftarWajah() {
         return;
       }
 
-      // 2. Ambil semua profil santri lain dan pastikan descriptor terisi
-      const otherProfiles = Object.values(registeredFaces).filter(
-        (p) => String(p.santri_id) !== String(selectedSantri.id) && (p.descriptor || p.foto)
-      );
-
-      // Pastikan santri lain yang hanya punya URL foto diproses descriptor-nya
-      for (const other of otherProfiles) {
-        if (!other.descriptor && other.foto) {
-          try {
-            other.descriptor = await extractDescriptorFromDataUrl(other.foto);
-          } catch (eDesc) {}
-        }
-      }
-
-      // 3. Validasi pencocokan anti duplikasi (threshold 0.55 untuk keamanan ekstra)
-      const matchedOther = matchFaceDescriptor(descriptor, otherProfiles, 0.55);
-      if (matchedOther) {
-        showError(
-          'Pendaftaran Wajah Ditolak!',
-          `Wajah ini terdeteksi sudah terdaftar atas nama "${matchedOther.nama || matchedOther.nama_santri}". Wajah yang sama tidak boleh didaftarkan ke santri lain!`
+      // 2. Validasi duplikasi wajah terhadap santri lain yang sudah terdaftar
+      try {
+        const otherProfiles = Object.values(registeredFaces).filter(
+          (p) => String(p.santri_id) !== String(selectedSantri.id) && (p.descriptor || p.face_descriptor)
         );
-        setSaving(false);
-        return;
+        const matchedOther = matchFaceDescriptor(descriptor, otherProfiles, 0.52);
+        if (matchedOther) {
+          showError(
+            'Pendaftaran Wajah Ditolak!',
+            `Wajah ini terdeteksi mirip/sudah terdaftar atas nama "${matchedOther.nama || matchedOther.nama_santri}". Wajah yang sama tidak boleh didaftarkan ke santri lain!`
+          );
+          setSaving(false);
+          return;
+        }
+      } catch (eDup) {
+        console.warn('Anti-duplicate check warning:', eDup);
       }
 
+      // 3. Simpan foto wajah & biometrik LANGSUNG ke Database Server (Utama)
+      try {
+        await axios.patch(`/api/santri/${selectedSantri.id}/foto`, { 
+          foto: snapshot,
+          descriptor: descriptor,
+          face_descriptor: descriptor
+        });
+      } catch (errPatch) {
+        console.warn('Patch foto failed, trying PUT fallback:', errPatch);
+        await axios.put(`/api/santri/${selectedSantri.id}`, { 
+          foto: snapshot,
+          descriptor: descriptor,
+          face_descriptor: descriptor
+        }).catch((e) => console.warn('PUT fallback failed:', e));
+      }
+
+      // 4. Update state dan cache lokal (Ringan tanpa bloat base64 agar TIDAK melebihi kuota 5MB browser)
       const updated = {
         ...registeredFaces,
         [selectedSantri.id]: {
@@ -366,32 +382,44 @@ export default function MobileDaftarWajah() {
           nis: selectedSantri.nis,
           asrama: selectedSantri.nama_asrama || '',
           kamar: selectedSantri.nama_kamar || '',
-          foto: snapshot,
+          foto: snapshot, // di memori state React tetap ada untuk preview
           descriptor: descriptor,
           registered_at: new Date().toISOString()
         }
       };
 
       setRegisteredFaces(updated);
-      localStorage.setItem('epesantren_face_profiles', JSON.stringify(updated));
 
-      // Simpan foto wajah langsung ke backend santri
       try {
-        await axios.patch(`/api/santri/${selectedSantri.id}/foto`, { foto: snapshot });
-      } catch (errPatch) {
-        // Fallback jika patch gagal, gunakan put dengan payload foto
-        await axios.put(`/api/santri/${selectedSantri.id}`, { foto: snapshot }).catch(() => {});
+        // Simpan versi ringkas ke localStorage (hanya descriptor 128 float, tanpa base64 foto raksasa)
+        const lightMap = {};
+        Object.keys(updated).forEach((k) => {
+          const p = updated[k];
+          lightMap[k] = {
+            santri_id: p.santri_id,
+            nama: p.nama,
+            nis: p.nis,
+            asrama: p.asrama || '',
+            kamar: p.kamar || '',
+            descriptor: p.descriptor,
+            registered_at: p.registered_at
+          };
+        });
+        localStorage.setItem('epesantren_face_profiles', JSON.stringify(lightMap));
+      } catch (eStorage) {
+        console.warn('Quota localStorage aman terlindungi:', eStorage);
       }
 
       // Update state santriList lokal
       setSantriList((prev) =>
-        prev.map((s) => (s.id === selectedSantri.id ? { ...s, foto: snapshot } : s))
+        prev.map((s) => (s.id === selectedSantri.id ? { ...s, foto: snapshot, face_descriptor: descriptor } : s))
       );
 
       toastSuccess(`Wajah ${selectedSantri.nama_santri} berhasil didaftarkan!`);
       handleCloseModal();
     } catch (err) {
-      showError('Gagal Menyimpan', 'Terjadi kesalahan saat memproses data wajah.');
+      console.error('[SIMPAN WAJAH ERROR]', err);
+      showError('Gagal Menyimpan', err?.response?.data?.message || err?.message || 'Terjadi kesalahan saat memproses data wajah.');
     } finally {
       setSaving(false);
     }

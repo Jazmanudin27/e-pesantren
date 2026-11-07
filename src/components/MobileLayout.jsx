@@ -606,9 +606,11 @@ export default function MobileLayout() {
                         <button onClick={() => handleSelectTab('pengembangan')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'pengembangan' ? '#e0f2fe' : '#f8fafc', border: mobileTab === 'pengembangan' ? '1px solid #0284c7' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                           <Award size={16} color="#0284c7" /> Pengembangan
                         </button>
-                        <button onClick={() => handleSelectTab('tabungan')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'tabungan' ? '#ccfbf1' : '#f8fafc', border: mobileTab === 'tabungan' ? '1px solid #0d9488' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
-                          <Wallet size={16} color="#0d9488" /> Tabungan
-                        </button>
+                        {!(String(session?.role || '').toLowerCase().includes('admin')) && (
+                          <button onClick={() => handleSelectTab('tabungan')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'tabungan' ? '#ccfbf1' : '#f8fafc', border: mobileTab === 'tabungan' ? '1px solid #0d9488' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                            <Wallet size={16} color="#0d9488" /> Tabungan
+                          </button>
+                        )}
                         <button onClick={() => handleSelectTab('pesan-komunikasi')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: (mobileTab === 'pesan-komunikasi' || mobileTab === 'pesan') ? '#ccfbf1' : '#f8fafc', border: (mobileTab === 'pesan-komunikasi' || mobileTab === 'pesan') ? '1px solid #0f766e' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                           <MessageSquare size={16} color="#0f766e" /> Pesan Wali
                         </button>

@@ -85,10 +85,10 @@ export const detectFaceDescriptor = async (mediaElement) => {
 
   try {
     const faceapi = window.faceapi;
-    // InputSize 320 + scoreThreshold 0.60 menghasilkan deteksi landmark wajah presisi tinggi & menolak wajah buram
+    // InputSize 320 + scoreThreshold 0.40 optimal untuk kamera depan mobile/webcam
     const options = new faceapi.TinyFaceDetectorOptions({
       inputSize: 320,
-      scoreThreshold: 0.60
+      scoreThreshold: 0.40
     });
 
     const detection = await faceapi
@@ -96,7 +96,7 @@ export const detectFaceDescriptor = async (mediaElement) => {
       .withFaceLandmarks()
       .withFaceDescriptor();
 
-    if (!detection || !detection.detection || detection.detection.score < 0.60) return null;
+    if (!detection || !detection.detection || detection.detection.score < 0.40) return null;
 
     return {
       box: detection.detection.box, // { x, y, width, height }
@@ -113,19 +113,23 @@ export const detectFaceDescriptor = async (mediaElement) => {
 // 4b. Validasi apakah array merupakan vektor biometrik L2-normalized 128-D yang valid
 export const isValidDescriptor = (arr) => {
   if (!arr) return false;
-  if (!Array.isArray(arr) && !(arr instanceof Float32Array)) return false;
-  if (arr.length !== 128) return false;
+  let target = arr;
+  if (typeof target === 'string') {
+    try { target = JSON.parse(target); } catch (e) { return false; }
+  }
+  if (!Array.isArray(target) && !(target instanceof Float32Array)) return false;
+  if (target.length !== 128) return false;
   let sumSq = 0;
   let allZero = true;
   for (let i = 0; i < 128; i++) {
-    const v = arr[i];
+    const v = target[i];
     if (typeof v !== 'number' || isNaN(v)) return false;
     if (v !== 0) allZero = false;
     sumSq += v * v;
   }
   if (allZero) return false;
-  // Unit vector ter-normalisasi face-api memiliki panjang kuadrat ~ 1.0 (antara 0.6 s/d 1.4)
-  return sumSq > 0.6 && sumSq < 1.4;
+  // Unit vector ter-normalisasi face-api memiliki panjang kuadrat ~ 1.0 (antara 0.5 s/d 1.5)
+  return sumSq > 0.5 && sumSq < 1.5;
 };
 
 // 5. Ekstraksi Descriptor dari Image Data URL (Untuk Foto Terdaftar)
@@ -147,14 +151,14 @@ export const extractDescriptorFromDataUrl = (dataUrl) => {
   });
 };
 
-// 6. Pencocokan Vektor Biometrik (Euclidean Distance Ketat + Validasi Anti-Bocor / Runner-Up Margin)
-// Ambang batas ketat: distance < 0.40 = orang yang sama; distance >= 0.40 = orang berbeda / tolak
-export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, threshold = 0.40) => {
+// 6. Pencocokan Vektor Biometrik (Euclidean Distance dengan Ambang Batas 0.50 Optimal)
+// Ambang batas standar face-api: distance < 0.50 = orang yang sama; distance >= 0.50 = orang berbeda / tolak
+export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, threshold = 0.50) => {
   if (!liveDescriptor || !registeredProfilesList || !window.faceapi) return null;
   if (!isValidDescriptor(liveDescriptor)) return null;
 
   const faceapi = window.faceapi;
-  const strictThreshold = Math.min(Number(threshold) || 0.40, 0.40);
+  const matchThreshold = Math.min(Math.max(Number(threshold) || 0.50, 0.35), 0.55);
   let bestMatch = null;
   let minDistance = 999;
   let secondMinDistance = 999;
@@ -162,7 +166,10 @@ export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, thre
 
   for (const prof of registeredProfilesList) {
     if (!prof) continue;
-    const targetDescriptor = prof.descriptor || prof.faceDescriptor;
+    let targetDescriptor = prof.descriptor || prof.faceDescriptor || prof.face_descriptor;
+    if (typeof targetDescriptor === 'string') {
+      try { targetDescriptor = JSON.parse(targetDescriptor); } catch (e) {}
+    }
     if (isValidDescriptor(targetDescriptor)) {
       const dist = faceapi.euclideanDistance(liveDescriptor, targetDescriptor);
       const profId = String(prof.santri_id || prof.id || '');
@@ -172,24 +179,24 @@ export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, thre
         }
         minDistance = dist;
         bestSantriId = profId;
-        bestMatch = prof;
+        bestMatch = { ...prof, descriptor: targetDescriptor };
       } else if (profId !== bestSantriId && dist < secondMinDistance) {
         secondMinDistance = dist;
       }
     }
   }
 
-  if (!bestMatch || minDistance >= strictThreshold) return null;
+  if (!bestMatch || minDistance >= matchThreshold) return null;
 
-  // Anti-bocor: jika jarak di area batas (0.34 - 0.40) dan selisih dengan kandidat santri lain terlalu tipis (< 0.025), tolak agar tidak salah orang
-  if (minDistance > 0.34 && secondMinDistance < 999 && (secondMinDistance - minDistance) < 0.025) {
+  // Anti-bocor: jika jarak di area batas (> 0.46) dan selisih dengan kandidat santri lain terlalu tipis (< 0.015), tolak agar tidak salah orang
+  if (minDistance > 0.46 && secondMinDistance < 999 && (secondMinDistance - minDistance) < 0.015) {
     return null;
   }
 
   return {
     ...bestMatch,
     distance: minDistance,
-    confidence: Math.round(Math.max(0, (1 - minDistance / strictThreshold) * 100))
+    confidence: Math.round(Math.max(0, (1 - minDistance / matchThreshold) * 100))
   };
 };
 

@@ -513,11 +513,11 @@ export default function MobilePengembangan() {
           }
 
           setIsFaceDetected(true);
-          // Ambang batas ketat 0.40
+          // Ambang batas optimal 0.50
           const matched = matchFaceDescriptor(
             faceRes.descriptor,
             registeredList,
-            0.4,
+            0.50,
           );
 
           if (matched) {

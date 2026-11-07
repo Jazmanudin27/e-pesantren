@@ -3259,8 +3259,6 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                 <ChevronRight size={18} color="#0284c7" />
               </button>
             </div>
-              </button>
-            </div>
           </div>
         </div>
       )}

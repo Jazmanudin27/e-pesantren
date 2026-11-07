@@ -781,14 +781,6 @@ export default function AdminLayout() {
                 </button>
 
                 <button 
-                  className={`nav-sublink ${activeTab === 'tabungan-santri' || activeTab === 'tabungan' ? 'active' : ''}`}
-                  onClick={() => handleTabClick('tabungan-santri')}
-                >
-                  <Wallet size={13} style={{ marginRight: '6px', color: '#0d9488' }} />
-                  <span>Saldo Tabungan Santri</span>
-                </button>
-
-                <button 
                   className={`nav-sublink ${activeTab === 'laporan-infak' || activeTab === 'infak' ? 'active' : ''}`}
                   onClick={() => handleTabClick('laporan-infak')}
                 >
