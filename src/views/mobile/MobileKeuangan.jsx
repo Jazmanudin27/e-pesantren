@@ -76,6 +76,12 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
   const [laporanFilterSekolah, setLaporanFilterSekolah] = useState('semua');
   const [kasirFilterSekolah, setKasirFilterSekolah] = useState('semua');
   const [kasirFilterKelas, setKasirFilterKelas] = useState('semua');
+  const [santriDisplayLimit, setSantriDisplayLimit] = useState(50);
+
+  // Reset limit tampilan ke 50 setiap ganti filter atau kata kunci
+  useEffect(() => {
+    setSantriDisplayLimit(50);
+  }, [kasirFilterSekolah, kasirFilterKelas, santriSearch]);
 
   // Daftar filter kelas dinamis berdasarkan sekolah yang dipilih
   const availableKelasList = React.useMemo(() => {
@@ -96,6 +102,38 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
     return list;
   }, [kasirFilterSekolah, santriList]);
 
+  // Filter santri komprehensif (sekolah, kelas, search) dari SELURUH data santri database
+  const filteredKasirSantri = React.useMemo(() => {
+    return (santriList || []).filter((s) => {
+      if (kasirFilterSekolah !== 'semua') {
+        const sk = String(s.nama_sekolah || s.sekolah_jenjang || s.tingkat_sekolah || '').toUpperCase();
+        if (!sk.includes(kasirFilterSekolah.toUpperCase())) return false;
+      }
+      if (kasirFilterKelas !== 'semua') {
+        const kl = String(s.tingkat_sekolah || s.nama_kelas || '').toLowerCase();
+        if (!kl.includes(kasirFilterKelas.toLowerCase())) return false;
+      }
+      if (!santriSearch.trim()) return true;
+      const q = santriSearch.toLowerCase().trim();
+      return (
+        (s.nama_santri || '').toLowerCase().includes(q) ||
+        (s.nis || '').toLowerCase().includes(q) ||
+        (s.nisn || '').toLowerCase().includes(q) ||
+        (s.nama_asrama || '').toLowerCase().includes(q) ||
+        (s.nama_sekolah || '').toLowerCase().includes(q) ||
+        (s.nama_kelas || '').toLowerCase().includes(q)
+      );
+    });
+  }, [santriList, kasirFilterSekolah, kasirFilterKelas, santriSearch]);
+
+  // Santri yang ditampilkan di grid: 50 saat browsing, atau semua yang cocok (sampai 100) saat searching
+  const displayedSantri = React.useMemo(() => {
+    if (santriSearch.trim()) {
+      return filteredKasirSantri.slice(0, 100);
+    }
+    return filteredKasirSantri.slice(0, santriDisplayLimit);
+  }, [filteredKasirSantri, santriSearch, santriDisplayLimit]);
+
   // Sync initial tab jika berubah dari luar: hanya kasir atau laporan
   useEffect(() => {
     if (initialSubTab === 'keuangan-rekap' || initialSubTab === 'laporan' || initialSubTab === 'rekap') {
@@ -111,7 +149,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
     try {
       const [resRekap, resSantri] = await Promise.all([
         axios.get('/api/keuangan/admin/rekap').catch(() => null),
-        axios.get('/api/santri').catch(() => null)
+        axios.get('/api/santri?all=true').catch(() => null)
       ]);
 
       if (resRekap?.data?.success && resRekap.data.data) {
@@ -447,49 +485,6 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                   </button>
                 )}
               </div>
-
-              {/* Autocomplete Dropdown */}
-              {isSearching && filteredSearchSantri.length > 0 && (
-                <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  zIndex: 50,
-                  background: '#ffffff',
-                  borderRadius: '16px',
-                  marginTop: '6px',
-                  boxShadow: '0 12px 28px rgba(0,0,0,0.18)',
-                  border: '1px solid #e2e8f0',
-                  maxHeight: '260px',
-                  overflowY: 'auto'
-                }}>
-                  {filteredSearchSantri.map((s) => (
-                    <div
-                      key={s.id}
-                      onClick={() => handleSelectSantri(s)}
-                      style={{
-                        padding: '10px 14px',
-                        borderBottom: '1px solid #f1f5f9',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between'
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>
-                          {s.nama_santri}
-                        </div>
-                        <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                          NIS: {s.nis || '-'} • {s.nama_asrama || '-'} • <b style={{ color: '#0369a1' }}>{s.nama_sekolah || 'SMP'} ({s.tingkat_sekolah || '-'})</b>
-                        </div>
-                      </div>
-                      <ChevronRight size={16} color="#94a3b8" />
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
 
             {/* Profil Santri Terpilih */}
@@ -648,32 +643,17 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                   color: '#64748b'
                 }}>
                   <span>
-                    {(santriList || []).filter((s) => {
-                      if (kasirFilterSekolah !== 'semua') {
-                        const sk = String(s.nama_sekolah || s.tingkat_sekolah || '').toUpperCase();
-                        if (!sk.includes(kasirFilterSekolah)) return false;
-                      }
-                      if (kasirFilterKelas !== 'semua') {
-                        const kl = String(s.tingkat_sekolah || s.nama_kelas || '').toLowerCase();
-                        if (!kl.includes(kasirFilterKelas.toLowerCase())) return false;
-                      }
-                      if (!santriSearch.trim()) return true;
-                      const q = santriSearch.toLowerCase();
-                      return (
-                        (s.nama_santri || '').toLowerCase().includes(q) ||
-                        (s.nis || '').toLowerCase().includes(q) ||
-                        (s.nisn || '').toLowerCase().includes(q) ||
-                        (s.nama_asrama || '').toLowerCase().includes(q) ||
-                        (s.nama_sekolah || '').toLowerCase().includes(q)
-                      );
-                    }).length} Santri Tersedia
+                    {santriSearch.trim()
+                      ? `${filteredKasirSantri.length} Santri Ditemukan`
+                      : `Menampilkan ${displayedSantri.length} dari ${filteredKasirSantri.length} Santri Tersedia`}
                   </span>
 
-                  {(kasirFilterSekolah !== 'semua' || kasirFilterKelas !== 'semua') && (
+                  {(kasirFilterSekolah !== 'semua' || kasirFilterKelas !== 'semua' || santriSearch.trim()) && (
                     <span
                       onClick={() => {
                         setKasirFilterSekolah('semua');
                         setKasirFilterKelas('semua');
+                        setSantriSearch('');
                       }}
                       style={{ color: '#059669', cursor: 'pointer', fontSize: '0.67rem' }}
                     >
@@ -692,27 +672,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                   padding: '2px'
                 }}>
                   {(() => {
-                    const filtered = (santriList || []).filter((s) => {
-                      if (kasirFilterSekolah !== 'semua') {
-                        const sk = String(s.nama_sekolah || s.tingkat_sekolah || '').toUpperCase();
-                        if (!sk.includes(kasirFilterSekolah)) return false;
-                      }
-                      if (kasirFilterKelas !== 'semua') {
-                        const kl = String(s.tingkat_sekolah || s.nama_kelas || '').toLowerCase();
-                        if (!kl.includes(kasirFilterKelas.toLowerCase())) return false;
-                      }
-                      if (!santriSearch.trim()) return true;
-                      const q = santriSearch.toLowerCase();
-                      return (
-                        (s.nama_santri || '').toLowerCase().includes(q) ||
-                        (s.nis || '').toLowerCase().includes(q) ||
-                        (s.nisn || '').toLowerCase().includes(q) ||
-                        (s.nama_asrama || '').toLowerCase().includes(q) ||
-                        (s.nama_sekolah || '').toLowerCase().includes(q)
-                      );
-                    });
-
-                    if (filtered.length === 0) {
+                    if (displayedSantri.length === 0) {
                       return (
                         <div style={{
                           gridColumn: '1 / -1',
@@ -732,153 +692,183 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                       );
                     }
 
-                    return filtered.slice(0, 60).map((s) => {
-                      const skLabel = s.nama_sekolah || (s.tingkat_sekolah ? `Kelas ${s.tingkat_sekolah}` : 'Santri NWF');
-                      const klsLabel = s.tingkat_sekolah || s.nama_kelas || '-';
-                      const isSMP = skLabel.toUpperCase().includes('SMP');
-                      const isSMA = skLabel.toUpperCase().includes('SMA');
-                      const isSMK = skLabel.toUpperCase().includes('SMK');
+                    return (
+                      <>
+                        {displayedSantri.map((s) => {
+                          const skLabel = s.nama_sekolah || (s.tingkat_sekolah ? `Kelas ${s.tingkat_sekolah}` : 'Santri NWF');
+                          const klsLabel = s.tingkat_sekolah || s.nama_kelas || '-';
+                          const isSMP = skLabel.toUpperCase().includes('SMP');
+                          const isSMA = skLabel.toUpperCase().includes('SMA');
+                          const isSMK = skLabel.toUpperCase().includes('SMK');
 
-                      let badgeBg = '#f1f5f9';
-                      let badgeColor = '#475569';
-                      let cardAccent = '#059669';
-                      if (isSMP) {
-                        badgeBg = '#e0f2fe';
-                        badgeColor = '#0369a1';
-                        cardAccent = '#0284c7';
-                      } else if (isSMA) {
-                        badgeBg = '#fef3c7';
-                        badgeColor = '#b45309';
-                        cardAccent = '#d97706';
-                      } else if (isSMK) {
-                        badgeBg = '#f3e8ff';
-                        badgeColor = '#7e22ce';
-                        cardAccent = '#7c3aed';
-                      }
+                          let badgeBg = '#f1f5f9';
+                          let badgeColor = '#475569';
+                          let cardAccent = '#059669';
+                          if (isSMP) {
+                            badgeBg = '#e0f2fe';
+                            badgeColor = '#0369a1';
+                            cardAccent = '#0284c7';
+                          } else if (isSMA) {
+                            badgeBg = '#fef3c7';
+                            badgeColor = '#b45309';
+                            cardAccent = '#d97706';
+                          } else if (isSMK) {
+                            badgeBg = '#f3e8ff';
+                            badgeColor = '#7e22ce';
+                            cardAccent = '#7c3aed';
+                          }
 
-                      const photoUrl = s.foto || s.foto_santri;
+                          const photoUrl = s.foto || s.foto_santri;
 
-                      return (
-                        <div
-                          key={s.id}
-                          onClick={() => handleSelectSantri(s)}
-                          style={{
-                            background: '#ffffff',
-                            borderRadius: '18px',
-                            padding: '12px 10px 10px',
-                            border: '1px solid #e2e8f0',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            textAlign: 'center',
-                            boxShadow: '0 4px 14px rgba(15, 23, 42, 0.05)',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                            userSelect: 'none',
-                            outline: 'none',
-                            WebkitTapHighlightColor: 'transparent',
-                            position: 'relative',
-                            overflow: 'hidden'
-                          }}
-                        >
-                          {/* Top Badges: Sekolah & Kelas */}
-                          <div style={{
-                            width: '100%',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            marginBottom: '8px'
-                          }}>
-                            <span style={{
-                              fontSize: '0.62rem',
+                          return (
+                            <div
+                              key={s.id}
+                              onClick={() => handleSelectSantri(s)}
+                              style={{
+                                background: '#ffffff',
+                                borderRadius: '18px',
+                                padding: '12px 10px 10px',
+                                border: '1px solid #e2e8f0',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                textAlign: 'center',
+                                boxShadow: '0 4px 14px rgba(15, 23, 42, 0.05)',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                                userSelect: 'none',
+                                outline: 'none',
+                                WebkitTapHighlightColor: 'transparent',
+                                position: 'relative',
+                                overflow: 'hidden'
+                              }}
+                            >
+                              {/* Top Badges: Sekolah & Kelas */}
+                              <div style={{
+                                width: '100%',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                marginBottom: '8px'
+                              }}>
+                                <span style={{
+                                  fontSize: '0.62rem',
+                                  fontWeight: 800,
+                                  background: badgeBg,
+                                  color: badgeColor,
+                                  padding: '2px 7px',
+                                  borderRadius: '6px',
+                                  letterSpacing: '0.2px'
+                                }}>
+                                  {isSMP ? 'SMP' : isSMA ? 'SMA' : isSMK ? 'SMK' : 'NWF'}
+                                </span>
+
+                                <span style={{
+                                  fontSize: '0.62rem',
+                                  fontWeight: 700,
+                                  background: '#f8fafc',
+                                  color: '#64748b',
+                                  border: '1px solid #e2e8f0',
+                                  padding: '1px 6px',
+                                  borderRadius: '6px'
+                                }}>
+                                  {klsLabel}
+                                </span>
+                              </div>
+
+                              {/* Foto Santri / Avatar Bulat Mewah */}
+                              <div style={{
+                                width: '54px',
+                                height: '54px',
+                                borderRadius: '50%',
+                                overflow: 'hidden',
+                                background: 'linear-gradient(135deg, #059669 0%, #0d9488 100%)',
+                                color: '#ffffff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 900,
+                                fontSize: '0.96rem',
+                                marginBottom: '7px',
+                                boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)',
+                                border: '2.5px solid #ffffff'
+                              }}>
+                                {photoUrl ? (
+                                  <img
+                                    src={photoUrl}
+                                    alt={s.nama_santri}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                  />
+                                ) : (
+                                  (s.nama_santri || 'S').slice(0, 2).toUpperCase()
+                                )}
+                              </div>
+
+                              {/* Nama Santri */}
+                              <div style={{
+                                fontWeight: 800,
+                                fontSize: '0.82rem',
+                                color: '#0f172a',
+                                lineHeight: 1.25,
+                                maxHeight: '2.5em',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                marginBottom: '4px'
+                              }}>
+                                {s.nama_santri}
+                              </div>
+
+                              {/* NISN / NIS */}
+                              <div style={{
+                                fontSize: '0.65rem',
+                                color: '#64748b',
+                                fontWeight: 600,
+                                background: '#f8fafc',
+                                padding: '2px 8px',
+                                borderRadius: '6px',
+                                border: '1px solid #f1f5f9',
+                                width: '100%',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}>
+                                NISN: {s.nisn || s.nis || '-'}
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {/* Tombol Muat 50 Santri Lagi jika belum mencari */}
+                        {!santriSearch.trim() && filteredKasirSantri.length > displayedSantri.length && (
+                          <button
+                            type="button"
+                            onClick={() => setSantriDisplayLimit((prev) => prev + 50)}
+                            style={{
+                              gridColumn: '1 / -1',
+                              padding: '12px 14px',
+                              borderRadius: '14px',
+                              background: '#f1f5f9',
+                              border: '1.5px dashed #cbd5e1',
+                              color: '#059669',
                               fontWeight: 800,
-                              background: badgeBg,
-                              color: badgeColor,
-                              padding: '2px 7px',
-                              borderRadius: '6px',
-                              letterSpacing: '0.2px'
-                            }}>
-                              {isSMP ? 'SMP' : isSMA ? 'SMA' : isSMK ? 'SMK' : 'NWF'}
-                            </span>
-
-                            <span style={{
-                              fontSize: '0.62rem',
-                              fontWeight: 700,
-                              background: '#f8fafc',
-                              color: '#64748b',
-                              border: '1px solid #e2e8f0',
-                              padding: '1px 6px',
-                              borderRadius: '6px'
-                            }}>
-                              {klsLabel}
-                            </span>
-                          </div>
-
-                          {/* Foto Santri / Avatar Bulat Mewah */}
-                          <div style={{
-                            width: '54px',
-                            height: '54px',
-                            borderRadius: '50%',
-                            overflow: 'hidden',
-                            background: 'linear-gradient(135deg, #059669 0%, #0d9488 100%)',
-                            color: '#ffffff',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 900,
-                            fontSize: '0.96rem',
-                            marginBottom: '7px',
-                            boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)',
-                            border: '2.5px solid #ffffff'
-                          }}>
-                            {photoUrl ? (
-                              <img
-                                src={photoUrl}
-                                alt={s.nama_santri}
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                onError={(e) => { e.target.style.display = 'none'; }}
-                              />
-                            ) : (
-                              (s.nama_santri || 'S').slice(0, 2).toUpperCase()
-                            )}
-                          </div>
-
-                          {/* Nama Santri */}
-                          <div style={{
-                            fontWeight: 800,
-                            fontSize: '0.82rem',
-                            color: '#0f172a',
-                            lineHeight: 1.25,
-                            maxHeight: '2.5em',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            marginBottom: '4px'
-                          }}>
-                            {s.nama_santri}
-                          </div>
-
-                          {/* NISN / NIS */}
-                          <div style={{
-                            fontSize: '0.65rem',
-                            color: '#64748b',
-                            fontWeight: 600,
-                            background: '#f8fafc',
-                            padding: '2px 8px',
-                            borderRadius: '6px',
-                            border: '1px solid #f1f5f9',
-                            width: '100%',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                          }}>
-                            NISN: {s.nisn || s.nis || '-'}
-                          </div>
-                        </div>
-                      );
-                    });
+                              fontSize: '0.78rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px',
+                              margin: '6px 0 10px'
+                            }}
+                          >
+                            <span>+ Muat 50 Santri Lagi (Tersisa {filteredKasirSantri.length - displayedSantri.length})</span>
+                          </button>
+                        )}
+                      </>
+                    );
                   })()}
                 </div>
               </div>
