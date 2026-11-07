@@ -1130,7 +1130,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                     </div>
                   )}
 
-                  {/* 2. Biaya Bebas / Non-Bulanan (Biaya Masuk, Seragam, dll) */}
+                  {/* 2. Biaya Masuk & Rincian Satuan (Simple & Elegan) */}
                   {santriTagihan.bebas.length > 0 && (
                     <div style={{
                       background: '#ffffff',
@@ -1141,107 +1141,130 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                         <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <Building size={16} color="#d97706" />
-                          <span>Biaya Masuk & Rincian ({santriTagihan.bebas.length} Pos)</span>
+                          <Building size={16} color="#059669" />
+                          <span>Biaya Masuk & Rincian</span>
+                          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b' }}>
+                            ({santriTagihan.bebas.filter((t) => t.status === 'Lunas').length} / {santriTagihan.bebas.length} Lunas)
+                          </span>
                         </div>
                         <button
                           type="button"
                           onClick={handleToggleAllBebas}
                           style={{
-                            background: '#fef3c7',
-                            border: '1px solid #fde68a',
+                            background: '#ecfdf5',
+                            border: '1px solid #a7f3d0',
                             borderRadius: '8px',
                             padding: '4px 10px',
                             fontSize: '0.68rem',
                             fontWeight: 800,
-                            color: '#b45309',
-                            cursor: 'pointer'
+                            color: '#059669',
+                            cursor: 'pointer',
+                            outline: 'none'
                           }}
                         >
                           {santriTagihan.bebas.filter((t) => t.status !== 'Lunas').every((t) => selectedPayMap[t.id] !== undefined) && santriTagihan.bebas.some((t) => t.status !== 'Lunas')
-                            ? 'Batal Pilih Semua'
+                            ? 'Batal Semua'
                             : 'Pilih Semua'}
                         </button>
                       </div>
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {santriTagihan.bebas.map((t) => {
                           const isLunas = t.status === 'Lunas';
-                          const sisa = parseFloat(t.sisa_tagihan || t.total_tagihan || 0);
                           const isChecked = selectedPayMap[t.id] !== undefined;
+                          const sisa = parseFloat(t.sisa_tagihan || t.total_tagihan || 0);
+
+                          // Parsing nama & kategori agar tampilan super bersih & rapi
+                          const matchKat = t.judul_tagihan.match(/\(([^)]+)\)/);
+                          const kategoriTag = matchKat ? matchKat[1] : (t.kategori || 'Masuk');
+                          const cleanName = t.judul_tagihan.replace(/\s*\([^)]*\)/, '');
+                          const isPes = kategoriTag.toLowerCase().includes('pesantren');
 
                           return (
                             <div
                               key={t.id}
+                              onClick={() => !isLunas && handleTogglePay(t.id, sisa)}
                               style={{
-                                padding: '12px',
+                                padding: '12px 14px',
                                 borderRadius: '14px',
-                                border: isChecked ? '1.5px solid #d97706' : '1px solid #e2e8f0',
-                                background: isChecked ? '#fffbeb' : '#ffffff'
+                                border: isChecked ? '1.5px solid #059669' : '1px solid #f1f5f9',
+                                background: isChecked ? '#f0fdf4' : isLunas ? '#f8fafc' : '#ffffff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                cursor: isLunas ? 'default' : 'pointer',
+                                transition: 'all 0.15s ease',
+                                boxShadow: isChecked ? '0 2px 8px rgba(5, 150, 105, 0.08)' : '0 1px 3px rgba(0,0,0,0.02)'
                               }}
                             >
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                                <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#0f172a' }}>
-                                  {t.judul_tagihan}
-                                </div>
-                                <span style={{
-                                  fontSize: '0.65rem',
-                                  fontWeight: 800,
-                                  background: isLunas ? '#dcfce7' : '#fef3c7',
-                                  color: isLunas ? '#15803d' : '#b45309',
-                                  padding: '2px 6px',
-                                  borderRadius: '6px'
-                                }}>
-                                  {t.status}
-                                </span>
-                              </div>
-
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', marginBottom: '8px' }}>
-                                <span>Total: Rp {Number(t.total_tagihan || 0).toLocaleString('id-ID')}</span>
-                                <span style={{ fontWeight: 700, color: '#e11d48' }}>Sisa: Rp {sisa.toLocaleString('id-ID')}</span>
-                              </div>
-
-                              {!isLunas && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                  <button
-                                    onClick={() => handleTogglePay(t.id, sisa)}
-                                    style={{
-                                      flex: 1,
-                                      padding: '7px 10px',
-                                      borderRadius: '8px',
-                                      border: 'none',
-                                      background: isChecked ? '#d97706' : '#f1f5f9',
-                                      color: isChecked ? '#ffffff' : '#334155',
-                                      fontSize: '0.72rem',
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                {!isLunas && (
+                                  <div style={{
+                                    width: '20px',
+                                    height: '20px',
+                                    borderRadius: '6px',
+                                    border: isChecked ? 'none' : '1.5px solid #94a3b8',
+                                    background: isChecked ? '#059669' : '#ffffff',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: '#ffffff',
+                                    flexShrink: 0
+                                  }}>
+                                    {isChecked && <Check size={14} strokeWidth={3} />}
+                                  </div>
+                                )}
+                                <div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{
+                                      fontWeight: 800,
+                                      fontSize: '0.84rem',
+                                      color: isLunas ? '#64748b' : '#0f172a'
+                                    }}>
+                                      {cleanName}
+                                    </span>
+                                    <span style={{
+                                      fontSize: '0.6rem',
                                       fontWeight: 700,
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    {isChecked ? '✓ Lunas Penuh Dicocokkan' : 'Lunasi Sisa Ini'}
-                                  </button>
-
-                                  {(!t.sudah_dibayar || parseFloat(t.sudah_dibayar) === 0) && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteTagihan(t)}
-                                      title="Hapus Tagihan Ini"
-                                      style={{
-                                        padding: '7px 10px',
-                                        borderRadius: '8px',
-                                        border: '1px solid #fee2e2',
-                                        background: '#fef2f2',
-                                        color: '#ef4444',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                      }}
-                                    >
-                                      <Trash2 size={13} />
-                                    </button>
-                                  )}
+                                      padding: '1px 6px',
+                                      borderRadius: '4px',
+                                      background: isPes ? '#e0f2fe' : '#f3e8ff',
+                                      color: isPes ? '#0369a1' : '#7e22ce'
+                                    }}>
+                                      {kategoriTag}
+                                    </span>
+                                  </div>
+                                  <div style={{ fontSize: '0.67rem', color: '#94a3b8', marginTop: '1px' }}>
+                                    {t.periode_bulan || 'TA 2026/2027'}
+                                  </div>
                                 </div>
-                              )}
+                              </div>
+
+                              <div style={{ textAlign: 'right' }}>
+                                {isLunas ? (
+                                  <span style={{
+                                    fontSize: '0.65rem',
+                                    fontWeight: 800,
+                                    background: '#dcfce7',
+                                    color: '#15803d',
+                                    padding: '2px 8px',
+                                    borderRadius: '6px'
+                                  }}>
+                                    Lunas
+                                  </span>
+                                ) : (
+                                  <div>
+                                    <div style={{ fontWeight: 800, fontSize: '0.84rem', color: isChecked ? '#059669' : '#0f172a' }}>
+                                      Rp {sisa.toLocaleString('id-ID')}
+                                    </div>
+                                    {sisa < parseFloat(t.total_tagihan || 0) && (
+                                      <div style={{ fontSize: '0.64rem', color: '#64748b' }}>
+                                        dari Rp {Number(t.total_tagihan || 0).toLocaleString('id-ID')}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           );
                         })}
