@@ -977,7 +977,7 @@ export default function SantriView() {
                       </td>
                       <td className="td-center">
                         <span className="badge badge-info" style={{ fontSize: '0.72rem' }}>
-                          {row.nama_kelas || '-'}
+                          {row.nama_kelas || row.tingkat_diniyah || '-'}
                         </span>
                       </td>
                       <td className="td-center">
@@ -987,19 +987,6 @@ export default function SantriView() {
                         <div style={{ fontSize: '0.66rem', color: '#64748b', marginTop: '2px', fontWeight: 600 }}>
                           {row.tingkat_sekolah || '-'}
                         </div>
-                      </td>
-                        <span
-                          className="badge"
-                          style={{
-                            background: '#ecfdf5',
-                            color: '#047857',
-                            border: '1px solid #a7f3d0',
-                            fontWeight: 800,
-                            fontSize: '0.72rem'
-                          }}
-                        >
-                          {row.nama_kelas || row.tingkat_diniyah || '1A'}
-                        </span>
                       </td>
                       <td className="td-center">
                         <span className={`badge ${row.jk === 'L' ? 'badge-info' : 'badge-purple'}`}>
