@@ -139,8 +139,9 @@ export default function MobileKeuanganLayout() {
           <button
             className={`mobile-nav-item ${activeTab === 'home' ? 'active' : ''}`}
             onClick={() => handleSelectTab('home')}
+            style={{ outline: 'none', border: 'none', boxShadow: 'none', WebkitTapHighlightColor: 'transparent' }}
           >
-            <div className={`nav-icon-wrapper ${activeTab === 'home' ? 'active' : ''}`}>
+            <div className={`nav-icon-wrapper ${activeTab === 'home' ? 'active' : ''}`} style={{ outline: 'none', border: 'none', boxShadow: 'none' }}>
               <Home size={20} />
             </div>
             <span>Beranda</span>
@@ -150,8 +151,9 @@ export default function MobileKeuanganLayout() {
           <button
             className={`mobile-nav-item ${(activeTab === 'keuangan-kasir' || activeTab === 'kasir' || activeTab === 'keuangan-spp' || activeTab === 'spp') ? 'active' : ''}`}
             onClick={() => handleSelectTab('keuangan-kasir')}
+            style={{ outline: 'none', border: 'none', boxShadow: 'none', WebkitTapHighlightColor: 'transparent' }}
           >
-            <div className={`nav-icon-wrapper ${(activeTab === 'keuangan-kasir' || activeTab === 'kasir' || activeTab === 'keuangan-spp' || activeTab === 'spp') ? 'active' : ''}`}>
+            <div className={`nav-icon-wrapper ${(activeTab === 'keuangan-kasir' || activeTab === 'kasir' || activeTab === 'keuangan-spp' || activeTab === 'spp') ? 'active' : ''}`} style={{ outline: 'none', border: 'none', boxShadow: 'none' }}>
               <CreditCard size={20} />
             </div>
             <span>Kasir</span>
@@ -161,8 +163,9 @@ export default function MobileKeuanganLayout() {
           <button
             className={`mobile-nav-item ${(activeTab === 'keuangan-rekap' || activeTab === 'laporan' || activeTab === 'rekap') ? 'active' : ''}`}
             onClick={() => handleSelectTab('keuangan-rekap')}
+            style={{ outline: 'none', border: 'none', boxShadow: 'none', WebkitTapHighlightColor: 'transparent' }}
           >
-            <div className={`nav-icon-wrapper ${(activeTab === 'keuangan-rekap' || activeTab === 'laporan' || activeTab === 'rekap') ? 'active' : ''}`}>
+            <div className={`nav-icon-wrapper ${(activeTab === 'keuangan-rekap' || activeTab === 'laporan' || activeTab === 'rekap') ? 'active' : ''}`} style={{ outline: 'none', border: 'none', boxShadow: 'none' }}>
               <BarChart3 size={20} />
             </div>
             <span>Laporan</span>
@@ -172,8 +175,9 @@ export default function MobileKeuanganLayout() {
           <button
             className={`mobile-nav-item ${activeTab === 'profil' ? 'active' : ''}`}
             onClick={() => handleSelectTab('profil')}
+            style={{ outline: 'none', border: 'none', boxShadow: 'none', WebkitTapHighlightColor: 'transparent' }}
           >
-            <div className={`nav-icon-wrapper ${activeTab === 'profil' ? 'active' : ''}`}>
+            <div className={`nav-icon-wrapper ${activeTab === 'profil' ? 'active' : ''}`} style={{ outline: 'none', border: 'none', boxShadow: 'none' }}>
               <User size={20} />
             </div>
             <span>Profil</span>

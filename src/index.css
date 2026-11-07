@@ -1548,6 +1548,9 @@ body {
   gap: 3px;
   background: transparent;
   border: none;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
   color: rgba(255, 255, 255, 0.72);
   font-size: 0.68rem;
   font-weight: 700;
@@ -1557,6 +1560,16 @@ body {
   border-radius: 12px;
   transition: all 0.18s ease;
   user-select: none;
+}
+
+.mobile-nav-item:focus,
+.mobile-nav-item:focus-visible,
+.mobile-nav-item:active {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+  -webkit-tap-highlight-color: transparent !important;
 }
 
 .mobile-nav-item:active {
@@ -1572,18 +1585,24 @@ body {
   border-radius: 12px;
   transition: all 0.18s ease;
   color: rgba(255, 255, 255, 0.75);
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  -webkit-tap-highlight-color: transparent !important;
 }
 
 .nav-icon-wrapper.active {
   background: rgba(255, 255, 255, 0.2);
   color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .mobile-nav-item.active {
   color: #ffffff;
   font-weight: 800;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .mobile-fab-center {
