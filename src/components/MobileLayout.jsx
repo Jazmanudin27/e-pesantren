@@ -64,6 +64,7 @@ import MobileTabungan from '../views/mobile/MobileTabungan';
 import LaporanInfakAdminView from '../views/keuangan/LaporanInfakAdminView';
 import PesanKomunikasiAdminView from '../views/admin/PesanKomunikasiAdminView';
 import WhatsAppGatewayView from '../views/admin/WhatsAppGatewayView';
+import MobileHomeKeuangan from '../views/mobile/MobileHomeKeuangan';
 import { canAccessKeuangan } from '../utils/authRole.util';
 
 export default function MobileLayout() {
@@ -234,7 +235,10 @@ export default function MobileLayout() {
   const isBendahara = (() => {
     const role = String(session?.role || '').toLowerCase();
     const uName = String(session?.username || '').toLowerCase();
-    return role.includes('keuangan') || role.includes('bendahara') || uName === 'bendahara' || uName === 'keuangan';
+    const uType = String(session?.userType || '').toLowerCase();
+    return role.includes('keuangan') || role.includes('bendahara') || 
+           uName.includes('bendahara') || uName.includes('keuangan') ||
+           uType.includes('bendahara') || uType.includes('keuangan');
   })();
 
   const getSubmenuTitle = () => {
@@ -419,6 +423,9 @@ export default function MobileLayout() {
       case 'profil':
         return <MobileProfil onChangeTab={handleSelectTab} onLogout={handleLogout} />;
       default:
+        if (isBendahara) {
+          return <MobileHomeKeuangan onChangeTab={handleSelectTab} onLogout={handleLogout} />;
+        }
         return <MobileHome onChangeTab={handleSelectTab} />;
     }
   };
