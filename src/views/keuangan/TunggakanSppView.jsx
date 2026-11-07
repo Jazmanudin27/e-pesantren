@@ -20,7 +20,6 @@ import {
   Phone,
   FileText
 } from 'lucide-react';
-import ModalSiklusSpp from './components/ModalSiklusSpp';
 import { toastSuccess, toastError, showConfirm } from '../../utils/alert.util';
 
 export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
@@ -37,15 +36,6 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
 
   // Modal Rincian Detail Santri
   const [selectedSantriDetail, setSelectedSantriDetail] = useState(null);
-
-  // Modal Atur Siklus SPP
-  const [isSiklusModalOpen, setIsSiklusModalOpen] = useState(false);
-  const [siklusForm, setSiklusForm] = useState({
-    tgl_terbit_spp: 5,
-    tgl_jatuh_tempo_spp: 10,
-    apply_to_existing: true
-  });
-  const [savingSiklus, setSavingSiklus] = useState(false);
 
   const formatRp = (num) => `Rp ${(Number(num) || 0).toLocaleString('id-ID')}`;
 
@@ -76,23 +66,6 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
   useEffect(() => {
     fetchTunggakan();
   }, []);
-
-  const handleSaveSiklus = async (e) => {
-    e?.preventDefault();
-    try {
-      setSavingSiklus(true);
-      const res = await axios.post('/api/keuangan/siklus-spp', siklusForm);
-      if (res.data?.success) {
-        toastSuccess('Siklus Disimpan', res.data.message || 'Pengaturan siklus SPP berhasil disimpan.');
-        setIsSiklusModalOpen(false);
-        fetchTunggakan();
-      }
-    } catch (err) {
-      toastError(err.response?.data?.message || 'Gagal menyimpan pengaturan siklus SPP');
-    } finally {
-      setSavingSiklus(false);
-    }
-  };
 
   // Navigasi ke Kasir dengan Santri yang dipilih
   const handleBayarDiKasir = (santri) => {
@@ -219,37 +192,12 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
             )}
             <div>
               <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>Tunggakan SPP Bulanan</span>
+                <span>Tunggakan SPP</span>
               </h2>
-              <div style={{ fontSize: '0.72rem', color: '#a7f3d0', marginTop: '2px' }}>
-                Lewat Batas Jatuh Tempo (Setiap Tgl {summary.tgl_jatuh_tempo_spp || 10})
-              </div>
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <button
-              type="button"
-              onClick={() => setIsSiklusModalOpen(true)}
-              style={{
-                background: 'rgba(255, 255, 255, 0.22)',
-                border: '1px solid rgba(255, 255, 255, 0.35)',
-                color: '#ffffff',
-                padding: '7px 10px',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                fontSize: '0.72rem',
-                fontWeight: 800,
-                cursor: 'pointer'
-              }}
-              title="Atur Tanggal Jatuh Tempo SPP"
-            >
-              <Settings size={14} />
-              <span>Siklus</span>
-            </button>
-
             <button
               type="button"
               onClick={fetchTunggakan}
@@ -285,7 +233,7 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
         >
           <div style={{ fontSize: '0.72rem', color: '#fecaca', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '5px' }}>
             <AlertTriangle size={13} color="#f87171" />
-            <span>Total Piutang Tunggakan SPP Bulanan</span>
+            <span>Total Piutang Tunggakan SPP</span>
           </div>
           <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#fee2e2', marginTop: '4px', letterSpacing: '-0.5px' }}>
             {formatRp(summary.total_nominal_tunggakan)}
@@ -994,16 +942,6 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
           </div>
         </div>
       )}
-
-      {/* 5. MODAL ATUR SIKLUS SPP */}
-      <ModalSiklusSpp
-        isOpen={isSiklusModalOpen}
-        onClose={() => setIsSiklusModalOpen(false)}
-        siklusForm={siklusForm}
-        setSiklusForm={setSiklusForm}
-        savingSiklus={savingSiklus}
-        onSaveSiklus={handleSaveSiklus}
-      />
     </div>
   );
 }

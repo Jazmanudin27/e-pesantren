@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import {
   User,
   ShieldCheck,
@@ -13,9 +14,56 @@ import {
   Info,
   ChevronRight,
   UserCheck,
+  Calendar,
+  Settings
 } from "lucide-react";
+import ModalSiklusSpp from "../keuangan/components/ModalSiklusSpp";
+import { toastSuccess, toastError } from "../../utils/alert.util";
 
 export default function MobileProfil({ onChangeTab, onLogout }) {
+  // State Pengaturan Siklus SPP
+  const [isSiklusModalOpen, setIsSiklusModalOpen] = useState(false);
+  const [siklusForm, setSiklusForm] = useState({
+    tgl_terbit_spp: 5,
+    tgl_jatuh_tempo_spp: 10,
+    apply_to_existing: true
+  });
+  const [savingSiklus, setSavingSiklus] = useState(false);
+
+  useEffect(() => {
+    const fetchSiklus = async () => {
+      try {
+        const res = await axios.get('/api/keuangan/admin/home-summary');
+        if (res.data?.data?.siklusSpp) {
+          const s = res.data.data.siklusSpp;
+          setSiklusForm({
+            tgl_terbit_spp: s.tgl_terbit_spp || 5,
+            tgl_jatuh_tempo_spp: s.tgl_jatuh_tempo_spp || 10,
+            apply_to_existing: true
+          });
+        }
+      } catch (e) {
+        console.warn('Gagal load siklus spp di profil:', e.message);
+      }
+    };
+    fetchSiklus();
+  }, []);
+
+  const handleSaveSiklus = async (e) => {
+    e?.preventDefault();
+    try {
+      setSavingSiklus(true);
+      const res = await axios.post('/api/keuangan/siklus-spp', siklusForm);
+      if (res.data?.success) {
+        toastSuccess('Siklus Disimpan', res.data.message || 'Pengaturan siklus SPP berhasil disimpan.');
+        setIsSiklusModalOpen(false);
+      }
+    } catch (err) {
+      toastError(err.response?.data?.message || 'Gagal menyimpan pengaturan siklus SPP');
+    } finally {
+      setSavingSiklus(false);
+    }
+  };
   const sessionData = (() => {
     try {
       return JSON.parse(localStorage.getItem("mobile_session") || "{}");
@@ -273,6 +321,82 @@ export default function MobileProfil({ onChangeTab, onLogout }) {
         </div>
       </div>
 
+      {/* Pengaturan Keuangan & Siklus SPP */}
+      <div
+        style={{
+          background: "#ffffff",
+          borderRadius: "16px",
+          padding: "8px 16px",
+          border: "1px solid #e2e8f0",
+          marginBottom: "16px",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "0.8rem",
+            fontWeight: 800,
+            color: "#0f172a",
+            textTransform: "uppercase",
+            margin: "12px 0 8px",
+            letterSpacing: "0.04em",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between"
+          }}
+        >
+          <span>Pengaturan Keuangan</span>
+          <span style={{ fontSize: "0.65rem", background: "#ecfdf5", color: "#059669", padding: "2px 7px", borderRadius: "6px", fontWeight: 700 }}>
+            Bendahara
+          </span>
+        </div>
+
+        {/* Tombol Atur Siklus SPP */}
+        <button
+          type="button"
+          onClick={() => setIsSiklusModalOpen(true)}
+          style={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "12px 0",
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div
+              style={{
+                width: "38px",
+                height: "38px",
+                borderRadius: "10px",
+                background: "#f0fdf4",
+                color: "#16a34a",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "1px solid #bbf7d0",
+                flexShrink: 0
+              }}
+            >
+              <Calendar size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#1e293b" }}>
+                Siklus & Jatuh Tempo SPP
+              </div>
+              <div style={{ fontSize: "0.7rem", color: "#64748b", marginTop: "2px" }}>
+                Terbit Tgl {siklusForm.tgl_terbit_spp || 5} • Jatuh Tempo Tgl {siklusForm.tgl_jatuh_tempo_spp || 10} Tiap Bulan
+              </div>
+            </div>
+          </div>
+          <ChevronRight size={16} color="#94a3b8" />
+        </button>
+      </div>
+
       {/* Account Settings Menu */}
       <div
         style={{
@@ -394,6 +518,16 @@ export default function MobileProfil({ onChangeTab, onLogout }) {
       >
         <LogOut size={18} /> Keluar dari Akun Mobile
       </button>
+
+      {/* Modal Atur Siklus SPP */}
+      <ModalSiklusSpp
+        isOpen={isSiklusModalOpen}
+        onClose={() => setIsSiklusModalOpen(false)}
+        siklusForm={siklusForm}
+        setSiklusForm={setSiklusForm}
+        savingSiklus={savingSiklus}
+        onSaveSiklus={handleSaveSiklus}
+      />
     </div>
   );
 }

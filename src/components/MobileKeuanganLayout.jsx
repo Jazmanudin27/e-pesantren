@@ -16,7 +16,8 @@ import {
   Menu,
   X,
   LogOut,
-  Smartphone
+  Smartphone,
+  Settings
 } from 'lucide-react';
 import MobileHomeKeuangan from '../views/keuangan/MobileHomeKeuangan';
 import MobileKeuangan from '../views/mobile/MobileKeuangan';
@@ -128,6 +129,8 @@ export default function MobileKeuanganLayout() {
       case 'santri':
         return <MobileSantri onBackToHome={() => handleSelectTab('home')} />;
       case 'profil':
+      case 'setting':
+      case 'settings':
         return <MobileProfil onChangeTab={handleSelectTab} onLogout={handleLogout} />;
       default:
         return <MobileHomeKeuangan onChangeTab={handleSelectTab} onLogout={handleLogout} />;
@@ -179,16 +182,16 @@ export default function MobileKeuanganLayout() {
             <span>Laporan</span>
           </button>
 
-          {/* 5. Profil */}
+          {/* 4. Setting */}
           <button
-            className={`mobile-nav-item ${activeTab === 'profil' ? 'active' : ''}`}
-            onClick={() => handleSelectTab('profil')}
+            className={`mobile-nav-item ${(activeTab === 'profil' || activeTab === 'setting' || activeTab === 'settings') ? 'active' : ''}`}
+            onClick={() => handleSelectTab('setting')}
             style={{ outline: 'none', border: 'none', boxShadow: 'none', WebkitTapHighlightColor: 'transparent' }}
           >
-            <div className={`nav-icon-wrapper ${activeTab === 'profil' ? 'active' : ''}`} style={{ outline: 'none', border: 'none', boxShadow: 'none' }}>
-              <User size={20} />
+            <div className={`nav-icon-wrapper ${(activeTab === 'profil' || activeTab === 'setting' || activeTab === 'settings') ? 'active' : ''}`} style={{ outline: 'none', border: 'none', boxShadow: 'none' }}>
+              <Settings size={20} />
             </div>
-            <span>Profil</span>
+            <span>Setting</span>
           </button>
         </nav>
       </div>
