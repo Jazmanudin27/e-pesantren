@@ -26,6 +26,7 @@ import MobileSantri from '../views/mobile/MobileSantri';
 import MobileLogin from '../views/mobile/MobileLogin';
 import LaporanInfakAdminView from '../views/keuangan/LaporanInfakAdminView';
 import RincianKasMasukView from '../views/keuangan/RincianKasMasukView';
+import TunggakanSppView from '../views/keuangan/TunggakanSppView';
 import WhatsAppGatewayView from '../views/admin/WhatsAppGatewayView';
 
 export default function MobileKeuanganLayout() {
@@ -111,7 +112,7 @@ export default function MobileKeuanganLayout() {
         return <MobileKeuangan initialSubTab="masuk" onBackToHome={() => handleSelectTab('home')} />;
       case 'keuangan-tunggakan':
       case 'tunggakan':
-        return <MobileKeuangan initialSubTab="tunggakan" onBackToHome={() => handleSelectTab('home')} />;
+        return <TunggakanSppView onBackToHome={() => handleSelectTab('home')} onChangeTab={handleSelectTab} />;
       case 'keuangan-transaksi':
       case 'transaksi':
         return <MobileKeuangan initialSubTab="transaksi" onBackToHome={() => handleSelectTab('home')} />;

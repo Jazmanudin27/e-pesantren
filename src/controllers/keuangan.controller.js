@@ -1079,6 +1079,119 @@ export const getKasMasukSahList = async (req, res) => {
 };
 
 /**
+ * Admin / Mobile: Halaman Khusus Tunggakan SPP Bulanan
+ * Hanya menampilkan santri yang memiliki tunggakan SPP bulanan yang telah melewati tanggal jatuh tempo (default tgl 10).
+ * Tagihan biasa / non-bulanan / awal masuk tidak dimasukkan.
+ */
+export const getTunggakanSppBulananList = async (req, res) => {
+  try {
+    if (req.user && !canAccessKeuangan(req.user)) {
+      return sendError(res, 'Akses Ditolak: Fitur keuangan khusus untuk Admin Keuangan / Bendahara.', 403);
+    }
+
+    const siklusSpp = await getSiklusSppData();
+    const tglTempo = siklusSpp.tgl_jatuh_tempo_spp || 10;
+
+    const [rows] = await pool.query(`
+      SELECT 
+        s.id as santri_id,
+        s.nis,
+        s.nisn,
+        s.nama_santri,
+        s.nama_wali,
+        s.no_wa_wali,
+        COALESCE(s.nama_kelas, kl.nama_kelas, s.tingkat_sekolah, '-') as nama_kelas,
+        COALESCE(s.tingkat_sekolah, kl.nama_kelas, s.nama_kelas, '-') as tingkat_sekolah,
+        COALESCE(sk.nama_sekolah, s.nama_sekolah, 'SMP Nurul Wafa') as nama_sekolah,
+        COALESCE(sk.jenjang, 'SMP') as sekolah_jenjang,
+        a.nama_asrama,
+        k.nama_kamar,
+        COUNT(t.id) as jumlah_bulan_nunggak,
+        COALESCE(SUM(t.sisa_tagihan), 0) as total_nominal_tunggakan,
+        GROUP_CONCAT(
+          CONCAT(
+            COALESCE(t.periode_bulan, t.judul_tagihan), 
+            '|', 
+            t.sisa_tagihan,
+            '|',
+            COALESCE(DATE_FORMAT(t.jatuh_tempo, '%d/%m/%Y'), '-')
+          ) 
+          ORDER BY COALESCE(t.jatuh_tempo, t.id) ASC 
+          SEPARATOR ';;'
+        ) as rincian_tunggakan_raw
+      FROM keuangan_tagihan t
+      JOIN santri s ON t.santri_id = s.id
+      LEFT JOIN asrama a ON s.asrama_id = a.id
+      LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+      LEFT JOIN sekolah sk ON s.sekolah_id = sk.id
+      LEFT JOIN kelas kl ON (s.kelas_id = kl.id OR s.nama_kelas = kl.nama_kelas)
+      WHERE t.kategori = 'Bulanan'
+        AND t.status != 'Lunas'
+        AND (
+          (t.jatuh_tempo IS NOT NULL AND t.jatuh_tempo <= CURDATE())
+          OR 
+          (t.jatuh_tempo IS NULL AND (
+            STR_TO_DATE(CONCAT('01 ', t.periode_bulan), '%d %M %Y') < DATE_FORMAT(CURDATE(), '%Y-%m-01')
+            OR (
+              DATE_FORMAT(STR_TO_DATE(CONCAT('01 ', t.periode_bulan), '%d %M %Y'), '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')
+              AND DAY(CURDATE()) > ?
+            )
+          ))
+        )
+      GROUP BY s.id, s.nis, s.nisn, s.nama_santri, s.nama_wali, s.no_wa_wali, 
+               s.nama_kelas, kl.nama_kelas, s.tingkat_sekolah, sk.nama_sekolah, 
+               s.nama_sekolah, sk.jenjang, a.nama_asrama, k.nama_kamar
+      HAVING total_nominal_tunggakan > 0
+      ORDER BY total_nominal_tunggakan DESC, jumlah_bulan_nunggak DESC
+    `, [tglTempo]);
+
+    const santriTunggakan = rows.map((row) => {
+      const items = (row.rincian_tunggakan_raw || '')
+        .split(';;')
+        .filter(Boolean)
+        .map((it) => {
+          const [judul, sisa, tempoStr] = it.split('|');
+          return {
+            bulan: judul || 'SPP Bulanan',
+            nominal: parseFloat(sisa) || 0,
+            jatuh_tempo: tempoStr || '-'
+          };
+        });
+
+      return {
+        santri_id: row.santri_id,
+        nis: row.nis || '-',
+        nama_santri: row.nama_santri,
+        nama_wali: row.nama_wali || 'Wali Santri',
+        no_wa_wali: row.no_wa_wali || '',
+        nama_kelas: row.nama_kelas,
+        tingkat_sekolah: row.tingkat_sekolah,
+        nama_sekolah: row.nama_sekolah,
+        nama_asrama: row.nama_asrama || '-',
+        nama_kamar: row.nama_kamar || '-',
+        jumlah_bulan_nunggak: row.jumlah_bulan_nunggak,
+        total_nominal_tunggakan: parseFloat(row.total_nominal_tunggakan) || 0,
+        rincian_spp: items
+      };
+    });
+
+    const totalTunggakanSemua = santriTunggakan.reduce((sum, item) => sum + item.total_nominal_tunggakan, 0);
+
+    return sendSuccess(res, 'Daftar tunggakan SPP bulanan berhasil dimuat', {
+      summary: {
+        total_nominal_tunggakan: totalTunggakanSemua,
+        total_santri_menunggak: santriTunggakan.length,
+        tgl_jatuh_tempo_spp: tglTempo
+      },
+      siklusSpp,
+      santri: santriTunggakan
+    });
+  } catch (err) {
+    return sendError(res, `Gagal memuat tunggakan SPP: ${err.message}`, 500);
+  }
+};
+
+/**
  * Admin: Rekap Seluruh Keuangan, Komponen, dan Tunggakan
  * Dioptimalkan dengan query paralel Promise.all dan subquery agregasi efisien
  */

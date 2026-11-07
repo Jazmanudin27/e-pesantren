@@ -261,6 +261,18 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
     fetchTagihanSantri(santri.id);
   };
 
+  // Cek apakah ada santri yang dipilih dari halaman Tunggakan
+  useEffect(() => {
+    const saved = localStorage.getItem('selected_kasir_santri');
+    if (saved) {
+      try {
+        const s = JSON.parse(saved);
+        localStorage.removeItem('selected_kasir_santri');
+        handleSelectSantri(s);
+      } catch (_) {}
+    }
+  }, []);
+
   // Toggle Checkbox Tagihan
   const handleTogglePay = (tagihanId, sisaNominal) => {
     setSelectedPayMap((prev) => {

@@ -9,6 +9,7 @@ import {
   getRekapKeuanganAdmin,
   getHomeKeuanganSummary,
   getKasMasukSahList,
+  getTunggakanSppBulananList,
   createTagihanAdmin,
   updateTagihanAdmin,
   deleteTagihanAdmin,
@@ -58,6 +59,8 @@ router.get('/admin/home-summary', getHomeKeuanganSummary);
 router.get('/home-summary', getHomeKeuanganSummary);
 router.get('/admin/kas-masuk-sah', getKasMasukSahList);
 router.get('/kas-masuk-sah', getKasMasukSahList);
+router.get('/admin/tunggakan-spp', getTunggakanSppBulananList);
+router.get('/tunggakan-spp', getTunggakanSppBulananList);
 router.get('/admin/rekap', getRekapKeuanganAdmin);
 router.get('/rekap', getRekapKeuanganAdmin);
 router.get('/siklus-spp', getSiklusSpp);
