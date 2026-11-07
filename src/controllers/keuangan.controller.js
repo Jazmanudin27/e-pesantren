@@ -1656,8 +1656,18 @@ export const generateAutoTagihanAdmin = async (req, res) => {
 
     await connection.beginTransaction();
 
-    // Fallback jika dipanggil tanpa komponen_id
-    if (!komponen_id) {
+    // Fallback jika dipanggil tanpa komponen_id: cari komponen SPP Bulanan aktif
+    let activeKompId = komponen_id;
+    if (!activeKompId) {
+      const [defaultKompRows] = await connection.query(
+        "SELECT id FROM keuangan_komponen_biaya WHERE kategori = 'Bulanan' OR nama_komponen LIKE '%SPP%' ORDER BY id ASC LIMIT 1"
+      );
+      if (defaultKompRows && defaultKompRows.length > 0) {
+        activeKompId = defaultKompRows[0].id;
+      }
+    }
+
+    if (!activeKompId) {
       let totalGenerated = 0;
       if (!santri_id) {
         const [allSantri] = await connection.query('SELECT id FROM santri ORDER BY id ASC');
@@ -1675,7 +1685,7 @@ export const generateAutoTagihanAdmin = async (req, res) => {
     }
 
     // 1. Ambil Detail Pos & Tarif Pembayaran
-    const [kompRows] = await connection.query('SELECT * FROM keuangan_komponen_biaya WHERE id = ? LIMIT 1', [komponen_id]);
+    const [kompRows] = await connection.query('SELECT * FROM keuangan_komponen_biaya WHERE id = ? LIMIT 1', [activeKompId]);
     if (!kompRows || kompRows.length === 0) {
       await connection.rollback();
       return sendError(res, 'Pos & Tarif Pembayaran tidak ditemukan', 404);
@@ -1765,9 +1775,15 @@ export const generateAutoTagihanAdmin = async (req, res) => {
       queryParams.push(filter_kamar.trim(), filter_kamar.trim());
     }
 
-    if (filter_sekolah && filter_sekolah !== 'Semua' && filter_sekolah.trim() !== '') {
-      santriQuery += ' AND (s.sekolah_id = ? OR s.nama_sekolah LIKE ? OR sk.jenjang = ?)';
-      queryParams.push(filter_sekolah, `%${filter_sekolah}%`, filter_sekolah);
+    if (filter_sekolah && filter_sekolah !== 'Semua' && String(filter_sekolah).trim() !== '') {
+      const isNum = !isNaN(Number(filter_sekolah)) && String(filter_sekolah).trim() !== '';
+      if (isNum) {
+        santriQuery += ' AND s.sekolah_id = ?';
+        queryParams.push(Number(filter_sekolah));
+      } else {
+        santriQuery += ' AND (UPPER(COALESCE(sk.jenjang, "")) = UPPER(?) OR UPPER(COALESCE(s.nama_sekolah, "")) LIKE UPPER(?) OR UPPER(COALESCE(sk.nama_sekolah, "")) LIKE UPPER(?))';
+        queryParams.push(filter_sekolah, `%${filter_sekolah}%`, `%${filter_sekolah}%`);
+      }
     }
 
     santriQuery += ' ORDER BY s.id ASC';

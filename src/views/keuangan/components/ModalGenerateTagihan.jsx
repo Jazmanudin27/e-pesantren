@@ -290,12 +290,9 @@ export default function ModalGenerateTagihan({
   // 5. Generate SPP Bulanan ke Database
   const handleGenerateSpp = async (e) => {
     e?.preventDefault();
-    if (!selectedKomponenId) {
-      showError('Pilih Komponen', 'Pilih pos biaya terlebih dahulu.');
-      return;
-    }
+    const bulananKomp = komponenList.find((k) => k.kategori === 'Bulanan' || (k.nama_komponen && k.nama_komponen.toLowerCase().includes('spp'))) || komponenList[0];
+    const targetKompId = selectedKomponenId || (bulananKomp ? String(bulananKomp.id) : '');
 
-    const selKomp = komponenList.find((k) => String(k.id) === String(selectedKomponenId));
     const namaBulanMulai = NAMA_BULAN.find((b) => b.id === String(bulanMulai))?.name || bulanMulai;
     const namaBulanSelesai = NAMA_BULAN.find((b) => b.id === String(bulanSelesai))?.name || bulanSelesai;
     const periodeLabel =
@@ -305,7 +302,7 @@ export default function ModalGenerateTagihan({
 
     const ok = await showConfirm(
       'Konfirmasi Terbitkan SPP',
-      `Terbitkan tagihan "${selKomp?.nama_komponen || 'SPP'}" untuk santri ${sekolahSpp ? `Sekolah ${sekolahSpp}` : 'Semua Sekolah'} periode ${periodeLabel}?\n\nTagihan akan langsung disimpan ke database.`,
+      `Terbitkan tagihan SPP untuk santri ${sekolahSpp ? `Sekolah ${sekolahSpp}` : 'Semua Sekolah'} periode ${periodeLabel}?\n\nTagihan akan langsung disimpan ke database.`,
       'Ya, Simpan ke Database',
       'Batal'
     );
@@ -314,7 +311,7 @@ export default function ModalGenerateTagihan({
     try {
       setLoading(true);
       const res = await axios.post('/api/keuangan/admin/generate-auto', {
-        komponen_id: parseInt(selectedKomponenId),
+        komponen_id: targetKompId ? parseInt(targetKompId) : null,
         mode_generasi: modeSpp,
         bulan_mulai: parseInt(bulanMulai),
         tahun_mulai: parseInt(tahunMulai),
@@ -1173,38 +1170,11 @@ export default function ModalGenerateTagihan({
               </select>
             </div>
 
-            {/* Pos Biaya */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
-                2. Pos Komponen Biaya:
-              </label>
-              <select
-                value={selectedKomponenId}
-                onChange={(e) => setSelectedKomponenId(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '9px 12px',
-                  borderRadius: '12px',
-                  border: '1.5px solid #cbd5e1',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  color: '#0f172a',
-                  background: '#ffffff'
-                }}
-              >
-                {komponenList.map((k) => (
-                  <option key={k.id} value={k.id}>
-                    {k.nama_komponen} ({k.kategori}) — {formatRp(k.nominal_default)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             {/* Mode & Periode Bulan */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a' }}>
-                  3. Periode Bulan:
+                  2. Periode Bulan:
                 </label>
                 <div style={{ display: 'flex', gap: '4px', background: '#f1f5f9', padding: '2px', borderRadius: '8px' }}>
                   <button
