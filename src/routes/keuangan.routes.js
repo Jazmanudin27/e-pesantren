@@ -58,6 +58,7 @@ router.post('/admin/siklus-spp', updateSiklusSpp);
 router.post('/admin/tagihan', createTagihanAdmin);
 router.put('/admin/tagihan/:id', updateTagihanAdmin);
 router.delete('/admin/tagihan/:id', deleteTagihanAdmin);
+router.delete('/tagihan/:id', deleteTagihanAdmin);
 router.post('/admin/generate-auto', generateAutoTagihanAdmin);
 router.post('/admin/bayar-langsung', bayarTagihanLangsungAdmin);
 router.post('/admin/cek-status-midtrans', cekStatusMidtransAdmin);

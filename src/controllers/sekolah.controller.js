@@ -526,7 +526,7 @@ export const generateTagihanAwalMasukSekolah = async (req, res) => {
     const {
       jenjang = 'SMP', // 'SMP' | 'SMA' | 'SMK' | 'SEMUA'
       tahun_ajaran = '2026/2027',
-      mode = 'paket', // 'paket' (Adm Sekolah + Adm Pesantren) | 'total' (1 tagihan total)
+      mode = 'rincian', // 'rincian' (per item rincian satuan) | 'paket' (Adm Sekolah & Adm Pesantren) | 'total' (1 tagihan total)
       kategori = 'semua', // 'semua' | 'sekolah' | 'pesantren'
       santri_id
     } = req.body;
@@ -611,10 +611,61 @@ export const generateTagihanAwalMasukSekolah = async (req, res) => {
       const jKey = (santri.jenjang || (santri.nama_sekolah?.includes('SMA') ? 'SMA' : santri.nama_sekolah?.includes('SMK') ? 'SMK' : 'SMP')).toUpperCase();
       const master = getTotalsForJenjang(jKey);
 
+      // Jika mode rincian, bersihkan tagihan paket gelondongan lama yang belum dibayar agar tidak menduplikasi tagihan
+      if (mode === 'rincian') {
+        if (kategori === 'pesantren') {
+          await connection.query(`
+            DELETE FROM keuangan_tagihan 
+            WHERE santri_id = ? AND status = 'Belum Dibayar' AND sudah_dibayar = 0 
+              AND (judul_tagihan LIKE 'Adm Pesantren%' OR judul_tagihan LIKE 'Biaya Awal Masuk%')
+          `, [santri.id]);
+        } else if (kategori === 'sekolah') {
+          await connection.query(`
+            DELETE FROM keuangan_tagihan 
+            WHERE santri_id = ? AND status = 'Belum Dibayar' AND sudah_dibayar = 0 
+              AND (judul_tagihan LIKE 'Adm Sekolah%' OR judul_tagihan LIKE 'Biaya Awal Masuk%')
+          `, [santri.id]);
+        } else {
+          await connection.query(`
+            DELETE FROM keuangan_tagihan 
+            WHERE santri_id = ? AND status = 'Belum Dibayar' AND sudah_dibayar = 0 
+              AND (judul_tagihan LIKE 'Adm Pesantren%' OR judul_tagihan LIKE 'Adm Sekolah%' OR judul_tagihan LIKE 'Biaya Awal Masuk%')
+          `, [santri.id]);
+        }
+      }
+
       const billItems = [];
       const totalMasukTanpaSpp = master.total_adm_sekolah + master.total_adm_pesantren;
 
-      if (kategori === 'sekolah') {
+      if (mode === 'rincian') {
+        // Mode Rincian Item: Generate setiap rincian (Pendaftaran, Kaos, K. Mahrom, Infaq, dll) jadi 1 tagihan
+        let itemsForJ = liveItems.filter(i => i.jenjang === jKey && (
+          kategori === 'semua' ? (i.kategori_komponen === 'Adm Sekolah' || i.kategori_komponen === 'Adm Pesantren') :
+          kategori === 'sekolah' ? i.kategori_komponen === 'Adm Sekolah' :
+          kategori === 'pesantren' ? i.kategori_komponen === 'Adm Pesantren' : false
+        ));
+
+        if (!itemsForJ || itemsForJ.length === 0) {
+          const staticMaster = RINCIAN_AWAL_MASUK_MASTER[jKey] || RINCIAN_AWAL_MASUK_MASTER.SMP;
+          const fallbackList = [];
+          if (kategori === 'semua' || kategori === 'sekolah') {
+            (staticMaster.adm_sekolah || []).forEach(it => fallbackList.push({ ...it, kategori_komponen: 'Adm Sekolah' }));
+          }
+          if (kategori === 'semua' || kategori === 'pesantren') {
+            (staticMaster.adm_pesantren || []).forEach(it => fallbackList.push({ ...it, kategori_komponen: 'Adm Pesantren' }));
+          }
+          itemsForJ = fallbackList;
+        }
+
+        for (const it of itemsForJ) {
+          billItems.push({
+            judul: `${it.uraian} (${it.kategori_komponen})`,
+            kategori: 'Biaya Masuk',
+            periode: `TA ${tahun_ajaran}`,
+            total: parseFloat(it.biaya) || 0
+          });
+        }
+      } else if (kategori === 'sekolah') {
         billItems.push({
           judul: `Adm Sekolah ${jKey} ${tahun_ajaran}`,
           kategori: 'Biaya Masuk',

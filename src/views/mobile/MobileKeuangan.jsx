@@ -24,7 +24,8 @@ import {
   DollarSign,
   Calendar,
   Users,
-  Sparkles
+  Sparkles,
+  Trash2
 } from 'lucide-react';
 import { toastSuccess, showError, showConfirm } from '../../utils/alert.util';
 import ModalGenerateTagihan from '../keuangan/components/ModalGenerateTagihan';
@@ -232,6 +233,55 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
       }
       return copy;
     });
+  };
+
+  // Toggle Seluruh Tagihan Bebas / Non-Bulanan
+  const handleToggleAllBebas = () => {
+    const unpaidList = (santriTagihan.bebas || []).filter((t) => t.status !== 'Lunas');
+    if (unpaidList.length === 0) return;
+    const isAllChecked = unpaidList.every((t) => selectedPayMap[t.id] !== undefined);
+
+    setSelectedPayMap((prev) => {
+      const next = { ...prev };
+      unpaidList.forEach((t) => {
+        const sisa = parseFloat(t.sisa_tagihan || t.total_tagihan || 0);
+        if (isAllChecked) {
+          delete next[t.id];
+        } else {
+          next[t.id] = sisa;
+        }
+      });
+      return next;
+    });
+  };
+
+  // Hapus Tagihan Tertentu (Belum Lunas) Langsung dari Kasir
+  const handleDeleteTagihan = async (t) => {
+    const ok = await showConfirm(
+      'Hapus Tagihan',
+      `Hapus tagihan "${t.judul_tagihan}" sebesar Rp ${Number(t.total_tagihan || 0).toLocaleString('id-ID')}?`,
+      'Ya, Hapus',
+      'Batal'
+    );
+    if (!ok) return;
+
+    try {
+      const res = await axios.delete(`/api/keuangan/admin/tagihan/${t.id}`);
+      if (res.data?.success) {
+        toastSuccess('Tagihan Dihapus', `"${t.judul_tagihan}" berhasil dihapus.`);
+        setSelectedPayMap((prev) => {
+          const next = { ...prev };
+          delete next[t.id];
+          return next;
+        });
+        if (selectedSantri) {
+          fetchTagihanSantri(selectedSantri.id);
+        }
+        fetchRekapAndSantri();
+      }
+    } catch (err) {
+      showError('Gagal Hapus Tagihan', err.response?.data?.message || err.message);
+    }
   };
 
   // Hitung Total Bayar yang Dicentang
@@ -1089,9 +1139,29 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                       border: '1px solid #e2e8f0',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
                     }}>
-                      <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Building size={16} color="#d97706" />
-                        <span>Biaya Masuk & Non-Bulanan (Bisa Dicicil)</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Building size={16} color="#d97706" />
+                          <span>Biaya Masuk & Rincian ({santriTagihan.bebas.length} Pos)</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleToggleAllBebas}
+                          style={{
+                            background: '#fef3c7',
+                            border: '1px solid #fde68a',
+                            borderRadius: '8px',
+                            padding: '4px 10px',
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            color: '#b45309',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {santriTagihan.bebas.filter((t) => t.status !== 'Lunas').every((t) => selectedPayMap[t.id] !== undefined) && santriTagihan.bebas.some((t) => t.status !== 'Lunas')
+                            ? 'Batal Pilih Semua'
+                            : 'Pilih Semua'}
+                        </button>
                       </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -1149,6 +1219,27 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                                   >
                                     {isChecked ? '✓ Lunas Penuh Dicocokkan' : 'Lunasi Sisa Ini'}
                                   </button>
+
+                                  {(!t.sudah_dibayar || parseFloat(t.sudah_dibayar) === 0) && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteTagihan(t)}
+                                      title="Hapus Tagihan Ini"
+                                      style={{
+                                        padding: '7px 10px',
+                                        borderRadius: '8px',
+                                        border: '1px solid #fee2e2',
+                                        background: '#fef2f2',
+                                        color: '#ef4444',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                      }}
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  )}
                                 </div>
                               )}
                             </div>
