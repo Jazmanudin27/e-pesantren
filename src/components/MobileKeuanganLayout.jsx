@@ -157,31 +157,7 @@ export default function MobileKeuanganLayout() {
             <span>Kasir</span>
           </button>
 
-          {/* 3. Center Floating Action Button: Loket Kasir Bayar */}
-          <button
-            className="mobile-fab-center"
-            onClick={() => handleSelectTab('keuangan-kasir')}
-            title="Buka Loket Kasir Pembayaran"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 0
-            }}
-          >
-            <div
-              className="fab-inner-glow"
-              style={{
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%)',
-                boxShadow: '0 10px 24px -2px rgba(5, 150, 105, 0.6), 0 0 16px rgba(16, 185, 129, 0.5)',
-                border: '4px solid #ffffff'
-              }}
-            >
-              <CreditCard size={26} color="#ffffff" strokeWidth={2.4} />
-            </div>
-          </button>
-
-          {/* 4. Laporan Rekap */}
+          {/* 3. Laporan Rekap */}
           <button
             className={`mobile-nav-item ${(activeTab === 'keuangan-rekap' || activeTab === 'laporan' || activeTab === 'rekap') ? 'active' : ''}`}
             onClick={() => handleSelectTab('keuangan-rekap')}

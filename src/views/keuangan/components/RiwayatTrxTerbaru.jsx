@@ -11,13 +11,13 @@ export default function RiwayatTrxTerbaru({
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-        <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <div style={{ width: '4px', height: '14px', background: '#0284c7', borderRadius: '4px' }} />
+        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '-0.2px' }}>
+          <div style={{ width: '4px', height: '14px', background: '#0d766e', borderRadius: '4px' }} />
           <span>Transaksi Kasir Terbaru</span>
         </div>
         <button
           onClick={onOpenDetailKas}
-          style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#0284c7', fontSize: '0.74rem', fontWeight: 700 }}
+          style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#0d766e', fontSize: '0.74rem', fontWeight: 700 }}
         >
           Lihat Semua &rsaquo;
         </button>

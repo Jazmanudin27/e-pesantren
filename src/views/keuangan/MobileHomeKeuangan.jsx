@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
   RotateCw,
-  LogOut,
-  CreditCard,
-  ArrowRight
+  LogOut
 } from 'lucide-react';
 import { showConfirm, toastSuccess } from '../../utils/alert.util';
 import CardKasMasuk from './components/CardKasMasuk';
@@ -186,7 +184,7 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
             </div>
 
             <div style={{ display: "flex", flexDirection: "column" }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "3px" }}>
                 <span
                   style={{
                     fontWeight: 900,
@@ -210,21 +208,7 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
                     textShadow: "0 2px 6px rgba(11, 107, 96, 0.35)",
                   }}
                 >
-                  Keuangan
-                </span>
-                <span
-                  style={{
-                    fontSize: "0.58rem",
-                    fontWeight: 800,
-                    background: "rgba(255,255,255,0.2)",
-                    border: "1px solid rgba(255,255,255,0.35)",
-                    padding: "1px 6px",
-                    borderRadius: "6px",
-                    color: "#ffffff",
-                    marginLeft: "2px"
-                  }}
-                >
-                  BENDAHARA
+                  Finance
                 </span>
               </div>
               <span
@@ -301,36 +285,7 @@ export default function MobileHomeKeuangan({ onChangeTab, onLogout }) {
       />
 
       {/* 3. BODY CONTENT */}
-      <div style={{ padding: '16px' }}>
-        {/* Action Button: Buka Kasir Pembayaran */}
-        <button
-          onClick={() => onChangeTab('keuangan-kasir')}
-          style={{
-            width: '100%',
-            padding: '14px 18px',
-            borderRadius: '16px',
-            border: 'none',
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            color: '#ffffff',
-            fontWeight: 800,
-            fontSize: '0.92rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            boxShadow: '0 6px 18px rgba(16, 185, 129, 0.35)',
-            marginBottom: '20px'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CreditCard size={18} color="#fff" />
-            </div>
-            <span>Buka Kasir Pembayaran Santri</span>
-          </div>
-          <ArrowRight size={18} />
-        </button>
-
+      <div style={{ padding: '12px 14px 0' }}>
         {/* 4. MENU LAYANAN KEUANGAN (GRID 10 MENU) */}
         <MenuLayananKeuangan
           onChangeTab={onChangeTab}
