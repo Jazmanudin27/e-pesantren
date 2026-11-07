@@ -15,7 +15,10 @@ import {
   Settings,
   ChevronRight,
   UserCheck,
-  Building
+  Building,
+  Eye,
+  Phone,
+  FileText
 } from 'lucide-react';
 import ModalSiklusSpp from './components/ModalSiklusSpp';
 import { toastSuccess, toastError, showConfirm } from '../../utils/alert.util';
@@ -31,6 +34,9 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
   const [search, setSearch] = useState('');
   const [filterSekolah, setFilterSekolah] = useState('semua');
   const [filterBulanCount, setFilterBulanCount] = useState('semua');
+
+  // Modal Rincian Detail Santri
+  const [selectedSantriDetail, setSelectedSantriDetail] = useState(null);
 
   // Modal Atur Siklus SPP
   const [isSiklusModalOpen, setIsSiklusModalOpen] = useState(false);
@@ -477,18 +483,23 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
                     </div>
 
                     <div>
-                      <div style={{ fontWeight: 900, fontSize: '0.9rem', color: '#0f172a', lineHeight: 1.25 }}>
+                      <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#0f172a', lineHeight: 1.25 }}>
                         {s.nama_santri}
                       </div>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span>NIS: {s.nis}</span>
-                        <span>•</span>
-                        <span style={{ fontWeight: 700, color: '#b91c1c' }}>{s.nama_kelas || s.tingkat_sekolah}</span>
-                        <span>•</span>
-                        <span>{s.nama_sekolah}</span>
+                      <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                        <span style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '6px', fontWeight: 700, color: '#334155' }}>
+                          NIS: {s.nis}
+                        </span>
+                        <span style={{ background: '#fef2f2', padding: '2px 6px', borderRadius: '6px', fontWeight: 800, color: '#dc2626', border: '1px solid #fee2e2' }}>
+                          {s.nama_kelas || s.tingkat_sekolah}
+                        </span>
+                        <span style={{ background: '#ecfdf5', padding: '2px 6px', borderRadius: '6px', fontWeight: 700, color: '#059669' }}>
+                          {s.sekolah_jenjang || (s.nama_sekolah && s.nama_sekolah.includes('SMP') ? 'SMP' : s.nama_sekolah && s.nama_sekolah.includes('SMA') ? 'SMA' : 'SMK')}
+                        </span>
                       </div>
-                      <div style={{ fontSize: '0.66rem', color: '#94a3b8', marginTop: '1px' }}>
-                        Asrama: {s.nama_asrama} (Kamar {s.nama_kamar})
+                      <div style={{ fontSize: '0.67rem', color: '#94a3b8', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                        <Building size={11} />
+                        <span>{s.nama_asrama} (Kamar {s.nama_kamar || '-'})</span>
                       </div>
                     </div>
                   </div>
@@ -516,37 +527,65 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
                   </div>
                 </div>
 
-                {/* Rincian Bulan Mana Saja yang Belum Dibayar */}
-                <div style={{
-                  marginTop: '10px',
-                  background: '#fff1f2',
-                  border: '1px solid #ffe4e6',
-                  borderRadius: '12px',
-                  padding: '9px 12px'
-                }}>
-                  <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#9f1239', textTransform: 'uppercase', marginBottom: '5px' }}>
-                    BULAN SPP YANG BELUM DIBAYAR:
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    {s.rincian_spp.map((item, idx) => (
-                      <div
-                        key={idx}
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          fontSize: '0.74rem',
-                          color: '#4c0519'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                          <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#e11d48' }} />
-                          <span style={{ fontWeight: 700 }}>{item.bulan}</span>
-                          <span style={{ fontSize: '0.64rem', color: '#9f1239' }}>(Tempo: {item.jatuh_tempo})</span>
-                        </div>
-                        <span style={{ fontWeight: 800 }}>{formatRp(item.nominal)}</span>
+                {/* Interactive Clickable Bar: Rincian Bulan Tertunggak */}
+                <div
+                  onClick={() => setSelectedSantriDetail(s)}
+                  style={{
+                    marginTop: '12px',
+                    background: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)',
+                    border: '1px solid #fecdd3',
+                    borderRadius: '14px',
+                    padding: '10px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(225, 29, 72, 0.04)',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '10px',
+                      background: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 5px rgba(225, 29, 72, 0.1)',
+                      flexShrink: 0
+                    }}>
+                      <Calendar size={16} color="#e11d48" />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#9f1239', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>{s.jumlah_bulan_nunggak} Bulan Tertunggak</span>
                       </div>
-                    ))}
+                      <div style={{ fontSize: '0.67rem', color: '#be123c', marginTop: '2px', fontWeight: 600 }}>
+                        {s.rincian_spp.length > 0
+                          ? `${s.rincian_spp[0].bulan}${s.rincian_spp.length > 1 ? ` s/d ${s.rincian_spp[s.rincian_spp.length - 1].bulan}` : ''}`
+                          : 'Klik untuk rincian lengkap'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: '#ffffff',
+                    padding: '5px 10px',
+                    borderRadius: '8px',
+                    border: '1px solid #fecdd3',
+                    fontSize: '0.7rem',
+                    fontWeight: 800,
+                    color: '#e11d48',
+                    flexShrink: 0
+                  }}>
+                    <Eye size={13} />
+                    <span>Rincian</span>
+                    <ChevronRight size={13} />
                   </div>
                 </div>
 
@@ -555,8 +594,8 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  marginTop: '10px',
-                  paddingTop: '8px',
+                  marginTop: '12px',
+                  paddingTop: '10px',
                   borderTop: '1px solid #f1f5f9'
                 }}>
                   <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
@@ -572,7 +611,7 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
                         background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
                         border: 'none',
                         color: '#ffffff',
-                        padding: '6px 12px',
+                        padding: '7px 12px',
                         borderRadius: '10px',
                         fontSize: '0.72rem',
                         fontWeight: 800,
@@ -596,7 +635,7 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
                           background: '#25d366',
                           border: 'none',
                           color: '#ffffff',
-                          padding: '6px 10px',
+                          padding: '7px 10px',
                           borderRadius: '10px',
                           fontSize: '0.72rem',
                           fontWeight: 800,
@@ -620,7 +659,343 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
         )}
       </div>
 
-      {/* 4. MODAL ATUR SIKLUS SPP */}
+      {/* 4. MODAL POPUP RINCIAN DETAIL TUNGGAKAN SANTRI */}
+      {selectedSantriDetail && (
+        <div
+          onClick={() => setSelectedSantriDetail(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background: 'rgba(15, 23, 42, 0.72)',
+            backdropFilter: 'blur(5px)',
+            WebkitBackdropFilter: 'blur(5px)',
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            padding: 0
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '520px',
+              background: '#ffffff',
+              borderTopLeftRadius: '26px',
+              borderTopRightRadius: '26px',
+              maxHeight: '88vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 -8px 30px rgba(0, 0, 0, 0.25)',
+              animation: 'slideUp 0.25s ease-out',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Grab Handle */}
+            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '10px', paddingBottom: '4px' }}>
+              <div style={{ width: '40px', height: '4px', borderRadius: '4px', background: '#cbd5e1' }} />
+            </div>
+
+            {/* Modal Header */}
+            <div
+              style={{
+                padding: '12px 18px 14px',
+                borderBottom: '1px solid #f1f5f9',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.3px' }}>
+                  Rincian Tunggakan SPP
+                </h3>
+                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
+                  Status tagihan yang telah melewati batas tanggal jatuh tempo
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedSantriDetail(null)}
+                style={{
+                  background: '#f1f5f9',
+                  border: 'none',
+                  color: '#64748b',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Scrollable Body */}
+            <div style={{ padding: '16px 18px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              
+              {/* Profile Card Santri */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '16px',
+                  padding: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}
+              >
+                <div
+                  style={{
+                    width: '46px',
+                    height: '46px',
+                    borderRadius: '14px',
+                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 900,
+                    fontSize: '1rem',
+                    flexShrink: 0,
+                    boxShadow: '0 4px 10px rgba(220, 38, 38, 0.25)'
+                  }}
+                >
+                  {(selectedSantriDetail.nama_santri || 'S').slice(0, 2).toUpperCase()}
+                </div>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 900, fontSize: '0.94rem', color: '#0f172a' }}>
+                    {selectedSantriDetail.nama_santri}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 700, color: '#0f172a' }}>NIS: {selectedSantriDetail.nis}</span>
+                    <span>•</span>
+                    <span style={{ fontWeight: 700, color: '#dc2626' }}>{selectedSantriDetail.nama_kelas || selectedSantriDetail.tingkat_sekolah}</span>
+                    <span>•</span>
+                    <span>{selectedSantriDetail.nama_sekolah}</span>
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '2px' }}>
+                    Asrama: {selectedSantriDetail.nama_asrama} (Kamar {selectedSantriDetail.nama_kamar})
+                  </div>
+                </div>
+              </div>
+
+              {/* Total Summary Banner */}
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)',
+                  border: '1.5px solid #fecdd3',
+                  borderRadius: '16px',
+                  padding: '14px 16px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#9f1239', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Total Harus Dibayar:
+                  </div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#be123c', marginTop: '2px', letterSpacing: '-0.3px' }}>
+                    {formatRp(selectedSantriDetail.total_nominal_tunggakan)}
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'right' }}>
+                  <span
+                    style={{
+                      background: '#e11d48',
+                      color: '#ffffff',
+                      fontSize: '0.72rem',
+                      fontWeight: 900,
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      boxShadow: '0 2px 6px rgba(225, 29, 72, 0.3)'
+                    }}
+                  >
+                    <Clock size={12} />
+                    <span>{selectedSantriDetail.jumlah_bulan_nunggak} Bulan SPP</span>
+                  </span>
+                  <div style={{ fontSize: '0.64rem', color: '#9f1239', marginTop: '4px' }}>
+                    Jatuh tempo tgl {summary.tgl_jatuh_tempo_spp || 10}
+                  </div>
+                </div>
+              </div>
+
+              {/* Rincian Per Bulan Itemized List */}
+              <div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>Daftar Bulan Tertunggak:</span>
+                  <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>{selectedSantriDetail.rincian_spp.length} Periode</span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {selectedSantriDetail.rincian_spp.map((item, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        background: '#ffffff',
+                        border: '1.5px solid #f1f5f9',
+                        borderRadius: '12px',
+                        padding: '10px 14px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '10px',
+                            background: '#fef2f2',
+                            color: '#dc2626',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 900,
+                            fontSize: '0.72rem',
+                            flexShrink: 0
+                          }}
+                        >
+                          #{idx + 1}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>
+                            {item.bulan}
+                          </div>
+                          <div style={{ fontSize: '0.66rem', color: '#dc2626', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Clock size={11} />
+                            <span>Jatuh tempo: {item.jatuh_tempo}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '0.86rem', fontWeight: 900, color: '#dc2626' }}>
+                          {formatRp(item.nominal)}
+                        </div>
+                        <span style={{ fontSize: '0.62rem', color: '#94a3b8' }}>
+                          Belum Dibayar
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Info Wali & Kontak */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '10px 12px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '0.66rem', color: '#64748b' }}>Wali Santri:</div>
+                  <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#1e293b' }}>
+                    {selectedSantriDetail.nama_wali}
+                  </div>
+                </div>
+
+                {selectedSantriDetail.no_wa_wali ? (
+                  <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Phone size={13} />
+                    <span>{selectedSantriDetail.no_wa_wali}</span>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                    No WA belum diisi
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Bottom Action Buttons */}
+            <div
+              style={{
+                padding: '12px 18px 16px',
+                borderTop: '1px solid #f1f5f9',
+                background: '#ffffff',
+                display: 'grid',
+                gridTemplateColumns: selectedSantriDetail.no_wa_wali ? '1fr 1fr' : '1fr',
+                gap: '8px'
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  const s = selectedSantriDetail;
+                  setSelectedSantriDetail(null);
+                  handleBayarDiKasir(s);
+                }}
+                style={{
+                  padding: '11px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '0.8rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)'
+                }}
+              >
+                <CreditCard size={15} />
+                <span>Bayar di Kasir</span>
+              </button>
+
+              {selectedSantriDetail.no_wa_wali && (
+                <button
+                  type="button"
+                  onClick={() => handleSendWaReminder(selectedSantriDetail)}
+                  style={{
+                    padding: '11px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: '#25d366',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '0.8rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(37, 211, 102, 0.25)'
+                  }}
+                >
+                  <Share2 size={15} />
+                  <span>Kirim Tagih WA</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. MODAL ATUR SIKLUS SPP */}
       <ModalSiklusSpp
         isOpen={isSiklusModalOpen}
         onClose={() => setIsSiklusModalOpen(false)}

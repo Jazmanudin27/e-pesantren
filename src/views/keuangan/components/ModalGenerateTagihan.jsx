@@ -268,7 +268,7 @@ export default function ModalGenerateTagihan({
       const res = await axios.post('/api/sekolah/generate-tagihan-masuk', {
         jenjang: jenjangMasuk,
         tahun_ajaran: '2026/2027',
-        mode: modePaketMasuk,
+        mode: 'rincian',
         kategori: kategoriMasuk,
         santri_id: isSingle ? targetSantri.id : undefined
       });
@@ -996,90 +996,6 @@ export default function ModalGenerateTagihan({
                     : 'TOTAL RINCIAN AWAL MASUK:'}
                 </span>
                 <span style={{ color: '#a7f3d0', fontSize: '1rem' }}>{formatRp(grandTotalMasuk)}</span>
-              </div>
-            </div>
-
-            {/* Pilihan Format Tagihan di Database */}
-            <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
-                3. Format Penyimpanan Tagihan di Database:
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
-                {/* 1. Format Per Rincian Item (Paling Direkomendasikan Kasir) */}
-                <label
-                  onClick={() => setModePaketMasuk('rincian')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '10px',
-                    padding: '10px 12px',
-                    borderRadius: '12px',
-                    border: modePaketMasuk === 'rincian' ? '2px solid #059669' : '1px solid #cbd5e1',
-                    background: modePaketMasuk === 'rincian' ? '#ecfdf5' : '#ffffff',
-                    cursor: 'pointer',
-                    boxShadow: modePaketMasuk === 'rincian' ? '0 2px 6px rgba(5, 150, 105, 0.15)' : 'none'
-                  }}
-                >
-                  <input type="radio" checked={modePaketMasuk === 'rincian'} onChange={() => {}} style={{ accentColor: '#059669', marginTop: '3px' }} />
-                  <div>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>✨ Per Rincian Item (Detail Satuan)</span>
-                      <span style={{ fontSize: '0.62rem', background: '#dcfce7', color: '#15803d', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>Direkomendasikan</span>
-                    </div>
-                    <div style={{ fontSize: '0.65rem', color: '#64748b', lineHeight: 1.3, marginTop: '2px' }}>
-                      Setiap item diterbitkan jadi 1 tagihan terpisah (Pendaftaran, Kaos, K. Mahrom, Infaq, dll). Santri & Kasir bisa bayar satuan atau dicicil per item.
-                    </div>
-                  </div>
-                </label>
-
-                {/* 2. Format Paket Kategori / Pos */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  <label
-                    onClick={() => setModePaketMasuk('paket')}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '8px',
-                      padding: '9px 10px',
-                      borderRadius: '12px',
-                      border: modePaketMasuk === 'paket' ? '2px solid #059669' : '1px solid #cbd5e1',
-                      background: modePaketMasuk === 'paket' ? '#ecfdf5' : '#ffffff',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <input type="radio" checked={modePaketMasuk === 'paket'} onChange={() => {}} style={{ accentColor: '#059669', marginTop: '2px' }} />
-                    <div>
-                      <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#0f172a' }}>
-                        {kategoriMasuk === 'semua' ? '2 Pos Gelondongan' : '1 Pos Gelondongan'}
-                      </div>
-                      <div style={{ fontSize: '0.62rem', color: '#64748b', lineHeight: 1.2, marginTop: '2px' }}>
-                        {kategoriMasuk === 'semua' ? 'Adm Sekolah & Pesantren digabung per pos' : `Total ${kategoriMasuk === 'sekolah' ? 'Adm Sekolah' : 'Adm Pesantren'} jadi 1 tagihan`}
-                      </div>
-                    </div>
-                  </label>
-
-                  <label
-                    onClick={() => setModePaketMasuk('total')}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '8px',
-                      padding: '9px 10px',
-                      borderRadius: '12px',
-                      border: modePaketMasuk === 'total' ? '2px solid #059669' : '1px solid #cbd5e1',
-                      background: modePaketMasuk === 'total' ? '#ecfdf5' : '#ffffff',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <input type="radio" checked={modePaketMasuk === 'total'} onChange={() => {}} style={{ accentColor: '#059669', marginTop: '2px' }} />
-                    <div>
-                      <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#0f172a' }}>1 Tagihan Total Masuk</div>
-                      <div style={{ fontSize: '0.62rem', color: '#64748b', lineHeight: 1.2, marginTop: '2px' }}>
-                        Semua digabung jadi 1 tagihan total masuk
-                      </div>
-                    </div>
-                  </label>
-                </div>
               </div>
             </div>
 
