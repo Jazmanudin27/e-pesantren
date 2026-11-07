@@ -293,6 +293,39 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
   const selectedIds = Object.keys(selectedPayMap);
   const totalBayar = selectedIds.reduce((sum, id) => sum + (parseFloat(selectedPayMap[id]) || 0), 0);
 
+  // Helper parsing item dibayar string / array ke struktur objek itemized
+  const parseRincianItems = (data) => {
+    if (!data) return [];
+    if (Array.isArray(data.items_detail) && data.items_detail.length > 0) return data.items_detail;
+    if (Array.isArray(data.items) && data.items.length > 0 && typeof data.items[0] === 'object' && data.items[0].judul) return data.items;
+
+    const rawStr = data.item_dibayar || data.judul_tagihan || '';
+    if (!rawStr) return [];
+
+    // Pisahkan tiap item yang berakhiran "... (Rp xxx)"
+    const rawItems = rawStr.split(/,\s*(?=[^,]+?\s*\(Rp\s*[0-9.])/i);
+    return rawItems.map((itemStr) => {
+      let str = itemStr.trim();
+      let nominal = 0;
+      let title = str;
+      let kategori = '';
+
+      const nomMatch = str.match(/\((?:Rp\.?\s*)?([0-9.,]+)\)\s*$/i);
+      if (nomMatch) {
+        nominal = parseFloat(nomMatch[1].replace(/\./g, '').replace(/,/g, '.')) || 0;
+        title = str.slice(0, nomMatch.index).trim();
+      }
+
+      const catMatch = title.match(/^(.*?)\s*\(([^)]+)\)$/);
+      if (catMatch) {
+        title = catMatch[1].trim();
+        kategori = catMatch[2].trim();
+      }
+
+      return { judul: title, kategori, nominal };
+    });
+  };
+
   // 1. Proses Pembayaran Tunai Langsung
   const handleProsesBayarTunai = async () => {
     setIsMetodeModalOpen(false);
@@ -303,6 +336,26 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
         nominal: parseFloat(selectedPayMap[id]) || 0
       }));
 
+      // Kumpulkan detail item untuk kuitansi modern
+      const allTagihan = [...(santriTagihan.bulanan || []), ...(santriTagihan.biayaMasuk || [])];
+      const itemsDetail = selectedIds.map((id) => {
+        const found = allTagihan.find((t) => String(t.id) === String(id));
+        const nom = parseFloat(selectedPayMap[id]) || 0;
+        let judul = found ? (found.periode_bulan || found.judul_tagihan || 'Tagihan') : 'Tagihan';
+        let kategori = found ? (found.kategori || found.tipe || '') : '';
+        const catMatch = judul.match(/^(.*?)\s*\(([^)]+)\)$/);
+        if (catMatch) {
+          judul = catMatch[1].trim();
+          if (!kategori) kategori = catMatch[2].trim();
+        }
+        return {
+          tagihan_id: parseInt(id),
+          judul,
+          kategori,
+          nominal: nom
+        };
+      });
+
       const res = await axios.post('/api/keuangan/admin/bayar-langsung', {
         santri_id: parseInt(selectedSantri.id),
         metode_pembayaran: 'Tunai',
@@ -312,7 +365,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
 
       if (res.data?.success) {
         toastSuccess('Pembayaran Berhasil!', `Kuitansi: ${res.data.data?.kuitansi_nomor || 'Lunas'}`);
-        // Tampilkan modal kuitansi digital
+        // Tampilkan modal kuitansi digital modern
         setKuitansiModal({
           isOpen: true,
           data: {
@@ -322,7 +375,10 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
             no_wa_wali: selectedSantri.no_wa_wali,
             asrama: selectedSantri.nama_asrama || '-',
             total_bayar: totalBayar,
-            items: itemsPayload
+            items: itemsPayload,
+            items_detail: itemsDetail,
+            metode_bayar: 'Tunai / Kasir',
+            tanggal: new Date()
           }
         });
 
@@ -402,14 +458,28 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
     let phone = String(kData.no_wa_wali).replace(/[^0-9]/g, '');
     if (phone.startsWith('0')) phone = '62' + phone.slice(1);
 
+    const items = parseRincianItems(kData);
+    const rincianText = items.length > 0
+      ? items.map((it, idx) => {
+          const kat = it.kategori ? ` _(${it.kategori})_` : '';
+          return `  ${idx + 1}. *${it.judul}*${kat}: Rp ${Number(it.nominal || 0).toLocaleString('id-ID')}`;
+        }).join('\n')
+      : `  • ${kData.item_dibayar || 'Pembayaran Tagihan'}`;
+
+    const dateStr = kData.tanggal
+      ? new Date(kData.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+      : new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
     const message = `*KUITANSI PEMBAYARAN RESMI PESANTREN NURUL WAFA*\n\n` +
       `Alhamdulillah, pembayaran telah diterima dan tercatat di sistem:\n\n` +
       `• *No. Kuitansi*: ${kData.kuitansi_nomor || '-'}\n` +
       `• *Santri*: ${kData.nama_santri} (NIS: ${kData.nis || '-'})\n` +
-      `• *Tanggal*: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}\n` +
-      `• *Metode*: ${metodeBayar}\n` +
-      `• *Total Dibayar*: Rp ${Number(kData.total_bayar || 0).toLocaleString('id-ID')}\n` +
+      `• *Tanggal*: ${dateStr}\n` +
+      `• *Metode*: ${kData.metode_bayar || metodeBayar || 'Tunai / Kasir'}\n` +
       `• *Status*: LUNAS ✅\n\n` +
+      `*RINCIAN ITEM DIBAYAR:*\n` +
+      `${rincianText}\n\n` +
+      `*TOTAL PEMBAYARAN*: *Rp ${Number(kData.total_bayar || 0).toLocaleString('id-ID')}*\n\n` +
       `Jazakumullah Khairan Katsiran atas kepercayaannya.\n_Sistem Keuangan E-Pesantren_`;
 
     window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`, '_blank');
@@ -1410,22 +1480,81 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                                 </span>
                               </div>
 
-                              <div style={{
-                                background: '#f8fafc',
-                                borderRadius: '10px',
-                                padding: '8px 10px',
-                                fontSize: '0.72rem',
-                                color: '#334155',
-                                marginBottom: '10px',
-                                lineHeight: 1.3
-                              }}>
-                                <div style={{ fontWeight: 600, color: '#64748b', fontSize: '0.64rem', marginBottom: '2px' }}>
-                                  Item yang Dibayar:
-                                </div>
-                                <div style={{ fontWeight: 700, color: '#0f172a' }}>
-                                  {trx.item_dibayar || 'Pembayaran Tagihan'}
-                                </div>
-                              </div>
+                              {/* Rincian Itemized Dibayar Modern */}
+                              {(() => {
+                                const parsedItems = parseRincianItems(trx);
+                                return (
+                                  <div style={{
+                                    background: '#f8fafc',
+                                    borderRadius: '12px',
+                                    padding: '10px 12px',
+                                    marginBottom: '10px',
+                                    border: '1px solid #f1f5f9'
+                                  }}>
+                                    <div style={{
+                                      fontSize: '0.65rem',
+                                      fontWeight: 800,
+                                      color: '#64748b',
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.4px',
+                                      marginBottom: '6px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between'
+                                    }}>
+                                      <span>Item yang Dibayar</span>
+                                      <span style={{ color: '#059669', fontWeight: 800, background: '#ecfdf5', padding: '1px 6px', borderRadius: '4px' }}>
+                                        {parsedItems.length} Pos
+                                      </span>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                      {parsedItems.map((it, idx) => (
+                                        <div
+                                          key={idx}
+                                          style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            fontSize: '0.74rem',
+                                            padding: '4px 0',
+                                            borderBottom: idx < parsedItems.length - 1 ? '1px dashed #e2e8f0' : 'none'
+                                          }}
+                                        >
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0, paddingRight: '8px' }}>
+                                            <div style={{
+                                              width: '6px',
+                                              height: '6px',
+                                              borderRadius: '50%',
+                                              background: '#059669',
+                                              flexShrink: 0
+                                            }} />
+                                            <span style={{ fontWeight: 700, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                              {it.judul}
+                                            </span>
+                                            {it.kategori && (
+                                              <span style={{
+                                                fontSize: '0.6rem',
+                                                fontWeight: 700,
+                                                padding: '1px 6px',
+                                                borderRadius: '4px',
+                                                background: '#f0fdf4',
+                                                color: '#047857',
+                                                border: '1px solid #bbf7d0',
+                                                whiteSpace: 'nowrap'
+                                              }}>
+                                                {it.kategori}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <span style={{ fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>
+                                            Rp {Number(it.nominal || 0).toLocaleString('id-ID')}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                );
+                              })()}
 
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div>
@@ -1442,18 +1571,24 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                                   <div style={{ display: 'flex', gap: '6px' }}>
                                     <button
                                       type="button"
-                                      onClick={() => setKuitansiModal({
-                                        isOpen: true,
-                                        data: {
-                                          kuitansi_nomor: trx.kuitansi_nomor,
-                                          nama_santri: selectedSantri.nama_santri,
-                                          nis: selectedSantri.nis,
-                                          no_wa_wali: selectedSantri.no_wa_wali,
-                                          asrama: selectedSantri.nama_asrama || '-',
-                                          total_bayar: trx.total_bayar,
-                                          item_dibayar: trx.item_dibayar
-                                        }
-                                      })}
+                                      onClick={() => {
+                                        const parsed = parseRincianItems(trx);
+                                        setKuitansiModal({
+                                          isOpen: true,
+                                          data: {
+                                            kuitansi_nomor: trx.kuitansi_nomor || trx.nomor_transaksi,
+                                            nama_santri: selectedSantri.nama_santri,
+                                            nis: selectedSantri.nis,
+                                            no_wa_wali: selectedSantri.no_wa_wali,
+                                            asrama: selectedSantri.nama_asrama || '-',
+                                            total_bayar: trx.total_bayar,
+                                            metode_bayar: trx.channel_pembayaran || trx.metode_pembayaran || 'Kasir',
+                                            tanggal: trx.created_at ? new Date(trx.created_at) : new Date(),
+                                            item_dibayar: trx.item_dibayar,
+                                            items_detail: parsed
+                                          }
+                                        });
+                                      }}
                                       style={{
                                         padding: '6px 10px',
                                         borderRadius: '8px',
@@ -1475,11 +1610,14 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                                     <button
                                       type="button"
                                       onClick={() => handleSendWaKuitansi({
-                                        kuitansi_nomor: trx.kuitansi_nomor,
+                                        kuitansi_nomor: trx.kuitansi_nomor || trx.nomor_transaksi,
                                         nama_santri: selectedSantri.nama_santri,
                                         nis: selectedSantri.nis,
                                         no_wa_wali: selectedSantri.no_wa_wali,
-                                        total_bayar: trx.total_bayar
+                                        total_bayar: trx.total_bayar,
+                                        metode_bayar: trx.channel_pembayaran || trx.metode_pembayaran || 'Kasir',
+                                        tanggal: trx.created_at ? new Date(trx.created_at) : new Date(),
+                                        item_dibayar: trx.item_dibayar
                                       })}
                                       style={{
                                         padding: '6px 10px',
@@ -2435,135 +2573,316 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
       )}
 
       {/* =========================================================================
-          MODAL KUITANSI DIGITAL ELEGAN
+          MODAL KUITANSI DIGITAL ELEGAN & MODERN
       ========================================================================= */}
-      {kuitansiModal.isOpen && kuitansiModal.data && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 23, 42, 0.75)',
-          backdropFilter: 'blur(4px)',
-          zIndex: 9999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '16px'
-        }}>
+      {kuitansiModal.isOpen && kuitansiModal.data && (() => {
+        const kData = kuitansiModal.data;
+        const items = parseRincianItems(kData);
+        const tglStr = kData.tanggal
+          ? new Date(kData.tanggal).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
+          : new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+        const metodeLabel = kData.metode_bayar || metodeBayar || 'Tunai / Kasir';
+
+        return (
           <div style={{
-            background: '#ffffff',
-            borderRadius: '24px',
-            maxWidth: '380px',
-            width: '100%',
-            overflow: 'hidden',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
-            animation: 'slideUp 0.2s ease-out'
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(5px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+            animation: 'fadeIn 0.2s ease-out'
           }}>
-            {/* Header Nota */}
             <div style={{
-              background: 'linear-gradient(135deg, #059669, #047857)',
-              color: '#ffffff',
-              padding: '20px 16px',
-              textAlign: 'center',
-              position: 'relative'
+              background: '#ffffff',
+              borderRadius: '24px',
+              maxWidth: '390px',
+              width: '100%',
+              overflow: 'hidden',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)',
+              display: 'flex',
+              flexDirection: 'column',
+              maxHeight: '90vh'
             }}>
+              {/* Header Kuitansi Emerald */}
               <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '50%',
-                background: '#ffffff',
-                color: '#059669',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 8px',
-                boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+                background: 'linear-gradient(135deg, #064e3b 0%, #047857 50%, #059669 100%)',
+                color: '#ffffff',
+                padding: '22px 20px 20px',
+                textAlign: 'center',
+                position: 'relative',
+                boxShadow: '0 4px 14px rgba(4, 120, 87, 0.3)'
               }}>
-                <CheckCircle2 size={32} />
-              </div>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>Pembayaran Berhasil!</h3>
-              <div style={{ fontSize: '0.75rem', opacity: 0.9, marginTop: '2px' }}>
-                Kuitansi Resmi Pesantren Nurul Wafa
-              </div>
-            </div>
-
-            {/* Rincian Struk */}
-            <div style={{ padding: '20px 18px', fontSize: '0.8rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#64748b' }}>
-                <span>No. Kuitansi</span>
-                <span style={{ fontWeight: 800, color: '#0f172a' }}>{kuitansiModal.data.kuitansi_nomor || '-'}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#64748b' }}>
-                <span>Santri</span>
-                <span style={{ fontWeight: 800, color: '#0f172a' }}>{kuitansiModal.data.nama_santri}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: '#64748b' }}>
-                <span>Metode Bayar</span>
-                <span style={{ fontWeight: 700, color: '#059669' }}>{metodeBayar}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '14px', color: '#64748b' }}>
-                <span>Tanggal</span>
-                <span style={{ fontWeight: 700, color: '#0f172a' }}>
-                  {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </span>
-              </div>
-
-              <div style={{
-                borderTop: '1.5px dashed #cbd5e1',
-                paddingTop: '12px',
-                marginBottom: '16px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>Total Dibayar</span>
-                <span style={{ fontWeight: 900, fontSize: '1.2rem', color: '#059669' }}>
-                  Rp {Number(kuitansiModal.data.total_bayar || 0).toLocaleString('id-ID')}
-                </span>
-              </div>
-
-              {/* Action Buttons */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <button
-                  onClick={() => handleSendWaKuitansi(kuitansiModal.data)}
+                  type="button"
+                  onClick={() => setKuitansiModal({ isOpen: false, data: null })}
                   style={{
-                    padding: '12px',
-                    borderRadius: '12px',
+                    position: 'absolute',
+                    top: '14px',
+                    right: '14px',
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '50%',
+                    background: 'rgba(255, 255, 255, 0.2)',
                     border: 'none',
-                    background: '#22c55e',
                     color: '#ffffff',
-                    fontWeight: 800,
-                    fontSize: '0.85rem',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '8px',
                     cursor: 'pointer'
                   }}
                 >
-                  <Send size={16} />
-                  <span>Kirim Kuitansi ke WA Wali</span>
+                  <X size={16} />
                 </button>
 
-                <button
-                  onClick={() => setKuitansiModal({ isOpen: false, data: null })}
-                  style={{
-                    padding: '10px',
-                    borderRadius: '12px',
-                    border: '1px solid #cbd5e1',
-                    background: '#ffffff',
-                    color: '#475569',
-                    fontWeight: 700,
-                    fontSize: '0.8rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Selesai & Tutup
-                </button>
+                <div style={{
+                  width: '52px',
+                  height: '52px',
+                  borderRadius: '50%',
+                  background: '#ffffff',
+                  color: '#059669',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 10px',
+                  boxShadow: '0 8px 18px rgba(0,0,0,0.2)'
+                }}>
+                  <CheckCircle2 size={34} strokeWidth={2.4} />
+                </div>
+                <div style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  letterSpacing: '1.2px',
+                  textTransform: 'uppercase',
+                  opacity: 0.9,
+                  marginBottom: '2px'
+                }}>
+                  Kuitansi Pembayaran Sah
+                </div>
+                <h3 style={{ margin: 0, fontSize: '1.22rem', fontWeight: 900, letterSpacing: '-0.2px' }}>
+                  Pesantren Nurul Wafa
+                </h3>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  marginTop: '8px',
+                  padding: '3px 10px',
+                  borderRadius: '20px',
+                  background: 'rgba(255, 255, 255, 0.22)',
+                  fontSize: '0.68rem',
+                  fontWeight: 800
+                }}>
+                  <span>✓</span>
+                  <span>TERCATAT & LUNAS</span>
+                </div>
+              </div>
+
+              {/* Body Kuitansi (Scrollable jika item banyak) */}
+              <div style={{
+                padding: '16px 20px',
+                overflowY: 'auto',
+                flex: 1,
+                fontSize: '0.78rem'
+              }}>
+                {/* Info Transaksi & Santri */}
+                <div style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '14px',
+                  padding: '12px 14px',
+                  marginBottom: '14px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ color: '#64748b', fontSize: '0.7rem' }}>No. Kuitansi</span>
+                    <span style={{
+                      fontWeight: 800,
+                      fontFamily: 'monospace',
+                      fontSize: '0.78rem',
+                      color: '#0f172a',
+                      background: '#ffffff',
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1'
+                    }}>
+                      {kData.kuitansi_nomor || '-'}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ color: '#64748b', fontSize: '0.7rem' }}>Waktu Bayar</span>
+                    <span style={{ fontWeight: 700, color: '#334155', fontSize: '0.72rem' }}>
+                      {tglStr}
+                    </span>
+                  </div>
+
+                  <div style={{ borderTop: '1px dashed #e2e8f0', margin: '8px 0' }} />
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                    <span style={{ color: '#64748b', fontSize: '0.7rem' }}>Nama Santri</span>
+                    <span style={{ fontWeight: 800, color: '#0f172a', textAlign: 'right' }}>
+                      {kData.nama_santri}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#64748b', fontSize: '0.7rem' }}>Identitas</span>
+                    <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>
+                      NIS: {kData.nis || '-'} • {kData.asrama || 'Asrama'}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+                    <span style={{ color: '#64748b', fontSize: '0.7rem' }}>Metode</span>
+                    <span style={{
+                      fontWeight: 800,
+                      color: '#047857',
+                      background: '#ecfdf5',
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      fontSize: '0.68rem',
+                      border: '1px solid #a7f3d0'
+                    }}>
+                      {metodeLabel}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Perforation Divider Modern */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  margin: '12px 0 10px',
+                  gap: '6px'
+                }}>
+                  <div style={{ flex: 1, borderTop: '2px dashed #cbd5e1' }} />
+                  <span style={{
+                    fontSize: '0.64rem',
+                    fontWeight: 800,
+                    color: '#64748b',
+                    letterSpacing: '0.5px',
+                    textTransform: 'uppercase'
+                  }}>
+                    Rincian Item ({items.length})
+                  </span>
+                  <div style={{ flex: 1, borderTop: '2px dashed #cbd5e1' }} />
+                </div>
+
+                {/* Daftar Itemized Table */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+                  {items.map((it, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '6px 8px',
+                        borderRadius: '8px',
+                        background: '#f8fafc'
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: 0, paddingRight: '8px' }}>
+                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.76rem', lineHeight: 1.2 }}>
+                          {it.judul}
+                        </div>
+                        {it.kategori && (
+                          <span style={{
+                            display: 'inline-block',
+                            marginTop: '2px',
+                            fontSize: '0.6rem',
+                            fontWeight: 700,
+                            padding: '1px 5px',
+                            borderRadius: '4px',
+                            background: '#ecfdf5',
+                            color: '#059669',
+                            border: '1px solid #bbf7d0'
+                          }}>
+                            {it.kategori}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                        Rp {Number(it.nominal || 0).toLocaleString('id-ID')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Total Lunas Box Modern */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
+                  border: '1.5px solid #a7f3d0',
+                  borderRadius: '16px',
+                  padding: '12px 16px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '16px'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#047857', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                      Total Pembayaran
+                    </div>
+                    <div style={{ fontSize: '0.62rem', color: '#059669', fontWeight: 600 }}>
+                      Status: Lunas (100%)
+                    </div>
+                  </div>
+                  <div style={{ fontWeight: 900, fontSize: '1.25rem', color: '#047857', letterSpacing: '-0.3px' }}>
+                    Rp {Number(kData.total_bayar || 0).toLocaleString('id-ID')}
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleSendWaKuitansi(kData)}
+                    style={{
+                      padding: '12px',
+                      borderRadius: '14px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.84rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 12px rgba(22, 163, 74, 0.25)'
+                    }}
+                  >
+                    <Send size={16} />
+                    <span>Kirim Kuitansi ke WA Wali</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setKuitansiModal({ isOpen: false, data: null })}
+                    style={{
+                      padding: '10px',
+                      borderRadius: '12px',
+                      border: '1px solid #cbd5e1',
+                      background: '#ffffff',
+                      color: '#475569',
+                      fontWeight: 700,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Selesai & Tutup
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* MODAL PILIH METODE PEMBAYARAN KASIR (TUNAI / CASH, QRIS MIDTRANS, TRANSFER VA MIDTRANS) */}
       {isMetodeModalOpen && selectedSantri && (
