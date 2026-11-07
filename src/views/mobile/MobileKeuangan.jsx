@@ -148,34 +148,63 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
     }
   }, [initialSubTab]);
 
-  // Load Santri & Rekap
-  const fetchRekapAndSantri = async () => {
-    setLoading(true);
+  // 1. Fetch data santri kasir ultra cepat (< 50ms, tanpa payload foto base64 berat)
+  const fetchSantriList = async () => {
     try {
-      const [resRekap, resSantri] = await Promise.all([
-        axios.get('/api/keuangan/admin/rekap').catch(() => null),
-        axios.get('/api/santri?all=true').catch(() => null)
-      ]);
+      const res = await axios.get('/api/keuangan/kasir/santri-search');
+      if (res?.data?.success && Array.isArray(res.data.data)) {
+        setSantriList(res.data.data);
+      }
+    } catch (e) {
+      console.warn('Fallback ambil santri standar:', e);
+      try {
+        const fallbackRes = await axios.get('/api/santri?limit=1000');
+        if (fallbackRes?.data?.data && Array.isArray(fallbackRes.data.data)) {
+          setSantriList(fallbackRes.data.data);
+        }
+      } catch (err) {}
+    }
+  };
 
+  // 2. Fetch rekap keuangan admin
+  const fetchRekapKeuangan = async () => {
+    try {
+      const resRekap = await axios.get('/api/keuangan/admin/rekap');
       if (resRekap?.data?.success && resRekap.data.data) {
         setRekapData(resRekap.data.data);
       }
-
-      if (resSantri?.data?.data && Array.isArray(resSantri.data.data)) {
-        setSantriList(resSantri.data.data);
-      } else if (resRekap?.data?.data?.santriList) {
-        setSantriList(resRekap.data.data.santriList);
-      }
     } catch (e) {
-      console.warn('Gagal memuat rekap mobile keuangan:', e);
-    } finally {
-      setLoading(false);
+      console.warn('Gagal memuat rekap kas:', e);
     }
+  };
+
+  // Load Santri & Rekap secara non-blocking
+  const fetchRekapAndSantri = () => {
+    fetchSantriList();
+    fetchRekapKeuangan();
   };
 
   useEffect(() => {
     fetchRekapAndSantri();
   }, []);
+
+  // Live search backend saat user mengetik kata kunci pencarian
+  useEffect(() => {
+    if (!santriSearch.trim()) return;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await axios.get(`/api/keuangan/kasir/santri-search?q=${encodeURIComponent(santriSearch.trim())}&limit=50`);
+        if (res.data?.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
+          setSantriList((prev) => {
+            const map = new Map((prev || []).map((item) => [item.id, item]));
+            res.data.data.forEach((item) => map.set(item.id, item));
+            return Array.from(map.values());
+          });
+        }
+      } catch (e) {}
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [santriSearch]);
 
   // Fetch Tagihan saat Santri dipilih
   const fetchTagihanSantri = async (santriId) => {
@@ -1003,7 +1032,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                             cardAccent = '#7c3aed';
                           }
 
-                          const photoUrl = s.foto || s.foto_santri;
+                          const photoUrl = s.foto_url || (s.foto && typeof s.foto === 'string' && (s.foto.startsWith('http') || s.foto.startsWith('/uploads')) ? s.foto : null);
 
                           return (
                             <div

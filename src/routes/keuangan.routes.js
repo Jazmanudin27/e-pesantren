@@ -21,7 +21,8 @@ import {
   webhookMidtransHandler,
   getSiklusSpp,
   updateSiklusSpp,
-  bersihkanFakeDataKeuangan
+  bersihkanFakeDataKeuangan,
+  getSantriKasirSearch
 } from '../controllers/keuangan.controller.js';
 
 const router = express.Router();
@@ -39,6 +40,8 @@ router.post('/webhook/bni', webhookBniHandler);
 router.get('/webhook/bni', (req, res) => res.json({ status: '000', message: 'BNI Webhook Endpoint Ready' }));
 
 // Endpoint Khusus Wali Santri (Mobile) & Kasir Tagihan
+router.get('/kasir/santri-search', getSantriKasirSearch);
+router.get('/admin/santri-search', getSantriKasirSearch);
 router.get('/wali/dashboard', getDashboardKeuanganWali);
 router.get('/tagihan/:santriId', getDashboardKeuanganWali);
 router.get('/santri/:santriId', getDashboardKeuanganWali);
