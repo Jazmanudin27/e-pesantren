@@ -62,6 +62,26 @@ export default function MobilePresensiBerjamaah() {
   const [daftarBerjamaah, setDaftarBerjamaah] = useState(DAFTAR_BERJAMAAH_DEFAULT);
   const [selectedBerjamaah, setSelectedBerjamaah] = useState(DAFTAR_BERJAMAAH_DEFAULT[0]);
 
+  // Dropdown Kelas (Lazy load santri per-kelas seperti Mengaji agar anti-lag)
+  const [selectedBerjamaahKelas, setSelectedBerjamaahKelas] = useState(() => {
+    try {
+      return localStorage.getItem("epesantren_berjamaah_selected_kelas") || "";
+    } catch (e) {
+      return "";
+    }
+  });
+  const [loadingKelasSantri, setLoadingKelasSantri] = useState(false);
+
+  const selectedBerjamaahKelasRef = useRef(selectedBerjamaahKelas);
+  useEffect(() => {
+    selectedBerjamaahKelasRef.current = selectedBerjamaahKelas;
+    if (selectedBerjamaahKelas) {
+      try {
+        localStorage.setItem("epesantren_berjamaah_selected_kelas", selectedBerjamaahKelas);
+      } catch (e) {}
+    }
+  }, [selectedBerjamaahKelas]);
+
   // Data State
   const [santriList, setSantriList] = useState([]);
   const [kelasList, setKelasList] = useState([]);
@@ -72,7 +92,6 @@ export default function MobilePresensiBerjamaah() {
   // Filter State
   const [searchManual, setSearchManual] = useState("");
   const [filterManualStatus, setFilterManualStatus] = useState("Semua"); // 'Semua' | 'Belum' | 'Hadir'
-  const [filterManualKelas, setFilterManualKelas] = useState("Semua");
   const [soundEnabled, setSoundEnabled] = useState(true);
 
   // Otomatis deteksi sesi shalat sesuai jam saat ini
@@ -158,12 +177,39 @@ export default function MobilePresensiBerjamaah() {
     } catch (e) {}
   };
 
+  // Load santri khusus berdasarkan kelas (Lazy load hemat memori & anti-lag)
+  const loadSantriByKelas = async (targetKelas) => {
+    if (!targetKelas || targetKelas === "Semua") {
+      setSantriList([]);
+      return;
+    }
+    setLoadingKelasSantri(true);
+    try {
+      const res = await axios.get(`/api/santri/by-kelas/${encodeURIComponent(targetKelas)}`);
+      const rows = res.data?.data || [];
+      setSantriList(rows);
+    } catch (err) {
+      console.warn("Gagal load santri by kelas:", err);
+    } finally {
+      setLoadingKelasSantri(false);
+    }
+  };
+
   // Fetch Santri, Presensi Logs & Shalat Berjamaah
   const fetchData = async () => {
     try {
       setLoading(true);
+
+      let santriPromise;
+      const savedKelas = selectedBerjamaahKelasRef.current || selectedBerjamaahKelas;
+      if (savedKelas && savedKelas !== "Semua") {
+        santriPromise = axios.get(`/api/santri/by-kelas/${encodeURIComponent(savedKelas)}`).catch(() => ({ data: { data: [] } }));
+      } else {
+        santriPromise = Promise.resolve({ data: { data: [] } });
+      }
+
       const [resSantri, resAbs, resSesi, resKelas] = await Promise.all([
-        axios.get("/api/santri/for-presensi").catch(() => axios.get("/api/santri?all=true")),
+        santriPromise,
         axios.get("/api/absensi/fingerprint?today=true&tipe=berjamaah").catch(() => ({ data: { data: [] } })),
         axios.get("/api/absensi/sesi").catch(() => ({ data: { data: [] } })),
         axios.get("/api/kelas").catch(() => ({ data: { data: [] } })),
@@ -276,7 +322,11 @@ export default function MobilePresensiBerjamaah() {
   };
 
   // Catat Hadir Manual
-  const recordAttendance = async (santri, status = "Hadir Tepat Waktu") => {
+  const recordAttendance = async (santri, status = "Hadir") => {
+    if (!selectedBerjamaahKelas) {
+      showError("Pilih Kelas", "Wajib memilih Kelas santri terlebih dahulu di dropdown atas sebelum mencatat presensi!");
+      return;
+    }
     const now = new Date();
     const timeStr = now.toTimeString().split(" ")[0];
     const dateStr = getTodayDateStr();
@@ -296,9 +346,9 @@ export default function MobilePresensiBerjamaah() {
       status_kehadiran: status,
       metode_presensi: "Manual",
       metode_scan: "Manual",
-      keterangan: filterManualKelas !== "Semua" ? `Kelas: ${filterManualKelas}` : (santri.nama_kelas ? `Kelas: ${santri.nama_kelas}` : ""),
+      keterangan: selectedBerjamaahKelas ? `Kelas: ${selectedBerjamaahKelas}` : (santri.nama_kelas ? `Kelas: ${santri.nama_kelas}` : ""),
       nama_santri: santri.nama_santri,
-      nama_kelas: santri.nama_kelas || filterManualKelas || "",
+      nama_kelas: santri.nama_kelas || selectedBerjamaahKelas || "",
       nama_sesi: targetKegiatan.nama,
       kegiatan: targetKegiatan.nama,
       tipe_presensi: "Berjamaah",
@@ -326,22 +376,8 @@ export default function MobilePresensiBerjamaah() {
     }
   };
 
-  // Daftar Kelas Dropdown
-  const availableKelasOptions = React.useMemo(() => {
-    const setK = new Set();
-    (kelasList || []).forEach((k) => {
-      if (k.nama_kelas) setK.add(String(k.nama_kelas).trim());
-    });
-    return Array.from(setK);
-  }, [kelasList]);
-
-  // Santri terfilter berdasarkan Kelas & Pencarian
-  const santriInSelectedKelas = santriList.filter((s) => {
-    if (filterManualKelas === "Semua") return true;
-    return getSantriKelasLabel(s).toLowerCase() === filterManualKelas.toLowerCase();
-  });
-
-  const filteredSantri = santriInSelectedKelas.filter((s) => {
+  // Santri terfilter berdasarkan Pencarian & Status
+  const filteredSantri = santriList.filter((s) => {
     const matchSearch =
       (s.nama_santri || "").toLowerCase().includes(searchManual.toLowerCase()) ||
       (s.nis || "").includes(searchManual);
@@ -351,8 +387,8 @@ export default function MobilePresensiBerjamaah() {
     return matchSearch;
   });
 
-  const sessionSudahCount = santriInSelectedKelas.filter((s) => getSantriCurrentLog(s)).length;
-  const sessionTotal = santriInSelectedKelas.length;
+  const sessionSudahCount = santriList.filter((s) => getSantriCurrentLog(s)).length;
+  const sessionTotal = santriList.length;
   const sessionPercent = sessionTotal > 0 ? Math.round((sessionSudahCount / sessionTotal) * 100) : 0;
 
   // Filter Riwayat Khusus Shalat Berjamaah Sesi Terpilih
@@ -385,21 +421,21 @@ export default function MobilePresensiBerjamaah() {
       }
 
       // 4. Filter Kelas jika dipilih
-      if (filterManualKelas && filterManualKelas !== "Semua") {
-        const targetKelas = filterManualKelas.toLowerCase();
+      if (selectedBerjamaahKelas) {
+        const targetKelas = selectedBerjamaahKelas.toLowerCase();
+        const matchKet = String(log.keterangan || "").toLowerCase().includes(targetKelas);
+        const matchKls = String(log.nama_kelas || "").toLowerCase().includes(targetKelas);
         const inSantriList = santriList.some(
           (s) =>
             (String(s.id) === String(log.santri_id) || (s.nis && String(s.nis) === String(log.nis))) &&
             getSantriKelasLabel(s).toLowerCase() === targetKelas
         );
-        const matchKet = String(log.keterangan || "").toLowerCase().includes(targetKelas);
-        const matchKls = String(log.nama_kelas || "").toLowerCase().includes(targetKelas);
         if (!inSantriList && !matchKet && !matchKls) return false;
       }
 
       return true;
     });
-  }, [presensiLogs, selectedBerjamaah, filterManualKelas, santriList]);
+  }, [presensiLogs, selectedBerjamaah, selectedBerjamaahKelas, santriList]);
 
   if (loading) {
     return (
@@ -435,7 +471,7 @@ export default function MobilePresensiBerjamaah() {
         </div>
 
         {/* Dropdown Jadwal Shalat */}
-        <div style={{ position: "relative", marginBottom: "10px" }}>
+        <div style={{ position: "relative", marginBottom: "8px" }}>
           <select
             value={selectedBerjamaah?.id || ""}
             onChange={(e) => {
@@ -466,12 +502,51 @@ export default function MobilePresensiBerjamaah() {
           <ChevronDown size={15} color="#ffffff" style={{ position: "absolute", right: "11px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
         </div>
 
+        {/* Dropdown Kelas Santri (Pilih Kelas Dulu Agar Loading Instan) */}
+        <div style={{ position: "relative", marginBottom: "10px" }}>
+          <select
+            value={selectedBerjamaahKelas}
+            onChange={(e) => {
+              const k = e.target.value;
+              setSelectedBerjamaahKelas(k);
+              loadSantriByKelas(k);
+            }}
+            style={{
+              width: "100%",
+              padding: "9px 32px 9px 12px",
+              borderRadius: "11px",
+              border: "1px solid rgba(255, 255, 255, 0.32)",
+              background: "rgba(255, 255, 255, 0.18)",
+              backdropFilter: "blur(10px)",
+              color: "#ffffff",
+              fontSize: "0.84rem",
+              fontWeight: 800,
+              outline: "none",
+              appearance: "none",
+              cursor: "pointer",
+            }}
+          >
+            <option value="" style={{ color: "#0f172a", fontWeight: 700 }}>
+              -- Pilih Kelas Santri --
+            </option>
+            {kelasList.map((k) => (
+              <option key={k.id || k.nama_kelas} value={k.nama_kelas} style={{ color: "#0f172a", fontWeight: 700 }}>
+                🏫 Kelas: {k.nama_kelas}
+              </option>
+            ))}
+          </select>
+          <ChevronDown size={15} color="#ffffff" style={{ position: "absolute", right: "11px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+        </div>
+
         {/* Progress Bar & Realtime Count */}
         <div style={{ background: "rgba(0, 0, 0, 0.2)", borderRadius: "10px", padding: "6px 10px", display: "flex", flexDirection: "column", gap: "5px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.66rem", color: "#e0f2fe" }}>
-            <span>📍 {selectedBerjamaah?.tempat || "Masjid Jami"}</span>
+            <span>
+              📍 {selectedBerjamaah?.tempat || "Masjid Jami"}
+              {selectedBerjamaahKelas ? ` • Kelas ${selectedBerjamaahKelas}` : ""}
+            </span>
             <span style={{ fontWeight: 800, color: "#fef08a" }}>
-              {sessionSudahCount} / {sessionTotal} Santri Hadir ({sessionPercent}%)
+              {selectedBerjamaahKelas ? `${sessionSudahCount} / ${sessionTotal} Santri Hadir (${sessionPercent}%)` : "Pilih Kelas Santri"}
             </span>
           </div>
           <div style={{ width: "100%", height: "4px", borderRadius: "999px", background: "rgba(255, 255, 255, 0.25)", overflow: "hidden" }}>
@@ -531,183 +606,207 @@ export default function MobilePresensiBerjamaah() {
       ========================================================================= */}
       {activeMode === "manual" && (
         <div>
-          {/* Baris Filter: Search Santri & Dropdown Kelas */}
-          <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: "8px", marginBottom: "10px" }}>
-            <div style={{ position: "relative" }}>
-              <input
-                type="text"
-                placeholder="Cari santri..."
-                value={searchManual}
-                onChange={(e) => setSearchManual(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "9px 10px 9px 32px",
-                  borderRadius: "12px",
-                  border: "1.5px solid #e2e8f0",
-                  fontSize: "0.78rem",
-                  outline: "none",
-                  boxSizing: "border-box",
-                  background: "#ffffff",
-                }}
-              />
-              <Search size={15} color="#94a3b8" style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)" }} />
-            </div>
-
-            <div style={{ position: "relative" }}>
-              <select
-                value={filterManualKelas}
-                onChange={(e) => setFilterManualKelas(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "9px 26px 9px 10px",
-                  borderRadius: "12px",
-                  border: "1.5px solid #e2e8f0",
-                  fontSize: "0.78rem",
-                  fontWeight: 700,
-                  outline: "none",
-                  background: "#ffffff",
-                  color: "#1e293b",
-                  appearance: "none",
-                  cursor: "pointer",
-                  boxSizing: "border-box",
-                }}
-              >
-                <option value="Semua">Semua Kelas</option>
-                {availableKelasOptions.map((k) => (
-                  <option key={k} value={k}>
-                    Kelas: {k}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={14} color="#64748b" style={{ position: "absolute", right: "9px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
-            </div>
-          </div>
-
-          {/* Filter Status Kehadiran Chips */}
-          <div style={{ display: "flex", gap: "6px", marginBottom: "10px" }}>
-            {[
-              { key: "Semua", label: `Semua (${santriInSelectedKelas.length})` },
-              { key: "Belum", label: `Belum (${sessionTotal - sessionSudahCount})` },
-              { key: "Hadir", label: `Sudah Hadir (${sessionSudahCount})` },
-            ].map((st) => (
-              <button
-                key={st.key}
-                onClick={() => setFilterManualStatus(st.key)}
-                style={{
-                  padding: "5px 12px",
-                  borderRadius: "20px",
-                  border: filterManualStatus === st.key ? "none" : "1px solid #cbd5e1",
-                  background: filterManualStatus === st.key ? "#0284c7" : "#ffffff",
-                  color: filterManualStatus === st.key ? "#ffffff" : "#475569",
-                  fontSize: "0.72rem",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                {st.label}
-              </button>
-            ))}
-          </div>
-
-          {/* List Santri Checklist */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {filteredSantri.map((s) => {
-              const log = getSantriCurrentLog(s);
-              return (
-                <div
-                  key={s.id}
-                  style={{
-                    background: "#ffffff",
-                    borderRadius: "14px",
-                    padding: "10px 14px",
-                    border: log ? "1px solid #bbf7d0" : "1px solid #e2e8f0",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: "0.86rem", color: "#0f172a" }}>
-                      {s.nama_santri}
-                    </div>
-                    <div style={{ fontSize: "0.68rem", color: "#64748b", marginTop: "2px" }}>
-                      NIS: {s.nis || "-"} • {getSantriKelasLabel(s) || "Santri"}
-                    </div>
-                  </div>
-
-                  <div>
-                    {log ? (
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                        <span
-                          style={{
-                            background: "#ecfdf5",
-                            color: "#059669",
-                            padding: "4px 10px",
-                            borderRadius: "999px",
-                            fontSize: "0.7rem",
-                            fontWeight: 800,
-                          }}
-                        >
-                          ✓ Hadir
-                        </span>
-                        <button
-                          onClick={() => cancelAttendance(s)}
-                          title="Batalkan presensi santri ini"
-                          style={{
-                            background: "#fef2f2",
-                            border: "1px solid #fecaca",
-                            color: "#dc2626",
-                            padding: "4px 8px",
-                            borderRadius: "8px",
-                            fontSize: "0.68rem",
-                            fontWeight: 700,
-                            cursor: "pointer",
-                          }}
-                        >
-                          Batal
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => recordAttendance(s, "Hadir Tepat Waktu")}
-                        style={{
-                          padding: "6px 14px",
-                          borderRadius: "10px",
-                          border: "none",
-                          background: "#0284c7",
-                          color: "#ffffff",
-                          fontSize: "0.74rem",
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          boxShadow: "0 2px 6px rgba(2, 132, 199, 0.25)",
-                        }}
-                      >
-                        Hadirkan
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-
-            {filteredSantri.length === 0 && (
+          {!selectedBerjamaahKelas ? (
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: "16px",
+                padding: "36px 20px",
+                textAlign: "center",
+                border: "1.5px dashed #cbd5e1",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+              }}
+            >
               <div
                 style={{
-                  textAlign: "center",
-                  padding: "36px 16px",
-                  color: "#94a3b8",
-                  fontSize: "0.8rem",
-                  fontWeight: 600,
-                  background: "#ffffff",
-                  borderRadius: "14px",
-                  border: "1px dashed #cbd5e1",
+                  width: "56px",
+                  height: "56px",
+                  borderRadius: "50%",
+                  background: "#e0f2fe",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 12px",
+                  color: "#0284c7",
                 }}
               >
-                Santri tidak ditemukan dengan filter ini.
+                <Building size={28} />
               </div>
-            )}
-          </div>
+              <div style={{ fontWeight: 800, fontSize: "0.95rem", color: "#0f172a", marginBottom: "6px" }}>
+                Pilih Kelas Terlebih Dahulu
+              </div>
+              <div style={{ fontSize: "0.78rem", color: "#64748b", lineHeight: 1.5, maxWidth: "320px", margin: "0 auto" }}>
+                Silakan pilih kelas santri pada dropdown di atas untuk memuat daftar santri secara instan dan melakukan presensi shalat.
+              </div>
+            </div>
+          ) : loadingKelasSantri ? (
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: "16px",
+                padding: "36px 20px",
+                textAlign: "center",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <Loader2 size={30} className="animate-spin" color="#0284c7" style={{ margin: "0 auto 10px" }} />
+              <div style={{ fontWeight: 700, fontSize: "0.85rem", color: "#0f172a" }}>
+                Memuat Santri Kelas {selectedBerjamaahKelas}...
+              </div>
+              <div style={{ fontSize: "0.72rem", color: "#64748b", marginTop: "4px" }}>
+                Hanya mengunduh data kelas ini (cepat & anti-lag)
+              </div>
+            </div>
+          ) : (
+            <div>
+              {/* Baris Pencarian Santri (Full Width) */}
+              <div style={{ position: "relative", marginBottom: "10px" }}>
+                <input
+                  type="text"
+                  placeholder={`Cari santri di kelas ${selectedBerjamaahKelas}...`}
+                  value={searchManual}
+                  onChange={(e) => setSearchManual(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "9px 10px 9px 32px",
+                    borderRadius: "12px",
+                    border: "1.5px solid #e2e8f0",
+                    fontSize: "0.78rem",
+                    outline: "none",
+                    boxSizing: "border-box",
+                    background: "#ffffff",
+                  }}
+                />
+                <Search size={15} color="#94a3b8" style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)" }} />
+              </div>
+
+              {/* Filter Status Kehadiran Chips */}
+              <div style={{ display: "flex", gap: "6px", marginBottom: "10px" }}>
+                {[
+                  { key: "Semua", label: `Semua (${sessionTotal})` },
+                  { key: "Belum", label: `Belum (${sessionTotal - sessionSudahCount})` },
+                  { key: "Hadir", label: `Sudah Hadir (${sessionSudahCount})` },
+                ].map((st) => (
+                  <button
+                    key={st.key}
+                    onClick={() => setFilterManualStatus(st.key)}
+                    style={{
+                      padding: "5px 12px",
+                      borderRadius: "20px",
+                      border: filterManualStatus === st.key ? "none" : "1px solid #cbd5e1",
+                      background: filterManualStatus === st.key ? "#0284c7" : "#ffffff",
+                      color: filterManualStatus === st.key ? "#ffffff" : "#475569",
+                      fontSize: "0.72rem",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {st.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* List Santri Checklist */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {filteredSantri.map((s) => {
+                  const log = getSantriCurrentLog(s);
+                  return (
+                    <div
+                      key={s.id}
+                      style={{
+                        background: "#ffffff",
+                        borderRadius: "14px",
+                        padding: "10px 14px",
+                        border: log ? "1px solid #bbf7d0" : "1px solid #e2e8f0",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: "0.86rem", color: "#0f172a" }}>
+                          {s.nama_santri}
+                        </div>
+                        <div style={{ fontSize: "0.68rem", color: "#64748b", marginTop: "2px" }}>
+                          NIS: {s.nis || "-"} • {getSantriKelasLabel(s) || selectedBerjamaahKelas || "Santri"}
+                        </div>
+                      </div>
+
+                      <div>
+                        {log ? (
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span
+                              style={{
+                                background: "#ecfdf5",
+                                color: "#059669",
+                                padding: "4px 10px",
+                                borderRadius: "999px",
+                                fontSize: "0.7rem",
+                                fontWeight: 800,
+                              }}
+                            >
+                              ✓ Hadir
+                            </span>
+                            <button
+                              onClick={() => cancelAttendance(s)}
+                              title="Batalkan presensi santri ini"
+                              style={{
+                                background: "#fef2f2",
+                                border: "1px solid #fecaca",
+                                color: "#dc2626",
+                                padding: "4px 8px",
+                                borderRadius: "8px",
+                                fontSize: "0.68rem",
+                                fontWeight: 700,
+                                cursor: "pointer",
+                              }}
+                            >
+                              Batal
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => recordAttendance(s, "Hadir Tepat Waktu")}
+                            style={{
+                              padding: "6px 14px",
+                              borderRadius: "10px",
+                              border: "none",
+                              background: "#0284c7",
+                              color: "#ffffff",
+                              fontSize: "0.74rem",
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              boxShadow: "0 2px 6px rgba(2, 132, 199, 0.25)",
+                            }}
+                          >
+                            Hadirkan
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {filteredSantri.length === 0 && (
+                  <div
+                    style={{
+                      textAlign: "center",
+                      padding: "36px 16px",
+                      color: "#94a3b8",
+                      fontSize: "0.8rem",
+                      fontWeight: 600,
+                      background: "#ffffff",
+                      borderRadius: "14px",
+                      border: "1px dashed #cbd5e1",
+                    }}
+                  >
+                    Santri tidak ditemukan di kelas {selectedBerjamaahKelas} dengan filter ini.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -733,7 +832,7 @@ export default function MobilePresensiBerjamaah() {
                 Riwayat: {selectedBerjamaah?.nama || "Shalat Berjamaah"}
               </div>
               <div style={{ fontSize: "0.68rem", color: "#64748b" }}>
-                {filterManualKelas !== "Semua" ? `Kelas ${filterManualKelas} • ` : ""}
+                {selectedBerjamaahKelas ? `Kelas ${selectedBerjamaahKelas} • ` : ""}
                 <strong>{filteredRiwayatLogs.length} Santri Hadir</strong>
               </div>
             </div>

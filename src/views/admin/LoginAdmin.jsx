@@ -49,11 +49,26 @@ export default function LoginAdmin({ onLoginSuccess }) {
         // Data akun dan peran resmi dari Database
         const rawRole = String(res.data.role || userObj.role || '').toLowerCase();
         const rawType = String(res.data.userType || userObj.userType || '').toLowerCase();
+        const isOwner = rawRole.includes('owner') || rawRole.includes('yayasan') || rawType.includes('owner') || rawType.includes('yayasan') || cleanU.toLowerCase().includes('owner');
         const isBnd = rawRole.includes('bendahara') || rawRole.includes('keuangan') || rawType.includes('bendahara') || rawType.includes('keuangan') || cleanU.toLowerCase().includes('bendahara') || cleanU.toLowerCase().includes('keuangan');
+        const isAbs = rawRole.includes('absen') || rawType.includes('absen') || cleanU.toLowerCase().includes('absen');
 
-        const detectedRole = isBnd ? 'bendahara' : (res.data.role || userObj.role || 'admin');
-        const detectedType = isBnd ? 'Bendahara / Keuangan' : (res.data.userType || userObj.userType || 
-          (detectedRole === 'asatidz' ? 'Ustadz / Guru' : detectedRole === 'asrama' ? 'Pembina Asrama' : 'Administrator'));
+        let detectedRole = res.data.role || userObj.role || 'admin';
+        let detectedType = res.data.userType || userObj.userType || 'Administrator';
+        if (isOwner) {
+          detectedRole = 'owner';
+          detectedType = 'Owner / Yayasan (Eksekutif)';
+        } else if (isBnd) {
+          detectedRole = 'bendahara';
+          detectedType = 'Admin Keuangan';
+        } else if (isAbs) {
+          detectedRole = 'admin_absen';
+          detectedType = 'Admin Absen';
+        } else if (detectedRole === 'asatidz') {
+          detectedType = 'Ustadz / Guru';
+        } else if (detectedRole === 'asrama') {
+          detectedType = 'Pembina Asrama';
+        }
 
         const sessionData = {
           token: res.data.token || '',
@@ -74,8 +89,12 @@ export default function LoginAdmin({ onLoginSuccess }) {
           sessionStorage.setItem('desktop_session', JSON.stringify(sessionData));
         }
 
-        if (isBnd) {
+        if (isOwner) {
+          window.location.hash = '#owner';
+        } else if (isBnd) {
           window.location.hash = '#keuangan-admin';
+        } else if (isAbs) {
+          window.location.hash = '#absensi-berjamaah';
         }
 
         setLoading(false);

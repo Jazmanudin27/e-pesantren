@@ -614,6 +614,7 @@ export default function UserManagementView() {
           options={[
             { value: "Semua", label: "Semua Role" },
             { value: "Super Admin", label: "Super Admin" },
+            { value: "Owner", label: "Owner (Eksekutif Laporan Saja)" },
             { value: "Admin Keuangan", label: "Admin Keuangan (Bendahara)" },
             { value: "Admin Absen", label: "Admin Absen (Presensi)" },
             { value: "Pengasuh", label: "Pengasuh" },
@@ -1179,6 +1180,10 @@ export default function UserManagementView() {
                       {
                         value: "Super Admin",
                         label: "Super Admin (Akses Penuh)",
+                      },
+                      {
+                        value: "Owner",
+                        label: "Owner / Yayasan (Eksekutif Laporan Saja)",
                       },
                       {
                         value: "Admin Keuangan",

@@ -3,6 +3,49 @@
  * Khususnya memisahkan Admin Keuangan / Bendahara dari Admin Absensi / Musyrif / Ustadz
  */
 
+export const isPureKeuangan = (user) => {
+  if (!user) return false;
+  const role = String(user.role || '').toLowerCase().trim();
+  const userType = String(user.userType || '').toLowerCase().trim();
+  const username = String(user.username || '').toLowerCase().trim();
+
+  const isKeu =
+    role.includes('keuangan') ||
+    role.includes('bendahara') ||
+    userType.includes('keuangan') ||
+    userType.includes('bendahara') ||
+    username.includes('keuangan') ||
+    username.includes('bendahara');
+
+  const isSuper =
+    role.includes('super') ||
+    userType.includes('super') ||
+    role === 'pengasuh' ||
+    username === 'admin';
+
+  return isKeu && !isSuper;
+};
+
+export const isPureAbsen = (user) => {
+  if (!user) return false;
+  const role = String(user.role || '').toLowerCase().trim();
+  const userType = String(user.userType || '').toLowerCase().trim();
+  const username = String(user.username || '').toLowerCase().trim();
+
+  const isAbs =
+    role.includes('absen') ||
+    userType.includes('absen') ||
+    username.includes('absen');
+
+  const isSuper =
+    role.includes('super') ||
+    userType.includes('super') ||
+    role === 'pengasuh' ||
+    username === 'admin';
+
+  return isAbs && !isSuper;
+};
+
 export const canAccessKeuangan = (user) => {
   if (!user) return false;
 
@@ -49,4 +92,14 @@ export const canAccessKeuangan = (user) => {
 
   return false;
 };
+
+export const canAccessAbsensi = (user) => {
+  if (!user) return true;
+  // Jika murni Admin Keuangan / Bendahara -> tolak akses Absensi
+  if (isPureKeuangan(user)) {
+    return false;
+  }
+  return true;
+};
+
 

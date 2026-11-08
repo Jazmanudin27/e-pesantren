@@ -66,7 +66,8 @@ import PerkembanganSantriPerempuanView from '../views/admin/PerkembanganSantriPe
 import LoginAdmin from '../views/admin/LoginAdmin';
 import PortalWaliSantri from '../views/wali/PortalWaliSantri';
 import WhatsAppGatewayView from '../views/admin/WhatsAppGatewayView';
-import { canAccessKeuangan } from '../utils/authRole.util';
+import OwnerDashboardView from '../views/owner/OwnerDashboardView';
+import { canAccessKeuangan, canAccessAbsensi, isPureKeuangan, isPureAbsen } from '../utils/authRole.util';
 import { showConfirm, toastSuccess } from '../utils/alert.util';
 
 export default function AdminLayout() {
@@ -77,14 +78,6 @@ export default function AdminLayout() {
   const isLaporanTab = (tab) => ['laporan-presensi', 'laporan-tahfidz'].includes(tab);
   const isKeuanganTab = (tab) => ['keuangan-admin', 'keuangan', 'keuangan-kasir', 'keuangan-rekap', 'keuangan-spp', 'tagihan', 'tabungan-santri', 'tabungan', 'laporan-infak', 'infak'].includes(tab);
 
-  const isBendaharaUser = (user) => {
-    if (!user) return false;
-    const r = String(user.role || '').toLowerCase();
-    const t = String(user.userType || '').toLowerCase();
-    const u = String(user.username || '').toLowerCase();
-    return r.includes('bendahara') || r.includes('keuangan') || t.includes('bendahara') || t.includes('keuangan') || u.includes('bendahara') || u.includes('keuangan');
-  };
-
   // Get initial tab from URL hash
   const getInitialTab = () => {
     const hash = window.location.hash.replace('#', '');
@@ -92,7 +85,7 @@ export default function AdminLayout() {
     try {
       const saved = localStorage.getItem('desktop_session') || sessionStorage.getItem('desktop_session');
       const u = saved ? JSON.parse(saved) : null;
-      if (isBendaharaUser(u)) return 'keuangan-admin';
+      if (isPureKeuangan(u)) return 'keuangan-admin';
     } catch (e) {}
     return 'dashboard';
   };
@@ -108,7 +101,7 @@ export default function AdminLayout() {
     try {
       const saved = localStorage.getItem('desktop_session') || sessionStorage.getItem('desktop_session');
       const u = saved ? JSON.parse(saved) : null;
-      if (isBendaharaUser(u)) return true;
+      if (isPureKeuangan(u)) return true;
     } catch (e) {}
     return isKeuanganTab(initialTab);
   });
@@ -151,16 +144,51 @@ export default function AdminLayout() {
     }
   });
 
-  const isPureBendahara = Boolean(currentUser && isBendaharaUser(currentUser) && !String(currentUser.role || '').toLowerCase().includes('super'));
+  const isPureBendahara = Boolean(currentUser && isPureKeuangan(currentUser));
+  const isPureAdminAbsen = Boolean(currentUser && isPureAbsen(currentUser));
+
+  // Mode Filter Navigasi Desktop: 'all' (Semua) | 'absen' (Admin Absen Saja) | 'keuangan' (Admin Keuangan Saja)
+  const [desktopModuleFilter, setDesktopModuleFilter] = useState(() => {
+    try {
+      const saved = localStorage.getItem('desktop_session') || sessionStorage.getItem('desktop_session');
+      const u = saved ? JSON.parse(saved) : null;
+      if (isPureKeuangan(u)) return 'keuangan';
+      if (isPureAbsen(u)) return 'absen';
+      const savedFilter = localStorage.getItem('desktop_module_filter');
+      if (savedFilter && ['all', 'absen', 'keuangan'].includes(savedFilter)) return savedFilter;
+    } catch (e) {}
+    return 'all';
+  });
+
+  const handleSetDesktopModuleFilter = (filter) => {
+    setDesktopModuleFilter(filter);
+    try {
+      localStorage.setItem('desktop_module_filter', filter);
+    } catch (e) {}
+    if (filter === 'keuangan' && !isKeuanganTab(activeTab)) {
+      changeTab('keuangan-admin');
+    } else if (filter === 'absen' && isKeuanganTab(activeTab)) {
+      changeTab('dashboard');
+    }
+  };
 
   // Auto-switch tab ke Keuangan jika login sebagai Bendahara & tab masih dashboard
   useEffect(() => {
-    if (currentUser && isBendaharaUser(currentUser)) {
+    if (isPureBendahara) {
+      setDesktopModuleFilter('keuangan');
       setIsKeuanganOpen(true);
       const hash = window.location.hash.replace('#', '');
       if (!hash || hash === 'dashboard') {
         setActiveTab('keuangan-admin');
         window.location.hash = '#keuangan-admin';
+      }
+    } else if (isPureAdminAbsen) {
+      setDesktopModuleFilter('absen');
+      setIsAbsensiOpen(true);
+      const hash = window.location.hash.replace('#', '');
+      if (isKeuanganTab(hash)) {
+        setActiveTab('dashboard');
+        window.location.hash = '#dashboard';
       }
     }
   }, [currentUser]);
@@ -348,9 +376,51 @@ export default function AdminLayout() {
       case 'presensi':
       case 'presensi-berjamaah':
       case 'absensi-berjamaah':
+        if (!canAccessAbsensi(currentUser)) {
+          return (
+            <div style={{ textAlign: 'center', padding: '60px 20px', background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#fef2f2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <ShieldAlert size={36} />
+              </div>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
+                Akses Dibatasi (Khusus Admin Absensi & Musyrif)
+              </h2>
+              <p style={{ color: '#64748b', fontSize: '0.88rem', maxWidth: '520px', margin: '0 auto 20px', lineHeight: 1.5 }}>
+                Menu Presensi dan Absensi dipisahkan khusus untuk petugas Admin Absen &amp; Musyrif. Akun Keuangan / Bendahara tidak memiliki hak akses operasional absensi.
+              </p>
+              <button 
+                onClick={() => changeTab('keuangan-admin')}
+                style={{ background: '#059669', color: '#fff', border: 'none', padding: '10px 22px', borderRadius: '10px', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}
+              >
+                Kembali ke Layanan Keuangan
+              </button>
+            </div>
+          );
+        }
         return <AbsensiFingerprintView initialType="berjamaah" />;
       case 'presensi-kegiatan':
       case 'absensi-mengaji':
+        if (!canAccessAbsensi(currentUser)) {
+          return (
+            <div style={{ textAlign: 'center', padding: '60px 20px', background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#fef2f2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <ShieldAlert size={36} />
+              </div>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
+                Akses Dibatasi (Khusus Admin Absensi & Musyrif)
+              </h2>
+              <p style={{ color: '#64748b', fontSize: '0.88rem', maxWidth: '520px', margin: '0 auto 20px', lineHeight: 1.5 }}>
+                Menu Presensi Mengaji dipisahkan khusus untuk Admin Absen &amp; Guru. Akun Keuangan / Bendahara tidak memiliki akses ke absensi santri.
+              </p>
+              <button 
+                onClick={() => changeTab('keuangan-admin')}
+                style={{ background: '#059669', color: '#fff', border: 'none', padding: '10px 22px', borderRadius: '10px', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}
+              >
+                Kembali ke Layanan Keuangan
+              </button>
+            </div>
+          );
+        }
         return <AbsensiFingerprintView initialType="kegiatan" />;
       case 'laporan-presensi':
         return <AbsensiFingerprintView initialType="berjamaah" />;
@@ -459,6 +529,10 @@ export default function AdminLayout() {
       case 'wali-santri':
       case 'wali':
         return <PortalWaliSantri />;
+      case 'owner':
+      case 'laporan-owner':
+      case 'dashboard-owner':
+        return <OwnerDashboardView />;
       default:
         return <DashboardAdmin />;
     }
@@ -477,14 +551,115 @@ export default function AdminLayout() {
       if (isMobile) setIsMobileMenuOpen(false);
     };
 
+    const showAbsen = (desktopModuleFilter === 'all' || desktopModuleFilter === 'absen') && !isPureBendahara;
+    const showKeuangan = (desktopModuleFilter === 'all' || desktopModuleFilter === 'keuangan') && canAccessKeuangan(currentUser);
+
     return (
       <nav className="sidebar-menu">
-        {/* KHUSUS ROLE BENDAHARA / KEUANGAN: PRIORITASKAN MENU KEUANGAN DI PALING ATAS */}
-        {isPureBendahara && (
+        {/* =========================================================================
+            1. MODUL ADMIN ABSEN
+        ========================================================================= */}
+        {showAbsen && (
           <>
-            <div className="menu-category" style={{ color: '#10b981', fontWeight: 800 }}>LAYANAN BENDAHARA</div>
+            <div className="menu-category" style={{ color: '#38bdf8', fontWeight: 800 }}>
+              {desktopModuleFilter === 'absen' ? 'MENU ADMIN ABSEN' : 'MODUL ADMIN ABSEN'}
+            </div>
+
             <button 
-              className={`nav-link ${activeTab === 'keuangan-admin' || activeTab === 'keuangan' || activeTab === 'keuangan-kasir' ? 'active' : ''}`}
+              className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
+              onClick={() => handleTabClick('dashboard')}
+            >
+              <div className="nav-link-left">
+                <LayoutDashboard size={15} style={{ color: '#0284c7' }} />
+                <span>Dashboard</span>
+              </div>
+            </button>
+
+            {/* ABSENSI SANTRI DROPDOWN / ACCORDION */}
+            <button 
+              className={`nav-link has-dropdown ${isAbsensiActive ? 'active' : ''}`}
+              onClick={() => setIsAbsensiOpen(!isAbsensiOpen)}
+            >
+              <div className="nav-link-left">
+                <Fingerprint size={15} style={{ color: '#0284c7' }} />
+                <span>Absensi Santri</span>
+              </div>
+              <ChevronDown size={13} className={`nav-chevron ${isAbsensiOpen ? 'open' : ''}`} />
+            </button>
+
+            {isAbsensiOpen && (
+              <div className="nav-submenu">
+                <button 
+                  className={`nav-sublink ${['absensi-berjamaah', 'presensi-berjamaah', 'presensi'].includes(activeTab) ? 'active' : ''}`}
+                  onClick={() => handleTabClick('absensi-berjamaah')}
+                >
+                  <Fingerprint size={13} style={{ marginRight: '6px', color: '#0284c7' }} />
+                  <span>Absensi Berjamaah</span>
+                </button>
+
+                <button 
+                  className={`nav-sublink ${['absensi-mengaji', 'presensi-kegiatan'].includes(activeTab) ? 'active' : ''}`}
+                  onClick={() => handleTabClick('absensi-mengaji')}
+                >
+                  <BookOpen size={13} style={{ marginRight: '6px', color: '#059669' }} />
+                  <span>Absensi Mengaji</span>
+                </button>
+
+                <button 
+                  className={`nav-sublink ${activeTab === 'laporan-presensi' ? 'active' : ''}`}
+                  onClick={() => handleTabClick('laporan-presensi')}
+                >
+                  <BarChart3 size={13} style={{ marginRight: '6px', color: '#38bdf8' }} />
+                  <span>Rekap Presensi Harian</span>
+                </button>
+              </div>
+            )}
+
+            <button 
+              className={`nav-link ${activeTab === 'tahfidz' || activeTab === 'laporan-tahfidz' ? 'active' : ''}`}
+              onClick={() => handleTabClick('tahfidz')}
+            >
+              <div className="nav-link-left">
+                <BookOpen size={15} style={{ color: '#10b981' }} />
+                <span>Tahfidz & Muroja'ah</span>
+              </div>
+            </button>
+
+            <button 
+              className={`nav-link ${activeTab === 'perizinan' ? 'active' : ''}`}
+              onClick={() => handleTabClick('perizinan')}
+            >
+              <div className="nav-link-left">
+                <DoorOpen size={15} style={{ color: '#f59e0b' }} />
+                <span>Perizinan Santri</span>
+              </div>
+            </button>
+
+            <button 
+              className={`nav-link ${activeTab === 'master-device' ? 'active' : ''}`}
+              onClick={() => handleTabClick('master-device')}
+            >
+              <div className="nav-link-left">
+                <HardDrive size={15} style={{ color: '#a855f7' }} />
+                <span>Mesin Fingerprint (ADMS)</span>
+              </div>
+            </button>
+
+            <div style={{ height: '6px' }} />
+          </>
+        )}
+
+        {/* =========================================================================
+            2. MODUL ADMIN KEUANGAN
+        ========================================================================= */}
+        {showKeuangan && (
+          <>
+            <div className="menu-category" style={{ color: '#10b981', fontWeight: 800 }}>
+              {desktopModuleFilter === 'keuangan' ? 'MENU ADMIN KEUANGAN' : 'MODUL ADMIN KEUANGAN'}
+            </div>
+
+            <button 
+              className={`nav-link ${activeTab === 'keuangan-admin' || activeTab === 'keuangan' || activeTab === 'keuangan-kasir' || activeTab === 'keuangan-spp' || activeTab === 'tagihan' ? 'active' : ''}`}
               onClick={() => handleTabClick('keuangan-admin')}
             >
               <div className="nav-link-left">
@@ -532,346 +707,243 @@ export default function AdminLayout() {
                 <span>Broadcast Tagihan WA</span>
               </div>
             </button>
-            <div style={{ height: '8px' }} />
+
+            <div style={{ height: '6px' }} />
           </>
         )}
 
-        <div className="menu-category">MAIN MENU</div>
-        <button 
-          className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
-          onClick={() => handleTabClick('dashboard')}
-        >
-          <div className="nav-link-left">
-            <LayoutDashboard size={15} />
-            <span>Dashboard</span>
-          </div>
-        </button>
-
-        {/* ABSENSI SANTRI DROPDOWN / ACCORDION */}
-        <button 
-          className={`nav-link has-dropdown ${isAbsensiActive ? 'active' : ''}`}
-          onClick={() => setIsAbsensiOpen(!isAbsensiOpen)}
-        >
-          <div className="nav-link-left">
-            <Fingerprint size={15} style={{ color: '#0284c7' }} />
-            <span>Absensi Santri</span>
-          </div>
-          <ChevronDown size={13} className={`nav-chevron ${isAbsensiOpen ? 'open' : ''}`} />
-        </button>
-
-        {isAbsensiOpen && (
-          <div className="nav-submenu">
+        {/* =========================================================================
+            3. DATA MASTER & KEPESANTRENAN
+        ========================================================================= */}
+        {/* Jika Admin Keuangan Murni: hanya tampilkan Master Santri & Kelas sebagai referensi tagihan */}
+        {isPureBendahara || desktopModuleFilter === 'keuangan' ? (
+          <>
+            <div className="menu-category">DATA MASTER REFERENSI</div>
             <button 
-              className={`nav-sublink ${['absensi-berjamaah', 'presensi-berjamaah', 'presensi'].includes(activeTab) ? 'active' : ''}`}
-              onClick={() => handleTabClick('absensi-berjamaah')}
-            >
-              <Fingerprint size={13} style={{ marginRight: '6px', color: '#0284c7' }} />
-              <span>Absensi Berjamaah</span>
-            </button>
-
-            <button 
-              className={`nav-sublink ${['absensi-mengaji', 'presensi-kegiatan'].includes(activeTab) ? 'active' : ''}`}
-              onClick={() => handleTabClick('absensi-mengaji')}
-            >
-              <BookOpen size={13} style={{ marginRight: '6px', color: '#059669' }} />
-              <span>Absensi Mengaji</span>
-            </button>
-          </div>
-        )}
-
-        <button 
-          className={`nav-link ${activeTab === 'tahfidz' ? 'active' : ''}`}
-          onClick={() => handleTabClick('tahfidz')}
-        >
-          <div className="nav-link-left">
-            <BookOpen size={15} />
-            <span>Tahfidz & Muroja'ah</span>
-          </div>
-        </button>
-
-        <button 
-          className={`nav-link ${activeTab === 'perizinan' ? 'active' : ''}`}
-          onClick={() => handleTabClick('perizinan')}
-        >
-          <div className="nav-link-left">
-            <DoorOpen size={15} />
-            <span>Perizinan</span>
-          </div>
-        </button>
-
-        {/* DATA MASTER DROPDOWN / ACCORDION */}
-        <div className="menu-category">DATA MASTER</div>
-        <button 
-          className={`nav-link has-dropdown ${isMasterActive ? 'active' : ''}`}
-          onClick={() => setIsMasterOpen(!isMasterOpen)}
-        >
-          <div className="nav-link-left">
-            <Database size={15} />
-            <span>Data Master</span>
-          </div>
-          <ChevronDown size={13} className={`nav-chevron ${isMasterOpen ? 'open' : ''}`} />
-        </button>
-
-        {isMasterOpen && (
-          <div className="nav-submenu">
-            <button 
-              className={`nav-sublink ${activeTab === 'master-santri' ? 'active' : ''}`}
+              className={`nav-link ${activeTab === 'master-santri' ? 'active' : ''}`}
               onClick={() => handleTabClick('master-santri')}
             >
-              <Users size={13} style={{ marginRight: '6px' }} />
-              <span>Data Santri</span>
+              <div className="nav-link-left">
+                <Users size={15} style={{ color: '#38bdf8' }} />
+                <span>Data Santri</span>
+              </div>
             </button>
 
             <button 
-              className={`nav-sublink ${activeTab === 'master-asrama' ? 'active' : ''}`}
-              onClick={() => handleTabClick('master-asrama')}
-            >
-              <Building size={13} style={{ marginRight: '6px' }} />
-              <span>Asrama</span>
-            </button>
-
-            <button 
-              className={`nav-sublink ${activeTab === 'master-kelas' ? 'active' : ''}`}
+              className={`nav-link ${activeTab === 'master-kelas' ? 'active' : ''}`}
               onClick={() => handleTabClick('master-kelas')}
             >
-              <GraduationCap size={13} style={{ marginRight: '6px' }} />
-              <span>Kelas</span>
+              <div className="nav-link-left">
+                <GraduationCap size={15} style={{ color: '#a855f7' }} />
+                <span>Kelas</span>
+              </div>
             </button>
-
-            <button 
-              className={`nav-sublink ${activeTab === 'master-asatidz' ? 'active' : ''}`}
-              onClick={() => handleTabClick('master-asatidz')}
-            >
-              <Users size={13} style={{ marginRight: '6px' }} />
-              <span>Asatidz</span>
-            </button>
-
-            <button 
-              className={`nav-sublink ${activeTab === 'master-materi' ? 'active' : ''}`}
-              onClick={() => handleTabClick('master-materi')}
-            >
-              <BookOpen size={13} style={{ marginRight: '6px', color: '#059669' }} />
-              <span>Kegiatan</span>
-            </button>
-
-            <button 
-              className={`nav-sublink ${activeTab === 'setting-shalat' || activeTab === 'setting-kegiatan' || activeTab === 'master-kegiatan' ? 'active' : ''}`}
-              onClick={() => handleTabClick('setting-shalat')}
-            >
-              <CalendarCheck size={13} style={{ marginRight: '6px', color: '#0284c7' }} />
-              <span>Setting Shalat</span>
-            </button>
-          </div>
-        )}
-
-        <div className="menu-category">KEPESANTRENAN</div>
-        <button 
-          className={`nav-link ${activeTab === 'praktek-ibadah' || activeTab === 'praktek' ? 'active' : ''}`}
-          onClick={() => handleTabClick('praktek-ibadah')}
-        >
-          <div className="nav-link-left">
-            <HeartHandshake size={15} style={{ color: '#059669' }} />
-            <span>Praktek</span>
-          </div>
-        </button>
-
-        <button 
-          className={`nav-link ${activeTab === 'tata-tertib' ? 'active' : ''}`}
-          onClick={() => handleTabClick('tata-tertib')}
-        >
-          <div className="nav-link-left">
-            <ShieldAlert size={15} />
-            <span>Tata Tertib & Ta'zir</span>
-          </div>
-        </button>
-
-        {/* PENGEMBANGAN DROPDOWN */}
-        <button 
-          className={`nav-link has-dropdown ${isPengembanganActive ? 'active' : ''}`}
-          onClick={() => setIsPengembanganOpen(!isPengembanganOpen)}
-        >
-          <div className="nav-link-left">
-            <BookOpen size={15} style={{ color: '#0284c7' }} />
-            <span>Pengembangan</span>
-          </div>
-          <ChevronDown size={13} className={`nav-chevron ${isPengembanganOpen ? 'open' : ''}`} />
-        </button>
-
-        {isPengembanganOpen && (
-          <div className="nav-submenu">
-            <button 
-              className={`nav-sublink ${activeTab === 'perkembangan-santri-laki' || activeTab === 'perkembangan-ikhwan' ? 'active' : ''}`}
-              onClick={() => handleTabClick('perkembangan-santri-laki')}
-            >
-              <Users size={13} style={{ marginRight: '6px', color: '#0284c7' }} />
-              <span>Pengembangan (L)</span>
-            </button>
-
-            <button 
-              className={`nav-sublink ${activeTab === 'perkembangan-santri-perempuan' || activeTab === 'perkembangan-santriwati' || activeTab === 'perkembangan-akhwat' ? 'active' : ''}`}
-              onClick={() => handleTabClick('perkembangan-santri-perempuan')}
-            >
-              <Users size={13} style={{ marginRight: '6px', color: '#db2777' }} />
-              <span>Pengembangan (P)</span>
-            </button>
-          </div>
-        )}
-
-        <button 
-          className={`nav-link ${activeTab === 'laporan-perkembangan' ? 'active' : ''}`}
-          onClick={() => handleTabClick('laporan-perkembangan')}
-        >
-          <div className="nav-link-left">
-            <FileText size={15} style={{ color: '#0284c7' }} />
-            <span>Laporan Perkembangan</span>
-          </div>
-        </button>
-
-        <button 
-          className={`nav-link ${['informasi-kegiatan', 'berita-pesantren', 'pengumuman'].includes(activeTab) ? 'active' : ''}`}
-          onClick={() => handleTabClick('informasi-kegiatan')}
-        >
-          <div className="nav-link-left">
-            <Bell size={15} style={{ color: '#f59e0b' }} />
-            <span>Informasi &amp; Pengumuman</span>
-          </div>
-        </button>
-
-        <button 
-          className={`nav-link ${['pesan-komunikasi', 'pesan-admin', 'pesan'].includes(activeTab) ? 'active' : ''}`}
-          onClick={() => handleTabClick('pesan-komunikasi')}
-        >
-          <div className="nav-link-left">
-            <MessageSquare size={15} style={{ color: '#0d9488' }} />
-            <span>Pesan Wali Santri</span>
-          </div>
-        </button>
-
-
-        {canAccessKeuangan(currentUser) && (
+          </>
+        ) : (
           <>
-            <div className="menu-category">KEUANGAN & ADMINISTRASI</div>
+            {/* DATA MASTER DROPDOWN / ACCORDION */}
+            <div className="menu-category">DATA MASTER</div>
             <button 
-              className={`nav-link has-dropdown ${isKeuanganActive ? 'active' : ''}`}
-              onClick={() => setIsKeuanganOpen(!isKeuanganOpen)}
+              className={`nav-link has-dropdown ${isMasterActive ? 'active' : ''}`}
+              onClick={() => setIsMasterOpen(!isMasterOpen)}
             >
               <div className="nav-link-left">
-                <CreditCard size={15} style={{ color: '#059669' }} />
-                <span>Keuangan</span>
+                <Database size={15} />
+                <span>Data Master</span>
               </div>
-              <ChevronDown size={13} className={`nav-chevron ${isKeuanganOpen ? 'open' : ''}`} />
+              <ChevronDown size={13} className={`nav-chevron ${isMasterOpen ? 'open' : ''}`} />
             </button>
 
-            {isKeuanganOpen && (
+            {isMasterOpen && (
               <div className="nav-submenu">
                 <button 
-                  className={`nav-sublink ${activeTab === 'keuangan-admin' || activeTab === 'keuangan' || activeTab === 'keuangan-kasir' ? 'active' : ''}`}
-                  onClick={() => handleTabClick('keuangan-admin')}
+                  className={`nav-sublink ${activeTab === 'master-santri' ? 'active' : ''}`}
+                  onClick={() => handleTabClick('master-santri')}
                 >
-                  <CreditCard size={13} style={{ marginRight: '6px', color: '#059669' }} />
-                  <span>Kasir & Tagihan Santri</span>
+                  <Users size={13} style={{ marginRight: '6px' }} />
+                  <span>Data Santri</span>
                 </button>
 
                 <button 
-                  className={`nav-sublink ${activeTab === 'keuangan-rekap' ? 'active' : ''}`}
-                  onClick={() => handleTabClick('keuangan-rekap')}
+                  className={`nav-sublink ${activeTab === 'master-asrama' ? 'active' : ''}`}
+                  onClick={() => handleTabClick('master-asrama')}
                 >
-                  <BarChart3 size={13} style={{ marginRight: '6px', color: '#0284c7' }} />
-                  <span>Rekap & Laporan Kas</span>
+                  <Building size={13} style={{ marginRight: '6px' }} />
+                  <span>Asrama</span>
                 </button>
 
                 <button 
-                  className={`nav-sublink ${activeTab === 'laporan-infak' || activeTab === 'infak' ? 'active' : ''}`}
-                  onClick={() => handleTabClick('laporan-infak')}
+                  className={`nav-sublink ${activeTab === 'master-kelas' ? 'active' : ''}`}
+                  onClick={() => handleTabClick('master-kelas')}
                 >
-                  <Heart size={13} style={{ marginRight: '6px', color: '#ec4899' }} />
-                  <span>Infak &amp; Sedekah</span>
+                  <GraduationCap size={13} style={{ marginRight: '6px' }} />
+                  <span>Kelas</span>
                 </button>
 
                 <button 
-                  className={`nav-sublink ${activeTab === 'whatsapp-gateway' || activeTab === 'whatsapp' || activeTab === 'wa-broadcast' ? 'active' : ''}`}
-                  onClick={() => handleTabClick('whatsapp-gateway')}
+                  className={`nav-sublink ${activeTab === 'master-asatidz' ? 'active' : ''}`}
+                  onClick={() => handleTabClick('master-asatidz')}
                 >
-                  <Send size={13} style={{ marginRight: '6px', color: '#10b981' }} />
-                  <span>Broadcast Tagihan WA</span>
+                  <Users size={13} style={{ marginRight: '6px' }} />
+                  <span>Asatidz</span>
+                </button>
+
+                <button 
+                  className={`nav-sublink ${activeTab === 'master-materi' ? 'active' : ''}`}
+                  onClick={() => handleTabClick('master-materi')}
+                >
+                  <BookOpen size={13} style={{ marginRight: '6px', color: '#059669' }} />
+                  <span>Kegiatan</span>
+                </button>
+
+                <button 
+                  className={`nav-sublink ${activeTab === 'setting-shalat' || activeTab === 'setting-kegiatan' || activeTab === 'master-kegiatan' ? 'active' : ''}`}
+                  onClick={() => handleTabClick('setting-shalat')}
+                >
+                  <CalendarCheck size={13} style={{ marginRight: '6px', color: '#0284c7' }} />
+                  <span>Setting Shalat</span>
                 </button>
               </div>
             )}
+
+            <div className="menu-category">KEPESANTRENAN</div>
+            <button 
+              className={`nav-link ${activeTab === 'praktek-ibadah' || activeTab === 'praktek' ? 'active' : ''}`}
+              onClick={() => handleTabClick('praktek-ibadah')}
+            >
+              <div className="nav-link-left">
+                <HeartHandshake size={15} style={{ color: '#059669' }} />
+                <span>Praktek</span>
+              </div>
+            </button>
+
+            <button 
+              className={`nav-link ${activeTab === 'tata-tertib' ? 'active' : ''}`}
+              onClick={() => handleTabClick('tata-tertib')}
+            >
+              <div className="nav-link-left">
+                <ShieldAlert size={15} />
+                <span>Tata Tertib & Ta'zir</span>
+              </div>
+            </button>
+
+            {/* PENGEMBANGAN DROPDOWN */}
+            <button 
+              className={`nav-link has-dropdown ${isPengembanganActive ? 'active' : ''}`}
+              onClick={() => setIsPengembanganOpen(!isPengembanganOpen)}
+            >
+              <div className="nav-link-left">
+                <BookOpen size={15} style={{ color: '#0284c7' }} />
+                <span>Pengembangan</span>
+              </div>
+              <ChevronDown size={13} className={`nav-chevron ${isPengembanganOpen ? 'open' : ''}`} />
+            </button>
+
+            {isPengembanganOpen && (
+              <div className="nav-submenu">
+                <button 
+                  className={`nav-sublink ${activeTab === 'perkembangan-santri-laki' || activeTab === 'perkembangan-ikhwan' ? 'active' : ''}`}
+                  onClick={() => handleTabClick('perkembangan-santri-laki')}
+                >
+                  <Users size={13} style={{ marginRight: '6px', color: '#0284c7' }} />
+                  <span>Pengembangan (L)</span>
+                </button>
+
+                <button 
+                  className={`nav-sublink ${activeTab === 'perkembangan-santri-perempuan' || activeTab === 'perkembangan-santriwati' || activeTab === 'perkembangan-akhwat' ? 'active' : ''}`}
+                  onClick={() => handleTabClick('perkembangan-santri-perempuan')}
+                >
+                  <Users size={13} style={{ marginRight: '6px', color: '#db2777' }} />
+                  <span>Pengembangan (P)</span>
+                </button>
+              </div>
+            )}
+
+            <button 
+              className={`nav-link ${activeTab === 'laporan-perkembangan' ? 'active' : ''}`}
+              onClick={() => handleTabClick('laporan-perkembangan')}
+            >
+              <div className="nav-link-left">
+                <FileText size={15} style={{ color: '#0284c7' }} />
+                <span>Laporan Perkembangan</span>
+              </div>
+            </button>
+
+            <button 
+              className={`nav-link ${['informasi-kegiatan', 'berita-pesantren', 'pengumuman'].includes(activeTab) ? 'active' : ''}`}
+              onClick={() => handleTabClick('informasi-kegiatan')}
+            >
+              <div className="nav-link-left">
+                <Bell size={15} style={{ color: '#f59e0b' }} />
+                <span>Informasi &amp; Pengumuman</span>
+              </div>
+            </button>
+
+            <button 
+              className={`nav-link ${['pesan-komunikasi', 'pesan-admin', 'pesan'].includes(activeTab) ? 'active' : ''}`}
+              onClick={() => handleTabClick('pesan-komunikasi')}
+            >
+              <div className="nav-link-left">
+                <MessageSquare size={15} style={{ color: '#0d9488' }} />
+                <span>Pesan Wali Santri</span>
+              </div>
+            </button>
+
+            <button 
+              className={`nav-link ${['owner', 'laporan-owner', 'dashboard-owner'].includes(activeTab) ? 'active' : ''}`}
+              onClick={() => handleTabClick('laporan-owner')}
+            >
+              <div className="nav-link-left">
+                <BarChart3 size={15} style={{ color: '#8b5cf6' }} />
+                <span>Portal Laporan Owner</span>
+              </div>
+            </button>
+
+            {/* SETTINGS / PENGATURAN DROPDOWN */}
+            {!isPureAdminAbsen && (
+              <>
+                <div className="menu-category">SETTINGS</div>
+                <button 
+                  className={`nav-link has-dropdown ${isSettingsActive ? 'active' : ''}`}
+                  onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                >
+                  <div className="nav-link-left">
+                    <Settings size={15} />
+                    <span>Settings</span>
+                  </div>
+                  <ChevronDown size={13} className={`nav-chevron ${isSettingsOpen ? 'open' : ''}`} />
+                </button>
+
+                {isSettingsOpen && (
+                  <div className="nav-submenu">
+                    <button 
+                      className={`nav-sublink ${activeTab === 'manajemen-user' || activeTab === 'users' ? 'active' : ''}`}
+                      onClick={() => handleTabClick('manajemen-user')}
+                    >
+                      <UserCog size={13} style={{ marginRight: '6px' }} />
+                      <span>Kelola Pengguna (Users)</span>
+                    </button>
+
+                    <button 
+                      className={`nav-sublink ${activeTab === 'master-device' ? 'active' : ''}`}
+                      onClick={() => handleTabClick('master-device')}
+                    >
+                      <HardDrive size={13} style={{ marginRight: '6px' }} />
+                      <span>Data Mesin Fingerprint</span>
+                    </button>
+
+                    <button 
+                      className={`nav-sublink ${activeTab === 'whatsapp-gateway' || activeTab === 'whatsapp' || activeTab === 'wa-broadcast' ? 'active' : ''}`}
+                      onClick={() => handleTabClick('whatsapp-gateway')}
+                    >
+                      <Smartphone size={13} style={{ marginRight: '6px', color: '#10b981' }} />
+                      <span>WhatsApp &amp; Broadcast</span>
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
           </>
-        )}
-
-
-        <div className="menu-category">LAPORAN & REKAP</div>
-        <button 
-          className={`nav-link has-dropdown ${isLaporanActive ? 'active' : ''}`}
-          onClick={() => setIsLaporanOpen(!isLaporanOpen)}
-        >
-          <div className="nav-link-left">
-            <BarChart3 size={15} />
-            <span>Laporan & Rekap</span>
-          </div>
-          <ChevronDown size={13} className={`nav-chevron ${isLaporanOpen ? 'open' : ''}`} />
-        </button>
-
-        {isLaporanOpen && (
-          <div className="nav-submenu">
-            <button 
-              className={`nav-sublink ${activeTab === 'laporan-presensi' ? 'active' : ''}`}
-              onClick={() => handleTabClick('laporan-presensi')}
-            >
-              <BarChart3 size={13} style={{ marginRight: '6px' }} />
-              <span>Rekap Presensi Harian</span>
-            </button>
-
-            <button 
-              className={`nav-sublink ${activeTab === 'laporan-tahfidz' ? 'active' : ''}`}
-              onClick={() => handleTabClick('laporan-tahfidz')}
-            >
-              <FileText size={13} style={{ marginRight: '6px' }} />
-              <span>Laporan Tahfidz & Tasmi'</span>
-            </button>
-          </div>
-        )}
-
-        {/* SETTINGS / PENGATURAN DROPDOWN */}
-        <div className="menu-category">SETTINGS</div>
-        <button 
-          className={`nav-link has-dropdown ${isSettingsActive ? 'active' : ''}`}
-          onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-        >
-          <div className="nav-link-left">
-            <Settings size={15} />
-            <span>Settings</span>
-          </div>
-          <ChevronDown size={13} className={`nav-chevron ${isSettingsOpen ? 'open' : ''}`} />
-        </button>
-
-        {isSettingsOpen && (
-          <div className="nav-submenu">
-            <button 
-              className={`nav-sublink ${activeTab === 'master-device' ? 'active' : ''}`}
-              onClick={() => handleTabClick('master-device')}
-            >
-              <HardDrive size={13} style={{ marginRight: '6px' }} />
-              <span>Data Mesin Fingerprint</span>
-            </button>
-
-            <button 
-              className={`nav-sublink ${activeTab === 'manajemen-user' || activeTab === 'users' ? 'active' : ''}`}
-              onClick={() => handleTabClick('manajemen-user')}
-            >
-              <UserCog size={13} style={{ marginRight: '6px' }} />
-              <span>Kelola Pengguna (Users)</span>
-            </button>
-
-            <button 
-              className={`nav-sublink ${activeTab === 'whatsapp-gateway' || activeTab === 'whatsapp' || activeTab === 'wa-broadcast' ? 'active' : ''}`}
-              onClick={() => handleTabClick('whatsapp-gateway')}
-            >
-              <Smartphone size={13} style={{ marginRight: '6px', color: '#10b981' }} />
-              <span>WhatsApp &amp; Broadcast</span>
-            </button>
-          </div>
         )}
       </nav>
     );
@@ -908,12 +980,90 @@ export default function AdminLayout() {
             <div className="tenant-name">PP. NURUL WAFA</div>
             <span 
               className="tenant-badge"
-              style={isPureBendahara ? { background: '#059669', color: '#ffffff', borderColor: '#10b981' } : {}}
+              style={
+                isPureBendahara 
+                  ? { background: '#059669', color: '#ffffff', borderColor: '#10b981' } 
+                  : isPureAdminAbsen 
+                  ? { background: '#0284c7', color: '#ffffff', borderColor: '#38bdf8' } 
+                  : {}
+              }
             >
-              {isPureBendahara ? 'BENDAHARA' : 'ADMIN'}
+              {isPureBendahara ? 'ADMIN KEUANGAN' : isPureAdminAbsen ? 'ADMIN ABSEN' : 'SUPER ADMIN'}
             </span>
           </div>
         </div>
+
+        {/* Pemisah Modul Desktop: Switcher Cepat Modul Absen vs Keuangan */}
+        {!isPureBendahara && !isPureAdminAbsen && (
+          <div style={{ padding: '0 12px 10px' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr',
+                background: 'rgba(255, 255, 255, 0.07)',
+                borderRadius: '10px',
+                padding: '3px',
+                gap: '3px',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => handleSetDesktopModuleFilter('all')}
+                style={{
+                  padding: '6px 2px',
+                  borderRadius: '7px',
+                  border: 'none',
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: desktopModuleFilter === 'all' ? '#059669' : 'transparent',
+                  color: desktopModuleFilter === 'all' ? '#ffffff' : '#94a3b8',
+                  transition: 'all 0.18s ease',
+                  textAlign: 'center',
+                }}
+              >
+                Semua
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSetDesktopModuleFilter('absen')}
+                style={{
+                  padding: '6px 2px',
+                  borderRadius: '7px',
+                  border: 'none',
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: desktopModuleFilter === 'absen' ? '#0284c7' : 'transparent',
+                  color: desktopModuleFilter === 'absen' ? '#ffffff' : '#94a3b8',
+                  transition: 'all 0.18s ease',
+                  textAlign: 'center',
+                }}
+              >
+                Absen
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSetDesktopModuleFilter('keuangan')}
+                style={{
+                  padding: '6px 2px',
+                  borderRadius: '7px',
+                  border: 'none',
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: desktopModuleFilter === 'keuangan' ? '#10b981' : 'transparent',
+                  color: desktopModuleFilter === 'keuangan' ? '#ffffff' : '#94a3b8',
+                  transition: 'all 0.18s ease',
+                  textAlign: 'center',
+                }}
+              >
+                Keuangan
+              </button>
+            </div>
+          </div>
+        )}
 
         {renderNavMenu(false)}
       </aside>
@@ -950,9 +1100,88 @@ export default function AdminLayout() {
               </div>
               <div className="tenant-info">
                 <div className="tenant-name">PP. NURUL WAFA</div>
-                <span className="tenant-badge">ADMIN</span>
+                <span 
+                  className="tenant-badge"
+                  style={
+                    isPureBendahara 
+                      ? { background: '#059669', color: '#ffffff', borderColor: '#10b981' } 
+                      : isPureAdminAbsen 
+                      ? { background: '#0284c7', color: '#ffffff', borderColor: '#38bdf8' } 
+                      : {}
+                  }
+                >
+                  {isPureBendahara ? 'ADMIN KEUANGAN' : isPureAdminAbsen ? 'ADMIN ABSEN' : 'ADMIN'}
+                </span>
               </div>
             </div>
+
+            {!isPureBendahara && !isPureAdminAbsen && (
+              <div style={{ padding: '0 12px 10px' }}>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr 1fr',
+                    background: 'rgba(255, 255, 255, 0.07)',
+                    borderRadius: '10px',
+                    padding: '3px',
+                    gap: '3px',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleSetDesktopModuleFilter('all')}
+                    style={{
+                      padding: '6px 2px',
+                      borderRadius: '7px',
+                      border: 'none',
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      background: desktopModuleFilter === 'all' ? '#059669' : 'transparent',
+                      color: desktopModuleFilter === 'all' ? '#ffffff' : '#94a3b8',
+                      textAlign: 'center',
+                    }}
+                  >
+                    Semua
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSetDesktopModuleFilter('absen')}
+                    style={{
+                      padding: '6px 2px',
+                      borderRadius: '7px',
+                      border: 'none',
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      background: desktopModuleFilter === 'absen' ? '#0284c7' : 'transparent',
+                      color: desktopModuleFilter === 'absen' ? '#ffffff' : '#94a3b8',
+                      textAlign: 'center',
+                    }}
+                  >
+                    Absen
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSetDesktopModuleFilter('keuangan')}
+                    style={{
+                      padding: '6px 2px',
+                      borderRadius: '7px',
+                      border: 'none',
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      background: desktopModuleFilter === 'keuangan' ? '#10b981' : 'transparent',
+                      color: desktopModuleFilter === 'keuangan' ? '#ffffff' : '#94a3b8',
+                      textAlign: 'center',
+                    }}
+                  >
+                    Keuangan
+                  </button>
+                </div>
+              </div>
+            )}
 
             {renderNavMenu(true)}
           </div>

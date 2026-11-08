@@ -571,6 +571,7 @@ export const createAbsensiFingerprint = async (req, res) => {
       tanggal,
       kegiatan,
       nama_sesi,
+      nama_kegiatan,
       tipe_presensi
     } = req.body;
 

@@ -3,6 +3,7 @@ import AdminLayout from './components/AdminLayout';
 import MobileLayout from './components/MobileLayout';
 import MobileKeuanganLayout from './components/MobileKeuanganLayout';
 import PortalWaliSantri from './views/wali/PortalWaliSantri';
+import OwnerDashboardView from './views/owner/OwnerDashboardView';
 import SplashScreen from './components/SplashScreen';
 import PWAInstallModal from './components/PWAInstallModal';
 
@@ -23,6 +24,15 @@ export default function App() {
       hostname === 'mpesantren.aspartech.com' ||
       hostname.startsWith('mpesantren.') ||
       hostname.includes('mpesantren');
+
+    // Cek apakah user sedang login sebagai Owner / URL mengarah ke portal owner
+    try {
+      const desktopSess = JSON.parse(localStorage.getItem('desktop_session') || sessionStorage.getItem('desktop_session') || '{}');
+      const roleDesk = String(desktopSess.role || desktopSess.userType || '').toLowerCase();
+      if (roleDesk === 'owner' || hash.startsWith('#owner') || pathname.startsWith('/owner')) {
+        return 'owner';
+      }
+    } catch (e) {}
 
     // Cek apakah user sedang login sebagai Wali Santri / URL mengarah ke portal wali
     try {
@@ -54,7 +64,9 @@ export default function App() {
     const handleLocationChange = () => {
       const currentMode = getMode();
       setMode(currentMode);
-      if (currentMode === 'mobile' || currentMode === 'wali' || currentMode === 'keuangan-mobile') {
+      if (currentMode === 'owner') {
+        document.title = 'NWF Executive - Owner Portal';
+      } else if (currentMode === 'mobile' || currentMode === 'wali' || currentMode === 'keuangan-mobile') {
         document.title = 'NWF Mobile';
       } else {
         document.title = 'NWF Pesantren';
@@ -74,7 +86,9 @@ export default function App() {
     <>
       {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
       <PWAInstallModal />
-      {mode === 'wali' ? (
+      {mode === 'owner' ? (
+        <OwnerDashboardView onLogout={() => { window.location.hash = '#login'; setMode(getMode()); }} />
+      ) : mode === 'wali' ? (
         <PortalWaliSantri onLogout={() => { window.location.hash = '#login'; setMode(getMode()); }} />
       ) : mode === 'keuangan-mobile' ? (
         <MobileKeuanganLayout />
