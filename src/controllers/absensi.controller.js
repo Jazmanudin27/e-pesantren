@@ -680,7 +680,6 @@ export const createAbsensiFingerprint = async (req, res) => {
           WHERE id = ?
         `, [finalStatus, scanTime, finalMetode, finalKet, parsedSesiId, existingId]);
       });
-      });
 
       // Hapus log pencegahan dari absensi_deleted_logs jika santri ini dicatat kembali
       await pool.query(
