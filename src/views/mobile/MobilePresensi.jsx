@@ -464,49 +464,41 @@ export default function MobilePresensi() {
           const validIds = new Set(fetchedSantris.map((s) => String(s.id)));
           let profileChanged = false;
 
-          // Hapus profil wajah lama/dummy yang tidak ada di tabel santri database
-          Object.keys(currentLocalProfiles).forEach((idKey) => {
-            const prof = currentLocalProfiles[idKey];
-            const pId = String(prof?.santri_id || idKey);
-            if (!validIds.has(pId)) {
-              delete currentLocalProfiles[idKey];
-              profileChanged = true;
-            }
-          });
-
           for (const s of fetchedSantris) {
             const photoUrl = s.foto || s.foto_santri;
             const dbDesc = normalizeDescriptor(s.face_descriptor);
-            if (
-              photoUrl &&
-              (!currentLocalProfiles[s.id] || !currentLocalProfiles[s.id].foto || (!currentLocalProfiles[s.id].descriptor && dbDesc))
-            ) {
-              currentLocalProfiles[s.id] = {
-                santri_id: s.id,
-                nama: s.nama_santri,
-                nis: s.nis,
-                asrama: s.nama_asrama || "",
-                kamar: s.nama_kamar || "",
-                foto: photoUrl,
-                descriptor: dbDesc || currentLocalProfiles[s.id]?.descriptor || null,
-                biometricGrid: [],
-                biometricFeature: null,
-                registered_at: new Date().toISOString(),
-              };
-              profileChanged = true;
+            if (photoUrl || dbDesc) {
+              const existingDesc = currentLocalProfiles[s.id]?.descriptor;
+              if (!currentLocalProfiles[s.id] || (!existingDesc && dbDesc)) {
+                currentLocalProfiles[s.id] = {
+                  santri_id: s.id,
+                  id: s.id,
+                  nama: s.nama_santri,
+                  nama_santri: s.nama_santri,
+                  nis: s.nis,
+                  asrama: s.nama_asrama || "",
+                  kamar: s.nama_kamar || "",
+                  foto: photoUrl || currentLocalProfiles[s.id]?.foto || "",
+                  descriptor: dbDesc || existingDesc || null,
+                  registered_at: new Date().toISOString(),
+                };
+                profileChanged = true;
+              }
             }
           }
 
           if (profileChanged) {
             setRegisteredFaces(currentLocalProfiles);
+            registeredFacesRef.current = currentLocalProfiles;
             try {
-              // Simpan versi ringan ke localStorage tanpa base64 foto raksasa
               const lightMap = {};
               Object.keys(currentLocalProfiles).forEach((k) => {
                 const p = currentLocalProfiles[k];
                 lightMap[k] = {
                   santri_id: p.santri_id,
+                  id: p.santri_id,
                   nama: p.nama,
+                  nama_santri: p.nama,
                   nis: p.nis,
                   asrama: p.asrama || "",
                   kamar: p.kamar || "",
@@ -859,64 +851,6 @@ export default function MobilePresensi() {
     };
   }, []);
 
-  // Auto-heal profil lama yang tersimpan jika biometricGrid / descriptor belum ada
-  useEffect(() => {
-    const healProfiles = async () => {
-      const keys = Object.keys(registeredFaces);
-      let changed = false;
-      const updated = { ...registeredFaces };
-
-      for (const k of keys) {
-        const p = updated[k];
-        const needFeature =
-          !p.biometricFeature ||
-          !p.biometricGrid ||
-          (Array.isArray(p.biometricGrid) &&
-            p.biometricGrid.every((v) => v === 0));
-
-        if (needFeature && p.foto) {
-          const feature = await extractFeatureFromDataUrl(p.foto);
-          if (feature) {
-            updated[k] = {
-              ...updated[k],
-              biometricGrid: feature.rawGrid,
-              biometricFeature: feature,
-            };
-            changed = true;
-          }
-        }
-
-        // Jika face-api ready dan belum punya descriptor 128-D
-        if (isFaceModelReady() && !p.descriptor && p.foto) {
-          try {
-            const desc = await extractDescriptorFromDataUrl(p.foto);
-            if (desc) {
-              updated[k] = {
-                ...updated[k],
-                descriptor: desc,
-              };
-              changed = true;
-            }
-          } catch (e) {}
-        }
-      }
-
-      if (changed) {
-        setRegisteredFaces(updated);
-        try {
-          localStorage.setItem(
-            "epesantren_face_profiles",
-            JSON.stringify(updated),
-          );
-        } catch (e) {}
-      }
-    };
-
-    if (Object.keys(registeredFaces).length > 0) {
-      healProfiles();
-    }
-  }, [faceApiModelReady]);
-
   const startFaceCamera = async (facing = faceFacingMode) => {
     setFaceCameraError("");
     setIsFaceCameraActive(true);
@@ -925,9 +859,15 @@ export default function MobilePresensi() {
     // SINKRONISASI BIOMETRIK MYSQL: Ambil data biometrik dari endpoint cepat MySQL
     try {
       const resFace = await axios.get(`/api/santri/with-face?_t=${Date.now()}`);
-      if (resFace.data?.data) {
+      if (resFace.data?.data && Array.isArray(resFace.data.data)) {
+        const freshList = resFace.data.data;
         const curMap = { ...(registeredFacesRef.current || {}) };
-        resFace.data.data.forEach((s) => {
+        const santriMap = {};
+        (santriListRef.current || []).forEach((s) => {
+          santriMap[s.id] = s;
+        });
+
+        freshList.forEach((s) => {
           const norm = normalizeDescriptor(s.face_descriptor);
           if (norm) {
             curMap[s.id] = {
@@ -940,9 +880,16 @@ export default function MobilePresensi() {
               descriptor: norm,
             };
           }
+          santriMap[s.id] = {
+            ...(santriMap[s.id] || {}),
+            ...s,
+            face_descriptor: s.face_descriptor,
+          };
         });
+
         setRegisteredFaces(curMap);
         registeredFacesRef.current = curMap;
+        santriListRef.current = Object.values(santriMap);
       }
     } catch (eSync) {}
 
@@ -1119,64 +1066,108 @@ export default function MobilePresensi() {
       ctx.lineTo(boxX + boxW - 4, boxY + laserY);
       ctx.stroke();
 
-      // Indikator status wajah
-      const registeredMap = registeredFacesRef.current || {};
-      const registeredList = Object.values(registeredMap);
-
       if (faceCooldownRef.current) {
         setFaceStatusText("✅ Presensi Santri Tercatat!");
       } else {
-        if (registeredList.length > 0) {
-          // ========================================================
-          // AUTO DETEKSI & VERIFIKASI KEAMANAN WAJAH KETAT
-          // ========================================================
-          autoDetectFaceTickRef.current =
-            (autoDetectFaceTickRef.current || 0) + 1;
+        autoDetectFaceTickRef.current =
+          (autoDetectFaceTickRef.current || 0) + 1;
 
-          if (autoDetectFaceTickRef.current % 3 === 0) {
-            if (isDetectingRef.current) return;
-            isDetectingRef.current = true;
+        if (autoDetectFaceTickRef.current % 3 === 0) {
+          if (isDetectingRef.current) return;
+          isDetectingRef.current = true;
+          try {
+            let localMap = {};
             try {
-              let matchedSantri = null;
-              let displayName = "";
+              localMap = JSON.parse(
+                localStorage.getItem("epesantren_face_profiles") || "{}",
+              );
+            } catch (e) {}
 
-              // AI ENGINE: GUNAKAN TENSORFLOW DEEP LEARNING (128-D DESCRIPTOR) SAMA SEPERTI KAMERA PENGEMBANGAN
-              if (isFaceModelReady()) {
-                const faceRes = await detectFaceDescriptor(video);
-                if (!faceRes) {
-                  setFaceDetected(false);
-                  setFaceStatusText("Arahkan wajah santri ke kamera...");
-                  return;
+            const registeredList = [];
+            const seenIds = new Set();
+
+            (santriListRef.current || []).forEach((s) => {
+              let desc =
+                normalizeDescriptor(s.face_descriptor) ||
+                normalizeDescriptor(localMap[s.id]?.descriptor) ||
+                normalizeDescriptor(registeredFacesRef.current?.[s.id]?.descriptor);
+              if (desc) {
+                registeredList.push({
+                  santri_id: s.id,
+                  id: s.id,
+                  nama_santri: s.nama_santri,
+                  nama: s.nama_santri,
+                  nis: s.nis,
+                  descriptor: desc,
+                  foto: s.foto || s.foto_santri,
+                });
+                seenIds.add(String(s.id));
+              }
+            });
+
+            Object.values(registeredFacesRef.current || {}).forEach((p) => {
+              const pId = String(p.santri_id || p.id || "");
+              if (pId && !seenIds.has(pId)) {
+                const desc = normalizeDescriptor(p.descriptor);
+                if (desc) {
+                  registeredList.push({ ...p, descriptor: desc });
+                  seenIds.add(pId);
                 }
+              }
+            });
 
-                setFaceDetected(true);
-                // Ambang batas optimal 0.62 (toleran variasi pencahayaan & sudut kemiringan santri)
-                const matched = matchFaceDescriptor(
-                  faceRes.descriptor,
-                  registeredList,
-                  0.70,
-                );
-
-                if (matched && matched.error === 'no_profiles') {
-                  matchedStreakRef.current = { id: null, count: 0 };
-                  setFaceStatusText("⚠️ Belum Ada Biometrik Wajah di Sistem (0 Profil)");
-                  return;
+            Object.values(localMap).forEach((p) => {
+              const pId = String(p.santri_id || p.id || "");
+              if (pId && !seenIds.has(pId)) {
+                const desc = normalizeDescriptor(p.descriptor);
+                if (desc) {
+                  registeredList.push({ ...p, descriptor: desc });
+                  seenIds.add(pId);
                 }
+              }
+            });
 
-                if (matched && !matched.error && (matched.santri_id || matched.id)) {
-                  const mId = String(matched.santri_id || matched.id);
-                  const dbSantri = (santriListRef.current || []).find(
-                    (s) => String(s.id) === mId,
-                  ) || matched;
-                  if (dbSantri) {
-                    matchedSantri = dbSantri;
-                    displayName = dbSantri.nama_santri || dbSantri.nama || 'Santri';
-                  }
-                }
-              } else {
+            if (registeredList.length === 0) {
+              setFaceDetected(false);
+              setFaceStatusText("⚠️ Belum Ada Biometrik Wajah di Sistem (0 Profil)");
+              return;
+            }
+
+            let matchedSantri = null;
+            let displayName = "";
+
+            if (isFaceModelReady()) {
+              const faceRes = await detectFaceDescriptor(video);
+              if (!faceRes) {
+                matchedStreakRef.current = { id: null, count: 0 };
                 setFaceDetected(false);
-                setFaceStatusText("Memuat model pengenalan wajah AI...");
+                setFaceStatusText("Arahkan wajah santri ke kamera...");
                 return;
+              }
+
+              setFaceDetected(true);
+              const matched = matchFaceDescriptor(
+                faceRes.descriptor,
+                registeredList,
+                0.70,
+              );
+
+              if (matched && matched.error === "no_profiles") {
+                matchedStreakRef.current = { id: null, count: 0 };
+                setFaceStatusText("⚠️ Belum Ada Biometrik Wajah di Sistem (0 Profil)");
+                return;
+              }
+
+              if (matched && !matched.error && (matched.santri_id || matched.id)) {
+                const mId = String(matched.santri_id || matched.id);
+                const dbSantri =
+                  (santriListRef.current || []).find((s) => String(s.id) === mId) ||
+                  matched;
+                if (dbSantri) {
+                  matchedSantri = dbSantri;
+                  displayName =
+                    dbSantri.nama_santri || dbSantri.nama || "Santri";
+                }
               }
 
               // 1. TOLAK JIKA WAJAH BEDA / TIDAK COCOK DENGAN DATA SANTRI
@@ -1200,26 +1191,39 @@ export default function MobilePresensi() {
                   boxY - 12,
                 );
 
-                const distInfo = (matched && typeof matched.bestDistance === 'number' && matched.bestDistance < 900)
-                  ? ` (Jarak: ${matched.bestDistance.toFixed(2)} | Target: < ${matched.threshold?.toFixed(2) || '0.62'})`
-                  : '';
+                const distInfo =
+                  matched &&
+                  typeof matched.bestDistance === "number" &&
+                  matched.bestDistance < 900
+                    ? ` (Jarak: ${matched.bestDistance.toFixed(2)} | Target: < ${matched.threshold?.toFixed(2) || "0.70"})`
+                    : "";
                 setFaceStatusText(`⛔ Belum Cocok${distInfo}`);
                 return;
               }
 
-              // Verifikasi frame konsekutif: jika skor sangat dekat (< 0.44), langsung diverifikasi
+              // Verifikasi frame konsekutif: jika skor meyakinkan (< 0.58), langsung diverifikasi
               if (matchedStreakRef.current.id === matchedSantri.id) {
                 matchedStreakRef.current.count += 1;
                 matchedStreakRef.current.grace = false;
               } else {
-                matchedStreakRef.current = { id: matchedSantri.id, count: 1, grace: false };
+                matchedStreakRef.current = {
+                  id: matchedSantri.id,
+                  count: 1,
+                  grace: false,
+                };
               }
 
-              const isSuperMatch = matched.distance && matched.distance < 0.44;
+              const isSuperMatch =
+                matched.distance && matched.distance < 0.58;
               if (matchedStreakRef.current.count < 2 && !isSuperMatch) {
                 setFaceStatusText(`Memverifikasi: ${displayName}...`);
                 return;
               }
+            } else {
+              setFaceDetected(false);
+              setFaceStatusText("Memuat model pengenalan wajah AI...");
+              return;
+            }
 
               // 2. OTOMATIS PILIH SESI SHALAT BERJAMAAH SESUAI JADWAL SAAT SCAN WAJAH AI
               const todayStr = getTodayDateStr();
@@ -1341,12 +1345,8 @@ export default function MobilePresensi() {
               isDetectingRef.current = false;
             }
           }
-        } else {
-          setFaceDetected(false);
-          setFaceStatusText("Belum ada data wajah santri yang didaftarkan.");
         }
-      }
-    }, 120);
+      }, 150);
   };
 
   // Simpan / Daftarkan Wajah Santri Mobile (Dengan Face-api Descriptor + Fallback)
@@ -1459,8 +1459,57 @@ export default function MobilePresensi() {
       return;
     }
 
-    const registeredMap = registeredFacesRef.current || {};
-    const registeredList = Object.values(registeredMap);
+    let localMap = {};
+    try {
+      localMap = JSON.parse(
+        localStorage.getItem("epesantren_face_profiles") || "{}",
+      );
+    } catch (e) {}
+
+    const registeredList = [];
+    const seenIds = new Set();
+
+    (santriListRef.current || []).forEach((s) => {
+      let desc =
+        normalizeDescriptor(s.face_descriptor) ||
+        normalizeDescriptor(localMap[s.id]?.descriptor) ||
+        normalizeDescriptor(registeredFacesRef.current?.[s.id]?.descriptor);
+      if (desc) {
+        registeredList.push({
+          santri_id: s.id,
+          id: s.id,
+          nama_santri: s.nama_santri,
+          nama: s.nama_santri,
+          nis: s.nis,
+          descriptor: desc,
+          foto: s.foto || s.foto_santri,
+        });
+        seenIds.add(String(s.id));
+      }
+    });
+
+    Object.values(registeredFacesRef.current || {}).forEach((p) => {
+      const pId = String(p.santri_id || p.id || "");
+      if (pId && !seenIds.has(pId)) {
+        const desc = normalizeDescriptor(p.descriptor);
+        if (desc) {
+          registeredList.push({ ...p, descriptor: desc });
+          seenIds.add(pId);
+        }
+      }
+    });
+
+    Object.values(localMap).forEach((p) => {
+      const pId = String(p.santri_id || p.id || "");
+      if (pId && !seenIds.has(pId)) {
+        const desc = normalizeDescriptor(p.descriptor);
+        if (desc) {
+          registeredList.push({ ...p, descriptor: desc });
+          seenIds.add(pId);
+        }
+      }
+    });
+
     if (registeredList.length === 0) {
       playBeep(false);
       speakAttendance(
@@ -1499,16 +1548,17 @@ export default function MobilePresensi() {
         return;
       }
 
-      // Ambang batas ketat 0.40
+      // Ambang batas optimal 0.70
       const matched = matchFaceDescriptor(
         faceRes.descriptor,
         registeredList,
-        0.4,
+        0.70,
       );
-      if (matched) {
+      if (matched && !matched.error && (matched.santri_id || matched.id)) {
+        const mId = String(matched.santri_id || matched.id);
         const matchedSantri = (santriListRef.current || []).find(
-          (s) => String(s.id) === String(matched.santri_id),
-        );
+          (s) => String(s.id) === mId,
+        ) || matched;
         if (matchedSantri) {
           recordAttendance(
             matchedSantri,
@@ -1518,7 +1568,7 @@ export default function MobilePresensi() {
             snap,
           );
           setLastScannedSantri({ ...matchedSantri, snapshot: snap });
-          toastSuccess(`Wajah Dikenali: ${matchedSantri.nama_santri}`);
+          toastSuccess(`Wajah Dikenali: ${matchedSantri.nama_santri || matchedSantri.nama}`);
           return;
         }
       }
