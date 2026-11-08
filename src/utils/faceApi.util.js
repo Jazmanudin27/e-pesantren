@@ -64,6 +64,10 @@ export const initFaceApiModels = async (onProgress = null) => {
         minTrackingConfidence: 0.5
       });
 
+      if (typeof faceMesh.initialize === 'function') {
+        faceMesh.initialize().catch(() => {});
+      }
+
       faceMesh.onResults((results) => {
         lastMediaPipeResults = results;
         const resolvers = pendingResolvers;

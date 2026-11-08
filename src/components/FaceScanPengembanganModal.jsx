@@ -106,19 +106,22 @@ export default function FaceScanPengembanganModal({
     setIsFaceDetected(false);
     isMatchedCooldownRef.current = false;
 
-    // SINKRONISASI CEPAT BIOMETRIK MYSQL
-    try {
-      const resFace = await axios.get(`/api/santri/with-face?_t=${Date.now()}`);
-      if (resFace.data?.data && Array.isArray(resFace.data.data)) {
-        const curMap = {};
-        (santriListRef.current || []).forEach(s => { curMap[s.id] = s; });
-        resFace.data.data.forEach(s => {
-          curMap[s.id] = { ...(curMap[s.id] || {}), ...s, face_descriptor: s.face_descriptor };
-        });
-        santriListRef.current = Object.values(curMap);
-      }
-    } catch (eSync) {}
+    // 1. SINKRONISASI CEPAT BIOMETRIK MYSQL DI BACKGROUND
+    axios
+      .get(`/api/santri/with-face?_t=${Date.now()}`)
+      .then((resFace) => {
+        if (resFace.data?.data && Array.isArray(resFace.data.data)) {
+          const curMap = {};
+          (santriListRef.current || []).forEach(s => { curMap[s.id] = s; });
+          resFace.data.data.forEach(s => {
+            curMap[s.id] = { ...(curMap[s.id] || {}), ...s, face_descriptor: s.face_descriptor };
+          });
+          santriListRef.current = Object.values(curMap);
+        }
+      })
+      .catch(() => {});
 
+    // 2. LANGSUNG BUKA KAMERA TANPA TUNGGU JARINGAN
     try {
       if (faceStreamRef.current) {
         faceStreamRef.current.getTracks().forEach((t) => t.stop());
@@ -128,8 +131,9 @@ export default function FaceScanPengembanganModal({
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: facing,
-          width: { ideal: 640 },
-          height: { ideal: 480 }
+          width: { ideal: 480, max: 640 },
+          height: { ideal: 480, max: 640 },
+          frameRate: { ideal: 24, max: 30 }
         },
         audio: false
       });

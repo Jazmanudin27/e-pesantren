@@ -149,109 +149,6 @@ export default function MobilePengembangan() {
     };
   }, []);
 
-  // Auto-sync & heal 128-D descriptor wajah santri dari database
-  useEffect(() => {
-    if (!santriList || santriList.length === 0) return;
-    let isCancelled = false;
-
-    const syncAndHealDescriptors = async () => {
-      try {
-        let currentProfiles = {};
-        try {
-          currentProfiles = JSON.parse(
-            localStorage.getItem("epesantren_face_profiles") || "{}",
-          );
-        } catch (e) {}
-
-        const validIds = new Set(santriList.map((s) => String(s.id)));
-        let changed = false;
-
-        Object.keys(currentProfiles).forEach((idKey) => {
-          const prof = currentProfiles[idKey];
-          const pId = String(prof?.santri_id || idKey);
-          if (!validIds.has(pId)) {
-            delete currentProfiles[idKey];
-            changed = true;
-          }
-        });
-
-        for (const s of santriList) {
-          if (isCancelled) return;
-          const photoUrl = s.foto || s.foto_santri;
-          let sDesc = null;
-          if (s.face_descriptor) {
-            try {
-              sDesc = typeof s.face_descriptor === 'string' ? JSON.parse(s.face_descriptor) : s.face_descriptor;
-            } catch (e) {}
-          }
-
-          if (photoUrl || sDesc) {
-            if (!currentProfiles[s.id] || (!currentProfiles[s.id].descriptor && sDesc)) {
-              currentProfiles[s.id] = {
-                santri_id: s.id,
-                nama: s.nama_santri,
-                nis: s.nis,
-                asrama: s.nama_asrama || "",
-                kamar: s.nama_kamar || "",
-                foto: photoUrl || currentProfiles[s.id]?.foto || "",
-                descriptor: sDesc || currentProfiles[s.id]?.descriptor || null,
-                registered_at: new Date().toISOString(),
-              };
-              changed = true;
-            }
-          }
-
-          if (
-            isFaceModelReady() &&
-            currentProfiles[s.id] &&
-            !currentProfiles[s.id].descriptor &&
-            currentProfiles[s.id].foto
-          ) {
-            try {
-              const desc = await extractDescriptorFromDataUrl(
-                currentProfiles[s.id].foto,
-              );
-              if (desc && !isCancelled) {
-                currentProfiles[s.id] = {
-                  ...currentProfiles[s.id],
-                  descriptor: desc,
-                };
-                changed = true;
-              }
-            } catch (e) {}
-          }
-        }
-
-        if (changed && !isCancelled) {
-          try {
-            const lightMap = {};
-            Object.keys(currentProfiles).forEach((k) => {
-              const p = currentProfiles[k];
-              lightMap[k] = {
-                santri_id: p.santri_id,
-                nama: p.nama,
-                nis: p.nis,
-                asrama: p.asrama || "",
-                kamar: p.kamar || "",
-                descriptor: p.descriptor,
-                registered_at: p.registered_at,
-              };
-            });
-            localStorage.setItem(
-              "epesantren_face_profiles",
-              JSON.stringify(lightMap),
-            );
-          } catch (eStorage) {}
-        }
-      } catch (e) {}
-    };
-
-    syncAndHealDescriptors();
-    return () => {
-      isCancelled = true;
-    };
-  }, [santriList, faceApiModelReady]);
-
   const fetchInitialData = async () => {
     setLoading(true);
     try {
@@ -259,7 +156,7 @@ export default function MobilePengembangan() {
         axios
           .get("/api/perkembangan-ikhwan/master?gender=Semua")
           .catch(() => ({ data: { data: [] } })),
-        axios.get(`/api/santri?all=true&_t=${Date.now()}`).catch(() => ({ data: { data: [] } })),
+        axios.get("/api/santri?all=true").catch(() => ({ data: { data: [] } })),
         axios
           .get("/api/perkembangan-ikhwan/rekap?limit=200")
           .catch(() => ({ data: { data: [] } })),
@@ -355,31 +252,34 @@ export default function MobilePengembangan() {
   // =========================================================================
   const startFaceCamera = async (facing = faceFacingMode) => {
     setFaceCameraError("");
-    setFaceStatusText("Menghubungkan ke kamera...");
+    setFaceStatusText("Membuka kamera...");
     setMatchedSantriPreview(null);
     setIsFaceDetected(false);
     isMatchedCooldownRef.current = false;
 
-    // SINKRONISASI BIOMETRIK MYSQL: Ambil data santri ber-biometrik langsung dari MySQL
-    try {
-      const resFace = await axios.get(`/api/santri/with-face?_t=${Date.now()}`);
-      if (resFace.data?.data && Array.isArray(resFace.data.data)) {
-        const freshList = resFace.data.data;
-        const curMap = {};
-        (santriListRef.current || []).forEach((s) => {
-          curMap[s.id] = s;
-        });
-        freshList.forEach((s) => {
-          curMap[s.id] = {
-            ...(curMap[s.id] || {}),
-            ...s,
-            face_descriptor: s.face_descriptor,
-          };
-        });
-        santriListRef.current = Object.values(curMap);
-      }
-    } catch (eSync) {}
+    // 1. SINKRONISASI BIOMETRIK MYSQL DI BACKGROUND (PARALLEL)
+    axios
+      .get(`/api/santri/with-face?_t=${Date.now()}`)
+      .then((resFace) => {
+        if (resFace.data?.data && Array.isArray(resFace.data.data)) {
+          const freshList = resFace.data.data;
+          const curMap = {};
+          (santriListRef.current || []).forEach((s) => {
+            curMap[s.id] = s;
+          });
+          freshList.forEach((s) => {
+            curMap[s.id] = {
+              ...(curMap[s.id] || {}),
+              ...s,
+              face_descriptor: s.face_descriptor,
+            };
+          });
+          santriListRef.current = Object.values(curMap);
+        }
+      })
+      .catch(() => {});
 
+    // 2. AKSES HARDWARE KAMERA HP SECARA LANGSUNG & CEPAT
     try {
       if (faceStreamRef.current) {
         faceStreamRef.current.getTracks().forEach((t) => t.stop());
@@ -389,8 +289,9 @@ export default function MobilePengembangan() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: facing,
-          width: { ideal: 640 },
-          height: { ideal: 480 },
+          width: { ideal: 480, max: 640 },
+          height: { ideal: 480, max: 640 },
+          frameRate: { ideal: 24, max: 30 },
         },
         audio: false,
       });

@@ -162,6 +162,20 @@ export default function MobileLayout() {
     return () => window.removeEventListener('hashchange', syncTabFromHash);
   }, [isMobileDomain]);
 
+  // Pre-warm Google MediaPipe FaceMesh di background (idle 1.5s) agar saat buka kamera langsung instant 0 detik
+  useEffect(() => {
+    const idleTimer = setTimeout(() => {
+      import('../utils/faceApi.util.js')
+        .then((mod) => {
+          if (mod && mod.initFaceApiModels) {
+            mod.initFaceApiModels().catch(() => {});
+          }
+        })
+        .catch(() => {});
+    }, 1500);
+    return () => clearTimeout(idleTimer);
+  }, []);
+
   // Scroll to top saat ganti tab atau refresh (Cegah header ketutup)
   useEffect(() => {
     if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {

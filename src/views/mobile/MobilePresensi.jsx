@@ -342,7 +342,7 @@ export default function MobilePresensi() {
       setLoading(true);
       const [resSantri, resAbs, resIzin, resMateri, resSesi, resKelas] =
         await Promise.all([
-          axios.get(`/api/santri?all=true&_t=${Date.now()}`),
+          axios.get("/api/santri?all=true"),
           axios
             .get("/api/absensi/fingerprint")
             .catch(() => ({ data: { data: [] } })),
@@ -854,45 +854,48 @@ export default function MobilePresensi() {
   const startFaceCamera = async (facing = faceFacingMode) => {
     setFaceCameraError("");
     setIsFaceCameraActive(true);
-    setFaceStatusText("Menghubungkan ke kamera...");
+    setFaceStatusText("Membuka kamera...");
 
-    // SINKRONISASI BIOMETRIK MYSQL: Ambil data biometrik dari endpoint cepat MySQL
-    try {
-      const resFace = await axios.get(`/api/santri/with-face?_t=${Date.now()}`);
-      if (resFace.data?.data && Array.isArray(resFace.data.data)) {
-        const freshList = resFace.data.data;
-        const curMap = { ...(registeredFacesRef.current || {}) };
-        const santriMap = {};
-        (santriListRef.current || []).forEach((s) => {
-          santriMap[s.id] = s;
-        });
+    // 1. SINKRONISASI BIOMETRIK MYSQL DI BACKGROUND (PARALLEL, TIDAK MEMBLOKIR PEMBUKAAN KAMERA)
+    axios
+      .get(`/api/santri/with-face?_t=${Date.now()}`)
+      .then((resFace) => {
+        if (resFace.data?.data && Array.isArray(resFace.data.data)) {
+          const freshList = resFace.data.data;
+          const curMap = { ...(registeredFacesRef.current || {}) };
+          const santriMap = {};
+          (santriListRef.current || []).forEach((s) => {
+            santriMap[s.id] = s;
+          });
 
-        freshList.forEach((s) => {
-          const norm = normalizeDescriptor(s.face_descriptor);
-          if (norm) {
-            curMap[s.id] = {
-              santri_id: s.id,
-              id: s.id,
-              nama: s.nama_santri,
-              nama_santri: s.nama_santri,
-              nis: s.nis,
-              foto: s.foto,
-              descriptor: norm,
+          freshList.forEach((s) => {
+            const norm = normalizeDescriptor(s.face_descriptor);
+            if (norm) {
+              curMap[s.id] = {
+                santri_id: s.id,
+                id: s.id,
+                nama: s.nama_santri,
+                nama_santri: s.nama_santri,
+                nis: s.nis,
+                foto: s.foto,
+                descriptor: norm,
+              };
+            }
+            santriMap[s.id] = {
+              ...(santriMap[s.id] || {}),
+              ...s,
+              face_descriptor: s.face_descriptor,
             };
-          }
-          santriMap[s.id] = {
-            ...(santriMap[s.id] || {}),
-            ...s,
-            face_descriptor: s.face_descriptor,
-          };
-        });
+          });
 
-        setRegisteredFaces(curMap);
-        registeredFacesRef.current = curMap;
-        santriListRef.current = Object.values(santriMap);
-      }
-    } catch (eSync) {}
+          setRegisteredFaces(curMap);
+          registeredFacesRef.current = curMap;
+          santriListRef.current = Object.values(santriMap);
+        }
+      })
+      .catch(() => {});
 
+    // 2. LANGSUNG AKSES HARDWARE KAMERA HP SECARA INSTAN TANPA MENUNGGU JARINGAN
     try {
       if (faceStreamRef.current) {
         faceStreamRef.current.getTracks().forEach((track) => track.stop());
@@ -902,8 +905,9 @@ export default function MobilePresensi() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: facing,
-          width: { ideal: 640 },
-          height: { ideal: 480 },
+          width: { ideal: 480, max: 640 },
+          height: { ideal: 480, max: 640 },
+          frameRate: { ideal: 24, max: 30 },
         },
         audio: false,
       });
@@ -1624,7 +1628,7 @@ export default function MobilePresensi() {
       stopScanner();
       const timer = setTimeout(() => {
         startFaceCamera(faceFacingMode);
-      }, 200);
+      }, 50);
       return () => clearTimeout(timer);
     } else {
       stopScanner();
