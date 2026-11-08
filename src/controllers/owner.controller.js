@@ -1,5 +1,36 @@
+import bcrypt from 'bcryptjs';
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
+
+/**
+ * Otomatis membuat akun default Owner jika belum ada di database
+ * Default login: username = 'owner', password = 'password'
+ */
+export const ensureOwnerAccount = async () => {
+  try {
+    const [rows] = await pool.query(
+      "SELECT id, username, role FROM users WHERE LOWER(TRIM(username)) = 'owner' OR LOWER(TRIM(role)) = 'owner' LIMIT 1"
+    );
+    if (!rows || rows.length === 0) {
+      const hashed = bcrypt.hashSync('password', 10);
+      try {
+        await pool.query(`
+          INSERT INTO users (name, username, email, password, role, status, phone)
+          VALUES ('Owner / Yayasan', 'owner', 'owner@pesantren.id', ?, 'Owner', 'Active', '08123456789')
+        `, [hashed]);
+        console.log('[E-PESANTREN DB] Akun Owner otomatis dibuat: Username "owner", Password "password"');
+      } catch (ePhone) {
+        await pool.query(`
+          INSERT INTO users (name, username, email, password, role, status)
+          VALUES ('Owner / Yayasan', 'owner', 'owner@pesantren.id', ?, 'Owner', 'Active')
+        `, [hashed]);
+        console.log('[E-PESANTREN DB] Akun Owner otomatis dibuat: Username "owner", Password "password"');
+      }
+    }
+  } catch (err) {
+    console.warn('[E-PESANTREN DB] ensureOwnerAccount notice:', err.message);
+  }
+};
 
 /**
  * Helper: Ambil rentang tanggal berdasarkan filter periode ('hari_ini', 'bulan_ini', 'tahun_ini')
