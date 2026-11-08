@@ -66,6 +66,7 @@ import PesanKomunikasiAdminView from '../views/admin/PesanKomunikasiAdminView';
 import WhatsAppGatewayView from '../views/admin/WhatsAppGatewayView';
 import MobileHomeKeuangan from '../views/keuangan/MobileHomeKeuangan';
 import MobileKeuanganLayout from './MobileKeuanganLayout';
+import MobileMediaPipeTest from '../views/mobile/MobileMediaPipeTest';
 import { canAccessKeuangan } from '../utils/authRole.util';
 
 export default function MobileLayout() {
@@ -428,6 +429,9 @@ export default function MobileLayout() {
         return <WhatsAppGatewayView />;
       case 'profil':
         return <MobileProfil onChangeTab={handleSelectTab} onLogout={handleLogout} />;
+      case 'test-mediapipe':
+      case 'mediapipe':
+        return <MobileMediaPipeTest onBackToHome={() => handleSelectTab('home')} />;
       default:
         if (isBendahara) {
           return <MobileHomeKeuangan onChangeTab={handleSelectTab} onLogout={handleLogout} />;
@@ -437,7 +441,7 @@ export default function MobileLayout() {
   };
 
   const isFinancialTab = mobileTab === 'syahriah' || mobileTab.startsWith('keuangan');
-  const hasCustomHeader = isFinancialTab || mobileTab === 'informasi' || mobileTab === 'informasi-kegiatan';
+  const hasCustomHeader = isFinancialTab || mobileTab === 'informasi' || mobileTab === 'informasi-kegiatan' || mobileTab === 'test-mediapipe' || mobileTab === 'mediapipe';
 
   return (
     <div className="mobile-wrapper">

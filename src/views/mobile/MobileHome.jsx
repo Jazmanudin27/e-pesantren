@@ -1191,6 +1191,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 bg: "linear-gradient(135deg, #64748b 0%, #334155 100%)",
                 shadow: "0 6px 16px -2px rgba(71, 85, 105, 0.38)",
               },
+              {
+                label: "MediaPipe AI",
+                tab: "test-mediapipe",
+                icon: Sparkles,
+                bg: "linear-gradient(135deg, #0284c7 0%, #4338ca 100%)",
+                shadow: "0 6px 16px -2px rgba(2, 132, 199, 0.4)",
+              },
             ].filter((item) => {
               const isAdmin = String(sessionData?.role || '').toLowerCase().includes('admin');
               if (isAdmin && item.tab === 'tabungan') return false;
