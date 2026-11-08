@@ -282,9 +282,46 @@ export default function MobileSantri() {
     }
 
     setSubmitting(true);
+    const payload = {
+      ...formData,
+      asrama_id: formData.asrama_id ? parseInt(formData.asrama_id, 10) : null,
+      kamar_id: formData.kamar_id ? parseInt(formData.kamar_id, 10) : null,
+      kelas_id: formData.kelas_id ? parseInt(formData.kelas_id, 10) : null,
+      fingerprint_pin:
+        formData.fingerprint_pin && String(formData.fingerprint_pin).trim() !== ""
+          ? parseInt(formData.fingerprint_pin, 10)
+          : null,
+      rfid_card_uid:
+        formData.rfid_card_uid && String(formData.rfid_card_uid).trim() !== ""
+          ? String(formData.rfid_card_uid).trim()
+          : null,
+      capaian_hafalan_juz: parseInt(formData.capaian_hafalan_juz, 10) || 0,
+      nisn:
+        formData.nisn && String(formData.nisn).trim() !== ""
+          ? String(formData.nisn).trim()
+          : null,
+      tempat_lahir:
+        formData.tempat_lahir && String(formData.tempat_lahir).trim() !== ""
+          ? String(formData.tempat_lahir).trim()
+          : null,
+      tgl_lahir: formData.tgl_lahir || null,
+      alamat_asal:
+        formData.alamat_asal && String(formData.alamat_asal).trim() !== ""
+          ? String(formData.alamat_asal).trim()
+          : null,
+      username:
+        formData.username && String(formData.username).trim() !== ""
+          ? String(formData.username).trim()
+          : null,
+      password:
+        formData.password && String(formData.password).trim() !== ""
+          ? String(formData.password).trim()
+          : null,
+    };
+
     try {
       if (formMode === "add") {
-        const res = await axios.post("/api/santri", formData);
+        const res = await axios.post("/api/santri", payload);
         if (res.data?.success) {
           toastSuccess("Berhasil!", "Data santri baru berhasil ditambahkan.");
           fetchSantri();
@@ -293,7 +330,7 @@ export default function MobileSantri() {
           showError("Gagal", res.data?.message || "Gagal menambah data santri.");
         }
       } else {
-        const res = await axios.put(`/api/santri/${formData.id}`, formData);
+        const res = await axios.put(`/api/santri/${formData.id}`, payload);
         if (res.data?.success) {
           toastSuccess("Berhasil!", "Data santri berhasil diperbarui.");
           fetchSantri();

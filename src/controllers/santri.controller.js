@@ -208,6 +208,12 @@ export const getAllSantri = async (req, res) => {
   }
 };
 
+const toIntOrNull = (val) => {
+  if (val === undefined || val === null || String(val).trim() === '') return null;
+  const num = parseInt(val, 10);
+  return isNaN(num) ? null : num;
+};
+
 export const createSantri = async (req, res) => {
   try {
     const {
@@ -262,17 +268,17 @@ export const createSantri = async (req, res) => {
     addCol('tempat_lahir', tempat_lahir || '');
     addCol('tgl_lahir', tgl_lahir || null);
     addCol('status_santri', status_santri || 'Mukim');
-    addCol('asrama_id', asrama_id || null);
-    addCol('kamar_id', kamar_id || null);
-    addCol('capaian_hafalan_juz', capaian_hafalan_juz || 0);
+    addCol('asrama_id', toIntOrNull(asrama_id));
+    addCol('kamar_id', toIntOrNull(kamar_id));
+    addCol('capaian_hafalan_juz', toIntOrNull(capaian_hafalan_juz) || 0);
     addCol('tingkat_diniyah', tingkat_diniyah || 'Wustho');
     addCol('nama_kelas', req.body.nama_kelas || null);
-    addCol('kelas_id', req.body.kelas_id || null);
-    addCol('sekolah_id', req.body.sekolah_id || null);
+    addCol('kelas_id', toIntOrNull(req.body.kelas_id));
+    addCol('sekolah_id', toIntOrNull(req.body.sekolah_id));
     addCol('nama_sekolah', req.body.nama_sekolah || null);
     addCol('tingkat_sekolah', req.body.tingkat_sekolah || null);
-    addCol('fingerprint_pin', fingerprint_pin || null);
-    addCol('rfid_card_uid', rfid_card_uid || null);
+    addCol('fingerprint_pin', toIntOrNull(fingerprint_pin));
+    addCol('rfid_card_uid', rfid_card_uid ? String(rfid_card_uid).trim() : null);
     addCol('nama_wali', nama_wali || '');
     addCol('no_wa_wali', no_wa_wali || '');
     addCol('hubungan_wali', hubungan_wali || 'Orang Tua (Ayah)');
@@ -343,21 +349,21 @@ export const updateSantri = async (req, res) => {
     if (tempat_lahir !== undefined) addIfColExists('tempat_lahir', tempat_lahir);
     if (tgl_lahir !== undefined) addIfColExists('tgl_lahir', tgl_lahir || null);
     if (status_santri !== undefined) addIfColExists('status_santri', status_santri);
-    if (asrama_id !== undefined) addIfColExists('asrama_id', asrama_id);
-    if (kamar_id !== undefined) addIfColExists('kamar_id', kamar_id);
-    if (fingerprint_pin !== undefined) addIfColExists('fingerprint_pin', fingerprint_pin);
-    if (rfid_card_uid !== undefined) addIfColExists('rfid_card_uid', rfid_card_uid);
+    if (asrama_id !== undefined) addIfColExists('asrama_id', toIntOrNull(asrama_id));
+    if (kamar_id !== undefined) addIfColExists('kamar_id', toIntOrNull(kamar_id));
+    if (fingerprint_pin !== undefined) addIfColExists('fingerprint_pin', toIntOrNull(fingerprint_pin));
+    if (rfid_card_uid !== undefined) addIfColExists('rfid_card_uid', rfid_card_uid ? String(rfid_card_uid).trim() : null);
     if (nama_wali !== undefined) addIfColExists('nama_wali', nama_wali);
     if (no_wa_wali !== undefined) addIfColExists('no_wa_wali', no_wa_wali);
     if (hubungan_wali !== undefined) addIfColExists('hubungan_wali', hubungan_wali);
     if (alamat_asal !== undefined) addIfColExists('alamat_asal', alamat_asal);
     if (status !== undefined) addIfColExists('status', status);
     if (tahun_masuk !== undefined) addIfColExists('tahun_masuk', tahun_masuk);
-    if (capaian_hafalan_juz !== undefined) addIfColExists('capaian_hafalan_juz', capaian_hafalan_juz || 0);
+    if (capaian_hafalan_juz !== undefined) addIfColExists('capaian_hafalan_juz', toIntOrNull(capaian_hafalan_juz) || 0);
     if (tingkat_diniyah !== undefined) addIfColExists('tingkat_diniyah', tingkat_diniyah || 'Wustho');
     if (req.body.nama_kelas !== undefined) addIfColExists('nama_kelas', req.body.nama_kelas);
-    if (req.body.kelas_id !== undefined) addIfColExists('kelas_id', req.body.kelas_id);
-    if (req.body.sekolah_id !== undefined) addIfColExists('sekolah_id', req.body.sekolah_id);
+    if (req.body.kelas_id !== undefined) addIfColExists('kelas_id', toIntOrNull(req.body.kelas_id));
+    if (req.body.sekolah_id !== undefined) addIfColExists('sekolah_id', toIntOrNull(req.body.sekolah_id));
     if (req.body.nama_sekolah !== undefined) addIfColExists('nama_sekolah', req.body.nama_sekolah);
     if (req.body.tingkat_sekolah !== undefined) addIfColExists('tingkat_sekolah', req.body.tingkat_sekolah);
 
