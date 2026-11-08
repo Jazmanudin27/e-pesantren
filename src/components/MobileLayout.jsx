@@ -68,6 +68,7 @@ import MobileHomeKeuangan from '../views/keuangan/MobileHomeKeuangan';
 import MobileKeuanganLayout from './MobileKeuanganLayout';
 import MobileMediaPipeTest from '../views/mobile/MobileMediaPipeTest';
 import { canAccessKeuangan } from '../utils/authRole.util';
+import { initFaceApiModels } from '../utils/faceApi.util';
 
 export default function MobileLayout() {
   const [session, setSession] = useState(() => {
@@ -165,13 +166,7 @@ export default function MobileLayout() {
   // Pre-warm Google MediaPipe FaceMesh di background (idle 1.5s) agar saat buka kamera langsung instant 0 detik
   useEffect(() => {
     const idleTimer = setTimeout(() => {
-      import('../utils/faceApi.util.js')
-        .then((mod) => {
-          if (mod && mod.initFaceApiModels) {
-            mod.initFaceApiModels().catch(() => {});
-          }
-        })
-        .catch(() => {});
+      initFaceApiModels().catch(() => {});
     }, 1500);
     return () => clearTimeout(idleTimer);
   }, []);
