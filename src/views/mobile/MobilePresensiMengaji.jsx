@@ -101,6 +101,8 @@ export default function MobilePresensiMengaji() {
   const [loadingKelasSantri, setLoadingKelasSantri] = useState(false);
   const [searchManual, setSearchManual] = useState("");
   const [filterManualStatus, setFilterManualStatus] = useState("Semua");
+  const [searchRiwayat, setSearchRiwayat] = useState("");
+  const [refreshingRiwayat, setRefreshingRiwayat] = useState(false);
 
   // Audio & Sound
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -723,6 +725,20 @@ export default function MobilePresensiMengaji() {
     });
   };
 
+  const handleRefreshRiwayat = async () => {
+    setRefreshingRiwayat(true);
+    try {
+      const res = await axios.get("/api/absensi/fingerprint");
+      if (res.data?.data && Array.isArray(res.data.data)) {
+        setPresensiLogs(res.data.data);
+      }
+    } catch (e) {
+      console.warn("Gagal refresh data presensi:", e);
+    } finally {
+      setRefreshingRiwayat(false);
+    }
+  };
+
   const handleSwitchTab = (tabMode) => {
     setActiveMode(tabMode);
     if (tabMode === "face") {
@@ -731,6 +747,10 @@ export default function MobilePresensiMengaji() {
     } else if (tabMode === "qr") {
       stopFaceCamera();
       setTimeout(startScanner, 80);
+    } else if (tabMode === "riwayat") {
+      stopScanner();
+      stopFaceCamera();
+      handleRefreshRiwayat();
     } else {
       stopScanner();
       stopFaceCamera();
@@ -774,6 +794,55 @@ export default function MobilePresensiMengaji() {
     if (filterManualStatus === "Belum") return matchSearch && !log;
     return matchSearch;
   });
+
+  // Filter Riwayat khusus berdasarkan Kegiatan Mengaji & Kelas Terpilih
+  const filteredRiwayatLogs = React.useMemo(() => {
+    return presensiLogs.filter((log) => {
+      // 1. Abaikan shalat
+      const isShalat = /shalat|sholat|subuh|dzuhur|ashar|maghrib|isya|berjamaah/i.test(
+        String(log.kegiatan || log.nama_sesi || "")
+      );
+      if (isShalat) return false;
+
+      // 2. Filter Kategori / Kegiatan Mengaji
+      if (selectedMengaji) {
+        const targetKegiatan = String(selectedMengaji.nama || "").trim().toLowerCase();
+        const logKegiatan = String(log.kegiatan || log.nama_sesi || "").trim().toLowerCase();
+        const matchId = String(log.sesi_id) === String(selectedMengaji.id);
+        const matchNama =
+          logKegiatan === targetKegiatan ||
+          (logKegiatan && targetKegiatan && (logKegiatan.includes(targetKegiatan) || targetKegiatan.includes(logKegiatan)));
+        if (!matchId && !matchNama) return false;
+      }
+
+      // 3. Filter Kelas Santri
+      if (selectedMengajiKelas) {
+        const targetKelas = String(selectedMengajiKelas).trim().toLowerCase();
+        const ketStr = String(log.keterangan || "").toLowerCase();
+        const klsStr = String(log.nama_kelas || log.kelas || "").toLowerCase();
+        const inSantriList = santriList.some(
+          (s) =>
+            String(s.id) === String(log.santri_id) ||
+            (s.nis && String(s.nis) === String(log.nis))
+        );
+
+        const matchKet = ketStr.includes(targetKelas);
+        const matchKls = klsStr === targetKelas || klsStr.includes(targetKelas);
+
+        if (!inSantriList && !matchKet && !matchKls) return false;
+      }
+
+      // 4. Filter Search teks riwayat jika user mengetik
+      if (searchRiwayat && searchRiwayat.trim()) {
+        const q = searchRiwayat.toLowerCase();
+        const namaMatch = String(log.nama_santri || "").toLowerCase().includes(q);
+        const nisMatch = String(log.nis || "").toLowerCase().includes(q);
+        if (!namaMatch && !nisMatch) return false;
+      }
+
+      return true;
+    });
+  }, [presensiLogs, selectedMengaji, selectedMengajiKelas, santriList, searchRiwayat]);
 
   const sessionSudahCount = santriList.filter((s) => getSantriCurrentLog(s)).length;
   const sessionTotal = santriList.length;
@@ -917,7 +986,7 @@ export default function MobilePresensiMengaji() {
           <ClipboardList size={13} style={{ verticalAlign: "middle", marginRight: "3px" }} /> Manual
         </button>
         <button onClick={() => handleSwitchTab("riwayat")} style={{ padding: "7px 2px", borderRadius: "9px", border: "none", background: activeMode === "riwayat" ? "#f3e8ff" : "transparent", color: activeMode === "riwayat" ? "#7c3aed" : "#64748b", fontWeight: 800, fontSize: "0.68rem", cursor: "pointer" }}>
-          <History size={13} style={{ verticalAlign: "middle", marginRight: "3px" }} /> Riwayat
+          <History size={13} style={{ verticalAlign: "middle", marginRight: "3px" }} /> Riwayat ({filteredRiwayatLogs.length})
         </button>
       </div>
 
@@ -1030,20 +1099,164 @@ export default function MobilePresensiMengaji() {
         </div>
       )}
 
-      {/* Mode 4: Riwayat */}
+      {/* Mode 4: Riwayat Khusus Kegiatan & Kelas Terpilih */}
       {activeMode === "riwayat" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          {presensiLogs.filter((l) => String(l.tipe_presensi || "").toLowerCase() === "kegiatan" || !/shalat|subuh|dzuhur|ashar|maghrib|isya/i.test(l.kegiatan || "")).map((log) => (
-            <div key={log.id} style={{ background: "#fff", borderRadius: "12px", padding: "10px 14px", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: "0.85rem", color: "#0f172a" }}>{log.nama_santri}</div>
-                <div style={{ fontSize: "0.68rem", color: "#64748b" }}>{log.kegiatan} {log.keterangan ? `• ${log.keterangan}` : ""} • {log.waktu_scan || "00:00"} WIB</div>
+          {/* Header Info Riwayat Terfilter */}
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: "14px",
+              padding: "10px 14px",
+              border: "1px solid #e2e8f0",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "2px",
+            }}
+          >
+            <div>
+              <div style={{ fontSize: "0.78rem", fontWeight: 800, color: "#0f172a" }}>
+                Riwayat: {selectedMengaji?.nama || "Semua Kegiatan"}
               </div>
-              <span style={{ background: "#ecfdf5", color: "#059669", padding: "3px 8px", borderRadius: "999px", fontSize: "0.68rem", fontWeight: 800 }}>
-                {log.status_kehadiran || log.status || "Hadir"}
+              <div style={{ fontSize: "0.68rem", color: "#64748b" }}>
+                {selectedMengajiKelas ? `Kelas: ${selectedMengajiKelas}` : "Semua Kelas"} • <strong>{filteredRiwayatLogs.length} Kehadiran</strong>
+              </div>
+            </div>
+            <button
+              onClick={handleRefreshRiwayat}
+              disabled={refreshingRiwayat}
+              style={{
+                background: "#f1f5f9",
+                border: "none",
+                padding: "6px 10px",
+                borderRadius: "8px",
+                fontSize: "0.7rem",
+                fontWeight: 700,
+                color: "#475569",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                cursor: "pointer",
+              }}
+            >
+              <RefreshCw size={12} className={refreshingRiwayat ? "animate-spin" : ""} />
+              {refreshingRiwayat ? "Memuat..." : "Segarkan"}
+            </button>
+          </div>
+
+          {/* Search Box Riwayat */}
+          {(filteredRiwayatLogs.length > 3 || searchRiwayat) && (
+            <input
+              type="text"
+              placeholder="Cari santri di riwayat ini..."
+              value={searchRiwayat}
+              onChange={(e) => setSearchRiwayat(e.target.value)}
+              style={{
+                padding: "8px 12px",
+                borderRadius: "10px",
+                border: "1.5px solid #e2e8f0",
+                fontSize: "0.78rem",
+                outline: "none",
+                marginBottom: "2px",
+                background: "#ffffff",
+              }}
+            />
+          )}
+
+          {/* Warning jika belum pilih kegiatan atau kelas */}
+          {(!selectedMengaji || !selectedMengajiKelas) && (
+            <div
+              style={{
+                background: "#fefce8",
+                border: "1px solid #fef08a",
+                borderRadius: "12px",
+                padding: "12px 14px",
+                textAlign: "center",
+                color: "#854d0e",
+                fontSize: "0.76rem",
+              }}
+            >
+              <div style={{ fontWeight: 800, marginBottom: "3px" }}>
+                ⚠️ Filter Belum Lengkap
+              </div>
+              <div>
+                Pilih <strong>{!selectedMengaji ? "Kegiatan Mengaji" : "Kelas Santri"}</strong> di kotak atas untuk memfilter riwayat secara akurat.
+              </div>
+            </div>
+          )}
+
+          {/* List Kartu Riwayat */}
+          {filteredRiwayatLogs.map((log) => (
+            <div
+              key={log.id}
+              style={{
+                background: "#ffffff",
+                borderRadius: "12px",
+                padding: "10px 14px",
+                border: "1px solid #e2e8f0",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 800, fontSize: "0.86rem", color: "#0f172a" }}>
+                  {log.nama_santri}
+                </div>
+                <div style={{ fontSize: "0.68rem", color: "#64748b", marginTop: "2px" }}>
+                  <span style={{ color: "#059669", fontWeight: 700 }}>
+                    {log.kegiatan || selectedMengaji?.nama}
+                  </span>
+                  {" • "}
+                  <span>
+                    {log.keterangan || (selectedMengajiKelas ? `Kelas: ${selectedMengajiKelas}` : "")}
+                  </span>
+                  {" • "}
+                  <span>{log.waktu_scan || "00:00"} WIB</span>
+                </div>
+              </div>
+              <span
+                style={{
+                  background: "#ecfdf5",
+                  color: "#059669",
+                  padding: "4px 10px",
+                  borderRadius: "999px",
+                  fontSize: "0.7rem",
+                  fontWeight: 800,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                ✓ {log.status_kehadiran || log.status || "Hadir"}
               </span>
             </div>
           ))}
+
+          {filteredRiwayatLogs.length === 0 && (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "36px 16px",
+                color: "#94a3b8",
+                fontSize: "0.8rem",
+                fontWeight: 600,
+                background: "#ffffff",
+                borderRadius: "14px",
+                border: "1px dashed #cbd5e1",
+              }}
+            >
+              <History size={32} color="#cbd5e1" style={{ marginBottom: "8px" }} />
+              <div style={{ fontWeight: 700, color: "#1e293b", fontSize: "0.86rem" }}>
+                Belum Ada Riwayat Presensi
+              </div>
+              <div style={{ fontSize: "0.72rem", marginTop: "4px" }}>
+                {selectedMengaji && selectedMengajiKelas
+                  ? `Belum ada santri yang presensi untuk kegiatan "${selectedMengaji.nama}" di kelas "${selectedMengajiKelas}".`
+                  : "Silakan tentukan kegiatan dan kelas santri di atas."}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
