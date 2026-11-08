@@ -25,16 +25,24 @@ export default function App() {
       hostname.startsWith('mpesantren.') ||
       hostname.includes('mpesantren');
 
-    // Cek apakah user sedang login sebagai Owner / URL mengarah ke portal owner
+    // 1. Cek apakah user sedang login sebagai Owner / URL mengarah ke portal owner (Prioritas Tertinggi)
     try {
       const desktopSess = JSON.parse(localStorage.getItem('desktop_session') || sessionStorage.getItem('desktop_session') || '{}');
-      const roleDesk = String(desktopSess.role || desktopSess.userType || '').toLowerCase();
-      if (roleDesk === 'owner' || hash.startsWith('#owner') || pathname.startsWith('/owner')) {
+      const mobileSess = JSON.parse(localStorage.getItem('mobile_session') || '{}');
+      const rDesk = String(desktopSess.role || desktopSess.userType || desktopSess.username || '').toLowerCase();
+      const rMob = String(mobileSess.role || mobileSess.userType || mobileSess.username || '').toLowerCase();
+      if (
+        rDesk.includes('owner') || 
+        rMob.includes('owner') || 
+        hash.startsWith('#owner') || 
+        hash.includes('owner') ||
+        pathname.startsWith('/owner')
+      ) {
         return 'owner';
       }
     } catch (e) {}
 
-    // Cek apakah user sedang login sebagai Wali Santri / URL mengarah ke portal wali
+    // 2. Cek apakah user sedang login sebagai Wali Santri / URL mengarah ke portal wali
     try {
       const desktopSess = JSON.parse(localStorage.getItem('desktop_session') || sessionStorage.getItem('desktop_session') || '{}');
       const mobileSess = JSON.parse(localStorage.getItem('mobile_session') || '{}');
@@ -87,7 +95,16 @@ export default function App() {
       {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
       <PWAInstallModal />
       {mode === 'owner' ? (
-        <OwnerDashboardView onLogout={() => { window.location.hash = '#login'; setMode(getMode()); }} />
+        <OwnerDashboardView 
+          onLogout={() => { 
+            localStorage.removeItem('desktop_session');
+            localStorage.removeItem('mobile_session');
+            localStorage.removeItem('token');
+            sessionStorage.clear();
+            window.location.hash = '#login'; 
+            window.location.reload(); 
+          }} 
+        />
       ) : mode === 'wali' ? (
         <PortalWaliSantri onLogout={() => { window.location.hash = '#login'; setMode(getMode()); }} />
       ) : mode === 'keuangan-mobile' ? (

@@ -68,6 +68,7 @@ import WhatsAppGatewayView from '../views/admin/WhatsAppGatewayView';
 import MobileHomeKeuangan from '../views/keuangan/MobileHomeKeuangan';
 import MobileKeuanganLayout from './MobileKeuanganLayout';
 import MobileMediaPipeTest from '../views/mobile/MobileMediaPipeTest';
+import OwnerDashboardView from '../views/owner/OwnerDashboardView';
 import { canAccessKeuangan } from '../utils/authRole.util';
 import { initFaceApiModels } from '../utils/faceApi.util';
 
@@ -345,6 +346,20 @@ export default function MobileLayout() {
   );
 
   const renderContent = () => {
+    const isOwnerUser = (() => {
+      try {
+        const sess = JSON.parse(localStorage.getItem('mobile_session') || localStorage.getItem('desktop_session') || '{}');
+        const r = String(sess.role || sess.userType || sess.username || '').toLowerCase();
+        return r.includes('owner');
+      } catch (e) {
+        return false;
+      }
+    })();
+
+    if (isOwnerUser || mobileTab === 'owner' || mobileTab === 'laporan-owner') {
+      return <OwnerDashboardView onLogout={handleLogout} />;
+    }
+
     const isWaliUser = (() => {
       try {
         const sess = JSON.parse(localStorage.getItem('mobile_session') || '{}');

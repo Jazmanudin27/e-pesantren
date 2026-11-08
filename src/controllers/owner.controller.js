@@ -26,6 +26,11 @@ export const ensureOwnerAccount = async () => {
         `, [hashed]);
         console.log('[E-PESANTREN DB] Akun Owner otomatis dibuat: Username "owner", Password "password"');
       }
+    } else {
+      // Pastikan akun owner yang sudah ada dipastikan role = 'Owner' & status = 'Active'
+      try {
+        await pool.query("UPDATE users SET role = 'Owner', status = 'Active' WHERE LOWER(TRIM(username)) = 'owner'");
+      } catch (eUpd) {}
     }
   } catch (err) {
     console.warn('[E-PESANTREN DB] ensureOwnerAccount notice:', err.message);

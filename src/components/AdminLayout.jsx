@@ -960,6 +960,31 @@ export default function AdminLayout() {
     );
   }
 
+  // Jika yang login adalah Owner, langsung render Halaman Eksekutif Owner (Bypass AdminLayout)
+  const isOwnerUser = Boolean(
+    currentUser && (
+      String(currentUser.role || '').toLowerCase().includes('owner') ||
+      String(currentUser.userType || '').toLowerCase().includes('owner') ||
+      String(currentUser.username || '').toLowerCase() === 'owner'
+    )
+  );
+
+  if (isOwnerUser) {
+    return (
+      <OwnerDashboardView 
+        onLogout={() => {
+          localStorage.removeItem('desktop_session');
+          localStorage.removeItem('mobile_session');
+          localStorage.removeItem('token');
+          sessionStorage.clear();
+          setCurrentUser(null);
+          window.location.hash = '#login';
+          window.location.reload();
+        }} 
+      />
+    );
+  }
+
   return (
     <div className="admin-layout">
       {/* Sidebar Desktop (Dark Navy Aspartech Style) */}

@@ -251,7 +251,8 @@ export const login = async (req, res, next) => {
         nisnDb = sRow[0].nisn || sRow[0].nis || nisnDb;
         nisDb = sRow[0].nis || sRow[0].nisn || nisDb;
         santriRealId = sRow[0].id;
-        if (account.role !== 'admin' && account.role !== 'asatidz' && account.role !== 'asrama') {
+        const rLow = String(account.role || '').toLowerCase();
+        if (rLow !== 'admin' && rLow !== 'asatidz' && rLow !== 'asrama' && !rLow.includes('owner')) {
           isWali = true;
           userType = 'Wali Santri';
         }
@@ -268,7 +269,7 @@ export const login = async (req, res, next) => {
       nisn: nisnDb || account.nisn || undefined,
       nis: nisDb || account.nis || undefined,
       role: isWali ? 'wali' : (account.role || (userType === 'Asatidz' ? 'asatidz' : userType) || 'asrama').toLowerCase(),
-      userType: isWali ? 'Wali Santri' : (userType === 'Asatidz' ? 'Ustadz / Guru' : userType),
+      userType: isWali ? 'Wali Santri' : (String(account.role || '').toLowerCase().includes('owner') ? 'Owner / Yayasan (Eksekutif)' : (userType === 'Asatidz' ? 'Ustadz / Guru' : userType)),
       asrama_id: account.asrama_id || account.id || 1
     };
 

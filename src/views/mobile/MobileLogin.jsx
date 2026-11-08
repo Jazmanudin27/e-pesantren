@@ -96,6 +96,15 @@ export default function MobileLogin({ onLoginSuccess, onBackToOnboarding }) {
         let detectedType = "Ustadz / Guru";
 
         if (
+          rawRole.includes("owner") ||
+          rawRole.includes("yayasan") ||
+          rawType.includes("owner") ||
+          rawType.includes("yayasan") ||
+          cleanUser.toLowerCase().includes("owner")
+        ) {
+          detectedRole = "owner";
+          detectedType = "Owner / Yayasan (Eksekutif)";
+        } else if (
           rawRole === "wali" ||
           rawRole === "wali santri" ||
           rawType.includes("wali") ||
@@ -157,6 +166,13 @@ export default function MobileLogin({ onLoginSuccess, onBackToOnboarding }) {
 
         setLoading(false);
         toastSuccess(`Login berhasil (${detectedType}): ${sessionData.nama}`);
+
+        if (detectedRole === "owner") {
+          window.location.hash = "#owner";
+          window.location.reload();
+          return;
+        }
+
         if (onLoginSuccess) onLoginSuccess(sessionData);
         return;
       } else {

@@ -85,12 +85,16 @@ export default function LoginAdmin({ onLoginSuccess }) {
 
         if (rememberMe) {
           localStorage.setItem('desktop_session', JSON.stringify(sessionData));
+          localStorage.setItem('mobile_session', JSON.stringify(sessionData));
         } else {
           sessionStorage.setItem('desktop_session', JSON.stringify(sessionData));
+          sessionStorage.setItem('mobile_session', JSON.stringify(sessionData));
         }
 
         if (isOwner) {
           window.location.hash = '#owner';
+          window.location.reload();
+          return;
         } else if (isBnd) {
           window.location.hash = '#keuangan-admin';
         } else if (isAbs) {
