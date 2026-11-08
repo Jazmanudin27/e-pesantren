@@ -6,12 +6,12 @@ const router = express.Router();
 
 router.get('/', getAllSantri);
 
-// 1. Endpoint Cepat: Ambil semua santri yang memiliki face_descriptor di MySQL
+// 1. Endpoint Cepat: Ambil semua santri yang memiliki face_descriptor di MySQL (Hanya Biometrik Vektor, Tanpa Base64 Foto)
 router.get('/with-face', async (req, res) => {
   try {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     const [rows] = await pool.query(
-      "SELECT id, nis, nama_santri, foto, face_descriptor FROM santri WHERE face_descriptor IS NOT NULL AND face_descriptor != ''"
+      "SELECT id, nis, nama_santri, face_descriptor FROM santri WHERE face_descriptor IS NOT NULL AND face_descriptor != ''"
     );
     const cleaned = rows.map(r => {
       let desc = r.face_descriptor;
@@ -28,7 +28,6 @@ router.get('/with-face', async (req, res) => {
         id: r.id,
         nis: r.nis,
         nama_santri: r.nama_santri,
-        foto: r.foto,
         face_descriptor: desc,
         has_face: Array.isArray(desc) && desc.length === 128
       };
@@ -88,6 +87,33 @@ router.get('/:id/photo-thumb', async (req, res) => {
     }
   } catch (err) {
     return res.status(500).send('Server error');
+  }
+});
+
+// 1d. Endpoint Cepat & Ringan untuk Presensi Mobile (Tanpa Base64 Foto Raksasa, ~150 KB vs 50 MB)
+router.get('/for-presensi', async (req, res) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    const [rows] = await pool.query(`
+      SELECT 
+        s.id, 
+        s.nis, 
+        s.nama_santri, 
+        s.kelas_id, 
+        s.nama_kelas, 
+        s.asrama_id, 
+        COALESCE(s.nama_asrama, a.nama_asrama, '') as nama_asrama,
+        s.kamar_id,
+        COALESCE(s.nama_kamar, k.nama_kamar, '') as nama_kamar,
+        s.face_descriptor
+      FROM santri s
+      LEFT JOIN asrama a ON s.asrama_id = a.id
+      LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+      ORDER BY s.id ASC
+    `);
+    return res.json({ success: true, total: rows.length, data: rows });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
   }
 });
 

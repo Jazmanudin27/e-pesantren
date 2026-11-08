@@ -354,7 +354,9 @@ export default function MobilePresensi() {
       setLoading(true);
       const [resSantri, resAbs, resIzin, resMateri, resSesi, resKelas] =
         await Promise.all([
-          axios.get("/api/santri?all=true"),
+          axios
+            .get("/api/santri/for-presensi")
+            .catch(() => axios.get("/api/santri?all=true")),
           axios
             .get("/api/absensi/fingerprint")
             .catch(() => ({ data: { data: [] } })),
@@ -928,15 +930,23 @@ export default function MobilePresensi() {
         audio: false,
       });
       faceStreamRef.current = stream;
-      if (faceVideoRef.current) {
-        faceVideoRef.current.srcObject = stream;
-        faceVideoRef.current.onloadedmetadata = () => {
+
+      let retries = 0;
+      const attachVideo = () => {
+        if (faceVideoRef.current) {
+          faceVideoRef.current.srcObject = stream;
+          faceVideoRef.current.onloadedmetadata = () => {
+            faceVideoRef.current.play().catch(() => {});
+            startFaceDetectionLoop();
+          };
           faceVideoRef.current.play().catch(() => {});
           startFaceDetectionLoop();
-        };
-        faceVideoRef.current.play().catch(() => {});
-        startFaceDetectionLoop();
-      }
+        } else if (retries < 15) {
+          retries++;
+          setTimeout(attachVideo, 50);
+        }
+      };
+      attachVideo();
     } catch (err) {
       console.warn("Mobile face camera error:", err.message);
       setFaceCameraError(
@@ -1641,25 +1651,27 @@ export default function MobilePresensi() {
     setActiveMode(newMode);
   };
 
-  // Toggle mode tab
+  // Toggle mode tab & nyalakan kamera seketika setelah data siap
   useEffect(() => {
+    if (loading) return; // Mencegah kamera dipicu saat elemen DOM video belum ter-render (anti blank hitam)
+
     if (activeMode === "qr") {
       stopFaceCamera();
       const timer = setTimeout(() => {
         startScanner();
-      }, 250);
+      }, 150);
       return () => clearTimeout(timer);
     } else if (activeMode === "face") {
       stopScanner();
       const timer = setTimeout(() => {
         startFaceCamera(faceFacingMode);
-      }, 50);
+      }, 60);
       return () => clearTimeout(timer);
     } else {
       stopScanner();
       stopFaceCamera();
     }
-  }, [activeMode]);
+  }, [activeMode, loading]);
 
   // Hemat baterai: Matikan hardware kamera saat aplikasi diminimalkan / layar mati
   useEffect(() => {
