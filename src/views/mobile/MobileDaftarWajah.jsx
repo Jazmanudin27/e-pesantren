@@ -83,7 +83,31 @@ export default function MobileDaftarWajah() {
       }
 
       if (resSantri.data?.data && Array.isArray(resSantri.data.data)) {
-        setSantriList(resSantri.data.data);
+        const fetched = resSantri.data.data;
+        setSantriList(fetched);
+
+        // Bersihkan profil wajah di localStorage yang di database sudah dihapus
+        try {
+          const currentLocal = JSON.parse(localStorage.getItem('epesantren_face_profiles') || '{}');
+          const registeredInDb = new Set(
+            fetched
+              .filter(s => s.has_face_descriptor === 1 || s.face_descriptor || s.foto)
+              .map(s => String(s.id))
+          );
+          let localChanged = false;
+          Object.keys(currentLocal).forEach((k) => {
+            const prof = currentLocal[k];
+            const pId = String(prof?.santri_id || prof?.id || k);
+            if (!registeredInDb.has(pId)) {
+              delete currentLocal[k];
+              localChanged = true;
+            }
+          });
+          if (localChanged) {
+            setRegisteredFaces(currentLocal);
+            localStorage.setItem('epesantren_face_profiles', JSON.stringify(currentLocal));
+          }
+        } catch (eClean) {}
       }
     } catch (err) {
       console.warn('Gagal ambil santri:', err);
@@ -183,12 +207,16 @@ export default function MobileDaftarWajah() {
         setFaceScore(score);
 
         const otherProfiles = Object.values(registeredFaces).filter(
-          (p) => String(p.santri_id) !== String(selectedSantri?.id) && (p.descriptor || p.foto)
+          (p) => {
+            const pId = String(p.santri_id || p.id || '');
+            const curId = String(selectedSantri?.id || '');
+            return pId && curId && pId !== curId && (p.descriptor || p.face_descriptor);
+          }
         );
 
         if (otherProfiles.length > 0) {
-          const match = matchFaceDescriptor(faceRes.descriptor, otherProfiles, 0.52);
-          if (match) {
+          const match = matchFaceDescriptor(faceRes.descriptor, otherProfiles, 0.48);
+          if (match && match.success && !match.error) {
             setDetectedExistingSantri(match);
           } else {
             setDetectedExistingSantri(null);
@@ -253,7 +281,7 @@ export default function MobileDaftarWajah() {
         ctx.scale(-1, 1);
       }
       ctx.drawImage(video, sX, sY, size, size, 0, 0, 320, 320);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.90);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
 
       // 3. Simpan snapshot dan descriptor yang sudah terverifikasi AI
       setCapturedDescriptor(liveFace.descriptor);
@@ -312,16 +340,22 @@ export default function MobileDaftarWajah() {
       // 2. Validasi duplikasi wajah terhadap santri lain yang sudah terdaftar
       try {
         const otherProfiles = Object.values(registeredFaces).filter(
-          (p) => String(p.santri_id) !== String(selectedSantri.id) && (p.descriptor || p.face_descriptor)
+          (p) => {
+            const pId = String(p.santri_id || p.id || '');
+            const curId = String(selectedSantri.id || '');
+            return pId && curId && pId !== curId && (p.descriptor || p.face_descriptor);
+          }
         );
-        const matchedOther = matchFaceDescriptor(descriptor, otherProfiles, 0.52);
-        if (matchedOther) {
-          showError(
-            'Pendaftaran Wajah Ditolak!',
-            `Wajah ini terdeteksi mirip/sudah terdaftar atas nama "${matchedOther.nama || matchedOther.nama_santri}". Wajah yang sama tidak boleh didaftarkan ke santri lain!`
-          );
-          setSaving(false);
-          return;
+        if (otherProfiles.length > 0) {
+          const matchedOther = matchFaceDescriptor(descriptor, otherProfiles, 0.48);
+          if (matchedOther && matchedOther.success && !matchedOther.error) {
+            showError(
+              'Pendaftaran Wajah Ditolak!',
+              `Wajah ini terdeteksi mirip/sudah terdaftar atas nama "${matchedOther.nama || matchedOther.nama_santri}". Wajah yang sama tidak boleh didaftarkan ke santri lain!`
+            );
+            setSaving(false);
+            return;
+          }
         }
       } catch (eDup) {
         console.warn('Anti-duplicate check warning:', eDup);
@@ -336,11 +370,19 @@ export default function MobileDaftarWajah() {
         });
       } catch (errPost) {
         console.warn('POST face-descriptor failed, trying PATCH foto:', errPost);
-        await axios.patch(`/api/santri/${selectedSantri.id}/foto`, { 
-          foto: snapshot,
-          descriptor: cleanDesc,
-          face_descriptor: cleanDesc
-        }).catch((e) => console.warn('PATCH fallback failed:', e));
+        try {
+          await axios.patch(`/api/santri/${selectedSantri.id}/foto`, { 
+            foto: snapshot,
+            descriptor: cleanDesc,
+            face_descriptor: cleanDesc
+          });
+        } catch (errPatch) {
+          console.error('Save to server failed:', errPatch);
+          const errMsg = errPatch.response?.data?.message || errPatch.response?.data?.error || errPost.response?.data?.message || errPatch.message;
+          showError('Gagal Menyimpan ke Database', `Server tidak dapat menyimpan foto: ${errMsg}`);
+          setSaving(false);
+          return;
+        }
       }
 
       // 4. Update state dan cache lokal (Ringan tanpa bloat base64 agar TIDAK melebihi kuota 5MB browser)
