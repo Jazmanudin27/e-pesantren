@@ -94,21 +94,47 @@ router.get('/:id/photo-thumb', async (req, res) => {
 router.get('/for-presensi', async (req, res) => {
   try {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+
+    // Periksa kolom dinamis yang benar-benar ada di tabel santri
+    const [cols] = await pool.query("SHOW COLUMNS FROM santri");
+    const colSet = new Set((cols || []).map(c => c.Field));
+    const hasNamaKelas = colSet.has('nama_kelas');
+    const hasKelasId = colSet.has('kelas_id');
+    const hasAsramaId = colSet.has('asrama_id');
+    const hasKamarId = colSet.has('kamar_id');
+
+    const kelasSelect = hasNamaKelas
+      ? "COALESCE(kl.nama_kelas, s.nama_kelas, '') as nama_kelas,"
+      : "COALESCE(kl.nama_kelas, '') as nama_kelas,";
+
+    const kelasJoin = hasKelasId
+      ? "LEFT JOIN kelas kl ON s.kelas_id = kl.id"
+      : (hasNamaKelas ? "LEFT JOIN kelas kl ON s.nama_kelas = kl.nama_kelas" : "");
+
+    const asramaJoin = hasAsramaId
+      ? "LEFT JOIN asrama a ON s.asrama_id = a.id"
+      : "";
+
+    const kamarJoin = hasKamarId
+      ? "LEFT JOIN kamar_kobong k ON s.kamar_id = k.id"
+      : "";
+
     const [rows] = await pool.query(`
       SELECT 
         s.id, 
         s.nis, 
         s.nama_santri, 
-        s.kelas_id, 
-        s.nama_kelas, 
-        s.asrama_id, 
-        COALESCE(s.nama_asrama, a.nama_asrama, '') as nama_asrama,
-        s.kamar_id,
-        COALESCE(s.nama_kamar, k.nama_kamar, '') as nama_kamar,
+        ${hasKelasId ? 's.kelas_id,' : 'NULL as kelas_id,'}
+        ${kelasSelect}
+        ${hasAsramaId ? 's.asrama_id,' : 'NULL as asrama_id,'}
+        COALESCE(a.nama_asrama, '') as nama_asrama,
+        ${hasKamarId ? 's.kamar_id,' : 'NULL as kamar_id,'}
+        COALESCE(k.nama_kamar, '') as nama_kamar,
         s.face_descriptor
       FROM santri s
-      LEFT JOIN asrama a ON s.asrama_id = a.id
-      LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+      ${asramaJoin}
+      ${kamarJoin}
+      ${kelasJoin}
       ORDER BY s.id ASC
     `);
     return res.json({ success: true, total: rows.length, data: rows });
