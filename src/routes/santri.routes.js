@@ -116,27 +116,35 @@ router.get('/:id/photo-thumb', async (req, res) => {
   }
 });
 
-// 1d. Endpoint Cepat & Ringan untuk Presensi Mobile (Tanpa Base64 Foto Raksasa, ~150 KB vs 50 MB)
+// Cache kolom santri agar tidak SHOW COLUMNS berulang-ulang di setiap request
+let santriColsCache = null;
+const getSantriColumns = async () => {
+  if (santriColsCache) return santriColsCache;
+  try {
+    const [cols] = await pool.query("SHOW COLUMNS FROM santri");
+    santriColsCache = new Set((cols || []).map(c => c.Field));
+  } catch (e) {
+    santriColsCache = new Set(['id', 'nis', 'nama_santri', 'nama_kelas', 'kelas_id', 'asrama_id', 'kamar_id', 'face_descriptor']);
+  }
+  return santriColsCache;
+};
+
+// 1d. Endpoint Cepat & Ringan untuk Presensi Mobile (Super Ringan ~10 KB vs 5.5 MB, Tanpa Base64 Foto)
 // Mendukung filter kelas via query: /api/santri/for-presensi?kelas=Kelas+1 atau ?kelas_id=1
 router.get('/for-presensi', async (req, res) => {
   try {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     const { kelas, kelas_id } = req.query;
 
-    // Periksa kolom dinamis yang benar-benar ada di tabel santri
-    const [cols] = await pool.query("SHOW COLUMNS FROM santri");
-    const colSet = new Set((cols || []).map(c => c.Field));
+    const colSet = await getSantriColumns();
     const hasNamaKelas = colSet.has('nama_kelas');
     const hasKelasId = colSet.has('kelas_id');
     const hasAsramaId = colSet.has('asrama_id');
     const hasKamarId = colSet.has('kamar_id');
     const hasJk = colSet.has('jk');
     const hasJenisKelamin = colSet.has('jenis_kelamin');
-    const hasFoto = colSet.has('foto');
-    const hasFotoSantri = colSet.has('foto_santri');
 
     const jkSelect = hasJk ? 's.jk,' : (hasJenisKelamin ? 's.jenis_kelamin as jk,' : "'L' as jk,");
-    const fotoSelect = hasFoto ? 's.foto,' : (hasFotoSantri ? 's.foto_santri as foto,' : 'NULL as foto,');
 
     const kelasSelect = hasNamaKelas
       ? "COALESCE(kl.nama_kelas, s.nama_kelas, '') as nama_kelas,"
@@ -183,7 +191,7 @@ router.get('/for-presensi', async (req, res) => {
         s.nis, 
         s.nama_santri, 
         ${jkSelect}
-        ${fotoSelect}
+        NULL as foto,
         ${hasKelasId ? 's.kelas_id,' : 'NULL as kelas_id,'}
         ${kelasSelect}
         ${hasAsramaId ? 's.asrama_id,' : 'NULL as asrama_id,'}
@@ -204,7 +212,7 @@ router.get('/for-presensi', async (req, res) => {
   }
 });
 
-// 1e. Endpoint Baru: Ambil Santri Berdasarkan Kelas Tertentu (Ringan Khusus Presensi Mengaji)
+// 1e. Endpoint Baru: Ambil Santri Berdasarkan Kelas Tertentu (Ringan Khusus Presensi Mengaji, ~4 KB)
 router.get('/by-kelas/:kelas', async (req, res) => {
   try {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
@@ -215,19 +223,15 @@ router.get('/by-kelas/:kelas', async (req, res) => {
       return res.redirect('/api/santri/for-presensi');
     }
 
-    const [cols] = await pool.query("SHOW COLUMNS FROM santri");
-    const colSet = new Set((cols || []).map(c => c.Field));
+    const colSet = await getSantriColumns();
     const hasNamaKelas = colSet.has('nama_kelas');
     const hasKelasId = colSet.has('kelas_id');
     const hasAsramaId = colSet.has('asrama_id');
     const hasKamarId = colSet.has('kamar_id');
     const hasJk = colSet.has('jk');
     const hasJenisKelamin = colSet.has('jenis_kelamin');
-    const hasFoto = colSet.has('foto');
-    const hasFotoSantri = colSet.has('foto_santri');
 
     const jkSelect = hasJk ? 's.jk,' : (hasJenisKelamin ? 's.jenis_kelamin as jk,' : "'L' as jk,");
-    const fotoSelect = hasFoto ? 's.foto,' : (hasFotoSantri ? 's.foto_santri as foto,' : 'NULL as foto,');
 
     const kelasSelect = hasNamaKelas
       ? "COALESCE(kl.nama_kelas, s.nama_kelas, '') as nama_kelas,"
@@ -266,7 +270,7 @@ router.get('/by-kelas/:kelas', async (req, res) => {
         s.nis, 
         s.nama_santri, 
         ${jkSelect}
-        ${fotoSelect}
+        NULL as foto,
         ${hasKelasId ? 's.kelas_id,' : 'NULL as kelas_id,'}
         ${kelasSelect}
         ${hasAsramaId ? 's.asrama_id,' : 'NULL as asrama_id,'}

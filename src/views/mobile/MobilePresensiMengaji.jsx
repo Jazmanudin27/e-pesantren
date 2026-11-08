@@ -73,7 +73,7 @@ const normalizeDateStr = (rawDate) => {
 };
 
 export default function MobilePresensiMengaji() {
-  const [activeMode, setActiveMode] = useState("face");
+  const [activeMode, setActiveMode] = useState("manual");
   const [daftarMengaji, setDaftarMengaji] = useState([]);
   const [selectedMengaji, setSelectedMengaji] = useState(() => {
     try {
@@ -96,7 +96,6 @@ export default function MobilePresensiMengaji() {
   const [santriList, setSantriList] = useState([]);
   const [kelasList, setKelasList] = useState([]);
   const [presensiLogs, setPresensiLogs] = useState([]);
-  const [izinList, setIzinList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingKelasSantri, setLoadingKelasSantri] = useState(false);
   const [searchManual, setSearchManual] = useState("");
@@ -235,10 +234,9 @@ export default function MobilePresensiMengaji() {
         santriPromise = Promise.resolve({ data: { data: [] } });
       }
 
-      const [resSantri, resAbs, resIzin, resMateri, resSesi, resKelas] = await Promise.all([
+      const [resSantri, resAbs, resMateri, resSesi, resKelas] = await Promise.all([
         santriPromise,
-        axios.get("/api/absensi/fingerprint").catch(() => ({ data: { data: [] } })),
-        axios.get("/api/perizinan").catch(() => ({ data: { data: [] } })),
+        axios.get("/api/absensi/fingerprint?today=true&tipe=kegiatan").catch(() => ({ data: { data: [] } })),
         axios.get("/api/materi-hafalan").catch(() => ({ data: { data: [] } })),
         axios.get("/api/absensi/sesi").catch(() => ({ data: { data: [] } })),
         axios.get("/api/kelas").catch(() => ({ data: { data: [] } })),
@@ -258,7 +256,7 @@ export default function MobilePresensiMengaji() {
         rawMateri.forEach((m, idx) => {
           if (!isShalatWord(m.nama_materi) && !isShalatWord(m.kategori)) {
             listMengaji.push({
-              id: m.id || `m-${idx + 1}`,
+              id: m.id ? Number(m.id) : (idx + 1),
               nama: m.nama_materi,
               kategori: m.kategori || "Kegiatan Mengaji",
               tempat: m.deskripsi || "Gedung Madrasah",
@@ -277,7 +275,7 @@ export default function MobilePresensiMengaji() {
             );
             if (!alreadyExists && s.nama_sesi) {
               listMengaji.push({
-                id: s.id || `s-${idx + 1}`,
+                id: s.id ? Number(s.id) : (100 + idx + 1),
                 nama: s.nama_sesi,
                 kategori: s.kategori || "Kegiatan Sesi",
                 tempat: s.keterangan || "Komplek Pesantren",
@@ -300,7 +298,6 @@ export default function MobilePresensiMengaji() {
         setSantriList(resSantri.data.data);
       }
 
-      setIzinList(resIzin.data?.data || []);
       setPresensiLogs(resAbs.data?.data || []);
     } catch (err) {
       console.warn("Gagal ambil data presensi mengaji:", err);
@@ -391,19 +388,25 @@ export default function MobilePresensiMengaji() {
     }
   };
 
+  // Lazy Load AI Models: Hanya muat MediaPipe saat Musyrif membuka tab Wajah AI
   useEffect(() => {
+    if (activeMode !== "face") return;
     let isMounted = true;
-    initFaceApiModels((msg) => {
-      if (isMounted) setFaceStatusText(`🤖 ${msg}`);
-    })
-      .then(() => {
-        if (isMounted) setFaceStatusText("✅ Model AI MediaPipe Siap");
+    const timer = setTimeout(() => {
+      initFaceApiModels((msg) => {
+        if (isMounted) setFaceStatusText(`🤖 ${msg}`);
       })
-      .catch(() => {});
+        .then(() => {
+          if (isMounted) setFaceStatusText("✅ Model AI MediaPipe Siap");
+        })
+        .catch(() => {});
+    }, 300);
+
     return () => {
       isMounted = false;
+      clearTimeout(timer);
     };
-  }, []);
+  }, [activeMode]);
 
   const startFaceCamera = async (facing = faceFacingMode) => {
     setFaceCameraError("");
@@ -689,11 +692,23 @@ export default function MobilePresensiMengaji() {
   };
 
   const recordAttendance = async (santri, status = "Hadir Tepat Waktu", metode = "QR Code", ket = "", snapshot = null) => {
+    // 1. Wajib Pilih Kegiatan Mengaji Mutlak!
+    if (!selectedMengaji || !selectedMengaji.nama || !String(selectedMengaji.nama).trim()) {
+      showError("Pilih Kegiatan Mengaji", "Wajib memilih Kegiatan Mengaji terlebih dahulu di dropdown atas sebelum menyimpan presensi!");
+      return;
+    }
+
+    // 2. Wajib Pilih Kelas Santri Mutlak!
+    if (!selectedMengajiKelas || !String(selectedMengajiKelas).trim()) {
+      showError("Pilih Kelas Santri", "Wajib memilih Kelas santri terlebih dahulu di dropdown atas sebelum menyimpan presensi!");
+      return;
+    }
+
     const now = new Date();
     const timeStr = now.toTimeString().split(" ")[0];
     const dateStr = getTodayDateStr();
 
-    const targetKegiatan = selectedMengaji || daftarMengaji[0] || { id: "m-1", nama: "Kegiatan Mengaji", tipe: "Kegiatan" };
+    const targetKegiatan = selectedMengaji;
 
     playBeep(true);
     speakAttendance(santri.nama_santri, status);
@@ -708,10 +723,12 @@ export default function MobilePresensiMengaji() {
       status_kehadiran: status,
       metode_presensi: metode,
       metode_scan: metode,
-      keterangan: ket || (selectedMengajiKelas ? `Kelas: ${selectedMengajiKelas}` : ""),
+      keterangan: ket || (selectedMengajiKelas ? `Kelas: ${selectedMengajiKelas}` : (santri.nama_kelas ? `Kelas: ${santri.nama_kelas}` : "")),
       nama_santri: santri.nama_santri,
+      nama_kelas: santri.nama_kelas || selectedMengajiKelas || "",
       nama_sesi: targetKegiatan.nama,
       kegiatan: targetKegiatan.nama,
+      nama_kegiatan: targetKegiatan.nama,
       tipe_presensi: "Kegiatan",
       tempat: targetKegiatan.tempat || "Gedung Madrasah",
       foto_bukti: snapshot || santri.foto || null,
@@ -728,9 +745,22 @@ export default function MobilePresensiMengaji() {
   const handleRefreshRiwayat = async () => {
     setRefreshingRiwayat(true);
     try {
-      const res = await axios.get("/api/absensi/fingerprint");
-      if (res.data?.data && Array.isArray(res.data.data)) {
-        setPresensiLogs(res.data.data);
+      const todayStr = getTodayDateStr();
+      const res = await axios.get(`/api/absensi/fingerprint?tanggal=${todayStr}&tipe=kegiatan`);
+      const serverLogs = res.data?.data;
+      if (Array.isArray(serverLogs)) {
+        setPresensiLogs((prev) => {
+          const serverKeys = new Set(
+            serverLogs.map(
+              (l) => `${l.santri_id}__${normalizeDateStr(l.tanggal)}__${(l.kegiatan || l.nama_sesi || l.nama_kegiatan || "").toLowerCase()}`
+            )
+          );
+          const pendingLogs = prev.filter((l) => {
+            const key = `${l.santri_id}__${normalizeDateStr(l.tanggal)}__${(l.kegiatan || l.nama_sesi || l.nama_kegiatan || "").toLowerCase()}`;
+            return !serverKeys.has(key);
+          });
+          return [...pendingLogs, ...serverLogs];
+        });
       }
     } catch (e) {
       console.warn("Gagal refresh data presensi:", e);
@@ -807,8 +837,8 @@ export default function MobilePresensiMengaji() {
       // 2. Filter Kategori / Kegiatan Mengaji
       if (selectedMengaji) {
         const targetKegiatan = String(selectedMengaji.nama || "").trim().toLowerCase();
-        const logKegiatan = String(log.kegiatan || log.nama_sesi || "").trim().toLowerCase();
-        const matchId = String(log.sesi_id) === String(selectedMengaji.id);
+        const logKegiatan = String(log.kegiatan || log.nama_sesi || log.nama_kegiatan || "").trim().toLowerCase();
+        const matchId = log.sesi_id && String(log.sesi_id) === String(selectedMengaji.id);
         const matchNama =
           logKegiatan === targetKegiatan ||
           (logKegiatan && targetKegiatan && (logKegiatan.includes(targetKegiatan) || targetKegiatan.includes(logKegiatan)));
@@ -820,7 +850,7 @@ export default function MobilePresensiMengaji() {
         const targetKelas = String(selectedMengajiKelas).trim().toLowerCase();
         const ketStr = String(log.keterangan || "").toLowerCase();
         const klsStr = String(log.nama_kelas || log.kelas || "").toLowerCase();
-        const inSantriList = santriList.some(
+        const inSantriList = santriList.length > 0 && santriList.some(
           (s) =>
             String(s.id) === String(log.santri_id) ||
             (s.nis && String(s.nis) === String(log.nis))
@@ -1041,10 +1071,6 @@ export default function MobilePresensiMengaji() {
               </div>
             )}
           </div>
-
-          <button onClick={handleScanFaceLive} style={{ width: "100%", marginTop: "12px", padding: "10px", background: "linear-gradient(135deg, #059669, #047857)", color: "#ffffff", borderRadius: "12px", border: "none", fontSize: "0.82rem", fontWeight: 800, cursor: "pointer" }}>
-            🔍 Pindai Manual (Ambil Foto)
-          </button>
         </div>
       )}
 
@@ -1059,6 +1085,12 @@ export default function MobilePresensiMengaji() {
       {/* Mode 3: Manual */}
       {activeMode === "manual" && (
         <div>
+          {(!selectedMengaji?.id || !selectedMengajiKelas) && (
+            <div style={{ textAlign: "center", padding: "16px 14px", background: "#fefce8", borderRadius: "14px", border: "1.5px solid #fef08a", color: "#854d0e", fontSize: "0.78rem", fontWeight: 700, marginBottom: "12px" }}>
+              ⚠️ Wajib pilih <strong>Kegiatan Mengaji</strong> dan <strong>Kelas</strong> di atas terlebih dahulu sebelum mencatat kehadiran.
+            </div>
+          )}
+
           <div style={{ display: "flex", gap: "8px", marginBottom: "10px" }}>
             <input
               type="text"
@@ -1072,6 +1104,7 @@ export default function MobilePresensiMengaji() {
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {filteredSantri.map((s) => {
               const log = getSantriCurrentLog(s);
+              const isLocked = !selectedMengaji?.id || !selectedMengajiKelas;
               return (
                 <div key={s.id} style={{ background: "#fff", borderRadius: "12px", padding: "10px 14px", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
@@ -1082,7 +1115,20 @@ export default function MobilePresensiMengaji() {
                     {log ? (
                       <span style={{ background: "#ecfdf5", color: "#059669", padding: "4px 10px", borderRadius: "999px", fontSize: "0.7rem", fontWeight: 800 }}>✓ Hadir</span>
                     ) : (
-                      <button onClick={() => recordAttendance(s, "Hadir", "Manual")} style={{ padding: "5px 12px", borderRadius: "8px", border: "none", background: "#059669", color: "#fff", fontSize: "0.72rem", fontWeight: 700, cursor: "pointer" }}>
+                      <button 
+                        onClick={() => recordAttendance(s, "Hadir", "Manual")} 
+                        disabled={isLocked}
+                        style={{ 
+                          padding: "5px 12px", 
+                          borderRadius: "8px", 
+                          border: "none", 
+                          background: isLocked ? "#cbd5e1" : "#059669", 
+                          color: "#fff", 
+                          fontSize: "0.72rem", 
+                          fontWeight: 700, 
+                          cursor: isLocked ? "not-allowed" : "pointer" 
+                        }}
+                      >
                         Hadirkan
                       </button>
                     )}
@@ -1207,14 +1253,14 @@ export default function MobilePresensiMengaji() {
                 </div>
                 <div style={{ fontSize: "0.68rem", color: "#64748b", marginTop: "2px" }}>
                   <span style={{ color: "#059669", fontWeight: 700 }}>
-                    {log.kegiatan || selectedMengaji?.nama}
+                    {log.kegiatan || log.nama_sesi || log.nama_kegiatan || selectedMengaji?.nama || "Kegiatan Mengaji"}
                   </span>
                   {" • "}
                   <span>
-                    {log.keterangan || (selectedMengajiKelas ? `Kelas: ${selectedMengajiKelas}` : "")}
+                    {log.keterangan || (selectedMengajiKelas ? `Kelas: ${selectedMengajiKelas}` : (log.nama_kelas ? `Kelas: ${log.nama_kelas}` : ""))}
                   </span>
                   {" • "}
-                  <span>{log.waktu_scan || "00:00"} WIB</span>
+                  <span>{log.waktu_scan ? String(log.waktu_scan).substring(0, 8) : "00:00:00"} WIB</span>
                 </div>
               </div>
               <span

@@ -93,14 +93,36 @@ export const ensureAbsensiTablesAndColumns = async () => {
       await pool.query(`
         UPDATE absensi_jamaah_mengaji aj
         LEFT JOIN kegiatan_sesi ks ON aj.sesi_id = ks.id
-        SET aj.nama_kegiatan = COALESCE(ks.nama_sesi, 'Shalat Berjamaah'),
+        SET aj.nama_kegiatan = COALESCE(ks.nama_sesi, CASE WHEN aj.tipe_presensi = 'Kegiatan' THEN 'Pegon' ELSE 'Shalat Berjamaah' END),
             aj.tipe_presensi = CASE 
-              WHEN COALESCE(ks.nama_sesi, '') REGEXP 'shalat|sholat|subuh|dzuhur|ashar|maghrib|isya' THEN 'Berjamaah'
-              ELSE 'Kegiatan'
+              WHEN COALESCE(ks.nama_sesi, '') REGEXP 'shalat|sholat|subuh|dzuhur|ashar|maghrib|isya|dhuha' THEN 'Berjamaah'
+              WHEN aj.tipe_presensi = 'Kegiatan' THEN 'Kegiatan'
+              ELSE 'Berjamaah'
             END
         WHERE aj.nama_kegiatan IS NULL OR aj.nama_kegiatan = ''
       `);
     } catch (e) {}
+
+    // 5b. Normalisasi data lama yang sesi_id masih NULL (isi id dari materi_hafalan atau kegiatan_sesi)
+    try {
+      await pool.query(`
+        UPDATE absensi_jamaah_mengaji aj
+        JOIN materi_hafalan mh ON LOWER(TRIM(aj.nama_kegiatan)) = LOWER(TRIM(mh.nama_materi))
+        SET aj.sesi_id = mh.id
+        WHERE aj.sesi_id IS NULL OR aj.sesi_id <= 0
+      `);
+      await pool.query(`
+        UPDATE absensi_jamaah_mengaji aj
+        JOIN kegiatan_sesi ks ON LOWER(TRIM(aj.nama_kegiatan)) = LOWER(TRIM(ks.nama_sesi))
+        SET aj.sesi_id = ks.id
+        WHERE aj.sesi_id IS NULL OR aj.sesi_id <= 0
+      `);
+      await pool.query(`
+        UPDATE absensi_jamaah_mengaji
+        SET sesi_id = 1
+        WHERE sesi_id IS NULL OR sesi_id <= 0
+      `);
+    } catch (eFixNullSesi) {}
 
     // 6. Pastikan tabel kegiatan_sesi ada dan strukturnya lengkap
     try {
@@ -254,7 +276,7 @@ export const syncActivePerizinanToAbsensi = async () => {
       const isShalat = /shalat|sholat|subuh|dzuhur|ashar|maghrib|isya/i.test(m.nama_materi);
       if (!isShalat) {
         allSessions.push({
-          sesi_id: null,
+          sesi_id: m.id,
           nama_kegiatan: m.nama_materi,
           tipe_presensi: 'Kegiatan',
           waktu_scan: '07:00:00'
@@ -327,8 +349,21 @@ export const syncActivePerizinanToAbsensi = async () => {
 export const getAbsensiFingerprint = async (req, res) => {
   try {
     await ensureAbsensiTablesAndColumns();
-    await syncActivePerizinanToAbsensi();
+    // Jalankan sync perizinan secara non-blocking di background agar respons instan
+    syncActivePerizinanToAbsensi().catch(() => {});
+
     const tipeParam = (req.query.tipe || req.query.type || '').toLowerCase(); // 'berjamaah' | 'kegiatan' | ''
+    const isToday = req.query.today === 'true' || req.query.hari_ini === 'true';
+    const tanggalParam = req.query.tanggal;
+
+    let dateWhere = "";
+    const params = [];
+    if (tanggalParam) {
+      dateWhere = "AND aj.tanggal = ?";
+      params.push(tanggalParam);
+    } else if (isToday) {
+      dateWhere = "AND aj.tanggal = CURDATE()";
+    }
 
     const [rows] = await pool.query(`
       SELECT aj.id,
@@ -344,11 +379,14 @@ export const getAbsensiFingerprint = async (req, res) => {
              aj.metode_presensi as metode_scan,
              COALESCE(NULLIF(aj.nama_kegiatan, ''), ks.nama_sesi, 'Kegiatan Santri') as nama_sesi,
              COALESCE(NULLIF(aj.nama_kegiatan, ''), ks.nama_sesi, 'Kegiatan Santri') as kegiatan,
-             COALESCE(aj.tipe_presensi, CASE 
-               WHEN COALESCE(aj.nama_kegiatan, ks.nama_sesi, '') REGEXP 'shalat|sholat|subuh|dzuhur|ashar|maghrib|isya' THEN 'Berjamaah'
-               ELSE 'Kegiatan'
-             END) as tipe_presensi,
+             CASE 
+               WHEN COALESCE(aj.nama_kegiatan, ks.nama_sesi, '') REGEXP 'shalat|sholat|subuh|dzuhur|ashar|maghrib|isya|dhuha' THEN 'Berjamaah'
+               WHEN aj.tipe_presensi = 'Kegiatan' THEN 'Kegiatan'
+               WHEN aj.nama_kegiatan IS NOT NULL AND aj.nama_kegiatan != '' THEN 'Kegiatan'
+               ELSE COALESCE(aj.tipe_presensi, 'Berjamaah')
+             END as tipe_presensi,
              s.nama_santri, s.nis, s.fingerprint_pin, s.tipe_santri,
+             COALESCE(s.nama_kelas, '') as nama_kelas,
              a.nama_asrama, k.nama_kamar,
              ks.kategori, fd.nama_device
       FROM absensi_jamaah_mengaji aj
@@ -365,10 +403,10 @@ export const getAbsensiFingerprint = async (req, res) => {
           OR (adl.nama_kegiatan IS NOT NULL AND aj.nama_kegiatan IS NOT NULL AND LOWER(TRIM(adl.nama_kegiatan)) = LOWER(TRIM(aj.nama_kegiatan)))
         )
       )
-      WHERE adl.id IS NULL
+      WHERE adl.id IS NULL ${dateWhere}
       ORDER BY aj.tanggal DESC, aj.waktu_scan DESC
       LIMIT 1000
-    `);
+    `, params);
 
     let finalRows = rows || [];
 
@@ -565,9 +603,25 @@ export const createAbsensiFingerprint = async (req, res) => {
       tipe_presensi !== 'Kegiatan' &&
       req.body?.auto_jadwal_berjamaah !== false;
 
-    let finalKegiatan = kegiatan || nama_sesi || 'Kegiatan Pesantren';
+    let finalKegiatan = kegiatan || nama_sesi || nama_kegiatan || req.body?.nama_kegiatan || '';
+    
+    // VALIDASI KETAT: Jika presensi Kegiatan Mengaji, nama kegiatan WAJIB ada!
+    if (tipe_presensi === 'Kegiatan') {
+      if (!finalKegiatan || !String(finalKegiatan).trim() || finalKegiatan === 'Kegiatan Pesantren') {
+        return sendError(res, 'Nama kegiatan mengaji wajib dipilih sebelum mencatat presensi.', 400);
+      }
+    }
+
+    if (!finalKegiatan) {
+      finalKegiatan = 'Kegiatan Pesantren';
+    }
+
     let finalTipe = tipe_presensi;
-    let parsedSesiId = sesi_id ? parseInt(sesi_id) : null;
+    let parsedSesiId = null;
+    if (sesi_id !== undefined && sesi_id !== null && sesi_id !== '') {
+      const numOnly = String(sesi_id).replace(/\D/g, '');
+      if (numOnly) parsedSesiId = parseInt(numOnly, 10);
+    }
 
     if (isAutoBerjamaahScan) {
       const autoSesi = await resolveActiveShalatBerjamaahSesi(scanTime);
@@ -579,13 +633,25 @@ export const createAbsensiFingerprint = async (req, res) => {
     }
 
     const isShalat = /shalat|sholat|subuh|shubuh|dzuhur|zuhur|ashar|asar|maghrib|magrib|isya|dhuha|berjamaah/i.test(finalKegiatan);
-    finalTipe = finalTipe || (isShalat ? 'Berjamaah' : 'Kegiatan');
+    finalTipe = isShalat ? 'Berjamaah' : 'Kegiatan';
     const finalKet = keterangan || keteledoran_keterangan || (metode_presensi || 'Scan Presensi');
     
-    // finalSesiId hanya di-assign integer jika memang shalat (agar id materi_hafalan seperti Pegon id=1 tidak bentrok dengan kegiatan_sesi id=1 Shalat Subuh)
-    if (!isShalat) {
-      parsedSesiId = null;
-    } else if (isNaN(parsedSesiId) || parsedSesiId <= 0) {
+    // Pastikan sesi_id selalu terisi integer valid (tidak NULL)
+    if ((!parsedSesiId || isNaN(parsedSesiId) || parsedSesiId <= 0) && finalKegiatan) {
+      try {
+        const [kegRows] = await pool.query("SELECT id FROM kegiatan_sesi WHERE LOWER(TRIM(nama_sesi)) = LOWER(TRIM(?)) LIMIT 1", [finalKegiatan]);
+        if (kegRows && kegRows.length > 0) {
+          parsedSesiId = kegRows[0].id;
+        } else {
+          const [matRows] = await pool.query("SELECT id FROM materi_hafalan WHERE LOWER(TRIM(nama_materi)) = LOWER(TRIM(?)) LIMIT 1", [finalKegiatan]);
+          if (matRows && matRows.length > 0) {
+            parsedSesiId = matRows[0].id;
+          }
+        }
+      } catch (eLookup) {}
+    }
+
+    if (!parsedSesiId || isNaN(parsedSesiId) || parsedSesiId <= 0) {
       parsedSesiId = 1;
     }
 
@@ -604,15 +670,16 @@ export const createAbsensiFingerprint = async (req, res) => {
       // UPDATE status record yang ada, JANGAN buat baru (cegah duplikasi)
       await pool.query(`
         UPDATE absensi_jamaah_mengaji 
-        SET status = ?, waktu_scan = ?, metode_presensi = ?, keterangan = ?, nama_kegiatan = ?, tipe_presensi = ?
+        SET status = ?, waktu_scan = ?, metode_presensi = ?, keterangan = ?, nama_kegiatan = ?, tipe_presensi = ?, sesi_id = ?
         WHERE id = ?
-      `, [finalStatus, scanTime, finalMetode, finalKet, finalKegiatan, finalTipe, existingId]).catch(async () => {
+      `, [finalStatus, scanTime, finalMetode, finalKet, finalKegiatan, finalTipe, parsedSesiId, existingId]).catch(async () => {
         // Fallback jika kolom nama_kegiatan belum terindeks
         await pool.query(`
           UPDATE absensi_jamaah_mengaji 
-          SET status = ?, waktu_scan = ?, metode_presensi = ?, keterangan = ?
+          SET status = ?, waktu_scan = ?, metode_presensi = ?, keterangan = ?, sesi_id = ?
           WHERE id = ?
-        `, [finalStatus, scanTime, finalMetode, finalKet, existingId]);
+        `, [finalStatus, scanTime, finalMetode, finalKet, parsedSesiId, existingId]);
+      });
       });
 
       // Hapus log pencegahan dari absensi_deleted_logs jika santri ini dicatat kembali
@@ -680,9 +747,9 @@ export const createAbsensiFingerprint = async (req, res) => {
         console.warn('[createAbsensiFingerprint Insert 2 Failed, Falling back to minimal columns...]', errIns2?.message);
         const [resInsert] = await pool.query(`
           INSERT INTO absensi_jamaah_mengaji (
-            tanggal, sesi_id, santri_id, waktu_scan, status, device_id, metode_presensi, keterangan
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `, [tgl, parsedSesiId || 1, finalSantriId, scanTime, finalStatus, device_id || 1, finalMetode, finalKet]);
+            tanggal, sesi_id, santri_id, waktu_scan, status, device_id, metode_presensi, keterangan, nama_kegiatan, tipe_presensi
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [tgl, parsedSesiId || 1, finalSantriId, scanTime, finalStatus, device_id || 1, finalMetode, finalKet, finalKegiatan, finalTipe]);
         insertResult = resInsert;
       }
     }
@@ -760,7 +827,11 @@ export const syncMobileAbsensi = async (req, res) => {
       const mt = item.metode_presensi || item.metode_scan || 'Wajah AI';
       const isAutoBerjamaah = /wajah|face|ai|finger|sidik/i.test(String(mt || ''));
       let kegiatanName = item.kegiatan || item.nama_sesi || 'Kegiatan Pesantren';
-      let sesiId = item.sesi_id || null;
+      let sesiId = null;
+      if (item.sesi_id !== undefined && item.sesi_id !== null && item.sesi_id !== '') {
+        const numOnly = String(item.sesi_id).replace(/\D/g, '');
+        if (numOnly) sesiId = parseInt(numOnly, 10);
+      }
       let tipe = item.tipe_presensi;
 
       if (isAutoBerjamaah) {
@@ -774,6 +845,24 @@ export const syncMobileAbsensi = async (req, res) => {
 
       const isShalat = /shalat|sholat|subuh|shubuh|dzuhur|zuhur|ashar|asar|maghrib|magrib|isya|dhuha|berjamaah/i.test(kegiatanName);
       tipe = tipe || (isShalat ? 'Berjamaah' : 'Kegiatan');
+
+      if ((!sesiId || isNaN(sesiId) || sesiId <= 0) && kegiatanName) {
+        try {
+          const [kegRows] = await pool.query("SELECT id FROM kegiatan_sesi WHERE LOWER(TRIM(nama_sesi)) = LOWER(TRIM(?)) LIMIT 1", [kegiatanName]);
+          if (kegRows && kegRows.length > 0) {
+            sesiId = kegRows[0].id;
+          } else {
+            const [matRows] = await pool.query("SELECT id FROM materi_hafalan WHERE LOWER(TRIM(nama_materi)) = LOWER(TRIM(?)) LIMIT 1", [kegiatanName]);
+            if (matRows && matRows.length > 0) {
+              sesiId = matRows[0].id;
+            }
+          }
+        } catch (eLookup) {}
+      }
+      if (!sesiId || isNaN(sesiId) || sesiId <= 0) {
+        sesiId = 1;
+      }
+
       const st = item.status || item.status_kehadiran || 'Hadir';
       const ket = item.keterangan || `NWF Mobile: ${kegiatanName}`;
 

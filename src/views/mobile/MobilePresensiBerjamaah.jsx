@@ -164,7 +164,7 @@ export default function MobilePresensiBerjamaah() {
       setLoading(true);
       const [resSantri, resAbs, resSesi, resKelas] = await Promise.all([
         axios.get("/api/santri/for-presensi").catch(() => axios.get("/api/santri?all=true")),
-        axios.get("/api/absensi/fingerprint").catch(() => ({ data: { data: [] } })),
+        axios.get("/api/absensi/fingerprint?today=true&tipe=berjamaah").catch(() => ({ data: { data: [] } })),
         axios.get("/api/absensi/sesi").catch(() => ({ data: { data: [] } })),
         axios.get("/api/kelas").catch(() => ({ data: { data: [] } })),
       ]);
@@ -224,7 +224,7 @@ export default function MobilePresensiBerjamaah() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      const res = await axios.get("/api/absensi/fingerprint");
+      const res = await axios.get("/api/absensi/fingerprint?today=true&tipe=berjamaah");
       if (res.data?.data && Array.isArray(res.data.data)) {
         setPresensiLogs(res.data.data);
       }
