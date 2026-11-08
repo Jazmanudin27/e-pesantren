@@ -388,22 +388,25 @@ export default function MobilePraktek() {
           }
 
           setIsFaceDetected(true);
-          // Ambang batas ketat 0.40 (sama persis dengan scan wajah kegiatan / presensi agar tidak bocor ke santri lain)
           const matched = matchFaceDescriptor(
             faceRes.descriptor,
             registeredList,
-            0.40,
+            0.70,
           );
 
           let matchedSantri = null;
           let displayName = "";
-          if (matched) {
+          if (matched && !matched.error && (matched.santri_id || matched.id)) {
+            const mId = String(matched.santri_id || matched.id);
             const dbSantri = (santriListRef.current || []).find(
-              (s) => String(s.id) === String(matched.santri_id),
+              (s) => String(s.id) === mId,
             );
             if (dbSantri) {
               matchedSantri = dbSantri;
               displayName = dbSantri.nama_santri;
+            } else {
+              matchedSantri = matched;
+              displayName = matched.nama_santri || matched.nama;
             }
           }
 
@@ -418,11 +421,14 @@ export default function MobilePraktek() {
             ctx.font = "bold 12px sans-serif";
             ctx.textAlign = "center";
             ctx.fillText(
-              "⛔ Wajah Belum Terdaftar",
+              "⛔ Belum Cocok",
               boxX + boxW / 2,
               boxY - 12,
             );
-            setFaceStatusText("⛔ Wajah Belum Terdaftar di Sistem");
+            const distInfo = (matched && typeof matched.bestDistance === 'number' && matched.bestDistance < 900)
+              ? ` (Jarak: ${matched.bestDistance.toFixed(2)} | Target: < 0.70)`
+              : '';
+            setFaceStatusText(`⛔ Belum Cocok${distInfo}`);
             return;
           }
 

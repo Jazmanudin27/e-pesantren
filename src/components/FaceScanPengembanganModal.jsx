@@ -234,7 +234,41 @@ export default function FaceScanPengembanganModal({
         try {
           registeredMap = JSON.parse(localStorage.getItem('epesantren_face_profiles') || '{}');
         } catch (e) {}
-        const registeredList = Object.values(registeredMap);
+        
+        const registeredList = [];
+        const seenIds = new Set();
+
+        (santriListRef.current || []).forEach((s) => {
+          let desc = null;
+          if (s.face_descriptor) {
+            try {
+              desc = typeof s.face_descriptor === 'string' ? JSON.parse(s.face_descriptor) : s.face_descriptor;
+            } catch (e) {}
+          }
+          if (!desc && registeredMap[s.id]?.descriptor) {
+            desc = registeredMap[s.id].descriptor;
+          }
+          if (desc) {
+            registeredList.push({
+              santri_id: s.id,
+              id: s.id,
+              nama_santri: s.nama_santri,
+              nama: s.nama_santri,
+              nis: s.nis,
+              descriptor: desc,
+              foto: s.foto || s.foto_santri
+            });
+            seenIds.add(String(s.id));
+          }
+        });
+
+        Object.values(registeredMap).forEach((p) => {
+          const pId = String(p.santri_id || p.id || '');
+          if (pId && !seenIds.has(pId) && p.descriptor) {
+            registeredList.push(p);
+            seenIds.add(pId);
+          }
+        });
 
         if (isFaceModelReady()) {
           const faceRes = await detectFaceDescriptor(video);
@@ -245,17 +279,20 @@ export default function FaceScanPengembanganModal({
           }
 
           setIsFaceDetected(true);
-          const matched = matchFaceDescriptor(faceRes.descriptor, registeredList, 0.52);
+          const matched = matchFaceDescriptor(faceRes.descriptor, registeredList, 0.70);
 
-          if (matched) {
+          if (matched && !matched.error && (matched.santri_id || matched.id)) {
             const fullSantri =
               (santriListRef.current || []).find(
-                (s) => String(s.santri_id || s.id) === String(matched.santri_id)
+                (s) => String(s.santri_id || s.id) === String(matched.santri_id || matched.id)
               ) || matched;
             const displayName = fullSantri.nama_santri || matched.nama;
             handleSantriSelected(fullSantri, displayName);
           } else {
-            setFaceStatusText('⛔ Wajah Belum Terdaftar di Sistem');
+            const distInfo = (matched && typeof matched.bestDistance === 'number' && matched.bestDistance < 900)
+              ? ` (Jarak: ${matched.bestDistance.toFixed(2)} | Target: < 0.70)`
+              : '';
+            setFaceStatusText(`⛔ Belum Cocok${distInfo}`);
           }
         } else {
           setFaceStatusText('Memuat model pengenalan wajah AI...');

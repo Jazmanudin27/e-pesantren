@@ -161,13 +161,13 @@ export const extractDescriptorFromDataUrl = (dataUrl) => {
   });
 };
 
-// 6. Pencocokan Vektor Biometrik (Euclidean Distance dengan Ambang Batas 0.62)
-// Standar face-api: distance < 0.62 = orang yang sama; distance >= 0.62 = orang berbeda / tolak
-export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, threshold = 0.62) => {
+// 6. Pencocokan Vektor Biometrik (Euclidean Distance dengan Ambang Batas 0.70 Toleran Webcam/Indoor)
+// Standar face-api: distance < 0.70 = orang yang sama; distance >= 0.70 = orang berbeda / tolak
+export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, threshold = 0.70) => {
   if (!liveDescriptor || !registeredProfilesList) return null;
   if (!isValidDescriptor(liveDescriptor)) return null;
 
-  const matchThreshold = Math.min(Math.max(Number(threshold) || 0.62, 0.40), 0.68);
+  const matchThreshold = Math.min(Math.max(Number(threshold) || 0.70, 0.40), 0.75);
   let bestMatch = null;
   let minDistance = 999;
   let secondMinDistance = 999;
@@ -197,15 +197,11 @@ export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, thre
     }
   }
 
-  // Debug log real-time ke console browser DevTools
-  if (Math.random() < 0.3) {
-    console.log(`[FACE-AI] Profil Terdaftar: ${validCount} | Jarak Terbaik: ${minDistance < 900 ? minDistance.toFixed(3) : 'None'} (Target: < ${matchThreshold}) | Kandidat: ${bestMatch?.nama || bestMatch?.nama_santri || 'None'}`);
-  }
-
   if (validCount === 0) {
     return { error: 'no_profiles', validCount: 0 };
   }
 
+  // Jika jarak lebih besar dari ambang batas toleransi
   if (!bestMatch || minDistance >= matchThreshold) {
     return {
       error: 'no_match',

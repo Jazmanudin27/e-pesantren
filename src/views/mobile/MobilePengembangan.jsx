@@ -618,6 +618,91 @@ export default function MobilePengembangan() {
     }, 150);
   };
 
+  const handleSnapshotVerify = async () => {
+    const video = faceVideoRef.current;
+    if (!video || video.readyState < 2) return;
+    setFaceStatusText("📸 Mengambil foto & mencocokkan biometrik...");
+
+    try {
+      const snapCanvas = document.createElement("canvas");
+      snapCanvas.width = video.videoWidth || 640;
+      snapCanvas.height = video.videoHeight || 480;
+      const ctx = snapCanvas.getContext("2d");
+      if (faceFacingMode === "user") {
+        ctx.translate(snapCanvas.width, 0);
+        ctx.scale(-1, 1);
+      }
+      ctx.drawImage(video, 0, 0, snapCanvas.width, snapCanvas.height);
+
+      let registeredMap = {};
+      try {
+        registeredMap = JSON.parse(
+          localStorage.getItem("epesantren_face_profiles") || "{}",
+        );
+      } catch (e) {}
+
+      const registeredList = [];
+      const seenIds = new Set();
+      (santriListRef.current || []).forEach((s) => {
+        let desc = null;
+        if (s.face_descriptor) {
+          try {
+            desc = typeof s.face_descriptor === "string" ? JSON.parse(s.face_descriptor) : s.face_descriptor;
+          } catch (e) {}
+        }
+        if (!desc && registeredMap[s.id]?.descriptor) {
+          desc = registeredMap[s.id].descriptor;
+        }
+        if (desc) {
+          registeredList.push({
+            santri_id: s.id,
+            id: s.id,
+            nama_santri: s.nama_santri,
+            nama: s.nama_santri,
+            nis: s.nis,
+            descriptor: desc,
+            foto: s.foto || s.foto_santri,
+          });
+          seenIds.add(String(s.id));
+        }
+      });
+
+      Object.values(registeredMap).forEach((p) => {
+        const pId = String(p.santri_id || p.id || "");
+        if (pId && !seenIds.has(pId) && p.descriptor) {
+          registeredList.push(p);
+          seenIds.add(pId);
+        }
+      });
+
+      if (registeredList.length === 0) {
+        setFaceStatusText("⚠️ Belum Ada Biometrik Wajah di Sistem (0 Profil)");
+        return;
+      }
+
+      const faceRes = await detectFaceDescriptor(snapCanvas);
+      if (!faceRes) {
+        setFaceStatusText("❌ Wajah tidak terdeteksi. Posisikan wajah tegak.");
+        return;
+      }
+
+      const matched = matchFaceDescriptor(faceRes.descriptor, registeredList, 0.72);
+      if (matched && !matched.error && (matched.santri_id || matched.id)) {
+        const mId = String(matched.santri_id || matched.id);
+        const fullSantri = (santriListRef.current || []).find((s) => String(s.id) === mId) || matched;
+        const displayName = fullSantri.nama_santri || fullSantri.nama || "Santri";
+        handleFaceRecognized(fullSantri, displayName);
+      } else {
+        const distInfo = (matched && typeof matched.bestDistance === "number" && matched.bestDistance < 900)
+          ? ` (Jarak: ${matched.bestDistance.toFixed(2)} | Target: < 0.72)`
+          : "";
+        setFaceStatusText(`⛔ Belum Cocok${distInfo}`);
+      }
+    } catch (e) {
+      setFaceStatusText("❌ Gagal memproses foto");
+    }
+  };
+
   const openEvaluationForSantri = (santriObj) => {
     const rawJk = String(
       santriObj.jk || santriObj.jenis_kelamin || activeGender,
@@ -1998,32 +2083,85 @@ export default function MobilePengembangan() {
               }}
             />
 
-            {/* Realtime Status Floating Pill */}
+            {/* Realtime Status Floating Pill & Action Buttons */}
             <div
               style={{
                 position: "absolute",
-                bottom: "24px",
+                bottom: "20px",
                 left: "16px",
                 right: "16px",
                 zIndex: 10,
-                background: matchedSantriPreview
-                  ? "rgba(16, 185, 129, 0.95)"
-                  : isFaceDetected
-                    ? "rgba(2, 132, 199, 0.92)"
-                    : "rgba(15, 23, 42, 0.85)",
-                backdropFilter: "blur(8px)",
-                color: "#ffffff",
-                padding: "12px 16px",
-                borderRadius: "16px",
-                fontSize: "0.84rem",
-                fontWeight: 700,
-                textAlign: "center",
-                border: "1px solid rgba(255, 255, 255, 0.2)",
-                boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
-                transition: "all 0.25s ease",
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px",
               }}
             >
-              {faceCameraError || faceStatusText}
+              <div
+                style={{
+                  background: matchedSantriPreview
+                    ? "rgba(16, 185, 129, 0.95)"
+                    : isFaceDetected
+                      ? "rgba(2, 132, 199, 0.92)"
+                      : "rgba(15, 23, 42, 0.85)",
+                  backdropFilter: "blur(8px)",
+                  color: "#ffffff",
+                  padding: "10px 14px",
+                  borderRadius: "14px",
+                  fontSize: "0.82rem",
+                  fontWeight: 700,
+                  textAlign: "center",
+                  border: "1px solid rgba(255, 255, 255, 0.2)",
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+                  transition: "all 0.25s ease",
+                }}
+              >
+                {faceCameraError || faceStatusText}
+              </div>
+
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button
+                  type="button"
+                  onClick={handleSnapshotVerify}
+                  style={{
+                    flex: 1,
+                    background: "#0284c7",
+                    color: "#ffffff",
+                    border: "none",
+                    padding: "11px",
+                    borderRadius: "12px",
+                    fontWeight: 800,
+                    fontSize: "0.8rem",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    cursor: "pointer",
+                    boxShadow: "0 4px 14px rgba(2,132,199,0.5)",
+                  }}
+                >
+                  <Camera size={16} /> Verifikasi Sekarang
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeFaceScanner();
+                    openEvaluationManual();
+                  }}
+                  style={{
+                    background: "rgba(255,255,255,0.2)",
+                    backdropFilter: "blur(6px)",
+                    color: "#ffffff",
+                    border: "1px solid rgba(255,255,255,0.4)",
+                    padding: "11px 14px",
+                    borderRadius: "12px",
+                    fontWeight: 700,
+                    fontSize: "0.8rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  Pilih Manual
+                </button>
+              </div>
             </div>
           </div>
         </div>
