@@ -39,7 +39,7 @@ router.get('/with-face', async (req, res) => {
   }
 });
 
-// 1b. Endpoint Ringan & Cepat untuk Halaman Daftar Wajah Mobile (Tanpa JOIN & Stats Berat)
+// 1b. Endpoint Super Ringan & Cepat untuk Halaman Daftar Wajah Mobile (Tanpa Base64 Raksasa)
 router.get('/for-face-registration', async (req, res) => {
   try {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
@@ -51,9 +51,8 @@ router.get('/for-face-registration', async (req, res) => {
         s.nama_kelas, 
         s.kelas_id, 
         COALESCE(s.nama_asrama, a.nama_asrama, '') as nama_asrama, 
-        s.foto,
         CASE 
-          WHEN s.face_descriptor IS NOT NULL AND s.face_descriptor != '' THEN 1 
+          WHEN (s.face_descriptor IS NOT NULL AND s.face_descriptor != '') OR (s.foto IS NOT NULL AND s.foto != '') THEN 1 
           ELSE 0 
         END AS has_face_descriptor
       FROM santri s
@@ -63,6 +62,32 @@ router.get('/for-face-registration', async (req, res) => {
     return res.json({ success: true, total: rows.length, data: rows });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 1c. Endpoint Image Thumbnail Ringan & Ter-cache (Hanya kirim biner gambar saat card tampil di layar)
+router.get('/:id/photo-thumb', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.query('SELECT foto FROM santri WHERE id = ?', [id]);
+    if (!rows.length || !rows[0].foto) {
+      return res.status(404).send('No photo');
+    }
+    const rawFoto = rows[0].foto;
+    if (typeof rawFoto === 'string' && rawFoto.startsWith('data:image/')) {
+      const parts = rawFoto.split(',');
+      const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+      const imgBuffer = Buffer.from(parts[1], 'base64');
+      res.setHeader('Content-Type', mime);
+      res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+      return res.send(imgBuffer);
+    } else if (typeof rawFoto === 'string' && (rawFoto.startsWith('http://') || rawFoto.startsWith('https://'))) {
+      return res.redirect(rawFoto);
+    } else {
+      return res.status(404).send('Invalid photo format');
+    }
+  } catch (err) {
+    return res.status(500).send('Server error');
   }
 });
 

@@ -299,7 +299,9 @@ export default function MobileDaftarWajah() {
 
   const handleOpenEnrollModal = (santri) => {
     setSelectedSantri(santri);
-    setSnapshot(registeredFaces[santri.id]?.foto || santri.foto || santri.foto_santri || null);
+    const isEnrolled = checkSantriEnrolled(santri);
+    const initialPhoto = santri.foto || registeredFaces[santri.id]?.foto || (isEnrolled ? `/api/santri/${santri.id}/photo-thumb` : null);
+    setSnapshot(initialPhoto);
     if (!isFaceModelReady()) {
       initFaceApiModels().catch(() => {});
     }
@@ -442,7 +444,7 @@ export default function MobileDaftarWajah() {
     }
   };
 
-  // Fitur Hapus Foto & Profil Wajah Santri
+  // Fitur Hapus Foto & Profil Wajah Santri (Optimistic UI - Instant Responsiveness)
   const handleDeleteFace = async (santri) => {
     const ok = await showConfirm(
       'Hapus Wajah Santri?',
@@ -453,7 +455,7 @@ export default function MobileDaftarWajah() {
     if (!ok) return;
 
     try {
-      // 1. Hapus di state & localStorage (dukung id number dan string)
+      // 1. UPDATE STATE & LOCALSTORAGE SEKETIKA (0 DETIK - ZERO LAG)
       const updated = { ...registeredFaces };
       delete updated[santri.id];
       delete updated[String(santri.id)];
@@ -464,26 +466,13 @@ export default function MobileDaftarWajah() {
         delete localRaw[santri.id];
         delete localRaw[String(santri.id)];
         localStorage.setItem('epesantren_face_profiles', JSON.stringify(localRaw));
-      } catch (eStorage) {
-        console.warn('localStorage delete warning:', eStorage);
-      }
+      } catch (eStorage) {}
 
-      // 2. Hapus foto & biometrik face_descriptor di database MySQL server
-      try {
-        await axios.delete(`/api/santri/${santri.id}/face-descriptor`);
-      } catch (eDel) {
-        try {
-          await axios.patch(`/api/santri/${santri.id}/foto`, { foto: null, clear_face: true });
-        } catch (ePatch) {
-          await axios.put(`/api/santri/${santri.id}`, { foto: null, clear_face: true }).catch(() => {});
-        }
-      }
-
-      // 3. Update state lokal santriList seketika
+      // Update state lokal santriList: reset has_face_descriptor = 0 & foto = null
       setSantriList((prev) =>
         prev.map((s) =>
           String(s.id) === String(santri.id)
-            ? { ...s, foto: null, foto_santri: null, face_descriptor: null }
+            ? { ...s, foto: null, foto_santri: null, face_descriptor: null, has_face_descriptor: 0 }
             : s
         )
       );
@@ -493,11 +482,18 @@ export default function MobileDaftarWajah() {
         setSnapshot(null);
         setCapturedDescriptor(null);
         setSelectedSantri((prev) =>
-          prev ? { ...prev, foto: null, foto_santri: null, face_descriptor: null } : null
+          prev ? { ...prev, foto: null, foto_santri: null, face_descriptor: null, has_face_descriptor: 0 } : null
         );
       }
 
       toastSuccess(`Foto & biometrik wajah ${santri.nama_santri} berhasil dihapus.`);
+
+      // 2. Eksekusi hapus di database MySQL di background tanpa menahan UI (non-blocking)
+      axios.delete(`/api/santri/${santri.id}/face-descriptor`)
+        .catch(() => axios.patch(`/api/santri/${santri.id}/foto`, { foto: null, clear_face: true }))
+        .catch((err) => {
+          console.error('Delete face backend warning:', err);
+        });
     } catch (e) {
       console.error('Delete face error:', e);
       showError('Gagal Menghapus', 'Terjadi kendala saat menghapus foto wajah.');
@@ -507,6 +503,7 @@ export default function MobileDaftarWajah() {
   // Helper Cek Status Pendaftaran Wajah Santri
   const checkSantriEnrolled = (s) => {
     if (!s) return false;
+    if (s.has_face_descriptor === 0) return false;
     const prof = registeredFaces[s.id] || registeredFaces[String(s.id)];
     return !!(
       s.has_face_descriptor === 1 ||
@@ -813,8 +810,8 @@ export default function MobileDaftarWajah() {
         }}>
           {filteredSantri.slice(0, displayLimit).map((santri) => {
             const registered = registeredFaces[santri.id] || registeredFaces[String(santri.id)];
-            const photo = registered?.foto || santri.foto || santri.foto_santri;
             const isEnrolled = checkSantriEnrolled(santri);
+            const photo = santri.foto || registered?.foto || (isEnrolled ? `/api/santri/${santri.id}/photo-thumb` : null);
 
             return (
               <div
@@ -912,6 +909,7 @@ export default function MobileDaftarWajah() {
                     <img
                       src={photo}
                       alt={santri.nama_santri}
+                      loading="lazy"
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                   ) : (
@@ -997,8 +995,8 @@ export default function MobileDaftarWajah() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingBottom: filteredSantri.length > displayLimit ? '16px' : '70px' }}>
           {filteredSantri.slice(0, displayLimit).map((santri) => {
             const registered = registeredFaces[santri.id] || registeredFaces[String(santri.id)];
-            const photo = registered?.foto || santri.foto || santri.foto_santri;
             const isEnrolled = checkSantriEnrolled(santri);
+            const photo = santri.foto || registered?.foto || (isEnrolled ? `/api/santri/${santri.id}/photo-thumb` : null);
 
             return (
               <div
@@ -1028,7 +1026,7 @@ export default function MobileDaftarWajah() {
                   border: isEnrolled ? '1.5px solid #059669' : '1px solid #cbd5e1'
                 }}>
                   {photo ? (
-                    <img src={photo} alt={santri.nama_santri} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={photo} alt={santri.nama_santri} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     <Smile size={24} color="#94a3b8" />
                   )}
