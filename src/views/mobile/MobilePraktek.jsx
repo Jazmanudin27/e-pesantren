@@ -421,7 +421,7 @@ export default function MobilePraktek() {
           const matched = matchFaceDescriptor(
             faceRes.descriptor,
             registeredList,
-            0.70,
+            0.28,
           );
 
           let matchedSantri = null;
@@ -456,7 +456,7 @@ export default function MobilePraktek() {
               boxY - 12,
             );
             const distInfo = (matched && typeof matched.bestDistance === 'number' && matched.bestDistance < 900)
-              ? ` (Jarak: ${matched.bestDistance.toFixed(2)} | Target: < 0.70)`
+              ? ` (Jarak: ${matched.bestDistance.toFixed(2)} | Target: < 0.28)`
               : '';
             setFaceStatusText(`⛔ Belum Cocok${distInfo}`);
             return;

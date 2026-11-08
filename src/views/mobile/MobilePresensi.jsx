@@ -1169,7 +1169,7 @@ export default function MobilePresensi() {
               const matched = matchFaceDescriptor(
                 faceRes.descriptor,
                 registeredList,
-                0.70,
+                0.28,
               );
 
               if (matched && matched.error === "no_profiles") {
@@ -1215,13 +1215,13 @@ export default function MobilePresensi() {
                   matched &&
                   typeof matched.bestDistance === "number" &&
                   matched.bestDistance < 900
-                    ? ` (Jarak: ${matched.bestDistance.toFixed(2)} | Target: < ${matched.threshold?.toFixed(2) || "0.70"})`
+                    ? ` (Jarak: ${matched.bestDistance.toFixed(2)} | Target: < ${matched.threshold?.toFixed(2) || "0.28"})`
                     : "";
                 setFaceStatusText(`⛔ Belum Cocok${distInfo}`);
                 return;
               }
 
-              // Verifikasi frame konsekutif: jika skor meyakinkan (< 0.58), langsung diverifikasi
+              // Verifikasi frame konsekutif: jika skor meyakinkan (< 0.22), langsung diverifikasi
               if (matchedStreakRef.current.id === matchedSantri.id) {
                 matchedStreakRef.current.count += 1;
                 matchedStreakRef.current.grace = false;
@@ -1234,7 +1234,7 @@ export default function MobilePresensi() {
               }
 
               const isSuperMatch =
-                matched.distance && matched.distance < 0.58;
+                matched.distance && matched.distance < 0.22;
               if (matchedStreakRef.current.count < 2 && !isSuperMatch) {
                 setFaceStatusText(`Memverifikasi: ${displayName}...`);
                 return;
@@ -1577,11 +1577,11 @@ export default function MobilePresensi() {
         return;
       }
 
-      // Ambang batas optimal 0.70
+      // Ambang batas optimal akurat 0.28
       const matched = matchFaceDescriptor(
         faceRes.descriptor,
         registeredList,
-        0.70,
+        0.28,
       );
       if (matched && !matched.error && (matched.santri_id || matched.id)) {
         const mId = String(matched.santri_id || matched.id);

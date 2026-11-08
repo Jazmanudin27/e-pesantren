@@ -289,7 +289,7 @@ export default function FaceScanPengembanganModal({
           }
 
           setIsFaceDetected(true);
-          const matched = matchFaceDescriptor(faceRes.descriptor, registeredList, 0.70);
+          const matched = matchFaceDescriptor(faceRes.descriptor, registeredList, 0.28);
 
           if (matched && !matched.error && (matched.santri_id || matched.id)) {
             const fullSantri =
@@ -300,7 +300,7 @@ export default function FaceScanPengembanganModal({
             handleSantriSelected(fullSantri, displayName);
           } else {
             const distInfo = (matched && typeof matched.bestDistance === 'number' && matched.bestDistance < 900)
-              ? ` (Jarak: ${matched.bestDistance.toFixed(2)} | Target: < 0.70)`
+              ? ` (Jarak: ${matched.bestDistance.toFixed(2)} | Target: < 0.28)`
               : '';
             setFaceStatusText(`⛔ Belum Cocok${distInfo}`);
           }

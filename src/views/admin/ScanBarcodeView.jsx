@@ -938,7 +938,7 @@ export default function ScanBarcodeView() {
             const matched = matchFaceDescriptor(
               faceRes.descriptor,
               registeredList,
-              0.40,
+              0.28,
             );
             if (matched) {
               const dbSantri = (santriListRef.current || []).find(

@@ -318,12 +318,12 @@ export const extractDescriptorFromDataUrl = (dataUrl) => {
   });
 };
 
-// 7. Pencocokan Vektor Biometrik (Threshold Optimal 0.70)
-export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, threshold = 0.70) => {
+// 7. Pencocokan Vektor Biometrik (Threshold Akurat Default 0.28, Anti False-Positive)
+export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, threshold = 0.28) => {
   const liveNorm = normalizeDescriptor(liveDescriptor);
   if (!liveNorm || !registeredProfilesList) return null;
 
-  const matchThreshold = Math.min(Math.max(Number(threshold) || 0.70, 0.40), 0.75);
+  const matchThreshold = Math.min(Math.max(Number(threshold) || 0.28, 0.10), 0.85);
   let bestMatch = null;
   let minDistance = 999;
   let validCount = 0;

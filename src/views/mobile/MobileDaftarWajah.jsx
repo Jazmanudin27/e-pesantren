@@ -216,7 +216,7 @@ export default function MobileDaftarWajah() {
         );
 
         if (otherProfiles.length > 0) {
-          const match = matchFaceDescriptor(faceRes.descriptor, otherProfiles, 0.48);
+          const match = matchFaceDescriptor(faceRes.descriptor, otherProfiles, 0.22);
           if (match && match.success && !match.error) {
             setDetectedExistingSantri(match);
           } else {
@@ -348,14 +348,18 @@ export default function MobileDaftarWajah() {
           }
         );
         if (otherProfiles.length > 0) {
-          const matchedOther = matchFaceDescriptor(descriptor, otherProfiles, 0.48);
+          const matchedOther = matchFaceDescriptor(descriptor, otherProfiles, 0.22);
           if (matchedOther && matchedOther.success && !matchedOther.error) {
-            showError(
-              'Pendaftaran Wajah Ditolak!',
-              `Wajah ini terdeteksi mirip/sudah terdaftar atas nama "${matchedOther.nama || matchedOther.nama_santri}". Wajah yang sama tidak boleh didaftarkan ke santri lain!`
+            const confirmed = await showConfirm(
+              'Peringatan Duplikasi Wajah!',
+              `Wajah ini terdeteksi mirip (${matchedOther.confidence || 85}%) dengan santri "${matchedOther.nama || matchedOther.nama_santri}".\n\nApakah Anda yakin ingin tetap mendaftarkan foto ini untuk "${selectedSantri.nama_santri}"?`,
+              'Ya, Tetap Daftarkan',
+              'Batal'
             );
-            setSaving(false);
-            return;
+            if (!confirmed) {
+              setSaving(false);
+              return;
+            }
           }
         }
       } catch (eDup) {
