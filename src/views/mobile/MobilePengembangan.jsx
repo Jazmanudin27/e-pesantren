@@ -23,6 +23,7 @@ import {
   Settings,
   FileText,
   User,
+  ChevronDown,
 } from "lucide-react";
 import {
   showConfirm,
@@ -50,6 +51,14 @@ export default function MobilePengembangan() {
   const [masterKategoriAll, setMasterKategoriAll] = useState([]);
   const [santriList, setSantriList] = useState([]);
   const [kelasList, setKelasList] = useState([]);
+  const [selectedKelas, setSelectedKelas] = useState(() => {
+    try {
+      return localStorage.getItem("epesantren_pengembangan_selected_kelas") || "";
+    } catch (e) {
+      return "";
+    }
+  });
+  const [loadingKelasSantri, setLoadingKelasSantri] = useState(false);
   const [selectedEvalKelas, setSelectedEvalKelas] = useState("");
   const [rekapList, setRekapList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -137,6 +146,32 @@ export default function MobilePengembangan() {
   }, [masterKategoriAll]);
 
   useEffect(() => {
+    if (selectedKelas) {
+      try {
+        localStorage.setItem("epesantren_pengembangan_selected_kelas", selectedKelas);
+      } catch (e) {}
+    }
+  }, [selectedKelas]);
+
+  // Load santri khusus per kelas (Lazy load ringan & hemat memori)
+  const loadSantriByKelas = async (targetKelas) => {
+    if (!targetKelas || targetKelas === "Semua") {
+      setSantriList([]);
+      return;
+    }
+    setLoadingKelasSantri(true);
+    try {
+      const res = await axios.get(`/api/santri/by-kelas/${encodeURIComponent(targetKelas)}`);
+      const rows = res.data?.data || [];
+      setSantriList(rows);
+    } catch (err) {
+      console.warn("Gagal load santri by kelas:", err);
+    } finally {
+      setLoadingKelasSantri(false);
+    }
+  };
+
+  useEffect(() => {
     let isMounted = true;
     initFaceApiModels()
       .then(() => {
@@ -153,11 +188,10 @@ export default function MobilePengembangan() {
   const fetchInitialData = async () => {
     setLoading(true);
     try {
-      const [resMaster, resSantri, resRekap, resKelas] = await Promise.all([
+      const [resMaster, resRekap, resKelas] = await Promise.all([
         axios
           .get("/api/perkembangan-ikhwan/master?gender=Semua")
           .catch(() => ({ data: { data: [] } })),
-        axios.get("/api/santri?all=true").catch(() => ({ data: { data: [] } })),
         axios
           .get("/api/perkembangan-ikhwan/rekap?limit=200")
           .catch(() => ({ data: { data: [] } })),
@@ -167,14 +201,16 @@ export default function MobilePengembangan() {
       const katData = resMaster.data?.data || resMaster.data?.kategori || [];
       setMasterKategoriAll(Array.isArray(katData) ? katData : []);
 
-      const sData = resSantri.data?.data || [];
-      setSantriList(Array.isArray(sData) ? sData : []);
-
       const kData = resKelas.data?.data || [];
       setKelasList(Array.isArray(kData) ? kData : []);
 
       const rData = resRekap.data?.data || resRekap.data?.rekap || [];
       setRekapList(Array.isArray(rData) ? rData : []);
+
+      // Jika kelas sudah dipilih sebelumnya, muat santri kelas tersebut
+      if (selectedKelas) {
+        await loadSantriByKelas(selectedKelas);
+      }
     } catch (err) {
       console.error("Gagal memuat data pengembangan mobile:", err);
     } finally {
@@ -224,6 +260,15 @@ export default function MobilePengembangan() {
     return list;
   }, [kelasList, santriList]);
 
+  // Daftar Nama Kelas Unik
+  const availableKelasOptions = React.useMemo(() => {
+    const setK = new Set();
+    (kelasList || []).forEach((k) => {
+      if (k.nama_kelas) setK.add(String(k.nama_kelas).trim());
+    });
+    return Array.from(setK);
+  }, [kelasList]);
+
   useEffect(() => {
     if (kategoriByActiveGender.length > 0 && !selectedMasterKatId) {
       setSelectedMasterKatId(String(kategoriByActiveGender[0].id));
@@ -258,29 +303,7 @@ export default function MobilePengembangan() {
     setIsFaceDetected(false);
     isMatchedCooldownRef.current = false;
 
-    // 1. SINKRONISASI BIOMETRIK MYSQL DI BACKGROUND (PARALLEL)
-    axios
-      .get(`/api/santri/with-face?_t=${Date.now()}`)
-      .then((resFace) => {
-        if (resFace.data?.data && Array.isArray(resFace.data.data)) {
-          const freshList = resFace.data.data;
-          const curMap = {};
-          (santriListRef.current || []).forEach((s) => {
-            curMap[s.id] = s;
-          });
-          freshList.forEach((s) => {
-            curMap[s.id] = {
-              ...(curMap[s.id] || {}),
-              ...s,
-              face_descriptor: s.face_descriptor,
-            };
-          });
-          santriListRef.current = Object.values(curMap);
-        }
-      })
-      .catch(() => {});
-
-    // 2. AKSES HARDWARE KAMERA HP SECARA LANGSUNG & CEPAT
+    // AKSES HARDWARE KAMERA HP SECARA LANGSUNG & CEPAT
     try {
       if (faceStreamRef.current) {
         faceStreamRef.current.getTracks().forEach((t) => t.stop());
@@ -346,6 +369,10 @@ export default function MobilePengembangan() {
   };
 
   const openFaceScanner = () => {
+    if (!selectedKelas) {
+      showError("Pilih Kelas Dahulu", "Silakan pilih kelas santri terlebih dahulu sebelum memulai scan wajah pengembangan.");
+      return;
+    }
     setScannerTab("face");
     setManualSearchQuery("");
     setManualGenderFilter("Semua");
@@ -466,9 +493,10 @@ export default function MobilePengembangan() {
           }
         });
 
+        const allowedIds = new Set((santriListRef.current || []).map((s) => String(s.id)));
         Object.values(registeredMap).forEach((p) => {
           const pId = String(p.santri_id || p.id || '');
-          if (pId && !seenIds.has(pId) && p.descriptor) {
+          if (pId && allowedIds.has(pId) && !seenIds.has(pId) && p.descriptor) {
             registeredList.push(p);
             seenIds.add(pId);
           }
@@ -574,9 +602,10 @@ export default function MobilePengembangan() {
         }
       });
 
+      const allowedIds = new Set((santriListRef.current || []).map((s) => String(s.id)));
       Object.values(registeredMap).forEach((p) => {
         const pId = String(p.santri_id || p.id || "");
-        if (pId && !seenIds.has(pId) && p.descriptor) {
+        if (pId && allowedIds.has(pId) && !seenIds.has(pId) && p.descriptor) {
           registeredList.push(p);
           seenIds.add(pId);
         }
@@ -1093,6 +1122,86 @@ export default function MobilePengembangan() {
           </div>
         </div>
 
+        {/* Dropdown Wajib: Pilih Kelas Santri (Sama seperti Presensi Mengaji) */}
+        <div style={{ position: "relative", marginBottom: "12px" }}>
+          <select
+            value={selectedKelas}
+            onChange={(e) => {
+              const val = e.target.value;
+              setSelectedKelas(val);
+              loadSantriByKelas(val);
+            }}
+            style={{
+              width: "100%",
+              padding: "10px 32px 10px 12px",
+              borderRadius: "12px",
+              border: !selectedKelas ? "2px solid #facc15" : "1px solid rgba(255, 255, 255, 0.4)",
+              background: !selectedKelas ? "rgba(234, 179, 8, 0.3)" : "rgba(255, 255, 255, 0.2)",
+              backdropFilter: "blur(10px)",
+              color: "#ffffff",
+              fontSize: "0.82rem",
+              fontWeight: 800,
+              outline: "none",
+              appearance: "none",
+              cursor: "pointer",
+            }}
+          >
+            <option value="" style={{ color: "#0f172a", fontWeight: 700 }}>
+              -- Wajib Pilih Kelas Santri Terlebih Dahulu --
+            </option>
+            {availableKelasOptions.map((kName) => (
+              <option key={kName} value={kName} style={{ color: "#0f172a", fontWeight: 700 }}>
+                🏫 Kelas: {kName}
+              </option>
+            ))}
+          </select>
+          <ChevronDown
+            size={16}
+            color="#ffffff"
+            style={{
+              position: "absolute",
+              right: "12px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              pointerEvents: "none",
+            }}
+          />
+          {loadingKelasSantri && (
+            <div
+              style={{
+                position: "absolute",
+                right: "34px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                fontSize: "0.68rem",
+                color: "#fef08a",
+                fontWeight: 700,
+              }}
+            >
+              Memuat santri...
+            </div>
+          )}
+        </div>
+
+        {selectedKelas && (
+          <div
+            style={{
+              fontSize: "0.68rem",
+              color: "#f0fdf4",
+              background: "rgba(0, 0, 0, 0.18)",
+              padding: "4px 10px",
+              borderRadius: "8px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "10px",
+            }}
+          >
+            <span>🏫 Kelas Terpilih: <strong>{selectedKelas}</strong></span>
+            <span>👥 <strong>{santriList.length}</strong> Santri</span>
+          </div>
+        )}
+
         {/* Tombol Utama Scan Wajah + Input Manual */}
         <div
           style={{
@@ -1126,10 +1235,14 @@ export default function MobilePengembangan() {
           <button
             type="button"
             onClick={() => {
+              if (!selectedKelas) {
+                showError("Pilih Kelas Dahulu", "Silakan pilih kelas santri terlebih dahulu.");
+                return;
+              }
               const firstKat = kategoriByActiveGender[0]
                 ? String(kategoriByActiveGender[0].id)
                 : "";
-              setSelectedEvalKelas("");
+              setSelectedEvalKelas(selectedKelas);
               setEvalForm({
                 santri_id: "",
                 santriObj: null,
@@ -1912,10 +2025,10 @@ export default function MobilePengembangan() {
                     letterSpacing: "-0.01em",
                   }}
                 >
-                  Scan Wajah Santri
+                  Scan Wajah Pengembangan
                 </div>
-                <div style={{ fontSize: "0.7rem", color: "#94a3b8" }}>
-                  Arahkan kamera ke wajah santri diuji
+                <div style={{ fontSize: "0.7rem", color: "#38bdf8", fontWeight: 700 }}>
+                  {selectedKelas ? `🏫 Kelas: ${selectedKelas} (${santriList.length} Santri)` : "⚠️ Belum Pilih Kelas"}
                 </div>
               </div>
             </div>
@@ -2002,6 +2115,75 @@ export default function MobilePengembangan() {
                 pointerEvents: "none",
               }}
             />
+
+            {/* Notice jika Kelas belum dipilih (Overlay Pengunci Kamera) */}
+            {!selectedKelas && (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: "rgba(15, 23, 42, 0.92)",
+                  backdropFilter: "blur(6px)",
+                  zIndex: 40,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "20px",
+                  textAlign: "center",
+                  color: "#ffffff",
+                }}
+              >
+                <AlertTriangle size={38} color="#facc15" style={{ marginBottom: "8px" }} />
+                <span style={{ fontWeight: 800, fontSize: "0.96rem", marginBottom: "4px" }}>
+                  Pilih Kelas Terlebih Dahulu
+                </span>
+                <span style={{ fontSize: "0.74rem", color: "#94a3b8", maxWidth: "260px", marginBottom: "14px" }}>
+                  Silakan tentukan kelas santri di bawah untuk memulai pencocokan biometrik wajah pengembangan.
+                </span>
+                <div style={{ position: "relative", width: "100%", maxWidth: "240px" }}>
+                  <select
+                    value={selectedKelas}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSelectedKelas(val);
+                      loadSantriByKelas(val);
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "9px 32px 9px 12px",
+                      borderRadius: "10px",
+                      border: "none",
+                      background: "#ffffff",
+                      color: "#0f172a",
+                      fontSize: "0.82rem",
+                      fontWeight: 700,
+                      outline: "none",
+                      appearance: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <option value="">-- Pilih Kelas Santri --</option>
+                    {availableKelasOptions.map((k) => (
+                      <option key={k} value={k}>
+                        🏫 Kelas: {k}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    size={15}
+                    color="#0f172a"
+                    style={{
+                      position: "absolute",
+                      right: "10px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      pointerEvents: "none",
+                    }}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Realtime Status Floating Pill & Action Buttons */}
             <div
@@ -2237,24 +2419,16 @@ export default function MobilePengembangan() {
                       label: k.nama_kelas || `Kelas ${k.id}`,
                       sublabel: k.tingkat ? `Tingkat: ${k.tingkat}` : "",
                     }))}
-                    value={selectedEvalKelas}
+                    value={selectedEvalKelas || selectedKelas}
                     onChange={(val) => {
                       setSelectedEvalKelas(val);
-                      // Jika kelas diganti, bersihkan santri jika santri lama bukan dari kelas ini
-                      const currentSantri = santriList.find(
-                        (s) => String(s.id) === String(evalForm.santri_id),
-                      );
-                      const matchCurrent =
-                        currentSantri &&
-                        (String(currentSantri.kelas_id) === String(val) ||
-                          String(currentSantri.nama_kelas) === String(val));
-                      if (!matchCurrent) {
-                        setEvalForm((prev) => ({
-                          ...prev,
-                          santri_id: "",
-                          santriObj: null,
-                        }));
-                      }
+                      setSelectedKelas(val);
+                      loadSantriByKelas(val);
+                      setEvalForm((prev) => ({
+                        ...prev,
+                        santri_id: "",
+                        santriObj: null,
+                      }));
                     }}
                     placeholder="-- Pilih Kelas Terlebih Dahulu --"
                     searchPlaceholder="Cari kelas santri..."
@@ -2281,13 +2455,15 @@ export default function MobilePengembangan() {
                   >
                     Pilih Santri di Kelas Terpilih *
                   </label>
-                  {selectedEvalKelas ? (
+                  {(selectedEvalKelas || selectedKelas) ? (
                     <SearchableSelect
                       options={santriList
                         .filter((s) => {
+                          const targetKls = selectedEvalKelas || selectedKelas;
                           const matchKelas =
-                            String(s.kelas_id) === String(selectedEvalKelas) ||
-                            String(s.nama_kelas) === String(selectedEvalKelas);
+                            !targetKls ||
+                            String(s.kelas_id) === String(targetKls) ||
+                            String(s.nama_kelas) === String(targetKls);
                           if (!matchKelas) return false;
                           if (evalForm.gender) {
                             const isP = String(s.jk || s.jenis_kelamin || "L")

@@ -104,6 +104,13 @@ router.get('/for-presensi', async (req, res) => {
     const hasKelasId = colSet.has('kelas_id');
     const hasAsramaId = colSet.has('asrama_id');
     const hasKamarId = colSet.has('kamar_id');
+    const hasJk = colSet.has('jk');
+    const hasJenisKelamin = colSet.has('jenis_kelamin');
+    const hasFoto = colSet.has('foto');
+    const hasFotoSantri = colSet.has('foto_santri');
+
+    const jkSelect = hasJk ? 's.jk,' : (hasJenisKelamin ? 's.jenis_kelamin as jk,' : "'L' as jk,");
+    const fotoSelect = hasFoto ? 's.foto,' : (hasFotoSantri ? 's.foto_santri as foto,' : 'NULL as foto,');
 
     const kelasSelect = hasNamaKelas
       ? "COALESCE(kl.nama_kelas, s.nama_kelas, '') as nama_kelas,"
@@ -149,6 +156,8 @@ router.get('/for-presensi', async (req, res) => {
         s.id, 
         s.nis, 
         s.nama_santri, 
+        ${jkSelect}
+        ${fotoSelect}
         ${hasKelasId ? 's.kelas_id,' : 'NULL as kelas_id,'}
         ${kelasSelect}
         ${hasAsramaId ? 's.asrama_id,' : 'NULL as asrama_id,'}
@@ -186,6 +195,13 @@ router.get('/by-kelas/:kelas', async (req, res) => {
     const hasKelasId = colSet.has('kelas_id');
     const hasAsramaId = colSet.has('asrama_id');
     const hasKamarId = colSet.has('kamar_id');
+    const hasJk = colSet.has('jk');
+    const hasJenisKelamin = colSet.has('jenis_kelamin');
+    const hasFoto = colSet.has('foto');
+    const hasFotoSantri = colSet.has('foto_santri');
+
+    const jkSelect = hasJk ? 's.jk,' : (hasJenisKelamin ? 's.jenis_kelamin as jk,' : "'L' as jk,");
+    const fotoSelect = hasFoto ? 's.foto,' : (hasFotoSantri ? 's.foto_santri as foto,' : 'NULL as foto,');
 
     const kelasSelect = hasNamaKelas
       ? "COALESCE(kl.nama_kelas, s.nama_kelas, '') as nama_kelas,"
@@ -223,6 +239,8 @@ router.get('/by-kelas/:kelas', async (req, res) => {
         s.id, 
         s.nis, 
         s.nama_santri, 
+        ${jkSelect}
+        ${fotoSelect}
         ${hasKelasId ? 's.kelas_id,' : 'NULL as kelas_id,'}
         ${kelasSelect}
         ${hasAsramaId ? 's.asrama_id,' : 'NULL as asrama_id,'}
