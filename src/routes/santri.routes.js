@@ -91,9 +91,11 @@ router.get('/:id/photo-thumb', async (req, res) => {
 });
 
 // 1d. Endpoint Cepat & Ringan untuk Presensi Mobile (Tanpa Base64 Foto Raksasa, ~150 KB vs 50 MB)
+// Mendukung filter kelas via query: /api/santri/for-presensi?kelas=Kelas+1 atau ?kelas_id=1
 router.get('/for-presensi', async (req, res) => {
   try {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    const { kelas, kelas_id } = req.query;
 
     // Periksa kolom dinamis yang benar-benar ada di tabel santri
     const [cols] = await pool.query("SHOW COLUMNS FROM santri");
@@ -119,6 +121,29 @@ router.get('/for-presensi', async (req, res) => {
       ? "LEFT JOIN kamar_kobong k ON s.kamar_id = k.id"
       : "";
 
+    let whereClause = "";
+    const params = [];
+    if (kelas_id) {
+      if (hasKelasId) {
+        whereClause = "WHERE s.kelas_id = ?";
+        params.push(kelas_id);
+      }
+    } else if (kelas && kelas !== 'Semua' && String(kelas).trim() !== '') {
+      const qKls = String(kelas).trim();
+      const conds = [];
+      if (hasNamaKelas) {
+        conds.push("s.nama_kelas = ?");
+        params.push(qKls);
+      }
+      if (kelasJoin) {
+        conds.push("kl.nama_kelas = ?");
+        params.push(qKls);
+      }
+      if (conds.length > 0) {
+        whereClause = `WHERE (${conds.join(" OR ")})`;
+      }
+    }
+
     const [rows] = await pool.query(`
       SELECT 
         s.id, 
@@ -135,9 +160,85 @@ router.get('/for-presensi', async (req, res) => {
       ${asramaJoin}
       ${kamarJoin}
       ${kelasJoin}
+      ${whereClause}
       ORDER BY s.id ASC
-    `);
+    `, params);
     return res.json({ success: true, total: rows.length, data: rows });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 1e. Endpoint Baru: Ambil Santri Berdasarkan Kelas Tertentu (Ringan Khusus Presensi Mengaji)
+router.get('/by-kelas/:kelas', async (req, res) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    const { kelas } = req.params;
+    const qKls = decodeURIComponent(kelas || '').trim();
+
+    if (!qKls || qKls === 'Semua') {
+      return res.redirect('/api/santri/for-presensi');
+    }
+
+    const [cols] = await pool.query("SHOW COLUMNS FROM santri");
+    const colSet = new Set((cols || []).map(c => c.Field));
+    const hasNamaKelas = colSet.has('nama_kelas');
+    const hasKelasId = colSet.has('kelas_id');
+    const hasAsramaId = colSet.has('asrama_id');
+    const hasKamarId = colSet.has('kamar_id');
+
+    const kelasSelect = hasNamaKelas
+      ? "COALESCE(kl.nama_kelas, s.nama_kelas, '') as nama_kelas,"
+      : "COALESCE(kl.nama_kelas, '') as nama_kelas,";
+
+    const kelasJoin = hasKelasId
+      ? "LEFT JOIN kelas kl ON s.kelas_id = kl.id"
+      : (hasNamaKelas ? "LEFT JOIN kelas kl ON s.nama_kelas = kl.nama_kelas" : "");
+
+    const asramaJoin = hasAsramaId ? "LEFT JOIN asrama a ON s.asrama_id = a.id" : "";
+    const kamarJoin = hasKamarId ? "LEFT JOIN kamar_kobong k ON s.kamar_id = k.id" : "";
+
+    const isNumericId = /^\d+$/.test(qKls);
+    let whereClause = "";
+    const params = [];
+
+    if (isNumericId && hasKelasId) {
+      whereClause = "WHERE s.kelas_id = ?";
+      params.push(Number(qKls));
+    } else {
+      const conds = [];
+      if (hasNamaKelas) {
+        conds.push("s.nama_kelas = ?");
+        params.push(qKls);
+      }
+      if (kelasJoin) {
+        conds.push("kl.nama_kelas = ?");
+        params.push(qKls);
+      }
+      whereClause = conds.length > 0 ? `WHERE (${conds.join(" OR ")})` : "";
+    }
+
+    const [rows] = await pool.query(`
+      SELECT 
+        s.id, 
+        s.nis, 
+        s.nama_santri, 
+        ${hasKelasId ? 's.kelas_id,' : 'NULL as kelas_id,'}
+        ${kelasSelect}
+        ${hasAsramaId ? 's.asrama_id,' : 'NULL as asrama_id,'}
+        COALESCE(a.nama_asrama, '') as nama_asrama,
+        ${hasKamarId ? 's.kamar_id,' : 'NULL as kamar_id,'}
+        COALESCE(k.nama_kamar, '') as nama_kamar,
+        s.face_descriptor
+      FROM santri s
+      ${asramaJoin}
+      ${kamarJoin}
+      ${kelasJoin}
+      ${whereClause}
+      ORDER BY s.id ASC
+    `, params);
+
+    return res.json({ success: true, total: rows.length, kelas: qKls, data: rows });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }

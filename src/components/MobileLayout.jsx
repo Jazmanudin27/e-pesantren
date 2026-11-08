@@ -38,7 +38,6 @@ import KeuanganAdminView from '../views/keuangan/KeuanganAdminView';
 import MobileKeuangan from '../views/mobile/MobileKeuangan';
 import MobileIzin from '../views/mobile/MobileIzin';
 import MobileDashboard from '../views/mobile/MobileDashboard';
-import MobilePresensi from '../views/mobile/MobilePresensi';
 import MobilePresensiBerjamaah from '../views/mobile/MobilePresensiBerjamaah';
 import MobilePresensiMengaji from '../views/mobile/MobilePresensiMengaji';
 import MobileSantri from '../views/mobile/MobileSantri';
