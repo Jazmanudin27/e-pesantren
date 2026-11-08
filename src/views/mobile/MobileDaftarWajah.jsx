@@ -340,33 +340,8 @@ export default function MobileDaftarWajah() {
         return;
       }
 
-      // 2. Validasi duplikasi wajah terhadap santri lain yang sudah terdaftar
-      try {
-        const otherProfiles = Object.values(registeredFaces).filter(
-          (p) => {
-            const pId = String(p.santri_id || p.id || '');
-            const curId = String(selectedSantri.id || '');
-            return pId && curId && pId !== curId && (p.descriptor || p.face_descriptor);
-          }
-        );
-        if (otherProfiles.length > 0) {
-          const matchedOther = matchFaceDescriptor(descriptor, otherProfiles, 0.22);
-          if (matchedOther && matchedOther.success && !matchedOther.error) {
-            const confirmed = await showConfirm(
-              'Peringatan Duplikasi Wajah!',
-              `Wajah ini terdeteksi mirip (${matchedOther.confidence || 85}%) dengan santri "${matchedOther.nama || matchedOther.nama_santri}".\n\nApakah Anda yakin ingin tetap mendaftarkan foto ini untuk "${selectedSantri.nama_santri}"?`,
-              'Ya, Tetap Daftarkan',
-              'Batal'
-            );
-            if (!confirmed) {
-              setSaving(false);
-              return;
-            }
-          }
-        }
-      } catch (eDup) {
-        console.warn('Anti-duplicate check warning:', eDup);
-      }
+      // 2. Anti-duplicate check bypassed (Admin memiliki otoritas penuh daftarkan wajah tanpa diblokir)
+      // Langsung lanjutkan ke simpan foto & descriptor biometrik
 
       // 3. Simpan foto wajah & biometrik LANGSUNG ke Database Server (Utama via MySQL)
       const cleanDesc = (descriptor instanceof Float32Array) ? Array.from(descriptor) : descriptor;

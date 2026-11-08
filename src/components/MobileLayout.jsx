@@ -39,6 +39,8 @@ import MobileKeuangan from '../views/mobile/MobileKeuangan';
 import MobileIzin from '../views/mobile/MobileIzin';
 import MobileDashboard from '../views/mobile/MobileDashboard';
 import MobilePresensi from '../views/mobile/MobilePresensi';
+import MobilePresensiBerjamaah from '../views/mobile/MobilePresensiBerjamaah';
+import MobilePresensiMengaji from '../views/mobile/MobilePresensiMengaji';
 import MobileSantri from '../views/mobile/MobileSantri';
 import MobileAsrama from '../views/mobile/MobileAsrama';
 import MobileKelas from '../views/mobile/MobileKelas';
@@ -260,6 +262,8 @@ export default function MobileLayout() {
   const getSubmenuTitle = () => {
     switch (mobileTab) {
       case 'dashboard': return 'Dashboard System';
+      case 'berjamaah': return 'Presensi Shalat Berjamaah';
+      case 'mengaji': return 'Presensi Kegiatan Mengaji';
       case 'presensi': return 'Presensi Barcode & Wajah';
       case 'tahfidz': return 'Tahfidz & Muroja\'ah';
       case 'praktek-ibadah':
@@ -362,8 +366,12 @@ export default function MobileLayout() {
         return <PortalWaliSantri onLogout={handleLogout} />;
       case 'dashboard':
         return <MobileDashboard />;
+      case 'berjamaah':
+        return <MobilePresensiBerjamaah />;
+      case 'mengaji':
+        return <MobilePresensiMengaji />;
       case 'presensi':
-        return <MobilePresensi />;
+        return <MobilePresensiBerjamaah />;
       case 'tahfidz':
         return <MobileTahfidz />;
       case 'praktek-ibadah':
@@ -604,8 +612,11 @@ export default function MobileLayout() {
                         <button onClick={() => handleSelectTab('dashboard')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'dashboard' ? '#e0f2fe' : '#f8fafc', border: mobileTab === 'dashboard' ? '1px solid #0284c7' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                           <LayoutDashboard size={16} color="#0284c7" /> Dashboard
                         </button>
-                        <button onClick={() => handleSelectTab('presensi')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'presensi' ? '#f3e8ff' : '#f8fafc', border: mobileTab === 'presensi' ? '1px solid #7c3aed' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
-                          <Fingerprint size={16} color="#7c3aed" /> Presensi
+                        <button onClick={() => handleSelectTab('berjamaah')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'berjamaah' ? '#cffafe' : '#f8fafc', border: mobileTab === 'berjamaah' ? '1px solid #0891b2' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                          <Fingerprint size={16} color="#0891b2" /> Berjamaah
+                        </button>
+                        <button onClick={() => handleSelectTab('mengaji')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'mengaji' ? '#dcfce7' : '#f8fafc', border: mobileTab === 'mengaji' ? '1px solid #059669' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                          <BookOpen size={16} color="#059669" /> Mengaji
                         </button>
                         <button onClick={() => handleSelectTab('tahfidz')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'tahfidz' ? '#dcfce7' : '#f8fafc', border: mobileTab === 'tahfidz' ? '1px solid #059669' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                           <BookOpen size={16} color="#059669" /> Tahfidz & Kitab
@@ -784,8 +795,8 @@ export default function MobileLayout() {
               {/* Prominent Center Floating Fingerprint Action Button */}
               <button 
                 className="mobile-fab-center"
-                onClick={() => handleSelectTab('presensi')}
-                title="Presensi Barcode & Wajah"
+                onClick={() => handleSelectTab('berjamaah')}
+                title="Presensi Shalat Berjamaah"
               >
                 <div className="fab-inner-glow">
                   <Fingerprint size={28} color="#ffffff" strokeWidth={2.4} />

@@ -96,12 +96,15 @@ const parseTimeToMinutes = (timeStr) => {
   return h * 60 + m;
 };
 
-export default function MobilePresensi() {
+export default function MobilePresensi({
+  defaultKategori = "berjamaah",
+  hideCategorySwitcher = false,
+}) {
   // Mode Utama: 'face' (Wajah AI), 'qr' (Scan Barcode/QR), 'manual', atau 'riwayat'
   const [activeMode, setActiveMode] = useState("face");
 
-  // 2 Kategori Tab: 'berjamaah' (Shalat 5 Waktu) & 'mengaji' (Pegon & Master Kegiatan)
-  const [activeKategori, setActiveKategori] = useState("berjamaah");
+  // 2 Kategori: 'berjamaah' (Shalat 5 Waktu) & 'mengaji' (Pegon & Master Kegiatan)
+  const [activeKategori, setActiveKategori] = useState(defaultKategori);
   const [daftarBerjamaah, setDaftarBerjamaah] = useState(
     DAFTAR_BERJAMAAH_DEFAULT,
   );
@@ -109,9 +112,21 @@ export default function MobilePresensi() {
   const [selectedBerjamaah, setSelectedBerjamaah] = useState(
     DAFTAR_BERJAMAAH_DEFAULT[0],
   );
-  const [selectedMengaji, setSelectedMengaji] = useState(
-    DAFTAR_MENGAJI_DEFAULT[0],
-  );
+  const [selectedMengaji, setSelectedMengaji] = useState(() => {
+    try {
+      const saved = localStorage.getItem("epesantren_mengaji_selected_kegiatan");
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+  const [selectedMengajiKelas, setSelectedMengajiKelas] = useState(() => {
+    try {
+      return localStorage.getItem("epesantren_mengaji_selected_kelas") || "";
+    } catch (e) {
+      return "";
+    }
+  });
 
   const selectedKegiatan =
     activeKategori === "berjamaah" ? selectedBerjamaah : selectedMengaji;
@@ -132,8 +147,12 @@ export default function MobilePresensi() {
   const [searchRiwayat, setSearchRiwayat] = useState("");
   const [filterStatusRiwayat, setFilterStatusRiwayat] = useState("Semua");
   const defaultMonthRange = getCurrentMonthRange();
-  const [filterTanggalDari, setFilterTanggalDari] = useState(defaultMonthRange.dari);
-  const [filterTanggalSampai, setFilterTanggalSampai] = useState(defaultMonthRange.sampai);
+  const [filterTanggalDari, setFilterTanggalDari] = useState(
+    defaultMonthRange.dari,
+  );
+  const [filterTanggalSampai, setFilterTanggalSampai] = useState(
+    defaultMonthRange.sampai,
+  );
 
   // Audio & Sound
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -215,10 +234,36 @@ export default function MobilePresensi() {
   const selectedMengajiRef = useRef(selectedMengaji);
   useEffect(() => {
     selectedMengajiRef.current = selectedMengaji;
+    if (selectedMengaji) {
+      try {
+        localStorage.setItem(
+          "epesantren_mengaji_selected_kegiatan",
+          JSON.stringify(selectedMengaji),
+        );
+      } catch (e) {}
+    }
   }, [selectedMengaji]);
 
+  const selectedMengajiKelasRef = useRef(selectedMengajiKelas);
+  useEffect(() => {
+    selectedMengajiKelasRef.current = selectedMengajiKelas;
+    if (selectedMengajiKelas) {
+      try {
+        localStorage.setItem(
+          "epesantren_mengaji_selected_kelas",
+          selectedMengajiKelas,
+        );
+      } catch (e) {}
+      if (activeKategori === "mengaji") {
+        setFilterManualKelas(selectedMengajiKelas);
+      }
+    }
+  }, [selectedMengajiKelas, activeKategori]);
+
   // Helper: Otomatis pilih sesi Shalat Berjamaah sesuai jam saat ini & Setting Jadwal Shalat Berjamaah (kegiatan_sesi)
-  const detectActiveBerjamaahBySchedule = (list = daftarBerjamaahRef.current) => {
+  const detectActiveBerjamaahBySchedule = (
+    list = daftarBerjamaahRef.current,
+  ) => {
     if (!Array.isArray(list) || list.length === 0) return null;
     const now = new Date();
     const curMin = now.getHours() * 60 + now.getMinutes();
@@ -405,7 +450,8 @@ export default function MobilePresensi() {
       if (listBerjamaah.length === 0) listBerjamaah = DAFTAR_BERJAMAAH_DEFAULT;
       setDaftarBerjamaah(listBerjamaah);
       daftarBerjamaahRef.current = listBerjamaah;
-      const autoScheduledBerjamaah = detectActiveBerjamaahBySchedule(listBerjamaah);
+      const autoScheduledBerjamaah =
+        detectActiveBerjamaahBySchedule(listBerjamaah);
       setSelectedBerjamaah((prev) => {
         if (autoScheduledBerjamaah) return autoScheduledBerjamaah;
         if (
@@ -457,13 +503,10 @@ export default function MobilePresensi() {
       if (listMengaji.length === 0) listMengaji = DAFTAR_MENGAJI_DEFAULT;
       setDaftarMengaji(listMengaji);
       setSelectedMengaji((prev) => {
-        if (
-          !prev ||
-          !listMengaji.some((k) => String(k.id) === String(prev.id))
-        ) {
-          return listMengaji[0];
+        if (prev && listMengaji.some((k) => String(k.id) === String(prev.id))) {
+          return listMengaji.find((k) => String(k.id) === String(prev.id));
         }
-        return prev;
+        return null;
       });
 
       if (resSantri.data && resSantri.data.data) {
@@ -498,7 +541,10 @@ export default function MobilePresensi() {
                 };
                 profileChanged = true;
               }
-            } else if (currentLocalProfiles[s.id] || currentLocalProfiles[String(s.id)]) {
+            } else if (
+              currentLocalProfiles[s.id] ||
+              currentLocalProfiles[String(s.id)]
+            ) {
               delete currentLocalProfiles[s.id];
               delete currentLocalProfiles[String(s.id)];
               profileChanged = true;
@@ -1106,6 +1152,16 @@ export default function MobilePresensi() {
           if (isDetectingRef.current) return;
           isDetectingRef.current = true;
           try {
+            if (activeKategoriRef.current === "mengaji") {
+              const reqKeg = selectedMengajiRef.current;
+              const reqKls = selectedMengajiKelasRef.current;
+              if (!reqKeg || !reqKeg.id || !reqKls) {
+                setFaceDetected(false);
+                setFaceStatusText("⚠️ Wajib pilih Kegiatan & Kelas terlebih dahulu");
+                return;
+              }
+            }
+
             let localMap = {};
             try {
               localMap = JSON.parse(
@@ -1117,10 +1173,20 @@ export default function MobilePresensi() {
             const seenIds = new Set();
 
             (santriListRef.current || []).forEach((s) => {
+              // Kategori Mengaji: HANYA bandingkan santri dalam Kelas yang dipilih!
+              if (activeKategoriRef.current === "mengaji" && selectedMengajiKelasRef.current) {
+                const sKelas = getSantriKelasLabel(s);
+                if (!sKelas || sKelas.toLowerCase() !== selectedMengajiKelasRef.current.toLowerCase()) {
+                  return;
+                }
+              }
+
               let desc =
                 normalizeDescriptor(s.face_descriptor) ||
                 normalizeDescriptor(localMap[s.id]?.descriptor) ||
-                normalizeDescriptor(registeredFacesRef.current?.[s.id]?.descriptor);
+                normalizeDescriptor(
+                  registeredFacesRef.current?.[s.id]?.descriptor,
+                );
               if (desc) {
                 registeredList.push({
                   santri_id: s.id,
@@ -1135,31 +1201,38 @@ export default function MobilePresensi() {
               }
             });
 
-            Object.values(registeredFacesRef.current || {}).forEach((p) => {
-              const pId = String(p.santri_id || p.id || "");
-              if (pId && !seenIds.has(pId)) {
-                const desc = normalizeDescriptor(p.descriptor);
-                if (desc) {
-                  registeredList.push({ ...p, descriptor: desc });
-                  seenIds.add(pId);
+            if (activeKategoriRef.current !== "mengaji") {
+              Object.values(registeredFacesRef.current || {}).forEach((p) => {
+                const pId = String(p.santri_id || p.id || "");
+                if (pId && !seenIds.has(pId)) {
+                  const desc = normalizeDescriptor(p.descriptor);
+                  if (desc) {
+                    registeredList.push({ ...p, descriptor: desc });
+                    seenIds.add(pId);
+                  }
                 }
-              }
-            });
+              });
 
-            Object.values(localMap).forEach((p) => {
-              const pId = String(p.santri_id || p.id || "");
-              if (pId && !seenIds.has(pId)) {
-                const desc = normalizeDescriptor(p.descriptor);
-                if (desc) {
-                  registeredList.push({ ...p, descriptor: desc });
-                  seenIds.add(pId);
+              Object.values(localMap).forEach((p) => {
+                const pId = String(p.santri_id || p.id || "");
+                if (pId && !seenIds.has(pId)) {
+                  const desc = normalizeDescriptor(p.descriptor);
+                  if (desc) {
+                    registeredList.push({ ...p, descriptor: desc });
+                    seenIds.add(pId);
+                  }
                 }
-              }
-            });
+              });
+            }
 
             if (registeredList.length === 0) {
               setFaceDetected(false);
-              setFaceStatusText("⚠️ Belum Ada Biometrik Wajah di Sistem (0 Profil)");
+              const klsName = selectedMengajiKelasRef.current || "";
+              setFaceStatusText(
+                activeKategoriRef.current === "mengaji"
+                  ? `⚠️ Belum Ada Biometrik Wajah di Kelas "${klsName}"`
+                  : "⚠️ Belum Ada Biometrik Wajah di Sistem (0 Profil)",
+              );
               return;
             }
 
@@ -1184,15 +1257,22 @@ export default function MobilePresensi() {
 
               if (matched && matched.error === "no_profiles") {
                 matchedStreakRef.current = { id: null, count: 0 };
-                setFaceStatusText("⚠️ Belum Ada Biometrik Wajah di Sistem (0 Profil)");
+                setFaceStatusText(
+                  "⚠️ Belum Ada Biometrik Wajah di Sistem (0 Profil)",
+                );
                 return;
               }
 
-              if (matched && !matched.error && (matched.santri_id || matched.id)) {
+              if (
+                matched &&
+                !matched.error &&
+                (matched.santri_id || matched.id)
+              ) {
                 const mId = String(matched.santri_id || matched.id);
                 const dbSantri =
-                  (santriListRef.current || []).find((s) => String(s.id) === mId) ||
-                  matched;
+                  (santriListRef.current || []).find(
+                    (s) => String(s.id) === mId,
+                  ) || matched;
                 if (dbSantri) {
                   matchedSantri = dbSantri;
                   displayName =
@@ -1203,7 +1283,11 @@ export default function MobilePresensi() {
               // 1. TOLAK JIKA WAJAH BEDA / TIDAK COCOK DENGAN DATA SANTRI
               if (!matchedSantri) {
                 if (matchedStreakRef.current.grace) {
-                  matchedStreakRef.current = { id: null, count: 0, grace: false };
+                  matchedStreakRef.current = {
+                    id: null,
+                    count: 0,
+                    grace: false,
+                  };
                 } else if (matchedStreakRef.current.count > 0) {
                   matchedStreakRef.current.grace = true;
                 }
@@ -1243,8 +1327,7 @@ export default function MobilePresensi() {
                 };
               }
 
-              const isSuperMatch =
-                matched.distance && matched.distance < 0.22;
+              const isSuperMatch = matched.distance && matched.distance < 0.22;
               if (matchedStreakRef.current.count < 2 && !isSuperMatch) {
                 setFaceStatusText(`Memverifikasi: ${displayName}...`);
                 return;
@@ -1255,79 +1338,61 @@ export default function MobilePresensi() {
               return;
             }
 
-              // 2. PILIH SESI KEGIATAN SESUAI KATEGORI AKTIF (BERJAMAAH VS MENGAJI)
-              const todayStr = getTodayDateStr();
-              const curKategori = activeKategoriRef.current || activeKategori;
-              let curKegiatan = selectedKegiatanRef.current;
+            // 2. PILIH SESI KEGIATAN SESUAI KATEGORI AKTIF (BERJAMAAH VS MENGAJI)
+            const todayStr = getTodayDateStr();
+            const curKategori = activeKategoriRef.current || activeKategori;
+            let curKegiatan = selectedKegiatanRef.current;
 
-              if (curKategori === "berjamaah") {
-                const autoBerjamaah = detectActiveBerjamaahBySchedule(
-                  daftarBerjamaahRef.current,
-                );
-                if (autoBerjamaah) {
-                  curKegiatan = autoBerjamaah;
-                  setSelectedBerjamaah(autoBerjamaah);
-                  selectedKegiatanRef.current = autoBerjamaah;
-                }
-              } else {
-                // Kategori Mengaji: gunakan sesi kitab/materi mengaji yang dipilih user
-                curKegiatan = selectedMengajiRef.current || selectedKegiatanRef.current || daftarMengaji[0];
-              }
-
-              const isAlreadyAttended = (presensiLogsRef.current || []).some(
-                (item) => {
-                  const sameSantri =
-                    (item.santri_id != null &&
-                      matchedSantri.id != null &&
-                      String(item.santri_id) === String(matchedSantri.id)) ||
-                    (item.nis &&
-                      matchedSantri.nis &&
-                      String(item.nis).trim() ===
-                        String(matchedSantri.nis).trim()) ||
-                    (item.nama_santri &&
-                      item.nama_santri.trim().toLowerCase() ===
-                        displayName.trim().toLowerCase());
-                  const sameSesi =
-                    (item.sesi_id != null &&
-                      curKegiatan?.id != null &&
-                      String(item.sesi_id) === String(curKegiatan.id)) ||
-                    (item.kegiatan &&
-                      curKegiatan?.nama &&
-                      item.kegiatan.trim().toLowerCase() ===
-                        curKegiatan.nama.trim().toLowerCase()) ||
-                    (item.nama_sesi &&
-                      curKegiatan?.nama &&
-                      item.nama_sesi.trim().toLowerCase() ===
-                        curKegiatan.nama.trim().toLowerCase());
-                  const itemTgl = normalizeDateStr(item.tanggal);
-                  const sameTgl = !itemTgl || itemTgl === todayStr;
-                  return sameSantri && sameSesi && sameTgl;
-                },
+            if (curKategori === "berjamaah") {
+              const autoBerjamaah = detectActiveBerjamaahBySchedule(
+                daftarBerjamaahRef.current,
               );
-
-              if (isAlreadyAttended) {
-                ctx.fillStyle = "rgba(245, 158, 11, 0.95)";
-                ctx.roundRect
-                  ? ctx.roundRect(boxX, boxY - 30, boxW, 26, 6)
-                  : ctx.rect(boxX, boxY - 30, boxW, 26);
-                ctx.fill();
-                ctx.fillStyle = "#ffffff";
-                ctx.font = "bold 12px sans-serif";
-                ctx.textAlign = "center";
-                ctx.fillText(
-                  `⚠️ ${displayName} (Sudah Hadir)`,
-                  boxX + boxW / 2,
-                  boxY - 12,
-                );
-
-                setFaceStatusText(
-                  `⚠️ ${displayName} sudah tercatat hadir pada ${curKegiatan?.nama || "kegiatan ini"}`,
-                );
+              if (autoBerjamaah) {
+                curKegiatan = autoBerjamaah;
+                setSelectedBerjamaah(autoBerjamaah);
+                selectedKegiatanRef.current = autoBerjamaah;
+              }
+            } else {
+              // Kategori Mengaji: gunakan sesi kitab/materi mengaji yang dipilih user
+              curKegiatan = selectedMengajiRef.current;
+              if (!curKegiatan || !curKegiatan.id || !selectedMengajiKelasRef.current) {
                 return;
               }
+            }
 
-              // 3. WAJAH COCOK & BELUM HADIR -> CATAT PRESENSI OTOMATIS
-              ctx.fillStyle = "rgba(16, 185, 129, 0.95)";
+            const isAlreadyAttended = (presensiLogsRef.current || []).some(
+              (item) => {
+                const sameSantri =
+                  (item.santri_id != null &&
+                    matchedSantri.id != null &&
+                    String(item.santri_id) === String(matchedSantri.id)) ||
+                  (item.nis &&
+                    matchedSantri.nis &&
+                    String(item.nis).trim() ===
+                      String(matchedSantri.nis).trim()) ||
+                  (item.nama_santri &&
+                    item.nama_santri.trim().toLowerCase() ===
+                      displayName.trim().toLowerCase());
+                const sameSesi =
+                  (item.sesi_id != null &&
+                    curKegiatan?.id != null &&
+                    String(item.sesi_id) === String(curKegiatan.id)) ||
+                  (item.kegiatan &&
+                    curKegiatan?.nama &&
+                    item.kegiatan.trim().toLowerCase() ===
+                      curKegiatan.nama.trim().toLowerCase()) ||
+                  (item.nama_sesi &&
+                    curKegiatan?.nama &&
+                    item.nama_sesi.trim().toLowerCase() ===
+                      curKegiatan.nama.trim().toLowerCase());
+                const itemTgl = normalizeDateStr(item.tanggal);
+                const sameTgl = !itemTgl || itemTgl === todayStr;
+                return sameSantri && sameSesi && sameTgl;
+              },
+            );
+
+            if (isAlreadyAttended) {
+              ctx.fillStyle = "rgba(245, 158, 11, 0.95)";
               ctx.roundRect
                 ? ctx.roundRect(boxX, boxY - 30, boxW, 26, 6)
                 : ctx.rect(boxX, boxY - 30, boxW, 26);
@@ -1335,57 +1400,83 @@ export default function MobilePresensi() {
               ctx.fillStyle = "#ffffff";
               ctx.font = "bold 12px sans-serif";
               ctx.textAlign = "center";
-              ctx.fillText(`✅ ${displayName}`, boxX + boxW / 2, boxY - 12);
+              ctx.fillText(
+                `⚠️ ${displayName} (Sudah Hadir)`,
+                boxX + boxW / 2,
+                boxY - 12,
+              );
 
-              setFaceStatusText(`✅ Wajah Terverifikasi AI: ${displayName} (${curKegiatan?.nama || "Presensi"})`);
-
-              if (!faceCooldownRef.current) {
-                faceCooldownRef.current = true;
-                setTimeout(() => {
-                  faceCooldownRef.current = false;
-                }, 2600);
-
-                const snap = captureFaceSnapshot();
-                // Update ref logs langsung seketika (synchronous) agar frame berikutnya langsung tolak
-                const instantRecord = {
-                  id: Date.now(),
-                  santri_id: matchedSantri.id,
-                  nama_santri: matchedSantri.nama_santri || displayName,
-                  nis: matchedSantri.nis,
-                  sesi_id: curKategori === "berjamaah" ? curKegiatan?.id : null,
-                  nama_sesi: curKegiatan?.nama,
-                  kegiatan: curKegiatan?.nama,
-                  tipe_presensi: curKategori === "mengaji" ? "Kegiatan" : "Berjamaah",
-                  tanggal: todayStr,
-                  waktu_scan: new Date().toTimeString().split(" ")[0],
-                  status: "Hadir",
-                  status_kehadiran: "Hadir",
-                  metode_presensi: "Wajah AI",
-                  metode_scan: "Wajah AI",
-                };
-                presensiLogsRef.current = [
-                  instantRecord,
-                  ...(presensiLogsRef.current || []),
-                ];
-
-                recordAttendance(
-                  matchedSantri,
-                  "Hadir",
-                  "Kamera Wajah AI (Otomatis)",
-                  "",
-                  snap,
-                );
-                setLastScannedSantri({ ...matchedSantri, snapshot: snap });
-                toastSuccess(`Presensi Wajah AI: ${displayName} (${curKegiatan?.nama || "Hadir"})`);
-              }
-            } catch (err) {
-              console.warn("Face loop error:", err);
-            } finally {
-              isDetectingRef.current = false;
+              setFaceStatusText(
+                `⚠️ ${displayName} sudah tercatat hadir pada ${curKegiatan?.nama || "kegiatan ini"}`,
+              );
+              return;
             }
+
+            // 3. WAJAH COCOK & BELUM HADIR -> CATAT PRESENSI OTOMATIS
+            ctx.fillStyle = "rgba(16, 185, 129, 0.95)";
+            ctx.roundRect
+              ? ctx.roundRect(boxX, boxY - 30, boxW, 26, 6)
+              : ctx.rect(boxX, boxY - 30, boxW, 26);
+            ctx.fill();
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 12px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText(`✅ ${displayName}`, boxX + boxW / 2, boxY - 12);
+
+            setFaceStatusText(
+              `✅ Wajah Terverifikasi AI: ${displayName} (${curKegiatan?.nama || "Presensi"})`,
+            );
+
+            if (!faceCooldownRef.current) {
+              faceCooldownRef.current = true;
+              setTimeout(() => {
+                faceCooldownRef.current = false;
+              }, 2600);
+
+              const snap = captureFaceSnapshot();
+              // Update ref logs langsung seketika (synchronous) agar frame berikutnya langsung tolak
+              const instantRecord = {
+                id: Date.now(),
+                santri_id: matchedSantri.id,
+                nama_santri: matchedSantri.nama_santri || displayName,
+                nis: matchedSantri.nis,
+                sesi_id: curKategori === "berjamaah" ? curKegiatan?.id : null,
+                nama_sesi: curKegiatan?.nama,
+                kegiatan: curKegiatan?.nama,
+                tipe_presensi:
+                  curKategori === "mengaji" ? "Kegiatan" : "Berjamaah",
+                tanggal: todayStr,
+                waktu_scan: new Date().toTimeString().split(" ")[0],
+                status: "Hadir",
+                status_kehadiran: "Hadir",
+                metode_presensi: "Wajah AI",
+                metode_scan: "Wajah AI",
+              };
+              presensiLogsRef.current = [
+                instantRecord,
+                ...(presensiLogsRef.current || []),
+              ];
+
+              recordAttendance(
+                matchedSantri,
+                "Hadir",
+                "Kamera Wajah AI (Otomatis)",
+                "",
+                snap,
+              );
+              setLastScannedSantri({ ...matchedSantri, snapshot: snap });
+              toastSuccess(
+                `Presensi Wajah AI: ${displayName} (${curKegiatan?.nama || "Hadir"})`,
+              );
+            }
+          } catch (err) {
+            console.warn("Face loop error:", err);
+          } finally {
+            isDetectingRef.current = false;
           }
         }
-      }, 150);
+      }
+    }, 150);
   };
 
   // Simpan / Daftarkan Wajah Santri Mobile (Dengan Face-api Descriptor + Fallback)
@@ -1498,6 +1589,16 @@ export default function MobilePresensi() {
       return;
     }
 
+    if (activeKategori === "mengaji") {
+      if (!selectedMengaji || !selectedMengaji.id || !selectedMengajiKelas) {
+        showError(
+          "Wajib Pilih Kegiatan & Kelas!",
+          "Silakan pilih Kegiatan Mengaji dan Kelas santri terlebih dahulu sebelum melakukan scan wajah."
+        );
+        return;
+      }
+    }
+
     let localMap = {};
     try {
       localMap = JSON.parse(
@@ -1509,6 +1610,13 @@ export default function MobilePresensi() {
     const seenIds = new Set();
 
     (santriListRef.current || []).forEach((s) => {
+      if (activeKategori === "mengaji" && selectedMengajiKelas) {
+        const sKelas = getSantriKelasLabel(s);
+        if (!sKelas || sKelas.toLowerCase() !== selectedMengajiKelas.toLowerCase()) {
+          return;
+        }
+      }
+
       let desc =
         normalizeDescriptor(s.face_descriptor) ||
         normalizeDescriptor(localMap[s.id]?.descriptor) ||
@@ -1527,27 +1635,29 @@ export default function MobilePresensi() {
       }
     });
 
-    Object.values(registeredFacesRef.current || {}).forEach((p) => {
-      const pId = String(p.santri_id || p.id || "");
-      if (pId && !seenIds.has(pId)) {
-        const desc = normalizeDescriptor(p.descriptor);
-        if (desc) {
-          registeredList.push({ ...p, descriptor: desc });
-          seenIds.add(pId);
+    if (activeKategori !== "mengaji") {
+      Object.values(registeredFacesRef.current || {}).forEach((p) => {
+        const pId = String(p.santri_id || p.id || "");
+        if (pId && !seenIds.has(pId)) {
+          const desc = normalizeDescriptor(p.descriptor);
+          if (desc) {
+            registeredList.push({ ...p, descriptor: desc });
+            seenIds.add(pId);
+          }
         }
-      }
-    });
+      });
 
-    Object.values(localMap).forEach((p) => {
-      const pId = String(p.santri_id || p.id || "");
-      if (pId && !seenIds.has(pId)) {
-        const desc = normalizeDescriptor(p.descriptor);
-        if (desc) {
-          registeredList.push({ ...p, descriptor: desc });
-          seenIds.add(pId);
+      Object.values(localMap).forEach((p) => {
+        const pId = String(p.santri_id || p.id || "");
+        if (pId && !seenIds.has(pId)) {
+          const desc = normalizeDescriptor(p.descriptor);
+          if (desc) {
+            registeredList.push({ ...p, descriptor: desc });
+            seenIds.add(pId);
+          }
         }
-      }
-    });
+      });
+    }
 
     if (registeredList.length === 0) {
       playBeep(false);
@@ -1595,9 +1705,9 @@ export default function MobilePresensi() {
       );
       if (matched && !matched.error && (matched.santri_id || matched.id)) {
         const mId = String(matched.santri_id || matched.id);
-        const matchedSantri = (santriListRef.current || []).find(
-          (s) => String(s.id) === mId,
-        ) || matched;
+        const matchedSantri =
+          (santriListRef.current || []).find((s) => String(s.id) === mId) ||
+          matched;
         if (matchedSantri) {
           recordAttendance(
             matchedSantri,
@@ -1607,7 +1717,9 @@ export default function MobilePresensi() {
             snap,
           );
           setLastScannedSantri({ ...matchedSantri, snapshot: snap });
-          toastSuccess(`Wajah Dikenali: ${matchedSantri.nama_santri || matchedSantri.nama}`);
+          toastSuccess(
+            `Wajah Dikenali: ${matchedSantri.nama_santri || matchedSantri.nama}`,
+          );
           return;
         }
       }
@@ -1705,6 +1817,15 @@ export default function MobilePresensi() {
     setScanCooldown(true);
     setTimeout(() => setScanCooldown(false), 2200);
 
+    if (activeKategori === "mengaji" && (!selectedMengaji?.id || !selectedMengajiKelas)) {
+      playBeep(false);
+      showError(
+        "Pilih Kegiatan & Kelas Dahulu",
+        "Wajib tentukan Kegiatan Mengaji dan Kelas santri di atas sebelum melakukan scan."
+      );
+      return;
+    }
+
     const raw = String(decodedText).trim();
     let matchedSantri = null;
 
@@ -1737,6 +1858,18 @@ export default function MobilePresensi() {
     }
 
     if (matchedSantri) {
+      if (activeKategori === "mengaji" && selectedMengajiKelas) {
+        const sKls = getSantriKelasLabel(matchedSantri);
+        if (sKls && sKls.toLowerCase() !== selectedMengajiKelas.toLowerCase()) {
+          playBeep(false);
+          showError(
+            "Santri Berbeda Kelas!",
+            `Santri "${matchedSantri.nama_santri}" terdaftar di kelas "${sKls}", sedangkan sesi mengaji saat ini untuk kelas "${selectedMengajiKelas}".`
+          );
+          return;
+        }
+      }
+
       playBeep();
       setLastScannedSantri(matchedSantri);
       recordAttendance(matchedSantri, "Hadir Tepat Waktu", "QR Code");
@@ -1763,7 +1896,10 @@ export default function MobilePresensi() {
 
     // PILIH KATEGORI & JADWAL SESUAI TAB AKTIF (BERJAMAAH VS MENGAJI)
     const targetKategori = activeKategoriRef.current || activeKategori;
-    let targetKegiatan = targetKategori === "berjamaah" ? selectedBerjamaah : (selectedMengajiRef.current || selectedMengaji);
+    let targetKegiatan =
+      targetKategori === "berjamaah"
+        ? selectedBerjamaah
+        : selectedMengajiRef.current || selectedMengaji;
 
     if (targetKategori === "berjamaah") {
       const autoBerjamaah = detectActiveBerjamaahBySchedule(
@@ -1776,13 +1912,26 @@ export default function MobilePresensi() {
       }
     } else {
       // Pastikan kategori Mengaji tetap utuh sesuai kegiatan mengaji yang dipilih user
-      targetKegiatan = selectedMengajiRef.current || selectedMengaji || selectedKegiatan || daftarMengaji[0];
+      targetKegiatan =
+        selectedMengajiRef.current ||
+        selectedMengaji ||
+        selectedKegiatan ||
+        daftarMengaji[0];
     }
 
     if (!targetKegiatan) {
-      targetKegiatan = targetKategori === "mengaji"
-        ? (daftarMengaji[0] || { id: "m-1", nama: "Kegiatan Mengaji", tipe: "Kegiatan" })
-        : (daftarBerjamaah[0] || { id: 1, nama: "Shalat Berjamaah", tipe: "Berjamaah" });
+      targetKegiatan =
+        targetKategori === "mengaji"
+          ? daftarMengaji[0] || {
+              id: "m-1",
+              nama: "Kegiatan Mengaji",
+              tipe: "Kegiatan",
+            }
+          : daftarBerjamaah[0] || {
+              id: 1,
+              nama: "Shalat Berjamaah",
+              tipe: "Berjamaah",
+            };
     }
 
     // 1. VALIDASI DOUBLE PRESENSI: Cek apakah santri sudah tercatat di sesi & tanggal ini
@@ -1839,7 +1988,11 @@ export default function MobilePresensi() {
     playBeep(true);
     speakAttendance(santri.nama_santri, status);
 
-    const isFaceScan = typeof metode === 'string' && (metode.includes('Wajah') || metode.includes('Face') || metode.includes('AI'));
+    const isFaceScan =
+      typeof metode === "string" &&
+      (metode.includes("Wajah") ||
+        metode.includes("Face") ||
+        metode.includes("AI"));
 
     const payload = {
       santri_id: santri.id,
@@ -1851,7 +2004,7 @@ export default function MobilePresensi() {
       status_kehadiran: status,
       metode_presensi: metode,
       metode_scan: metode,
-      keterangan: ket,
+      keterangan: ket || (targetKategori === "mengaji" && selectedMengajiKelasRef.current ? `Kelas: ${selectedMengajiKelasRef.current}` : ""),
       nama_santri: santri.nama_santri,
       nama_sesi: targetKegiatan.nama,
       kegiatan: targetKegiatan.nama,
@@ -1934,22 +2087,28 @@ export default function MobilePresensi() {
 
     // Kirim asinkron tanpa menahan UI (non-blocking) & tanpa mengirim base64 berat ke endpoint absensi
     const { foto_bukti, ...apiPayload } = payload;
-    axios.post("/api/absensi/fingerprint", apiPayload)
+    axios
+      .post("/api/absensi/fingerprint", apiPayload)
       .then((res) => {
         if (res.data?.data?.id) {
           setPresensiLogs((prev) =>
             prev.map((item) =>
-              item.id === newRecord.id ? { ...item, id: res.data.data.id } : item
-            )
+              item.id === newRecord.id
+                ? { ...item, id: res.data.data.id }
+                : item,
+            ),
           );
         }
       })
       .catch((err) => {
-        console.error("[Presensi API Error]", err?.response?.data || err?.message);
+        console.error(
+          "[Presensi API Error]",
+          err?.response?.data || err?.message,
+        );
         toastError(
           `Gagal simpan ke database: ${
             err?.response?.data?.message || err?.message || "Server Error"
-          }`
+          }`,
         );
       });
   };
@@ -2161,7 +2320,9 @@ export default function MobilePresensi() {
   });
 
   const handleMarkAllRemainingHadir = () => {
-    const unrecorded = santriInSelectedKelas.filter((s) => !getSantriCurrentLog(s));
+    const unrecorded = santriInSelectedKelas.filter(
+      (s) => !getSantriCurrentLog(s),
+    );
     if (unrecorded.length === 0) {
       toastSuccess("Semua santri sudah diabsen");
       return;
@@ -2269,10 +2430,19 @@ export default function MobilePresensi() {
   });
 
   // Perhitungan statistik sesi kegiatan aktif (tanggal berjalan)
-  const sessionSudahCount = santriList.filter((s) =>
+  const currentSantriScope =
+    activeKategori === "mengaji" && selectedMengajiKelas
+      ? santriList.filter(
+          (s) =>
+            getSantriKelasLabel(s).toLowerCase() ===
+            selectedMengajiKelas.toLowerCase(),
+        )
+      : santriList;
+
+  const sessionSudahCount = currentSantriScope.filter((s) =>
     getSantriCurrentLog(s),
   ).length;
-  const sessionTotal = santriList.length;
+  const sessionTotal = currentSantriScope.length;
   const sessionPercent =
     sessionTotal > 0 ? Math.round((sessionSudahCount / sessionTotal) * 100) : 0;
 
@@ -2352,79 +2522,81 @@ export default function MobilePresensi() {
       }}
     >
       {/* 2 TAB KATEGORI: BERJAMAAH (SHALAT 5 WAKTU) VS MENGAJI (PEGON & MASTER KEGIATAN) */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "6px",
-          background: "#ffffff",
-          padding: "4px",
-          borderRadius: "14px",
-          marginBottom: "10px",
-          border: "1px solid #e2e8f0",
-          boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => setActiveKategori("berjamaah")}
+      {!hideCategorySwitcher && (
+        <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
             gap: "6px",
-            padding: "7px 10px",
-            borderRadius: "10px",
-            border: "none",
-            background:
-              activeKategori === "berjamaah"
-                ? "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)"
-                : "transparent",
-            color: activeKategori === "berjamaah" ? "#ffffff" : "#64748b",
-            fontWeight: 800,
-            fontSize: "0.75rem",
-            cursor: "pointer",
-            boxShadow:
-              activeKategori === "berjamaah"
-                ? "0 3px 10px rgba(2, 132, 199, 0.3)"
-                : "none",
-            transition: "all 0.2s ease",
+            background: "#ffffff",
+            padding: "4px",
+            borderRadius: "14px",
+            marginBottom: "10px",
+            border: "1px solid #e2e8f0",
+            boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
           }}
         >
-          <span style={{ fontSize: "0.85rem" }}>🕌</span>
-          <span>Berjamaah</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setActiveKategori("berjamaah")}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "6px",
+              padding: "7px 10px",
+              borderRadius: "10px",
+              border: "none",
+              background:
+                activeKategori === "berjamaah"
+                  ? "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)"
+                  : "transparent",
+              color: activeKategori === "berjamaah" ? "#ffffff" : "#64748b",
+              fontWeight: 800,
+              fontSize: "0.75rem",
+              cursor: "pointer",
+              boxShadow:
+                activeKategori === "berjamaah"
+                  ? "0 3px 10px rgba(2, 132, 199, 0.3)"
+                  : "none",
+              transition: "all 0.2s ease",
+            }}
+          >
+            <span style={{ fontSize: "0.85rem" }}>🕌</span>
+            <span>Berjamaah</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveKategori("mengaji")}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "6px",
-            padding: "7px 10px",
-            borderRadius: "10px",
-            border: "none",
-            background:
-              activeKategori === "mengaji"
-                ? "linear-gradient(135deg, #059669 0%, #047857 100%)"
-                : "transparent",
-            color: activeKategori === "mengaji" ? "#ffffff" : "#64748b",
-            fontWeight: 800,
-            fontSize: "0.75rem",
-            cursor: "pointer",
-            boxShadow:
-              activeKategori === "mengaji"
-                ? "0 3px 10px rgba(5, 150, 105, 0.3)"
-                : "none",
-            transition: "all 0.2s ease",
-          }}
-        >
-          <span style={{ fontSize: "0.85rem" }}>📖</span>
-          <span>Mengaji</span>
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={() => setActiveKategori("mengaji")}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "6px",
+              padding: "7px 10px",
+              borderRadius: "10px",
+              border: "none",
+              background:
+                activeKategori === "mengaji"
+                  ? "linear-gradient(135deg, #059669 0%, #047857 100%)"
+                  : "transparent",
+              color: activeKategori === "mengaji" ? "#ffffff" : "#64748b",
+              fontWeight: 800,
+              fontSize: "0.75rem",
+              cursor: "pointer",
+              boxShadow:
+                activeKategori === "mengaji"
+                  ? "0 3px 10px rgba(5, 150, 105, 0.3)"
+                  : "none",
+              transition: "all 0.2s ease",
+            }}
+          >
+            <span style={{ fontSize: "0.85rem" }}>📖</span>
+            <span>Mengaji</span>
+          </button>
+        </div>
+      )}
 
       {/* HEADER: Sesi Kegiatan Pesantren Modern Card (Compact) */}
       <div
@@ -2444,67 +2616,211 @@ export default function MobilePresensi() {
           position: "relative",
         }}
       >
-        {/* Dropdown Kegiatan Stylized (Master Kegiatan Database) */}
-        <div style={{ position: "relative", marginBottom: "8px" }}>
-          <select
-            value={selectedKegiatan?.id || ""}
-            onChange={(e) => {
-              const k = currentDaftarKegiatan.find(
-                (x) => String(x.id) === String(e.target.value),
-              );
-              if (k) {
-                if (activeKategori === "berjamaah") setSelectedBerjamaah(k);
-                else setSelectedMengaji(k);
-              }
-            }}
+        {/* Header Title Badge Saat Tab Switcher Tersembunyi */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "8px",
+          }}
+        >
+          <div
             style={{
-              width: "100%",
-              padding: "9px 32px 9px 12px",
-              borderRadius: "11px",
-              border: "1px solid rgba(255, 255, 255, 0.32)",
-              background: "rgba(255, 255, 255, 0.16)",
-              backdropFilter: "blur(10px)",
-              color: "#ffffff",
-              fontSize: "0.82rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "0.86rem",
               fontWeight: 800,
-              outline: "none",
-              appearance: "none",
-              cursor: "pointer",
             }}
           >
-            {currentDaftarKegiatan.map((k) => {
-              const startJam = k.jam_mulai_presensi
-                ? String(k.jam_mulai_presensi).substring(0, 5)
-                : "";
-              const endJam = k.jam_tutup_presensi
-                ? String(k.jam_tutup_presensi).substring(0, 5)
-                : "";
-              const jadwalSuffix =
-                startJam && endJam ? ` (${startJam} - ${endJam})` : "";
-              return (
-                <option
-                  key={k.id}
-                  value={k.id}
-                  style={{ color: "#0f172a", fontWeight: 700 }}
-                >
-                  {k.nama}
-                  {jadwalSuffix}
-                </option>
-              );
-            })}
-          </select>
-          <ChevronDown
-            size={15}
-            color="#ffffff"
+            <span>
+              {activeKategori === "berjamaah"
+                ? "🕌 Presensi Shalat Berjamaah"
+                : "📖 Presensi Kegiatan Mengaji"}
+            </span>
+          </div>
+          <span
             style={{
-              position: "absolute",
-              right: "11px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              pointerEvents: "none",
+              fontSize: "0.68rem",
+              background: "rgba(255,255,255,0.2)",
+              padding: "2px 8px",
+              borderRadius: "999px",
+              fontWeight: 700,
             }}
-          />
+          >
+            {activeKategori === "berjamaah"
+              ? "Jadwal Shalat"
+              : "Kajian & Halaqah"}
+          </span>
         </div>
+        {/* Dropdown Pemilihan Sesi: Jika Berjamaah tampilkan Shalat, Jika Mengaji tampilkan 2 Pilihan (Kegiatan & Kelas) */}
+        {activeKategori === "berjamaah" ? (
+          <div style={{ position: "relative", marginBottom: "8px" }}>
+            <select
+              value={selectedKegiatan?.id || ""}
+              onChange={(e) => {
+                const k = currentDaftarKegiatan.find(
+                  (x) => String(x.id) === String(e.target.value),
+                );
+                if (k) setSelectedBerjamaah(k);
+              }}
+              style={{
+                width: "100%",
+                padding: "9px 32px 9px 12px",
+                borderRadius: "11px",
+                border: "1px solid rgba(255, 255, 255, 0.32)",
+                background: "rgba(255, 255, 255, 0.16)",
+                backdropFilter: "blur(10px)",
+                color: "#ffffff",
+                fontSize: "0.82rem",
+                fontWeight: 800,
+                outline: "none",
+                appearance: "none",
+                cursor: "pointer",
+              }}
+            >
+              {currentDaftarKegiatan.map((k) => {
+                const startJam = k.jam_mulai_presensi
+                  ? String(k.jam_mulai_presensi).substring(0, 5)
+                  : "";
+                const endJam = k.jam_tutup_presensi
+                  ? String(k.jam_tutup_presensi).substring(0, 5)
+                  : "";
+                const jadwalSuffix =
+                  startJam && endJam ? ` (${startJam} - ${endJam})` : "";
+                return (
+                  <option
+                    key={k.id}
+                    value={k.id}
+                    style={{ color: "#0f172a", fontWeight: 700 }}
+                  >
+                    {k.nama}
+                    {jadwalSuffix}
+                  </option>
+                );
+              })}
+            </select>
+            <ChevronDown
+              size={15}
+              color="#ffffff"
+              style={{
+                position: "absolute",
+                right: "11px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                pointerEvents: "none",
+              }}
+            />
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "7px", marginBottom: "8px" }}>
+            {/* 1. Dropdown Kegiatan Mengaji */}
+            <div style={{ position: "relative" }}>
+              <select
+                value={selectedMengaji?.id || ""}
+                onChange={(e) => {
+                  const k = daftarMengaji.find(
+                    (x) => String(x.id) === String(e.target.value),
+                  );
+                  setSelectedMengaji(k || null);
+                }}
+                style={{
+                  width: "100%",
+                  padding: "9px 32px 9px 12px",
+                  borderRadius: "11px",
+                  border: !selectedMengaji?.id
+                    ? "2px solid #facc15"
+                    : "1px solid rgba(255, 255, 255, 0.32)",
+                  background: !selectedMengaji?.id
+                    ? "rgba(234, 179, 8, 0.28)"
+                    : "rgba(255, 255, 255, 0.16)",
+                  backdropFilter: "blur(10px)",
+                  color: "#ffffff",
+                  fontSize: "0.82rem",
+                  fontWeight: 800,
+                  outline: "none",
+                  appearance: "none",
+                  cursor: "pointer",
+                }}
+              >
+                <option value="" style={{ color: "#0f172a", fontWeight: 700 }}>
+                  -- 1. Wajib Pilih Kegiatan Mengaji --
+                </option>
+                {daftarMengaji.map((k) => (
+                  <option
+                    key={k.id}
+                    value={k.id}
+                    style={{ color: "#0f172a", fontWeight: 700 }}
+                  >
+                    📖 {k.nama}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={15}
+                color="#ffffff"
+                style={{
+                  position: "absolute",
+                  right: "11px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  pointerEvents: "none",
+                }}
+              />
+            </div>
+
+            {/* 2. Dropdown Kelas Santri */}
+            <div style={{ position: "relative" }}>
+              <select
+                value={selectedMengajiKelas}
+                onChange={(e) => setSelectedMengajiKelas(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "9px 32px 9px 12px",
+                  borderRadius: "11px",
+                  border: !selectedMengajiKelas
+                    ? "2px solid #facc15"
+                    : "1px solid rgba(255, 255, 255, 0.32)",
+                  background: !selectedMengajiKelas
+                    ? "rgba(234, 179, 8, 0.28)"
+                    : "rgba(255, 255, 255, 0.16)",
+                  backdropFilter: "blur(10px)",
+                  color: "#ffffff",
+                  fontSize: "0.82rem",
+                  fontWeight: 800,
+                  outline: "none",
+                  appearance: "none",
+                  cursor: "pointer",
+                }}
+              >
+                <option value="" style={{ color: "#0f172a", fontWeight: 700 }}>
+                  -- 2. Wajib Pilih Kelas Santri --
+                </option>
+                {availableKelasOptions.map((kls) => (
+                  <option
+                    key={kls}
+                    value={kls}
+                    style={{ color: "#0f172a", fontWeight: 700 }}
+                  >
+                    🏫 Kelas: {kls}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={15}
+                color="#ffffff"
+                style={{
+                  position: "absolute",
+                  right: "11px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  pointerEvents: "none",
+                }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Location & Progress Bar */}
         <div
@@ -2819,6 +3135,52 @@ export default function MobilePresensi() {
               </div>
             </div>
 
+            {/* Banner Status Kesiapan Presensi Mengaji (Kegiatan & Kelas) */}
+            {activeKategori === "mengaji" && selectedMengaji?.id && selectedMengajiKelas && (
+              <div
+                style={{
+                  background: "#ecfdf5",
+                  border: "1px solid #a7f3d0",
+                  borderRadius: "10px",
+                  padding: "6px 12px",
+                  marginBottom: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  fontSize: "0.72rem",
+                  fontWeight: 700,
+                  color: "#065f46",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <span>📖 {selectedMengaji.nama}</span>
+                  <span style={{ color: "#9ca3af" }}>•</span>
+                  <span>🏫 Kelas: {selectedMengajiKelas}</span>
+                </div>
+                <span
+                  style={{
+                    background: "#059669",
+                    color: "#ffffff",
+                    padding: "1.5px 7px",
+                    borderRadius: "999px",
+                    fontSize: "0.62rem",
+                    flexShrink: 0,
+                  }}
+                >
+                  Siap Scan
+                </span>
+              </div>
+            )}
+
             {/* Video Viewport Container */}
             <div
               style={{
@@ -2836,6 +3198,96 @@ export default function MobilePresensi() {
                 boxShadow: "inset 0 0 25px rgba(0,0,0,0.6)",
               }}
             >
+              {/* Overlay Peringatan Wajib Pilih Kegiatan & Kelas (Khusus Mode Mengaji) */}
+              {activeKategori === "mengaji" && (!selectedMengaji?.id || !selectedMengajiKelas) && (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "rgba(15, 23, 42, 0.9)",
+                    backdropFilter: "blur(6px)",
+                    WebkitBackdropFilter: "blur(6px)",
+                    zIndex: 15,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "20px",
+                    textAlign: "center",
+                    color: "#ffffff",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "48px",
+                      height: "48px",
+                      borderRadius: "50%",
+                      background: "rgba(245, 158, 11, 0.2)",
+                      border: "1.5px solid #f59e0b",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    <BookOpen size={24} color="#fbbf24" />
+                  </div>
+                  <div style={{ fontWeight: 800, fontSize: "0.92rem", marginBottom: "5px" }}>
+                    Pilih Kegiatan & Kelas Dahulu!
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "0.72rem",
+                      color: "#cbd5e1",
+                      maxWidth: "260px",
+                      lineHeight: 1.35,
+                      marginBottom: "12px",
+                    }}
+                  >
+                    Tentukan <strong>Kegiatan Mengaji</strong> dan <strong>Kelas</strong> di dropdown atas sebelum scan wajah dimulai.
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "6px",
+                      fontSize: "0.68rem",
+                      fontWeight: 700,
+                      flexWrap: "wrap",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <span
+                      style={{
+                        padding: "3px 9px",
+                        borderRadius: "999px",
+                        background: selectedMengaji?.id
+                          ? "rgba(34, 197, 94, 0.2)"
+                          : "rgba(239, 68, 68, 0.2)",
+                        color: selectedMengaji?.id ? "#4ade80" : "#f87171",
+                        border: `1px solid ${selectedMengaji?.id ? "#22c55e" : "#ef4444"}`,
+                      }}
+                    >
+                      {selectedMengaji?.id ? `✓ ${selectedMengaji.nama}` : "✗ Kegiatan Belum Dipilih"}
+                    </span>
+                    <span
+                      style={{
+                        padding: "3px 9px",
+                        borderRadius: "999px",
+                        background: selectedMengajiKelas
+                          ? "rgba(34, 197, 94, 0.2)"
+                          : "rgba(239, 68, 68, 0.2)",
+                        color: selectedMengajiKelas ? "#4ade80" : "#f87171",
+                        border: `1px solid ${selectedMengajiKelas ? "#22c55e" : "#ef4444"}`,
+                      }}
+                    >
+                      {selectedMengajiKelas
+                        ? `✓ Kelas: ${selectedMengajiKelas}`
+                        : "✗ Kelas Belum Dipilih"}
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <video
                 ref={faceVideoRef}
                 playsInline
@@ -3348,7 +3800,13 @@ export default function MobilePresensi() {
             </div>
 
             {/* Dropdown Filter Kelas */}
-            <div style={{ position: "relative", minWidth: "132px", maxWidth: "155px" }}>
+            <div
+              style={{
+                position: "relative",
+                minWidth: "132px",
+                maxWidth: "155px",
+              }}
+            >
               <select
                 value={filterManualKelas}
                 onChange={(e) => setFilterManualKelas(e.target.value)}
@@ -3363,8 +3821,7 @@ export default function MobilePresensi() {
                       : "1.5px solid #e2e8f0",
                   background:
                     filterManualKelas !== "Semua" ? "#f0f9ff" : "#ffffff",
-                  color:
-                    filterManualKelas !== "Semua" ? "#0369a1" : "#334155",
+                  color: filterManualKelas !== "Semua" ? "#0369a1" : "#334155",
                   fontSize: "0.76rem",
                   fontWeight: 800,
                   outline: "none",
@@ -3410,7 +3867,7 @@ export default function MobilePresensi() {
               {(() => {
                 const klsTotal = santriInSelectedKelas.length;
                 const klsSudah = santriInSelectedKelas.filter((s) =>
-                  getSantriCurrentLog(s)
+                  getSantriCurrentLog(s),
                 ).length;
                 const klsBelum = Math.max(0, klsTotal - klsSudah);
                 return [
@@ -3501,7 +3958,8 @@ export default function MobilePresensi() {
               const isAutoPerizinan =
                 Boolean(activeIzin) ||
                 Boolean(currentLog?.is_perizinan_auto) ||
-                String(currentLog?.metode_scan || "").toLowerCase() === "perizinan";
+                String(currentLog?.metode_scan || "").toLowerCase() ===
+                  "perizinan";
 
               const kelasLabel = getSantriKelasLabel(santri) || "-";
               const nisnValue = santri.nisn || santri.nis || "-";
@@ -3610,7 +4068,8 @@ export default function MobilePresensi() {
                     {/* Badge Kelas di Kanan */}
                     <span
                       style={{
-                        background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+                        background:
+                          "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
                         color: "#1d4ed8",
                         border: "1px solid #bfdbfe",
                         padding: "4px 10px",
@@ -3874,7 +4333,9 @@ export default function MobilePresensi() {
                 <span>Filter Tanggal</span>
               </div>
 
-              <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+              <div
+                style={{ display: "flex", gap: "4px", alignItems: "center" }}
+              >
                 <button
                   type="button"
                   onClick={() => {
