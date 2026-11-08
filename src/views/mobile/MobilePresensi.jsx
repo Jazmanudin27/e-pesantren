@@ -922,6 +922,30 @@ export default function MobilePresensi() {
     setIsFaceCameraActive(true);
     setFaceStatusText("Menghubungkan ke kamera...");
 
+    // SINKRONISASI BIOMETRIK MYSQL: Ambil data biometrik dari endpoint cepat MySQL
+    try {
+      const resFace = await axios.get(`/api/santri/with-face?_t=${Date.now()}`);
+      if (resFace.data?.data) {
+        const curMap = { ...(registeredFacesRef.current || {}) };
+        resFace.data.data.forEach((s) => {
+          const norm = normalizeDescriptor(s.face_descriptor);
+          if (norm) {
+            curMap[s.id] = {
+              santri_id: s.id,
+              id: s.id,
+              nama: s.nama_santri,
+              nama_santri: s.nama_santri,
+              nis: s.nis,
+              foto: s.foto,
+              descriptor: norm,
+            };
+          }
+        });
+        setRegisteredFaces(curMap);
+        registeredFacesRef.current = curMap;
+      }
+    } catch (eSync) {}
+
     try {
       if (faceStreamRef.current) {
         faceStreamRef.current.getTracks().forEach((track) => track.stop());

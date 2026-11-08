@@ -360,6 +360,26 @@ export default function MobilePengembangan() {
     setIsFaceDetected(false);
     isMatchedCooldownRef.current = false;
 
+    // SINKRONISASI BIOMETRIK MYSQL: Ambil data santri ber-biometrik langsung dari MySQL
+    try {
+      const resFace = await axios.get(`/api/santri/with-face?_t=${Date.now()}`);
+      if (resFace.data?.data && Array.isArray(resFace.data.data)) {
+        const freshList = resFace.data.data;
+        const curMap = {};
+        (santriListRef.current || []).forEach((s) => {
+          curMap[s.id] = s;
+        });
+        freshList.forEach((s) => {
+          curMap[s.id] = {
+            ...(curMap[s.id] || {}),
+            ...s,
+            face_descriptor: s.face_descriptor,
+          };
+        });
+        santriListRef.current = Object.values(curMap);
+      }
+    } catch (eSync) {}
+
     try {
       if (faceStreamRef.current) {
         faceStreamRef.current.getTracks().forEach((t) => t.stop());
@@ -637,15 +657,7 @@ export default function MobilePengembangan() {
       const registeredList = [];
       const seenIds = new Set();
       (santriListRef.current || []).forEach((s) => {
-        let desc = null;
-        if (s.face_descriptor) {
-          try {
-            desc = typeof s.face_descriptor === "string" ? JSON.parse(s.face_descriptor) : s.face_descriptor;
-          } catch (e) {}
-        }
-        if (!desc && registeredMap[s.id]?.descriptor) {
-          desc = registeredMap[s.id].descriptor;
-        }
+        let desc = normalizeDescriptor(s.face_descriptor) || normalizeDescriptor(registeredMap[s.id]?.descriptor);
         if (desc) {
           registeredList.push({
             santri_id: s.id,

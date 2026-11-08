@@ -8,7 +8,9 @@ let isScriptLoaded = false;
 let isModelsLoaded = false;
 let loadPromise = null;
 let globalFaceMesh = null;
-let currentResolve = null;
+let isSending = false;
+let pendingResolvers = [];
+let lastMediaPipeResults = null;
 
 // 1. Muat Script Google MediaPipe FaceMesh dari CDN
 export const loadFaceApiScript = () => {
@@ -63,11 +65,13 @@ export const initFaceApiModels = async (onProgress = null) => {
       });
 
       faceMesh.onResults((results) => {
-        if (currentResolve) {
-          const cb = currentResolve;
-          currentResolve = null;
-          cb(results);
-        }
+        lastMediaPipeResults = results;
+        const resolvers = pendingResolvers;
+        pendingResolvers = [];
+        isSending = false;
+        resolvers.forEach((cb) => {
+          try { cb(results); } catch (e) {}
+        });
       });
 
       globalFaceMesh = faceMesh;
@@ -210,27 +214,43 @@ export const computeEuclideanDistance = (a, b) => {
   return Math.sqrt(sum);
 };
 
-// 5. Deteksi Wajah & Ambil 128-D Feature Descriptor via Google MediaPipe FaceMesh
+// 5. Deteksi Wajah & Ambil 128-D Feature Descriptor via Google MediaPipe FaceMesh (Thread-safe & Anti-clobber)
 export const detectFaceDescriptor = async (mediaElement) => {
-  if (!isFaceModelReady() || !mediaElement) {
+  if (!mediaElement) return null;
+  if (!isFaceModelReady()) {
     await initFaceApiModels().catch(() => {});
   }
   if (!globalFaceMesh) return null;
 
   try {
     const results = await new Promise((resolve) => {
-      currentResolve = resolve;
-      try {
-        globalFaceMesh.send({ image: mediaElement }).catch(() => resolve(null));
-      } catch (eSend) {
-        resolve(null);
-      }
-      setTimeout(() => {
-        if (currentResolve === resolve) {
-          currentResolve = null;
-          resolve(null);
+      let timeoutId;
+
+      const onDone = (res) => {
+        clearTimeout(timeoutId);
+        resolve(res);
+      };
+
+      pendingResolvers.push(onDone);
+
+      timeoutId = setTimeout(() => {
+        const idx = pendingResolvers.indexOf(onDone);
+        if (idx !== -1) pendingResolvers.splice(idx, 1);
+        resolve(lastMediaPipeResults);
+      }, 1000);
+
+      if (!isSending) {
+        isSending = true;
+        try {
+          globalFaceMesh.send({ image: mediaElement }).catch(() => {
+            isSending = false;
+            onDone(lastMediaPipeResults);
+          });
+        } catch (eSend) {
+          isSending = false;
+          onDone(lastMediaPipeResults);
         }
-      }, 800);
+      }
     });
 
     if (!results || !results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
