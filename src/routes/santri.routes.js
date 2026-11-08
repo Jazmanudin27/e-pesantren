@@ -51,11 +51,37 @@ router.get('/for-face-registration', async (req, res) => {
         s.kelas_id, 
         COALESCE(s.nama_asrama, a.nama_asrama, '') as nama_asrama, 
         CASE 
-          WHEN (s.face_descriptor IS NOT NULL AND s.face_descriptor != '') OR (s.foto IS NOT NULL AND s.foto != '') THEN 1 
+          WHEN (s.face_descriptor IS NOT NULL AND s.face_descriptor != '' AND s.face_descriptor != '[]') THEN 1 
           ELSE 0 
-        END AS has_face_descriptor
+        END AS has_face_descriptor,
+        CASE 
+          WHEN (s.foto IS NOT NULL AND s.foto != '') THEN 1 
+          ELSE 0 
+        END AS has_photo
       FROM santri s
       LEFT JOIN asrama a ON s.asrama_id = a.id
+      ORDER BY s.id ASC
+    `);
+    return res.json({ success: true, total: rows.length, data: rows });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 1b2. Ambil daftar santri yang memiliki foto tapi belum memiliki biometrik face_descriptor
+router.get('/photos-without-descriptor', async (req, res) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    const [rows] = await pool.query(`
+      SELECT 
+        s.id, 
+        s.nis, 
+        s.nama_santri, 
+        s.nama_kelas, 
+        s.foto
+      FROM santri s
+      WHERE (s.foto IS NOT NULL AND s.foto != '')
+        AND (s.face_descriptor IS NULL OR s.face_descriptor = '' OR s.face_descriptor = '[]')
       ORDER BY s.id ASC
     `);
     return res.json({ success: true, total: rows.length, data: rows });

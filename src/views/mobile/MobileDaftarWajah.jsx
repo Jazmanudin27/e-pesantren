@@ -15,7 +15,10 @@ import {
   AlertCircle,
   Trash2,
   LayoutGrid,
-  List
+  List,
+  Sparkles,
+  Zap,
+  Loader2
 } from 'lucide-react';
 import { toastSuccess, showError, showConfirm } from '../../utils/alert.util';
 import {
@@ -37,6 +40,19 @@ export default function MobileDaftarWajah() {
   const [filterMode, setFilterMode] = useState('all'); // 'all' | 'unregistered' | 'registered'
   const [viewLayout, setViewLayout] = useState('grid'); // 'grid' | 'list'
   const [displayLimit, setDisplayLimit] = useState(30);
+
+  // Otomatis Batch Face Scanner State
+  const [unindexedList, setUnindexedList] = useState([]);
+  const [isBatchScanning, setIsBatchScanning] = useState(false);
+  const [batchProgress, setBatchProgress] = useState({
+    current: 0,
+    total: 0,
+    success: 0,
+    failed: 0,
+    currentSantri: null
+  });
+  const [scanningSingleId, setScanningSingleId] = useState(null);
+  const cancelBatchRef = useRef(false);
 
   useEffect(() => {
     setDisplayLimit(30);
@@ -71,16 +87,32 @@ export default function MobileDaftarWajah() {
     }
   });
 
+  const fetchUnindexed = async () => {
+    try {
+      const res = await axios.get('/api/santri/photos-without-descriptor');
+      if (res.data?.data && Array.isArray(res.data.data)) {
+        setUnindexedList(res.data.data);
+      }
+    } catch (e) {
+      console.warn('Gagal ambil santri unindexed:', e);
+    }
+  };
+
   const fetchSantri = async () => {
     try {
       setLoading(true);
-      const [resSantri, resKelas] = await Promise.all([
+      const [resSantri, resKelas, resUnindexed] = await Promise.all([
         axios.get('/api/santri/for-face-registration').catch(() => axios.get('/api/santri?all=true')),
-        axios.get('/api/kelas').catch(() => ({ data: { data: [] } }))
+        axios.get('/api/kelas').catch(() => ({ data: { data: [] } })),
+        axios.get('/api/santri/photos-without-descriptor').catch(() => ({ data: { data: [] } }))
       ]);
 
       if (resKelas.data?.data && Array.isArray(resKelas.data.data)) {
         setKelasList(resKelas.data.data);
+      }
+
+      if (resUnindexed.data?.data && Array.isArray(resUnindexed.data.data)) {
+        setUnindexedList(resUnindexed.data.data);
       }
 
       if (resSantri.data?.data && Array.isArray(resSantri.data.data)) {
@@ -114,6 +146,143 @@ export default function MobileDaftarWajah() {
       console.warn('Gagal ambil santri:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Scan Otomatis Seluruh Foto yang Belum Punya Biometrik Face Descriptor
+  const handleStartBatchScan = async () => {
+    if (!unindexedList || unindexedList.length === 0) {
+      toastSuccess('Semua foto santri sudah memiliki biometrik AI!');
+      return;
+    }
+
+    if (!isFaceModelReady()) {
+      try {
+        await initFaceApiModels();
+      } catch (e) {
+        showError('Gagal Memuat AI', 'Model AI pendeteksi wajah belum siap. Harap cek koneksi internet.');
+        return;
+      }
+    }
+
+    setIsBatchScanning(true);
+    cancelBatchRef.current = false;
+    let successCount = 0;
+    let failCount = 0;
+    const total = unindexedList.length;
+
+    for (let i = 0; i < total; i++) {
+      if (cancelBatchRef.current) break;
+      const s = unindexedList[i];
+      setBatchProgress({
+        current: i + 1,
+        total,
+        success: successCount,
+        failed: failCount,
+        currentSantri: s
+      });
+
+      try {
+        const photoSrc = s.foto;
+        if (!photoSrc) {
+          failCount++;
+          continue;
+        }
+
+        const descriptor = await extractDescriptorFromDataUrl(photoSrc);
+        if (descriptor) {
+          const cleanDesc = descriptor instanceof Float32Array ? Array.from(descriptor) : descriptor;
+          await axios.post(`/api/santri/${s.id}/face-descriptor`, {
+            face_descriptor: cleanDesc
+          });
+
+          // Update state santriList lokal seketika
+          setSantriList((prev) =>
+            prev.map((item) =>
+              String(item.id) === String(s.id)
+                ? { ...item, has_face_descriptor: 1, face_descriptor: cleanDesc }
+                : item
+            )
+          );
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (err) {
+        console.warn(`Scan error santri ${s.nama_santri}:`, err);
+        failCount++;
+      }
+
+      // Delay ringan 70ms agar render UI tetap lancar & responsif
+      await new Promise((r) => setTimeout(r, 70));
+    }
+
+    setIsBatchScanning(false);
+    fetchUnindexed();
+    fetchSantri();
+
+    if (!cancelBatchRef.current) {
+      toastSuccess(`Scan Selesai! ${successCount} wajah berhasil diekstrak, ${failCount} tidak terdeteksi.`);
+    } else {
+      toastSuccess(`Scan dihentikan. ${successCount} berhasil diproses.`);
+    }
+  };
+
+  const handleStopBatchScan = () => {
+    cancelBatchRef.current = true;
+    setIsBatchScanning(false);
+  };
+
+  // Scan Otomatis 1 Foto Santri Tertentu
+  const handleScanSinglePhoto = async (santri) => {
+    if (scanningSingleId) return;
+    setScanningSingleId(santri.id);
+
+    try {
+      if (!isFaceModelReady()) {
+        await initFaceApiModels();
+      }
+
+      let photoSrc = santri.foto;
+      if (!photoSrc) {
+        const res = await axios.get(`/api/santri/${santri.id}`);
+        photoSrc = res.data?.data?.foto;
+      }
+
+      if (!photoSrc) {
+        showError('Foto Kosong', `Santri ${santri.nama_santri} belum memiliki file foto.`);
+        setScanningSingleId(null);
+        return;
+      }
+
+      const descriptor = await extractDescriptorFromDataUrl(photoSrc);
+      if (!descriptor) {
+        showError(
+          'Wajah Tidak Terdeteksi!',
+          `Foto "${santri.nama_santri}" tidak terdeteksi sebagai wajah manusia oleh AI. Pastikan foto jelas dan menghadap ke depan.`
+        );
+        setScanningSingleId(null);
+        return;
+      }
+
+      const cleanDesc = descriptor instanceof Float32Array ? Array.from(descriptor) : descriptor;
+      await axios.post(`/api/santri/${santri.id}/face-descriptor`, {
+        face_descriptor: cleanDesc
+      });
+
+      setSantriList((prev) =>
+        prev.map((item) =>
+          String(item.id) === String(santri.id)
+            ? { ...item, has_face_descriptor: 1, face_descriptor: cleanDesc, foto: photoSrc }
+            : item
+        )
+      );
+      fetchUnindexed();
+      toastSuccess(`Biometrik wajah ${santri.nama_santri} berhasil diekstrak!`);
+    } catch (e) {
+      showError('Gagal Ekstraksi Wajah', e?.response?.data?.message || e.message);
+    } finally {
+      setScanningSingleId(null);
     }
   };
 
@@ -475,18 +644,25 @@ export default function MobileDaftarWajah() {
     }
   };
 
-  // Helper Cek Status Pendaftaran Wajah Santri
+  // Helper Cek Status Pendaftaran Wajah Santri (Valid Biometrik AI Terpasang)
   const checkSantriEnrolled = (s) => {
     if (!s) return false;
-    if (s.has_face_descriptor === 0) return false;
     const prof = registeredFaces[s.id] || registeredFaces[String(s.id)];
     return !!(
       s.has_face_descriptor === 1 ||
       s.face_descriptor ||
+      prof?.descriptor
+    );
+  };
+
+  // Helper Cek Apakah Santri Memiliki File Foto
+  const checkSantriHasPhoto = (s) => {
+    if (!s) return false;
+    return !!(
+      s.has_photo === 1 ||
       s.foto ||
       s.foto_santri ||
-      prof?.foto ||
-      prof?.descriptor
+      registeredFaces[s.id]?.foto
     );
   };
 
@@ -513,6 +689,7 @@ export default function MobileDaftarWajah() {
   });
 
   const totalRegisteredInClass = classFilteredSantri.filter(checkSantriEnrolled).length;
+  const totalNeedsScanInClass = classFilteredSantri.filter((s) => checkSantriHasPhoto(s) && !checkSantriEnrolled(s)).length;
 
   const filteredSantri = classFilteredSantri.filter((s) => {
     const q = search.toLowerCase();
@@ -524,8 +701,10 @@ export default function MobileDaftarWajah() {
 
     if (!matchSearch) return false;
     const isEnrolled = checkSantriEnrolled(s);
+    const hasPhoto = checkSantriHasPhoto(s);
     if (filterMode === 'unregistered') return !isEnrolled;
     if (filterMode === 'registered') return isEnrolled;
+    if (filterMode === 'needs_scan') return hasPhoto && !isEnrolled;
     return true;
   });
 
@@ -586,6 +765,71 @@ export default function MobileDaftarWajah() {
           Daftarkan foto wajah santri di sini untuk digunakan pada kamera Presensi Wajah AI otomatis.
         </p>
       </div>
+
+      {/* Banner Scan Otomatis Foto Tanpa Biometrik */}
+      {unindexedList.length > 0 && (
+        <div style={{
+          background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+          borderRadius: '16px',
+          padding: '12px 14px',
+          color: '#ffffff',
+          marginBottom: '14px',
+          boxShadow: '0 6px 16px -3px rgba(217, 119, 6, 0.35)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '10px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '11px',
+              background: 'rgba(255,255,255,0.22)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <Sparkles size={20} color="#ffffff" />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '0.84rem', lineHeight: 1.2 }}>
+                {unindexedList.length} Foto Siap Di-scan Otomatis
+              </div>
+              <div style={{ fontSize: '0.7rem', opacity: 0.92, marginTop: '2px' }}>
+                Generate kode biometrik AI untuk foto santri
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={handleStartBatchScan}
+            disabled={isBatchScanning}
+            style={{
+              padding: '8px 13px',
+              borderRadius: '11px',
+              background: '#ffffff',
+              color: '#b45309',
+              border: 'none',
+              fontWeight: 800,
+              fontSize: '0.78rem',
+              cursor: isBatchScanning ? 'not-allowed' : 'pointer',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}
+          >
+            {isBatchScanning ? (
+              <Loader2 size={14} color="#b45309" className="animate-spin" />
+            ) : (
+              <Zap size={14} color="#b45309" />
+            )}
+            <span>{isBatchScanning ? 'Memproses...' : 'Scan AI'}</span>
+          </button>
+        </div>
+      )}
 
       {/* Filter Tabs & Search Bar */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px' }}>
@@ -648,11 +892,12 @@ export default function MobileDaftarWajah() {
         </div>
 
         {/* Filter Pills */}
-        <div style={{ display: 'flex', gap: '6px' }}>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           <button
             onClick={() => setFilterMode('all')}
             style={{
               flex: 1,
+              minWidth: '70px',
               padding: '7px 4px',
               borderRadius: '10px',
               border: filterMode === 'all' ? '1.5px solid #0284c7' : '1px solid #e2e8f0',
@@ -669,6 +914,7 @@ export default function MobileDaftarWajah() {
             onClick={() => setFilterMode('unregistered')}
             style={{
               flex: 1,
+              minWidth: '85px',
               padding: '7px 4px',
               borderRadius: '10px',
               border: filterMode === 'unregistered' ? '1.5px solid #ea580c' : '1px solid #e2e8f0',
@@ -679,12 +925,32 @@ export default function MobileDaftarWajah() {
               cursor: 'pointer'
             }}
           >
-            Belum Foto ({classFilteredSantri.length - totalRegisteredInClass})
+            Belum AI ({classFilteredSantri.length - totalRegisteredInClass})
           </button>
+          {totalNeedsScanInClass > 0 && (
+            <button
+              onClick={() => setFilterMode('needs_scan')}
+              style={{
+                flex: 1,
+                minWidth: '95px',
+                padding: '7px 4px',
+                borderRadius: '10px',
+                border: filterMode === 'needs_scan' ? '1.5px solid #d97706' : '1px solid #fed7aa',
+                background: filterMode === 'needs_scan' ? '#fef3c7' : '#fffbeb',
+                color: '#b45309',
+                fontSize: '0.74rem',
+                fontWeight: 800,
+                cursor: 'pointer'
+              }}
+            >
+              Belum Scan ({totalNeedsScanInClass})
+            </button>
+          )}
           <button
             onClick={() => setFilterMode('registered')}
             style={{
               flex: 1,
+              minWidth: '80px',
               padding: '7px 4px',
               borderRadius: '10px',
               border: filterMode === 'registered' ? '1.5px solid #059669' : '1px solid #e2e8f0',
@@ -786,7 +1052,8 @@ export default function MobileDaftarWajah() {
           {filteredSantri.slice(0, displayLimit).map((santri) => {
             const registered = registeredFaces[santri.id] || registeredFaces[String(santri.id)];
             const isEnrolled = checkSantriEnrolled(santri);
-            const photo = santri.foto || registered?.foto || (isEnrolled ? `/api/santri/${santri.id}/photo-thumb` : null);
+            const hasPhoto = checkSantriHasPhoto(santri);
+            const photo = santri.foto || registered?.foto || (isEnrolled || hasPhoto ? `/api/santri/${santri.id}/photo-thumb` : null);
 
             return (
               <div
@@ -795,7 +1062,11 @@ export default function MobileDaftarWajah() {
                   background: '#ffffff',
                   borderRadius: '18px',
                   padding: '12px 10px',
-                  border: isEnrolled ? '1.5px solid #10b981' : '1.5px solid #e2e8f0',
+                  border: isEnrolled 
+                    ? '1.5px solid #10b981' 
+                    : hasPhoto 
+                    ? '1.5px solid #f59e0b' 
+                    : '1.5px solid #e2e8f0',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -803,6 +1074,8 @@ export default function MobileDaftarWajah() {
                   position: 'relative',
                   boxShadow: isEnrolled
                     ? '0 4px 14px -2px rgba(16, 185, 129, 0.15)'
+                    : hasPhoto
+                    ? '0 4px 14px -2px rgba(245, 158, 11, 0.15)'
                     : '0 2px 8px rgba(0,0,0,0.03)',
                   transition: 'all 0.2s ease'
                 }}
@@ -812,9 +1085,9 @@ export default function MobileDaftarWajah() {
                   position: 'absolute',
                   top: '9px',
                   left: '9px',
-                  background: isEnrolled ? '#ecfdf5' : '#f8fafc',
-                  color: isEnrolled ? '#059669' : '#94a3b8',
-                  border: isEnrolled ? '1px solid #a7f3d0' : '1px solid #e2e8f0',
+                  background: isEnrolled ? '#ecfdf5' : hasPhoto ? '#fef3c7' : '#f8fafc',
+                  color: isEnrolled ? '#059669' : hasPhoto ? '#b45309' : '#94a3b8',
+                  border: isEnrolled ? '1px solid #a7f3d0' : hasPhoto ? '1px solid #fed7aa' : '1px solid #e2e8f0',
                   borderRadius: '999px',
                   padding: '2px 6px',
                   fontSize: '0.6rem',
@@ -826,15 +1099,20 @@ export default function MobileDaftarWajah() {
                   {isEnrolled ? (
                     <>
                       <CheckCircle2 size={10} color="#059669" />
-                      <span>Ada Foto</span>
+                      <span>AI Siap</span>
+                    </>
+                  ) : hasPhoto ? (
+                    <>
+                      <Zap size={10} color="#b45309" />
+                      <span>Belum AI</span>
                     </>
                   ) : (
-                    <span>Belum</span>
+                    <span>Belum Foto</span>
                   )}
                 </div>
 
                 {/* Hapus Foto Action */}
-                {isEnrolled && (
+                {(isEnrolled || hasPhoto) && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -869,13 +1147,13 @@ export default function MobileDaftarWajah() {
                     height: '68px',
                     borderRadius: '20px',
                     overflow: 'hidden',
-                    background: isEnrolled ? '#d1fae5' : '#f1f5f9',
+                    background: isEnrolled ? '#d1fae5' : hasPhoto ? '#fef3c7' : '#f1f5f9',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     marginTop: '18px',
                     marginBottom: '8px',
-                    border: isEnrolled ? '2.5px solid #10b981' : '2px dashed #cbd5e1',
+                    border: isEnrolled ? '2.5px solid #10b981' : hasPhoto ? '2.5px solid #f59e0b' : '2px dashed #cbd5e1',
                     boxShadow: isEnrolled ? '0 4px 10px rgba(16, 185, 129, 0.2)' : 'none',
                     cursor: 'pointer'
                   }}
@@ -937,30 +1215,61 @@ export default function MobileDaftarWajah() {
                   )}
                 </div>
 
-                {/* Button Ambil/Ubah Foto */}
-                <button
-                  onClick={() => handleOpenEnrollModal(santri)}
-                  style={{
-                    width: '100%',
-                    marginTop: 'auto',
-                    padding: '7px 6px',
-                    borderRadius: '11px',
-                    background: isEnrolled ? '#f0fdf4' : 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-                    color: isEnrolled ? '#059669' : '#ffffff',
-                    border: isEnrolled ? '1.5px solid #a7f3d0' : 'none',
-                    fontSize: '0.72rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px',
-                    boxShadow: isEnrolled ? 'none' : '0 3px 8px rgba(2, 132, 199, 0.22)'
-                  }}
-                >
-                  <Camera size={13} />
-                  <span>{isEnrolled ? 'Ubah' : 'Ambil Foto'}</span>
-                </button>
+                {/* Button Ambil/Ubah Foto atau Scan AI */}
+                {!isEnrolled && hasPhoto ? (
+                  <button
+                    onClick={() => handleScanSinglePhoto(santri)}
+                    disabled={scanningSingleId === santri.id}
+                    style={{
+                      width: '100%',
+                      marginTop: 'auto',
+                      padding: '7px 6px',
+                      borderRadius: '11px',
+                      background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                      color: '#ffffff',
+                      border: 'none',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      cursor: scanningSingleId === santri.id ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px',
+                      boxShadow: '0 3px 8px rgba(217, 119, 6, 0.25)'
+                    }}
+                  >
+                    {scanningSingleId === santri.id ? (
+                      <Loader2 size={13} color="#ffffff" className="animate-spin" />
+                    ) : (
+                      <Zap size={13} color="#ffffff" />
+                    )}
+                    <span>{scanningSingleId === santri.id ? 'Memproses...' : 'Scan AI'}</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleOpenEnrollModal(santri)}
+                    style={{
+                      width: '100%',
+                      marginTop: 'auto',
+                      padding: '7px 6px',
+                      borderRadius: '11px',
+                      background: isEnrolled ? '#f0fdf4' : 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                      color: isEnrolled ? '#059669' : '#ffffff',
+                      border: isEnrolled ? '1.5px solid #a7f3d0' : 'none',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px',
+                      boxShadow: isEnrolled ? 'none' : '0 3px 8px rgba(2, 132, 199, 0.22)'
+                    }}
+                  >
+                    <Camera size={13} />
+                    <span>{isEnrolled ? 'Ubah' : 'Ambil Foto'}</span>
+                  </button>
+                )}
               </div>
             );
           })}
@@ -971,7 +1280,8 @@ export default function MobileDaftarWajah() {
           {filteredSantri.slice(0, displayLimit).map((santri) => {
             const registered = registeredFaces[santri.id] || registeredFaces[String(santri.id)];
             const isEnrolled = checkSantriEnrolled(santri);
-            const photo = santri.foto || registered?.foto || (isEnrolled ? `/api/santri/${santri.id}/photo-thumb` : null);
+            const hasPhoto = checkSantriHasPhoto(santri);
+            const photo = santri.foto || registered?.foto || (isEnrolled || hasPhoto ? `/api/santri/${santri.id}/photo-thumb` : null);
 
             return (
               <div
@@ -980,7 +1290,11 @@ export default function MobileDaftarWajah() {
                   background: '#ffffff',
                   borderRadius: '18px',
                   padding: '12px 14px',
-                  border: isEnrolled ? '1.5px solid #10b981' : '1.5px solid #e2e8f0',
+                  border: isEnrolled 
+                    ? '1.5px solid #10b981' 
+                    : hasPhoto 
+                    ? '1.5px solid #f59e0b' 
+                    : '1.5px solid #e2e8f0',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px',
@@ -993,12 +1307,12 @@ export default function MobileDaftarWajah() {
                   height: '46px',
                   borderRadius: '14px',
                   overflow: 'hidden',
-                  background: isEnrolled ? '#d1fae5' : '#f1f5f9',
+                  background: isEnrolled ? '#d1fae5' : hasPhoto ? '#fef3c7' : '#f1f5f9',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
-                  border: isEnrolled ? '1.5px solid #059669' : '1px solid #cbd5e1'
+                  border: isEnrolled ? '1.5px solid #059669' : hasPhoto ? '1.5px solid #f59e0b' : '1px solid #cbd5e1'
                 }}>
                   {photo ? (
                     <img src={photo} alt={santri.nama_santri} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -1020,6 +1334,15 @@ export default function MobileDaftarWajah() {
                     }}>
                       {santri.nama_santri}
                     </span>
+                    {isEnrolled ? (
+                      <span style={{ fontSize: '0.62rem', background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', padding: '1px 6px', borderRadius: '999px', fontWeight: 800 }}>
+                        AI Siap
+                      </span>
+                    ) : hasPhoto ? (
+                      <span style={{ fontSize: '0.62rem', background: '#fef3c7', color: '#b45309', border: '1px solid #fed7aa', padding: '1px 6px', borderRadius: '999px', fontWeight: 800 }}>
+                        Belum AI
+                      </span>
+                    ) : null}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.7rem', color: '#64748b', marginTop: '2px', flexWrap: 'wrap' }}>
                     <span style={{ fontWeight: 600 }}>NIS: {santri.nis || '-'}</span>
@@ -1038,7 +1361,34 @@ export default function MobileDaftarWajah() {
 
                 {/* Action Buttons */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                  {isEnrolled && (
+                  {!isEnrolled && hasPhoto && (
+                    <button
+                      onClick={() => handleScanSinglePhoto(santri)}
+                      disabled={scanningSingleId === santri.id}
+                      style={{
+                        padding: '7px 11px',
+                        borderRadius: '10px',
+                        background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                        color: '#ffffff',
+                        border: 'none',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        cursor: scanningSingleId === santri.id ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      {scanningSingleId === santri.id ? (
+                        <Loader2 size={12} color="#ffffff" className="animate-spin" />
+                      ) : (
+                        <Zap size={12} color="#ffffff" />
+                      )}
+                      <span>Scan AI</span>
+                    </button>
+                  )}
+
+                  {(isEnrolled || hasPhoto) && (
                     <button
                       onClick={() => handleDeleteFace(santri)}
                       title="Hapus Wajah Santri"
@@ -1108,6 +1458,102 @@ export default function MobileDaftarWajah() {
             <RefreshCw size={13} />
             <span>Muat Lebih Banyak ({filteredSantri.length - displayLimit} santri lagi)</span>
           </button>
+        </div>
+      )}
+
+      {/* Floating Batch Scan Progress Card */}
+      {isBatchScanning && (
+        <div style={{
+          position: 'fixed',
+          bottom: '75px',
+          left: '14px',
+          right: '14px',
+          maxWidth: '460px',
+          margin: '0 auto',
+          zIndex: 999,
+          background: 'rgba(15, 23, 42, 0.95)',
+          backdropFilter: 'blur(12px)',
+          borderRadius: '18px',
+          padding: '16px',
+          color: '#ffffff',
+          boxShadow: '0 12px 30px rgba(0,0,0,0.3)',
+          border: '1px solid rgba(255,255,255,0.15)',
+          fontFamily: "'Inter', sans-serif"
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Loader2 size={18} color="#38bdf8" className="animate-spin" />
+              <span style={{ fontWeight: 800, fontSize: '0.84rem' }}>
+                Ekstraksi Wajah Otomatis...
+              </span>
+            </div>
+            <button
+              onClick={handleStopBatchScan}
+              style={{
+                background: '#ef4444',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '4px 10px',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              Hentikan
+            </button>
+          </div>
+
+          {/* Current Santri Info */}
+          {batchProgress.currentSantri && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              marginBottom: '10px',
+              background: 'rgba(255,255,255,0.08)',
+              padding: '8px 10px',
+              borderRadius: '12px'
+            }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', overflow: 'hidden', background: '#334155', flexShrink: 0 }}>
+                {batchProgress.currentSantri.foto ? (
+                  <img src={batchProgress.currentSantri.foto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <Users size={20} color="#94a3b8" style={{ margin: '8px auto' }} />
+                )}
+              </div>
+              <div style={{ overflow: 'hidden' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {batchProgress.currentSantri.nama_santri}
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                  NIS: {batchProgress.currentSantri.nis} • {batchProgress.currentSantri.nama_kelas || 'Santri'}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Progress Bar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', marginBottom: '5px', color: '#94a3b8' }}>
+            <span>Memproses {batchProgress.current} dari {batchProgress.total}</span>
+            <span style={{ color: '#38bdf8', fontWeight: 800 }}>
+              {Math.round((batchProgress.current / (batchProgress.total || 1)) * 100)}%
+            </span>
+          </div>
+          <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.15)', borderRadius: '999px', overflow: 'hidden', marginBottom: '10px' }}>
+            <div style={{
+              width: `${Math.round((batchProgress.current / (batchProgress.total || 1)) * 100)}%`,
+              height: '100%',
+              background: 'linear-gradient(90deg, #38bdf8, #22c55e)',
+              transition: 'width 0.2s ease'
+            }} />
+          </div>
+
+          {/* Stats summary */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#cbd5e1' }}>
+            <span style={{ color: '#4ade80' }}>✓ {batchProgress.success} Berhasil</span>
+            <span style={{ color: '#f87171' }}>✗ {batchProgress.failed} Gagal / Tanpa Wajah</span>
+          </div>
         </div>
       )}
 
