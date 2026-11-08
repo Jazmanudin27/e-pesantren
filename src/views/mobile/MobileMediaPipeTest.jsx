@@ -25,6 +25,7 @@ import {
   detectFaceDescriptor,
   computeEuclideanDistance,
   isValidDescriptor,
+  normalizeDescriptor,
   isFaceModelReady
 } from '../../utils/faceApi.util';
 
@@ -120,35 +121,7 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
     };
 
     loadEngines();
-
-    // Fetch daftar santri langsung dari MySQL database
-    axios.get(`/api/santri?all=true&_t=${Date.now()}`)
-      .then(res => {
-        const list = res.data?.data || [];
-        setSantriList(Array.isArray(list) ? list : []);
-
-        // Filter santri yang memiliki face_descriptor valid
-        const withDesc = (Array.isArray(list) ? list : []).filter(s => {
-          if (!s.face_descriptor) return false;
-          let parsed = s.face_descriptor;
-          if (typeof parsed === 'string') {
-            try { parsed = JSON.parse(parsed); } catch (e) { return false; }
-          }
-          return isValidDescriptor(parsed);
-        }).map(s => {
-          let parsed = s.face_descriptor;
-          if (typeof parsed === 'string') {
-            try { parsed = JSON.parse(parsed); } catch (e) {}
-          }
-          return { ...s, parsedDescriptor: parsed };
-        });
-
-        setSantriWithBiometrics(withDesc);
-        if (withDesc.length > 0) {
-          setSelectedSantriId(String(withDesc[0].id));
-        }
-      })
-      .catch(() => {});
+    fetchBiometricsData(targetRegisterId);
 
     return () => {
       isMounted = false;
@@ -158,6 +131,97 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
       }
     };
   }, []);
+
+  // Sinkronisasi Biometrik MySQL & LocalStorage
+  const fetchBiometricsData = async (targetId = targetRegisterId) => {
+    try {
+      // 1. Ambil data santri yang punya biometrik langsung dari endpoint MySQL cepat
+      const resWithFace = await axios.get(`/api/santri/with-face?_t=${Date.now()}`).catch(() => ({ data: { data: [] } }));
+      const dbList = resWithFace.data?.data || [];
+
+      // 2. Ambil cache lokal
+      let localMap = {};
+      try {
+        localMap = JSON.parse(localStorage.getItem('epesantren_face_profiles') || '{}');
+      } catch (e) {}
+
+      // 3. Ambil status santri target secara spesifik
+      const resSingle = await axios.get(`/api/santri/${targetId}/face-status?_t=${Date.now()}`).catch(() => null);
+      const singleSantri = resSingle?.data?.santri;
+
+      const mergedList = [];
+      const seenIds = new Set();
+
+      // Prioritas 1: Dari endpoint MySQL /with-face
+      dbList.forEach(s => {
+        const norm = normalizeDescriptor(s.face_descriptor);
+        if (norm) {
+          mergedList.push({
+            id: s.id,
+            nama_santri: s.nama_santri,
+            nis: s.nis,
+            foto: s.foto,
+            parsedDescriptor: norm,
+            face_descriptor: norm,
+            source: 'mysql'
+          });
+          seenIds.add(String(s.id));
+        }
+      });
+
+      // Prioritas 2: Dari single santri query
+      if (singleSantri && singleSantri.has_face && !seenIds.has(String(singleSantri.id))) {
+        const norm = normalizeDescriptor(singleSantri.face_descriptor);
+        if (norm) {
+          mergedList.push({
+            id: singleSantri.id,
+            nama_santri: singleSantri.nama_santri,
+            nis: singleSantri.nis,
+            foto: singleSantri.foto,
+            parsedDescriptor: norm,
+            face_descriptor: norm,
+            source: 'mysql'
+          });
+          seenIds.add(String(singleSantri.id));
+        }
+      }
+
+      // Prioritas 3: Dari localStorage jika di DB belum sinkron
+      Object.values(localMap).forEach(p => {
+        const pId = String(p.santri_id || p.id || '');
+        if (pId && !seenIds.has(pId)) {
+          const norm = normalizeDescriptor(p.descriptor || p.face_descriptor);
+          if (norm) {
+            mergedList.push({
+              id: pId,
+              nama_santri: p.nama || p.nama_santri,
+              nis: p.nis,
+              foto: p.foto,
+              parsedDescriptor: norm,
+              face_descriptor: norm,
+              source: 'local'
+            });
+            seenIds.add(pId);
+          }
+        }
+      });
+
+      setSantriWithBiometrics(mergedList);
+      if (mergedList.length > 0 && (selectedSantriId === 'all' || !mergedList.some(s => String(s.id) === String(selectedSantriId)))) {
+        const matchTarget = mergedList.find(s => String(s.id) === String(targetId));
+        setSelectedSantriId(matchTarget ? String(matchTarget.id) : String(mergedList[0].id));
+      }
+
+      // Ambil juga master list nama santri untuk dropdown
+      if (santriList.length === 0) {
+        axios.get(`/api/santri?limit=100&_t=${Date.now()}`).then(r => {
+          setSantriList(r.data?.data || []);
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.warn('Gagal memuat biometrik:', e);
+    }
+  };
 
   const loadScript = (src) => {
     return new Promise((resolve, reject) => {
@@ -575,6 +639,7 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
         });
         setSelectedSantriId(String(targetRegisterId));
 
+        await fetchBiometricsData(targetRegisterId);
         setTimeout(() => {
           handleTestDatabaseFaceDescriptor();
         }, 400);
@@ -846,7 +911,11 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
                     <input
                       type="number"
                       value={targetRegisterId}
-                      onChange={(e) => setTargetRegisterId(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTargetRegisterId(val);
+                        if (val) fetchBiometricsData(val);
+                      }}
                       style={{
                         width: '55px',
                         background: '#1e293b',

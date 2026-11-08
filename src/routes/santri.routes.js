@@ -5,6 +5,75 @@ import { getAllSantri, createSantri, updateSantri, deleteSantri, importSantri } 
 const router = express.Router();
 
 router.get('/', getAllSantri);
+
+// 1. Endpoint Cepat: Ambil semua santri yang memiliki face_descriptor di MySQL
+router.get('/with-face', async (req, res) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    const [rows] = await pool.query(
+      "SELECT id, nis, nama_santri, foto, face_descriptor FROM santri WHERE face_descriptor IS NOT NULL AND face_descriptor != ''"
+    );
+    const cleaned = rows.map(r => {
+      let desc = r.face_descriptor;
+      if (typeof desc === 'string') {
+        try { desc = JSON.parse(desc); } catch (e) {}
+      }
+      if (desc && typeof desc === 'string') {
+        try { desc = JSON.parse(desc); } catch (e) {}
+      }
+      if (desc && typeof desc === 'object' && !Array.isArray(desc)) {
+        desc = Object.values(desc);
+      }
+      return {
+        id: r.id,
+        nis: r.nis,
+        nama_santri: r.nama_santri,
+        foto: r.foto,
+        face_descriptor: desc,
+        has_face: Array.isArray(desc) && desc.length === 128
+      };
+    });
+    return res.json({ success: true, total: cleaned.length, data: cleaned });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 2. Endpoint Cek Status Biometrik 1 Santri Tertentu
+router.get('/:id/face-status', async (req, res) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    const { id } = req.params;
+    const [rows] = await pool.query("SELECT id, nis, nama_santri, foto, face_descriptor FROM santri WHERE id = ?", [id]);
+    if (rows.length === 0) return res.status(404).json({ success: false, message: 'Santri tidak ditemukan' });
+    const r = rows[0];
+    let desc = r.face_descriptor;
+    if (typeof desc === 'string') {
+      try { desc = JSON.parse(desc); } catch (e) {}
+    }
+    if (desc && typeof desc === 'string') {
+      try { desc = JSON.parse(desc); } catch (e) {}
+    }
+    if (desc && typeof desc === 'object' && !Array.isArray(desc)) {
+      desc = Object.values(desc);
+    }
+    const hasDesc = Array.isArray(desc) && desc.length === 128;
+    return res.json({
+      success: true,
+      santri: {
+        id: r.id,
+        nis: r.nis,
+        nama_santri: r.nama_santri,
+        foto: r.foto,
+        has_face: hasDesc,
+        face_descriptor: hasDesc ? desc : null,
+        descriptor_length: desc ? (desc.length || Object.keys(desc).length) : 0
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
 router.post('/', createSantri);
 router.post('/import', importSantri);
 router.patch('/:id/foto', async (req, res) => {

@@ -117,6 +117,14 @@ export const isValidDescriptor = (arr) => {
   if (typeof target === 'string') {
     try { target = JSON.parse(target); } catch (e) { return false; }
   }
+  if (typeof target === 'string') {
+    try { target = JSON.parse(target); } catch (e) { return false; }
+  }
+  // Toleransi objek serialisasi Float32Array {"0": -0.21, "1": ...}
+  if (target && typeof target === 'object' && !Array.isArray(target) && !(target instanceof Float32Array)) {
+    const vals = Object.values(target);
+    if (vals.length === 128) target = vals;
+  }
   if (!Array.isArray(target) && !(target instanceof Float32Array)) return false;
   if (target.length !== 128) return false;
   let sumSq = 0;
@@ -128,7 +136,30 @@ export const isValidDescriptor = (arr) => {
     sumSq += v * v;
   }
   if (allZero) return false;
-  return sumSq > 0.4 && sumSq < 1.6;
+  return sumSq > 0.05;
+};
+
+// 4c. Normalisasi descriptor ke Array biasa [128 floats]
+export const normalizeDescriptor = (arr) => {
+  if (!arr) return null;
+  let target = arr;
+  if (typeof target === 'string') {
+    try { target = JSON.parse(target); } catch (e) { return null; }
+  }
+  if (typeof target === 'string') {
+    try { target = JSON.parse(target); } catch (e) { return null; }
+  }
+  if (target && typeof target === 'object' && !Array.isArray(target) && !(target instanceof Float32Array)) {
+    const vals = Object.values(target);
+    if (vals.length === 128) target = vals;
+  }
+  if (target instanceof Float32Array) {
+    target = Array.from(target);
+  }
+  if (Array.isArray(target) && target.length === 128) {
+    return target.map(n => Number(n) || 0);
+  }
+  return null;
 };
 
 // 4c. Pure JavaScript Euclidean Distance (100% aman tanpa ketergantungan tipe data)
