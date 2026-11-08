@@ -31,6 +31,7 @@ import {
   showSuccess,
 } from "../../utils/alert.util";
 import SearchableSelect from "../../components/SearchableSelect";
+import MobileLoadingState from "../../components/MobileLoadingState";
 import {
   initFaceApiModels,
   detectFaceDescriptor,
@@ -907,6 +908,19 @@ export default function MobilePengembangan() {
     ) ||
     kategoriByActiveGender[0] ||
     null;
+
+  if (loading) {
+    return (
+      <div style={{ padding: "14px", paddingBottom: "95px" }}>
+        <MobileLoadingState
+          title="Memuat Bidang Pengembangan..."
+          subtitle="Mohon tunggu sebentar, sedang sinkronisasi data santri & kategori..."
+          iconColor="#0284c7"
+          cardCount={3}
+        />
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: "14px", paddingBottom: "95px" }}>

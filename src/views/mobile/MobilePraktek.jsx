@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { showConfirm, toastSuccess, showError } from "../../utils/alert.util";
 import SearchableSelect from "../../components/SearchableSelect";
+import MobileLoadingState from "../../components/MobileLoadingState";
 import {
   initFaceApiModels,
   detectFaceDescriptor,
@@ -845,6 +846,25 @@ export default function MobilePraktek() {
     (p) => p.status === "Mengulang" || p.status === "Remedial",
   ).length;
   const totalKategoriCount = kategoriList.length;
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          padding: "16px 14px 100px 14px",
+          background: "#f8fafc",
+          minHeight: "100vh",
+        }}
+      >
+        <MobileLoadingState
+          title="Memuat Penilaian Praktek..."
+          subtitle="Mohon tunggu sebentar, sedang menyiapkan data ujian & santri..."
+          iconColor="#0284c7"
+          cardCount={3}
+        />
+      </div>
+    );
+  }
 
   return (
     <div

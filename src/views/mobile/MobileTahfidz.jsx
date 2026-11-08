@@ -15,6 +15,7 @@ import {
 import { SURAH_LIST } from "../../utils/quranSurah.util";
 import { showConfirm, toastSuccess } from "../../utils/alert.util";
 import SearchableSelect from "../../components/SearchableSelect";
+import MobileLoadingState from "../../components/MobileLoadingState";
 import { DEFAULT_KITAB_DATA } from "./MobileKitab";
 
 const getMasterKitabOptions = () => {
@@ -286,14 +287,12 @@ export default function MobileTahfidz() {
 
       {/* List Setoran Card */}
       {loading ? (
-        <div style={{ textAlign: "center", padding: "30px", color: "#64748b" }}>
-          <Loader2
-            size={28}
-            className="animate-spin"
-            style={{ margin: "0 auto 8px" }}
-          />
-          <div>Memuat riwayat setoran...</div>
-        </div>
+        <MobileLoadingState
+          title="Memuat Riwayat Tahfidz..."
+          subtitle="Mohon tunggu sebentar, sedang sinkronisasi data setoran & santri..."
+          iconColor="#059669"
+          cardCount={3}
+        />
       ) : filteredList.length === 0 ? (
         <div
           style={{

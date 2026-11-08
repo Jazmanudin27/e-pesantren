@@ -16,6 +16,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { showConfirm, toastSuccess } from "../../utils/alert.util";
+import MobileLoadingState from "../../components/MobileLoadingState";
 
 export default function MobileSantri() {
   const [santriList, setSantriList] = useState([]);
@@ -217,21 +218,12 @@ export default function MobileSantri() {
 
       {/* List Card Santri */}
       {loading ? (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "30px 0",
-            color: "#64748b",
-            fontSize: "0.84rem",
-          }}
-        >
-          <Loader2
-            size={24}
-            className="animate-spin"
-            style={{ margin: "0 auto 8px" }}
-          />
-          Memuat data santri...
-        </div>
+        <MobileLoadingState
+          title="Memuat Data Santri..."
+          subtitle="Mohon tunggu sebentar, sedang mengambil data santri..."
+          iconColor="#059669"
+          cardCount={4}
+        />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
           {filtered.map((s) => {

@@ -26,6 +26,7 @@ import {
   isFaceModelReady
 } from '../../utils/faceApi.util';
 import SearchableSelect from '../../components/SearchableSelect';
+import MobileLoadingState from '../../components/MobileLoadingState';
 
 export default function MobileDaftarWajah() {
   const [santriList, setSantriList] = useState([]);
@@ -553,6 +554,19 @@ export default function MobileDaftarWajah() {
   });
 
   const totalRegistered = santriList.filter(checkSantriEnrolled).length;
+
+  if (loading) {
+    return (
+      <div style={{ padding: '14px', background: '#f8fafc', minHeight: '100%', fontFamily: "'Inter', sans-serif" }}>
+        <MobileLoadingState
+          title="Memuat Daftar Wajah Santri..."
+          subtitle="Mohon tunggu sebentar, sistem sedang menghubungkan ke server..."
+          iconColor="#0284c7"
+          cardCount={4}
+        />
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '14px', background: '#f8fafc', minHeight: '100%', fontFamily: "'Inter', sans-serif" }}>

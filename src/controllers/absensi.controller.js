@@ -48,6 +48,19 @@ export const ensureAbsensiTablesAndColumns = async () => {
 
     // 3. Pastikan kolom sesi_id boleh NULL (agar kegiatan mobile non-shalat tidak error)
     try {
+      const [fks] = await pool.query(`
+        SELECT CONSTRAINT_NAME 
+        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+        WHERE TABLE_NAME = 'absensi_jamaah_mengaji' 
+          AND COLUMN_NAME = 'sesi_id' 
+          AND REFERENCED_TABLE_NAME IS NOT NULL 
+          AND TABLE_SCHEMA = DATABASE()
+      `);
+      for (const fk of fks || []) {
+        if (fk.CONSTRAINT_NAME) {
+          await pool.query(`ALTER TABLE absensi_jamaah_mengaji DROP FOREIGN KEY \`${fk.CONSTRAINT_NAME}\``);
+        }
+      }
       await pool.query(`ALTER TABLE absensi_jamaah_mengaji MODIFY COLUMN sesi_id INT NULL`);
     } catch (e) {}
 
@@ -344,7 +357,14 @@ export const getAbsensiFingerprint = async (req, res) => {
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
       LEFT JOIN kegiatan_sesi ks ON aj.sesi_id = ks.id
       LEFT JOIN fingerprint_device fd ON aj.device_id = fd.id
-      LEFT JOIN absensi_deleted_logs adl ON (adl.santri_id = aj.santri_id AND adl.tanggal = aj.tanggal)
+      LEFT JOIN absensi_deleted_logs adl ON (
+        adl.santri_id = aj.santri_id 
+        AND adl.tanggal = aj.tanggal
+        AND (
+          (adl.sesi_id IS NOT NULL AND aj.sesi_id IS NOT NULL AND adl.sesi_id = aj.sesi_id)
+          OR (adl.nama_kegiatan IS NOT NULL AND aj.nama_kegiatan IS NOT NULL AND LOWER(TRIM(adl.nama_kegiatan)) = LOWER(TRIM(aj.nama_kegiatan)))
+        )
+      )
       WHERE adl.id IS NULL
       ORDER BY aj.tanggal DESC, aj.waktu_scan DESC
       LIMIT 1000
@@ -595,6 +615,13 @@ export const createAbsensiFingerprint = async (req, res) => {
         `, [finalStatus, scanTime, finalMetode, finalKet, existingId]);
       });
 
+      // Hapus log pencegahan dari absensi_deleted_logs jika santri ini dicatat kembali
+      await pool.query(
+        `DELETE FROM absensi_deleted_logs 
+         WHERE santri_id = ? AND tanggal = ? AND (sesi_id = ? OR nama_kegiatan = ? OR sesi_id IS NULL)`,
+        [finalSantriId, tgl, parsedSesiId, finalKegiatan]
+      ).catch(() => {});
+
       // Perbarui juga notifikasi wali santri jika status dikoreksi (misal salah klik Sakit -> Izin)
       const notifCopy = buildAbsensiNotifText({
         namaSantri: req.body?.nama_santri || 'Ananda',
@@ -640,14 +667,32 @@ export const createAbsensiFingerprint = async (req, res) => {
       `, [tgl, parsedSesiId, finalKegiatan, finalTipe, finalSantriId, scanTime, finalStatus, device_id || 1, finalMetode, finalKet]);
       insertResult = resInsert;
     } catch (errIns) {
-      // Fallback
-      const [resInsert] = await pool.query(`
-        INSERT INTO absensi_jamaah_mengaji (
-          tanggal, sesi_id, santri_id, waktu_scan, status, device_id, metode_presensi, keterangan
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `, [tgl, parsedSesiId || 1, finalSantriId, scanTime, finalStatus, device_id || 1, finalMetode, finalKet]);
-      insertResult = resInsert;
+      console.warn('[createAbsensiFingerprint Insert 1 Failed, Retrying with parsedSesiId fallback...]', errIns?.message);
+      try {
+        const [resInsert] = await pool.query(`
+          INSERT INTO absensi_jamaah_mengaji (
+            tanggal, sesi_id, nama_kegiatan, tipe_presensi, santri_id, waktu_scan, status, device_id, metode_presensi, keterangan
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [tgl, parsedSesiId || 1, finalKegiatan, finalTipe, finalSantriId, scanTime, finalStatus, device_id || 1, finalMetode, finalKet]);
+        insertResult = resInsert;
+      } catch (errIns2) {
+        // Fallback versi skema minimal
+        console.warn('[createAbsensiFingerprint Insert 2 Failed, Falling back to minimal columns...]', errIns2?.message);
+        const [resInsert] = await pool.query(`
+          INSERT INTO absensi_jamaah_mengaji (
+            tanggal, sesi_id, santri_id, waktu_scan, status, device_id, metode_presensi, keterangan
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `, [tgl, parsedSesiId || 1, finalSantriId, scanTime, finalStatus, device_id || 1, finalMetode, finalKet]);
+        insertResult = resInsert;
+      }
     }
+
+    // Hapus log pencegahan dari absensi_deleted_logs jika santri ini dicatat kembali
+    await pool.query(
+      `DELETE FROM absensi_deleted_logs 
+       WHERE santri_id = ? AND tanggal = ? AND (sesi_id = ? OR nama_kegiatan = ? OR sesi_id IS NULL)`,
+      [finalSantriId, tgl, parsedSesiId, finalKegiatan]
+    ).catch(() => {});
 
     // Catat notifikasi profesional ke HP Orang Tua / Wali Santri
     const notifCopy = buildAbsensiNotifText({
@@ -682,6 +727,7 @@ export const createAbsensiFingerprint = async (req, res) => {
       tipe_presensi: finalTipe
     }, 201);
   } catch (err) {
+    console.error('[createAbsensiFingerprint Error]', err);
     return sendError(res, err.message, 500);
   }
 };
@@ -777,6 +823,7 @@ export const syncMobileAbsensi = async (req, res) => {
 
     return sendSuccess(res, `${syncedCount} log presensi NWF Mobile berhasil disinkronkan ke server`, { synced: syncedCount });
   } catch (err) {
+    console.error('[createAbsensiFingerprint Error]', err);
     return sendError(res, err.message, 500);
   }
 };
@@ -796,6 +843,7 @@ export const updateAbsensiFingerprint = async (req, res) => {
     `, [finalSt, finalMt, finalKt, id]);
     return sendSuccess(res, 'Presensi berhasil diperbarui');
   } catch (err) {
+    console.error('[createAbsensiFingerprint Error]', err);
     return sendError(res, err.message, 500);
   }
 };
@@ -855,6 +903,7 @@ export const deleteAbsensiFingerprint = async (req, res) => {
 
     return sendSuccess(res, 'Presensi berhasil dihapus permanen dari database');
   } catch (err) {
+    console.error('[createAbsensiFingerprint Error]', err);
     return sendError(res, err.message, 500);
   }
 };
@@ -873,6 +922,7 @@ export const getFingerprintDevices = async (req, res) => {
     const [rows] = await pool.query('SELECT * FROM fingerprint_device ORDER BY id ASC');
     return sendSuccess(res, 'Data perangkat fingerprint berhasil diambil', { data: rows });
   } catch (err) {
+    console.error('[createAbsensiFingerprint Error]', err);
     return sendError(res, err.message, 500);
   }
 };
@@ -886,6 +936,7 @@ export const createFingerprintDevice = async (req, res) => {
     `, [nama_device, sn_device, ip_address, port || 4370, lokasi, peruntukan || 'Semua', status_koneksi || 'Online']);
     return sendSuccess(res, 'Mesin fingerprint berhasil ditambahkan', { id: result.insertId }, 201);
   } catch (err) {
+    console.error('[createAbsensiFingerprint Error]', err);
     return sendError(res, err.message, 500);
   }
 };
@@ -901,6 +952,7 @@ export const updateFingerprintDevice = async (req, res) => {
     `, [nama_device, sn_device, ip_address, port || 4370, lokasi, peruntukan || 'Semua', status_koneksi || 'Online', id]);
     return sendSuccess(res, 'Mesin fingerprint berhasil diperbarui');
   } catch (err) {
+    console.error('[createAbsensiFingerprint Error]', err);
     return sendError(res, err.message, 500);
   }
 };
@@ -911,6 +963,7 @@ export const deleteFingerprintDevice = async (req, res) => {
     await pool.query('DELETE FROM fingerprint_device WHERE id = ?', [id]);
     return sendSuccess(res, 'Mesin fingerprint berhasil dihapus');
   } catch (err) {
+    console.error('[createAbsensiFingerprint Error]', err);
     return sendError(res, err.message, 500);
   }
 };
@@ -921,6 +974,7 @@ export const getFingerprintSesi = async (req, res) => {
     const [rows] = await pool.query('SELECT * FROM kegiatan_sesi ORDER BY jam_mulai_presensi ASC');
     return sendSuccess(res, 'Sesi presensi berhasil diambil', { data: rows });
   } catch (err) {
+    console.error('[createAbsensiFingerprint Error]', err);
     return sendError(res, err.message, 500);
   }
 };
@@ -984,6 +1038,7 @@ export const createFingerprintSesi = async (req, res) => {
       return sendSuccess(res, 'Kegiatan berhasil ditambahkan', { id: result.insertId }, 201);
     }
   } catch (err) {
+    console.error('[createAbsensiFingerprint Error]', err);
     return sendError(res, err.message, 500);
   }
 };
@@ -1058,6 +1113,7 @@ export const updateFingerprintSesi = async (req, res) => {
 
     return sendSuccess(res, 'Kegiatan berhasil diperbarui');
   } catch (err) {
+    console.error('[createAbsensiFingerprint Error]', err);
     return sendError(res, err.message, 500);
   }
 };
@@ -1068,6 +1124,7 @@ export const deleteFingerprintSesi = async (req, res) => {
     await pool.query('DELETE FROM kegiatan_sesi WHERE id = ?', [id]);
     return sendSuccess(res, 'Kegiatan berhasil dihapus');
   } catch (err) {
+    console.error('[createAbsensiFingerprint Error]', err);
     return sendError(res, err.message, 500);
   }
 };

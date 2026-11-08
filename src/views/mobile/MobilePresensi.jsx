@@ -38,6 +38,7 @@ import {
   showSuccess,
   showError,
   toastSuccess,
+  toastError,
   showConfirm,
 } from "../../utils/alert.util";
 import {
@@ -48,6 +49,7 @@ import {
   normalizeDescriptor,
   isFaceModelReady,
 } from "../../utils/faceApi.util";
+import MobileLoadingState from "../../components/MobileLoadingState";
 
 const DAFTAR_BERJAMAAH_DEFAULT = [];
 
@@ -1825,6 +1827,8 @@ export default function MobilePresensi() {
     playBeep(true);
     speakAttendance(santri.nama_santri, status);
 
+    const isFaceScan = typeof metode === 'string' && (metode.includes('Wajah') || metode.includes('Face') || metode.includes('AI'));
+
     const payload = {
       santri_id: santri.id,
       sesi_id: targetKegiatan.id,
@@ -1916,8 +1920,26 @@ export default function MobilePresensi() {
       return updated;
     });
 
-    // Kirim asinkron tanpa menahan UI (non-blocking) agar tidak lag
-    axios.post("/api/absensi/fingerprint", payload).catch(() => {});
+    // Kirim asinkron tanpa menahan UI (non-blocking) & tanpa mengirim base64 berat ke endpoint absensi
+    const { foto_bukti, ...apiPayload } = payload;
+    axios.post("/api/absensi/fingerprint", apiPayload)
+      .then((res) => {
+        if (res.data?.data?.id) {
+          setPresensiLogs((prev) =>
+            prev.map((item) =>
+              item.id === newRecord.id ? { ...item, id: res.data.data.id } : item
+            )
+          );
+        }
+      })
+      .catch((err) => {
+        console.error("[Presensi API Error]", err?.response?.data || err?.message);
+        toastError(
+          `Gagal simpan ke database: ${
+            err?.response?.data?.message || err?.message || "Server Error"
+          }`
+        );
+      });
   };
 
   // Quick Action Manual Presensi per Santri (Bisa ganti/update status jika salah klik)
@@ -2287,6 +2309,26 @@ export default function MobilePresensi() {
   }).length;
   const riwayatBadgeCount =
     activeMode === "riwayat" ? filteredRiwayat.length : todayPresensiCount;
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          minHeight: "100%",
+          background: "#f8fafc",
+          padding: "14px 14px 40px",
+          fontFamily: "'Inter', sans-serif",
+        }}
+      >
+        <MobileLoadingState
+          title="Menyiapkan Presensi..."
+          subtitle="Mohon tunggu sebentar, sedang sinkronisasi jadwal & data santri..."
+          iconColor="#059669"
+          cardCount={3}
+        />
+      </div>
+    );
+  }
 
   return (
     <div

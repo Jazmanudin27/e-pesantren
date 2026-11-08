@@ -24,6 +24,7 @@ import {
   toastSuccess,
   showConfirm,
 } from "../../utils/alert.util";
+import MobileLoadingState from "../../components/MobileLoadingState";
 
 export default function MobileIzin() {
   const [izinList, setIzinList] = useState([]);
@@ -614,16 +615,12 @@ export default function MobileIzin() {
 
       {/* LIST KARTU PERIZINAN */}
       {loading ? (
-        <div style={{ textAlign: "center", padding: "30px", color: "#64748b" }}>
-          <Loader2
-            size={28}
-            className="animate-spin"
-            style={{ margin: "0 auto 8px", color: "#0284c7" }}
-          />
-          <div style={{ fontSize: "0.85rem" }}>
-            Memuat data perizinan santri...
-          </div>
-        </div>
+        <MobileLoadingState
+          title="Memuat Data Perizinan..."
+          subtitle="Mohon tunggu sebentar, sedang sinkronisasi data santri..."
+          iconColor="#0284c7"
+          cardCount={3}
+        />
       ) : filteredList.length === 0 ? (
         <div
           style={{
