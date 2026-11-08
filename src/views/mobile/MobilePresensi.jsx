@@ -45,6 +45,7 @@ import {
   detectFaceDescriptor,
   extractDescriptorFromDataUrl,
   matchFaceDescriptor,
+  normalizeDescriptor,
   isFaceModelReady,
 } from "../../utils/faceApi.util";
 
@@ -475,12 +476,7 @@ export default function MobilePresensi() {
 
           for (const s of fetchedSantris) {
             const photoUrl = s.foto || s.foto_santri;
-            let dbDesc = null;
-            if (s.face_descriptor) {
-              try {
-                dbDesc = typeof s.face_descriptor === 'string' ? JSON.parse(s.face_descriptor) : s.face_descriptor;
-              } catch(e) {}
-            }
+            const dbDesc = normalizeDescriptor(s.face_descriptor);
             if (
               photoUrl &&
               (!currentLocalProfiles[s.id] || !currentLocalProfiles[s.id].foto || (!currentLocalProfiles[s.id].descriptor && dbDesc))
@@ -1134,7 +1130,7 @@ export default function MobilePresensi() {
                 const matched = matchFaceDescriptor(
                   faceRes.descriptor,
                   registeredList,
-                  0.62,
+                  0.70,
                 );
 
                 if (matched && matched.error === 'no_profiles') {

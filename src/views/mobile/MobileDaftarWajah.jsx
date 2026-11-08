@@ -357,20 +357,20 @@ export default function MobileDaftarWajah() {
         console.warn('Anti-duplicate check warning:', eDup);
       }
 
-      // 3. Simpan foto wajah & biometrik LANGSUNG ke Database Server (Utama)
+      // 3. Simpan foto wajah & biometrik LANGSUNG ke Database Server (Utama via MySQL)
+      const cleanDesc = (descriptor instanceof Float32Array) ? Array.from(descriptor) : descriptor;
       try {
+        await axios.post(`/api/santri/${selectedSantri.id}/face-descriptor`, { 
+          face_descriptor: cleanDesc,
+          foto: snapshot
+        });
+      } catch (errPost) {
+        console.warn('POST face-descriptor failed, trying PATCH foto:', errPost);
         await axios.patch(`/api/santri/${selectedSantri.id}/foto`, { 
           foto: snapshot,
-          descriptor: descriptor,
-          face_descriptor: descriptor
-        });
-      } catch (errPatch) {
-        console.warn('Patch foto failed, trying PUT fallback:', errPatch);
-        await axios.put(`/api/santri/${selectedSantri.id}`, { 
-          foto: snapshot,
-          descriptor: descriptor,
-          face_descriptor: descriptor
-        }).catch((e) => console.warn('PUT fallback failed:', e));
+          descriptor: cleanDesc,
+          face_descriptor: cleanDesc
+        }).catch((e) => console.warn('PATCH fallback failed:', e));
       }
 
       // 4. Update state dan cache lokal (Ringan tanpa bloat base64 agar TIDAK melebihi kuota 5MB browser)

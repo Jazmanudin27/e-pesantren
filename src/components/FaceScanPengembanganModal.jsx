@@ -15,6 +15,7 @@ import {
   initFaceApiModels,
   detectFaceDescriptor,
   matchFaceDescriptor,
+  normalizeDescriptor,
   isFaceModelReady
 } from '../utils/faceApi.util';
 
@@ -239,15 +240,7 @@ export default function FaceScanPengembanganModal({
         const seenIds = new Set();
 
         (santriListRef.current || []).forEach((s) => {
-          let desc = null;
-          if (s.face_descriptor) {
-            try {
-              desc = typeof s.face_descriptor === 'string' ? JSON.parse(s.face_descriptor) : s.face_descriptor;
-            } catch (e) {}
-          }
-          if (!desc && registeredMap[s.id]?.descriptor) {
-            desc = registeredMap[s.id].descriptor;
-          }
+          let desc = normalizeDescriptor(s.face_descriptor) || normalizeDescriptor(registeredMap[s.id]?.descriptor);
           if (desc) {
             registeredList.push({
               santri_id: s.id,

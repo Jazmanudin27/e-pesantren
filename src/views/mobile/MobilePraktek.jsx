@@ -33,6 +33,7 @@ import {
   detectFaceDescriptor,
   extractDescriptorFromDataUrl,
   matchFaceDescriptor,
+  normalizeDescriptor,
   isFaceModelReady,
 } from "../../utils/faceApi.util";
 
@@ -376,7 +377,35 @@ export default function MobilePraktek() {
             localStorage.getItem("epesantren_face_profiles") || "{}",
           );
         } catch (e) {}
-        const registeredList = Object.values(registeredMap);
+
+        const registeredList = [];
+        const seenIds = new Set();
+        (santriListRef.current || []).forEach((s) => {
+          let desc = normalizeDescriptor(s.face_descriptor) || normalizeDescriptor(registeredMap[s.id]?.descriptor);
+          if (desc) {
+            registeredList.push({
+              santri_id: s.id,
+              id: s.id,
+              nama_santri: s.nama_santri,
+              nama: s.nama_santri,
+              nis: s.nis,
+              descriptor: desc,
+              foto: s.foto || s.foto_santri
+            });
+            seenIds.add(String(s.id));
+          }
+        });
+
+        Object.values(registeredMap).forEach((p) => {
+          const pId = String(p.santri_id || p.id || '');
+          if (pId && !seenIds.has(pId)) {
+            const desc = normalizeDescriptor(p.descriptor);
+            if (desc) {
+              registeredList.push({ ...p, descriptor: desc });
+              seenIds.add(pId);
+            }
+          }
+        });
 
         if (isFaceModelReady()) {
           const faceRes = await detectFaceDescriptor(video);
