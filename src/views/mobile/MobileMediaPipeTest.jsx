@@ -15,14 +15,24 @@ import {
   Cpu,
   User,
   Sliders,
-  Maximize2
+  Maximize2,
+  Database,
+  Check,
+  X
 } from 'lucide-react';
+import {
+  initFaceApiModels,
+  detectFaceDescriptor,
+  computeEuclideanDistance,
+  isValidDescriptor,
+  isFaceModelReady
+} from '../../utils/faceApi.util';
 
 export default function MobileMediaPipeTest({ onBackToHome }) {
   const [facingMode, setFacingMode] = useState('user');
-  const [activeMode, setActiveMode] = useState('mesh'); // 'mesh' | 'features' | 'match'
+  const [activeMode, setActiveMode] = useState('match'); // 'match' | 'mesh' | 'features'
   const [loadingMediaPipe, setLoadingMediaPipe] = useState(true);
-  const [loadStatus, setLoadStatus] = useState('Memuat script Google MediaPipe...');
+  const [loadStatus, setLoadStatus] = useState('Menyiapkan Engine MediaPipe & Biometrik...');
   const [cameraActive, setCameraActive] = useState(false);
   const [fps, setFps] = useState(0);
   const [faceDetected, setFaceDetected] = useState(false);
@@ -35,9 +45,14 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
     pitchAngle: 0
   });
 
-  // Santri matching test state
+  // Santri matching test state (Database MySQL face_descriptor)
   const [santriList, setSantriList] = useState([]);
-  const [selectedSantri, setSelectedSantri] = useState(null);
+  const [santriWithBiometrics, setSantriWithBiometrics] = useState([]);
+  const [selectedSantriId, setSelectedSantriId] = useState('all');
+  const [evaluatingDescriptor, setEvaluatingDescriptor] = useState(false);
+  const [descriptorResult, setDescriptorResult] = useState(null);
+
+  // Custom baseline test state
   const [registeredEmbedding, setRegisteredEmbedding] = useState(null);
   const [liveSimilarity, setLiveSimilarity] = useState(null);
   const [matchStatusText, setMatchStatusText] = useState('Arahkan wajah ke kamera untuk tes pengenalan...');
@@ -52,11 +67,11 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
   const isRunningRef = useRef(false);
   const currentLandmarksRef = useRef(null);
 
-  // 1. Muat Script MediaPipe dari CDN secara Dinamis
+  // 1. Muat Script MediaPipe dari CDN & Model Biometrik
   useEffect(() => {
     let isMounted = true;
 
-    const loadScripts = async () => {
+    const loadEngines = async () => {
       try {
         setLoadStatus('Menyiapkan Google MediaPipe FaceMesh...');
         if (!window.FaceMesh) {
@@ -66,7 +81,7 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
 
         if (!isMounted) return;
 
-        setLoadStatus('Menginisialisasi Engine FaceMesh WASM...');
+        // Inisialisasi FaceMesh WASM
         const faceMesh = new window.FaceMesh({
           locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
         });
@@ -81,11 +96,17 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
         faceMesh.onResults(onMediaPipeResults);
         faceMeshRef.current = faceMesh;
 
+        // Inisialisasi Model Biometrik 128-D Face-API paralel
+        setLoadStatus('Memuat model biometrik 128-D...');
+        await initFaceApiModels().catch(() => {});
+
+        if (!isMounted) return;
+
         setLoadingMediaPipe(false);
-        setLoadStatus('Google MediaPipe Siap!');
+        setLoadStatus('Google MediaPipe & Biometrik Siap!');
         startCamera(facingMode);
       } catch (err) {
-        console.error('Gagal memuat MediaPipe:', err);
+        console.error('Gagal memuat engine:', err);
         if (isMounted) {
           setLoadStatus('Gagal memuat library MediaPipe dari CDN. Periksa koneksi internet.');
           setLoadingMediaPipe(false);
@@ -93,13 +114,34 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
       }
     };
 
-    loadScripts();
+    loadEngines();
 
-    // Fetch daftar santri untuk uji coba pencocokan
+    // Fetch daftar santri langsung dari MySQL database
     axios.get(`/api/santri?all=true&_t=${Date.now()}`)
       .then(res => {
         const list = res.data?.data || [];
-        setSantriList(Array.isArray(list) ? list.slice(0, 50) : []);
+        setSantriList(Array.isArray(list) ? list : []);
+
+        // Filter santri yang memiliki face_descriptor valid
+        const withDesc = (Array.isArray(list) ? list : []).filter(s => {
+          if (!s.face_descriptor) return false;
+          let parsed = s.face_descriptor;
+          if (typeof parsed === 'string') {
+            try { parsed = JSON.parse(parsed); } catch (e) { return false; }
+          }
+          return isValidDescriptor(parsed);
+        }).map(s => {
+          let parsed = s.face_descriptor;
+          if (typeof parsed === 'string') {
+            try { parsed = JSON.parse(parsed); } catch (e) {}
+          }
+          return { ...s, parsedDescriptor: parsed };
+        });
+
+        setSantriWithBiometrics(withDesc);
+        if (withDesc.length > 0) {
+          setSelectedSantriId(String(withDesc[0].id));
+        }
       })
       .catch(() => {});
 
@@ -199,16 +241,9 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
   };
 
   // 4. Hitung Vektor Geometrik Wajah dari 468 Landmark MediaPipe
-  // Normalized geometric distances invariant to scale and translation
   const computeGeometricVector = (landmarks) => {
     if (!landmarks || landmarks.length < 468) return null;
 
-    // Titik referensi anatomi wajah MediaPipe:
-    // 33: Sudut luar mata kiri, 263: Sudut luar mata kanan
-    // 1: Ujung hidung, 168: Tengah alis / dahi bawah, 152: Ujung dagu
-    // 61: Sudut kiri bibir, 291: Sudut kanan bibir
-    // 13: Bibir atas, 14: Bibir bawah
-    // 234: Tulang pipi kiri, 454: Tulang pipi kanan
     const leftEye = landmarks[33];
     const rightEye = landmarks[263];
     const noseTip = landmarks[1];
@@ -221,10 +256,8 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
     const leftCheek = landmarks[234];
     const rightCheek = landmarks[454];
 
-    // Skala normalisasi: Jarak antar kedua sudut mata luar
     const eyeDist = Math.hypot(rightEye.x - leftEye.x, rightEye.y - leftEye.y, rightEye.z - leftEye.z) || 1;
 
-    // Vektor rasio geometrik (32 rasio biometrik stabil)
     const vector = [
       Math.hypot(noseTip.x - forehead.x, noseTip.y - forehead.y) / eyeDist,
       Math.hypot(chin.x - noseTip.x, chin.y - noseTip.y) / eyeDist,
@@ -236,12 +269,10 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
       Math.hypot(chin.x - leftMouth.x, chin.y - leftMouth.y) / eyeDist,
       Math.hypot(chin.x - rightMouth.x, chin.y - rightMouth.y) / eyeDist,
       Math.hypot(lowerLip.x - upperLip.x, lowerLip.y - upperLip.y) / eyeDist,
-      // 10 titik kontur rahang terhadap dagu
       ...([172, 136, 150, 149, 176, 148, 152, 377, 400, 378].map(idx => {
         const pt = landmarks[idx] || chin;
         return Math.hypot(pt.x - chin.x, pt.y - chin.y) / eyeDist;
       })),
-      // 10 titik mata terhadap hidung
       ...([33, 133, 159, 145, 153, 263, 362, 386, 374, 380].map(idx => {
         const pt = landmarks[idx] || noseTip;
         return Math.hypot(pt.x - noseTip.x, pt.y - noseTip.y) / eyeDist;
@@ -251,12 +282,9 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
     return vector;
   };
 
-  // Cosine Similarity antara dua vektor
   const computeCosineSimilarity = (vecA, vecB) => {
     if (!vecA || !vecB || vecA.length !== vecB.length) return 0;
-    let dot = 0;
-    let normA = 0;
-    let normB = 0;
+    let dot = 0, normA = 0, normB = 0;
     for (let i = 0; i < vecA.length; i++) {
       dot += vecA[i] * vecB[i];
       normA += vecA[i] * vecA[i];
@@ -282,7 +310,6 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
       const landmarks = results.multiFaceLandmarks[0];
       currentLandmarksRef.current = landmarks;
 
-      // Hitung orientasi kepala (Yaw / Pitch)
       const nose = landmarks[1];
       const leftEar = landmarks[234];
       const rightEar = landmarks[454];
@@ -312,19 +339,18 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
         pitchAngle: Math.round((nose.y - (forehead.y + chin.y) / 2) * 100)
       });
 
-      // Hitung vektor dan komparasi jika ada profil terdaftar
+      // Hitung vektor dan komparasi acuan custom
       const currentVector = computeGeometricVector(landmarks);
       if (registeredEmbedding && currentVector) {
         const similarity = computeCosineSimilarity(registeredEmbedding, currentVector);
         setLiveSimilarity(similarity);
         if (similarity >= 0.94) {
-          setMatchStatusText(`✅ Wajah Cocok! Kemiripan: ${(similarity * 100).toFixed(1)}%`);
+          setMatchStatusText(`✅ Wajah Cocok! Kemiripan Geometrik: ${(similarity * 100).toFixed(1)}%`);
         } else {
           setMatchStatusText(`⛔ Belum Cocok. Kemiripan: ${(similarity * 100).toFixed(1)}% (Target: ≥ 94%)`);
         }
       }
 
-      // Gambar Visualisasi Sesuai Mode
       drawVisualization(ctx, landmarks, canvas.width, canvas.height);
     } else {
       setFaceDetected(false);
@@ -335,7 +361,6 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
 
   // 6. Visualizer Canvas
   const drawVisualization = (ctx, landmarks, w, h) => {
-    // A. Bounding Box Otomatis dari Ekstremum Landmark
     let minX = 1, minY = 1, maxX = 0, maxY = 0;
     for (const p of landmarks) {
       if (p.x < minX) minX = p.x;
@@ -351,90 +376,145 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
     const boxW = Math.min(w - boxX, (maxX - minX + padX * 2) * w);
     const boxH = Math.min(h - boxY, (maxY - minY + padY * 2) * h);
 
-    // Gambar Corner Bracket Futuristik
-    ctx.strokeStyle = registeredEmbedding && liveSimilarity >= 0.94 ? '#10b981' : '#38bdf8';
+    const isMatchSuccess = descriptorResult?.success || (registeredEmbedding && liveSimilarity >= 0.94);
+    ctx.strokeStyle = isMatchSuccess ? '#10b981' : '#38bdf8';
     ctx.lineWidth = 3;
     const corner = 20;
 
-    // Top-Left
+    // Corner brackets
     ctx.beginPath();
     ctx.moveTo(boxX, boxY + corner);
     ctx.lineTo(boxX, boxY);
     ctx.lineTo(boxX + corner, boxY);
     ctx.stroke();
 
-    // Top-Right
     ctx.beginPath();
     ctx.moveTo(boxX + boxW - corner, boxY);
     ctx.lineTo(boxX + boxW, boxY);
     ctx.lineTo(boxX + boxW, boxY + corner);
     ctx.stroke();
 
-    // Bottom-Left
     ctx.beginPath();
     ctx.moveTo(boxX, boxY + boxH - corner);
     ctx.lineTo(boxX, boxY + boxH);
     ctx.lineTo(boxX + corner, boxY + boxH);
     ctx.stroke();
 
-    // Bottom-Right
     ctx.beginPath();
     ctx.moveTo(boxX + boxW - corner, boxY + boxH);
     ctx.lineTo(boxX + boxW, boxY + boxH);
     ctx.lineTo(boxX + boxW, boxY + boxH - corner);
     ctx.stroke();
 
-    if (activeMode === 'mesh') {
-      // B. Gambar 468 Titik Mesh Wajah (Glowing Cyan Dots)
-      ctx.fillStyle = 'rgba(56, 189, 248, 0.75)';
-      for (let i = 0; i < landmarks.length; i++) {
-        const pt = landmarks[i];
-        const px = pt.x * w;
-        const py = pt.y * h;
-        ctx.fillRect(px - 1, py - 1, 2, 2);
+    // Tampilkan Mesh Wajah
+    ctx.fillStyle = 'rgba(56, 189, 248, 0.75)';
+    for (let i = 0; i < landmarks.length; i++) {
+      const pt = landmarks[i];
+      ctx.fillRect(pt.x * w - 1, pt.y * h - 1, 2, 2);
+    }
+
+    // Sorot Titik Kunci (Hidung, Mata, Bibir, Dagu)
+    const keyIndices = [1, 33, 263, 61, 291, 13, 14, 152, 10, 234, 454];
+    ctx.fillStyle = '#22c55e';
+    keyIndices.forEach(idx => {
+      const pt = landmarks[idx];
+      if (pt) {
+        ctx.beginPath();
+        ctx.arc(pt.x * w, pt.y * h, 3.5, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+    });
+  };
+
+  // 7. INTI PENGUJIAN: Uji Deteksi Wajah Live terhadap face_descriptor Database MySQL
+  const handleTestDatabaseFaceDescriptor = async () => {
+    const video = videoRef.current;
+    if (!video || video.readyState < 2) {
+      setLoadStatus('Kamera belum siap');
+      return;
+    }
+
+    setEvaluatingDescriptor(true);
+    setLoadStatus('📸 Mengambil snapshot & mencocokkan biometrik database...');
+
+    try {
+      // 1. Ekstrak descriptor 128-D dari frame video saat ini
+      const faceRes = await detectFaceDescriptor(video);
+      if (!faceRes || !faceRes.descriptor) {
+        setDescriptorResult({
+          status: 'no_face',
+          message: 'Wajah tidak terdeteksi oleh sensor biometrik. Posisikan wajah tepat di tengah kamera.'
+        });
+        setEvaluatingDescriptor(false);
+        setLoadStatus('Wajah tidak terdeteksi');
+        return;
       }
 
-      // Sorot Titik Kunci (Hidung, Mata, Bibir, Dagu) dengan Warna Emas/Hijau
-      const keyIndices = [1, 33, 263, 61, 291, 13, 14, 152, 10, 234, 454];
-      ctx.fillStyle = '#22c55e';
-      keyIndices.forEach(idx => {
-        const pt = landmarks[idx];
-        if (pt) {
-          ctx.beginPath();
-          ctx.arc(pt.x * w, pt.y * h, 3.5, 0, 2 * Math.PI);
-          ctx.fill();
+      const liveDescriptor = faceRes.descriptor;
+
+      // 2. Tentukan target santri pembanding
+      let candidates = santriWithBiometrics;
+      if (selectedSantriId !== 'all') {
+        const single = santriWithBiometrics.find(s => String(s.id) === String(selectedSantriId));
+        candidates = single ? [single] : santriWithBiometrics;
+      }
+
+      if (candidates.length === 0) {
+        setDescriptorResult({
+          status: 'empty_db',
+          message: 'Belum ada data face_descriptor di database MySQL. Daftarkan santri terlebih dahulu di menu Daftar Wajah.'
+        });
+        setEvaluatingDescriptor(false);
+        setLoadStatus('Tidak ada data biometrik di database');
+        return;
+      }
+
+      // 3. Hitung Jarak Euclidean terhadap vektor yang tersimpan di MySQL
+      let bestMatch = null;
+      let minDistance = 999;
+
+      candidates.forEach(santri => {
+        const dbDesc = santri.parsedDescriptor;
+        if (isValidDescriptor(dbDesc)) {
+          const dist = computeEuclideanDistance(liveDescriptor, dbDesc);
+          if (dist < minDistance) {
+            minDistance = dist;
+            bestMatch = santri;
+          }
         }
       });
-    } else if (activeMode === 'features') {
-      // C. Mode Kontur Garis Utama (Mata, Alis, Bibir, Hidung)
-      const drawContour = (indices, color = '#38bdf8', close = false) => {
-        if (!indices || indices.length === 0) return;
-        ctx.beginPath();
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        indices.forEach((idx, i) => {
-          const pt = landmarks[idx];
-          if (!pt) return;
-          const px = pt.x * w;
-          const py = pt.y * h;
-          if (i === 0) ctx.moveTo(px, py);
-          else ctx.lineTo(px, py);
-        });
-        if (close) ctx.closePath();
-        ctx.stroke();
-      };
 
-      // Kontur Bibir
-      drawContour([61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 308, 324, 318, 402, 317, 14, 87, 178, 88, 95, 61], '#ef4444', true);
-      // Kontur Mata Kiri & Kanan
-      drawContour([33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161, 246, 33], '#10b981', true);
-      drawContour([263, 249, 390, 373, 374, 380, 381, 382, 362, 398, 384, 385, 386, 387, 388, 466, 263], '#10b981', true);
-      // Hidung
-      drawContour([168, 6, 197, 195, 5, 4, 1, 19, 94, 2], '#f59e0b', false);
+      const threshold = 0.70;
+      const isMatch = bestMatch && minDistance < threshold;
+
+      setDescriptorResult({
+        status: isMatch ? 'matched' : 'not_matched',
+        success: isMatch,
+        distance: minDistance,
+        threshold: threshold,
+        santri: bestMatch,
+        confidence: Math.round(Math.max(0, (1 - minDistance / threshold) * 100)),
+        liveDescriptorSnippet: liveDescriptor.slice(0, 5),
+        dbDescriptorSnippet: bestMatch?.parsedDescriptor ? bestMatch.parsedDescriptor.slice(0, 5) : []
+      });
+
+      if (isMatch) {
+        setLoadStatus(`✅ COCOK! Wajah Sesuai: ${bestMatch.nama_santri} (Jarak: ${minDistance.toFixed(2)})`);
+      } else {
+        setLoadStatus(`⛔ BELUM COCOK (Jarak: ${minDistance.toFixed(2)} | Target: < ${threshold})`);
+      }
+    } catch (err) {
+      console.error('Error matching descriptor:', err);
+      setDescriptorResult({
+        status: 'error',
+        message: 'Terjadi kesalahan saat memproses vektor biometrik.'
+      });
+    } finally {
+      setEvaluatingDescriptor(false);
     }
   };
 
-  // Daftarkan Wajah Saat Ini Sebagai Sampel Acuan (Baseline)
+  // Daftarkan Acuan Wajah Custom
   const handleRegisterCurrentFace = () => {
     if (!currentLandmarksRef.current || !faceDetected) {
       setMatchStatusText('⚠️ Posisikan wajah tegak di kamera sebelum mendaftar!');
@@ -490,10 +570,10 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#38bdf8' }}>Google MediaPipe</span>
-              <span style={{ background: '#0284c7', color: '#fff', fontSize: '0.55rem', fontWeight: 800, padding: '2px 5px', borderRadius: '4px' }}>WASM 3D</span>
+              <span style={{ background: '#0284c7', color: '#fff', fontSize: '0.55rem', fontWeight: 800, padding: '2px 5px', borderRadius: '4px' }}>WASM + DB</span>
             </div>
             <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
-              468 Landmark 3D Face Biometrics
+              Uji Deteksi Wajah & face_descriptor MySQL
             </div>
           </div>
         </div>
@@ -526,7 +606,7 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
           position: 'relative',
           width: '100%',
           aspectRatio: '3/4',
-          maxHeight: '440px',
+          maxHeight: '430px',
           background: '#020617',
           borderRadius: '20px',
           overflow: 'hidden',
@@ -560,7 +640,7 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
             }}
           />
 
-          {/* Badge Status Realtime (FPS & Deteksi) */}
+          {/* Badge Status Realtime */}
           <div style={{
             position: 'absolute',
             top: '12px',
@@ -611,14 +691,17 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
             bottom: '12px',
             left: '12px',
             right: '12px',
-            background: 'rgba(15, 23, 42, 0.85)',
+            background: descriptorResult?.success
+              ? 'rgba(16, 185, 129, 0.92)'
+              : 'rgba(15, 23, 42, 0.88)',
             backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,255,255,0.15)',
+            border: '1px solid rgba(255,255,255,0.18)',
             padding: '9px 12px',
             borderRadius: '12px',
             textAlign: 'center',
             fontSize: '0.74rem',
-            fontWeight: 700
+            fontWeight: 700,
+            color: '#ffffff'
           }}>
             {loadStatus}
           </div>
@@ -634,9 +717,9 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
           marginTop: '14px'
         }}>
           {[
+            { id: 'match', label: '🧬 Uji face_descriptor', desc: 'MySQL Database' },
             { id: 'mesh', label: '🌟 3D Mesh', desc: '468 Titik' },
-            { id: 'features', label: '🎯 Kontur Fitur', desc: 'Mata/Bibir' },
-            { id: 'match', label: '🧬 Uji Cocok', desc: 'Biometrik' }
+            { id: 'features', label: '🎯 Kontur Fitur', desc: 'Mata/Bibir' }
           ].map(m => (
             <button
               key={m.id}
@@ -651,14 +734,14 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
                 textAlign: 'center'
               }}
             >
-              <div style={{ fontSize: '0.75rem', fontWeight: 800 }}>{m.label}</div>
+              <div style={{ fontSize: '0.74rem', fontWeight: 800 }}>{m.label}</div>
               <div style={{ fontSize: '0.6rem', color: activeMode === m.id ? '#e0f2fe' : '#94a3b8' }}>{m.desc}</div>
             </button>
           ))}
         </div>
 
         {/* =========================================================================
-            PANEL KONTROL / METRICS
+            PANEL UTAMA: UJI DETEKSI TERHADAP face_descriptor DATABASE
         ========================================================================= */}
         <div style={{
           marginTop: '14px',
@@ -668,12 +751,181 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
           padding: '14px'
         }}>
           {activeMode === 'match' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Database size={16} /> Uji Cocok dengan face_descriptor MySQL
+                </div>
+                <span style={{ fontSize: '0.65rem', background: '#0284c7', color: '#fff', padding: '2px 8px', borderRadius: '10px', fontWeight: 700 }}>
+                  {santriWithBiometrics.length} Terdaftar di DB
+                </span>
+              </div>
+
+              {/* Pilih Target Santri Pembanding */}
+              <div>
+                <label style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>
+                  Pilih Data Santri dari MySQL Database:
+                </label>
+                <select
+                  value={selectedSantriId}
+                  onChange={(e) => {
+                    setSelectedSantriId(e.target.value);
+                    setDescriptorResult(null);
+                  }}
+                  style={{
+                    width: '100%',
+                    background: '#0f172a',
+                    color: '#ffffff',
+                    border: '1.5px solid #38bdf8',
+                    padding: '9px 12px',
+                    borderRadius: '10px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    outline: 'none'
+                  }}
+                >
+                  <option value="all">🔍 Scan Otomatis (Cari di Semua Santri Terdaftar)</option>
+                  {santriWithBiometrics.map(s => (
+                    <option key={s.id} value={s.id}>
+                      ✓ {s.nama_santri} (NIS: {s.nis || '-'}) - {s.nama_kelas || 'Kelas'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Tombol Eksekusi Snapshot Biometrik */}
+              <button
+                type="button"
+                disabled={evaluatingDescriptor}
+                onClick={handleTestDatabaseFaceDescriptor}
+                style={{
+                  background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)'
+                }}
+              >
+                <Camera size={16} />
+                {evaluatingDescriptor ? 'Menganalisis Biometrik 128-D...' : '📸 UJI DETEKSI FACE_DESCRIPTOR SEKARANG'}
+              </button>
+
+              {/* Hasil Pencocokan Biometrik */}
+              {descriptorResult && (
+                <div style={{
+                  background: descriptorResult.success
+                    ? 'rgba(6, 78, 59, 0.7)'
+                    : 'rgba(127, 29, 29, 0.65)',
+                  border: descriptorResult.success
+                    ? '1.5px solid #10b981'
+                    : '1.5px solid #ef4444',
+                  borderRadius: '12px',
+                  padding: '12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{
+                      fontWeight: 800,
+                      fontSize: '0.85rem',
+                      color: descriptorResult.success ? '#34d399' : '#fca5a5',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}>
+                      {descriptorResult.success ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                      {descriptorResult.success ? 'WAJAH COCOK (MATCHED)' : 'BELUM COCOK'}
+                    </div>
+                    {typeof descriptorResult.distance === 'number' && (
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#ffffff' }}>
+                        Jarak: {descriptorResult.distance.toFixed(3)}
+                      </span>
+                    )}
+                  </div>
+
+                  {descriptorResult.santri && (
+                    <div style={{ fontSize: '0.74rem', color: '#f1f5f9', lineHeight: 1.4 }}>
+                      <div>Santri: <strong>{descriptorResult.santri.nama_santri}</strong> (NIS: {descriptorResult.santri.nis})</div>
+                      <div>Ambang Batas (Threshold): <strong>&lt; {descriptorResult.threshold}</strong> | Tingkat Keyakinan: <strong>{descriptorResult.confidence}%</strong></div>
+                    </div>
+                  )}
+
+                  {descriptorResult.message && (
+                    <div style={{ fontSize: '0.72rem', color: '#fca5a5' }}>
+                      {descriptorResult.message}
+                    </div>
+                  )}
+
+                  {/* Vektor snippet inspeksi teknis */}
+                  {descriptorResult.dbDescriptorSnippet?.length > 0 && (
+                    <div style={{
+                      background: 'rgba(15, 23, 42, 0.85)',
+                      borderRadius: '8px',
+                      padding: '8px',
+                      fontSize: '0.62rem',
+                      fontFamily: 'monospace',
+                      color: '#94a3b8',
+                      overflowX: 'auto'
+                    }}>
+                      <div>DB Vector [0..4]: [{descriptorResult.dbDescriptorSnippet.map(n => Number(n).toFixed(3)).join(', ')}, ...]</div>
+                      <div>Live Vector [0..4]: [{descriptorResult.liveDescriptorSnippet?.map(n => Number(n).toFixed(3)).join(', ')}, ...]</div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : activeMode === 'mesh' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Activity size={15} /> Analisis Realtime MediaPipe 3D Mesh
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '9px 10px', borderRadius: '10px' }}>
+                  <div style={{ fontSize: '0.62rem', color: '#94a3b8' }}>Orientasi Kepala</div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#ffffff', marginTop: '2px' }}>
+                    {faceMetrics.headPose}
+                  </div>
+                </div>
+
+                <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '9px 10px', borderRadius: '10px' }}>
+                  <div style={{ fontSize: '0.62rem', color: '#94a3b8' }}>Status Mata</div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#38bdf8', marginTop: '2px' }}>
+                    {faceMetrics.eyeOpenness}
+                  </div>
+                </div>
+
+                <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '9px 10px', borderRadius: '10px' }}>
+                  <div style={{ fontSize: '0.62rem', color: '#94a3b8' }}>Status Mulut</div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#f59e0b', marginTop: '2px' }}>
+                    {faceMetrics.mouthOpenness}
+                  </div>
+                </div>
+
+                <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '9px 10px', borderRadius: '10px' }}>
+                  <div style={{ fontSize: '0.62rem', color: '#94a3b8' }}>Titik Koordinat</div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#10b981', marginTop: '2px' }}>
+                    {faceMetrics.landmarksCount} Titik (3D)
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <ShieldCheck size={16} /> Uji Biometrik Geometri Wajah MediaPipe
               </div>
               <p style={{ margin: 0, fontSize: '0.7rem', color: '#94a3b8', lineHeight: 1.4 }}>
-                Daftarkan wajah acuan Anda, lalu MediaPipe akan menghitung rasio spasial 32 vektor koordinat wajah untuk pengenalan presisi tinggi.
+                Daftarkan acuan wajah baru langsung melalui kamera untuk menguji normalisasi spasial 32 koordinat MediaPipe.
               </p>
 
               <button
@@ -707,47 +959,11 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
                 {matchStatusText}
               </div>
             </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Activity size={15} /> Analisis Realtime MediaPipe
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '9px 10px', borderRadius: '10px' }}>
-                  <div style={{ fontSize: '0.62rem', color: '#94a3b8' }}>Orientasi Kepala</div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#ffffff', marginTop: '2px' }}>
-                    {faceMetrics.headPose}
-                  </div>
-                </div>
-
-                <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '9px 10px', borderRadius: '10px' }}>
-                  <div style={{ fontSize: '0.62rem', color: '#94a3b8' }}>Status Mata</div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#38bdf8', marginTop: '2px' }}>
-                    {faceMetrics.eyeOpenness}
-                  </div>
-                </div>
-
-                <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '9px 10px', borderRadius: '10px' }}>
-                  <div style={{ fontSize: '0.62rem', color: '#94a3b8' }}>Status Mulut</div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#f59e0b', marginTop: '2px' }}>
-                    {faceMetrics.mouthOpenness}
-                  </div>
-                </div>
-
-                <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '9px 10px', borderRadius: '10px' }}>
-                  <div style={{ fontSize: '0.62rem', color: '#94a3b8' }}>Titik Koordinat</div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#10b981', marginTop: '2px' }}>
-                    {faceMetrics.landmarksCount} Titik (3D)
-                  </div>
-                </div>
-              </div>
-            </div>
           )}
         </div>
 
         {/* =========================================================================
-            INFO CARD: GOOGLE MEDIAPIPE VS MODEL LAMA
+            INFO CARD
         ========================================================================= */}
         <div style={{
           marginTop: '12px',
@@ -757,12 +973,12 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
           padding: '12px'
         }}>
           <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#38bdf8', marginBottom: '4px' }}>
-            ℹ️ Keunggulan Google MediaPipe:
+            ℹ️ Cara Kerja Uji `face_descriptor` di Sini:
           </div>
           <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.68rem', color: '#cbd5e1', lineHeight: 1.5 }}>
-            <li><strong>60 FPS Ringan</strong>: Berjalan langsung di WebAssembly (WASM) tanpa lag di HP & Laptop.</li>
-            <li><strong>468 Titik Spasial 3D</strong>: Menangkap kontur lekukan hidung, bibir, dan mata dengan akurasi sub-piksel.</li>
-            <li><strong>Toleran Pencahayaan</strong>: Menggunakan normalisasi geometri jarak antar mata yang tahan terhadap perubahan sudut dan cahaya ruangan.</li>
+            <li>Kamera diproses secara ultra-cepat oleh <strong>Google MediaPipe WASM 3D</strong> (468 titik).</li>
+            <li>Saat tombol <strong>UJI DETEKSI</strong> diklik, sistem mengekstrak vektor biometrik 128-D dari wajah Anda dan menghitung jarak matematis Euclidean langsung terhadap kolom <code>face_descriptor</code> di MySQL.</li>
+            <li>Jika jarak biometrik &lt; 0.70, sistem menyatakan <strong>COCOK</strong> dan menampilkan nama santri terdaftar.</li>
           </ul>
         </div>
       </div>
