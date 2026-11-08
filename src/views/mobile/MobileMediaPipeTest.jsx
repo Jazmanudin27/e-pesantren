@@ -52,6 +52,11 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
   const [evaluatingDescriptor, setEvaluatingDescriptor] = useState(false);
   const [descriptorResult, setDescriptorResult] = useState(null);
 
+  // Target Pendaftaran ID Santri (Default: 41)
+  const [targetRegisterId, setTargetRegisterId] = useState('41');
+  const [registeringFace, setRegisteringFace] = useState(false);
+  const [registerMessage, setRegisterMessage] = useState('');
+
   // Custom baseline test state
   const [registeredEmbedding, setRegisteredEmbedding] = useState(null);
   const [liveSimilarity, setLiveSimilarity] = useState(null);
@@ -514,6 +519,76 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
     }
   };
 
+  // 8. DAFTARKAN WAJAH LANGSUNG KE SANTRI MYSQL DATABASE (ID SANTRI: MISAL 41)
+  const handleRegisterFaceToDatabase = async () => {
+    const video = videoRef.current;
+    if (!video || video.readyState < 2) {
+      setRegisterMessage('⚠️ Kamera belum siap. Arahkan wajah ke kamera.');
+      return;
+    }
+
+    setRegisteringFace(true);
+    setRegisterMessage(`📸 Memindai wajah & menyimpan biometrik ke Santri ID ${targetRegisterId}...`);
+
+    try {
+      const snapCanvas = document.createElement('canvas');
+      snapCanvas.width = video.videoWidth || 640;
+      snapCanvas.height = video.videoHeight || 480;
+      const ctx = snapCanvas.getContext('2d');
+      if (facingMode === 'user') {
+        ctx.translate(snapCanvas.width, 0);
+        ctx.scale(-1, 1);
+      }
+      ctx.drawImage(video, 0, 0, snapCanvas.width, snapCanvas.height);
+      const photoDataUrl = snapCanvas.toDataURL('image/jpeg', 0.85);
+
+      const faceRes = await detectFaceDescriptor(snapCanvas);
+      if (!faceRes || !faceRes.descriptor) {
+        setRegisterMessage('❌ Wajah tidak terdeteksi. Posisikan wajah tegak & terang menghadap kamera.');
+        setRegisteringFace(false);
+        return;
+      }
+
+      const descriptorArray = Array.from(faceRes.descriptor);
+
+      const res = await axios.post(`/api/santri/${targetRegisterId}/face-descriptor`, {
+        face_descriptor: descriptorArray,
+        foto: photoDataUrl
+      });
+
+      if (res.data?.success) {
+        const santriInfo = res.data.santri || santriList.find(s => String(s.id) === String(targetRegisterId)) || { id: Number(targetRegisterId), nama_santri: `Santri #${targetRegisterId}` };
+        setRegisterMessage(`✅ SUKSES! Wajah tersimpan ke Database MySQL untuk: ${santriInfo.nama_santri} (ID: ${targetRegisterId})`);
+
+        const newEntry = {
+          id: Number(targetRegisterId),
+          nama_santri: santriInfo.nama_santri,
+          nis: santriInfo.nis || '',
+          face_descriptor: descriptorArray,
+          parsedDescriptor: descriptorArray,
+          foto: photoDataUrl
+        };
+
+        setSantriWithBiometrics(prev => {
+          const filtered = prev.filter(s => String(s.id) !== String(targetRegisterId));
+          return [newEntry, ...filtered];
+        });
+        setSelectedSantriId(String(targetRegisterId));
+
+        setTimeout(() => {
+          handleTestDatabaseFaceDescriptor();
+        }, 400);
+      } else {
+        setRegisterMessage(`❌ Gagal: ${res.data?.message || 'Server error'}`);
+      }
+    } catch (err) {
+      console.error('Error registering face:', err);
+      setRegisterMessage(`❌ Gagal menyimpan: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setRegisteringFace(false);
+    }
+  };
+
   // Daftarkan Acuan Wajah Custom
   const handleRegisterCurrentFace = () => {
     if (!currentLandmarksRef.current || !faceDetected) {
@@ -751,137 +826,232 @@ export default function MobileMediaPipeTest({ onBackToHome }) {
           padding: '14px'
         }}>
           {activeMode === 'match' ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Database size={16} /> Uji Cocok dengan face_descriptor MySQL
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* SECTION 1: DAFTARKAN WAJAH SEKARANG KE SANTRI MYSQL */}
+              <div style={{
+                background: 'rgba(15, 23, 42, 0.85)',
+                border: '1.5px solid #10b981',
+                borderRadius: '14px',
+                padding: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#34d399', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <ShieldCheck size={16} /> 1. Daftarkan Wajah ke MySQL Santri
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>ID Santri:</span>
+                    <input
+                      type="number"
+                      value={targetRegisterId}
+                      onChange={(e) => setTargetRegisterId(e.target.value)}
+                      style={{
+                        width: '55px',
+                        background: '#1e293b',
+                        color: '#ffffff',
+                        border: '1px solid #10b981',
+                        borderRadius: '6px',
+                        padding: '3px 6px',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        textAlign: 'center'
+                      }}
+                    />
+                  </div>
                 </div>
-                <span style={{ fontSize: '0.65rem', background: '#0284c7', color: '#fff', padding: '2px 8px', borderRadius: '10px', fontWeight: 700 }}>
-                  {santriWithBiometrics.length} Terdaftar di DB
-                </span>
-              </div>
 
-              {/* Pilih Target Santri Pembanding */}
-              <div>
-                <label style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>
-                  Pilih Data Santri dari MySQL Database:
-                </label>
-                <select
-                  value={selectedSantriId}
-                  onChange={(e) => {
-                    setSelectedSantriId(e.target.value);
-                    setDescriptorResult(null);
-                  }}
+                {/* Info Santri Target */}
+                <div style={{ fontSize: '0.7rem', color: '#cbd5e1', background: 'rgba(2, 6, 23, 0.6)', padding: '7px 10px', borderRadius: '8px' }}>
+                  Target: <strong>{santriList.find(s => String(s.id) === String(targetRegisterId))?.nama_santri || `Santri #${targetRegisterId}`}</strong>
+                  {santriList.find(s => String(s.id) === String(targetRegisterId))?.nis && ` • NIS: ${santriList.find(s => String(s.id) === String(targetRegisterId))?.nis}`}
+                  {santriWithBiometrics.some(s => String(s.id) === String(targetRegisterId)) ? (
+                    <span style={{ color: '#34d399', marginLeft: '6px', fontWeight: 700 }}>✓ Sudah ada di DB</span>
+                  ) : (
+                    <span style={{ color: '#f59e0b', marginLeft: '6px', fontWeight: 700 }}>⚠️ Belum ada di DB</span>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  disabled={registeringFace}
+                  onClick={handleRegisterFaceToDatabase}
                   style={{
-                    width: '100%',
-                    background: '#0f172a',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                     color: '#ffffff',
-                    border: '1.5px solid #38bdf8',
-                    padding: '9px 12px',
+                    border: 'none',
+                    padding: '11px',
                     borderRadius: '10px',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    outline: 'none'
+                    fontWeight: 800,
+                    fontSize: '0.8rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)'
                   }}
                 >
-                  <option value="all">🔍 Scan Otomatis (Cari di Semua Santri Terdaftar)</option>
-                  {santriWithBiometrics.map(s => (
-                    <option key={s.id} value={s.id}>
-                      ✓ {s.nama_santri} (NIS: {s.nis || '-'}) - {s.nama_kelas || 'Kelas'}
-                    </option>
-                  ))}
-                </select>
+                  <Camera size={15} />
+                  {registeringFace ? 'Menyimpan Biometrik ke MySQL...' : `DAFTARKAN WAJAH KE SANTRI ID ${targetRegisterId} (SIMPAN MYSQL)`}
+                </button>
+
+                {registerMessage && (
+                  <div style={{
+                    fontSize: '0.72rem',
+                    color: registerMessage.includes('✅') ? '#34d399' : '#fca5a5',
+                    background: 'rgba(0,0,0,0.3)',
+                    padding: '6px 10px',
+                    borderRadius: '6px',
+                    fontWeight: 600
+                  }}>
+                    {registerMessage}
+                  </div>
+                )}
               </div>
 
-              {/* Tombol Eksekusi Snapshot Biometrik */}
-              <button
-                type="button"
-                disabled={evaluatingDescriptor}
-                onClick={handleTestDatabaseFaceDescriptor}
-                style={{
-                  background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '12px',
-                  borderRadius: '12px',
-                  fontWeight: 800,
-                  fontSize: '0.82rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)'
-                }}
-              >
-                <Camera size={16} />
-                {evaluatingDescriptor ? 'Menganalisis Biometrik 128-D...' : '📸 UJI DETEKSI FACE_DESCRIPTOR SEKARANG'}
-              </button>
+              {/* SECTION 2: UJI DETEKSI & COCOKKAN FACE_DESCRIPTOR */}
+              <div style={{
+                background: 'rgba(15, 23, 42, 0.85)',
+                border: '1.5px solid #0284c7',
+                borderRadius: '14px',
+                padding: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Database size={16} /> 2. Uji Deteksi & Cocokkan face_descriptor
+                  </div>
+                  <span style={{ fontSize: '0.65rem', background: '#0284c7', color: '#fff', padding: '2px 8px', borderRadius: '10px', fontWeight: 700 }}>
+                    {santriWithBiometrics.length} Terdaftar di DB
+                  </span>
+                </div>
 
-              {/* Hasil Pencocokan Biometrik */}
-              {descriptorResult && (
-                <div style={{
-                  background: descriptorResult.success
-                    ? 'rgba(6, 78, 59, 0.7)'
-                    : 'rgba(127, 29, 29, 0.65)',
-                  border: descriptorResult.success
-                    ? '1.5px solid #10b981'
-                    : '1.5px solid #ef4444',
-                  borderRadius: '12px',
-                  padding: '12px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{
-                      fontWeight: 800,
-                      fontSize: '0.85rem',
-                      color: descriptorResult.success ? '#34d399' : '#fca5a5',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}>
-                      {descriptorResult.success ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-                      {descriptorResult.success ? 'WAJAH COCOK (MATCHED)' : 'BELUM COCOK'}
+                {/* Pilih Target Santri Pembanding */}
+                <div>
+                  <label style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>
+                    Pilih Data Santri dari MySQL Database:
+                  </label>
+                  <select
+                    value={selectedSantriId}
+                    onChange={(e) => {
+                      setSelectedSantriId(e.target.value);
+                      setDescriptorResult(null);
+                    }}
+                    style={{
+                      width: '100%',
+                      background: '#0f172a',
+                      color: '#ffffff',
+                      border: '1.5px solid #38bdf8',
+                      padding: '9px 12px',
+                      borderRadius: '10px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      outline: 'none'
+                    }}
+                  >
+                    <option value="all">🔍 Scan Otomatis (Cari di Semua Santri Terdaftar)</option>
+                    {santriWithBiometrics.map(s => (
+                      <option key={s.id} value={s.id}>
+                        ✓ [{s.id}] {s.nama_santri} (NIS: {s.nis || '-'}) - {s.nama_kelas || 'Kelas'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Tombol Eksekusi Snapshot Biometrik */}
+                <button
+                  type="button"
+                  disabled={evaluatingDescriptor}
+                  onClick={handleTestDatabaseFaceDescriptor}
+                  style={{
+                    background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '12px',
+                    borderRadius: '12px',
+                    fontWeight: 800,
+                    fontSize: '0.82rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)'
+                  }}
+                >
+                  <Camera size={16} />
+                  {evaluatingDescriptor ? 'Menganalisis Biometrik 128-D...' : '📸 UJI DETEKSI FACE_DESCRIPTOR SEKARANG'}
+                </button>
+
+                {/* Hasil Pencocokan Biometrik */}
+                {descriptorResult && (
+                  <div style={{
+                    background: descriptorResult.success
+                      ? 'rgba(6, 78, 59, 0.7)'
+                      : 'rgba(127, 29, 29, 0.65)',
+                    border: descriptorResult.success
+                      ? '1.5px solid #10b981'
+                      : '1.5px solid #ef4444',
+                    borderRadius: '12px',
+                    padding: '12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{
+                        fontWeight: 800,
+                        fontSize: '0.85rem',
+                        color: descriptorResult.success ? '#34d399' : '#fca5a5',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        {descriptorResult.success ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                        {descriptorResult.success ? 'WAJAH COCOK (MATCHED)' : 'BELUM COCOK'}
+                      </div>
+                      {typeof descriptorResult.distance === 'number' && (
+                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#ffffff' }}>
+                          Jarak: {descriptorResult.distance.toFixed(3)}
+                        </span>
+                      )}
                     </div>
-                    {typeof descriptorResult.distance === 'number' && (
-                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#ffffff' }}>
-                        Jarak: {descriptorResult.distance.toFixed(3)}
-                      </span>
+
+                    {descriptorResult.santri && (
+                      <div style={{ fontSize: '0.74rem', color: '#f1f5f9', lineHeight: 1.4 }}>
+                        <div>Santri: <strong>{descriptorResult.santri.nama_santri}</strong> (NIS: {descriptorResult.santri.nis})</div>
+                        <div>Ambang Batas (Threshold): <strong>&lt; {descriptorResult.threshold}</strong> | Tingkat Keyakinan: <strong>{descriptorResult.confidence}%</strong></div>
+                      </div>
+                    )}
+
+                    {descriptorResult.message && (
+                      <div style={{ fontSize: '0.72rem', color: '#fca5a5' }}>
+                        {descriptorResult.message}
+                      </div>
+                    )}
+
+                    {/* Vektor snippet inspeksi teknis */}
+                    {descriptorResult.dbDescriptorSnippet?.length > 0 && (
+                      <div style={{
+                        background: 'rgba(15, 23, 42, 0.85)',
+                        borderRadius: '8px',
+                        padding: '8px',
+                        fontSize: '0.62rem',
+                        fontFamily: 'monospace',
+                        color: '#94a3b8',
+                        overflowX: 'auto'
+                      }}>
+                        <div>DB Vector [0..4]: [{descriptorResult.dbDescriptorSnippet.map(n => Number(n).toFixed(3)).join(', ')}, ...]</div>
+                        <div>Live Vector [0..4]: [{descriptorResult.liveDescriptorSnippet?.map(n => Number(n).toFixed(3)).join(', ')}, ...]</div>
+                      </div>
                     )}
                   </div>
-
-                  {descriptorResult.santri && (
-                    <div style={{ fontSize: '0.74rem', color: '#f1f5f9', lineHeight: 1.4 }}>
-                      <div>Santri: <strong>{descriptorResult.santri.nama_santri}</strong> (NIS: {descriptorResult.santri.nis})</div>
-                      <div>Ambang Batas (Threshold): <strong>&lt; {descriptorResult.threshold}</strong> | Tingkat Keyakinan: <strong>{descriptorResult.confidence}%</strong></div>
-                    </div>
-                  )}
-
-                  {descriptorResult.message && (
-                    <div style={{ fontSize: '0.72rem', color: '#fca5a5' }}>
-                      {descriptorResult.message}
-                    </div>
-                  )}
-
-                  {/* Vektor snippet inspeksi teknis */}
-                  {descriptorResult.dbDescriptorSnippet?.length > 0 && (
-                    <div style={{
-                      background: 'rgba(15, 23, 42, 0.85)',
-                      borderRadius: '8px',
-                      padding: '8px',
-                      fontSize: '0.62rem',
-                      fontFamily: 'monospace',
-                      color: '#94a3b8',
-                      overflowX: 'auto'
-                    }}>
-                      <div>DB Vector [0..4]: [{descriptorResult.dbDescriptorSnippet.map(n => Number(n).toFixed(3)).join(', ')}, ...]</div>
-                      <div>Live Vector [0..4]: [{descriptorResult.liveDescriptorSnippet?.map(n => Number(n).toFixed(3)).join(', ')}, ...]</div>
-                    </div>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
             </div>
           ) : activeMode === 'mesh' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

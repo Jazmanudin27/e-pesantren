@@ -40,6 +40,30 @@ router.patch('/:id/foto', async (req, res) => {
     return res.status(500).json({ success: false, error: err.message, message: err.message });
   }
 });
+router.post('/:id/face-descriptor', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { face_descriptor, descriptor, foto } = req.body;
+    const desc = face_descriptor || descriptor;
+    const strDesc = typeof desc === 'string' ? desc : JSON.stringify(desc);
+    try {
+      await pool.query("ALTER TABLE santri ADD COLUMN face_descriptor LONGTEXT NULL AFTER foto");
+    } catch (e) {}
+    if (foto) {
+      await pool.query("UPDATE santri SET face_descriptor = ?, foto = COALESCE(?, foto) WHERE id = ?", [strDesc, foto, id]);
+    } else {
+      await pool.query("UPDATE santri SET face_descriptor = ? WHERE id = ?", [strDesc, id]);
+    }
+    const [rows] = await pool.query("SELECT id, nama_santri, nis, face_descriptor FROM santri WHERE id = ?", [id]);
+    return res.json({ 
+      success: true, 
+      message: `Biometrik wajah santri ID ${id} (${rows[0]?.nama_santri || 'Santri'}) berhasil disimpan di database MySQL`, 
+      santri: rows[0] 
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
 router.put('/:id', updateSantri);
 router.delete('/:id', deleteSantri);
 
