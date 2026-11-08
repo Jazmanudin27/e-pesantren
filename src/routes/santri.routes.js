@@ -39,6 +39,33 @@ router.get('/with-face', async (req, res) => {
   }
 });
 
+// 1b. Endpoint Ringan & Cepat untuk Halaman Daftar Wajah Mobile (Tanpa JOIN & Stats Berat)
+router.get('/for-face-registration', async (req, res) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    const [rows] = await pool.query(`
+      SELECT 
+        s.id, 
+        s.nis, 
+        s.nama_santri, 
+        s.nama_kelas, 
+        s.kelas_id, 
+        COALESCE(s.nama_asrama, a.nama_asrama, '') as nama_asrama, 
+        s.foto,
+        CASE 
+          WHEN s.face_descriptor IS NOT NULL AND s.face_descriptor != '' THEN 1 
+          ELSE 0 
+        END AS has_face_descriptor
+      FROM santri s
+      LEFT JOIN asrama a ON s.asrama_id = a.id
+      ORDER BY s.id ASC
+    `);
+    return res.json({ success: true, total: rows.length, data: rows });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // 2. Endpoint Cek Status Biometrik 1 Santri Tertentu
 router.get('/:id/face-status', async (req, res) => {
   try {
@@ -79,21 +106,30 @@ router.post('/import', importSantri);
 router.patch('/:id/foto', async (req, res) => {
   try {
     const { id } = req.params;
-    const { foto, foto_santri, descriptor, face_descriptor } = req.body;
-    const finalFoto = foto || foto_santri || null;
+    const { foto, foto_santri, descriptor, face_descriptor, clear_face } = req.body;
+    const finalFoto = foto !== undefined ? foto : (foto_santri !== undefined ? foto_santri : null);
     
-    let rawDesc = face_descriptor || descriptor;
-    let finalDescriptor = null;
-    if (rawDesc) {
-      finalDescriptor = typeof rawDesc === 'string' ? rawDesc : JSON.stringify(rawDesc);
-    }
-
     try {
       await pool.query("ALTER TABLE santri ADD COLUMN foto LONGTEXT NULL AFTER nama_santri");
     } catch (e) {}
     try {
       await pool.query("ALTER TABLE santri ADD COLUMN face_descriptor LONGTEXT NULL AFTER foto");
     } catch (e) {}
+
+    // Jika clear_face true atau foto dikirim null/kosong: hapus foto DAN biometrik sekaligus!
+    if (clear_face || finalFoto === null || finalFoto === '') {
+      await pool.query("UPDATE santri SET foto = NULL, face_descriptor = NULL WHERE id = ?", [id]);
+      return res.json({ 
+        success: true, 
+        message: 'Foto wajah dan biometrik santri berhasil dihapus dari database' 
+      });
+    }
+
+    let rawDesc = face_descriptor || descriptor;
+    let finalDescriptor = null;
+    if (rawDesc) {
+      finalDescriptor = typeof rawDesc === 'string' ? rawDesc : JSON.stringify(rawDesc);
+    }
 
     if (finalDescriptor !== null) {
       await pool.query("UPDATE santri SET foto = COALESCE(?, foto), face_descriptor = ? WHERE id = ?", [finalFoto, finalDescriptor, id]);
@@ -103,17 +139,40 @@ router.patch('/:id/foto', async (req, res) => {
 
     return res.json({ 
       success: true, 
-      message: finalFoto ? 'Foto wajah & biometrik santri berhasil disimpan ke database' : 'Foto wajah santri berhasil dihapus' 
+      message: 'Foto wajah & biometrik santri berhasil disimpan ke database' 
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message, message: err.message });
   }
 });
+
+// Endpoint Spesifik: Hapus Biometrik & Foto Wajah Santri
+const deleteFaceHandler = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query("UPDATE santri SET face_descriptor = NULL, foto = NULL WHERE id = ?", [id]);
+    return res.json({ 
+      success: true, 
+      message: `Data biometrik & foto wajah santri ID ${id} berhasil dihapus dari database` 
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+router.delete('/:id/face-descriptor', deleteFaceHandler);
+router.delete('/:id/foto', deleteFaceHandler);
+router.delete('/:id/face', deleteFaceHandler);
+
 router.post('/:id/face-descriptor', async (req, res) => {
   try {
     const { id } = req.params;
     const { face_descriptor, descriptor, foto } = req.body;
     const desc = face_descriptor || descriptor;
+    if (!desc && (!foto || foto === null)) {
+      await pool.query("UPDATE santri SET face_descriptor = NULL, foto = NULL WHERE id = ?", [id]);
+      return res.json({ success: true, message: 'Biometrik dan foto wajah berhasil dihapus' });
+    }
     const strDesc = typeof desc === 'string' ? desc : JSON.stringify(desc);
     try {
       await pool.query("ALTER TABLE santri ADD COLUMN face_descriptor LONGTEXT NULL AFTER foto");

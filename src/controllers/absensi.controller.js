@@ -539,11 +539,11 @@ export const createAbsensiFingerprint = async (req, res) => {
     const finalStatus = status || status_kehadiran || 'Hadir';
     const finalSantriId = parseInt(santri_id) || 1;
 
-    // OTOMATIS PILIH JADWAL SHALAT BERJAMAAH SAAT SCAN FINGERPRINT MAUPUN SCAN WAJAH AI (FACE)
+    // OTOMATIS PILIH JADWAL SHALAT BERJAMAAH SAAT SCAN FINGERPRINT MAUPUN SCAN WAJAH AI (HANYA JIKA BUKAN MENGAJI)
     const isAutoBerjamaahScan =
-      finalMetode === 'Fingerprint' ||
-      finalMetode === 'Wajah AI' ||
-      req.body?.auto_jadwal_berjamaah === true;
+      (finalMetode === 'Fingerprint' || finalMetode === 'Wajah AI' || req.body?.auto_jadwal_berjamaah === true) &&
+      tipe_presensi !== 'Kegiatan' &&
+      req.body?.auto_jadwal_berjamaah !== false;
 
     let finalKegiatan = kegiatan || nama_sesi || 'Kegiatan Pesantren';
     let finalTipe = tipe_presensi;

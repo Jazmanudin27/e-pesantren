@@ -205,6 +205,16 @@ export default function MobilePresensi() {
     daftarBerjamaahRef.current = daftarBerjamaah;
   }, [daftarBerjamaah]);
 
+  const activeKategoriRef = useRef(activeKategori);
+  useEffect(() => {
+    activeKategoriRef.current = activeKategori;
+  }, [activeKategori]);
+
+  const selectedMengajiRef = useRef(selectedMengaji);
+  useEffect(() => {
+    selectedMengajiRef.current = selectedMengaji;
+  }, [selectedMengaji]);
+
   // Helper: Otomatis pilih sesi Shalat Berjamaah sesuai jam saat ini & Setting Jadwal Shalat Berjamaah (kegiatan_sesi)
   const detectActiveBerjamaahBySchedule = (list = daftarBerjamaahRef.current) => {
     if (!Array.isArray(list) || list.length === 0) return null;
@@ -484,6 +494,10 @@ export default function MobilePresensi() {
                 };
                 profileChanged = true;
               }
+            } else if (currentLocalProfiles[s.id] || currentLocalProfiles[String(s.id)]) {
+              delete currentLocalProfiles[s.id];
+              delete currentLocalProfiles[String(s.id)];
+              profileChanged = true;
             }
           }
 
@@ -1229,17 +1243,25 @@ export default function MobilePresensi() {
               return;
             }
 
-              // 2. OTOMATIS PILIH SESI SHALAT BERJAMAAH SESUAI JADWAL SAAT SCAN WAJAH AI
+              // 2. PILIH SESI KEGIATAN SESUAI KATEGORI AKTIF (BERJAMAAH VS MENGAJI)
               const todayStr = getTodayDateStr();
-              const autoBerjamaah = detectActiveBerjamaahBySchedule(
-                daftarBerjamaahRef.current,
-              );
-              const curKegiatan = autoBerjamaah || selectedKegiatanRef.current;
-              if (autoBerjamaah) {
-                setActiveKategori("berjamaah");
-                setSelectedBerjamaah(autoBerjamaah);
-                selectedKegiatanRef.current = autoBerjamaah;
+              const curKategori = activeKategoriRef.current || activeKategori;
+              let curKegiatan = selectedKegiatanRef.current;
+
+              if (curKategori === "berjamaah") {
+                const autoBerjamaah = detectActiveBerjamaahBySchedule(
+                  daftarBerjamaahRef.current,
+                );
+                if (autoBerjamaah) {
+                  curKegiatan = autoBerjamaah;
+                  setSelectedBerjamaah(autoBerjamaah);
+                  selectedKegiatanRef.current = autoBerjamaah;
+                }
+              } else {
+                // Kategori Mengaji: gunakan sesi kitab/materi mengaji yang dipilih user
+                curKegiatan = selectedMengajiRef.current || selectedKegiatanRef.current || daftarMengaji[0];
               }
+
               const isAlreadyAttended = (presensiLogsRef.current || []).some(
                 (item) => {
                   const sameSantri =
@@ -1255,14 +1277,14 @@ export default function MobilePresensi() {
                         displayName.trim().toLowerCase());
                   const sameSesi =
                     (item.sesi_id != null &&
-                      curKegiatan &&
+                      curKegiatan?.id != null &&
                       String(item.sesi_id) === String(curKegiatan.id)) ||
                     (item.kegiatan &&
-                      curKegiatan &&
+                      curKegiatan?.nama &&
                       item.kegiatan.trim().toLowerCase() ===
                         curKegiatan.nama.trim().toLowerCase()) ||
                     (item.nama_sesi &&
-                      curKegiatan &&
+                      curKegiatan?.nama &&
                       item.nama_sesi.trim().toLowerCase() ===
                         curKegiatan.nama.trim().toLowerCase());
                   const itemTgl = normalizeDateStr(item.tanggal);
@@ -1287,7 +1309,7 @@ export default function MobilePresensi() {
                 );
 
                 setFaceStatusText(
-                  `⚠️ ${displayName} sudah tercatat hadir pada kegiatan ini`,
+                  `⚠️ ${displayName} sudah tercatat hadir pada ${curKegiatan?.nama || "kegiatan ini"}`,
                 );
                 return;
               }
@@ -1303,7 +1325,7 @@ export default function MobilePresensi() {
               ctx.textAlign = "center";
               ctx.fillText(`✅ ${displayName}`, boxX + boxW / 2, boxY - 12);
 
-              setFaceStatusText(`✅ Wajah Terverifikasi AI: ${displayName}`);
+              setFaceStatusText(`✅ Wajah Terverifikasi AI: ${displayName} (${curKegiatan?.nama || "Presensi"})`);
 
               if (!faceCooldownRef.current) {
                 faceCooldownRef.current = true;
@@ -1318,9 +1340,10 @@ export default function MobilePresensi() {
                   santri_id: matchedSantri.id,
                   nama_santri: matchedSantri.nama_santri || displayName,
                   nis: matchedSantri.nis,
-                  sesi_id: curKegiatan?.id,
+                  sesi_id: curKategori === "berjamaah" ? curKegiatan?.id : null,
                   nama_sesi: curKegiatan?.nama,
                   kegiatan: curKegiatan?.nama,
+                  tipe_presensi: curKategori === "mengaji" ? "Kegiatan" : "Berjamaah",
                   tanggal: todayStr,
                   waktu_scan: new Date().toTimeString().split(" ")[0],
                   status: "Hadir",
@@ -1341,7 +1364,7 @@ export default function MobilePresensi() {
                   snap,
                 );
                 setLastScannedSantri({ ...matchedSantri, snapshot: snap });
-                toastSuccess(`Presensi Wajah AI: ${displayName}`);
+                toastSuccess(`Presensi Wajah AI: ${displayName} (${curKegiatan?.nama || "Hadir"})`);
               }
             } catch (err) {
               console.warn("Face loop error:", err);
@@ -1724,31 +1747,28 @@ export default function MobilePresensi() {
     const timeStr = now.toTimeString().split(" ")[0];
     const dateStr = getTodayDateStr();
 
-    // OTOMATIS PILIH KATEGORI & JADWAL SHALAT BERJAMAAH SAAT SCAN WAJAH AI / FACE
-    const isFaceScan = /wajah|face|ai/i.test(String(metode || ""));
-    let targetKegiatan = selectedKegiatan;
-    let targetKategori = activeKategori;
+    // PILIH KATEGORI & JADWAL SESUAI TAB AKTIF (BERJAMAAH VS MENGAJI)
+    const targetKategori = activeKategoriRef.current || activeKategori;
+    let targetKegiatan = targetKategori === "berjamaah" ? selectedBerjamaah : (selectedMengajiRef.current || selectedMengaji);
 
-    if (isFaceScan) {
+    if (targetKategori === "berjamaah") {
       const autoBerjamaah = detectActiveBerjamaahBySchedule(
         daftarBerjamaahRef.current,
       );
       if (autoBerjamaah) {
         targetKegiatan = autoBerjamaah;
-        targetKategori = "berjamaah";
-        setActiveKategori("berjamaah");
         setSelectedBerjamaah(autoBerjamaah);
         selectedKegiatanRef.current = autoBerjamaah;
       }
+    } else {
+      // Pastikan kategori Mengaji tetap utuh sesuai kegiatan mengaji yang dipilih user
+      targetKegiatan = selectedMengajiRef.current || selectedMengaji || selectedKegiatan || daftarMengaji[0];
     }
 
     if (!targetKegiatan) {
-      targetKegiatan = {
-        id: 1,
-        nama: "Shalat Berjamaah",
-        tempat: "Masjid Jami",
-        tipe: "Berjamaah",
-      };
+      targetKegiatan = targetKategori === "mengaji"
+        ? (daftarMengaji[0] || { id: "m-1", nama: "Kegiatan Mengaji", tipe: "Kegiatan" })
+        : (daftarBerjamaah[0] || { id: 1, nama: "Shalat Berjamaah", tipe: "Berjamaah" });
     }
 
     // 1. VALIDASI DOUBLE PRESENSI: Cek apakah santri sudah tercatat di sesi & tanggal ini
@@ -1820,7 +1840,7 @@ export default function MobilePresensi() {
       nama_sesi: targetKegiatan.nama,
       kegiatan: targetKegiatan.nama,
       tipe_presensi: targetKategori === "berjamaah" ? "Berjamaah" : "Kegiatan",
-      auto_jadwal_berjamaah: isFaceScan,
+      auto_jadwal_berjamaah: isFaceScan && targetKategori === "berjamaah",
       tempat: targetKegiatan.tempat,
       foto_bukti: snapshot || santri.foto || null,
     };

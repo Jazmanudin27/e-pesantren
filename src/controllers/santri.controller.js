@@ -361,7 +361,16 @@ export const updateSantri = async (req, res) => {
     if (req.body.nama_sekolah !== undefined) addIfColExists('nama_sekolah', req.body.nama_sekolah);
     if (req.body.tingkat_sekolah !== undefined) addIfColExists('tingkat_sekolah', req.body.tingkat_sekolah);
 
-    if (finalFoto !== undefined) addIfColExists('foto', finalFoto);
+    if (req.body.clear_face === true) {
+      addIfColExists('foto', null);
+      addIfColExists('face_descriptor', null);
+    } else if (foto !== undefined || foto_santri !== undefined) {
+      const targetFoto = foto !== undefined ? foto : foto_santri;
+      addIfColExists('foto', targetFoto);
+      if (targetFoto === null || targetFoto === '') {
+        addIfColExists('face_descriptor', null);
+      }
+    }
     if (username !== undefined && String(username).trim() !== '') addIfColExists('username', String(username).trim());
     if (password !== undefined && String(password).trim() !== '') addIfColExists('password', String(password).trim());
 

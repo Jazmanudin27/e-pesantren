@@ -35,6 +35,11 @@ export default function MobileDaftarWajah() {
   const [search, setSearch] = useState('');
   const [filterMode, setFilterMode] = useState('all'); // 'all' | 'unregistered' | 'registered'
   const [viewLayout, setViewLayout] = useState('grid'); // 'grid' | 'list'
+  const [displayLimit, setDisplayLimit] = useState(30);
+
+  useEffect(() => {
+    setDisplayLimit(30);
+  }, [search, selectedKelas, filterMode]);
 
   // Selected santri for enrollment
   const [selectedSantri, setSelectedSantri] = useState(null);
@@ -69,7 +74,7 @@ export default function MobileDaftarWajah() {
     try {
       setLoading(true);
       const [resSantri, resKelas] = await Promise.all([
-        axios.get('/api/santri?all=true'),
+        axios.get('/api/santri/for-face-registration').catch(() => axios.get('/api/santri?all=true')),
         axios.get('/api/kelas').catch(() => ({ data: { data: [] } }))
       ]);
 
@@ -79,48 +84,6 @@ export default function MobileDaftarWajah() {
 
       if (resSantri.data?.data && Array.isArray(resSantri.data.data)) {
         setSantriList(resSantri.data.data);
-
-        // Sinkronisasi otomatis data foto yang sudah ada di database & bersihkan data dummy lawas
-        const updated = { ...registeredFaces };
-        const validIds = new Set(resSantri.data.data.map((s) => String(s.id)));
-        let changed = false;
-
-        // Hapus profil wajah lama yang tidak ada di database santri
-        Object.keys(updated).forEach((idKey) => {
-          const prof = updated[idKey];
-          const pId = String(prof?.santri_id || idKey);
-          if (!validIds.has(pId)) {
-            delete updated[idKey];
-            changed = true;
-          }
-        });
-
-        resSantri.data.data.forEach((s) => {
-          const photo = s.foto || s.foto_santri;
-          let sDesc = null;
-          if (s.face_descriptor) {
-            try {
-              sDesc = typeof s.face_descriptor === 'string' ? JSON.parse(s.face_descriptor) : s.face_descriptor;
-            } catch (e) {}
-          }
-          if (photo && (!updated[s.id] || !updated[s.id].foto || (!updated[s.id].descriptor && sDesc))) {
-            updated[s.id] = {
-              santri_id: s.id,
-              nama: s.nama_santri,
-              nis: s.nis,
-              asrama: s.nama_asrama || '',
-              kamar: s.nama_kamar || '',
-              foto: photo,
-              descriptor: sDesc || updated[s.id]?.descriptor || null,
-              registered_at: new Date().toISOString()
-            };
-            changed = true;
-          }
-        });
-        if (changed) {
-          setRegisteredFaces(updated);
-          localStorage.setItem('epesantren_face_profiles', JSON.stringify(updated));
-        }
       }
     } catch (err) {
       console.warn('Gagal ambil santri:', err);
@@ -131,12 +94,16 @@ export default function MobileDaftarWajah() {
 
   useEffect(() => {
     fetchSantri();
-    initFaceApiModels()
-      .then(() => setAiModelStatus('ready'))
-      .catch((e) => {
-        console.warn('Face models load error:', e);
-        setAiModelStatus('error');
-      });
+    // Pre-warm AI face models di background (tidak blokir render awal)
+    const timer = setTimeout(() => {
+      initFaceApiModels()
+        .then(() => setAiModelStatus('ready'))
+        .catch((e) => {
+          console.warn('Face models load error:', e);
+          setAiModelStatus('error');
+        });
+    }, 600);
+    return () => clearTimeout(timer);
   }, []);
 
   const startCamera = async (facing = facingMode) => {
@@ -304,6 +271,9 @@ export default function MobileDaftarWajah() {
   const handleOpenEnrollModal = (santri) => {
     setSelectedSantri(santri);
     setSnapshot(registeredFaces[santri.id]?.foto || santri.foto || santri.foto_santri || null);
+    if (!isFaceModelReady()) {
+      initFaceApiModels().catch(() => {});
+    }
     startCamera(facingMode);
   };
 
@@ -412,7 +382,7 @@ export default function MobileDaftarWajah() {
 
       // Update state santriList lokal
       setSantriList((prev) =>
-        prev.map((s) => (s.id === selectedSantri.id ? { ...s, foto: snapshot, face_descriptor: descriptor } : s))
+        prev.map((s) => (s.id === selectedSantri.id ? { ...s, foto: snapshot, has_face_descriptor: 1, face_descriptor: descriptor } : s))
       );
 
       toastSuccess(`Wajah ${selectedSantri.nama_santri} berhasil didaftarkan!`);
@@ -436,28 +406,69 @@ export default function MobileDaftarWajah() {
     if (!ok) return;
 
     try {
-      // 1. Hapus di localStorage
+      // 1. Hapus di state & localStorage (dukung id number dan string)
       const updated = { ...registeredFaces };
       delete updated[santri.id];
+      delete updated[String(santri.id)];
       setRegisteredFaces(updated);
-      localStorage.setItem('epesantren_face_profiles', JSON.stringify(updated));
 
-      // 2. Hapus foto di database santri
       try {
-        await axios.patch(`/api/santri/${santri.id}/foto`, { foto: null });
-      } catch (ePatch) {
-        await axios.put(`/api/santri/${santri.id}`, { foto: null }).catch(() => {});
+        const localRaw = JSON.parse(localStorage.getItem('epesantren_face_profiles') || '{}');
+        delete localRaw[santri.id];
+        delete localRaw[String(santri.id)];
+        localStorage.setItem('epesantren_face_profiles', JSON.stringify(localRaw));
+      } catch (eStorage) {
+        console.warn('localStorage delete warning:', eStorage);
       }
 
-      // 3. Update state lokal
+      // 2. Hapus foto & biometrik face_descriptor di database MySQL server
+      try {
+        await axios.delete(`/api/santri/${santri.id}/face-descriptor`);
+      } catch (eDel) {
+        try {
+          await axios.patch(`/api/santri/${santri.id}/foto`, { foto: null, clear_face: true });
+        } catch (ePatch) {
+          await axios.put(`/api/santri/${santri.id}`, { foto: null, clear_face: true }).catch(() => {});
+        }
+      }
+
+      // 3. Update state lokal santriList seketika
       setSantriList((prev) =>
-        prev.map((s) => (s.id === santri.id ? { ...s, foto: null, foto_santri: null } : s))
+        prev.map((s) =>
+          String(s.id) === String(santri.id)
+            ? { ...s, foto: null, foto_santri: null, face_descriptor: null }
+            : s
+        )
       );
 
-      toastSuccess(`Foto wajah ${santri.nama_santri} berhasil dihapus.`);
+      // Jika modal sedang terbuka untuk santri ini, reset snapshot
+      if (selectedSantri && String(selectedSantri.id) === String(santri.id)) {
+        setSnapshot(null);
+        setCapturedDescriptor(null);
+        setSelectedSantri((prev) =>
+          prev ? { ...prev, foto: null, foto_santri: null, face_descriptor: null } : null
+        );
+      }
+
+      toastSuccess(`Foto & biometrik wajah ${santri.nama_santri} berhasil dihapus.`);
     } catch (e) {
+      console.error('Delete face error:', e);
       showError('Gagal Menghapus', 'Terjadi kendala saat menghapus foto wajah.');
     }
+  };
+
+  // Helper Cek Status Pendaftaran Wajah Santri
+  const checkSantriEnrolled = (s) => {
+    if (!s) return false;
+    const prof = registeredFaces[s.id] || registeredFaces[String(s.id)];
+    return !!(
+      s.has_face_descriptor === 1 ||
+      s.face_descriptor ||
+      s.foto ||
+      s.foto_santri ||
+      prof?.foto ||
+      prof?.descriptor
+    );
   };
 
   const combinedKelasOptions = React.useMemo(() => {
@@ -482,9 +493,7 @@ export default function MobileDaftarWajah() {
     return true;
   });
 
-  const totalRegisteredInClass = classFilteredSantri.filter(
-    (s) => !!(registeredFaces[s.id]?.foto || s.foto || s.foto_santri)
-  ).length;
+  const totalRegisteredInClass = classFilteredSantri.filter(checkSantriEnrolled).length;
 
   const filteredSantri = classFilteredSantri.filter((s) => {
     const q = search.toLowerCase();
@@ -495,15 +504,13 @@ export default function MobileDaftarWajah() {
       s.nama_kelas?.toLowerCase().includes(q);
 
     if (!matchSearch) return false;
-    const isEnrolled = !!(registeredFaces[s.id]?.foto || s.foto || s.foto_santri);
+    const isEnrolled = checkSantriEnrolled(s);
     if (filterMode === 'unregistered') return !isEnrolled;
     if (filterMode === 'registered') return isEnrolled;
     return true;
   });
 
-  const totalRegistered = santriList.filter(
-    (s) => !!(registeredFaces[s.id]?.foto || s.foto || s.foto_santri)
-  ).length;
+  const totalRegistered = santriList.filter(checkSantriEnrolled).length;
 
   return (
     <div style={{ padding: '14px', background: '#f8fafc', minHeight: '100%', fontFamily: "'Inter', sans-serif" }}>
@@ -742,12 +749,12 @@ export default function MobileDaftarWajah() {
           display: 'grid',
           gridTemplateColumns: 'repeat(2, 1fr)',
           gap: '10px',
-          paddingBottom: '80px'
+          paddingBottom: filteredSantri.length > displayLimit ? '16px' : '80px'
         }}>
-          {filteredSantri.map((santri) => {
-            const registered = registeredFaces[santri.id];
+          {filteredSantri.slice(0, displayLimit).map((santri) => {
+            const registered = registeredFaces[santri.id] || registeredFaces[String(santri.id)];
             const photo = registered?.foto || santri.foto || santri.foto_santri;
-            const isEnrolled = !!photo;
+            const isEnrolled = checkSantriEnrolled(santri);
 
             return (
               <div
@@ -927,11 +934,11 @@ export default function MobileDaftarWajah() {
         </div>
       ) : (
         /* List View */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingBottom: '70px' }}>
-          {filteredSantri.map((santri) => {
-            const registered = registeredFaces[santri.id];
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingBottom: filteredSantri.length > displayLimit ? '16px' : '70px' }}>
+          {filteredSantri.slice(0, displayLimit).map((santri) => {
+            const registered = registeredFaces[santri.id] || registeredFaces[String(santri.id)];
             const photo = registered?.foto || santri.foto || santri.foto_santri;
-            const isEnrolled = !!photo;
+            const isEnrolled = checkSantriEnrolled(santri);
 
             return (
               <div
@@ -1044,6 +1051,33 @@ export default function MobileDaftarWajah() {
         </div>
       )}
 
+      {/* Tombol Muat Lebih Banyak (Lazy Paginate Render) */}
+      {filteredSantri.length > displayLimit && (
+        <div style={{ textAlign: 'center', marginTop: '10px', marginBottom: '85px' }}>
+          <button
+            type="button"
+            onClick={() => setDisplayLimit((prev) => prev + 30)}
+            style={{
+              background: '#ffffff',
+              border: '1.5px solid #0284c7',
+              color: '#0284c7',
+              padding: '10px 20px',
+              borderRadius: '12px',
+              fontWeight: 800,
+              fontSize: '0.78rem',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(2, 132, 199, 0.12)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <RefreshCw size={13} />
+            <span>Muat Lebih Banyak ({filteredSantri.length - displayLimit} santri lagi)</span>
+          </button>
+        </div>
+      )}
+
       {/* Modal Ambil Foto / Daftarkan Wajah Santri */}
       {selectedSantri && (
         <div style={{
@@ -1082,9 +1116,37 @@ export default function MobileDaftarWajah() {
                   {selectedSantri.nama_santri} (NIS: {selectedSantri.nis})
                 </p>
               </div>
-              <button onClick={handleCloseModal} style={{ border: 'none', background: 'none', color: '#64748b', cursor: 'pointer' }}>
-                <X size={20} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {checkSantriEnrolled(selectedSantri) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleDeleteFace(selectedSantri);
+                      handleCloseModal();
+                    }}
+                    title="Hapus Wajah Terdaftar"
+                    style={{
+                      background: '#fff1f2',
+                      border: '1px solid #fecdd3',
+                      borderRadius: '8px',
+                      color: '#e11d48',
+                      padding: '5px 8px',
+                      cursor: 'pointer',
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <Trash2 size={13} />
+                    <span>Hapus Wajah</span>
+                  </button>
+                )}
+                <button onClick={handleCloseModal} style={{ border: 'none', background: 'none', color: '#64748b', cursor: 'pointer' }}>
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
             {/* Modal Viewport */}
