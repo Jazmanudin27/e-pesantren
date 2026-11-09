@@ -4,6 +4,19 @@ import { getAllSantri, createSantri, updateSantri, deleteSantri, importSantri } 
 
 const router = express.Router();
 
+// Cache kolom santri agar tidak SHOW COLUMNS berulang-ulang di setiap request
+let santriColsCache = null;
+const getSantriColumns = async () => {
+  if (santriColsCache) return santriColsCache;
+  try {
+    const [cols] = await pool.query("SHOW COLUMNS FROM santri");
+    santriColsCache = new Set((cols || []).map(c => c.Field));
+  } catch (e) {
+    santriColsCache = new Set(['id', 'nis', 'nama_santri', 'nama_kelas', 'kelas_id', 'asrama_id', 'kamar_id', 'face_descriptor']);
+  }
+  return santriColsCache;
+};
+
 router.get('/', getAllSantri);
 
 // 1. Endpoint Cepat: Ambil semua santri yang memiliki face_descriptor di MySQL (Hanya Biometrik Vektor, Tanpa Base64 Foto)
@@ -135,19 +148,6 @@ router.get('/:id/photo-thumb', async (req, res) => {
     return res.status(500).send('Server error');
   }
 });
-
-// Cache kolom santri agar tidak SHOW COLUMNS berulang-ulang di setiap request
-let santriColsCache = null;
-const getSantriColumns = async () => {
-  if (santriColsCache) return santriColsCache;
-  try {
-    const [cols] = await pool.query("SHOW COLUMNS FROM santri");
-    santriColsCache = new Set((cols || []).map(c => c.Field));
-  } catch (e) {
-    santriColsCache = new Set(['id', 'nis', 'nama_santri', 'nama_kelas', 'kelas_id', 'asrama_id', 'kamar_id', 'face_descriptor']);
-  }
-  return santriColsCache;
-};
 
 // 1d. Endpoint Cepat & Ringan untuk Presensi Mobile (Super Ringan ~10 KB vs 5.5 MB, Tanpa Base64 Foto)
 // Mendukung filter kelas via query: /api/santri/for-presensi?kelas=Kelas+1 atau ?kelas_id=1

@@ -1,6 +1,5 @@
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
-import { ensureAbsensiTablesAndColumns } from './absensi.controller.js';
 
 let isHaidTableChecked = false;
 
@@ -100,7 +99,6 @@ export const deactivateHaidForSantri = async (santriId, triggerSource = 'Auto Sc
 export const syncActiveHaidToAbsensi = async () => {
   try {
     await ensureHaidTablesAndColumns();
-    await ensureAbsensiTablesAndColumns();
 
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
