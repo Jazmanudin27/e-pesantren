@@ -29,6 +29,8 @@ import {
 import { showConfirm, toastSuccess } from "../../utils/alert.util";
 import OwnerLaporanKeuangan from "./OwnerLaporanKeuangan";
 import OwnerLaporanPresensi from "./OwnerLaporanPresensi";
+import OwnerLaporanMengaji from "./OwnerLaporanMengaji";
+import OwnerLaporanPerkembangan from "./OwnerLaporanPerkembangan";
 import OwnerLaporanPerizinan from "./OwnerLaporanPerizinan";
 import OwnerLaporanSantri from "./OwnerLaporanSantri";
 
@@ -1145,21 +1147,7 @@ export default function OwnerDashboardView({ onLogout }) {
                     <span style={menuLabelStyle}>Kas &amp; SPP</span>
                   </div>
 
-                  {/* 2. Tagihan SPP */}
-                  <div onClick={() => setActiveTab("keuangan")} style={menuCardStyle}>
-                    <div
-                      style={{
-                        ...squircleIconStyle,
-                        background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
-                        boxShadow: "0 6px 16px -2px rgba(59, 130, 246, 0.38)"
-                      }}
-                    >
-                      <CreditCard size={23} strokeWidth={2.3} color="#ffffff" />
-                    </div>
-                    <span style={menuLabelStyle}>Tagihan SPP</span>
-                  </div>
-
-                  {/* 3. Berjamaah */}
+                  {/* 2. Berjamaah */}
                   <div onClick={() => setActiveTab("presensi")} style={menuCardStyle}>
                     <div
                       style={{
@@ -1173,7 +1161,49 @@ export default function OwnerDashboardView({ onLogout }) {
                     <span style={menuLabelStyle}>Berjamaah</span>
                   </div>
 
-                  {/* 4. Kamar Asrama */}
+                  {/* 3. Presensi Mengaji */}
+                  <div onClick={() => setActiveTab("mengaji")} style={menuCardStyle}>
+                    <div
+                      style={{
+                        ...squircleIconStyle,
+                        background: "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)",
+                        boxShadow: "0 6px 16px -2px rgba(13, 148, 136, 0.38)"
+                      }}
+                    >
+                      <BookOpen size={23} strokeWidth={2.3} color="#ffffff" />
+                    </div>
+                    <span style={menuLabelStyle}>Mengaji</span>
+                  </div>
+
+                  {/* 4. Laporan Perkembangan */}
+                  <div onClick={() => setActiveTab("perkembangan")} style={menuCardStyle}>
+                    <div
+                      style={{
+                        ...squircleIconStyle,
+                        background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+                        boxShadow: "0 6px 16px -2px rgba(99, 102, 241, 0.38)"
+                      }}
+                    >
+                      <Award size={23} strokeWidth={2.3} color="#ffffff" />
+                    </div>
+                    <span style={menuLabelStyle}>Perkembangan</span>
+                  </div>
+
+                  {/* 5. Data Santri */}
+                  <div onClick={() => setActiveTab("santri")} style={menuCardStyle}>
+                    <div
+                      style={{
+                        ...squircleIconStyle,
+                        background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+                        boxShadow: "0 6px 16px -2px rgba(59, 130, 246, 0.38)"
+                      }}
+                    >
+                      <Users size={23} strokeWidth={2.3} color="#ffffff" />
+                    </div>
+                    <span style={menuLabelStyle}>Data Santri</span>
+                  </div>
+
+                  {/* 6. Kamar Asrama */}
                   <div onClick={() => setActiveTab("santri")} style={menuCardStyle}>
                     <div
                       style={{
@@ -1187,7 +1217,7 @@ export default function OwnerDashboardView({ onLogout }) {
                     <span style={menuLabelStyle}>Asrama</span>
                   </div>
 
-                  {/* 5. Perizinan */}
+                  {/* 7. Perizinan */}
                   <div onClick={() => setActiveTab("perizinan")} style={menuCardStyle}>
                     <div
                       style={{
@@ -1199,34 +1229,6 @@ export default function OwnerDashboardView({ onLogout }) {
                       <Clock size={23} strokeWidth={2.3} color="#ffffff" />
                     </div>
                     <span style={menuLabelStyle}>Perizinan</span>
-                  </div>
-
-                  {/* 6. Data Santri */}
-                  <div onClick={() => setActiveTab("santri")} style={menuCardStyle}>
-                    <div
-                      style={{
-                        ...squircleIconStyle,
-                        background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
-                        boxShadow: "0 6px 16px -2px rgba(99, 102, 241, 0.38)"
-                      }}
-                    >
-                      <Users size={23} strokeWidth={2.3} color="#ffffff" />
-                    </div>
-                    <span style={menuLabelStyle}>Data Santri</span>
-                  </div>
-
-                  {/* 7. Rombel Kelas */}
-                  <div onClick={() => setActiveTab("santri")} style={menuCardStyle}>
-                    <div
-                      style={{
-                        ...squircleIconStyle,
-                        background: "linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)",
-                        boxShadow: "0 6px 16px -2px rgba(20, 184, 166, 0.38)"
-                      }}
-                    >
-                      <GraduationCap size={23} strokeWidth={2.3} color="#ffffff" />
-                    </div>
-                    <span style={menuLabelStyle}>Rombel Kelas</span>
                   </div>
 
                   {/* 8. Tata Tertib */}
@@ -1457,6 +1459,8 @@ export default function OwnerDashboardView({ onLogout }) {
                 >
                   {activeTab === "keuangan" && "Laporan Keuangan"}
                   {activeTab === "presensi" && "Laporan Presensi Berjamaah"}
+                  {activeTab === "mengaji" && "Laporan Presensi Mengaji"}
+                  {activeTab === "perkembangan" && "Laporan Perkembangan Santri"}
                   {activeTab === "perizinan" && "Laporan Perizinan Santri"}
                   {activeTab === "santri" && "Data & Demografi Santri"}
                   {activeTab === "profil" && "Profil Dewan Pembina"}
@@ -1563,6 +1567,8 @@ export default function OwnerDashboardView({ onLogout }) {
                 <div>
                   {activeTab === "keuangan" && <OwnerLaporanKeuangan />}
                   {activeTab === "presensi" && <OwnerLaporanPresensi initialStatus={presensiFilter} />}
+                  {activeTab === "mengaji" && <OwnerLaporanMengaji />}
+                  {activeTab === "perkembangan" && <OwnerLaporanPerkembangan />}
                   {activeTab === "perizinan" && <OwnerLaporanPerizinan />}
                   {activeTab === "santri" && <OwnerLaporanSantri />}
                 </div>

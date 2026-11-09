@@ -3,20 +3,21 @@ import axios from "axios";
 import {
   Users,
   Building,
-  GraduationCap,
   RotateCw,
   Search,
-  PieChart,
-  UserCheck,
   User,
+  Phone,
+  MessageCircle,
+  Sparkles,
   ChevronRight,
-  Sparkles
+  ShieldCheck
 } from "lucide-react";
 
 export default function OwnerLaporanSantri() {
   const [loading, setLoading] = useState(true);
-  const [activeSubTab, setActiveSubTab] = useState("kelas"); // 'kelas' | 'asrama'
+  const [activeSubTab, setActiveSubTab] = useState("santri"); // 'santri' | 'asrama'
   const [searchTable, setSearchTable] = useState("");
+  const [visibleLimit, setVisibleLimit] = useState(30);
 
   const [data, setData] = useState({
     demografi: {
@@ -24,7 +25,7 @@ export default function OwnerLaporanSantri() {
       putra: 0,
       putri: 0
     },
-    rombelKelas: [],
+    daftarSantri: [],
     sebaranAsrama: []
   });
 
@@ -36,7 +37,7 @@ export default function OwnerLaporanSantri() {
         setData(res.data.data);
       }
     } catch (err) {
-      console.warn("Gagal memuat demografi santri owner:", err);
+      console.warn("Gagal memuat data santri owner:", err);
     } finally {
       setLoading(false);
     }
@@ -46,12 +47,20 @@ export default function OwnerLaporanSantri() {
     fetchData();
   }, []);
 
-  const filteredKelas = (data.rombelKelas || []).filter((k) => {
+  useEffect(() => {
+    setVisibleLimit(30);
+  }, [activeSubTab, searchTable]);
+
+  const filteredSantri = (data.daftarSantri || []).filter((s) => {
     const q = searchTable.toLowerCase();
     return (
-      (k.nama_kelas || "").toLowerCase().includes(q) ||
-      (k.tingkat || "").toLowerCase().includes(q) ||
-      (k.wali_kelas || "").toLowerCase().includes(q)
+      (s.nama_santri || "").toLowerCase().includes(q) ||
+      (s.nis || "").toLowerCase().includes(q) ||
+      (s.nisn || "").toLowerCase().includes(q) ||
+      (s.nama_kelas || "").toLowerCase().includes(q) ||
+      (s.nama_asrama || "").toLowerCase().includes(q) ||
+      (s.nama_kamar || "").toLowerCase().includes(q) ||
+      (s.nama_wali || "").toLowerCase().includes(q)
     );
   });
 
@@ -62,6 +71,8 @@ export default function OwnerLaporanSantri() {
       (a.pembina || "").toLowerCase().includes(q)
     );
   });
+
+  const displayedSantri = filteredSantri.slice(0, visibleLimit);
 
   const totalS = data.demografi?.total || 0;
   const putraS = data.demografi?.putra || 0;
@@ -109,18 +120,19 @@ export default function OwnerLaporanSantri() {
                 textTransform: "uppercase"
               }}
             >
-              POPULASI SANTRI AKTIF
+              TOTAL SANTRI AKTIF
             </div>
             <div
               style={{
-                fontSize: "1.65rem",
+                fontSize: "1.6rem",
                 fontWeight: 900,
                 color: "#ffffff",
                 letterSpacing: "-0.5px",
-                marginTop: "4px"
+                marginTop: "4px",
+                textShadow: "0 2px 6px rgba(0,0,0,0.2)"
               }}
             >
-              {totalS} <span style={{ fontSize: "0.9rem", fontWeight: 700, color: "#bfdbfe" }}>Santri Terdaftar</span>
+              {totalS.toLocaleString("id-ID")} <span style={{ fontSize: "0.85rem", fontWeight: 700 }}>Santri</span>
             </div>
           </div>
 
@@ -141,11 +153,11 @@ export default function OwnerLaporanSantri() {
           </div>
         </div>
 
-        {/* Multi-gender progress bar */}
+        {/* Progress Bar Sebaran Gender */}
         <div style={{ marginTop: "14px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.66rem", fontWeight: 700, marginBottom: "5px" }}>
-            <span style={{ color: "#93c5fd" }}>Putra: {putraS} ({putraPct}%)</span>
-            <span style={{ color: "#fbcfe8" }}>Putri: {putriS} ({putriPct}%)</span>
+            <span style={{ color: "#93c5fd" }}>Putra ({putraPct}%)</span>
+            <span style={{ color: "#fbcfe8" }}>Putri ({putriPct}%)</span>
           </div>
           <div
             style={{
@@ -157,88 +169,54 @@ export default function OwnerLaporanSantri() {
               display: "flex"
             }}
           >
-            <div style={{ width: `${putraPct}%`, background: "#60a5fa" }} />
-            <div style={{ width: `${putriPct}%`, background: "#f472b6" }} />
+            <div
+              style={{
+                width: `${putraPct}%`,
+                background: "linear-gradient(90deg, #60a5fa 0%, #3b82f6 100%)",
+                borderRadius: "99px"
+              }}
+            />
+            <div
+              style={{
+                width: `${putriPct}%`,
+                background: "linear-gradient(90deg, #f472b6 0%, #ec4899 100%)",
+                borderRadius: "99px"
+              }}
+            />
           </div>
         </div>
-      </div>
 
-      {/* 2. DUAL GENDER MINI CARDS */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+        {/* Sub Mini Stats */}
         <div
           style={{
-            background: "#ffffff",
-            borderRadius: "16px",
-            padding: "12px 14px",
-            border: "1px solid #bfdbfe",
-            boxShadow: "0 2px 8px rgba(37, 99, 235, 0.04)"
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "8px",
+            marginTop: "14px",
+            paddingTop: "12px",
+            borderTop: "1px solid rgba(255, 255, 255, 0.15)"
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ fontSize: "0.62rem", fontWeight: 800, color: "#1d4ed8", textTransform: "uppercase" }}>
+          <div>
+            <div style={{ fontSize: "0.6rem", color: "#bfdbfe", fontWeight: 700 }}>
               SANTRI PUTRA (IKHWAN)
-            </span>
-            <div
-              style={{
-                width: "24px",
-                height: "24px",
-                borderRadius: "8px",
-                background: "#eff6ff",
-                color: "#2563eb",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center"
-              }}
-            >
-              <User size={14} />
+            </div>
+            <div style={{ fontSize: "0.95rem", fontWeight: 900, color: "#ffffff", marginTop: "1px" }}>
+              {putraS.toLocaleString("id-ID")} <span style={{ fontSize: "0.65rem", fontWeight: 600 }}>Santri</span>
             </div>
           </div>
-          <div style={{ fontSize: "1.2rem", fontWeight: 900, color: "#1e3a8a", marginTop: "6px" }}>
-            {putraS} <span style={{ fontSize: "0.68rem", fontWeight: 600, color: "#64748b" }}>Santri</span>
-          </div>
-          <div style={{ fontSize: "0.62rem", color: "#3b82f6", marginTop: "2px", fontWeight: 700 }}>
-            {putraPct}% dari total
-          </div>
-        </div>
-
-        <div
-          style={{
-            background: "#ffffff",
-            borderRadius: "16px",
-            padding: "12px 14px",
-            border: "1px solid #fbcfe8",
-            boxShadow: "0 2px 8px rgba(236, 72, 153, 0.04)"
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ fontSize: "0.62rem", fontWeight: 800, color: "#be185d", textTransform: "uppercase" }}>
+          <div>
+            <div style={{ fontSize: "0.6rem", color: "#fbcfe8", fontWeight: 700 }}>
               SANTRI PUTRI (AKHWAT)
-            </span>
-            <div
-              style={{
-                width: "24px",
-                height: "24px",
-                borderRadius: "8px",
-                background: "#fdf2f8",
-                color: "#db2777",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center"
-              }}
-            >
-              <User size={14} />
             </div>
-          </div>
-          <div style={{ fontSize: "1.2rem", fontWeight: 900, color: "#831843", marginTop: "6px" }}>
-            {putriS} <span style={{ fontSize: "0.68rem", fontWeight: 600, color: "#64748b" }}>Santri</span>
-          </div>
-          <div style={{ fontSize: "0.62rem", color: "#ec4899", marginTop: "2px", fontWeight: 700 }}>
-            {putriPct}% dari total
+            <div style={{ fontSize: "0.95rem", fontWeight: 900, color: "#ffffff", marginTop: "1px" }}>
+              {putriS.toLocaleString("id-ID")} <span style={{ fontSize: "0.65rem", fontWeight: 600 }}>Santri</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 3. SUBTAB SWITCHER (ROMBEL KELAS / ASRAMA) */}
+      {/* 2. SUBTAB SWITCHER (DAFTAR SANTRI / KAMAR ASRAMA) */}
       <div
         style={{
           display: "flex",
@@ -252,12 +230,12 @@ export default function OwnerLaporanSantri() {
       >
         <button
           type="button"
-          onClick={() => setActiveSubTab("kelas")}
+          onClick={() => setActiveSubTab("santri")}
           style={{
             flex: 1,
-            background: activeSubTab === "kelas" ? "#eff6ff" : "transparent",
-            color: activeSubTab === "kelas" ? "#1d4ed8" : "#64748b",
-            fontWeight: activeSubTab === "kelas" ? 800 : 600,
+            background: activeSubTab === "santri" ? "#eff6ff" : "transparent",
+            color: activeSubTab === "santri" ? "#1d4ed8" : "#64748b",
+            fontWeight: activeSubTab === "santri" ? 800 : 600,
             fontSize: "0.74rem",
             padding: "8px 4px",
             borderRadius: "10px",
@@ -266,11 +244,11 @@ export default function OwnerLaporanSantri() {
             alignItems: "center",
             justifyContent: "center",
             gap: "5px",
-            border: activeSubTab === "kelas" ? "1px solid #bfdbfe" : "1px solid transparent"
+            border: activeSubTab === "santri" ? "1px solid #bfdbfe" : "1px solid transparent"
           }}
         >
-          <GraduationCap size={14} />
-          <span>Rombel Kelas ({data.rombelKelas?.length || 0})</span>
+          <Users size={14} />
+          <span>Daftar Santri ({filteredSantri.length.toLocaleString("id-ID")})</span>
         </button>
 
         <button
@@ -293,11 +271,11 @@ export default function OwnerLaporanSantri() {
           }}
         >
           <Building size={14} />
-          <span>Kamar Asrama ({data.sebaranAsrama?.length || 0})</span>
+          <span>Kamar Asrama ({filteredAsrama.length.toLocaleString("id-ID")})</span>
         </button>
       </div>
 
-      {/* 4. SEARCH BAR */}
+      {/* 3. SEARCH BAR */}
       <div
         style={{
           position: "relative",
@@ -314,7 +292,11 @@ export default function OwnerLaporanSantri() {
         />
         <input
           type="text"
-          placeholder={activeSubTab === "kelas" ? "Cari nama kelas atau wali kelas..." : "Cari nama asrama atau pembina..."}
+          placeholder={
+            activeSubTab === "santri"
+              ? "Cari nama santri, NIS, kelas, asrama, atau wali..."
+              : "Cari nama asrama atau pembina..."
+          }
           value={searchTable}
           onChange={(e) => setSearchTable(e.target.value)}
           style={{
@@ -331,7 +313,7 @@ export default function OwnerLaporanSantri() {
         />
       </div>
 
-      {/* 5. LIST CARDS */}
+      {/* 4. LIST CARDS */}
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
         {loading ? (
           <div
@@ -348,79 +330,184 @@ export default function OwnerLaporanSantri() {
               Memuat data santri...
             </div>
           </div>
-        ) : activeSubTab === "kelas" ? (
-          filteredKelas.length > 0 ? (
-            filteredKelas.map((item, idx) => (
-              <div
-                key={idx}
-                style={{
-                  background: "#ffffff",
-                  borderRadius: "14px",
-                  padding: "12px 14px",
-                  border: "1px solid #e2e8f0",
-                  boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "10px"
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
-                  <div
-                    style={{
-                      width: "36px",
-                      height: "36px",
-                      borderRadius: "11px",
-                      background: "#eff6ff",
-                      color: "#2563eb",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0
-                    }}
-                  >
-                    <GraduationCap size={18} />
-                  </div>
-                  <div style={{ minWidth: 0, overflow: "hidden" }}>
-                    <div
-                      style={{
-                        fontSize: "0.82rem",
-                        fontWeight: 900,
-                        color: "#0f172a",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis"
-                      }}
-                    >
-                      {item.nama_kelas}
-                    </div>
-                    <div style={{ fontSize: "0.64rem", color: "#64748b", marginTop: "1px" }}>
-                      Wali Kelas: {item.wali_kelas || "Asatidz Pembina"}
-                    </div>
-                    <div style={{ fontSize: "0.6rem", color: "#94a3b8", marginTop: "1px" }}>
-                      Tingkat: {item.tingkat || "Reguler"}
-                    </div>
-                  </div>
-                </div>
+        ) : activeSubTab === "santri" ? (
+          /* TAB 1: LIST DATA SANTRI */
+          filteredSantri.length > 0 ? (
+            <>
+              {displayedSantri.map((item, idx) => {
+                const isPutri = String(item.jenis_kelamin || "").toUpperCase().startsWith("P");
+                const cleanPhone = (item.no_wa_wali || "").replace(/\D/g, "");
+                const waLink = cleanPhone ? `https://wa.me/${cleanPhone.startsWith("0") ? "62" + cleanPhone.slice(1) : cleanPhone}` : null;
 
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <span
+                return (
+                  <div
+                    key={item.id || idx}
                     style={{
-                      display: "inline-block",
-                      fontSize: "0.76rem",
-                      fontWeight: 900,
-                      color: "#1d4ed8",
-                      background: "#eff6ff",
-                      border: "1px solid #bfdbfe",
-                      padding: "4px 8px",
-                      borderRadius: "8px"
+                      background: "#ffffff",
+                      borderRadius: "14px",
+                      padding: "12px 14px",
+                      border: "1px solid #e2e8f0",
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "8px"
                     }}
                   >
-                    {item.total_santri || 0} Santri
-                  </span>
-                </div>
-              </div>
-            ))
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
+                        <div
+                          style={{
+                            width: "38px",
+                            height: "38px",
+                            borderRadius: "12px",
+                            background: isPutri ? "#fdf2f8" : "#eff6ff",
+                            color: isPutri ? "#db2777" : "#2563eb",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                            fontWeight: 900,
+                            fontSize: "0.85rem"
+                          }}
+                        >
+                          {item.nama_santri ? item.nama_santri.charAt(0).toUpperCase() : "S"}
+                        </div>
+                        <div style={{ minWidth: 0, overflow: "hidden" }}>
+                          <div
+                            style={{
+                              fontSize: "0.82rem",
+                              fontWeight: 900,
+                              color: "#0f172a",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis"
+                            }}
+                          >
+                            {item.nama_santri}
+                          </div>
+                          <div style={{ fontSize: "0.64rem", color: "#64748b", marginTop: "1px" }}>
+                            NIS: {item.nis || "-"} {item.nisn ? `• NISN: ${item.nisn}` : ""}
+                          </div>
+                        </div>
+                      </div>
+
+                      <span
+                        style={{
+                          fontSize: "0.58rem",
+                          fontWeight: 800,
+                          padding: "3px 7px",
+                          borderRadius: "6px",
+                          background: isPutri ? "#fdf2f8" : "#eff6ff",
+                          color: isPutri ? "#be185d" : "#1d4ed8",
+                          border: isPutri ? "1px solid #fbcfe8" : "1px solid #bfdbfe",
+                          flexShrink: 0
+                        }}
+                      >
+                        {isPutri ? "Putri" : "Putra"}
+                      </span>
+                    </div>
+
+                    {/* Metadata Badges: Kelas & Asrama */}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center" }}>
+                      {item.nama_kelas && (
+                        <span
+                          style={{
+                            fontSize: "0.62rem",
+                            fontWeight: 700,
+                            color: "#334155",
+                            background: "#f1f5f9",
+                            padding: "2px 8px",
+                            borderRadius: "6px",
+                            border: "1px solid #e2e8f0"
+                          }}
+                        >
+                          Kelas: {item.nama_kelas}
+                        </span>
+                      )}
+
+                      {(item.nama_asrama || item.nama_kamar) && (
+                        <span
+                          style={{
+                            fontSize: "0.62rem",
+                            fontWeight: 700,
+                            color: "#0f766e",
+                            background: "#ecfdf5",
+                            padding: "2px 8px",
+                            borderRadius: "6px",
+                            border: "1px solid #a7f3d0"
+                          }}
+                        >
+                          {item.nama_asrama || "Asrama"} {item.nama_kamar ? `• ${item.nama_kamar}` : ""}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Wali & Kontak WA */}
+                    {item.nama_wali && (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          paddingTop: "6px",
+                          borderTop: "1px solid #f1f5f9",
+                          fontSize: "0.64rem",
+                          color: "#64748b"
+                        }}
+                      >
+                        <div>
+                          Wali: <strong style={{ color: "#334155" }}>{item.nama_wali}</strong>
+                        </div>
+                        {waLink && (
+                          <a
+                            href={waLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              color: "#059669",
+                              fontWeight: 800,
+                              textDecoration: "none",
+                              background: "#ecfdf5",
+                              border: "1px solid #a7f3d0",
+                              padding: "2px 6px",
+                              borderRadius: "6px"
+                            }}
+                          >
+                            <MessageCircle size={12} />
+                            <span>WA Wali</span>
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {filteredSantri.length > visibleLimit && (
+                <button
+                  type="button"
+                  onClick={() => setVisibleLimit((v) => v + 30)}
+                  style={{
+                    padding: "10px 14px",
+                    background: "#ffffff",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "12px",
+                    fontSize: "0.74rem",
+                    fontWeight: 800,
+                    color: "#2563eb",
+                    cursor: "pointer",
+                    textAlign: "center",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.03)",
+                    marginTop: "4px"
+                  }}
+                >
+                  Tampilkan Lebih Banyak ({(filteredSantri.length - visibleLimit).toLocaleString("id-ID")} santri lagi)
+                </button>
+              )}
+            </>
           ) : (
             <div
               style={{
@@ -431,13 +518,17 @@ export default function OwnerLaporanSantri() {
                 border: "1px solid #e2e8f0"
               }}
             >
-              <GraduationCap size={32} color="#cbd5e1" style={{ margin: "0 auto 8px" }} />
+              <Users size={32} color="#cbd5e1" style={{ margin: "0 auto 8px" }} />
               <div style={{ fontSize: "0.78rem", fontWeight: 800, color: "#334155" }}>
-                Tidak ada data kelas
+                Tidak ada santri ditemukan
+              </div>
+              <div style={{ fontSize: "0.68rem", color: "#94a3b8", marginTop: "2px" }}>
+                Coba sesuaikan kata kunci pencarian.
               </div>
             </div>
           )
         ) : (
+          /* TAB 2: SEBARAN ASRAMA */
           filteredAsrama.length > 0 ? (
             filteredAsrama.map((item, idx) => (
               <div
@@ -484,7 +575,7 @@ export default function OwnerLaporanSantri() {
                       {item.nama_asrama}
                     </div>
                     <div style={{ fontSize: "0.64rem", color: "#64748b", marginTop: "1px" }}>
-                      Musyrif: {item.pembina || "Pengasuh Asrama"}
+                      Musyrif / Pembina: {item.pembina || "Pengasuh Asrama"}
                     </div>
                   </div>
                 </div>
@@ -502,7 +593,7 @@ export default function OwnerLaporanSantri() {
                       borderRadius: "8px"
                     }}
                   >
-                    {item.total_santri || 0} Santri
+                    {(item.total_santri || 0).toLocaleString("id-ID")} Santri
                   </span>
                 </div>
               </div>

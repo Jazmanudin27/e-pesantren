@@ -108,7 +108,13 @@ export default function OwnerLaporanKeuangan() {
     ? Math.round(((data.kasPeriode || 0) / totalObligasi) * 100)
     : 0;
 
-  const formatRp = (n) => `Rp ${(n || 0).toLocaleString("id-ID")}`;
+  const formatAngka = (n) => {
+    if (n === null || n === undefined || n === "") return "0";
+    const num = Math.round(Number(n) || 0);
+    return num.toLocaleString("id-ID");
+  };
+
+  const formatRp = (n) => `Rp ${formatAngka(n)}`;
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "-";

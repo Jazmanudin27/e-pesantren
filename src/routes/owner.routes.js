@@ -4,7 +4,8 @@ import {
   getOwnerKeuangan,
   getOwnerPresensi,
   getOwnerPerizinan,
-  getOwnerSantri
+  getOwnerSantri,
+  getOwnerPerkembangan
 } from '../controllers/owner.controller.js';
 
 const router = express.Router();
@@ -21,8 +22,11 @@ router.get('/presensi', getOwnerPresensi);
 // 4. Menu Laporan Perizinan (Santri Izin & Disiplin)
 router.get('/perizinan', getOwnerPerizinan);
 
-// 5. Menu Laporan Demografi Santri & Rombel Kelas
+// 5. Menu Laporan Data Santri & Sebaran Asrama
 router.get('/santri', getOwnerSantri);
+
+// 6. Menu Laporan Perkembangan Santri
+router.get('/perkembangan', getOwnerPerkembangan);
 
 export default router;
 

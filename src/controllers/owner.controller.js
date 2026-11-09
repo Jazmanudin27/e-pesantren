@@ -263,9 +263,19 @@ export const getOwnerKeuangan = async (req, res) => {
       totalSemuaKas: Number(kasAll?.total_semua_kas || 0),
       totalPiutang: Number(piutangAll?.total_piutang || 0),
       totalSantriMenunggak: Number(piutangAll?.total_santri_menunggak || 0),
-      transaksiTerakhir: transaksiRows,
-      tunggakanSantri: tunggakanRows,
-      riwayatInfak: infakRows
+      transaksiTerakhir: (transaksiRows || []).map((r) => ({
+        ...r,
+        total_bayar: Math.round(Number(r.total_bayar || 0))
+      })),
+      tunggakanSantri: (tunggakanRows || []).map((r) => ({
+        ...r,
+        total_tunggakan: Math.round(Number(r.total_tunggakan || 0)),
+        jumlah_tagihan: Number(r.jumlah_tagihan || 0)
+      })),
+      riwayatInfak: (infakRows || []).map((r) => ({
+        ...r,
+        nominal: Math.round(Number(r.nominal || 0))
+      }))
     });
   } catch (err) {
     return sendError(res, `Gagal memuat keuangan owner: ${err.message}`, 500);
@@ -279,7 +289,23 @@ export const getOwnerKeuangan = async (req, res) => {
 export const getOwnerPresensi = async (req, res) => {
   try {
     const periode = req.query.periode || 'hari_ini';
+    const tipe = req.query.tipe || 'semua';
     const dateCond = getPeriodeDateCondition(periode, 'aj.tanggal');
+
+    let tipeFilterSql = '';
+    if (tipe === 'mengaji') {
+      tipeFilterSql = ` AND (
+        LOWER(COALESCE(aj.tipe_presensi, '')) LIKE '%mengaji%' 
+        OR LOWER(COALESCE(aj.tipe_presensi, '')) LIKE '%kegiatan%'
+        OR (LOWER(COALESCE(aj.nama_kegiatan, '')) NOT REGEXP 'subuh|dzuhur|ashar|maghrib|isya|dhuha' AND LOWER(COALESCE(ks.nama_sesi, '')) NOT REGEXP 'subuh|dzuhur|ashar|maghrib|isya|dhuha')
+      )`;
+    } else if (tipe === 'berjamaah') {
+      tipeFilterSql = ` AND (
+        LOWER(COALESCE(aj.tipe_presensi, '')) LIKE '%berjamaah%' 
+        OR LOWER(COALESCE(aj.nama_kegiatan, '')) REGEXP 'shalat|sholat|subuh|dzuhur|ashar|maghrib|isya|dhuha|berjamaah'
+        OR LOWER(COALESCE(ks.nama_sesi, '')) REGEXP 'shalat|sholat|subuh|dzuhur|ashar|maghrib|isya|dhuha|berjamaah'
+      )`;
+    }
 
     // 1. Rekap Status Presensi
     const [statusSummary] = await pool.query(`
@@ -287,7 +313,8 @@ export const getOwnerPresensi = async (req, res) => {
         aj.status,
         COUNT(*) as jml
       FROM absensi_jamaah_mengaji aj
-      WHERE 1=1 ${dateCond.sql}
+      LEFT JOIN kegiatan_sesi ks ON aj.sesi_id = ks.id
+      WHERE 1=1 ${dateCond.sql} ${tipeFilterSql}
       GROUP BY aj.status
     `, dateCond.params).catch(() => [[]]);
 
@@ -318,7 +345,7 @@ export const getOwnerPresensi = async (req, res) => {
         SUM(CASE WHEN LOWER(aj.status) LIKE '%alfa%' THEN 1 ELSE 0 END) as jml_alfa
       FROM absensi_jamaah_mengaji aj
       LEFT JOIN kegiatan_sesi ks ON aj.sesi_id = ks.id
-      WHERE 1=1 ${dateCond.sql}
+      WHERE 1=1 ${dateCond.sql} ${tipeFilterSql}
       GROUP BY nama_kegiatan, tipe_presensi
       ORDER BY total_presensi DESC
     `, dateCond.params).catch(() => [[]]);
@@ -342,13 +369,14 @@ export const getOwnerPresensi = async (req, res) => {
       JOIN santri s ON aj.santri_id = s.id
       LEFT JOIN asrama a ON s.asrama_id = a.id
       LEFT JOIN kegiatan_sesi ks ON aj.sesi_id = ks.id
-      WHERE 1=1 ${dateCond.sql}
+      WHERE 1=1 ${dateCond.sql} ${tipeFilterSql}
       ORDER BY aj.tanggal DESC, aj.waktu_scan DESC, aj.id DESC
       LIMIT 100
     `, dateCond.params).catch(() => [[]]);
 
     return sendSuccess(res, 'Data Laporan Presensi Owner Berhasil Dimuat', {
       periode,
+      tipe,
       summary: {
         total,
         hadir,
@@ -426,7 +454,7 @@ export const getOwnerPerizinan = async (req, res) => {
 
 /**
  * 6. GET /api/owner/santri
- * Laporan Demografi Santri & Rombel Kelas (Read-Only)
+ * Laporan Data Lengkap Santri & Sebaran Asrama (Read-Only)
  */
 export const getOwnerSantri = async (req, res) => {
   try {
@@ -440,19 +468,27 @@ export const getOwnerSantri = async (req, res) => {
       WHERE status = 'Aktif'
     `).catch(() => [[{ total_santri: 0, santri_putra: 0, santri_putri: 0 }]]);
 
-    // 2. Rombel per Kelas
-    const [kelasRows] = await pool.query(`
+    // 2. Data Lengkap Seluruh Santri Aktif
+    const [santriRows] = await pool.query(`
       SELECT 
-        kl.id,
-        kl.nama_kelas,
-        kl.tingkat,
-        kl.wali_kelas,
-        kl.keterangan,
-        COUNT(s.id) as total_santri
-      FROM kelas kl
-      LEFT JOIN santri s ON (s.kelas_id = kl.id OR s.nama_kelas = kl.nama_kelas) AND s.status = 'Aktif'
-      GROUP BY kl.id, kl.nama_kelas, kl.tingkat, kl.wali_kelas, kl.keterangan
-      ORDER BY kl.nama_kelas ASC
+        s.id,
+        s.nama_santri,
+        s.nis,
+        s.nisn,
+        COALESCE(s.nama_kelas, kl.nama_kelas, '') as nama_kelas,
+        COALESCE(a.nama_asrama, '') as nama_asrama,
+        COALESCE(k.nama_kamar, '') as nama_kamar,
+        COALESCE(s.jenis_kelamin, s.tipe_santri, 'L') as jenis_kelamin,
+        s.status,
+        s.nama_wali,
+        COALESCE(s.no_wa_wali, s.no_hp_wali, '') as no_wa_wali,
+        DATE_FORMAT(s.tanggal_masuk, '%Y-%m-%d') as tanggal_masuk
+      FROM santri s
+      LEFT JOIN kelas kl ON s.kelas_id = kl.id
+      LEFT JOIN asrama a ON s.asrama_id = a.id
+      LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+      WHERE s.status = 'Aktif'
+      ORDER BY s.nama_santri ASC
     `).catch(() => [[]]);
 
     // 3. Sebaran per Asrama
@@ -468,17 +504,75 @@ export const getOwnerSantri = async (req, res) => {
       ORDER BY a.nama_asrama ASC
     `).catch(() => [[]]);
 
-    return sendSuccess(res, 'Data Demografi Santri Owner Berhasil Dimuat', {
+    return sendSuccess(res, 'Data Santri Owner Berhasil Dimuat', {
       demografi: {
         total: Number(genderStats?.total_santri || 0),
         putra: Number(genderStats?.santri_putra || 0),
         putri: Number(genderStats?.santri_putri || 0)
       },
-      rombelKelas: kelasRows,
-      sebaranAsrama: asramaRows
+      daftarSantri: santriRows || [],
+      sebaranAsrama: asramaRows || []
     });
   } catch (err) {
-    return sendError(res, `Gagal memuat demografi santri owner: ${err.message}`, 500);
+    return sendError(res, `Gagal memuat data santri owner: ${err.message}`, 500);
+  }
+};
+
+/**
+ * 7. GET /api/owner/perkembangan
+ * Laporan Perkembangan Santri (Akademik, Karakter & Catatan Ustadz)
+ */
+export const getOwnerPerkembangan = async (req, res) => {
+  try {
+    const search = req.query.search || '';
+    let sql = `
+      SELECT 
+        l.id,
+        l.santri_id,
+        l.periode,
+        DATE_FORMAT(l.tanggal_laporan, '%Y-%m-%d') as tanggal_laporan,
+        l.nilai_akademik,
+        l.catatan_akademik,
+        l.catatan_hafalan,
+        l.catatan_perilaku,
+        l.catatan_ibadah,
+        l.catatan_ustadz,
+        l.nama_penulis,
+        l.status_publikasi,
+        s.nama_santri,
+        s.nis,
+        COALESCE(s.nama_kelas, '') as nama_kelas,
+        COALESCE(a.nama_asrama, '') as nama_asrama,
+        COALESCE(k.nama_kamar, '') as nama_kamar
+      FROM santri_laporan_perkembangan l
+      JOIN santri s ON l.santri_id = s.id
+      LEFT JOIN asrama a ON s.asrama_id = a.id
+      LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+      WHERE 1=1
+    `;
+    const params = [];
+    if (search) {
+      sql += ' AND (s.nama_santri LIKE ? OR s.nis LIKE ? OR l.periode LIKE ?)';
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    }
+    sql += ' ORDER BY l.tanggal_laporan DESC, l.id DESC LIMIT 100';
+
+    const [rows] = await pool.query(sql, params).catch(() => [[]]);
+
+    const [[kpi]] = await pool.query(`
+      SELECT 
+        COUNT(*) as total_laporan,
+        COUNT(DISTINCT santri_id) as total_santri_terlapor
+      FROM santri_laporan_perkembangan
+    `).catch(() => [[{ total_laporan: 0, total_santri_terlapor: 0 }]]);
+
+    return sendSuccess(res, 'Laporan Perkembangan Owner Berhasil Dimuat', {
+      totalLaporan: Number(kpi?.total_laporan || 0),
+      totalSantriTerlapor: Number(kpi?.total_santri_terlapor || 0),
+      laporanList: rows || []
+    });
+  } catch (err) {
+    return sendError(res, `Gagal memuat perkembangan owner: ${err.message}`, 500);
   }
 };
 
