@@ -382,7 +382,6 @@ export default function OwnerLaporanKeuangan() {
           onClick={() => setActiveSubTab("transaksi")}
           style={{
             flex: 1,
-            border: "none",
             background: activeSubTab === "transaksi" ? "#ecfdf5" : "transparent",
             color: activeSubTab === "transaksi" ? "#065f46" : "#64748b",
             fontWeight: activeSubTab === "transaksi" ? 800 : 600,
@@ -406,7 +405,6 @@ export default function OwnerLaporanKeuangan() {
           onClick={() => setActiveSubTab("tunggakan")}
           style={{
             flex: 1,
-            border: "none",
             background: activeSubTab === "tunggakan" ? "#fef2f2" : "transparent",
             color: activeSubTab === "tunggakan" ? "#b91c1c" : "#64748b",
             fontWeight: activeSubTab === "tunggakan" ? 800 : 600,
@@ -430,7 +428,6 @@ export default function OwnerLaporanKeuangan() {
           onClick={() => setActiveSubTab("infak")}
           style={{
             flex: 1,
-            border: "none",
             background: activeSubTab === "infak" ? "#fff1f2" : "transparent",
             color: activeSubTab === "infak" ? "#be123c" : "#64748b",
             fontWeight: activeSubTab === "infak" ? 800 : 600,

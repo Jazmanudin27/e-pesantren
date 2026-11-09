@@ -172,7 +172,6 @@ export default function OwnerLaporanPerizinan() {
           onClick={() => setActiveSubTab("aktif")}
           style={{
             flex: 1,
-            border: "none",
             background: activeSubTab === "aktif" ? "#fff7ed" : "transparent",
             color: activeSubTab === "aktif" ? "#c2410c" : "#64748b",
             fontWeight: activeSubTab === "aktif" ? 800 : 600,
@@ -196,7 +195,6 @@ export default function OwnerLaporanPerizinan() {
           onClick={() => setActiveSubTab("riwayat")}
           style={{
             flex: 1,
-            border: "none",
             background: activeSubTab === "riwayat" ? "#f8fafc" : "transparent",
             color: activeSubTab === "riwayat" ? "#0f172a" : "#64748b",
             fontWeight: activeSubTab === "riwayat" ? 800 : 600,

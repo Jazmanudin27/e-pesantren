@@ -255,7 +255,6 @@ export default function OwnerLaporanSantri() {
           onClick={() => setActiveSubTab("kelas")}
           style={{
             flex: 1,
-            border: "none",
             background: activeSubTab === "kelas" ? "#eff6ff" : "transparent",
             color: activeSubTab === "kelas" ? "#1d4ed8" : "#64748b",
             fontWeight: activeSubTab === "kelas" ? 800 : 600,
@@ -279,7 +278,6 @@ export default function OwnerLaporanSantri() {
           onClick={() => setActiveSubTab("asrama")}
           style={{
             flex: 1,
-            border: "none",
             background: activeSubTab === "asrama" ? "#eff6ff" : "transparent",
             color: activeSubTab === "asrama" ? "#1d4ed8" : "#64748b",
             fontWeight: activeSubTab === "asrama" ? 800 : 600,
