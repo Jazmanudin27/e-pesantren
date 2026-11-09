@@ -34,6 +34,8 @@ import {
   UserPlus,
   RotateCcw,
   BookOpen,
+  User,
+  GraduationCap,
 } from "lucide-react";
 import {
   showSuccess,
@@ -1215,60 +1217,177 @@ export default function MobilePresensiMengaji() {
             </div>
           )}
 
-          {/* List Kartu Riwayat */}
-          {filteredRiwayatLogs.map((log) => (
-            <div
-              key={log.id}
-              style={{
-                background: "#ffffff",
-                borderRadius: "12px",
-                padding: "10px 14px",
-                border: "1px solid #e2e8f0",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-              }}
-            >
-              <div>
-                <div style={{ fontWeight: 800, fontSize: "0.86rem", color: "#0f172a" }}>
-                  {log.nama_santri}
-                </div>
-                <div style={{ fontSize: "0.68rem", color: "#64748b", marginTop: "2px" }}>
-                  <span style={{ color: "#059669", fontWeight: 700 }}>
-                    {log.kegiatan || log.nama_sesi || log.nama_kegiatan || selectedMengaji?.nama || "Kegiatan Mengaji"}
-                  </span>
-                  {" • "}
-                  <span>
-                    {log.keterangan || (selectedMengajiKelas ? `Kelas: ${selectedMengajiKelas}` : (log.nama_kelas ? `Kelas: ${log.nama_kelas}` : ""))}
-                  </span>
-                  {" • "}
-                  <span>{log.waktu_scan ? String(log.waktu_scan).substring(0, 8) : "00:00:00"} WIB</span>
-                  {(log.musyrif_verifikator || log.nama_ustadz) && (
-                    <>
-                      {" • "}
-                      <span style={{ color: "#4f46e5", fontWeight: 700 }}>
-                        Musyrif: {log.musyrif_verifikator || log.nama_ustadz}
-                      </span>
-                    </>
-                  )}
-                </div>
-              </div>
-              <span
+          {/* List Kartu Riwayat Bersih & Rapi dengan Icon */}
+          {filteredRiwayatLogs.map((log) => {
+            const rawTgl = normalizeDateStr(log.tanggal) || getTodayDateStr();
+            let tglFormatted = rawTgl;
+            try {
+              const [y, m, d] = rawTgl.split("-");
+              const bulanNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+              if (y && m && d) {
+                tglFormatted = `${d} ${bulanNames[parseInt(m, 10) - 1]} ${y}`;
+              }
+            } catch (e) {}
+
+            let jamFormatted = log.waktu_scan ? String(log.waktu_scan).substring(0, 5) : "00:00";
+            if (!jamFormatted.includes(":")) jamFormatted = "00:00";
+
+            let kls = log.nama_kelas || log.kelas || "";
+            if (!kls && log.keterangan && log.keterangan.includes("Kelas:")) {
+              kls = log.keterangan.replace(/.*Kelas:\s*/i, "").trim();
+            }
+            if (!kls && selectedMengajiKelas) {
+              kls = selectedMengajiKelas;
+            }
+            if (!kls) kls = "Semua Kelas";
+
+            const kegiatanName = log.kegiatan || log.nama_sesi || log.nama_kegiatan || selectedMengaji?.nama || "Kegiatan Mengaji";
+            const statusTxt = log.status_kehadiran || log.status || "Hadir";
+
+            return (
+              <div
+                key={log.id}
                 style={{
-                  background: "#ecfdf5",
-                  color: "#059669",
-                  padding: "4px 10px",
-                  borderRadius: "999px",
-                  fontSize: "0.7rem",
-                  fontWeight: 800,
-                  whiteSpace: "nowrap",
+                  background: "#ffffff",
+                  borderRadius: "14px",
+                  padding: "12px 14px",
+                  border: "1px solid #e2e8f0",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.025)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "9px",
                 }}
               >
-                ✓ {log.status_kehadiran || log.status || "Hadir"}
-              </span>
-            </div>
-          ))}
+                {/* 1. Baris Atas: Nama Santri & Status */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "9px", minWidth: 0 }}>
+                    <div
+                      style={{
+                        width: "34px",
+                        height: "34px",
+                        borderRadius: "10px",
+                        background: "#ecfdf5",
+                        border: "1px solid #a7f3d0",
+                        color: "#059669",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <User size={18} strokeWidth={2.4} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontWeight: 800,
+                          fontSize: "0.88rem",
+                          color: "#0f172a",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {log.nama_santri}
+                      </div>
+                      {log.nis && (
+                        <div style={{ fontSize: "0.65rem", color: "#64748b", fontWeight: 600 }}>
+                          NIS: {log.nis}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <span
+                    style={{
+                      background: "#ecfdf5",
+                      color: "#059669",
+                      border: "1px solid #a7f3d0",
+                      padding: "3px 9px",
+                      borderRadius: "999px",
+                      fontSize: "0.68rem",
+                      fontWeight: 800,
+                      whiteSpace: "nowrap",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "3px",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Check size={12} strokeWidth={3} /> {statusTxt}
+                  </span>
+                </div>
+
+                {/* Divider tipis */}
+                <div style={{ height: "1px", background: "#f1f5f9" }} />
+
+                {/* 2. Baris Tengah: Kegiatan & Kelas */}
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px" }}>
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      background: "#f0fdfa",
+                      border: "1px solid #ccfbf1",
+                      padding: "4px 8px",
+                      borderRadius: "8px",
+                      fontSize: "0.72rem",
+                      fontWeight: 700,
+                      color: "#0f766e",
+                      maxWidth: "100%",
+                    }}
+                  >
+                    <BookOpen size={13} color="#0d9488" style={{ flexShrink: 0 }} />
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {kegiatanName}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      background: "#eef2ff",
+                      border: "1px solid #e0e7ff",
+                      padding: "4px 8px",
+                      borderRadius: "8px",
+                      fontSize: "0.72rem",
+                      fontWeight: 700,
+                      color: "#4338ca",
+                    }}
+                  >
+                    <GraduationCap size={13} color="#4f46e5" style={{ flexShrink: 0 }} />
+                    <span>{kls.startsWith("Kelas") ? kls : `Kelas ${kls}`}</span>
+                  </div>
+                </div>
+
+                {/* 3. Baris Bawah: Tanggal & Jam */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    paddingTop: "2px",
+                    fontSize: "0.68rem",
+                    color: "#64748b",
+                    fontWeight: 600,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                    <Calendar size={12} color="#64748b" />
+                    <span>{tglFormatted}</span>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "#047857", fontWeight: 700 }}>
+                    <Clock size={12} color="#059669" />
+                    <span>{jamFormatted} WIB</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
 
           {filteredRiwayatLogs.length === 0 && (
             <div
