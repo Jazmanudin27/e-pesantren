@@ -10,25 +10,39 @@ export const ensurePengajarTables = async () => {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS \`kegiatan_sesi\` (
         \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`kode_sesi\` VARCHAR(50) DEFAULT NULL,
         \`nama_sesi\` VARCHAR(150) NOT NULL,
         \`kategori\` VARCHAR(50) DEFAULT 'Mengaji',
-        \`jam_mulai\` TIME DEFAULT '18:30:00',
-        \`jam_selesai\` TIME DEFAULT '20:00:00',
+        \`jam_mulai_presensi\` TIME DEFAULT '05:00:00',
+        \`jam_target\` TIME DEFAULT '05:30:00',
+        \`jam_toleransi_telat\` TIME DEFAULT '05:45:00',
+        \`jam_tutup_presensi\` TIME DEFAULT '06:15:00',
         \`is_active\` TINYINT(1) DEFAULT 1,
         \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
-    // Cek apakah sudah ada sesi mengaji
-    const [sesiRows] = await pool.query("SELECT id FROM kegiatan_sesi WHERE kategori = 'Mengaji' LIMIT 1");
-    if (!sesiRows || sesiRows.length === 0) {
-      await pool.query(`
-        INSERT INTO kegiatan_sesi (nama_sesi, kategori, jam_mulai, jam_selesai) VALUES
-        ('Halaqah Subuh (Al-Qur''an & Tajwid)', 'Mengaji', '05:00:00', '06:15:00'),
-        ('Kajian Kitab Kuning Ashar', 'Mengaji', '16:00:00', '17:15:00'),
-        ('Pengajian Tafsir & Hadits Maghrib', 'Mengaji', '18:30:00', '19:30:00'),
-        ('Muthala''ah & Hafalan Mandiri Isya', 'Mengaji', '20:00:00', '21:30:00')
-      `);
+    // Pastikan kolom-kolom standar kegiatan_sesi tersedia jika tabel lama sudah ada
+    try {
+      await pool.query(`ALTER TABLE \`kegiatan_sesi\` ADD COLUMN IF NOT EXISTS \`jam_mulai_presensi\` TIME DEFAULT '05:00:00'`);
+      await pool.query(`ALTER TABLE \`kegiatan_sesi\` ADD COLUMN IF NOT EXISTS \`jam_tutup_presensi\` TIME DEFAULT '06:15:00'`);
+      await pool.query(`ALTER TABLE \`kegiatan_sesi\` ADD COLUMN IF NOT EXISTS \`kode_sesi\` VARCHAR(50) DEFAULT NULL`);
+    } catch (eCol) {}
+
+    // Cek apakah sudah ada sesi kegiatan mengaji
+    try {
+      const [sesiRows] = await pool.query("SELECT id FROM kegiatan_sesi WHERE kategori = 'Mengaji' OR nama_sesi LIKE '%Mengaji%' OR nama_sesi LIKE '%Kitab%' LIMIT 1");
+      if (!sesiRows || sesiRows.length === 0) {
+        await pool.query(`
+          INSERT INTO kegiatan_sesi (kode_sesi, nama_sesi, kategori, jam_mulai_presensi, jam_target, jam_toleransi_telat, jam_tutup_presensi, is_active) VALUES
+          ('MNGJ-01', 'Halaqah Subuh (Al-Qur''an & Tajwid)', 'Mengaji', '05:00:00', '05:30:00', '05:45:00', '06:15:00', 1),
+          ('MNGJ-02', 'Kajian Kitab Kuning Ashar', 'Mengaji', '16:00:00', '16:30:00', '16:45:00', '17:15:00', 1),
+          ('MNGJ-03', 'Pengajian Tafsir & Hadits Maghrib', 'Mengaji', '18:30:00', '19:00:00', '19:15:00', '19:30:00', 1),
+          ('MNGJ-04', 'Muthala''ah & Hafalan Mandiri Isya', 'Mengaji', '20:00:00', '20:30:00', '21:00:00', '21:30:00', 1)
+        `);
+      }
+    } catch (eSesiIns) {
+      console.warn('[ENSURE SESI MENGAJI NOTICE]', eSesiIns.message);
     }
 
     // 2. Tabel Presensi Jamaah & Mengaji
@@ -188,12 +202,39 @@ export const getPengajarDashboard = async (req, res) => {
     `).catch(() => [[{ total_perkembangan: 0 }]]);
 
     // Sesi Mengaji Aktif
-    const [sesiRows] = await pool.query(`
-      SELECT id, nama_sesi, jam_mulai, jam_selesai, kategori 
-      FROM kegiatan_sesi 
-      WHERE is_active = 1 
-      ORDER BY jam_mulai ASC
-    `).catch(() => [[]]);
+    let sesiRows = [];
+    try {
+      const [rows] = await pool.query(`
+        SELECT 
+          id, 
+          nama_sesi, 
+          COALESCE(jam_mulai_presensi, '05:00:00') as jam_mulai, 
+          COALESCE(jam_tutup_presensi, jam_target, '06:15:00') as jam_selesai, 
+          kategori 
+        FROM kegiatan_sesi 
+        WHERE is_active = 1 
+        ORDER BY id ASC
+      `);
+      sesiRows = rows || [];
+    } catch (e) {
+      const [all] = await pool.query(`SELECT id, nama_sesi FROM kegiatan_sesi LIMIT 10`).catch(() => [[]]);
+      sesiRows = (all || []).map(s => ({
+        id: s.id,
+        nama_sesi: s.nama_sesi,
+        jam_mulai: '05:00:00',
+        jam_selesai: '06:15:00',
+        kategori: 'Mengaji'
+      }));
+    }
+
+    if (!sesiRows || sesiRows.length === 0) {
+      sesiRows = [
+        { id: 1, nama_sesi: "Halaqah Subuh (Al-Qur'an & Tajwid)", jam_mulai: '05:00:00', jam_selesai: '06:15:00', kategori: 'Mengaji' },
+        { id: 2, nama_sesi: 'Kajian Kitab Kuning Ashar', jam_mulai: '16:00:00', jam_selesai: '17:15:00', kategori: 'Mengaji' },
+        { id: 3, nama_sesi: 'Pengajian Tafsir & Hadits Maghrib', jam_mulai: '18:30:00', jam_selesai: '19:30:00', kategori: 'Mengaji' },
+        { id: 4, nama_sesi: "Muthala'ah & Hafalan Mandiri Isya", jam_mulai: '20:00:00', jam_selesai: '21:30:00', kategori: 'Mengaji' }
+      ];
+    }
 
     return sendSuccess(res, 'Dashboard Pengajar Berhasil Dimuat', {
       totalSantri: Number(santriStat?.total_santri || 0),
@@ -231,7 +272,7 @@ export const getPengajarSantri = async (req, res) => {
         COALESCE(s.nama_kelas, '') as nama_kelas,
         COALESCE(a.nama_asrama, '') as nama_asrama,
         COALESCE(k.nama_kamar, '') as nama_kamar,
-        COALESCE(s.jenis_kelamin, s.tipe_santri, 'L') as jenis_kelamin
+        COALESCE(s.jk, 'L') as jenis_kelamin
       FROM santri s
       LEFT JOIN asrama a ON s.asrama_id = a.id
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
@@ -266,7 +307,7 @@ export const getAbsenMengaji = async (req, res) => {
     let santriSql = `
       SELECT s.id, s.nama_santri, s.nis, COALESCE(s.nama_kelas, '') as nama_kelas,
              COALESCE(a.nama_asrama, '') as nama_asrama,
-             COALESCE(s.jenis_kelamin, 'L') as jenis_kelamin
+             COALESCE(s.jk, 'L') as jenis_kelamin
       FROM santri s
       LEFT JOIN asrama a ON s.asrama_id = a.id
       WHERE s.status = 'Aktif'
