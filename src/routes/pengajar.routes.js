@@ -4,6 +4,7 @@ import {
   getPengajarSantri,
   getAbsenMengaji,
   saveAbsenMengajiBatch,
+  getAbsenMengajiHistory,
   getTeguranList,
   createTeguran,
   updateStatusTazir,
@@ -24,6 +25,7 @@ router.get('/santri', getPengajarSantri);
 // 3. Absen Mengaji
 router.get('/absen-mengaji', getAbsenMengaji);
 router.post('/absen-mengaji', saveAbsenMengajiBatch);
+router.get('/absen-mengaji/history', getAbsenMengajiHistory);
 
 // 4. Teguran & Ta'zir Santri
 router.get('/teguran', getTeguranList);

@@ -346,7 +346,7 @@ export const saveAbsenMengajiBatch = async (req, res) => {
   await ensurePengajarTables();
   const connection = await pool.getConnection();
   try {
-    const { tanggal, sesi_id, nama_sesi, nama_ustadz, items } = req.body;
+    const { tanggal, sesi_id, nama_sesi, nama_ustadz, items, metode_presensi } = req.body;
     if (!tanggal || !Array.isArray(items) || items.length === 0) {
       return sendError(res, 'Data presensi tidak lengkap', 400);
     }
@@ -361,6 +361,7 @@ export const saveAbsenMengajiBatch = async (req, res) => {
     for (const item of items) {
       const statusFinal = item.status || 'Hadir';
       const ket = item.keterangan || '';
+      const metode = item.metode_presensi || metode_presensi || 'Manual_Ustadz';
       
       // Cek apakah sudah ada catatan
       const [existing] = await connection.query(`
@@ -372,15 +373,15 @@ export const saveAbsenMengajiBatch = async (req, res) => {
       if (existing && existing.length > 0) {
         await connection.query(`
           UPDATE absensi_jamaah_mengaji 
-          SET status = ?, status_kehadiran = ?, keterangan = ?, nama_ustadz = ?, updated_at = NOW()
+          SET status = ?, status_kehadiran = ?, metode_presensi = ?, keterangan = ?, nama_ustadz = ?, waktu_scan = CURTIME(), updated_at = NOW()
           WHERE id = ?
-        `, [statusFinal, statusFinal, ket, ustadz, existing[0].id]);
+        `, [statusFinal, statusFinal, metode, ket, ustadz, existing[0].id]);
       } else {
         await connection.query(`
           INSERT INTO absensi_jamaah_mengaji 
           (santri_id, sesi_id, nama_kegiatan, tanggal, waktu_scan, status, status_kehadiran, metode_presensi, keterangan, nama_ustadz)
-          VALUES (?, ?, ?, ?, CURTIME(), ?, ?, 'Manual_Ustadz', ?, ?)
-        `, [item.santri_id, sId, kegiatan, tgl, statusFinal, statusFinal, ket, ustadz]);
+          VALUES (?, ?, ?, ?, CURTIME(), ?, ?, ?, ?, ?)
+        `, [item.santri_id, sId, kegiatan, tgl, statusFinal, statusFinal, metode, ket, ustadz]);
       }
     }
 
@@ -391,6 +392,57 @@ export const saveAbsenMengajiBatch = async (req, res) => {
     return sendError(res, `Gagal menyimpan presensi: ${err.message}`, 500);
   } finally {
     connection.release();
+  }
+};
+
+/**
+ * 3b. GET /api/pengajar/absen-mengaji/history
+ * Riwayat Histori Presensi Mengaji
+ */
+export const getAbsenMengajiHistory = async (req, res) => {
+  await ensurePengajarTables();
+  try {
+    const { tanggal, sesi_id, kelas, limit = 100 } = req.query;
+    let sql = `
+      SELECT 
+        a.id,
+        a.santri_id,
+        s.nama_santri,
+        s.nis,
+        COALESCE(s.nama_kelas, '') as nama_kelas,
+        DATE_FORMAT(a.tanggal, '%Y-%m-%d') as tanggal,
+        a.sesi_id,
+        COALESCE(ks.nama_sesi, a.nama_kegiatan, 'Mengaji') as nama_sesi,
+        COALESCE(a.status, a.status_kehadiran, 'Hadir') as status,
+        DATE_FORMAT(a.waktu_scan, '%H:%i') as waktu_scan,
+        a.metode_presensi,
+        a.keterangan,
+        a.nama_ustadz
+      FROM absensi_jamaah_mengaji a
+      JOIN santri s ON a.santri_id = s.id
+      LEFT JOIN kegiatan_sesi ks ON a.sesi_id = ks.id
+      WHERE 1=1
+    `;
+    const params = [];
+    if (tanggal) {
+      sql += ' AND a.tanggal = ?';
+      params.push(tanggal);
+    }
+    if (sesi_id) {
+      sql += ' AND a.sesi_id = ?';
+      params.push(sesi_id);
+    }
+    if (kelas && kelas !== 'Semua') {
+      sql += ' AND s.nama_kelas = ?';
+      params.push(kelas);
+    }
+    sql += ' ORDER BY a.tanggal DESC, a.waktu_scan DESC, a.id DESC LIMIT ?';
+    params.push(parseInt(limit, 10) || 100);
+
+    const [rows] = await pool.query(sql, params);
+    return sendSuccess(res, 'Histori Presensi Mengaji Berhasil Dimuat', rows || []);
+  } catch (err) {
+    return sendError(res, `Gagal memuat histori: ${err.message}`, 500);
   }
 };
 

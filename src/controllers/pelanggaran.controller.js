@@ -26,6 +26,13 @@ export const createPelanggaran = async (req, res) => {
       bentuk_tazir, status_tazir, musyrif_pencatat, wa_notif_wali
     } = req.body;
 
+    if (!santri_id) {
+      return sendError(res, 'Santri wajib dipilih', 400);
+    }
+    if (!jenis_pelanggaran || String(jenis_pelanggaran).trim() === '') {
+      return sendError(res, 'Jenis pelanggaran wajib diisi', 400);
+    }
+
     const [result] = await pool.query(`
       INSERT INTO tata_tertib_pelanggaran (
         santri_id, tanggal, kategori, jenis_pelanggaran, poin_pelanggaran,
@@ -35,11 +42,11 @@ export const createPelanggaran = async (req, res) => {
       santri_id,
       tanggal || new Date().toISOString().split('T')[0],
       kategori || 'Ringan',
-      jenis_pelanggaran || kategori || 'Pelanggaran Disiplin',
-      poin_pelanggaran || 0,
-      bentuk_tazir || 'Membaca Surat Yasin',
+      String(jenis_pelanggaran).trim(),
+      parseInt(poin_pelanggaran, 10) || 0,
+      bentuk_tazir ? String(bentuk_tazir).trim() : '-',
       status_tazir || 'Belum Dikerjakan',
-      musyrif_pencatat || 'Biro Keamanan & Disiplin',
+      musyrif_pencatat ? String(musyrif_pencatat).trim() : (req.user?.nama || 'Petugas'),
       wa_notif_wali !== undefined ? wa_notif_wali : 1
     ]);
 
@@ -56,8 +63,8 @@ Yth. Bapak/Ibu Wali dari *${santri.nama_santri}*,
 
 Diberitahukan bahwa ananda tercatat dalam pembinaan tata tertib pesantren:
 • Kategori: *${kategori || 'Ringan'}* (${poin_pelanggaran || 0} Poin)
-• Catatan: ${jenis_pelanggaran || 'Pelanggaran Disiplin'}
-• Bentuk Pembinaan/Ta'zir: *${bentuk_tazir}*
+• Catatan: ${jenis_pelanggaran}
+• Bentuk Pembinaan/Ta'zir: *${bentuk_tazir || '-'}*
 • Status Ta'zir: ${status_tazir || 'Sedang Dalam Pembinaan'}
 
 Pemberitahuan ini bertujuan agar pihak keluarga dan dewan pengasuh dapat bersama-sama membimbing ananda menjadi pribadi yang lebih berakhlak dan disiplin.
@@ -80,7 +87,7 @@ _Biro Pengasuhan & Keamanan Santri_`;
       santri_id,
       kategori: 'pelanggaran',
       judul: `Catatan Kedisiplinan (${kategori || 'Ringan'})`,
-      pesan: `Ananda tercatat melakukan pelanggaran: "${jenis_pelanggaran || kategori}". Pembinaan/Ta'zir: ${bentuk_tazir || 'Pembinaan'}.`,
+      pesan: `Ananda tercatat melakukan pelanggaran: "${jenis_pelanggaran}". Pembinaan/Ta'zir: ${bentuk_tazir || '-'}.`,
       target_tab: 'pelanggaran'
     });
 
@@ -98,6 +105,10 @@ export const updatePelanggaran = async (req, res) => {
       bentuk_tazir, status_tazir, musyrif_pencatat, wa_notif_wali
     } = req.body;
 
+    if (!santri_id || !jenis_pelanggaran) {
+      return sendError(res, 'Santri dan jenis pelanggaran wajib diisi', 400);
+    }
+
     await pool.query(`
       UPDATE tata_tertib_pelanggaran SET
         santri_id = ?, tanggal = ?, kategori = ?, jenis_pelanggaran = ?,
@@ -108,11 +119,11 @@ export const updatePelanggaran = async (req, res) => {
       santri_id,
       tanggal || new Date().toISOString().split('T')[0],
       kategori || 'Ringan',
-      jenis_pelanggaran || kategori || 'Pelanggaran Disiplin',
-      poin_pelanggaran || 0,
-      bentuk_tazir || '',
+      String(jenis_pelanggaran).trim(),
+      parseInt(poin_pelanggaran, 10) || 0,
+      bentuk_tazir ? String(bentuk_tazir).trim() : '-',
       status_tazir || 'Belum Dikerjakan',
-      musyrif_pencatat || '',
+      musyrif_pencatat ? String(musyrif_pencatat).trim() : '',
       wa_notif_wali !== undefined ? wa_notif_wali : 1,
       id
     ]);
