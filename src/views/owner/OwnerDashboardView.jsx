@@ -29,7 +29,7 @@ import {
   X,
   ArrowDownLeft,
   Heart,
-  CheckCircle2
+  CheckCircle2,
 } from "lucide-react";
 import { showConfirm, toastSuccess } from "../../utils/alert.util";
 import OwnerLaporanKeuangan from "./OwnerLaporanKeuangan";
@@ -49,7 +49,7 @@ const squircleIconStyle = {
   justifyContent: "center",
   marginBottom: "6px",
   transition: "transform 0.15s ease",
-  cursor: "pointer"
+  cursor: "pointer",
 };
 
 const menuCardStyle = {
@@ -59,7 +59,7 @@ const menuCardStyle = {
   cursor: "pointer",
   textAlign: "center",
   width: "100%",
-  userSelect: "none"
+  userSelect: "none",
 };
 
 const menuLabelStyle = {
@@ -68,7 +68,7 @@ const menuLabelStyle = {
   color: "#334155",
   lineHeight: 1.2,
   maxWidth: "72px",
-  display: "block"
+  display: "block",
 };
 
 export default function OwnerDashboardView({ onLogout }) {
@@ -89,15 +89,16 @@ export default function OwnerDashboardView({ onLogout }) {
     try {
       return JSON.parse(
         localStorage.getItem("desktop_session") ||
-        localStorage.getItem("mobile_session") ||
-        "{}"
+          localStorage.getItem("mobile_session") ||
+          "{}",
       );
     } catch (e) {
       return {};
     }
   })();
 
-  const ownerName = ownerSession.nama || ownerSession.nama_lengkap || "Dewan Pembina / Yayasan";
+  const ownerName =
+    ownerSession.nama || ownerSession.nama_lengkap || "Dewan Pembina / Yayasan";
 
   // Summary KPIs from API
   const [summary, setSummary] = useState({
@@ -114,8 +115,8 @@ export default function OwnerDashboardView({ onLogout }) {
       sakit: 0,
       izin: 0,
       alfa: 0,
-      persenHadir: 0
-    }
+      persenHadir: 0,
+    },
   });
 
   const fetchSummary = async () => {
@@ -134,7 +135,9 @@ export default function OwnerDashboardView({ onLogout }) {
 
   const fetchFeed = async () => {
     try {
-      const res = await axios.get("/api/informasi-kegiatan/feed?active_only=1&limit=6");
+      const res = await axios.get(
+        "/api/informasi-kegiatan/feed?active_only=1&limit=6",
+      );
       if (res.data?.success) {
         setFeedList(res.data.data.feed || []);
       }
@@ -150,7 +153,7 @@ export default function OwnerDashboardView({ onLogout }) {
     totalNotif: 0,
     totalHariIni: 0,
     totalUangMasukHariIni: 0,
-    items: []
+    items: [],
   });
 
   const fetchNotifikasi = async () => {
@@ -185,7 +188,7 @@ export default function OwnerDashboardView({ onLogout }) {
       "Konfirmasi Keluar",
       "Apakah Anda yakin ingin keluar dari Portal Eksekutif Owner?",
       "Ya, Keluar",
-      "Batal"
+      "Batal",
     );
     if (confirmed) {
       localStorage.removeItem("token");
@@ -209,23 +212,29 @@ export default function OwnerDashboardView({ onLogout }) {
   const countIzin = summary.presensiHariIni?.izin || 0;
   const countAlfa = summary.presensiHariIni?.alfa || 0;
 
-  const totalFinancialObligation = (summary.totalKasMasuk || 0) + (summary.totalPiutang || 0);
-  const collectionRate = totalFinancialObligation > 0
-    ? Math.round(((summary.totalKasMasuk || 0) / totalFinancialObligation) * 100)
-    : 0;
+  const totalFinancialObligation =
+    (summary.totalKasMasuk || 0) + (summary.totalPiutang || 0);
+  const collectionRate =
+    totalFinancialObligation > 0
+      ? Math.round(
+          ((summary.totalKasMasuk || 0) / totalFinancialObligation) * 100,
+        )
+      : 0;
 
   return (
     <div
       style={{
         minHeight: "100vh",
         backgroundColor: "#e2e8f0",
-        backgroundImage: "radial-gradient(at 0% 0%, rgba(13, 118, 110, 0.08) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(15, 23, 42, 0.06) 0px, transparent 50%)",
-        fontFamily: "'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        backgroundImage:
+          "radial-gradient(at 0% 0%, rgba(13, 118, 110, 0.08) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(15, 23, 42, 0.06) 0px, transparent 50%)",
+        fontFamily:
+          "'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         display: "flex",
         justifyContent: "center",
         alignItems: "flex-start",
         padding: 0,
-        margin: 0
+        margin: 0,
       }}
     >
       {/* MOBILE CONTAINER WRAPPER (Max 440px on desktop, full-width on mobile) */}
@@ -240,7 +249,7 @@ export default function OwnerDashboardView({ onLogout }) {
           display: "flex",
           flexDirection: "column",
           paddingBottom: "82px",
-          boxSizing: "border-box"
+          boxSizing: "border-box",
         }}
       >
         {/* =========================================================================
@@ -256,7 +265,7 @@ export default function OwnerDashboardView({ onLogout }) {
                 color: "#ffffff",
                 borderBottomLeftRadius: "24px",
                 borderBottomRightRadius: "24px",
-                position: "relative"
+                position: "relative",
               }}
             >
               {/* Header Top Bar */}
@@ -264,24 +273,32 @@ export default function OwnerDashboardView({ onLogout }) {
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
-                  alignItems: "center"
+                  alignItems: "center",
                 }}
               >
                 {/* Brand Logo: NWF Mobile + Executive Subtitle */}
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", userSelect: "none" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    userSelect: "none",
+                  }}
+                >
                   <div
                     style={{
                       width: "44px",
                       height: "44px",
                       borderRadius: "14px",
-                      background: "linear-gradient(145deg, rgba(255,255,255,0.28) 0%, rgba(167,243,208,0.15) 100%)",
+                      background:
+                        "linear-gradient(145deg, rgba(255,255,255,0.28) 0%, rgba(167,243,208,0.15) 100%)",
                       border: "1.5px solid rgba(255, 255, 255, 0.42)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       padding: "3.5px",
                       boxShadow: "0 4px 12px rgba(0, 0, 0, 0.18)",
-                      flexShrink: 0
+                      flexShrink: 0,
                     }}
                   >
                     <div
@@ -294,7 +311,7 @@ export default function OwnerDashboardView({ onLogout }) {
                         alignItems: "center",
                         justifyContent: "center",
                         padding: "4.5px",
-                        boxSizing: "border-box"
+                        boxSizing: "border-box",
                       }}
                     >
                       <img
@@ -302,20 +319,27 @@ export default function OwnerDashboardView({ onLogout }) {
                         alt="NWF Logo"
                         onError={(e) => {
                           e.target.style.display = "none";
-                          e.target.parentNode.innerHTML = '<span style="font-weight:900;color:#0d766e;font-size:14px">NWF</span>';
+                          e.target.parentNode.innerHTML =
+                            '<span style="font-weight:900;color:#0d766e;font-size:14px">NWF</span>';
                         }}
                         style={{
                           width: "26px",
                           height: "26px",
                           objectFit: "contain",
-                          display: "block"
+                          display: "block",
                         }}
                       />
                     </div>
                   </div>
 
                   <div style={{ display: "flex", flexDirection: "column" }}>
-                    <div style={{ display: "flex", alignItems: "baseline", gap: "3px" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "baseline",
+                        gap: "3px",
+                      }}
+                    >
                       <span
                         style={{
                           fontWeight: 900,
@@ -323,7 +347,7 @@ export default function OwnerDashboardView({ onLogout }) {
                           letterSpacing: "-0.5px",
                           color: "#ffffff",
                           lineHeight: 1,
-                          textShadow: "0 2px 8px rgba(0, 0, 0, 0.2)"
+                          textShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
                         }}
                       >
                         NWF
@@ -336,7 +360,7 @@ export default function OwnerDashboardView({ onLogout }) {
                           letterSpacing: "-0.2px",
                           color: "#a7f3d0",
                           lineHeight: 1,
-                          textShadow: "0 2px 6px rgba(11, 107, 96, 0.35)"
+                          textShadow: "0 2px 6px rgba(11, 107, 96, 0.35)",
                         }}
                       >
                         Mobile
@@ -350,7 +374,7 @@ export default function OwnerDashboardView({ onLogout }) {
                         letterSpacing: "0.04em",
                         textTransform: "uppercase",
                         marginTop: "2px",
-                        lineHeight: 1
+                        lineHeight: 1,
                       }}
                     >
                       Portal Eksekutif Owner
@@ -359,7 +383,9 @@ export default function OwnerDashboardView({ onLogout }) {
                 </div>
 
                 {/* Top Action Buttons (Refresh, Notifikasi, Logout) */}
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                >
                   <button
                     onClick={fetchSummary}
                     title="Muat Ulang Data"
@@ -372,10 +398,13 @@ export default function OwnerDashboardView({ onLogout }) {
                       justifyContent: "center",
                       cursor: "pointer",
                       padding: "7px",
-                      borderRadius: "10px"
+                      borderRadius: "10px",
                     }}
                   >
-                    <RefreshCw size={17} className={loadingSummary ? "animate-spin" : ""} />
+                    <RefreshCw
+                      size={17}
+                      className={loadingSummary ? "animate-spin" : ""}
+                    />
                   </button>
 
                   <button
@@ -394,7 +423,7 @@ export default function OwnerDashboardView({ onLogout }) {
                       cursor: "pointer",
                       padding: "7px",
                       borderRadius: "10px",
-                      position: "relative"
+                      position: "relative",
                     }}
                   >
                     <Bell size={18} />
@@ -416,10 +445,12 @@ export default function OwnerDashboardView({ onLogout }) {
                           alignItems: "center",
                           justifyContent: "center",
                           border: "1.5px solid #0d766e",
-                          boxShadow: "0 0 6px rgba(239, 68, 68, 0.6)"
+                          boxShadow: "0 0 6px rgba(239, 68, 68, 0.6)",
                         }}
                       >
-                        {notifData.totalHariIni > 99 ? "99+" : notifData.totalHariIni}
+                        {notifData.totalHariIni > 99
+                          ? "99+"
+                          : notifData.totalHariIni}
                       </span>
                     )}
                   </button>
@@ -435,7 +466,7 @@ export default function OwnerDashboardView({ onLogout }) {
                       justifyContent: "center",
                       cursor: "pointer",
                       padding: "7px",
-                      borderRadius: "10px"
+                      borderRadius: "10px",
                     }}
                     title="Keluar Akun"
                   >
@@ -446,14 +477,22 @@ export default function OwnerDashboardView({ onLogout }) {
             </div>
 
             {/* 1. REKAP STATUS KEHADIRAN & IBADAH (OVERLAPPING WHITE CARD) */}
-            <div style={{ padding: "0 14px", marginTop: "-24px", position: "relative", zIndex: 12 }}>
+            <div
+              style={{
+                padding: "0 14px",
+                marginTop: "-24px",
+                position: "relative",
+                zIndex: 12,
+              }}
+            >
               <div
                 style={{
                   background: "#ffffff",
                   borderRadius: "18px",
                   border: "1px solid #e2e8f0",
                   padding: "12px 12px 10px",
-                  boxShadow: "0 10px 25px -4px rgba(13, 118, 110, 0.14), 0 2px 6px rgba(0, 0, 0, 0.04)"
+                  boxShadow:
+                    "0 10px 25px -4px rgba(13, 118, 110, 0.14), 0 2px 6px rgba(0, 0, 0, 0.04)",
                 }}
               >
                 {/* Header Profile Info: Nama Owner / Yayasan */}
@@ -464,10 +503,19 @@ export default function OwnerDashboardView({ onLogout }) {
                     alignItems: "center",
                     marginBottom: "10px",
                     paddingBottom: "8px",
-                    borderBottom: "1px solid #f1f5f9"
+                    borderBottom: "1px solid #f1f5f9",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0, flex: 1, paddingRight: "8px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      minWidth: 0,
+                      flex: 1,
+                      paddingRight: "8px",
+                    }}
+                  >
                     <div
                       style={{
                         width: "28px",
@@ -479,7 +527,7 @@ export default function OwnerDashboardView({ onLogout }) {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        flexShrink: 0
+                        flexShrink: 0,
                       }}
                     >
                       <User size={16} strokeWidth={2.5} />
@@ -493,7 +541,7 @@ export default function OwnerDashboardView({ onLogout }) {
                           letterSpacing: "-0.2px",
                           whiteSpace: "nowrap",
                           overflow: "hidden",
-                          textOverflow: "ellipsis"
+                          textOverflow: "ellipsis",
                         }}
                       >
                         {ownerName}
@@ -504,10 +552,11 @@ export default function OwnerDashboardView({ onLogout }) {
                           fontWeight: 600,
                           color: "#64748b",
                           lineHeight: 1.1,
-                          marginTop: "1px"
+                          marginTop: "1px",
                         }}
                       >
-                        Status: Eksekutif Realtime • {summary.totalSantri || 0} Santri
+                        Status: Eksekutif Realtime • {summary.totalSantri || 0}{" "}
+                        Santri
                       </div>
                     </div>
                   </div>
@@ -528,7 +577,7 @@ export default function OwnerDashboardView({ onLogout }) {
                       gap: "3px",
                       padding: "4px 8px",
                       flexShrink: 0,
-                      transition: "all 0.15s ease"
+                      transition: "all 0.15s ease",
                     }}
                   >
                     Rincian <ChevronRight size={12} />
@@ -540,7 +589,7 @@ export default function OwnerDashboardView({ onLogout }) {
                   style={{
                     display: "grid",
                     gridTemplateColumns: "repeat(4, 1fr)",
-                    gap: "6px"
+                    gap: "6px",
                   }}
                 >
                   {/* Hadir */}
@@ -548,7 +597,8 @@ export default function OwnerDashboardView({ onLogout }) {
                     type="button"
                     onClick={() => handleOpenPresensiWithStatus("Hadir")}
                     style={{
-                      background: "linear-gradient(145deg, #f0fdf4 0%, #dcfce7 100%)",
+                      background:
+                        "linear-gradient(145deg, #f0fdf4 0%, #dcfce7 100%)",
                       borderRadius: "14px",
                       padding: "8px 4px",
                       display: "flex",
@@ -558,7 +608,7 @@ export default function OwnerDashboardView({ onLogout }) {
                       cursor: "pointer",
                       outline: "none",
                       transition: "transform 0.15s ease",
-                      userSelect: "none"
+                      userSelect: "none",
                     }}
                   >
                     <div
@@ -571,7 +621,7 @@ export default function OwnerDashboardView({ onLogout }) {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        boxShadow: "0 3px 8px -1px rgba(16, 185, 129, 0.35)"
+                        boxShadow: "0 3px 8px -1px rgba(16, 185, 129, 0.35)",
                       }}
                     >
                       <Check size={16} strokeWidth={2.8} />
@@ -582,12 +632,19 @@ export default function OwnerDashboardView({ onLogout }) {
                         fontWeight: 900,
                         color: "#15803d",
                         marginTop: "4px",
-                        lineHeight: 1
+                        lineHeight: 1,
                       }}
                     >
                       {countHadir}
                     </div>
-                    <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#166534", marginTop: "2px" }}>
+                    <span
+                      style={{
+                        fontSize: "0.65rem",
+                        fontWeight: 700,
+                        color: "#166534",
+                        marginTop: "2px",
+                      }}
+                    >
                       Hadir
                     </span>
                   </button>
@@ -597,7 +654,8 @@ export default function OwnerDashboardView({ onLogout }) {
                     type="button"
                     onClick={() => handleOpenPresensiWithStatus("Sakit")}
                     style={{
-                      background: "linear-gradient(145deg, #fef2f2 0%, #fee2e2 100%)",
+                      background:
+                        "linear-gradient(145deg, #fef2f2 0%, #fee2e2 100%)",
                       borderRadius: "14px",
                       padding: "8px 4px",
                       display: "flex",
@@ -607,7 +665,7 @@ export default function OwnerDashboardView({ onLogout }) {
                       cursor: "pointer",
                       outline: "none",
                       transition: "transform 0.15s ease",
-                      userSelect: "none"
+                      userSelect: "none",
                     }}
                   >
                     <div
@@ -620,7 +678,7 @@ export default function OwnerDashboardView({ onLogout }) {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        boxShadow: "0 3px 8px -1px rgba(239, 68, 68, 0.35)"
+                        boxShadow: "0 3px 8px -1px rgba(239, 68, 68, 0.35)",
                       }}
                     >
                       <Building2 size={16} strokeWidth={2.6} />
@@ -631,12 +689,19 @@ export default function OwnerDashboardView({ onLogout }) {
                         fontWeight: 900,
                         color: "#b91c1c",
                         marginTop: "4px",
-                        lineHeight: 1
+                        lineHeight: 1,
                       }}
                     >
                       {countSakit}
                     </div>
-                    <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#991b1b", marginTop: "2px" }}>
+                    <span
+                      style={{
+                        fontSize: "0.65rem",
+                        fontWeight: 700,
+                        color: "#991b1b",
+                        marginTop: "2px",
+                      }}
+                    >
                       Sakit
                     </span>
                   </button>
@@ -646,7 +711,8 @@ export default function OwnerDashboardView({ onLogout }) {
                     type="button"
                     onClick={() => handleOpenPresensiWithStatus("Izin")}
                     style={{
-                      background: "linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%)",
+                      background:
+                        "linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%)",
                       borderRadius: "14px",
                       padding: "8px 4px",
                       display: "flex",
@@ -656,7 +722,7 @@ export default function OwnerDashboardView({ onLogout }) {
                       cursor: "pointer",
                       outline: "none",
                       transition: "transform 0.15s ease",
-                      userSelect: "none"
+                      userSelect: "none",
                     }}
                   >
                     <div
@@ -669,7 +735,7 @@ export default function OwnerDashboardView({ onLogout }) {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        boxShadow: "0 3px 8px -1px rgba(245, 158, 11, 0.35)"
+                        boxShadow: "0 3px 8px -1px rgba(245, 158, 11, 0.35)",
                       }}
                     >
                       <FileText size={16} strokeWidth={2.6} />
@@ -680,12 +746,19 @@ export default function OwnerDashboardView({ onLogout }) {
                         fontWeight: 900,
                         color: "#b45309",
                         marginTop: "4px",
-                        lineHeight: 1
+                        lineHeight: 1,
                       }}
                     >
                       {countIzin}
                     </div>
-                    <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#92400e", marginTop: "2px" }}>
+                    <span
+                      style={{
+                        fontSize: "0.65rem",
+                        fontWeight: 700,
+                        color: "#92400e",
+                        marginTop: "2px",
+                      }}
+                    >
                       Izin
                     </span>
                   </button>
@@ -695,7 +768,8 @@ export default function OwnerDashboardView({ onLogout }) {
                     type="button"
                     onClick={() => handleOpenPresensiWithStatus("Alfa")}
                     style={{
-                      background: "linear-gradient(145deg, #f0fdfa 0%, #ccfbf1 100%)",
+                      background:
+                        "linear-gradient(145deg, #f0fdfa 0%, #ccfbf1 100%)",
                       borderRadius: "14px",
                       padding: "8px 4px",
                       display: "flex",
@@ -705,7 +779,7 @@ export default function OwnerDashboardView({ onLogout }) {
                       cursor: "pointer",
                       outline: "none",
                       transition: "transform 0.15s ease",
-                      userSelect: "none"
+                      userSelect: "none",
                     }}
                   >
                     <div
@@ -718,7 +792,7 @@ export default function OwnerDashboardView({ onLogout }) {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        boxShadow: "0 3px 8px -1px rgba(13, 148, 136, 0.35)"
+                        boxShadow: "0 3px 8px -1px rgba(13, 148, 136, 0.35)",
                       }}
                     >
                       <Clock size={16} strokeWidth={2.6} />
@@ -729,12 +803,19 @@ export default function OwnerDashboardView({ onLogout }) {
                         fontWeight: 900,
                         color: "#0f766e",
                         marginTop: "4px",
-                        lineHeight: 1
+                        lineHeight: 1,
                       }}
                     >
                       {countAlfa}
                     </div>
-                    <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#115e59", marginTop: "2px" }}>
+                    <span
+                      style={{
+                        fontSize: "0.65rem",
+                        fontWeight: 700,
+                        color: "#115e59",
+                        marginTop: "2px",
+                      }}
+                    >
                       Alfa
                     </span>
                   </button>
@@ -743,24 +824,33 @@ export default function OwnerDashboardView({ onLogout }) {
             </div>
 
             {/* 2. CARD FINANSIAL KEUANGAN (EXACT LUXURY GREEN FINTECH GRADIENT) */}
-            <div style={{ padding: "8px 14px 0", position: "relative", zIndex: 11 }}>
+            <div
+              style={{
+                padding: "8px 14px 0",
+                position: "relative",
+                zIndex: 11,
+              }}
+            >
               <div
                 style={{
-                  background: financeActiveTab === "kas"
-                    ? "linear-gradient(135deg, #059669 0%, #0d9488 45%, #064e3b 100%)"
-                    : "linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 45%, #0f172a 100%)",
+                  background:
+                    financeActiveTab === "kas"
+                      ? "linear-gradient(135deg, #059669 0%, #0d9488 45%, #064e3b 100%)"
+                      : "linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 45%, #0f172a 100%)",
                   borderRadius: "18px",
                   padding: "12px 14px 12px",
-                  border: financeActiveTab === "kas"
-                    ? "1px solid rgba(167, 243, 208, 0.45)"
-                    : "1px solid rgba(191, 219, 254, 0.45)",
-                  boxShadow: financeActiveTab === "kas"
-                    ? "0 10px 25px -4px rgba(5, 150, 105, 0.42), 0 4px 10px rgba(0, 0, 0, 0.06)"
-                    : "0 10px 25px -4px rgba(30, 58, 138, 0.42), 0 4px 10px rgba(0, 0, 0, 0.06)",
+                  border:
+                    financeActiveTab === "kas"
+                      ? "1px solid rgba(167, 243, 208, 0.45)"
+                      : "1px solid rgba(191, 219, 254, 0.45)",
+                  boxShadow:
+                    financeActiveTab === "kas"
+                      ? "0 10px 25px -4px rgba(5, 150, 105, 0.42), 0 4px 10px rgba(0, 0, 0, 0.06)"
+                      : "0 10px 25px -4px rgba(30, 58, 138, 0.42), 0 4px 10px rgba(0, 0, 0, 0.06)",
                   position: "relative",
                   overflow: "hidden",
                   color: "#ffffff",
-                  transition: "all 0.25s ease"
+                  transition: "all 0.25s ease",
                 }}
               >
                 {/* Ambient Glow Accent */}
@@ -772,9 +862,12 @@ export default function OwnerDashboardView({ onLogout }) {
                     width: "110px",
                     height: "110px",
                     borderRadius: "50%",
-                    background: financeActiveTab === "kas" ? "rgba(110, 231, 183, 0.22)" : "rgba(147, 197, 253, 0.22)",
+                    background:
+                      financeActiveTab === "kas"
+                        ? "rgba(110, 231, 183, 0.22)"
+                        : "rgba(147, 197, 253, 0.22)",
                     filter: "blur(25px)",
-                    pointerEvents: "none"
+                    pointerEvents: "none",
                   }}
                 />
 
@@ -791,7 +884,7 @@ export default function OwnerDashboardView({ onLogout }) {
                     borderRadius: "12px",
                     marginBottom: "10px",
                     position: "relative",
-                    zIndex: 2
+                    zIndex: 2,
                   }}
                 >
                   <button
@@ -799,8 +892,12 @@ export default function OwnerDashboardView({ onLogout }) {
                     onClick={() => setFinanceActiveTab("kas")}
                     style={{
                       border: "none",
-                      background: financeActiveTab === "kas" ? "#ffffff" : "transparent",
-                      color: financeActiveTab === "kas" ? "#047857" : "rgba(255, 255, 255, 0.85)",
+                      background:
+                        financeActiveTab === "kas" ? "#ffffff" : "transparent",
+                      color:
+                        financeActiveTab === "kas"
+                          ? "#047857"
+                          : "rgba(255, 255, 255, 0.85)",
                       fontWeight: 800,
                       fontSize: "11.5px",
                       padding: "4px 8px",
@@ -810,11 +907,22 @@ export default function OwnerDashboardView({ onLogout }) {
                       alignItems: "center",
                       justifyContent: "center",
                       gap: "5px",
-                      boxShadow: financeActiveTab === "kas" ? "0 2px 6px rgba(0,0,0,0.18)" : "none",
-                      transition: "all 0.15s ease"
+                      boxShadow:
+                        financeActiveTab === "kas"
+                          ? "0 2px 6px rgba(0,0,0,0.18)"
+                          : "none",
+                      transition: "all 0.15s ease",
                     }}
                   >
-                    <Wallet size={13} strokeWidth={2.4} color={financeActiveTab === "kas" ? "#047857" : "rgba(255, 255, 255, 0.85)"} />
+                    <Wallet
+                      size={13}
+                      strokeWidth={2.4}
+                      color={
+                        financeActiveTab === "kas"
+                          ? "#047857"
+                          : "rgba(255, 255, 255, 0.85)"
+                      }
+                    />
                     <span>Tabungan / Kas</span>
                   </button>
 
@@ -823,8 +931,14 @@ export default function OwnerDashboardView({ onLogout }) {
                     onClick={() => setFinanceActiveTab("tagihan")}
                     style={{
                       border: "none",
-                      background: financeActiveTab === "tagihan" ? "#ffffff" : "transparent",
-                      color: financeActiveTab === "tagihan" ? "#1d4ed8" : "rgba(255, 255, 255, 0.85)",
+                      background:
+                        financeActiveTab === "tagihan"
+                          ? "#ffffff"
+                          : "transparent",
+                      color:
+                        financeActiveTab === "tagihan"
+                          ? "#1d4ed8"
+                          : "rgba(255, 255, 255, 0.85)",
                       fontWeight: 800,
                       fontSize: "11.5px",
                       padding: "4px 8px",
@@ -834,11 +948,22 @@ export default function OwnerDashboardView({ onLogout }) {
                       alignItems: "center",
                       justifyContent: "center",
                       gap: "5px",
-                      boxShadow: financeActiveTab === "tagihan" ? "0 2px 6px rgba(0,0,0,0.18)" : "none",
-                      transition: "all 0.15s ease"
+                      boxShadow:
+                        financeActiveTab === "tagihan"
+                          ? "0 2px 6px rgba(0,0,0,0.18)"
+                          : "none",
+                      transition: "all 0.15s ease",
                     }}
                   >
-                    <CreditCard size={13} strokeWidth={2.4} color={financeActiveTab === "tagihan" ? "#1d4ed8" : "rgba(255, 255, 255, 0.85)"} />
+                    <CreditCard
+                      size={13}
+                      strokeWidth={2.4}
+                      color={
+                        financeActiveTab === "tagihan"
+                          ? "#1d4ed8"
+                          : "rgba(255, 255, 255, 0.85)"
+                      }
+                    />
                     <span>Tagihan / SPP</span>
                     {(summary.totalPiutang || 0) > 0 && (
                       <span
@@ -847,7 +972,7 @@ export default function OwnerDashboardView({ onLogout }) {
                           height: "6px",
                           borderRadius: "50%",
                           background: "#ef4444",
-                          boxShadow: "0 0 6px rgba(239, 68, 68, 0.8)"
+                          boxShadow: "0 0 6px rgba(239, 68, 68, 0.8)",
                         }}
                       />
                     )}
@@ -857,7 +982,13 @@ export default function OwnerDashboardView({ onLogout }) {
                 {/* Kas Masuk Content */}
                 {financeActiveTab === "kas" ? (
                   <div style={{ position: "relative", zIndex: 2 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div
                           style={{
@@ -866,7 +997,7 @@ export default function OwnerDashboardView({ onLogout }) {
                             color: "#a7f3d0",
                             letterSpacing: "0.05em",
                             textTransform: "uppercase",
-                            lineHeight: 1.1
+                            lineHeight: 1.1,
                           }}
                         >
                           SALDO KAS MASUK PESANTREN
@@ -879,7 +1010,7 @@ export default function OwnerDashboardView({ onLogout }) {
                             letterSpacing: "-0.3px",
                             lineHeight: 1.15,
                             marginTop: "3px",
-                            textShadow: "0 2px 8px rgba(0,0,0,0.18)"
+                            textShadow: "0 2px 8px rgba(0,0,0,0.18)",
                           }}
                         >
                           {formatRp(summary.totalKasMasuk)}
@@ -903,7 +1034,7 @@ export default function OwnerDashboardView({ onLogout }) {
                           cursor: "pointer",
                           flexShrink: 0,
                           marginLeft: "8px",
-                          boxShadow: "0 2px 6px rgba(0,0,0,0.1)"
+                          boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
                         }}
                       >
                         <Wallet size={16} strokeWidth={2.4} />
@@ -914,7 +1045,7 @@ export default function OwnerDashboardView({ onLogout }) {
                       style={{
                         height: "1px",
                         background: "rgba(255, 255, 255, 0.16)",
-                        margin: "8px 0 7px"
+                        margin: "8px 0 7px",
                       }}
                     />
 
@@ -923,7 +1054,7 @@ export default function OwnerDashboardView({ onLogout }) {
                       style={{
                         display: "grid",
                         gridTemplateColumns: "1fr 1fr",
-                        gap: "8px"
+                        gap: "8px",
                       }}
                     >
                       <div
@@ -932,7 +1063,7 @@ export default function OwnerDashboardView({ onLogout }) {
                           padding: "8px 11px",
                           borderRadius: "11px",
                           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.14)",
-                          border: "1px solid rgba(255, 255, 255, 0.9)"
+                          border: "1px solid rgba(255, 255, 255, 0.9)",
                         }}
                       >
                         <div
@@ -941,7 +1072,7 @@ export default function OwnerDashboardView({ onLogout }) {
                             fontWeight: 800,
                             color: "#64748b",
                             letterSpacing: "0.03em",
-                            textTransform: "uppercase"
+                            textTransform: "uppercase",
                           }}
                         >
                           TOTAL UANG MASUK
@@ -952,7 +1083,7 @@ export default function OwnerDashboardView({ onLogout }) {
                             fontWeight: 900,
                             color: "#059669",
                             marginTop: "2px",
-                            letterSpacing: "-0.2px"
+                            letterSpacing: "-0.2px",
                           }}
                         >
                           +{formatRp(summary.totalKasMasuk)}
@@ -965,7 +1096,7 @@ export default function OwnerDashboardView({ onLogout }) {
                           padding: "8px 11px",
                           borderRadius: "11px",
                           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.14)",
-                          border: "1px solid rgba(255, 255, 255, 0.9)"
+                          border: "1px solid rgba(255, 255, 255, 0.9)",
                         }}
                       >
                         <div
@@ -974,7 +1105,7 @@ export default function OwnerDashboardView({ onLogout }) {
                             fontWeight: 800,
                             color: "#64748b",
                             letterSpacing: "0.03em",
-                            textTransform: "uppercase"
+                            textTransform: "uppercase",
                           }}
                         >
                           TOTAL TUNGGAKAN
@@ -985,7 +1116,7 @@ export default function OwnerDashboardView({ onLogout }) {
                             fontWeight: 900,
                             color: "#e11d48",
                             marginTop: "2px",
-                            letterSpacing: "-0.2px"
+                            letterSpacing: "-0.2px",
                           }}
                         >
                           -{formatRp(summary.totalPiutang)}
@@ -996,7 +1127,13 @@ export default function OwnerDashboardView({ onLogout }) {
                 ) : (
                   /* Tagihan SPP Content */
                   <div style={{ position: "relative", zIndex: 2 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div
                           style={{
@@ -1005,7 +1142,7 @@ export default function OwnerDashboardView({ onLogout }) {
                             color: "#bae6fd",
                             letterSpacing: "0.05em",
                             textTransform: "uppercase",
-                            lineHeight: 1.1
+                            lineHeight: 1.1,
                           }}
                         >
                           TOTAL TUNGGAKAN
@@ -1018,7 +1155,7 @@ export default function OwnerDashboardView({ onLogout }) {
                             letterSpacing: "-0.3px",
                             lineHeight: 1.15,
                             marginTop: "3px",
-                            textShadow: "0 2px 8px rgba(0,0,0,0.18)"
+                            textShadow: "0 2px 8px rgba(0,0,0,0.18)",
                           }}
                         >
                           {formatRp(summary.totalPiutang)}
@@ -1042,7 +1179,7 @@ export default function OwnerDashboardView({ onLogout }) {
                           cursor: "pointer",
                           flexShrink: 0,
                           marginLeft: "8px",
-                          boxShadow: "0 2px 6px rgba(0,0,0,0.1)"
+                          boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
                         }}
                       >
                         <CreditCard size={16} strokeWidth={2.4} />
@@ -1053,7 +1190,7 @@ export default function OwnerDashboardView({ onLogout }) {
                       style={{
                         height: "1px",
                         background: "rgba(255, 255, 255, 0.16)",
-                        margin: "8px 0 7px"
+                        margin: "8px 0 7px",
                       }}
                     />
 
@@ -1061,7 +1198,7 @@ export default function OwnerDashboardView({ onLogout }) {
                       style={{
                         display: "grid",
                         gridTemplateColumns: "1fr 1fr",
-                        gap: "8px"
+                        gap: "8px",
                       }}
                     >
                       <div
@@ -1070,7 +1207,7 @@ export default function OwnerDashboardView({ onLogout }) {
                           padding: "8px 11px",
                           borderRadius: "11px",
                           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.14)",
-                          border: "1px solid rgba(255, 255, 255, 0.9)"
+                          border: "1px solid rgba(255, 255, 255, 0.9)",
                         }}
                       >
                         <div
@@ -1079,7 +1216,7 @@ export default function OwnerDashboardView({ onLogout }) {
                             fontWeight: 800,
                             color: "#64748b",
                             letterSpacing: "0.03em",
-                            textTransform: "uppercase"
+                            textTransform: "uppercase",
                           }}
                         >
                           SANTRI AKTIF
@@ -1090,7 +1227,7 @@ export default function OwnerDashboardView({ onLogout }) {
                             fontWeight: 900,
                             color: "#1d4ed8",
                             marginTop: "2px",
-                            letterSpacing: "-0.2px"
+                            letterSpacing: "-0.2px",
                           }}
                         >
                           {summary.totalSantri || 0} Santri
@@ -1103,7 +1240,7 @@ export default function OwnerDashboardView({ onLogout }) {
                           padding: "8px 11px",
                           borderRadius: "11px",
                           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.14)",
-                          border: "1px solid rgba(255, 255, 255, 0.9)"
+                          border: "1px solid rgba(255, 255, 255, 0.9)",
                         }}
                       >
                         <div
@@ -1112,7 +1249,7 @@ export default function OwnerDashboardView({ onLogout }) {
                             fontWeight: 800,
                             color: "#64748b",
                             letterSpacing: "0.03em",
-                            textTransform: "uppercase"
+                            textTransform: "uppercase",
                           }}
                         >
                           TINGKAT PELUNASAN
@@ -1123,7 +1260,7 @@ export default function OwnerDashboardView({ onLogout }) {
                             fontWeight: 900,
                             color: collectionRate >= 70 ? "#059669" : "#d97706",
                             marginTop: "2px",
-                            letterSpacing: "-0.2px"
+                            letterSpacing: "-0.2px",
                           }}
                         >
                           {collectionRate}% Tercapai
@@ -1143,7 +1280,8 @@ export default function OwnerDashboardView({ onLogout }) {
                   borderRadius: "18px",
                   border: "1px solid #e2e8f0",
                   padding: "12px 12px 14px",
-                  boxShadow: "0 10px 25px -4px rgba(13, 118, 110, 0.14), 0 2px 6px rgba(0, 0, 0, 0.04)"
+                  boxShadow:
+                    "0 10px 25px -4px rgba(13, 118, 110, 0.14), 0 2px 6px rgba(0, 0, 0, 0.04)",
                 }}
               >
                 <div
@@ -1155,7 +1293,7 @@ export default function OwnerDashboardView({ onLogout }) {
                     display: "flex",
                     alignItems: "center",
                     gap: "6px",
-                    letterSpacing: "-0.2px"
+                    letterSpacing: "-0.2px",
                   }}
                 >
                   <span
@@ -1163,7 +1301,7 @@ export default function OwnerDashboardView({ onLogout }) {
                       width: "4px",
                       height: "14px",
                       background: "#0d766e",
-                      borderRadius: "4px"
+                      borderRadius: "4px",
                     }}
                   />
                   Menu Layanan Eksekutif
@@ -1174,16 +1312,20 @@ export default function OwnerDashboardView({ onLogout }) {
                     display: "grid",
                     gridTemplateColumns: "repeat(4, 1fr)",
                     gap: "14px 4px",
-                    justifyItems: "center"
+                    justifyItems: "center",
                   }}
                 >
                   {/* 1. Kas & SPP */}
-                  <div onClick={() => setActiveTab("keuangan")} style={menuCardStyle}>
+                  <div
+                    onClick={() => setActiveTab("keuangan")}
+                    style={menuCardStyle}
+                  >
                     <div
                       style={{
                         ...squircleIconStyle,
-                        background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                        boxShadow: "0 6px 16px -2px rgba(16, 185, 129, 0.38)"
+                        background:
+                          "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                        boxShadow: "0 6px 16px -2px rgba(16, 185, 129, 0.38)",
                       }}
                     >
                       <Wallet size={23} strokeWidth={2.3} color="#ffffff" />
@@ -1192,26 +1334,38 @@ export default function OwnerDashboardView({ onLogout }) {
                   </div>
 
                   {/* 2. Berjamaah */}
-                  <div onClick={() => setActiveTab("presensi")} style={menuCardStyle}>
+                  <div
+                    onClick={() => setActiveTab("presensi")}
+                    style={menuCardStyle}
+                  >
                     <div
                       style={{
                         ...squircleIconStyle,
-                        background: "linear-gradient(135deg, #06b6d4 0%, #0284c7 100%)",
-                        boxShadow: "0 6px 16px -2px rgba(6, 182, 212, 0.38)"
+                        background:
+                          "linear-gradient(135deg, #06b6d4 0%, #0284c7 100%)",
+                        boxShadow: "0 6px 16px -2px rgba(6, 182, 212, 0.38)",
                       }}
                     >
-                      <Fingerprint size={23} strokeWidth={2.3} color="#ffffff" />
+                      <Fingerprint
+                        size={23}
+                        strokeWidth={2.3}
+                        color="#ffffff"
+                      />
                     </div>
                     <span style={menuLabelStyle}>Berjamaah</span>
                   </div>
 
                   {/* 3. Presensi Mengaji */}
-                  <div onClick={() => setActiveTab("mengaji")} style={menuCardStyle}>
+                  <div
+                    onClick={() => setActiveTab("mengaji")}
+                    style={menuCardStyle}
+                  >
                     <div
                       style={{
                         ...squircleIconStyle,
-                        background: "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)",
-                        boxShadow: "0 6px 16px -2px rgba(13, 148, 136, 0.38)"
+                        background:
+                          "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)",
+                        boxShadow: "0 6px 16px -2px rgba(13, 148, 136, 0.38)",
                       }}
                     >
                       <BookOpen size={23} strokeWidth={2.3} color="#ffffff" />
@@ -1220,12 +1374,16 @@ export default function OwnerDashboardView({ onLogout }) {
                   </div>
 
                   {/* 4. Laporan Perkembangan */}
-                  <div onClick={() => setActiveTab("perkembangan")} style={menuCardStyle}>
+                  <div
+                    onClick={() => setActiveTab("perkembangan")}
+                    style={menuCardStyle}
+                  >
                     <div
                       style={{
                         ...squircleIconStyle,
-                        background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
-                        boxShadow: "0 6px 16px -2px rgba(99, 102, 241, 0.38)"
+                        background:
+                          "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+                        boxShadow: "0 6px 16px -2px rgba(99, 102, 241, 0.38)",
                       }}
                     >
                       <Award size={23} strokeWidth={2.3} color="#ffffff" />
@@ -1234,12 +1392,16 @@ export default function OwnerDashboardView({ onLogout }) {
                   </div>
 
                   {/* 5. Data Santri */}
-                  <div onClick={() => setActiveTab("santri")} style={menuCardStyle}>
+                  <div
+                    onClick={() => setActiveTab("santri")}
+                    style={menuCardStyle}
+                  >
                     <div
                       style={{
                         ...squircleIconStyle,
-                        background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
-                        boxShadow: "0 6px 16px -2px rgba(59, 130, 246, 0.38)"
+                        background:
+                          "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+                        boxShadow: "0 6px 16px -2px rgba(59, 130, 246, 0.38)",
                       }}
                     >
                       <Users size={23} strokeWidth={2.3} color="#ffffff" />
@@ -1248,12 +1410,16 @@ export default function OwnerDashboardView({ onLogout }) {
                   </div>
 
                   {/* 6. Kamar Asrama */}
-                  <div onClick={() => setActiveTab("santri")} style={menuCardStyle}>
+                  <div
+                    onClick={() => setActiveTab("santri")}
+                    style={menuCardStyle}
+                  >
                     <div
                       style={{
                         ...squircleIconStyle,
-                        background: "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)",
-                        boxShadow: "0 6px 16px -2px rgba(139, 92, 246, 0.38)"
+                        background:
+                          "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)",
+                        boxShadow: "0 6px 16px -2px rgba(139, 92, 246, 0.38)",
                       }}
                     >
                       <Building2 size={23} strokeWidth={2.3} color="#ffffff" />
@@ -1262,12 +1428,16 @@ export default function OwnerDashboardView({ onLogout }) {
                   </div>
 
                   {/* 7. Perizinan */}
-                  <div onClick={() => setActiveTab("perizinan")} style={menuCardStyle}>
+                  <div
+                    onClick={() => setActiveTab("perizinan")}
+                    style={menuCardStyle}
+                  >
                     <div
                       style={{
                         ...squircleIconStyle,
-                        background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
-                        boxShadow: "0 6px 16px -2px rgba(249, 115, 22, 0.38)"
+                        background:
+                          "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+                        boxShadow: "0 6px 16px -2px rgba(249, 115, 22, 0.38)",
                       }}
                     >
                       <Clock size={23} strokeWidth={2.3} color="#ffffff" />
@@ -1276,15 +1446,23 @@ export default function OwnerDashboardView({ onLogout }) {
                   </div>
 
                   {/* 8. Tata Tertib */}
-                  <div onClick={() => setActiveTab("perizinan")} style={menuCardStyle}>
+                  <div
+                    onClick={() => setActiveTab("perizinan")}
+                    style={menuCardStyle}
+                  >
                     <div
                       style={{
                         ...squircleIconStyle,
-                        background: "linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)",
-                        boxShadow: "0 6px 16px -2px rgba(244, 63, 94, 0.38)"
+                        background:
+                          "linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)",
+                        boxShadow: "0 6px 16px -2px rgba(244, 63, 94, 0.38)",
                       }}
                     >
-                      <ShieldAlert size={23} strokeWidth={2.3} color="#ffffff" />
+                      <ShieldAlert
+                        size={23}
+                        strokeWidth={2.3}
+                        color="#ffffff"
+                      />
                     </div>
                     <span style={menuLabelStyle}>Tata Tertib</span>
                   </div>
@@ -1299,7 +1477,7 @@ export default function OwnerDashboardView({ onLogout }) {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  marginBottom: "10px"
+                  marginBottom: "10px",
                 }}
               >
                 <div
@@ -1310,7 +1488,7 @@ export default function OwnerDashboardView({ onLogout }) {
                     display: "flex",
                     alignItems: "center",
                     gap: "6px",
-                    letterSpacing: "-0.2px"
+                    letterSpacing: "-0.2px",
                   }}
                 >
                   <span
@@ -1318,7 +1496,7 @@ export default function OwnerDashboardView({ onLogout }) {
                       width: "4px",
                       height: "15px",
                       background: "#0d766e",
-                      borderRadius: "4px"
+                      borderRadius: "4px",
                     }}
                   />
                   Kegiatan Pesantren
@@ -1331,7 +1509,7 @@ export default function OwnerDashboardView({ onLogout }) {
                     cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
-                    gap: "2px"
+                    gap: "2px",
                   }}
                 >
                   Lihat Semua &gt;
@@ -1339,7 +1517,9 @@ export default function OwnerDashboardView({ onLogout }) {
               </div>
 
               {/* Feed Card */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+              >
                 {feedList.length > 0 ? (
                   feedList.slice(0, 3).map((item, idx) => (
                     <div
@@ -1352,7 +1532,7 @@ export default function OwnerDashboardView({ onLogout }) {
                         boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
                         display: "flex",
                         alignItems: "center",
-                        gap: "10px"
+                        gap: "10px",
                       }}
                     >
                       <div
@@ -1365,7 +1545,7 @@ export default function OwnerDashboardView({ onLogout }) {
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          flexShrink: 0
+                          flexShrink: 0,
                         }}
                       >
                         <Megaphone size={18} />
@@ -1378,7 +1558,7 @@ export default function OwnerDashboardView({ onLogout }) {
                             color: "#0f172a",
                             whiteSpace: "nowrap",
                             overflow: "hidden",
-                            textOverflow: "ellipsis"
+                            textOverflow: "ellipsis",
                           }}
                         >
                           {item.judul || "Agenda Resmi Pesantren"}
@@ -1391,10 +1571,12 @@ export default function OwnerDashboardView({ onLogout }) {
                             display: "-webkit-box",
                             WebkitLineClamp: 1,
                             WebkitBoxOrient: "vertical",
-                            overflow: "hidden"
+                            overflow: "hidden",
                           }}
                         >
-                          {item.deskripsi || item.isi || "Pengumuman dan kegiatan rutin santri terpadu."}
+                          {item.deskripsi ||
+                            item.isi ||
+                            "Pengumuman dan kegiatan rutin santri terpadu."}
                         </div>
                       </div>
                     </div>
@@ -1409,7 +1591,7 @@ export default function OwnerDashboardView({ onLogout }) {
                       boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
                       display: "flex",
                       alignItems: "center",
-                      gap: "10px"
+                      gap: "10px",
                     }}
                   >
                     <div
@@ -1422,17 +1604,30 @@ export default function OwnerDashboardView({ onLogout }) {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        flexShrink: 0
+                        flexShrink: 0,
                       }}
                     >
                       <Sparkles size={18} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: "0.76rem", fontWeight: 800, color: "#0f172a" }}>
+                      <div
+                        style={{
+                          fontSize: "0.76rem",
+                          fontWeight: 800,
+                          color: "#0f172a",
+                        }}
+                      >
                         Seluruh Program Berjalan Normal
                       </div>
-                      <div style={{ fontSize: "0.64rem", color: "#64748b", marginTop: "2px" }}>
-                        KBM, Kajian Kitab, dan Ibadah Berjamaah terpantau aktif realtime.
+                      <div
+                        style={{
+                          fontSize: "0.64rem",
+                          color: "#64748b",
+                          marginTop: "2px",
+                        }}
+                      >
+                        KBM, Kajian Kitab, dan Ibadah Berjamaah terpantau aktif
+                        realtime.
                       </div>
                     </div>
                   </div>
@@ -1460,7 +1655,7 @@ export default function OwnerDashboardView({ onLogout }) {
                 boxShadow: "0 6px 18px rgba(0,0,0,0.16)",
                 borderBottomLeftRadius: "18px",
                 borderBottomRightRadius: "18px",
-                marginBottom: "12px"
+                marginBottom: "12px",
               }}
             >
               <button
@@ -1481,13 +1676,20 @@ export default function OwnerDashboardView({ onLogout }) {
                   backdropFilter: "blur(6px)",
                   boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
                   transition: "all 0.15s ease",
-                  flexShrink: 0
+                  flexShrink: 0,
                 }}
               >
                 <ChevronLeft size={20} strokeWidth={2.8} />
               </button>
 
-              <div style={{ textAlign: "center", flex: 1, padding: "0 8px", minWidth: 0 }}>
+              <div
+                style={{
+                  textAlign: "center",
+                  flex: 1,
+                  padding: "0 8px",
+                  minWidth: 0,
+                }}
+              >
                 <span
                   style={{
                     fontSize: "0.85rem",
@@ -1498,13 +1700,14 @@ export default function OwnerDashboardView({ onLogout }) {
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     color: "#ffffff",
-                    textShadow: "0 1px 3px rgba(0,0,0,0.25)"
+                    textShadow: "0 1px 3px rgba(0,0,0,0.25)",
                   }}
                 >
                   {activeTab === "keuangan" && "Laporan Keuangan"}
                   {activeTab === "presensi" && "Laporan Presensi Berjamaah"}
                   {activeTab === "mengaji" && "Laporan Presensi Mengaji"}
-                  {activeTab === "perkembangan" && "Laporan Perkembangan Santri"}
+                  {activeTab === "perkembangan" &&
+                    "Laporan Perkembangan Santri"}
                   {activeTab === "perizinan" && "Laporan Perizinan Santri"}
                   {activeTab === "santri" && "Data & Demografi Santri"}
                   {activeTab === "settings" && "Pengaturan & Konfigurasi"}
@@ -1517,7 +1720,7 @@ export default function OwnerDashboardView({ onLogout }) {
                     letterSpacing: "0.06em",
                     textTransform: "uppercase",
                     display: "inline-block",
-                    marginTop: "1px"
+                    marginTop: "1px",
                   }}
                 >
                   PANEL EKSEKUTIF OWNER
@@ -1546,7 +1749,7 @@ export default function OwnerDashboardView({ onLogout }) {
                   position: "relative",
                   backdropFilter: "blur(6px)",
                   boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
-                  flexShrink: 0
+                  flexShrink: 0,
                 }}
               >
                 <Bell size={18} strokeWidth={2.4} />
@@ -1567,10 +1770,12 @@ export default function OwnerDashboardView({ onLogout }) {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      border: "1.5px solid #0d766e"
+                      border: "1.5px solid #0d766e",
                     }}
                   >
-                    {notifData.totalHariIni > 99 ? "99+" : notifData.totalHariIni}
+                    {notifData.totalHariIni > 99
+                      ? "99+"
+                      : notifData.totalHariIni}
                   </span>
                 )}
               </button>
@@ -1580,12 +1785,16 @@ export default function OwnerDashboardView({ onLogout }) {
             <div style={{ padding: "0 14px 20px" }}>
               <div>
                 {activeTab === "keuangan" && <OwnerLaporanKeuangan />}
-                {activeTab === "presensi" && <OwnerLaporanPresensi initialStatus={presensiFilter} />}
+                {activeTab === "presensi" && (
+                  <OwnerLaporanPresensi initialStatus={presensiFilter} />
+                )}
                 {activeTab === "mengaji" && <OwnerLaporanMengaji />}
                 {activeTab === "perkembangan" && <OwnerLaporanPerkembangan />}
                 {activeTab === "perizinan" && <OwnerLaporanPerizinan />}
                 {activeTab === "santri" && <OwnerLaporanSantri />}
-                {activeTab === "settings" && <OwnerSettingsView onLogout={handleLogout} />}
+                {activeTab === "settings" && (
+                  <OwnerSettingsView onLogout={handleLogout} />
+                )}
               </div>
             </div>
           </div>
@@ -1601,7 +1810,9 @@ export default function OwnerDashboardView({ onLogout }) {
             className={`mobile-nav-item ${activeTab === "beranda" ? "active" : ""}`}
             onClick={() => setActiveTab("beranda")}
           >
-            <div className={`nav-icon-wrapper ${activeTab === "beranda" ? "active" : ""}`}>
+            <div
+              className={`nav-icon-wrapper ${activeTab === "beranda" ? "active" : ""}`}
+            >
               <Home size={20} />
             </div>
             <span>Beranda</span>
@@ -1613,7 +1824,9 @@ export default function OwnerDashboardView({ onLogout }) {
             className={`mobile-nav-item ${activeTab === "keuangan" ? "active" : ""}`}
             onClick={() => setActiveTab("keuangan")}
           >
-            <div className={`nav-icon-wrapper ${activeTab === "keuangan" ? "active" : ""}`}>
+            <div
+              className={`nav-icon-wrapper ${activeTab === "keuangan" ? "active" : ""}`}
+            >
               <CreditCard size={20} />
             </div>
             <span>Keuangan</span>
@@ -1637,7 +1850,9 @@ export default function OwnerDashboardView({ onLogout }) {
             className={`mobile-nav-item ${activeTab === "santri" ? "active" : ""}`}
             onClick={() => setActiveTab("santri")}
           >
-            <div className={`nav-icon-wrapper ${activeTab === "santri" ? "active" : ""}`}>
+            <div
+              className={`nav-icon-wrapper ${activeTab === "santri" ? "active" : ""}`}
+            >
               <Users size={20} />
             </div>
             <span>Santri</span>
@@ -1649,7 +1864,9 @@ export default function OwnerDashboardView({ onLogout }) {
             className={`mobile-nav-item ${activeTab === "settings" ? "active" : ""}`}
             onClick={() => setActiveTab("settings")}
           >
-            <div className={`nav-icon-wrapper ${activeTab === "settings" ? "active" : ""}`}>
+            <div
+              className={`nav-icon-wrapper ${activeTab === "settings" ? "active" : ""}`}
+            >
               <Settings size={20} />
             </div>
             <span>Settings</span>
@@ -1673,7 +1890,7 @@ export default function OwnerDashboardView({ onLogout }) {
               display: "flex",
               justifyContent: "center",
               alignItems: "flex-end",
-              padding: 0
+              padding: 0,
             }}
             onClick={() => setShowNotifModal(false)}
           >
@@ -1688,13 +1905,27 @@ export default function OwnerDashboardView({ onLogout }) {
                 display: "flex",
                 flexDirection: "column",
                 boxShadow: "0 -10px 40px rgba(0,0,0,0.25)",
-                overflow: "hidden"
+                overflow: "hidden",
               }}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Drag Handle Bar */}
-              <div style={{ display: "flex", justifyContent: "center", paddingTop: "10px", paddingBottom: "4px" }}>
-                <div style={{ width: "40px", height: "4px", borderRadius: "99px", background: "#cbd5e1" }} />
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  paddingTop: "10px",
+                  paddingBottom: "4px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "40px",
+                    height: "4px",
+                    borderRadius: "99px",
+                    background: "#cbd5e1",
+                  }}
+                />
               </div>
 
               {/* Modal Header */}
@@ -1705,10 +1936,12 @@ export default function OwnerDashboardView({ onLogout }) {
                   alignItems: "center",
                   justifyContent: "space-between",
                   borderBottom: "1px solid #e2e8f0",
-                  background: "#ffffff"
+                  background: "#ffffff",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "10px" }}
+                >
                   <div
                     style={{
                       width: "36px",
@@ -1718,16 +1951,28 @@ export default function OwnerDashboardView({ onLogout }) {
                       color: "#059669",
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center"
+                      justifyContent: "center",
                     }}
                   >
                     <Bell size={19} />
                   </div>
                   <div>
-                    <div style={{ fontSize: "0.92rem", fontWeight: 900, color: "#0f172a" }}>
+                    <div
+                      style={{
+                        fontSize: "0.92rem",
+                        fontWeight: 900,
+                        color: "#0f172a",
+                      }}
+                    >
                       Pusat Notifikasi
                     </div>
-                    <div style={{ fontSize: "0.64rem", color: "#64748b", fontWeight: 600 }}>
+                    <div
+                      style={{
+                        fontSize: "0.64rem",
+                        color: "#64748b",
+                        fontWeight: 600,
+                      }}
+                    >
                       Arus Kas Masuk & Aktivitas Santri
                     </div>
                   </div>
@@ -1746,7 +1991,7 @@ export default function OwnerDashboardView({ onLogout }) {
                     alignItems: "center",
                     justifyContent: "center",
                     color: "#64748b",
-                    cursor: "pointer"
+                    cursor: "pointer",
                   }}
                 >
                   <X size={18} />
@@ -1757,22 +2002,41 @@ export default function OwnerDashboardView({ onLogout }) {
               <div style={{ padding: "12px 16px 8px" }}>
                 <div
                   style={{
-                    background: "linear-gradient(135deg, #0d766e 0%, #042f2e 100%)",
+                    background:
+                      "linear-gradient(135deg, #0d766e 0%, #042f2e 100%)",
                     borderRadius: "16px",
                     padding: "12px 14px",
                     color: "#ffffff",
                     boxShadow: "0 4px 14px rgba(13, 118, 110, 0.25)",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "space-between"
+                    justifyContent: "space-between",
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: "0.62rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "#a7f3d0", fontWeight: 800 }}>
+                    <div
+                      style={{
+                        fontSize: "0.62rem",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        color: "#a7f3d0",
+                        fontWeight: 800,
+                      }}
+                    >
                       Total Uang Masuk Hari Ini
                     </div>
-                    <div style={{ fontSize: "1.2rem", fontWeight: 900, color: "#ffffff", marginTop: "2px" }}>
-                      Rp {(notifData.totalUangMasukHariIni || 0).toLocaleString("id-ID")}
+                    <div
+                      style={{
+                        fontSize: "1.2rem",
+                        fontWeight: 900,
+                        color: "#ffffff",
+                        marginTop: "2px",
+                      }}
+                    >
+                      Rp{" "}
+                      {(notifData.totalUangMasukHariIni || 0).toLocaleString(
+                        "id-ID",
+                      )}
                     </div>
                   </div>
                   <div
@@ -1780,11 +2044,25 @@ export default function OwnerDashboardView({ onLogout }) {
                       background: "rgba(255, 255, 255, 0.15)",
                       borderRadius: "12px",
                       padding: "6px 10px",
-                      textAlign: "center"
+                      textAlign: "center",
                     }}
                   >
-                    <div style={{ fontSize: "0.58rem", color: "#e2e8f0", fontWeight: 700 }}>Aktivitas</div>
-                    <div style={{ fontSize: "0.92rem", fontWeight: 900, color: "#a7f3d0" }}>
+                    <div
+                      style={{
+                        fontSize: "0.58rem",
+                        color: "#e2e8f0",
+                        fontWeight: 700,
+                      }}
+                    >
+                      Aktivitas
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "0.92rem",
+                        fontWeight: 900,
+                        color: "#a7f3d0",
+                      }}
+                    >
                       {notifData.totalHariIni || 0} Hari Ini
                     </div>
                   </div>
@@ -1797,14 +2075,35 @@ export default function OwnerDashboardView({ onLogout }) {
                   padding: "4px 16px 8px",
                   display: "flex",
                   gap: "6px",
-                  overflowX: "auto"
+                  overflowX: "auto",
                 }}
               >
                 {[
-                  { key: "semua", label: "Semua", count: notifData.items.length },
-                  { key: "uang_masuk", label: "💰 Uang Masuk", count: notifData.items.filter(i => i.tipe === "uang_masuk").length },
-                  { key: "infak_masuk", label: "💖 Infak", count: notifData.items.filter(i => i.tipe === "infak_masuk").length },
-                  { key: "perizinan", label: "📋 Perizinan", count: notifData.items.filter(i => i.tipe === "perizinan").length }
+                  {
+                    key: "semua",
+                    label: "Semua",
+                    count: notifData.items.length,
+                  },
+                  {
+                    key: "uang_masuk",
+                    label: "💰 Uang Masuk",
+                    count: notifData.items.filter(
+                      (i) => i.tipe === "uang_masuk",
+                    ).length,
+                  },
+                  {
+                    key: "infak_masuk",
+                    label: "💖 Infak",
+                    count: notifData.items.filter(
+                      (i) => i.tipe === "infak_masuk",
+                    ).length,
+                  },
+                  {
+                    key: "perizinan",
+                    label: "📋 Perizinan",
+                    count: notifData.items.filter((i) => i.tipe === "perizinan")
+                      .length,
+                  },
                 ].map((f) => {
                   const active = notifFilter === f.key;
                   return (
@@ -1819,11 +2118,15 @@ export default function OwnerDashboardView({ onLogout }) {
                         fontWeight: active ? 800 : 600,
                         whiteSpace: "nowrap",
                         cursor: "pointer",
-                        border: active ? "1px solid #0d766e" : "1px solid #e2e8f0",
+                        border: active
+                          ? "1px solid #0d766e"
+                          : "1px solid #e2e8f0",
                         background: active ? "#0d766e" : "#ffffff",
                         color: active ? "#ffffff" : "#475569",
-                        boxShadow: active ? "0 2px 6px rgba(13, 118, 110, 0.25)" : "none",
-                        transition: "all 0.15s ease"
+                        boxShadow: active
+                          ? "0 2px 6px rgba(13, 118, 110, 0.25)"
+                          : "none",
+                        transition: "all 0.15s ease",
                       }}
                     >
                       {f.label} ({f.count})
@@ -1840,35 +2143,69 @@ export default function OwnerDashboardView({ onLogout }) {
                   padding: "4px 16px 24px",
                   display: "flex",
                   flexDirection: "column",
-                  gap: "8px"
+                  gap: "8px",
                 }}
               >
                 {loadingNotif ? (
-                  <div style={{ textAlign: "center", padding: "30px 10px", color: "#64748b" }}>
-                    <RotateCw size={22} className="animate-spin" color="#0d766e" style={{ margin: "0 auto 8px" }} />
-                    <div style={{ fontSize: "0.75rem", fontWeight: 700 }}>Memuat notifikasi terbaru...</div>
+                  <div
+                    style={{
+                      textAlign: "center",
+                      padding: "30px 10px",
+                      color: "#64748b",
+                    }}
+                  >
+                    <RotateCw
+                      size={22}
+                      className="animate-spin"
+                      color="#0d766e"
+                      style={{ margin: "0 auto 8px" }}
+                    />
+                    <div style={{ fontSize: "0.75rem", fontWeight: 700 }}>
+                      Memuat notifikasi terbaru...
+                    </div>
                   </div>
-                ) : (notifData.items || []).filter(i => notifFilter === "semua" || i.tipe === notifFilter).length === 0 ? (
+                ) : (notifData.items || []).filter(
+                    (i) => notifFilter === "semua" || i.tipe === notifFilter,
+                  ).length === 0 ? (
                   <div
                     style={{
                       background: "#ffffff",
                       borderRadius: "16px",
                       padding: "28px 16px",
                       textAlign: "center",
-                      border: "1px solid #e2e8f0"
+                      border: "1px solid #e2e8f0",
                     }}
                   >
-                    <Bell size={32} color="#cbd5e1" style={{ margin: "0 auto 8px" }} />
-                    <div style={{ fontSize: "0.8rem", fontWeight: 800, color: "#334155" }}>
+                    <Bell
+                      size={32}
+                      color="#cbd5e1"
+                      style={{ margin: "0 auto 8px" }}
+                    />
+                    <div
+                      style={{
+                        fontSize: "0.8rem",
+                        fontWeight: 800,
+                        color: "#334155",
+                      }}
+                    >
                       Belum Ada Notifikasi
                     </div>
-                    <div style={{ fontSize: "0.68rem", color: "#94a3b8", marginTop: "2px" }}>
-                      Belum ada aktivitas transaksi atau perizinan pada kategori ini.
+                    <div
+                      style={{
+                        fontSize: "0.68rem",
+                        color: "#94a3b8",
+                        marginTop: "2px",
+                      }}
+                    >
+                      Belum ada aktivitas transaksi atau perizinan pada kategori
+                      ini.
                     </div>
                   </div>
                 ) : (
                   (notifData.items || [])
-                    .filter(i => notifFilter === "semua" || i.tipe === notifFilter)
+                    .filter(
+                      (i) => notifFilter === "semua" || i.tipe === notifFilter,
+                    )
                     .map((item) => {
                       const isUang = item.tipe === "uang_masuk";
                       const isInfak = item.tipe === "infak_masuk";
@@ -1882,13 +2219,17 @@ export default function OwnerDashboardView({ onLogout }) {
                             background: item.is_today ? "#ffffff" : "#fbfcfe",
                             borderRadius: "14px",
                             padding: "11px 12px",
-                            border: item.is_today ? "1px solid #a7f3d0" : "1px solid #e2e8f0",
-                            boxShadow: item.is_today ? "0 2px 8px rgba(13, 118, 110, 0.08)" : "0 1px 3px rgba(0,0,0,0.02)",
+                            border: item.is_today
+                              ? "1px solid #a7f3d0"
+                              : "1px solid #e2e8f0",
+                            boxShadow: item.is_today
+                              ? "0 2px 8px rgba(13, 118, 110, 0.08)"
+                              : "0 1px 3px rgba(0,0,0,0.02)",
                             display: "flex",
                             alignItems: "center",
                             gap: "10px",
                             cursor: "pointer",
-                            transition: "all 0.15s ease"
+                            transition: "all 0.15s ease",
                           }}
                         >
                           {/* Icon Category */}
@@ -1897,28 +2238,63 @@ export default function OwnerDashboardView({ onLogout }) {
                               width: "36px",
                               height: "36px",
                               borderRadius: "11px",
-                              background: isUang ? "#ecfdf5" : isInfak ? "#fff1f2" : "#fffbeb",
-                              color: isUang ? "#059669" : isInfak ? "#e11d48" : "#d97706",
+                              background: isUang
+                                ? "#ecfdf5"
+                                : isInfak
+                                  ? "#fff1f2"
+                                  : "#fffbeb",
+                              color: isUang
+                                ? "#059669"
+                                : isInfak
+                                  ? "#e11d48"
+                                  : "#d97706",
                               border: `1px solid ${isUang ? "#a7f3d0" : isInfak ? "#fecdd3" : "#fde68a"}`,
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
-                              flexShrink: 0
+                              flexShrink: 0,
                             }}
                           >
-                            {isUang && <ArrowDownLeft size={18} strokeWidth={2.6} />}
+                            {isUang && (
+                              <ArrowDownLeft size={18} strokeWidth={2.6} />
+                            )}
                             {isInfak && <Heart size={17} />}
                             {isIzin && <Clock size={17} />}
                           </div>
 
                           {/* Detail Texts */}
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px" }}>
-                              <span style={{ fontSize: "0.68rem", fontWeight: 800, color: isUang ? "#065f46" : isInfak ? "#be123c" : "#b45309" }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: "6px",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: "0.68rem",
+                                  fontWeight: 800,
+                                  color: isUang
+                                    ? "#065f46"
+                                    : isInfak
+                                      ? "#be123c"
+                                      : "#b45309",
+                                }}
+                              >
                                 {item.judul}
                               </span>
-                              <span style={{ fontSize: "0.58rem", color: item.is_today ? "#0d766e" : "#94a3b8", fontWeight: item.is_today ? 800 : 500 }}>
-                                {item.is_today ? `Hari Ini, ${String(item.waktu_str || "").split(" ")[1] || ""}` : item.waktu_str}
+                              <span
+                                style={{
+                                  fontSize: "0.58rem",
+                                  color: item.is_today ? "#0d766e" : "#94a3b8",
+                                  fontWeight: item.is_today ? 800 : 500,
+                                }}
+                              >
+                                {item.is_today
+                                  ? `Hari Ini, ${String(item.waktu_str || "").split(" ")[1] || ""}`
+                                  : item.waktu_str}
                               </span>
                             </div>
 
@@ -1930,7 +2306,7 @@ export default function OwnerDashboardView({ onLogout }) {
                                 marginTop: "1px",
                                 whiteSpace: "nowrap",
                                 overflow: "hidden",
-                                textOverflow: "ellipsis"
+                                textOverflow: "ellipsis",
                               }}
                             >
                               {item.subjudul}
@@ -1943,7 +2319,7 @@ export default function OwnerDashboardView({ onLogout }) {
                                 marginTop: "1px",
                                 whiteSpace: "nowrap",
                                 overflow: "hidden",
-                                textOverflow: "ellipsis"
+                                textOverflow: "ellipsis",
                               }}
                             >
                               {item.deskripsi}
@@ -1957,13 +2333,17 @@ export default function OwnerDashboardView({ onLogout }) {
                                 style={{
                                   fontSize: "0.78rem",
                                   fontWeight: 900,
-                                  color: isUang ? "#059669" : "#e11d48"
+                                  color: isUang ? "#059669" : "#e11d48",
                                 }}
                               >
                                 +Rp {item.nominal.toLocaleString("id-ID")}
                               </div>
                             )}
-                            <ChevronRight size={14} color="#94a3b8" style={{ marginTop: "2px", marginLeft: "auto" }} />
+                            <ChevronRight
+                              size={14}
+                              color="#94a3b8"
+                              style={{ marginTop: "2px", marginLeft: "auto" }}
+                            />
                           </div>
                         </div>
                       );

@@ -1297,6 +1297,17 @@ export default function AdminLayout() {
                   <button 
                     className="user-dropdown-item"
                     onClick={() => {
+                      setIsUserDropdownOpen(false);
+                      window.location.hash = '#pengajar';
+                    }}
+                  >
+                    <BookOpen size={15} color="#0d9488" />
+                    <span>Portal Pengajar / Ustadz</span>
+                  </button>
+
+                  <button 
+                    className="user-dropdown-item"
+                    onClick={() => {
                       changeTab('dashboard');
                       setIsUserDropdownOpen(false);
                     }}

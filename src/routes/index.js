@@ -25,6 +25,7 @@ import pesanRoutes from './pesan.routes.js';
 import whatsappRoutes from './whatsapp.routes.js';
 import sekolahRoutes from './sekolah.routes.js';
 import ownerRoutes from './owner.routes.js';
+import pengajarRoutes from './pengajar.routes.js';
 
 const router = express.Router();
 
@@ -55,5 +56,6 @@ router.use('/pesan', pesanRoutes); // /api/pesan/wali/:santri_id, /api/pesan/adm
 router.use('/whatsapp', whatsappRoutes); // /api/whatsapp/settings, /api/whatsapp/tunggakan, /api/whatsapp/broadcast-tagihan, /api/whatsapp/logs
 router.use('/sekolah', sekolahRoutes); // /api/sekolah, /api/sekolah/rincian-biaya, /api/sekolah/assign-santri
 router.use('/owner', ownerRoutes); // /api/owner/summary, /api/owner/keuangan, /api/owner/presensi, dll
+router.use('/pengajar', pengajarRoutes); // /api/pengajar (Absen Mengaji, Teguran, Praktek, Perkembangan)
 
 export default router;

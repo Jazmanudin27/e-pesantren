@@ -4,6 +4,7 @@ import MobileLayout from './components/MobileLayout';
 import MobileKeuanganLayout from './components/MobileKeuanganLayout';
 import PortalWaliSantri from './views/wali/PortalWaliSantri';
 import OwnerDashboardView from './views/owner/OwnerDashboardView';
+import PengajarDashboardView from './views/pengajar/PengajarDashboardView';
 import SplashScreen from './components/SplashScreen';
 import PWAInstallModal from './components/PWAInstallModal';
 
@@ -51,6 +52,22 @@ export default function App() {
         return 'wali';
       }
 
+      // 3. Cek apakah user sedang login sebagai Ustadz/Pengajar / URL mengarah ke portal pengajar
+      if (
+        rDesk.includes('ustadz') ||
+        rDesk.includes('asatidz') ||
+        rDesk.includes('pengajar') ||
+        rMob.includes('ustadz') ||
+        rMob.includes('asatidz') ||
+        rMob.includes('pengajar') ||
+        hash.startsWith('#pengajar') ||
+        hash.startsWith('#ustadz') ||
+        pathname.startsWith('/pengajar') ||
+        pathname.startsWith('/ustadz')
+      ) {
+        return 'pengajar';
+      }
+
       // Cek apakah user adalah Akun Bendahara / Keuangan di perangkat mobile
       const rMob = String(mobileSess.role || mobileSess.userType || mobileSess.username || '').toLowerCase();
       const rDesk = String(desktopSess.role || desktopSess.userType || desktopSess.username || '').toLowerCase();
@@ -59,6 +76,10 @@ export default function App() {
         return 'keuangan-mobile';
       }
     } catch (e) {}
+
+    if (hash.startsWith('#pengajar') || hash.startsWith('#ustadz') || pathname.startsWith('/pengajar') || pathname.startsWith('/ustadz')) {
+      return 'pengajar';
+    }
 
     if (isMobileDomain || hash.startsWith('#mobile') || pathname.startsWith('/mobile')) {
       return 'mobile';
@@ -74,6 +95,8 @@ export default function App() {
       setMode(currentMode);
       if (currentMode === 'owner') {
         document.title = 'NWF Executive - Owner Portal';
+      } else if (currentMode === 'pengajar') {
+        document.title = 'NWF Asatidz - Portal Pengajar';
       } else if (currentMode === 'mobile' || currentMode === 'wali' || currentMode === 'keuangan-mobile') {
         document.title = 'NWF Mobile';
       } else {
@@ -104,6 +127,17 @@ export default function App() {
             window.location.hash = '#login'; 
             window.location.reload(); 
           }} 
+        />
+      ) : mode === 'pengajar' ? (
+        <PengajarDashboardView
+          onLogout={() => {
+            localStorage.removeItem('desktop_session');
+            localStorage.removeItem('mobile_session');
+            localStorage.removeItem('token');
+            sessionStorage.clear();
+            window.location.hash = '#login';
+            window.location.reload();
+          }}
         />
       ) : mode === 'wali' ? (
         <PortalWaliSantri onLogout={() => { window.location.hash = '#login'; setMode(getMode()); }} />
