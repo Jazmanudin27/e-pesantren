@@ -75,8 +75,8 @@ export const getOwnerSummary = async (req, res) => {
     const [[santriStats]] = await pool.query(`
       SELECT 
         COUNT(*) as total_santri,
-        SUM(CASE WHEN LOWER(COALESCE(jenis_kelamin, tipe_santri, '')) IN ('l', 'laki-laki', 'putra', 'ikhwan') THEN 1 ELSE 0 END) as santri_putra,
-        SUM(CASE WHEN LOWER(COALESCE(jenis_kelamin, tipe_santri, '')) IN ('p', 'perempuan', 'putri', 'akhwat') THEN 1 ELSE 0 END) as santri_putri
+        SUM(CASE WHEN LOWER(COALESCE(jk, tipe_santri, '')) IN ('l', 'laki-laki', 'putra', 'ikhwan') THEN 1 ELSE 0 END) as santri_putra,
+        SUM(CASE WHEN LOWER(COALESCE(jk, tipe_santri, '')) IN ('p', 'perempuan', 'putri', 'akhwat') THEN 1 ELSE 0 END) as santri_putri
       FROM santri 
       WHERE status = 'Aktif'
     `);

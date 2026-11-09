@@ -26,14 +26,7 @@ export default function PengajarAbsenMengaji() {
   const [search, setSearch] = useState('');
   const [santriList, setSantriList] = useState([]);
 
-  const DEFAULT_SESI = [
-    { id: 1, nama_sesi: "Halaqah Subuh (Al-Qur'an & Tajwid)", jam_mulai: '05:00' },
-    { id: 2, nama_sesi: 'Kajian Kitab Kuning Ashar', jam_mulai: '16:00' },
-    { id: 3, nama_sesi: 'Pengajian Tafsir & Hadits Maghrib', jam_mulai: '18:30' },
-    { id: 4, nama_sesi: "Muthala'ah & Hafalan Mandiri Isya", jam_mulai: '20:00' }
-  ];
-
-  // Ambil sesi mengaji
+  // Ambil sesi mengaji asli dari database
   const fetchSesi = async () => {
     try {
       const res = await axios.get('/api/pengajar/dashboard');
@@ -43,25 +36,23 @@ export default function PengajarAbsenMengaji() {
         if (!selectedSesi) setSelectedSesi(String(list[0].id));
         return;
       }
-      // Fallback ke endpoint fingerprint sesi
+      // Fallback ke endpoint fingerprint sesi di database
       const fpRes = await axios.get('/api/fingerprint/sesi');
       const fpList = fpRes.data?.data || fpRes.data;
       if (Array.isArray(fpList) && fpList.length > 0) {
         const mapped = fpList.map(s => ({
           id: s.id,
           nama_sesi: s.nama_sesi,
-          jam_mulai: s.jam_mulai_presensi || s.jam_target || '18:00'
+          jam_mulai: s.jam_mulai_presensi || s.jam_target || '00:00'
         }));
         setSesiList(mapped);
         if (!selectedSesi) setSelectedSesi(String(mapped[0].id));
         return;
       }
-      setSesiList(DEFAULT_SESI);
-      if (!selectedSesi) setSelectedSesi(String(DEFAULT_SESI[0].id));
+      setSesiList([]);
     } catch (e) {
       console.warn('Gagal memuat sesi:', e);
-      setSesiList(DEFAULT_SESI);
-      if (!selectedSesi) setSelectedSesi(String(DEFAULT_SESI[0].id));
+      setSesiList([]);
     }
   };
 

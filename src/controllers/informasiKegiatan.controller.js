@@ -59,59 +59,6 @@ export const ensureInformasiTable = async () => {
       await pool.query(`ALTER TABLE pesantren_informasi_kegiatan MODIFY COLUMN foto_url LONGTEXT DEFAULT NULL`);
     } catch (e) {}
 
-    // Jika tabel masih kosong, isi contoh pengumuman resmi agar fitur langsung siap digunakan
-    const [cnt] = await pool.query(`SELECT COUNT(*) AS total FROM pesantren_informasi_kegiatan`);
-    if (cnt && cnt[0].total === 0) {
-      const today = new Date();
-      const tglPub = today.toISOString().slice(0, 10);
-      const nextMonth = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-
-      const seeds = [
-        [
-          'Pengumuman Resmi Ketertiban & Kunjungan Wali Santri',
-          'Pengumuman Pesantren',
-          'Jadwal jam kunjung wali santri dan ketertiban penitipan barang di Pondok Pesantren Nurul Wafa.',
-          'Assalamu\'alaikum Wr. Wb.\nDiberitahukan kepada seluruh Bapak/Ibu Wali Santri Pondok Pesantren Nurul Wafa bahwa kunjungan wali santri dibuka setiap hari Ahad pukul 08.00 - 16.00 WIB. Demi menjaga kedisiplinan santri, dimohon tidak membawa perangkat elektronik (HP) ke area asrama.\nWassalamu\'alaikum Wr. Wb.',
-          'Pengasuh & Humas Pesantren',
-          tglPub,
-          nextMonth,
-          1,
-          1
-        ],
-        [
-          'Informasi Liburan & Jadwal Kepulangan Santri',
-          'Liburan & Kepulangan Santri',
-          'Ketentuan penjemputan kepulangan santri dan batas waktu kembali ke pondok pesantren.',
-          'Diberitahukan kepada Bapak/Ibu Wali Santri bahwa menjelang masa libur pesantren, penjemputan santri wajib dilakukan oleh orang tua/wali resmi dengan menunjukkan Kartu Wali / Konfirmasi Perizinan kepada pengurus keamanan pondok. Santri wajib kembali tepat waktu sesuai jadwal yang telah ditetapkan.',
-          'Bagian Keamanan & Perizinan',
-          tglPub,
-          nextMonth,
-          1,
-          1
-        ],
-        [
-          'Jadwal Kegiatan Pengajian Akbar & Istighotsah Bulanan',
-          'Jadwal Kegiatan',
-          'Agenda rutin pengajian akbar, khataman Al-Qur\'an, dan evaluasi muhafadzoh santri.',
-          'Seluruh santri wajib mengikuti kegiatan Istighotsah, Muhadhoroh, dan Evaluasi Kitab Kuning yang dilaksanakan secara berjamaah di Masjid Jami Pondok Pesantren Nurul Wafa. Mohon doa restu dari Bapak/Ibu Wali Santri agar kegiatan berjalan lancar dan penuh keberkahan.',
-          'Bagian Pendidikan & Taklim',
-          tglPub,
-          nextMonth,
-          0,
-          1
-        ]
-      ];
-
-      for (const s of seeds) {
-        await pool.query(
-          `INSERT INTO pesantren_informasi_kegiatan 
-           (judul, kategori, ringkasan, konten, penulis, tanggal_publikasi, tgl_kadaluarsa, is_pinned, is_popup)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          s
-        ).catch(() => {});
-      }
-    }
-
     isInformasiTableReady = true;
   } catch (err) {
     console.warn('[INFORMASI DB INIT NOTICE]', err.message);

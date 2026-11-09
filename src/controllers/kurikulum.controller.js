@@ -54,22 +54,6 @@ export const initKurikulumTable = async () => {
         INDEX idx_jadwal_hari (hari)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
-
-    // Cek apakah data kurikulum kosong, jika kosong masukkan default
-    const [existing] = await pool.query('SELECT COUNT(*) as cnt FROM kurikulum_pengajian');
-    if (existing[0]?.cnt === 0) {
-      for (const row of DEFAULT_KURIKULUM) {
-        for (let k = 1; k <= 6; k++) {
-          const val = row[`k${k}`];
-          if (val && val.trim()) {
-            await pool.query(
-              'INSERT INTO kurikulum_pengajian (tingkat_kelas, urutan, nama_kitab) VALUES (?, ?, ?)',
-              [k, row.no, val.trim()]
-            );
-          }
-        }
-      }
-    }
   } catch (err) {
     console.warn('[KURIKULUM] Note init tables:', err.message);
   }

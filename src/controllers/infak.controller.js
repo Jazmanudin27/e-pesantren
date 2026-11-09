@@ -49,56 +49,6 @@ export const ensureInfakTables = async () => {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
-    // Seed program infak resmi jika masih kosong
-    const [cnt] = await pool.query(`SELECT COUNT(*) AS total FROM pesantren_program_infak`);
-    if (cnt && cnt[0].total === 0) {
-      const seeds = [
-        [
-          'INF-MASJID',
-          'Pembangunan & Perluasan Masjid Pesantren',
-          'Wakaf & Pembangunan',
-          'Program jariyah pembangunan serta perawatan sarana ibadah Masjid Jami dan asrama santri.',
-          150000000
-        ],
-        [
-          'INF-YATIM',
-          'Beasiswa Santri Yatim & Dhuafa',
-          'Beasiswa Pendidikan',
-          'Membantu biaya makan, kitab, dan pendidikan bagi santri yatim piatu dan kurang mampu.',
-          75000000
-        ],
-        [
-          'WKF-QURAN',
-          'Wakaf Mushaf Al-Qur\'an & Kitab Kuning',
-          'Wakaf Ilmu',
-          'Pengadaan mushaf Al-Qur\'an dan kitab turots untuk kegiatan mengaji dan muhafadzoh santri.',
-          35000000
-        ],
-        [
-          'SDK-JUMAT',
-          'Sedekah Jumat Berkah & Buka Puasa Sunnah',
-          'Sedekah Konsumsi',
-          'Hidangan makan bersama santri pada hari Jumat dan buka puasa sunnah Senin-Kamis.',
-          25000000
-        ],
-        [
-          'INF-UMUM',
-          'Infak & Sedekah Operasional Dakwah Pesantren',
-          'Infak Umum',
-          'Dukungan umum kegiatan dakwah, kebersihan, kesehatan santri, dan fasilitas pondok pesantren.',
-          50000000
-        ]
-      ];
-
-      for (const s of seeds) {
-        await pool.query(
-          `INSERT INTO pesantren_program_infak (kode_program, nama_program, kategori, deskripsi, target_dana, is_active)
-           VALUES (?, ?, ?, ?, ?, 1)`,
-          s
-        ).catch(() => {});
-      }
-    }
-
     isInfakTablesReady = true;
   } catch (err) {
     console.warn('[INFAK DB INIT NOTICE]', err.message);
