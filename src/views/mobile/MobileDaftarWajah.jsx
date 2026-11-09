@@ -289,14 +289,14 @@ export default function MobileDaftarWajah() {
         const score = Math.round((faceRes.score || 0.88) * 100);
         setFaceScore(score);
 
-        // Duplicate check against registered descriptors
+        // Duplicate check against registered descriptors (Strict Threshold 0.07 agar tidak salah deteksi orang lain)
         const descriptors = registeredDescriptorsRef.current || [];
         const curId = selectedSantri ? String(selectedSantri.id) : '';
         const otherProfiles = descriptors.filter((p) => String(p.id) !== curId);
 
         if (otherProfiles.length > 0) {
-          const match = matchFaceDescriptor(faceRes.descriptor, otherProfiles, 0.22);
-          if (match && match.success && !match.error) {
+          const match = matchFaceDescriptor(faceRes.descriptor, otherProfiles, 0.07);
+          if (match && match.success && !match.error && match.distance < 0.07) {
             setDetectedExistingSantri(match);
           } else {
             setDetectedExistingSantri(null);
@@ -1655,14 +1655,10 @@ export default function MobileDaftarWajah() {
                       height: '68%',
                       borderRadius: '50%',
                       pointerEvents: 'none',
-                      border: detectedExistingSantri
-                        ? '3.5px solid #ef4444'
-                        : isFaceDetected
+                      border: isFaceDetected
                         ? '3.5px solid #22c55e'
                         : '2.5px dashed rgba(245, 158, 11, 0.85)',
-                      boxShadow: detectedExistingSantri
-                        ? '0 0 22px rgba(239, 68, 68, 0.9)'
-                        : isFaceDetected
+                      boxShadow: isFaceDetected
                         ? '0 0 22px rgba(34, 197, 94, 0.85)'
                         : 'none',
                       transition: 'all 0.25s ease'
@@ -1685,9 +1681,7 @@ export default function MobileDaftarWajah() {
                       fontWeight: 800,
                       backdropFilter: 'blur(8px)',
                       boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
-                      background: detectedExistingSantri
-                        ? 'rgba(239, 68, 68, 0.94)'
-                        : isFaceDetected
+                      background: isFaceDetected
                         ? 'rgba(21, 128, 61, 0.94)'
                         : 'rgba(217, 119, 6, 0.92)',
                       color: '#ffffff',
@@ -1695,10 +1689,12 @@ export default function MobileDaftarWajah() {
                       transition: 'all 0.2s ease'
                     }}
                   >
-                    {detectedExistingSantri ? (
-                      `⛔ Wajah Terdaftar: ${detectedExistingSantri.nama || detectedExistingSantri.nama_santri} (Duplikat)`
-                    ) : isFaceDetected ? (
-                      `🟢 Wajah Pas & Terdeteksi (${faceScore}%)`
+                    {isFaceDetected ? (
+                      detectedExistingSantri ? (
+                        `🟢 Wajah Terdeteksi (${faceScore}%) • Mirip: ${detectedExistingSantri.nama_santri || detectedExistingSantri.nama}`
+                      ) : (
+                        `🟢 Wajah Pas & Terdeteksi (${faceScore}%)`
+                      )
                     ) : (
                       `⚠️ Bukan Wajah / Belum Pas (Arahkan ke Wajah Santri)`
                     )}
@@ -1752,19 +1748,12 @@ export default function MobileDaftarWajah() {
                       <RotateCcw size={14} /> Putar Kamera
                     </button>
                     <button
-                      disabled={!isFaceDetected || !!detectedExistingSantri || isCheckingFace}
+                      disabled={!isFaceDetected || isCheckingFace}
                       onClick={() => {
                         if (!isFaceDetected) {
                           showError(
                             'Wajah Tidak Terdeteksi!',
                             'Kamera belum mendeteksi wajah manusia secara jelas. Silakan arahkan kamera tepat ke wajah santri di tempat yang cukup terang.'
-                          );
-                          return;
-                        }
-                        if (detectedExistingSantri) {
-                          showError(
-                            'Wajah Sudah Terdaftar!',
-                            `Wajah di depan kamera terdeteksi sudah terdaftar atas nama "${detectedExistingSantri.nama || detectedExistingSantri.nama_santri}". Tidak dapat mengambil foto untuk santri lain.`
                           );
                           return;
                         }
@@ -1776,18 +1765,18 @@ export default function MobileDaftarWajah() {
                         borderRadius: '10px',
                         border: 'none',
                         background:
-                          !isFaceDetected || detectedExistingSantri
+                          !isFaceDetected || isCheckingFace
                             ? '#94a3b8'
                             : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
                         color: '#ffffff',
                         fontSize: '0.8rem',
                         fontWeight: 800,
-                        cursor: !isFaceDetected || detectedExistingSantri || isCheckingFace ? 'not-allowed' : 'pointer',
+                        cursor: !isFaceDetected || isCheckingFace ? 'not-allowed' : 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: '6px',
-                        boxShadow: isFaceDetected && !detectedExistingSantri ? '0 4px 12px rgba(5, 150, 105, 0.4)' : 'none',
+                        boxShadow: isFaceDetected && !isCheckingFace ? '0 4px 12px rgba(5, 150, 105, 0.4)' : 'none',
                         transition: 'all 0.2s ease'
                       }}
                     >
@@ -1795,8 +1784,6 @@ export default function MobileDaftarWajah() {
                       <span>
                         {isCheckingFace
                           ? 'Memeriksa Wajah...'
-                          : detectedExistingSantri
-                          ? 'Wajah Sudah Ada'
                           : isFaceDetected
                           ? 'Ambil Foto Wajah'
                           : 'Arahkan ke Wajah'}
