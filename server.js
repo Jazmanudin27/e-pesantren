@@ -16,6 +16,7 @@ import { ensureWhatsAppTables } from './src/services/whatsapp.service.js';
 import { ensureSekolahTablesAndMapping } from './src/controllers/sekolah.controller.js';
 import { ensureSiklusSppTable } from './src/controllers/keuangan.controller.js';
 import { ensureOwnerAccount } from './src/controllers/owner.controller.js';
+import { ensureDatabaseIndexes } from './src/config/ensureDatabaseIndexes.js';
 
 dotenv.config();
 
@@ -76,6 +77,7 @@ app.listen(PORT, '0.0.0.0', async () => {
     await ensureSiklusSppTable();
     await ensureSekolahTablesAndMapping();
     await ensureOwnerAccount();
+    await ensureDatabaseIndexes();
   } catch (e) {
     console.warn('[E-PESANTREN] Init DB notice:', e.message);
   }

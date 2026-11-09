@@ -24,7 +24,8 @@ import {
   Award,
   Sparkles,
   RefreshCw,
-  Calendar
+  Calendar,
+  Settings
 } from "lucide-react";
 import { showConfirm, toastSuccess } from "../../utils/alert.util";
 import OwnerLaporanKeuangan from "./OwnerLaporanKeuangan";
@@ -33,6 +34,7 @@ import OwnerLaporanMengaji from "./OwnerLaporanMengaji";
 import OwnerLaporanPerkembangan from "./OwnerLaporanPerkembangan";
 import OwnerLaporanPerizinan from "./OwnerLaporanPerizinan";
 import OwnerLaporanSantri from "./OwnerLaporanSantri";
+import OwnerSettingsView from "./OwnerSettingsView";
 
 const squircleIconStyle = {
   width: "50px",
@@ -1463,7 +1465,7 @@ export default function OwnerDashboardView({ onLogout }) {
                   {activeTab === "perkembangan" && "Laporan Perkembangan Santri"}
                   {activeTab === "perizinan" && "Laporan Perizinan Santri"}
                   {activeTab === "santri" && "Data & Demografi Santri"}
-                  {activeTab === "profil" && "Profil Dewan Pembina"}
+                  {activeTab === "settings" && "Pengaturan & Konfigurasi"}
                 </span>
                 <span
                   style={{
@@ -1486,93 +1488,15 @@ export default function OwnerDashboardView({ onLogout }) {
 
             {/* Subview Container */}
             <div style={{ padding: "0 14px 20px" }}>
-              {activeTab === "profil" ? (
-                <div
-                  style={{
-                    background: "#ffffff",
-                    borderRadius: "16px",
-                    padding: "20px 16px",
-                    border: "1px solid #e2e8f0",
-                    boxShadow: "0 4px 14px rgba(0,0,0,0.05)",
-                    textAlign: "center"
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "64px",
-                      height: "64px",
-                      borderRadius: "20px",
-                      background: "linear-gradient(135deg, #0d766e 0%, #042f2e 100%)",
-                      color: "#ffffff",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      margin: "0 auto 12px",
-                      boxShadow: "0 8px 20px -4px rgba(13, 118, 110, 0.4)"
-                    }}
-                  >
-                    <User size={32} />
-                  </div>
-                  <h3 style={{ margin: "0 0 4px", fontSize: "1.05rem", fontWeight: 900, color: "#0f172a" }}>
-                    {ownerName}
-                  </h3>
-                  <p style={{ margin: "0 0 16px", fontSize: "0.74rem", color: "#64748b", fontWeight: 600 }}>
-                    Hak Akses: Yayasan / Dewan Pembina (View-Only)
-                  </p>
-                  <div
-                    style={{
-                      background: "#f8fafc",
-                      borderRadius: "12px",
-                      padding: "12px",
-                      textAlign: "left",
-                      fontSize: "0.72rem",
-                      color: "#334155",
-                      border: "1px solid #e2e8f0",
-                      marginBottom: "16px"
-                    }}
-                  >
-                    <div style={{ marginBottom: "6px" }}>
-                      <strong>Peran:</strong> Pemantauan &amp; Laporan Eksekutif Realtime
-                    </div>
-                    <div style={{ marginBottom: "6px" }}>
-                      <strong>Cakupan:</strong> Keuangan SPP, Presensi Sholat, Tahfidz, Perizinan, Data Santri
-                    </div>
-                    <div>
-                      <strong>Aman &amp; Terlindungi:</strong> Hak akses Owner bersifat pemantauan / read-only tanpa risiko manipulasi data.
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleLogout}
-                    style={{
-                      width: "100%",
-                      padding: "10px",
-                      borderRadius: "12px",
-                      background: "#ef4444",
-                      color: "#ffffff",
-                      border: "none",
-                      fontSize: "0.78rem",
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "6px",
-                      boxShadow: "0 4px 12px rgba(239, 68, 68, 0.35)"
-                    }}
-                  >
-                    <LogOut size={16} /> Keluar Akun
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  {activeTab === "keuangan" && <OwnerLaporanKeuangan />}
-                  {activeTab === "presensi" && <OwnerLaporanPresensi initialStatus={presensiFilter} />}
-                  {activeTab === "mengaji" && <OwnerLaporanMengaji />}
-                  {activeTab === "perkembangan" && <OwnerLaporanPerkembangan />}
-                  {activeTab === "perizinan" && <OwnerLaporanPerizinan />}
-                  {activeTab === "santri" && <OwnerLaporanSantri />}
-                </div>
-              )}
+              <div>
+                {activeTab === "keuangan" && <OwnerLaporanKeuangan />}
+                {activeTab === "presensi" && <OwnerLaporanPresensi initialStatus={presensiFilter} />}
+                {activeTab === "mengaji" && <OwnerLaporanMengaji />}
+                {activeTab === "perkembangan" && <OwnerLaporanPerkembangan />}
+                {activeTab === "perizinan" && <OwnerLaporanPerizinan />}
+                {activeTab === "santri" && <OwnerLaporanSantri />}
+                {activeTab === "settings" && <OwnerSettingsView onLogout={handleLogout} />}
+              </div>
             </div>
           </div>
         )}
@@ -1629,16 +1553,16 @@ export default function OwnerDashboardView({ onLogout }) {
             <span>Santri</span>
           </button>
 
-          {/* 5. Profil */}
+          {/* 5. Settings */}
           <button
             type="button"
-            className={`mobile-nav-item ${activeTab === "profil" ? "active" : ""}`}
-            onClick={() => setActiveTab("profil")}
+            className={`mobile-nav-item ${activeTab === "settings" ? "active" : ""}`}
+            onClick={() => setActiveTab("settings")}
           >
-            <div className={`nav-icon-wrapper ${activeTab === "profil" ? "active" : ""}`}>
-              <User size={20} />
+            <div className={`nav-icon-wrapper ${activeTab === "settings" ? "active" : ""}`}>
+              <Settings size={20} />
             </div>
-            <span>Profil</span>
+            <span>Settings</span>
           </button>
         </nav>
       </div>

@@ -296,7 +296,6 @@ export default function OwnerLaporanMengaji() {
               onClick={() => setStatusFilter(st)}
               style={{
                 flex: 1,
-                border: "none",
                 background: isActive ? "#ccfbf1" : "transparent",
                 color: isActive ? "#0f766e" : "#64748b",
                 fontWeight: isActive ? 800 : 600,
