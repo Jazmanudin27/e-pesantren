@@ -19,6 +19,8 @@ import {
   Filter,
   AlertTriangle,
   RotateCcw,
+  AlertCircle,
+  Sparkles,
 } from "lucide-react";
 import {
   showSuccess,
@@ -54,6 +56,30 @@ const normalizeDateStr = (rawDate) => {
     return `${year}-${month}-${day}`;
   }
   return String(rawDate).split("T")[0].trim();
+};
+
+const getInitials = (name) => {
+  if (!name) return "S";
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
+
+const getAvatarTheme = (name = "") => {
+  const themes = [
+    { bg: "linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)", color: "#166534", border: "#86efac", shadow: "0 4px 10px rgba(22, 101, 52, 0.12)" },
+    { bg: "linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)", color: "#075985", border: "#7dd3fc", shadow: "0 4px 10px rgba(7, 89, 133, 0.12)" },
+    { bg: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)", color: "#854d0e", border: "#fcd34d", shadow: "0 4px 10px rgba(133, 77, 14, 0.12)" },
+    { bg: "linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)", color: "#6b21a8", border: "#d8b4fe", shadow: "0 4px 10px rgba(107, 33, 168, 0.12)" },
+    { bg: "linear-gradient(135deg, #ffe4e6 0%, #fecdd3 100%)", color: "#9f1239", border: "#fda4af", shadow: "0 4px 10px rgba(159, 18, 57, 0.12)" },
+    { bg: "linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%)", color: "#115e59", border: "#5eead4", shadow: "0 4px 10px rgba(17, 94, 89, 0.12)" },
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const idx = Math.abs(hash) % themes.length;
+  return themes[idx];
 };
 
 export default function MobilePresensiBerjamaah() {
@@ -690,58 +716,115 @@ export default function MobilePresensiBerjamaah() {
             </div>
           ) : (
             <div>
-              {/* Baris Pencarian Santri (Full Width) */}
+              {/* Modern Search Bar */}
               <div style={{ position: "relative", marginBottom: "10px" }}>
                 <input
                   type="text"
-                  placeholder={`Cari santri di kelas ${selectedBerjamaahKelas}...`}
+                  placeholder={`Cari nama santri atau NIS di Kelas ${selectedBerjamaahKelas || ""}...`}
                   value={searchManual}
                   onChange={(e) => setSearchManual(e.target.value)}
                   style={{
                     width: "100%",
-                    padding: "9px 10px 9px 32px",
-                    borderRadius: "12px",
+                    padding: "10px 36px 10px 36px",
+                    borderRadius: "14px",
                     border: "1.5px solid #e2e8f0",
-                    fontSize: "0.78rem",
+                    background: "#ffffff",
+                    fontSize: "0.8rem",
+                    fontWeight: 600,
+                    color: "#0f172a",
                     outline: "none",
                     boxSizing: "border-box",
-                    background: "#ffffff",
+                    boxShadow: "0 2px 8px -2px rgba(0,0,0,0.04)",
+                    transition: "border 0.2s ease, box-shadow 0.2s ease",
                   }}
                 />
-                <Search size={15} color="#94a3b8" style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)" }} />
-              </div>
-
-              {/* Filter Status Kehadiran Chips */}
-              <div style={{ display: "flex", gap: "6px", marginBottom: "10px", flexWrap: "wrap" }}>
-                {[
-                  { key: "Semua", label: `Semua (${sessionTotal})` },
-                  { key: "Belum", label: `Belum (${sessionBelumCount})` },
-                  { key: "Hadir", label: `Hadir (${sessionHadirCount})` },
-                  { key: "Sakit", label: `Sakit (${sessionSakitCount})` },
-                  { key: "Izin", label: `Izin (${sessionIzinCount})` },
-                  ...(hasFemaleInClass ? [{ key: "Haid", label: `Haid (${sessionHaidCount})` }] : []),
-                ].map((st) => (
+                <Search size={16} color="#94a3b8" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+                {searchManual && (
                   <button
-                    key={st.key}
-                    onClick={() => setFilterManualStatus(st.key)}
+                    onClick={() => setSearchManual("")}
                     style={{
-                      padding: "5px 11px",
-                      borderRadius: "20px",
-                      border: filterManualStatus === st.key ? "none" : "1px solid #cbd5e1",
-                      background: filterManualStatus === st.key ? "#0284c7" : "#ffffff",
-                      color: filterManualStatus === st.key ? "#ffffff" : "#475569",
-                      fontSize: "0.72rem",
-                      fontWeight: 700,
+                      position: "absolute",
+                      right: "10px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      border: "none",
+                      background: "#f1f5f9",
+                      color: "#64748b",
+                      borderRadius: "50%",
+                      width: "20px",
+                      height: "20px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                       cursor: "pointer",
                     }}
                   >
-                    {st.label}
+                    <X size={12} />
                   </button>
-                ))}
+                )}
+              </div>
+
+              {/* Filter Status Kehadiran Chips (Horizontal Scrollable) */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: "7px",
+                  marginBottom: "12px",
+                  overflowX: "auto",
+                  paddingBottom: "4px",
+                  scrollbarWidth: "none",
+                }}
+              >
+                {[
+                  { key: "Semua", label: "Semua", count: sessionTotal, color: "#0284c7" },
+                  { key: "Belum", label: "Belum", count: sessionBelumCount, color: "#64748b" },
+                  { key: "Hadir", label: "Hadir", count: sessionHadirCount, color: "#10b981" },
+                  { key: "Sakit", label: "Sakit", count: sessionSakitCount, color: "#f59e0b" },
+                  { key: "Izin", label: "Izin", count: sessionIzinCount, color: "#0284c7" },
+                  ...(hasFemaleInClass ? [{ key: "Haid", label: "Haid", count: sessionHaidCount, color: "#ec4899" }] : []),
+                ].map((st) => {
+                  const isActive = filterManualStatus === st.key;
+                  return (
+                    <button
+                      key={st.key}
+                      onClick={() => setFilterManualStatus(st.key)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "5px",
+                        padding: "6px 12px",
+                        borderRadius: "999px",
+                        border: isActive ? `1.5px solid ${st.color}` : "1px solid #e2e8f0",
+                        background: isActive ? st.color : "#ffffff",
+                        color: isActive ? "#ffffff" : "#475569",
+                        fontSize: "0.72rem",
+                        fontWeight: 800,
+                        cursor: "pointer",
+                        flexShrink: 0,
+                        boxShadow: isActive ? `0 4px 12px -2px ${st.color}55` : "0 1px 3px rgba(0,0,0,0.02)",
+                        transition: "all 0.18s ease",
+                      }}
+                    >
+                      <span>{st.label}</span>
+                      <span
+                        style={{
+                          background: isActive ? "rgba(255,255,255,0.25)" : "#f1f5f9",
+                          color: isActive ? "#ffffff" : "#64748b",
+                          padding: "1px 6px",
+                          borderRadius: "999px",
+                          fontSize: "0.64rem",
+                          fontWeight: 800,
+                        }}
+                      >
+                        {st.count}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
 
               {/* List Santri Checklist */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 {filteredSantri.map((s) => {
                   const log = getSantriCurrentLog(s);
                   const curStatus = String(log?.status_kehadiran || log?.status || "").trim();
@@ -752,93 +835,228 @@ export default function MobilePresensiBerjamaah() {
                   const isIzin = /izin/i.test(curStatus);
                   const isHaid = /haid/i.test(curStatus);
 
+                  const avatarTheme = getAvatarTheme(s.nama_santri || "");
+
+                  // Dynamic Card Border Accent & Background
+                  let cardBorderLeft = "4px solid transparent";
+                  let cardBg = "#ffffff";
+                  let cardShadow = "0 3px 14px -2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03)";
+
+                  if (isHadir) {
+                    cardBorderLeft = "4px solid #10b981";
+                    cardBg = "linear-gradient(to right, #f0fdf4 0%, #ffffff 40%)";
+                    cardShadow = "0 4px 16px -2px rgba(16, 185, 129, 0.12)";
+                  } else if (isSakit) {
+                    cardBorderLeft = "4px solid #f59e0b";
+                    cardBg = "linear-gradient(to right, #fffbeb 0%, #ffffff 40%)";
+                    cardShadow = "0 4px 16px -2px rgba(245, 158, 11, 0.12)";
+                  } else if (isIzin) {
+                    cardBorderLeft = "4px solid #0284c7";
+                    cardBg = "linear-gradient(to right, #f0f9ff 0%, #ffffff 40%)";
+                    cardShadow = "0 4px 16px -2px rgba(2, 132, 199, 0.12)";
+                  } else if (isHaid) {
+                    cardBorderLeft = "4px solid #ec4899";
+                    cardBg = "linear-gradient(to right, #fdf2f8 0%, #ffffff 40%)";
+                    cardShadow = "0 4px 16px -2px rgba(236, 72, 153, 0.12)";
+                  }
+
                   return (
                     <div
                       key={s.id}
                       style={{
-                        background: "#ffffff",
-                        borderRadius: "14px",
-                        padding: "11px 14px",
-                        border: log ? "1px solid #bbf7d0" : "1px solid #e2e8f0",
+                        background: cardBg,
+                        borderRadius: "16px",
+                        padding: "12px 14px",
+                        border: "1px solid #eef2f6",
+                        borderLeft: cardBorderLeft,
                         display: "flex",
                         flexDirection: "column",
-                        gap: "8px",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                        gap: "10px",
+                        boxShadow: cardShadow,
+                        transition: "all 0.2s ease",
                       }}
                     >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                        <div>
-                          <div style={{ fontWeight: 800, fontSize: "0.86rem", color: "#0f172a" }}>
-                            {s.nama_santri}
+                      {/* Baris Atas: Avatar + Nama Santri + Badge Status */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
+                          {/* Avatar Inisial Elegan */}
+                          <div
+                            style={{
+                              width: "40px",
+                              height: "40px",
+                              borderRadius: "13px",
+                              background: avatarTheme.bg,
+                              color: avatarTheme.color,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontWeight: 800,
+                              fontSize: "0.85rem",
+                              letterSpacing: "0.5px",
+                              flexShrink: 0,
+                              boxShadow: avatarTheme.shadow,
+                              border: `1.5px solid ${avatarTheme.border}`,
+                            }}
+                          >
+                            {getInitials(s.nama_santri)}
                           </div>
-                          <div style={{ fontSize: "0.68rem", color: "#64748b", marginTop: "2px" }}>
-                            NIS: {s.nis || "-"} • {getSantriKelasLabel(s) || selectedBerjamaahKelas || "Santri"}
-                            {isFemale && <span style={{ color: "#db2777", fontWeight: 700, marginLeft: "4px" }}>(Akhwat)</span>}
+
+                          {/* Info Santri */}
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                              <span
+                                style={{
+                                  fontWeight: 800,
+                                  fontSize: "0.88rem",
+                                  color: "#0f172a",
+                                  whiteSpace: "nowrap",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  letterSpacing: "-0.01em",
+                                }}
+                              >
+                                {s.nama_santri}
+                              </span>
+                              {isFemale && (
+                                <span style={{ fontSize: "0.62rem", fontWeight: 700, padding: "1px 6px", borderRadius: "999px", background: "#fdf2f8", color: "#db2777", border: "1px solid #fbcfe8" }}>
+                                  Akhwat
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "5px", marginTop: "2px" }}>
+                              <span style={{ fontSize: "0.66rem", fontWeight: 700, color: "#64748b", background: "#f1f5f9", padding: "1px 6px", borderRadius: "6px" }}>
+                                NIS {s.nis || "-"}
+                              </span>
+                              <span style={{ fontSize: "0.66rem", color: "#94a3b8" }}>•</span>
+                              <span style={{ fontSize: "0.66rem", color: "#64748b", fontWeight: 600 }}>
+                                {getSantriKelasLabel(s) || selectedBerjamaahKelas || "Santri"}
+                              </span>
+                            </div>
                           </div>
                         </div>
 
-                        {log && (
-                          <span
+                        {/* Status Pill Indicator */}
+                        {log ? (
+                          <div
                             style={{
-                              background: isHadir ? "#ecfdf5" : isSakit ? "#fffbeb" : isIzin ? "#eff6ff" : "#fdf2f8",
-                              color: isHadir ? "#059669" : isSakit ? "#d97706" : isIzin ? "#0284c7" : "#db2777",
-                              padding: "2px 8px",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "5px",
+                              padding: "3px 9px",
                               borderRadius: "999px",
+                              background: isHadir ? "#dcfce7" : isSakit ? "#fef3c7" : isIzin ? "#e0f2fe" : "#fce7f3",
+                              color: isHadir ? "#15803d" : isSakit ? "#b45309" : isIzin ? "#0369a1" : "#be185d",
+                              border: `1px solid ${isHadir ? "#86efac" : isSakit ? "#fde68a" : isIzin ? "#bae6fd" : "#fbcfe8"}`,
                               fontSize: "0.68rem",
                               fontWeight: 800,
+                              flexShrink: 0,
                             }}
                           >
-                            ✓ {curStatus}
-                          </span>
+                            <span
+                              style={{
+                                width: "6px",
+                                height: "6px",
+                                borderRadius: "50%",
+                                background: isHadir ? "#22c55e" : isSakit ? "#f59e0b" : isIzin ? "#0284c7" : "#ec4899",
+                                boxShadow: `0 0 6px ${isHadir ? "#22c55e" : isSakit ? "#f59e0b" : isIzin ? "#0284c7" : "#ec4899"}`,
+                              }}
+                            />
+                            {curStatus}
+                          </div>
+                        ) : (
+                          <div
+                            style={{
+                              fontSize: "0.65rem",
+                              fontWeight: 700,
+                              color: "#94a3b8",
+                              padding: "3px 8px",
+                              borderRadius: "999px",
+                              background: "#f8fafc",
+                              border: "1px solid #e2e8f0",
+                              flexShrink: 0,
+                            }}
+                          >
+                            Belum Presensi
+                          </div>
                         )}
                       </div>
 
-                      {/* Tombol Pilihan Status: Hadir, Sakit, Izin, [Haid jika perempuan], Batal */}
-                      <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
+                      {/* Baris Tombol Aksi Segmented Modern */}
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: isFemale ? (log ? "repeat(4, 1fr) auto" : "repeat(4, 1fr)") : (log ? "repeat(3, 1fr) auto" : "repeat(3, 1fr)"),
+                          gap: "6px",
+                          marginTop: "2px",
+                        }}
+                      >
                         <button
                           onClick={() => recordAttendance(s, "Hadir")}
                           style={{
-                            padding: "5px 12px",
-                            borderRadius: "8px",
-                            border: isHadir ? "1px solid #059669" : "1px solid #a7f3d0",
-                            background: isHadir ? "#059669" : "#ecfdf5",
-                            color: isHadir ? "#ffffff" : "#047857",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "4px",
+                            padding: "8px 6px",
+                            borderRadius: "10px",
+                            border: isHadir ? "none" : "1px solid #e2e8f0",
+                            background: isHadir ? "linear-gradient(135deg, #10b981 0%, #059669 100%)" : "#f8fafc",
+                            color: isHadir ? "#ffffff" : "#334155",
                             fontSize: "0.72rem",
-                            fontWeight: 700,
+                            fontWeight: 800,
                             cursor: "pointer",
+                            boxShadow: isHadir ? "0 4px 12px rgba(16, 185, 129, 0.35)" : "none",
+                            transition: "all 0.18s ease",
                           }}
                         >
-                          ✓ Hadir
+                          <CheckCircle2 size={13} strokeWidth={2.5} color={isHadir ? "#ffffff" : "#10b981"} />
+                          <span>Hadir</span>
                         </button>
+
                         <button
                           onClick={() => recordAttendance(s, "Sakit")}
                           style={{
-                            padding: "5px 12px",
-                            borderRadius: "8px",
-                            border: isSakit ? "1px solid #d97706" : "1px solid #fde68a",
-                            background: isSakit ? "#d97706" : "#fffbeb",
-                            color: isSakit ? "#ffffff" : "#b45309",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "4px",
+                            padding: "8px 6px",
+                            borderRadius: "10px",
+                            border: isSakit ? "none" : "1px solid #e2e8f0",
+                            background: isSakit ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)" : "#f8fafc",
+                            color: isSakit ? "#ffffff" : "#334155",
                             fontSize: "0.72rem",
-                            fontWeight: 700,
+                            fontWeight: 800,
                             cursor: "pointer",
+                            boxShadow: isSakit ? "0 4px 12px rgba(245, 158, 11, 0.35)" : "none",
+                            transition: "all 0.18s ease",
                           }}
                         >
-                          🏥 Sakit
+                          <AlertCircle size={13} strokeWidth={2.5} color={isSakit ? "#ffffff" : "#f59e0b"} />
+                          <span>Sakit</span>
                         </button>
+
                         <button
                           onClick={() => recordAttendance(s, "Izin")}
                           style={{
-                            padding: "5px 12px",
-                            borderRadius: "8px",
-                            border: isIzin ? "1px solid #0284c7" : "1px solid #bae6fd",
-                            background: isIzin ? "#0284c7" : "#eff6ff",
-                            color: isIzin ? "#ffffff" : "#0369a1",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "4px",
+                            padding: "8px 6px",
+                            borderRadius: "10px",
+                            border: isIzin ? "none" : "1px solid #e2e8f0",
+                            background: isIzin ? "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)" : "#f8fafc",
+                            color: isIzin ? "#ffffff" : "#334155",
                             fontSize: "0.72rem",
-                            fontWeight: 700,
+                            fontWeight: 800,
                             cursor: "pointer",
+                            boxShadow: isIzin ? "0 4px 12px rgba(2, 132, 199, 0.35)" : "none",
+                            transition: "all 0.18s ease",
                           }}
                         >
-                          📝 Izin
+                          <Clock size={13} strokeWidth={2.5} color={isIzin ? "#ffffff" : "#0284c7"} />
+                          <span>Izin</span>
                         </button>
 
                         {/* Pilihan Haid Khusus Santriwati */}
@@ -846,37 +1064,46 @@ export default function MobilePresensiBerjamaah() {
                           <button
                             onClick={() => recordAttendance(s, "Haid")}
                             style={{
-                              padding: "5px 12px",
-                              borderRadius: "8px",
-                              border: isHaid ? "1px solid #db2777" : "1px solid #fbcfe8",
-                              background: isHaid ? "#db2777" : "#fdf2f8",
-                              color: isHaid ? "#ffffff" : "#be185d",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: "4px",
+                              padding: "8px 6px",
+                              borderRadius: "10px",
+                              border: isHaid ? "none" : "1px solid #e2e8f0",
+                              background: isHaid ? "linear-gradient(135deg, #ec4899 0%, #db2777 100%)" : "#f8fafc",
+                              color: isHaid ? "#ffffff" : "#334155",
                               fontSize: "0.72rem",
-                              fontWeight: 700,
+                              fontWeight: 800,
                               cursor: "pointer",
+                              boxShadow: isHaid ? "0 4px 12px rgba(236, 72, 153, 0.35)" : "none",
+                              transition: "all 0.18s ease",
                             }}
                           >
-                            🌸 Haid
+                            <Sparkles size={13} strokeWidth={2.5} color={isHaid ? "#ffffff" : "#ec4899"} />
+                            <span>Haid</span>
                           </button>
                         )}
 
+                        {/* Reset / Batal button */}
                         {log && (
                           <button
                             onClick={() => cancelAttendance(s)}
-                            title="Batalkan presensi santri ini"
+                            title="Reset / Batalkan presensi"
                             style={{
-                              padding: "5px 10px",
-                              borderRadius: "8px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              padding: "8px 10px",
+                              borderRadius: "10px",
                               border: "1px solid #fecaca",
                               background: "#fef2f2",
                               color: "#dc2626",
-                              fontSize: "0.7rem",
-                              fontWeight: 700,
                               cursor: "pointer",
-                              marginLeft: "auto",
+                              transition: "all 0.18s ease",
                             }}
                           >
-                            Batal
+                            <RotateCcw size={13} strokeWidth={2.5} />
                           </button>
                         )}
                       </div>
