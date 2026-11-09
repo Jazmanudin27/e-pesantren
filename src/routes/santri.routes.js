@@ -42,24 +42,44 @@ router.get('/with-face', async (req, res) => {
 router.get('/for-face-registration', async (req, res) => {
   try {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    const colSet = await getSantriColumns();
+    const hasNamaKelas = colSet.has('nama_kelas');
+    const hasKelasId = colSet.has('kelas_id');
+    const hasAsramaId = colSet.has('asrama_id');
+    const hasFaceDesc = colSet.has('face_descriptor');
+    const hasFoto = colSet.has('foto');
+
+    const kelasSelect = hasNamaKelas
+      ? "COALESCE(kl.nama_kelas, s.nama_kelas, '') as nama_kelas,"
+      : "COALESCE(kl.nama_kelas, '') as nama_kelas,";
+    const kelasJoin = hasKelasId
+      ? "LEFT JOIN kelas kl ON s.kelas_id = kl.id"
+      : (hasNamaKelas ? "LEFT JOIN kelas kl ON s.nama_kelas = kl.nama_kelas" : "");
+    const asramaJoin = hasAsramaId
+      ? "LEFT JOIN asrama a ON s.asrama_id = a.id"
+      : "";
+
+    const faceDescCase = hasFaceDesc
+      ? "CASE WHEN (s.face_descriptor IS NOT NULL AND s.face_descriptor != '' AND s.face_descriptor != '[]') THEN 1 ELSE 0 END AS has_face_descriptor,"
+      : "0 AS has_face_descriptor,";
+
+    const photoCase = hasFoto
+      ? "CASE WHEN (s.foto IS NOT NULL AND s.foto != '') THEN 1 ELSE 0 END AS has_photo"
+      : "0 AS has_photo";
+
     const [rows] = await pool.query(`
       SELECT 
         s.id, 
         s.nis, 
         s.nama_santri, 
-        s.nama_kelas, 
-        s.kelas_id, 
-        COALESCE(s.nama_asrama, a.nama_asrama, '') as nama_asrama, 
-        CASE 
-          WHEN (s.face_descriptor IS NOT NULL AND s.face_descriptor != '' AND s.face_descriptor != '[]') THEN 1 
-          ELSE 0 
-        END AS has_face_descriptor,
-        CASE 
-          WHEN (s.foto IS NOT NULL AND s.foto != '') THEN 1 
-          ELSE 0 
-        END AS has_photo
+        ${hasKelasId ? 's.kelas_id,' : 'NULL as kelas_id,'}
+        ${kelasSelect}
+        ${hasAsramaId ? "COALESCE(a.nama_asrama, '') as nama_asrama," : "'' as nama_asrama,"}
+        ${faceDescCase}
+        ${photoCase}
       FROM santri s
-      LEFT JOIN asrama a ON s.asrama_id = a.id
+      ${asramaJoin}
+      ${kelasJoin}
       ORDER BY s.id ASC
     `);
     return res.json({ success: true, total: rows.length, data: rows });

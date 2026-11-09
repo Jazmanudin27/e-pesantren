@@ -31,7 +31,9 @@ export const getAllSantri = async (req, res) => {
       sekolah_id,
       sekolah,
       jenjang,
-      all = 'false'
+      all = 'false',
+      without_photo = 'false',
+      compact = 'false'
     } = req.query;
 
     const pageNum = Math.max(1, parseInt(page) || 1);
@@ -158,18 +160,32 @@ export const getAllSantri = async (req, res) => {
 
     const [rows] = await pool.query(dataSql, dataParams);
 
+    const isCompact = without_photo === 'true' || compact === 'true';
+
     const sanitizedRows = (rows || []).map(r => {
       const rawAlamat = r.alamat_asal ? String(r.alamat_asal).trim() : '';
       const isDummyAlamat = ['pondok pesantren nurul wafa', 'pp nurul wafa', 'pp. nurul wafa', '-'].includes(rawAlamat.toLowerCase());
       const rawWali = r.nama_wali ? String(r.nama_wali).trim() : '';
       const isDummyWali = ['wali santri', '-'].includes(rawWali.toLowerCase());
       const rawWa = r.no_wa_wali ? String(r.no_wa_wali).trim() : '';
-      return {
+      const hasPhoto = !!(r.foto && String(r.foto).trim() !== '');
+      const hasFace = !!(r.face_descriptor && String(r.face_descriptor).trim() !== '' && r.face_descriptor !== '[]');
+
+      const item = {
         ...r,
         alamat_asal: isDummyAlamat ? '' : rawAlamat,
         nama_wali: isDummyWali ? '' : rawWali,
-        no_wa_wali: rawWa === '-' ? '' : rawWa
+        no_wa_wali: rawWa === '-' ? '' : rawWa,
+        has_photo: hasPhoto ? 1 : 0,
+        has_face_descriptor: hasFace ? 1 : 0
       };
+
+      if (isCompact) {
+        item.foto = null;
+        item.face_descriptor = null;
+      }
+
+      return item;
     });
 
     // Global Stats for top cards & tab counts

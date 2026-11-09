@@ -129,7 +129,7 @@ export default function MobileDaftarWajah() {
     try {
       setLoading(true);
       const [resSantri, resKelas] = await Promise.all([
-        axios.get('/api/santri/for-face-registration').catch(() => axios.get('/api/santri?all=true')),
+        axios.get('/api/santri/for-face-registration').catch(() => axios.get('/api/santri?all=true&compact=true&without_photo=true')),
         axios.get('/api/kelas').catch(() => ({ data: { data: [] } }))
       ]);
 
