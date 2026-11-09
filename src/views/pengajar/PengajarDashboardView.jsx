@@ -106,11 +106,11 @@ export default function PengajarDashboardView({ onLogout }) {
         margin: 0
       }}
     >
-      {/* MOBILE CONTAINER WRAPPER (Max 440px desktop, full-width on mobile) */}
+      {/* CONTAINER WRAPPER (Responsive: 460px on beranda mobile frame, up to 1240px for full Admin view) */}
       <div
         style={{
           width: '100%',
-          maxWidth: '440px',
+          maxWidth: activeTab === 'beranda' ? '460px' : '1240px',
           minHeight: '100vh',
           backgroundColor: '#f8fafc',
           boxShadow: '0 10px 40px -10px rgba(0, 0, 0, 0.18)',
@@ -118,7 +118,8 @@ export default function PengajarDashboardView({ onLogout }) {
           display: 'flex',
           flexDirection: 'column',
           paddingBottom: '82px',
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          transition: 'max-width 0.2s ease',
         }}
       >
         {/* =========================================================================
@@ -873,7 +874,7 @@ export default function PengajarDashboardView({ onLogout }) {
             left: '50%',
             transform: 'translateX(-50%)',
             width: '100%',
-            maxWidth: '440px',
+            maxWidth: activeTab === 'beranda' ? '460px' : '1240px',
             height: '64px',
             backgroundColor: '#042f2e',
             borderTop: '1px solid rgba(255, 255, 255, 0.1)',
