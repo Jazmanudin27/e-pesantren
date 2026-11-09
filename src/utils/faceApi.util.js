@@ -181,7 +181,7 @@ export const isValidDescriptor = (arr) => {
   return Array.isArray(target) && target.length === 128;
 };
 
-// 4c. Normalisasi descriptor ke Array biasa [128 floats]
+// 4c. Normalisasi descriptor ke Array biasa [128 floats] dengan L2 Normalization
 export const normalizeDescriptor = (arr) => {
   if (!arr) return null;
   let target = arr;
@@ -200,7 +200,14 @@ export const normalizeDescriptor = (arr) => {
     target = Array.from(target);
   }
   if (Array.isArray(target) && target.length === 128) {
-    return target.map(n => Number(n) || 0);
+    const clean = target.map(n => Number(n) || 0);
+    // Konsistensi L2-norm pada setiap descriptor (live maupun database)
+    let sumSq = 0;
+    for (let i = 0; i < 128; i++) {
+      sumSq += clean[i] * clean[i];
+    }
+    const norm = Math.sqrt(sumSq) || 1;
+    return clean.map(v => Number((v / norm).toFixed(6)));
   }
   return null;
 };
@@ -285,6 +292,11 @@ export const detectFaceDescriptor = async (mediaElement) => {
       height: Math.min(h, (maxY - minY + padY * 2) * h)
     };
 
+    // Tolak wajah jika ukuran terlalu kecil / terlalu jauh (< 90px)
+    if (box.width < 90 || box.height < 90) {
+      return null;
+    }
+
     const descriptor = computeMediaPipe128Descriptor(landmarks);
 
     return {
@@ -318,14 +330,16 @@ export const extractDescriptorFromDataUrl = (dataUrl) => {
   });
 };
 
-// 7. Pencocokan Vektor Biometrik (Threshold Akurat Default 0.28, Anti False-Positive)
-export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, threshold = 0.28) => {
+// 7. Pencocokan Vektor Biometrik (Threshold Default 0.22, Margin Check Top 2 Kandidat)
+export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, threshold = 0.22, minMargin = 0.035) => {
   const liveNorm = normalizeDescriptor(liveDescriptor);
   if (!liveNorm || !registeredProfilesList) return null;
 
-  const matchThreshold = Math.min(Math.max(Number(threshold) || 0.28, 0.10), 0.85);
+  const matchThreshold = Math.min(Math.max(Number(threshold) || 0.22, 0.12), 0.50);
   let bestMatch = null;
   let minDistance = 999;
+  let secondBestMatch = null;
+  let secondMinDistance = 999;
   let validCount = 0;
 
   for (const prof of registeredProfilesList) {
@@ -337,8 +351,13 @@ export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, thre
       validCount++;
       const dist = computeEuclideanDistance(liveNorm, normTarget);
       if (dist < minDistance) {
+        secondMinDistance = minDistance;
+        secondBestMatch = bestMatch;
         minDistance = dist;
         bestMatch = { ...prof, descriptor: normTarget };
+      } else if (dist < secondMinDistance) {
+        secondMinDistance = dist;
+        secondBestMatch = { ...prof, descriptor: normTarget };
       }
     }
   }
@@ -354,6 +373,20 @@ export const matchFaceDescriptor = (liveDescriptor, registeredProfilesList, thre
       bestDistance: minDistance,
       threshold: matchThreshold,
       candidate: bestMatch
+    };
+  }
+
+  // Margin Check: Tolak jika kandidat terbaik dan kandidat kedua hampir mirip (ambigu)
+  if (secondBestMatch && (secondMinDistance - minDistance) < minMargin) {
+    return {
+      error: 'ambiguous',
+      message: 'Wajah ambigu / mirip lebih dari 1 orang',
+      validCount,
+      bestMatch,
+      secondBestMatch,
+      bestDistance: minDistance,
+      secondDistance: secondMinDistance,
+      margin: Number((secondMinDistance - minDistance).toFixed(4))
     };
   }
 

@@ -567,10 +567,24 @@ export default function MobilePresensiMengaji() {
               }
 
               setFaceDetected(true);
-              const matched = matchFaceDescriptor(faceRes.descriptor, registeredList, 0.28);
+              const matched = matchFaceDescriptor(faceRes.descriptor, registeredList, 0.22);
 
               if (matched && !matched.error && (matched.santri_id || matched.id)) {
                 const mId = String(matched.santri_id || matched.id);
+
+                // Verifikasi Streak: Wajib konsisten 3 frame berturut-turut untuk orang yang sama
+                if (matchedStreakRef.current.id === mId) {
+                  matchedStreakRef.current.count += 1;
+                } else {
+                  matchedStreakRef.current = { id: mId, count: 1 };
+                }
+
+                if (matchedStreakRef.current.count < 3) {
+                  setFaceStatusText(`🔍 Memverifikasi ${matched.nama_santri || "wajah"} (${matchedStreakRef.current.count}/3)...`);
+                  return;
+                }
+                matchedStreakRef.current = { id: null, count: 0 };
+
                 const dbSantri = (santriListRef.current || []).find((s) => String(s.id) === mId) || matched;
                 const displayName = dbSantri?.nama_santri || "Santri";
 
@@ -599,7 +613,12 @@ export default function MobilePresensiMengaji() {
                   toastSuccess(`Presensi Mengaji: ${displayName} (${curKeg.nama})`);
                 }
               } else {
-                setFaceStatusText("⛔ Wajah Tidak Dikenali di Kelas Ini");
+                matchedStreakRef.current = { id: null, count: 0 };
+                if (matched?.error === "ambiguous") {
+                  setFaceStatusText("⚠️ Wajah Mirip Lebih Dari 1 Orang");
+                } else {
+                  setFaceStatusText("⛔ Wajah Tidak Dikenali di Kelas Ini");
+                }
               }
             }
           } catch (err) {
@@ -645,7 +664,7 @@ export default function MobilePresensiMengaji() {
         showError("Wajah Tidak Terdeteksi", "Wajah santri tidak terdeteksi di kamera.");
         return;
       }
-      const matched = matchFaceDescriptor(faceRes.descriptor, registeredList, 0.28);
+      const matched = matchFaceDescriptor(faceRes.descriptor, registeredList, 0.22);
       if (matched && !matched.error) {
         const dbSantri = (santriListRef.current || []).find((s) => String(s.id) === String(matched.santri_id || matched.id));
         if (dbSantri) {
@@ -653,6 +672,8 @@ export default function MobilePresensiMengaji() {
           setLastScannedSantri({ ...dbSantri, snapshot: snap });
           toastSuccess(`Wajah Dikenali: ${dbSantri.nama_santri}`);
         }
+      } else if (matched?.error === "ambiguous") {
+        showError("Wajah Ambigu", `Kemiripan wajah hampir sama antara "${matched.bestMatch?.nama_santri}" dan "${matched.secondBestMatch?.nama_santri}". Harap hadapkan wajah lurus dan pastikan cahaya cukup.`);
       } else {
         showError("Tidak Cocok", `Wajah tidak ditemukan pada santri Kelas ${selectedMengajiKelas}.`);
       }
@@ -761,6 +782,18 @@ export default function MobilePresensiMengaji() {
     }
   };
 
+  const cancelAttendance = async (santri) => {
+    const log = getSantriCurrentLog(santri);
+    if (!log) return;
+
+    setPresensiLogs((prev) => prev.filter((l) => l.id !== log.id));
+    toastSuccess(`Presensi ${santri.nama_santri} dibatalkan`);
+
+    if (log.id && typeof log.id === "number" && log.id < 1000000000000) {
+      axios.delete(`/api/absensi/fingerprint/${log.id}`).catch(() => {});
+    }
+  };
+
   const handleRefreshRiwayat = async () => {
     setRefreshingRiwayat(true);
     try {
@@ -834,12 +867,35 @@ export default function MobilePresensiMengaji() {
   }, [kelasList]);
 
   const filteredSantri = santriList.filter((s) => {
-    const matchSearch = (s.nama_santri || "").toLowerCase().includes(searchManual.toLowerCase()) || (s.nis || "").includes(searchManual);
+    const matchSearch =
+      (s.nama_santri || "").toLowerCase().includes(searchManual.toLowerCase()) ||
+      (s.nis || "").includes(searchManual);
     const log = getSantriCurrentLog(s);
-    // Jika santri sudah presensi (via scan wajah AI / manual), otomatis tidak tampil di manual, langsung pindah ke riwayat
-    if (log) return false;
+    const curStatus = String(log?.status_kehadiran || log?.status || "").toLowerCase();
+
+    if (filterManualStatus === "Belum") return matchSearch && !log;
+    if (filterManualStatus === "Hadir") return matchSearch && curStatus.includes("hadir");
+    if (filterManualStatus === "Sakit") return matchSearch && curStatus.includes("sakit");
+    if (filterManualStatus === "Izin") return matchSearch && curStatus.includes("izin");
     return matchSearch;
   });
+
+  const sessionTotal = santriList.length;
+  const sessionHadirCount = santriList.filter((s) => {
+    const l = getSantriCurrentLog(s);
+    return l && String(l.status_kehadiran || l.status || "").toLowerCase().includes("hadir");
+  }).length;
+  const sessionSakitCount = santriList.filter((s) => {
+    const l = getSantriCurrentLog(s);
+    return l && String(l.status_kehadiran || l.status || "").toLowerCase().includes("sakit");
+  }).length;
+  const sessionIzinCount = santriList.filter((s) => {
+    const l = getSantriCurrentLog(s);
+    return l && String(l.status_kehadiran || l.status || "").toLowerCase().includes("izin");
+  }).length;
+  const sessionSudahCount = santriList.filter((s) => getSantriCurrentLog(s)).length;
+  const sessionBelumCount = sessionTotal - sessionSudahCount;
+  const sessionPercent = sessionTotal > 0 ? Math.round((sessionHadirCount / sessionTotal) * 100) : 0;
 
   // Filter Riwayat khusus berdasarkan Kegiatan Mengaji & Kelas Terpilih
   const filteredRiwayatLogs = React.useMemo(() => {
@@ -891,10 +947,6 @@ export default function MobilePresensiMengaji() {
       return true;
     });
   }, [presensiLogs, selectedMengaji, selectedMengajiKelas, santriList, searchRiwayat]);
-
-  const sessionSudahCount = santriList.filter((s) => getSantriCurrentLog(s)).length;
-  const sessionTotal = santriList.length;
-  const sessionPercent = sessionTotal > 0 ? Math.round((sessionSudahCount / sessionTotal) * 100) : 0;
 
   if (loading) {
     return (
@@ -1108,35 +1160,149 @@ export default function MobilePresensiMengaji() {
             />
           </div>
 
+          {/* Filter Status Kehadiran Chips */}
+          <div style={{ display: "flex", gap: "6px", marginBottom: "10px", flexWrap: "wrap" }}>
+            {[
+              { key: "Semua", label: `Semua (${sessionTotal})` },
+              { key: "Belum", label: `Belum (${sessionBelumCount})` },
+              { key: "Hadir", label: `Hadir (${sessionHadirCount})` },
+              { key: "Sakit", label: `Sakit (${sessionSakitCount})` },
+              { key: "Izin", label: `Izin (${sessionIzinCount})` },
+            ].map((st) => (
+              <button
+                key={st.key}
+                onClick={() => setFilterManualStatus(st.key)}
+                style={{
+                  padding: "5px 11px",
+                  borderRadius: "20px",
+                  border: filterManualStatus === st.key ? "none" : "1px solid #cbd5e1",
+                  background: filterManualStatus === st.key ? "#059669" : "#ffffff",
+                  color: filterManualStatus === st.key ? "#ffffff" : "#475569",
+                  fontSize: "0.72rem",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                {st.label}
+              </button>
+            ))}
+          </div>
+
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {filteredSantri.map((s) => {
               const log = getSantriCurrentLog(s);
+              const curStatus = String(log?.status_kehadiran || log?.status || "").trim();
               const isLocked = !selectedMengaji?.id || !selectedMengajiKelas;
+
+              const isHadir = /hadir/i.test(curStatus);
+              const isSakit = /sakit/i.test(curStatus);
+              const isIzin = /izin/i.test(curStatus);
+
               return (
-                <div key={s.id} style={{ background: "#fff", borderRadius: "12px", padding: "10px 14px", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: "0.85rem", color: "#0f172a" }}>{s.nama_santri}</div>
-                    <div style={{ fontSize: "0.68rem", color: "#64748b" }}>NIS: {s.nis || "-"} • Kelas: {selectedMengajiKelas || "-"}</div>
-                  </div>
-                  <div>
-                    {log ? (
-                      <span style={{ background: "#ecfdf5", color: "#059669", padding: "4px 10px", borderRadius: "999px", fontSize: "0.7rem", fontWeight: 800 }}>✓ Hadir</span>
-                    ) : (
-                      <button 
-                        onClick={() => recordAttendance(s, "Hadir", "Manual")} 
-                        disabled={isLocked}
-                        style={{ 
-                          padding: "5px 12px", 
-                          borderRadius: "8px", 
-                          border: "none", 
-                          background: isLocked ? "#cbd5e1" : "#059669", 
-                          color: "#fff", 
-                          fontSize: "0.72rem", 
-                          fontWeight: 700, 
-                          cursor: isLocked ? "not-allowed" : "pointer" 
+                <div
+                  key={s.id}
+                  style={{
+                    background: "#fff",
+                    borderRadius: "14px",
+                    padding: "11px 14px",
+                    border: log ? "1px solid #bbf7d0" : "1px solid #e2e8f0",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: "0.86rem", color: "#0f172a" }}>{s.nama_santri}</div>
+                      <div style={{ fontSize: "0.68rem", color: "#64748b" }}>NIS: {s.nis || "-"} • Kelas: {selectedMengajiKelas || "-"}</div>
+                    </div>
+                    {log && (
+                      <span
+                        style={{
+                          background: isHadir ? "#ecfdf5" : isSakit ? "#fffbeb" : "#eff6ff",
+                          color: isHadir ? "#059669" : isSakit ? "#d97706" : "#2563eb",
+                          padding: "2px 8px",
+                          borderRadius: "999px",
+                          fontSize: "0.68rem",
+                          fontWeight: 800,
                         }}
                       >
-                        Hadirkan
+                        ✓ {curStatus}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Tombol Pilihan Status: Hadir, Sakit, Izin, Batal */}
+                  <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
+                    <button
+                      onClick={() => recordAttendance(s, "Hadir", "Manual")}
+                      disabled={isLocked}
+                      style={{
+                        padding: "5px 12px",
+                        borderRadius: "8px",
+                        border: isHadir ? "1px solid #059669" : "1px solid #a7f3d0",
+                        background: isHadir ? "#059669" : "#ecfdf5",
+                        color: isHadir ? "#ffffff" : "#047857",
+                        fontSize: "0.72rem",
+                        fontWeight: 700,
+                        cursor: isLocked ? "not-allowed" : "pointer",
+                        opacity: isLocked ? 0.6 : 1,
+                      }}
+                    >
+                      ✓ Hadir
+                    </button>
+                    <button
+                      onClick={() => recordAttendance(s, "Sakit", "Manual")}
+                      disabled={isLocked}
+                      style={{
+                        padding: "5px 12px",
+                        borderRadius: "8px",
+                        border: isSakit ? "1px solid #d97706" : "1px solid #fde68a",
+                        background: isSakit ? "#d97706" : "#fffbeb",
+                        color: isSakit ? "#ffffff" : "#b45309",
+                        fontSize: "0.72rem",
+                        fontWeight: 700,
+                        cursor: isLocked ? "not-allowed" : "pointer",
+                        opacity: isLocked ? 0.6 : 1,
+                      }}
+                    >
+                      🏥 Sakit
+                    </button>
+                    <button
+                      onClick={() => recordAttendance(s, "Izin", "Manual")}
+                      disabled={isLocked}
+                      style={{
+                        padding: "5px 12px",
+                        borderRadius: "8px",
+                        border: isIzin ? "1px solid #0284c7" : "1px solid #bae6fd",
+                        background: isIzin ? "#0284c7" : "#eff6ff",
+                        color: isIzin ? "#ffffff" : "#0369a1",
+                        fontSize: "0.72rem",
+                        fontWeight: 700,
+                        cursor: isLocked ? "not-allowed" : "pointer",
+                        opacity: isLocked ? 0.6 : 1,
+                      }}
+                    >
+                      📝 Izin
+                    </button>
+                    {log && (
+                      <button
+                        onClick={() => cancelAttendance(s)}
+                        title="Batalkan presensi santri ini"
+                        style={{
+                          padding: "5px 10px",
+                          borderRadius: "8px",
+                          border: "1px solid #fecaca",
+                          background: "#fef2f2",
+                          color: "#dc2626",
+                          fontSize: "0.7rem",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          marginLeft: "auto",
+                        }}
+                      >
+                        Batal
                       </button>
                     )}
                   </div>

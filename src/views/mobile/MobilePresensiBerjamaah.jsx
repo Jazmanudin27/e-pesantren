@@ -313,6 +313,12 @@ export default function MobilePresensiBerjamaah() {
     });
   };
 
+  const isSantriFemale = (santri) => {
+    if (!santri) return false;
+    const raw = String(santri.jk || santri.jenis_kelamin || "").trim().toLowerCase();
+    return ["p", "perempuan", "putri", "akhwat", "female", "f"].includes(raw);
+  };
+
   // Catat Hadir Manual
   const recordAttendance = async (santri, status = "Hadir") => {
     if (!selectedBerjamaahKelas) {
@@ -348,7 +354,15 @@ export default function MobilePresensiBerjamaah() {
     };
 
     const newRecord = { id: Date.now(), ...payload };
-    setPresensiLogs((prev) => [newRecord, ...prev]);
+    setPresensiLogs((prev) => {
+      const filtered = prev.filter((l) => {
+        const sameSantri = String(l.santri_id) === String(santri.id) || (santri.nis && String(l.nis) === String(santri.nis));
+        const sameDate = normalizeDateStr(l.tanggal) === dateStr;
+        const sameKegiatan = !targetKegiatan?.id || String(l.sesi_id) === String(targetKegiatan.id) || String(l.kegiatan || l.nama_sesi || "").toLowerCase() === String(targetKegiatan.nama || "").toLowerCase();
+        return !(sameSantri && sameDate && sameKegiatan);
+      });
+      return [newRecord, ...filtered];
+    });
 
     axios.post("/api/absensi/fingerprint", payload).catch((err) => {
       console.warn("Gagal simpan presensi berjamaah ke server:", err);
@@ -368,20 +382,45 @@ export default function MobilePresensiBerjamaah() {
     }
   };
 
+  const hasFemaleInClass = santriList.some((s) => isSantriFemale(s));
+
   // Santri terfilter berdasarkan Pencarian & Status
   const filteredSantri = santriList.filter((s) => {
     const matchSearch =
       (s.nama_santri || "").toLowerCase().includes(searchManual.toLowerCase()) ||
       (s.nis || "").includes(searchManual);
     const log = getSantriCurrentLog(s);
-    if (filterManualStatus === "Hadir") return matchSearch && log;
+    const curStatus = String(log?.status_kehadiran || log?.status || "").toLowerCase();
+
     if (filterManualStatus === "Belum") return matchSearch && !log;
+    if (filterManualStatus === "Hadir") return matchSearch && curStatus.includes("hadir");
+    if (filterManualStatus === "Sakit") return matchSearch && curStatus.includes("sakit");
+    if (filterManualStatus === "Izin") return matchSearch && curStatus.includes("izin");
+    if (filterManualStatus === "Haid") return matchSearch && curStatus.includes("haid");
     return matchSearch;
   });
 
-  const sessionSudahCount = santriList.filter((s) => getSantriCurrentLog(s)).length;
   const sessionTotal = santriList.length;
-  const sessionPercent = sessionTotal > 0 ? Math.round((sessionSudahCount / sessionTotal) * 100) : 0;
+  const sessionHadirCount = santriList.filter((s) => {
+    const l = getSantriCurrentLog(s);
+    return l && String(l.status_kehadiran || l.status || "").toLowerCase().includes("hadir");
+  }).length;
+  const sessionSakitCount = santriList.filter((s) => {
+    const l = getSantriCurrentLog(s);
+    return l && String(l.status_kehadiran || l.status || "").toLowerCase().includes("sakit");
+  }).length;
+  const sessionIzinCount = santriList.filter((s) => {
+    const l = getSantriCurrentLog(s);
+    return l && String(l.status_kehadiran || l.status || "").toLowerCase().includes("izin");
+  }).length;
+  const sessionHaidCount = santriList.filter((s) => {
+    const l = getSantriCurrentLog(s);
+    return l && String(l.status_kehadiran || l.status || "").toLowerCase().includes("haid");
+  }).length;
+
+  const sessionSudahCount = santriList.filter((s) => getSantriCurrentLog(s)).length;
+  const sessionBelumCount = sessionTotal - sessionSudahCount;
+  const sessionPercent = sessionTotal > 0 ? Math.round((sessionHadirCount / sessionTotal) * 100) : 0;
 
   // Filter Riwayat Khusus Shalat Berjamaah Sesi Terpilih
   const filteredRiwayatLogs = React.useMemo(() => {
@@ -673,17 +712,20 @@ export default function MobilePresensiBerjamaah() {
               </div>
 
               {/* Filter Status Kehadiran Chips */}
-              <div style={{ display: "flex", gap: "6px", marginBottom: "10px" }}>
+              <div style={{ display: "flex", gap: "6px", marginBottom: "10px", flexWrap: "wrap" }}>
                 {[
                   { key: "Semua", label: `Semua (${sessionTotal})` },
-                  { key: "Belum", label: `Belum (${sessionTotal - sessionSudahCount})` },
-                  { key: "Hadir", label: `Sudah Hadir (${sessionSudahCount})` },
+                  { key: "Belum", label: `Belum (${sessionBelumCount})` },
+                  { key: "Hadir", label: `Hadir (${sessionHadirCount})` },
+                  { key: "Sakit", label: `Sakit (${sessionSakitCount})` },
+                  { key: "Izin", label: `Izin (${sessionIzinCount})` },
+                  ...(hasFemaleInClass ? [{ key: "Haid", label: `Haid (${sessionHaidCount})` }] : []),
                 ].map((st) => (
                   <button
                     key={st.key}
                     onClick={() => setFilterManualStatus(st.key)}
                     style={{
-                      padding: "5px 12px",
+                      padding: "5px 11px",
                       borderRadius: "20px",
                       border: filterManualStatus === st.key ? "none" : "1px solid #cbd5e1",
                       background: filterManualStatus === st.key ? "#0284c7" : "#ffffff",
@@ -702,77 +744,139 @@ export default function MobilePresensiBerjamaah() {
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 {filteredSantri.map((s) => {
                   const log = getSantriCurrentLog(s);
+                  const curStatus = String(log?.status_kehadiran || log?.status || "").trim();
+                  const isFemale = isSantriFemale(s);
+
+                  const isHadir = /hadir/i.test(curStatus);
+                  const isSakit = /sakit/i.test(curStatus);
+                  const isIzin = /izin/i.test(curStatus);
+                  const isHaid = /haid/i.test(curStatus);
+
                   return (
                     <div
                       key={s.id}
                       style={{
                         background: "#ffffff",
                         borderRadius: "14px",
-                        padding: "10px 14px",
+                        padding: "11px 14px",
                         border: log ? "1px solid #bbf7d0" : "1px solid #e2e8f0",
                         display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
+                        flexDirection: "column",
+                        gap: "8px",
                         boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
                       }}
                     >
-                      <div>
-                        <div style={{ fontWeight: 800, fontSize: "0.86rem", color: "#0f172a" }}>
-                          {s.nama_santri}
-                        </div>
-                        <div style={{ fontSize: "0.68rem", color: "#64748b", marginTop: "2px" }}>
-                          NIS: {s.nis || "-"} • {getSantriKelasLabel(s) || selectedBerjamaahKelas || "Santri"}
-                        </div>
-                      </div>
-
-                      <div>
-                        {log ? (
-                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                            <span
-                              style={{
-                                background: "#ecfdf5",
-                                color: "#059669",
-                                padding: "4px 10px",
-                                borderRadius: "999px",
-                                fontSize: "0.7rem",
-                                fontWeight: 800,
-                              }}
-                            >
-                              ✓ Hadir
-                            </span>
-                            <button
-                              onClick={() => cancelAttendance(s)}
-                              title="Batalkan presensi santri ini"
-                              style={{
-                                background: "#fef2f2",
-                                border: "1px solid #fecaca",
-                                color: "#dc2626",
-                                padding: "4px 8px",
-                                borderRadius: "8px",
-                                fontSize: "0.68rem",
-                                fontWeight: 700,
-                                cursor: "pointer",
-                              }}
-                            >
-                              Batal
-                            </button>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: "0.86rem", color: "#0f172a" }}>
+                            {s.nama_santri}
                           </div>
-                        ) : (
-                          <button
-                            onClick={() => recordAttendance(s, "Hadir Tepat Waktu")}
+                          <div style={{ fontSize: "0.68rem", color: "#64748b", marginTop: "2px" }}>
+                            NIS: {s.nis || "-"} • {getSantriKelasLabel(s) || selectedBerjamaahKelas || "Santri"}
+                            {isFemale && <span style={{ color: "#db2777", fontWeight: 700, marginLeft: "4px" }}>(Akhwat)</span>}
+                          </div>
+                        </div>
+
+                        {log && (
+                          <span
                             style={{
-                              padding: "6px 14px",
-                              borderRadius: "10px",
-                              border: "none",
-                              background: "#0284c7",
-                              color: "#ffffff",
-                              fontSize: "0.74rem",
-                              fontWeight: 700,
-                              cursor: "pointer",
-                              boxShadow: "0 2px 6px rgba(2, 132, 199, 0.25)",
+                              background: isHadir ? "#ecfdf5" : isSakit ? "#fffbeb" : isIzin ? "#eff6ff" : "#fdf2f8",
+                              color: isHadir ? "#059669" : isSakit ? "#d97706" : isIzin ? "#0284c7" : "#db2777",
+                              padding: "2px 8px",
+                              borderRadius: "999px",
+                              fontSize: "0.68rem",
+                              fontWeight: 800,
                             }}
                           >
-                            Hadirkan
+                            ✓ {curStatus}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Tombol Pilihan Status: Hadir, Sakit, Izin, [Haid jika perempuan], Batal */}
+                      <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
+                        <button
+                          onClick={() => recordAttendance(s, "Hadir")}
+                          style={{
+                            padding: "5px 12px",
+                            borderRadius: "8px",
+                            border: isHadir ? "1px solid #059669" : "1px solid #a7f3d0",
+                            background: isHadir ? "#059669" : "#ecfdf5",
+                            color: isHadir ? "#ffffff" : "#047857",
+                            fontSize: "0.72rem",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                          }}
+                        >
+                          ✓ Hadir
+                        </button>
+                        <button
+                          onClick={() => recordAttendance(s, "Sakit")}
+                          style={{
+                            padding: "5px 12px",
+                            borderRadius: "8px",
+                            border: isSakit ? "1px solid #d97706" : "1px solid #fde68a",
+                            background: isSakit ? "#d97706" : "#fffbeb",
+                            color: isSakit ? "#ffffff" : "#b45309",
+                            fontSize: "0.72rem",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                          }}
+                        >
+                          🏥 Sakit
+                        </button>
+                        <button
+                          onClick={() => recordAttendance(s, "Izin")}
+                          style={{
+                            padding: "5px 12px",
+                            borderRadius: "8px",
+                            border: isIzin ? "1px solid #0284c7" : "1px solid #bae6fd",
+                            background: isIzin ? "#0284c7" : "#eff6ff",
+                            color: isIzin ? "#ffffff" : "#0369a1",
+                            fontSize: "0.72rem",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                          }}
+                        >
+                          📝 Izin
+                        </button>
+
+                        {/* Pilihan Haid Khusus Santriwati */}
+                        {isFemale && (
+                          <button
+                            onClick={() => recordAttendance(s, "Haid")}
+                            style={{
+                              padding: "5px 12px",
+                              borderRadius: "8px",
+                              border: isHaid ? "1px solid #db2777" : "1px solid #fbcfe8",
+                              background: isHaid ? "#db2777" : "#fdf2f8",
+                              color: isHaid ? "#ffffff" : "#be185d",
+                              fontSize: "0.72rem",
+                              fontWeight: 700,
+                              cursor: "pointer",
+                            }}
+                          >
+                            🌸 Haid
+                          </button>
+                        )}
+
+                        {log && (
+                          <button
+                            onClick={() => cancelAttendance(s)}
+                            title="Batalkan presensi santri ini"
+                            style={{
+                              padding: "5px 10px",
+                              borderRadius: "8px",
+                              border: "1px solid #fecaca",
+                              background: "#fef2f2",
+                              color: "#dc2626",
+                              fontSize: "0.7rem",
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              marginLeft: "auto",
+                            }}
+                          >
+                            Batal
                           </button>
                         )}
                       </div>
@@ -875,18 +979,27 @@ export default function MobilePresensiBerjamaah() {
                   <span>{log.waktu_scan || "00:00"} WIB</span>
                 </div>
               </div>
-              <span
-                style={{
-                  background: "#ecfdf5",
-                  color: "#059669",
-                  padding: "4px 10px",
-                  borderRadius: "999px",
-                  fontSize: "0.7rem",
-                  fontWeight: 800,
-                }}
-              >
-                ✓ {log.status_kehadiran || log.status || "Hadir"}
-              </span>
+              {(() => {
+                const st = String(log.status_kehadiran || log.status || "Hadir").trim();
+                const isH = /hadir/i.test(st);
+                const isS = /sakit/i.test(st);
+                const isI = /izin/i.test(st);
+                const isHd = /haid/i.test(st);
+                return (
+                  <span
+                    style={{
+                      background: isH ? "#ecfdf5" : isS ? "#fffbeb" : isI ? "#eff6ff" : isHd ? "#fdf2f8" : "#f1f5f9",
+                      color: isH ? "#059669" : isS ? "#d97706" : isI ? "#0284c7" : isHd ? "#db2777" : "#475569",
+                      padding: "4px 10px",
+                      borderRadius: "999px",
+                      fontSize: "0.7rem",
+                      fontWeight: 800,
+                    }}
+                  >
+                    ✓ {st}
+                  </span>
+                );
+              })()}
             </div>
           ))}
 
