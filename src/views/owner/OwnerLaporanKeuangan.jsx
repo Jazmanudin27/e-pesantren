@@ -43,7 +43,7 @@ export default function OwnerLaporanKeuangan() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`/api/owner/keuangan?periode=${periode}`);
+      const res = await axios.get(`/api/owner/keuangan?periode=${periode}&limit=2000`);
       if (res.data?.success && res.data.data) {
         setData(res.data.data);
       }
@@ -729,25 +729,45 @@ export default function OwnerLaporanKeuangan() {
               ))}
 
               {filteredTunggakan.length > visibleLimit && (
-                <button
-                  type="button"
-                  onClick={() => setVisibleLimit((v) => v + 30)}
-                  style={{
-                    padding: "10px 14px",
-                    background: "#ffffff",
-                    border: "1px solid #cbd5e1",
-                    borderRadius: "12px",
-                    fontSize: "0.74rem",
-                    fontWeight: 800,
-                    color: "#b91c1c",
-                    cursor: "pointer",
-                    textAlign: "center",
-                    boxShadow: "0 2px 4px rgba(0,0,0,0.03)",
-                    marginTop: "4px"
-                  }}
-                >
-                  Tampilkan Lebih Banyak ({(filteredTunggakan.length - visibleLimit).toLocaleString("id-ID")} lagi)
-                </button>
+                <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+                  <button
+                    type="button"
+                    onClick={() => setVisibleLimit((v) => v + 50)}
+                    style={{
+                      flex: 1,
+                      padding: "10px 14px",
+                      background: "#ffffff",
+                      border: "1px solid #cbd5e1",
+                      borderRadius: "12px",
+                      fontSize: "0.74rem",
+                      fontWeight: 800,
+                      color: "#b91c1c",
+                      cursor: "pointer",
+                      textAlign: "center",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.03)"
+                    }}
+                  >
+                    Tampilkan +50 ({(filteredTunggakan.length - visibleLimit).toLocaleString("id-ID")} lagi)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVisibleLimit(filteredTunggakan.length)}
+                    style={{
+                      padding: "10px 14px",
+                      background: "#fef2f2",
+                      border: "1px solid #fecaca",
+                      borderRadius: "12px",
+                      fontSize: "0.74rem",
+                      fontWeight: 800,
+                      color: "#b91c1c",
+                      cursor: "pointer",
+                      textAlign: "center",
+                      whiteSpace: "nowrap"
+                    }}
+                  >
+                    Semua ({filteredTunggakan.length})
+                  </button>
+                </div>
               )}
             </>
           ) : (

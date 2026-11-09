@@ -193,7 +193,7 @@ export const getOwnerKeuangan = async (req, res) => {
       WHERE status IN ('Belum Dibayar', 'Sebagian')
     `).catch(() => [[{ total_piutang: 0, total_santri_menunggak: 0 }]]);
 
-    const limitNum = Math.min(Math.max(parseInt(req.query.limit, 10) || 100, 10), 500);
+    const limitNum = Math.min(Math.max(parseInt(req.query.limit, 10) || 1000, 10), 5000);
 
     // 4. Log Transaksi Pembayaran Kas Terakhir (Filtered by selected periode)
     const tpDateCond = getPeriodeDateCondition(periode, 'tp.tanggal_bayar');
@@ -218,7 +218,7 @@ export const getOwnerKeuangan = async (req, res) => {
       LIMIT ?
     `, [...tpDateCond.params, limitNum]).catch(() => [[]]);
 
-    // 5. Rekap Santri Penunggak Teratas
+    // 5. Rekap Santri Penunggak (Seluruh santri yang menunggak tanpa batas 100)
     const [tunggakanRows] = await pool.query(`
       SELECT 
         s.id as santri_id,
@@ -234,8 +234,7 @@ export const getOwnerKeuangan = async (req, res) => {
       WHERE t.status IN ('Belum Dibayar', 'Sebagian')
       GROUP BY s.id, s.nama_santri, s.nis, s.nama_kelas, s.nama_wali, s.no_wa_wali
       ORDER BY total_tunggakan DESC
-      LIMIT ?
-    `, [limitNum]).catch(() => [[]]);
+    `).catch(() => [[]]);
 
     // 6. Rekap Infak & Sedekah (Filtered by selected periode)
     const itDateCond = getPeriodeDateCondition(periode, 'it.tanggal');
