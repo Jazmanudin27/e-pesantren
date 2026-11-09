@@ -28,6 +28,7 @@ import {
   HeartPulse,
   AlertTriangle,
   HeartHandshake,
+  Heart,
   X,
   Search,
   ExternalLink,
@@ -1183,6 +1184,13 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 icon: Smile,
                 bg: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
                 shadow: "0 6px 16px -2px rgba(236, 72, 153, 0.38)",
+              },
+              {
+                label: "Haid Santri",
+                tab: "haid",
+                icon: Heart,
+                bg: "linear-gradient(135deg, #be185d 0%, #db2777 100%)",
+                shadow: "0 6px 16px -2px rgba(219, 39, 119, 0.38)",
               },
               {
                 label: "Tabungan",

@@ -31,7 +31,7 @@ import PengajarPerkembanganView from './PengajarPerkembanganView';
 import OwnerLaporanPresensi from '../owner/OwnerLaporanPresensi';
 import OwnerLaporanSantri from '../owner/OwnerLaporanSantri';
 import OwnerLaporanPerizinan from '../owner/OwnerLaporanPerizinan';
-import HaidSantriwatiView from '../haid/HaidSantriwatiView';
+import MobileHaid from '../mobile/MobileHaid';
 
 const squircleIconStyle = {
   width: "50px",
@@ -1403,7 +1403,7 @@ export default function PengajarDashboardView({ onLogout }) {
               {activeTab === 'perkembangan' && <PengajarPerkembanganView />}
               {activeTab === 'santri' && <OwnerLaporanSantri />}
               {activeTab === 'perizinan' && <OwnerLaporanPerizinan />}
-              {activeTab === 'haid' && <HaidSantriwatiView />}
+              {activeTab === 'haid' && <MobileHaid />}
             </div>
           </div>
         )}

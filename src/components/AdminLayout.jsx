@@ -67,7 +67,7 @@ import PortalWaliSantri from '../views/wali/PortalWaliSantri';
 import WhatsAppGatewayView from '../views/admin/WhatsAppGatewayView';
 import OwnerDashboardView from '../views/owner/OwnerDashboardView';
 import PengajarDashboardView from '../views/pengajar/PengajarDashboardView';
-import HaidSantriwatiView from '../views/haid/HaidSantriwatiView';
+import MobileHaid from '../views/mobile/MobileHaid';
 import { canAccessKeuangan, canAccessAbsensi, isPureKeuangan, isPureAbsen } from '../utils/authRole.util';
 import { showConfirm, toastSuccess } from '../utils/alert.util';
 
@@ -427,7 +427,7 @@ export default function AdminLayout() {
         return <AbsensiFingerprintView initialType="berjamaah" />;
       case 'haid-santriwati':
       case 'haid':
-        return <HaidSantriwatiView />;
+        return <MobileHaid />;
       case 'perizinan':
         return <PerizinanView />;
       case 'tata-tertib':
