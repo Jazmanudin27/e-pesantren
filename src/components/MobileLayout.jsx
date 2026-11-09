@@ -67,6 +67,7 @@ import MobileHomeKeuangan from '../views/keuangan/MobileHomeKeuangan';
 import MobileKeuanganLayout from './MobileKeuanganLayout';
 import MobileMediaPipeTest from '../views/mobile/MobileMediaPipeTest';
 import OwnerDashboardView from '../views/owner/OwnerDashboardView';
+import HaidSantriwatiView from '../views/haid/HaidSantriwatiView';
 import { canAccessKeuangan } from '../utils/authRole.util';
 import { initFaceApiModels } from '../utils/faceApi.util';
 
@@ -272,6 +273,8 @@ export default function MobileLayout() {
       case 'perizinan':
       case 'izin': return 'Perizinan';
       case 'master-santri': return 'Data Santri';
+      case 'haid':
+      case 'haid-santriwati': return 'Pencatatan Haid Santriwati';
       case 'daftar-wajah':
       case 'wajah': return 'Daftar Wajah Santri';
       case 'master-asrama': return 'Data Asrama & Kobong';
@@ -452,6 +455,9 @@ export default function MobileLayout() {
       case 'whatsapp':
       case 'wa-broadcast':
         return <WhatsAppGatewayView />;
+      case 'haid':
+      case 'haid-santriwati':
+        return <HaidSantriwatiView />;
       case 'profil':
         return <MobileProfil onChangeTab={handleSelectTab} onLogout={handleLogout} />;
       case 'test-mediapipe':
@@ -659,6 +665,9 @@ export default function MobileLayout() {
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
                         <button onClick={() => handleSelectTab('master-santri')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'master-santri' ? '#ccfbf1' : '#f8fafc', border: mobileTab === 'master-santri' ? '1px solid #0d9488' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                           <Users size={16} color="#0d9488" /> Data Santri
+                        </button>
+                        <button onClick={() => handleSelectTab('haid')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'haid' ? '#fdf2f8' : '#f8fafc', border: mobileTab === 'haid' ? '1px solid #db2777' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
+                          <Heart size={16} color="#db2777" fill="#db2777" /> Haid Santri
                         </button>
                         <button onClick={() => handleSelectTab('daftar-wajah')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: mobileTab === 'daftar-wajah' ? '#e0f2fe' : '#f8fafc', border: mobileTab === 'daftar-wajah' ? '1px solid #0284c7' : '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', cursor: 'pointer' }}>
                           <Smile size={16} color="#0284c7" /> Daftar Wajah

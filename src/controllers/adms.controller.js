@@ -1,6 +1,7 @@
 import pool from '../config/database.js';
 import { createWaliNotification, buildAbsensiNotifText } from './notifikasi.controller.js';
 import { resolveActiveShalatBerjamaahSesi } from './absensi.controller.js';
+import { deactivateHaidForSantri } from './haid.controller.js';
 
 /**
  * Controller Resmi untuk Integrasi Mesin Fingerprint (Protokol ADMS / Cloud Server ZKTeco & Solution)
@@ -182,6 +183,9 @@ export const handleAdmsPushData = async (req, res) => {
         console.log(`[ADMS SKIP] Log ${santri.nama_santri} (PIN: ${pin}) tanggal ${tanggalScan} jam ${waktuScan} dilewati karena telah dihapus oleh Admin.`);
         continue;
       }
+
+      // Otomatis nonaktifkan status haid jika santriwati scan di mesin fingerprint
+      deactivateHaidForSantri(santri.id, `Auto Mesin Fingerprint (SN: ${sn})`).catch(() => {});
 
       // 4. Simpan atau Update ke Tabel absensi_jamaah_mengaji dengan Kategori Berjamaah Otomatis (Idempoten)
       const [existingLog] = await pool.query(`

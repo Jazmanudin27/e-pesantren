@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
+import { syncActiveHaidToAbsensi } from './haid.controller.js';
 
 /**
  * Otomatis membuat akun default Owner jika belum ada di database
@@ -304,6 +305,7 @@ export const getOwnerKeuangan = async (req, res) => {
  */
 export const getOwnerPresensi = async (req, res) => {
   try {
+    await syncActiveHaidToAbsensi().catch(() => {});
     const periode = req.query.periode || 'hari_ini';
     const tipe = req.query.tipe || 'semua';
     const dateCond = getPeriodeDateCondition(periode, 'aj.tanggal');
@@ -337,16 +339,18 @@ export const getOwnerPresensi = async (req, res) => {
     let hadir = 0;
     let sakit = 0;
     let izin = 0;
+    let haid = 0;
     let alfa = 0;
     for (const r of statusSummary) {
       const st = String(r.status || '').toLowerCase();
       if (st.includes('hadir')) hadir += Number(r.jml);
       else if (st.includes('sakit')) sakit += Number(r.jml);
+      else if (st.includes('haid')) haid += Number(r.jml);
       else if (st.includes('izin')) izin += Number(r.jml);
       else if (st.includes('alfa') || st.includes('alpha')) alfa += Number(r.jml);
       else hadir += Number(r.jml);
     }
-    const total = hadir + sakit + izin + alfa;
+    const total = hadir + sakit + izin + haid + alfa;
     const persen = total > 0 ? Math.round((hadir / total) * 100) : 0;
 
     // 2. Rekap Per Sesi & Kegiatan
@@ -398,6 +402,7 @@ export const getOwnerPresensi = async (req, res) => {
         hadir,
         sakit,
         izin,
+        haid,
         alfa,
         persen
       },

@@ -1,6 +1,7 @@
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
 import { syncActivePerizinanToAbsensi } from './absensi.controller.js';
+import { deactivateHaidForSantri, syncActiveHaidToAbsensi } from './haid.controller.js';
 
 /**
  * Pastikan tabel-tabel esensial untuk Pengajar tersedia
@@ -140,6 +141,8 @@ export const ensurePengajarTables = async () => {
  */
 export const getPengajarDashboard = async (req, res) => {
   await ensurePengajarTables();
+  await syncActivePerizinanToAbsensi().catch(() => {});
+  await syncActiveHaidToAbsensi().catch(() => {});
   try {
     const [[santriStat]] = await pool.query("SELECT COUNT(*) as total_santri FROM santri WHERE status = 'Aktif'");
     
@@ -161,7 +164,7 @@ export const getPengajarDashboard = async (req, res) => {
     for (const r of presensiRows) {
       const s = String(r.st || '').toLowerCase();
       if (s.includes('sakit')) sakit += Number(r.jml);
-      else if (s.includes('izin')) izin += Number(r.jml);
+      else if (s.includes('izin') || s.includes('haid')) izin += Number(r.jml);
       else if (s.includes('alfa') || s.includes('alpha') || s.includes('teledor')) alfa += Number(r.jml);
       else hadir += Number(r.jml);
     }
@@ -370,6 +373,7 @@ export const getSesiMengajiList = async (req, res) => {
 export const getAbsenMengaji = async (req, res) => {
   await ensurePengajarTables();
   await syncActivePerizinanToAbsensi().catch(() => {});
+  await syncActiveHaidToAbsensi().catch(() => {});
   try {
     const tanggal = req.query.tanggal || new Date().toISOString().split('T')[0];
     const sesiId = req.query.sesi_id ? parseInt(req.query.sesi_id, 10) : null;
@@ -467,6 +471,11 @@ export const saveAbsenMengajiBatch = async (req, res) => {
       const ket = item.keterangan || '';
       const metode = item.metode_presensi || metode_presensi || 'Manual_Ustadz';
       const itemUstadz = item.musyrif_verifikator || item.nama_ustadz || ustadz;
+      
+      // Jika status Hadir, otomatis nonaktifkan status haid santriwati
+      if (statusFinal === 'Hadir') {
+        deactivateHaidForSantri(item.santri_id, `Input Presensi Pengajar (${itemUstadz})`).catch(() => {});
+      }
       
       // Cek apakah sudah ada catatan
       const [existing] = await connection.query(`

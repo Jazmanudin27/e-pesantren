@@ -483,26 +483,33 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua" }) {
         ) : filteredLogs.length > 0 ? (
           filteredLogs.map((item, idx) => {
             const st = (item.status || "").toLowerCase();
-            const isHadir = st.includes("hadir") || st.includes("tepat") || st.includes("masbuq");
+            const isHaid = st.includes("haid");
+            const isHadir = !isHaid && (st.includes("hadir") || st.includes("tepat") || st.includes("masbuq"));
             const isSakit = st.includes("sakit");
             const isIzin = st.includes("izin");
             const isAlfa = st.includes("alfa") || st.includes("alpha") || st.includes("absen");
 
-            const badgeBg = isHadir
+            const badgeBg = isHaid
+              ? "#fdf2f8"
+              : isHadir
               ? "#ecfdf5"
               : isSakit
               ? "#fef2f2"
               : isIzin
               ? "#fffbeb"
               : "#f0fdfa";
-            const badgeColor = isHadir
+            const badgeColor = isHaid
+              ? "#be185d"
+              : isHadir
               ? "#059669"
               : isSakit
               ? "#dc2626"
               : isIzin
               ? "#d97706"
               : "#0d9488";
-            const badgeBorder = isHadir
+            const badgeBorder = isHaid
+              ? "#fbcfe8"
+              : isHadir
               ? "#a7f3d0"
               : isSakit
               ? "#fecaca"

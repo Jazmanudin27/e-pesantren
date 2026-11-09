@@ -2,6 +2,7 @@ import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
 import { createWaliNotification, buildAbsensiNotifText } from './notifikasi.controller.js';
 import { triggerAutoPresensiWA } from '../services/whatsapp.service.js';
+import { deactivateHaidForSantri, syncActiveHaidToAbsensi } from './haid.controller.js';
 
 let isAbsensiTablesChecked = false;
 export const ensureAbsensiTablesAndColumns = async () => {
@@ -343,8 +344,9 @@ export const syncActivePerizinanToAbsensi = async () => {
 export const getAbsensiFingerprint = async (req, res) => {
   try {
     await ensureAbsensiTablesAndColumns();
-    // Sinkronisasi santri yang sedang izin pulang / sakit sebelum query
+    // Sinkronisasi santri yang sedang izin pulang / sakit & haid sebelum query
     await syncActivePerizinanToAbsensi().catch(() => {});
+    await syncActiveHaidToAbsensi().catch(() => {});
 
     const tipeParam = (req.query.tipe || req.query.type || '').toLowerCase(); // 'berjamaah' | 'kegiatan' | ''
     const isToday = req.query.today === 'true' || req.query.hari_ini === 'true';
@@ -597,6 +599,11 @@ export const createAbsensiFingerprint = async (req, res) => {
 
     const finalStatus = status || status_kehadiran || 'Hadir';
     const finalSantriId = parseInt(santri_id) || 1;
+
+    // OTOMATIS NONAKTIFKAN STATUS HAID jika santriwati input kehadiran berjamaah di aplikasi
+    if (finalStatus === 'Hadir' || !finalStatus.toLowerCase().includes('haid')) {
+      deactivateHaidForSantri(finalSantriId, `Auto Scan Aplikasi (${finalMetode})`).catch(() => {});
+    }
 
     // OTOMATIS PILIH JADWAL SHALAT BERJAMAAH SAAT SCAN FINGERPRINT MAUPUN SCAN WAJAH AI (HANYA JIKA BUKAN MENGAJI)
     const isAutoBerjamaahScan =

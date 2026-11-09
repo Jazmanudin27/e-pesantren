@@ -67,11 +67,12 @@ import PortalWaliSantri from '../views/wali/PortalWaliSantri';
 import WhatsAppGatewayView from '../views/admin/WhatsAppGatewayView';
 import OwnerDashboardView from '../views/owner/OwnerDashboardView';
 import PengajarDashboardView from '../views/pengajar/PengajarDashboardView';
+import HaidSantriwatiView from '../views/haid/HaidSantriwatiView';
 import { canAccessKeuangan, canAccessAbsensi, isPureKeuangan, isPureAbsen } from '../utils/authRole.util';
 import { showConfirm, toastSuccess } from '../utils/alert.util';
 
 export default function AdminLayout() {
-  const isAbsensiTab = (tab) => ['absensi-berjamaah', 'presensi-berjamaah', 'presensi', 'absensi-mengaji', 'presensi-kegiatan'].includes(tab);
+  const isAbsensiTab = (tab) => ['absensi-berjamaah', 'presensi-berjamaah', 'presensi', 'absensi-mengaji', 'presensi-kegiatan', 'haid-santriwati', 'haid'].includes(tab);
   const isPengembanganTab = (tab) => ['perkembangan-santri-laki', 'perkembangan-ikhwan', 'perkembangan-santri-perempuan', 'perkembangan-santriwati', 'perkembangan-akhwat'].includes(tab);
   const isMasterTab = (tab) => ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-materi', 'setting-shalat', 'setting-kegiatan', 'master-kegiatan'].includes(tab);
   const isSettingsTab = (tab) => ['master-device', 'manajemen-user', 'users', 'whatsapp-gateway', 'whatsapp', 'wa-broadcast'].includes(tab);
@@ -424,6 +425,9 @@ export default function AdminLayout() {
         return <AbsensiFingerprintView initialType="kegiatan" />;
       case 'laporan-presensi':
         return <AbsensiFingerprintView initialType="berjamaah" />;
+      case 'haid-santriwati':
+      case 'haid':
+        return <HaidSantriwatiView />;
       case 'perizinan':
         return <PerizinanView />;
       case 'tata-tertib':
@@ -608,6 +612,14 @@ export default function AdminLayout() {
                 >
                   <BarChart3 size={13} style={{ marginRight: '6px', color: '#38bdf8' }} />
                   <span>Rekap Presensi Harian</span>
+                </button>
+
+                <button 
+                  className={`nav-sublink ${['haid-santriwati', 'haid'].includes(activeTab) ? 'active' : ''}`}
+                  onClick={() => handleTabClick('haid-santriwati')}
+                >
+                  <Heart size={13} style={{ marginRight: '6px', color: '#ec4899' }} />
+                  <span>Haid Santriwati</span>
                 </button>
               </div>
             )}
