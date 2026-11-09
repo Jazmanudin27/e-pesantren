@@ -66,6 +66,7 @@ import LoginAdmin from '../views/admin/LoginAdmin';
 import PortalWaliSantri from '../views/wali/PortalWaliSantri';
 import WhatsAppGatewayView from '../views/admin/WhatsAppGatewayView';
 import OwnerDashboardView from '../views/owner/OwnerDashboardView';
+import PengajarDashboardView from '../views/pengajar/PengajarDashboardView';
 import { canAccessKeuangan, canAccessAbsensi, isPureKeuangan, isPureAbsen } from '../utils/authRole.util';
 import { showConfirm, toastSuccess } from '../utils/alert.util';
 
@@ -967,6 +968,34 @@ export default function AdminLayout() {
           window.location.hash = '#login';
           window.location.reload();
         }} 
+      />
+    );
+  }
+
+  // Jika yang login adalah Ustadz / Pengajar, langsung render Portal Pengajar (Bypass AdminLayout)
+  const isPengajarUser = Boolean(
+    currentUser && (
+      String(currentUser.role || '').toLowerCase().includes('ustadz') ||
+      String(currentUser.role || '').toLowerCase().includes('asatidz') ||
+      String(currentUser.role || '').toLowerCase().includes('pengajar') ||
+      String(currentUser.userType || '').toLowerCase().includes('ustadz') ||
+      String(currentUser.userType || '').toLowerCase().includes('guru') ||
+      String(currentUser.userType || '').toLowerCase().includes('asatidz')
+    )
+  );
+
+  if (isPengajarUser) {
+    return (
+      <PengajarDashboardView
+        onLogout={() => {
+          localStorage.removeItem('desktop_session');
+          localStorage.removeItem('mobile_session');
+          localStorage.removeItem('token');
+          sessionStorage.clear();
+          setCurrentUser(null);
+          window.location.hash = '#login';
+          window.location.reload();
+        }}
       />
     );
   }

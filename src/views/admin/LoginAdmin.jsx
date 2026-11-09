@@ -50,6 +50,7 @@ export default function LoginAdmin({ onLoginSuccess }) {
         const rawRole = String(res.data.role || userObj.role || '').toLowerCase();
         const rawType = String(res.data.userType || userObj.userType || '').toLowerCase();
         const isOwner = rawRole.includes('owner') || rawRole.includes('yayasan') || rawType.includes('owner') || rawType.includes('yayasan') || cleanU.toLowerCase().includes('owner');
+        const isPengajar = rawRole.includes('ustadz') || rawRole.includes('asatidz') || rawRole.includes('pengajar') || rawType.includes('ustadz') || rawType.includes('guru') || rawType.includes('asatidz');
         const isBnd = rawRole.includes('bendahara') || rawRole.includes('keuangan') || rawType.includes('bendahara') || rawType.includes('keuangan') || cleanU.toLowerCase().includes('bendahara') || cleanU.toLowerCase().includes('keuangan');
         const isAbs = rawRole.includes('absen') || rawType.includes('absen') || cleanU.toLowerCase().includes('absen');
 
@@ -58,6 +59,9 @@ export default function LoginAdmin({ onLoginSuccess }) {
         if (isOwner) {
           detectedRole = 'owner';
           detectedType = 'Owner / Yayasan (Eksekutif)';
+        } else if (isPengajar) {
+          detectedRole = 'asatidz';
+          detectedType = 'Ustadz / Guru';
         } else if (isBnd) {
           detectedRole = 'bendahara';
           detectedType = 'Admin Keuangan';
@@ -93,6 +97,10 @@ export default function LoginAdmin({ onLoginSuccess }) {
 
         if (isOwner) {
           window.location.hash = '#owner';
+          window.location.reload();
+          return;
+        } else if (isPengajar) {
+          window.location.hash = '#pengajar';
           window.location.reload();
           return;
         } else if (isBnd) {

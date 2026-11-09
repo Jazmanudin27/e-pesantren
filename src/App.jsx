@@ -26,56 +26,62 @@ export default function App() {
       hostname.startsWith('mpesantren.') ||
       hostname.includes('mpesantren');
 
-    // 1. Cek apakah user sedang login sebagai Owner / URL mengarah ke portal owner (Prioritas Tertinggi)
+    let rDesk = '';
+    let rMob = '';
+    let desktopSess = {};
+    let mobileSess = {};
+
     try {
-      const desktopSess = JSON.parse(localStorage.getItem('desktop_session') || sessionStorage.getItem('desktop_session') || '{}');
-      const mobileSess = JSON.parse(localStorage.getItem('mobile_session') || '{}');
-      const rDesk = String(desktopSess.role || desktopSess.userType || desktopSess.username || '').toLowerCase();
-      const rMob = String(mobileSess.role || mobileSess.userType || mobileSess.username || '').toLowerCase();
-      if (
-        rDesk.includes('owner') || 
-        rMob.includes('owner') || 
-        hash.startsWith('#owner') || 
-        hash.includes('owner') ||
-        pathname.startsWith('/owner')
-      ) {
-        return 'owner';
-      }
+      desktopSess = JSON.parse(localStorage.getItem('desktop_session') || sessionStorage.getItem('desktop_session') || '{}');
+      mobileSess = JSON.parse(localStorage.getItem('mobile_session') || '{}');
+      rDesk = String(desktopSess.role || desktopSess.userType || desktopSess.username || '').toLowerCase();
+      rMob = String(mobileSess.role || mobileSess.userType || mobileSess.username || '').toLowerCase();
     } catch (e) {}
+
+    // 1. Cek apakah user sedang login sebagai Owner / URL mengarah ke portal owner
+    if (
+      rDesk.includes('owner') || 
+      rMob.includes('owner') || 
+      hash.startsWith('#owner') || 
+      hash.includes('owner') ||
+      pathname.startsWith('/owner')
+    ) {
+      return 'owner';
+    }
 
     // 2. Cek apakah user sedang login sebagai Wali Santri / URL mengarah ke portal wali
-    try {
-      const desktopSess = JSON.parse(localStorage.getItem('desktop_session') || sessionStorage.getItem('desktop_session') || '{}');
-      const mobileSess = JSON.parse(localStorage.getItem('mobile_session') || '{}');
-      const role = String(desktopSess.role || mobileSess.role || '').toLowerCase();
-      if (role === 'wali' || role === 'wali santri' || hash.startsWith('#wali') || pathname.startsWith('/wali')) {
-        return 'wali';
-      }
+    if (
+      rDesk === 'wali' || 
+      rDesk === 'wali santri' || 
+      rMob === 'wali' || 
+      rMob === 'wali santri' || 
+      hash.startsWith('#wali') || 
+      pathname.startsWith('/wali')
+    ) {
+      return 'wali';
+    }
 
-      // 3. Cek apakah user sedang login sebagai Ustadz/Pengajar / URL mengarah ke portal pengajar
-      if (
-        rDesk.includes('ustadz') ||
-        rDesk.includes('asatidz') ||
-        rDesk.includes('pengajar') ||
-        rMob.includes('ustadz') ||
-        rMob.includes('asatidz') ||
-        rMob.includes('pengajar') ||
-        hash.startsWith('#pengajar') ||
-        hash.startsWith('#ustadz') ||
-        pathname.startsWith('/pengajar') ||
-        pathname.startsWith('/ustadz')
-      ) {
-        return 'pengajar';
-      }
+    // 3. Cek apakah user sedang login sebagai Ustadz/Pengajar / URL mengarah ke portal pengajar
+    if (
+      rDesk.includes('ustadz') ||
+      rDesk.includes('asatidz') ||
+      rDesk.includes('pengajar') ||
+      rMob.includes('ustadz') ||
+      rMob.includes('asatidz') ||
+      rMob.includes('pengajar') ||
+      hash.startsWith('#pengajar') ||
+      hash.startsWith('#ustadz') ||
+      pathname.startsWith('/pengajar') ||
+      pathname.startsWith('/ustadz')
+    ) {
+      return 'pengajar';
+    }
 
-      // Cek apakah user adalah Akun Bendahara / Keuangan di perangkat mobile
-      const rMob = String(mobileSess.role || mobileSess.userType || mobileSess.username || '').toLowerCase();
-      const rDesk = String(desktopSess.role || desktopSess.userType || desktopSess.username || '').toLowerCase();
-      const isBendahara = rMob.includes('bendahara') || rMob.includes('keuangan') || rDesk.includes('bendahara') || rDesk.includes('keuangan');
-      if (isBendahara && (isMobileDomain || hash.startsWith('#mobile') || pathname.startsWith('/mobile') || !hash || hash === '#')) {
-        return 'keuangan-mobile';
-      }
-    } catch (e) {}
+    // 4. Cek apakah user adalah Akun Bendahara / Keuangan di perangkat mobile
+    const isBendahara = rMob.includes('bendahara') || rMob.includes('keuangan') || rDesk.includes('bendahara') || rDesk.includes('keuangan');
+    if (isBendahara && (isMobileDomain || hash.startsWith('#mobile') || pathname.startsWith('/mobile') || !hash || hash === '#')) {
+      return 'keuangan-mobile';
+    }
 
     if (hash.startsWith('#pengajar') || hash.startsWith('#ustadz') || pathname.startsWith('/pengajar') || pathname.startsWith('/ustadz')) {
       return 'pengajar';
