@@ -93,15 +93,28 @@ export default function PengajarAbsenMengaji() {
     } catch (e) {}
   };
 
-  // 1. Ambil Sesi & Kelas Master
+  // 1. Ambil Sesi & Kelas Master (Khusus Kegiatan Mengaji & Kitab Kuning)
   const fetchSesiDanKelas = async () => {
     try {
-      const [resDashboard, resKelas] = await Promise.all([
-        axios.get("/api/pengajar/dashboard").catch(() => ({ data: {} })),
+      const [resSesi, resKelas] = await Promise.all([
+        axios.get("/api/pengajar/sesi-mengaji").catch(() => ({ data: {} })),
         axios.get("/api/kelas").catch(() => ({ data: {} }))
       ]);
 
-      const list = resDashboard.data?.data?.daftarSesi;
+      let list = resSesi.data?.data || [];
+      if (!Array.isArray(list) || list.length === 0) {
+        // Fallback langsung ke master materi hafalan / kitab kuning
+        const resMateri = await axios.get("/api/materi-hafalan").catch(() => ({ data: {} }));
+        const mList = resMateri.data?.data || [];
+        if (Array.isArray(mList) && mList.length > 0) {
+          list = mList.map((m) => ({
+            id: m.id,
+            nama_sesi: m.nama_materi,
+            kategori: m.kategori || "Kitab Kuning",
+          }));
+        }
+      }
+
       if (Array.isArray(list) && list.length > 0) {
         setSesiList(list);
         if (!selectedSesi) setSelectedSesi(String(list[0].id));
@@ -432,7 +445,7 @@ export default function PengajarAbsenMengaji() {
 
           <div>
             <label style={{ display: "block", fontSize: "0.64rem", fontWeight: 700, color: "#475569", marginBottom: "3px" }}>
-              SESI KEGIATAN
+              KEGIATAN / KITAB MENGAJI
             </label>
             <select
               value={selectedSesi}
@@ -450,7 +463,7 @@ export default function PengajarAbsenMengaji() {
             >
               {sesiList.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.nama_sesi} ({String(s.jam_mulai || "").slice(0, 5)})
+                  {s.nama_sesi} {s.kategori ? `(${s.kategori})` : ""}
                 </option>
               ))}
             </select>

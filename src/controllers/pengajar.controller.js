@@ -187,21 +187,59 @@ export const getPengajarDashboard = async (req, res) => {
       FROM santri_laporan_perkembangan
     `).catch(() => [[{ total_perkembangan: 0 }]]);
 
-    // Sesi Mengaji Aktif Asli dari Database
+    // Sesi Kegiatan Mengaji & Kitab Kuning Asli (BUKAN Shalat Berjamaah)
     let sesiRows = [];
     try {
-      const [rows] = await pool.query(`
+      // 1. Ambil dari master materi_hafalan (Kitab Kuning, Nahwu, Fiqih, Al-Qur'an, dll)
+      const [materiRows] = await pool.query(`
+        SELECT 
+          id, 
+          nama_materi as nama_sesi, 
+          COALESCE(kategori, 'Kitab Kuning') as kategori,
+          COALESCE(deskripsi, '') as keterangan
+        FROM materi_hafalan 
+        ORDER BY kategori ASC, id ASC
+      `).catch(() => [[]]);
+
+      // 2. Ambil kegiatan_sesi yang khusus Mengaji/Kegiatan (kecualikan shalat 5 waktu)
+      const [sesiNonShalat] = await pool.query(`
         SELECT 
           id, 
           nama_sesi, 
+          COALESCE(kategori, 'Pengajian') as kategori,
           COALESCE(jam_mulai_presensi, '00:00:00') as jam_mulai, 
-          COALESCE(jam_tutup_presensi, jam_target, '00:00:00') as jam_selesai, 
-          kategori 
+          COALESCE(jam_tutup_presensi, jam_target, '00:00:00') as jam_selesai
         FROM kegiatan_sesi 
         WHERE is_active = 1 
+          AND LOWER(nama_sesi) NOT REGEXP 'shalat|sholat|subuh|shubuh|dzuhur|zuhur|ashar|asar|maghrib|magrib|isya'
+          AND LOWER(COALESCE(kategori, '')) NOT REGEXP 'shalat|sholat|berjamaah'
         ORDER BY id ASC
-      `);
-      sesiRows = rows || [];
+      `).catch(() => [[]]);
+
+      const combined = [];
+      (materiRows || []).forEach(m => {
+        combined.push({
+          id: m.id,
+          nama_sesi: m.nama_sesi,
+          kategori: m.kategori,
+          keterangan: m.keterangan,
+          tipe: 'Materi'
+        });
+      });
+      (sesiNonShalat || []).forEach(s => {
+        if (!combined.some(c => c.nama_sesi.toLowerCase() === s.nama_sesi.toLowerCase())) {
+          combined.push({
+            id: s.id,
+            nama_sesi: s.nama_sesi,
+            kategori: s.kategori,
+            jam_mulai: s.jam_mulai,
+            jam_selesai: s.jam_selesai,
+            tipe: 'Sesi'
+          });
+        }
+      });
+
+      sesiRows = combined;
     } catch (e) {
       sesiRows = [];
     }
@@ -261,6 +299,65 @@ export const getPengajarSantri = async (req, res) => {
     return sendSuccess(res, 'Data Santri Pengajar Berhasil Dimuat', rows || []);
   } catch (err) {
     return sendError(res, `Gagal memuat santri: ${err.message}`, 500);
+  }
+};
+
+/**
+ * 2b. GET /api/pengajar/sesi-mengaji
+ * Mengambil Daftar Kegiatan Mengaji & Kitab Kuning (Bukan Shalat Berjamaah)
+ */
+export const getSesiMengajiList = async (req, res) => {
+  try {
+    const [materiRows] = await pool.query(`
+      SELECT 
+        id, 
+        nama_materi as nama_sesi, 
+        COALESCE(kategori, 'Kitab Kuning') as kategori,
+        COALESCE(deskripsi, '') as keterangan
+      FROM materi_hafalan 
+      ORDER BY kategori ASC, id ASC
+    `).catch(() => [[]]);
+
+    const [sesiNonShalat] = await pool.query(`
+      SELECT 
+        id, 
+        nama_sesi, 
+        COALESCE(kategori, 'Pengajian') as kategori,
+        COALESCE(jam_mulai_presensi, '00:00:00') as jam_mulai, 
+        COALESCE(jam_tutup_presensi, jam_target, '00:00:00') as jam_selesai
+      FROM kegiatan_sesi 
+      WHERE is_active = 1 
+        AND LOWER(nama_sesi) NOT REGEXP 'shalat|sholat|subuh|shubuh|dzuhur|zuhur|ashar|asar|maghrib|magrib|isya'
+        AND LOWER(COALESCE(kategori, '')) NOT REGEXP 'shalat|sholat|berjamaah'
+      ORDER BY id ASC
+    `).catch(() => [[]]);
+
+    const combined = [];
+    (materiRows || []).forEach(m => {
+      combined.push({
+        id: m.id,
+        nama_sesi: m.nama_sesi,
+        kategori: m.kategori,
+        keterangan: m.keterangan,
+        tipe: 'Materi'
+      });
+    });
+    (sesiNonShalat || []).forEach(s => {
+      if (!combined.some(c => c.nama_sesi.toLowerCase() === s.nama_sesi.toLowerCase())) {
+        combined.push({
+          id: s.id,
+          nama_sesi: s.nama_sesi,
+          kategori: s.kategori,
+          jam_mulai: s.jam_mulai,
+          jam_selesai: s.jam_selesai,
+          tipe: 'Sesi'
+        });
+      }
+    });
+
+    return sendSuccess(res, 'Daftar Kegiatan Mengaji Berhasil Dimuat', combined);
+  } catch (err) {
+    return sendError(res, `Gagal memuat sesi mengaji: ${err.message}`, 500);
   }
 };
 

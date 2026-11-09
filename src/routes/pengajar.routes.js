@@ -2,6 +2,7 @@ import express from 'express';
 import {
   getPengajarDashboard,
   getPengajarSantri,
+  getSesiMengajiList,
   getAbsenMengaji,
   saveAbsenMengajiBatch,
   getAbsenMengajiHistory,
@@ -21,6 +22,9 @@ router.get('/dashboard', getPengajarDashboard);
 
 // 2. Daftar Santri untuk Seleksi
 router.get('/santri', getPengajarSantri);
+
+// 2b. Daftar Sesi Kegiatan Mengaji & Kitab Kuning
+router.get('/sesi-mengaji', getSesiMengajiList);
 
 // 3. Absen Mengaji
 router.get('/absen-mengaji', getAbsenMengaji);
