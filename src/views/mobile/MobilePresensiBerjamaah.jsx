@@ -1205,20 +1205,6 @@ export default function MobilePresensiBerjamaah() {
                     </div>
                   );
                 })}
-                              border: "1px solid #fecaca",
-                              background: "#fef2f2",
-                              color: "#dc2626",
-                              cursor: "pointer",
-                              transition: "all 0.18s ease",
-                            }}
-                          >
-                            <RotateCcw size={13} strokeWidth={2.5} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
 
                 {filteredSantri.length === 0 && (
                   <div
