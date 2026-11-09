@@ -209,8 +209,8 @@ export const syncActiveHaidToAbsensi = async () => {
 export const getSantriwatiHaidList = async (req, res) => {
   try {
     await ensureHaidTablesAndColumns();
-    // Sinkronisasi status haid ke absensi sebelum menampilkan
-    await syncActiveHaidToAbsensi().catch(() => {});
+    // Sinkronisasi status haid ke absensi secara asynchronous tanpa menahan response HTTP
+    syncActiveHaidToAbsensi().catch(() => {});
 
     const { search = '', tab = 'semua', kelas_id, asrama_id } = req.query;
 
@@ -246,7 +246,6 @@ export const getSantriwatiHaidList = async (req, res) => {
         s.nama_santri,
         s.nis,
         s.jk,
-        s.foto,
         COALESCE(s.nama_kelas, '') as nama_kelas,
         COALESCE(a.nama_asrama, '') as nama_asrama,
         COALESCE(k.nama_kamar, '') as nama_kamar,
@@ -263,6 +262,7 @@ export const getSantriwatiHaidList = async (req, res) => {
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
       WHERE ${where.join(' AND ')}
       ORDER BY is_haid DESC, s.nama_santri ASC
+    `;
     `;
 
     const [rows] = await pool.query(sql, params);

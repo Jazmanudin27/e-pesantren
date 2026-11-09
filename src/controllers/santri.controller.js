@@ -33,6 +33,8 @@ export const getAllSantri = async (req, res) => {
       jenjang,
       all = 'false',
       without_photo = 'false',
+      with_photo = 'false',
+      include_photo = 'false',
       compact = 'false'
     } = req.query;
 
@@ -160,7 +162,8 @@ export const getAllSantri = async (req, res) => {
 
     const [rows] = await pool.query(dataSql, dataParams);
 
-    const isCompact = without_photo === 'true' || compact === 'true';
+    // Exclude heavy base64 photo and descriptors by default unless explicitly requested
+    const shouldIncludePhoto = (with_photo === 'true' || include_photo === 'true') && without_photo !== 'true' && compact !== 'true';
 
     const sanitizedRows = (rows || []).map(r => {
       const rawAlamat = r.alamat_asal ? String(r.alamat_asal).trim() : '';
@@ -180,7 +183,7 @@ export const getAllSantri = async (req, res) => {
         has_face_descriptor: hasFace ? 1 : 0
       };
 
-      if (isCompact) {
+      if (!shouldIncludePhoto) {
         item.foto = null;
         item.face_descriptor = null;
       }

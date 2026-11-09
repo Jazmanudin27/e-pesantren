@@ -71,6 +71,23 @@ export default function MobileKelas() {
   const fetchHalaqah = async () => {
     try {
       setLoading(true);
+      const resKelas = await axios.get("/api/kelas").catch(() => null);
+      if (resKelas?.data?.data && Array.isArray(resKelas.data.data) && resKelas.data.data.length > 0) {
+        const formatted = resKelas.data.data.map((k) => ({
+          id: k.id,
+          nama_halaqah: k.nama_kelas,
+          kode_halaqah: k.kode_kelas || `KLS-${k.id}`,
+          pengampu: k.pengampu || k.wali_kelas || "Wali Kelas",
+          target_program: k.tingkat || "Reguler",
+          waktu_halaqah: "Jadwal Reguler",
+          lokasi_halaqah: "Gedung Kelas",
+          total_santri: k.total_santri || 0,
+          gender: k.gender || "Semua",
+        }));
+        setHalaqahList(formatted);
+        return;
+      }
+
       const res = await axios.get("/api/tahfidz/halaqah");
       if (
         res.data &&

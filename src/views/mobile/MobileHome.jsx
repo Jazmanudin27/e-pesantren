@@ -215,7 +215,7 @@ export default function MobileHome({ onChangeTab, onLogout }) {
     try {
       const [resSantri, resAbsensi, resIzin, resSesi, resMateri] =
         await Promise.allSettled([
-          axios.get("/api/santri?all=true"),
+          axios.get("/api/santri?all=true&compact=true&without_photo=true"),
           axios.get("/api/absensi/fingerprint"),
           axios.get("/api/perizinan"),
           axios.get("/api/absensi/sesi"),

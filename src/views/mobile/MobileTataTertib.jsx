@@ -39,17 +39,26 @@ export default function MobileTataTertib() {
 
   const defaultPelanggaran = [];
 
-  const fetchData = async () => {
+  const fetchSantriOptions = async () => {
     try {
-      setLoading(true);
-      const [resP, resS] = await Promise.all([
-        axios.get("/api/pelanggaran").catch(() => ({ data: { data: [] } })),
-        axios.get("/api/santri?all=true").catch(() => ({ data: { data: [] } })),
-      ]);
-
+      const resS = await axios
+        .get("/api/santri/for-face-registration")
+        .catch(() => axios.get("/api/santri?all=true&compact=true&without_photo=true"))
+        .catch(() => ({ data: { data: [] } }));
       if (resS.data && resS.data.data) {
         setSantriOptions(resS.data.data);
       }
+    } catch (e) {
+      console.warn("Notice loading santri options:", e);
+    }
+  };
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const resP = await axios
+        .get("/api/pelanggaran")
+        .catch(() => ({ data: { data: [] } }));
 
       if (resP.data && Array.isArray(resP.data.data)) {
         setPelanggaranList(resP.data.data);
@@ -72,9 +81,11 @@ export default function MobileTataTertib() {
   useEffect(() => {
     localStorage.removeItem("mobile_pelanggaran_list");
     fetchData();
+    fetchSantriOptions();
   }, []);
 
   const handleOpenAdd = () => {
+    if (!santriOptions.length) fetchSantriOptions();
     setFormMode("add");
     setFormData({
       ...initialForm,

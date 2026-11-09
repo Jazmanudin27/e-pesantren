@@ -344,9 +344,9 @@ export const syncActivePerizinanToAbsensi = async () => {
 export const getAbsensiFingerprint = async (req, res) => {
   try {
     await ensureAbsensiTablesAndColumns();
-    // Sinkronisasi santri yang sedang izin pulang / sakit & haid sebelum query
-    await syncActivePerizinanToAbsensi().catch(() => {});
-    await syncActiveHaidToAbsensi().catch(() => {});
+    // Sinkronisasi santri yang sedang izin pulang / sakit & haid di background non-blocking
+    syncActivePerizinanToAbsensi().catch(() => {});
+    syncActiveHaidToAbsensi().catch(() => {});
 
     const tipeParam = (req.query.tipe || req.query.type || '').toLowerCase(); // 'berjamaah' | 'kegiatan' | ''
     const isToday = req.query.today === 'true' || req.query.hari_ini === 'true';

@@ -90,103 +90,21 @@ export default function MobilePraktek() {
     santriListRef.current = santriList;
   }, [santriList]);
 
-  // Inisialisasi model Face API & sinkronisasi descriptor
+  // Inisialisasi model Face API strictly On-Demand saat scanner wajah dibuka
   useEffect(() => {
-    let isMounted = true;
-    initFaceApiModels()
-      .then(() => {
-        if (isMounted) setFaceApiModelReady(true);
-      })
-      .catch(() => {});
+    if (!isFaceScanOpen) return;
+    if (!faceApiModelReady && !isFaceModelReady()) {
+      initFaceApiModels()
+        .then(() => setFaceApiModelReady(true))
+        .catch(() => {});
+    }
+  }, [isFaceScanOpen]);
+
+  useEffect(() => {
     return () => {
-      isMounted = false;
       stopFaceCamera();
     };
   }, []);
-
-  // Auto-sync & heal 128-D descriptor wajah santri dari database (sama persis dengan MobilePresensi)
-  useEffect(() => {
-    if (!santriList || santriList.length === 0) return;
-    let isCancelled = false;
-
-    const syncAndHealDescriptors = async () => {
-      try {
-        let currentProfiles = {};
-        try {
-          currentProfiles = JSON.parse(
-            localStorage.getItem("epesantren_face_profiles") || "{}",
-          );
-        } catch (e) {}
-
-        const validIds = new Set(santriList.map((s) => String(s.id)));
-        let changed = false;
-
-        // Bersihkan profil wajah hantu/dummy yang sudah tidak ada di tabel santri DB
-        Object.keys(currentProfiles).forEach((idKey) => {
-          const prof = currentProfiles[idKey];
-          const pId = String(prof?.santri_id || idKey);
-          if (!validIds.has(pId)) {
-            delete currentProfiles[idKey];
-            changed = true;
-          }
-        });
-
-        // Sinkronkan foto santri dari DB & ekstraksi descriptor 128-D jika belum ada
-        for (const s of santriList) {
-          if (isCancelled) return;
-          const photoUrl = s.foto || s.foto_santri;
-          if (
-            photoUrl &&
-            (!currentProfiles[s.id] || !currentProfiles[s.id].foto)
-          ) {
-            currentProfiles[s.id] = {
-              santri_id: s.id,
-              nama: s.nama_santri,
-              nis: s.nis,
-              asrama: s.nama_asrama || "",
-              kamar: s.nama_kamar || "",
-              foto: photoUrl,
-              descriptor: currentProfiles[s.id]?.descriptor || null,
-              registered_at: new Date().toISOString(),
-            };
-            changed = true;
-          }
-
-          if (
-            isFaceModelReady() &&
-            currentProfiles[s.id] &&
-            !currentProfiles[s.id].descriptor &&
-            currentProfiles[s.id].foto
-          ) {
-            try {
-              const desc = await extractDescriptorFromDataUrl(
-                currentProfiles[s.id].foto,
-              );
-              if (desc && !isCancelled) {
-                currentProfiles[s.id] = {
-                  ...currentProfiles[s.id],
-                  descriptor: desc,
-                };
-                changed = true;
-              }
-            } catch (e) {}
-          }
-        }
-
-        if (changed && !isCancelled) {
-          localStorage.setItem(
-            "epesantren_face_profiles",
-            JSON.stringify(currentProfiles),
-          );
-        }
-      } catch (e) {}
-    };
-
-    syncAndHealDescriptors();
-    return () => {
-      isCancelled = true;
-    };
-  }, [santriList, faceApiModelReady]);
 
   const playSuccessSound = () => {
     try {
@@ -590,7 +508,7 @@ export default function MobilePraktek() {
 
       const [resPraktek, resSantri, resKat] = await Promise.all([
         axios.get("/api/praktek").catch(() => ({ data: { data: [] } })),
-        axios.get("/api/santri?all=true").catch(() => ({ data: { data: [] } })),
+        axios.get("/api/santri/for-face-registration").catch(() => axios.get("/api/santri?all=true&compact=true&without_photo=true")).catch(() => ({ data: { data: [] } })),
         axios
           .get("/api/praktek/kategori")
           .catch(() => ({ data: { data: [] } })),

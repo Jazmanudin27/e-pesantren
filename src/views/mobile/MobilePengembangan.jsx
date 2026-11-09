@@ -172,18 +172,21 @@ export default function MobilePengembangan() {
   };
 
   useEffect(() => {
-    let isMounted = true;
-    initFaceApiModels()
-      .then(() => {
-        if (isMounted) setFaceApiModelReady(true);
-      })
-      .catch(() => {});
     fetchInitialData();
     return () => {
-      isMounted = false;
       stopFaceCamera();
     };
   }, []);
+
+  // Inisialisasi AI hanya saat user membuka scanner wajah
+  useEffect(() => {
+    if (!isFaceScanOpen) return;
+    if (!faceApiModelReady && !isFaceModelReady()) {
+      initFaceApiModels()
+        .then(() => setFaceApiModelReady(true))
+        .catch(() => {});
+    }
+  }, [isFaceScanOpen]);
 
   const fetchInitialData = async () => {
     setLoading(true);
