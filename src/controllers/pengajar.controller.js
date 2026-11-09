@@ -242,7 +242,9 @@ export const getPengajarSantri = async (req, res) => {
         COALESCE(s.nama_kelas, '') as nama_kelas,
         COALESCE(a.nama_asrama, '') as nama_asrama,
         COALESCE(k.nama_kamar, '') as nama_kamar,
-        COALESCE(s.jk, 'L') as jenis_kelamin
+        COALESCE(s.jk, 'L') as jenis_kelamin,
+        s.face_descriptor,
+        s.foto
       FROM santri s
       LEFT JOIN asrama a ON s.asrama_id = a.id
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
@@ -277,7 +279,9 @@ export const getAbsenMengaji = async (req, res) => {
     let santriSql = `
       SELECT s.id, s.nama_santri, s.nis, COALESCE(s.nama_kelas, '') as nama_kelas,
              COALESCE(a.nama_asrama, '') as nama_asrama,
-             COALESCE(s.jk, 'L') as jenis_kelamin
+             COALESCE(s.jk, 'L') as jenis_kelamin,
+             s.face_descriptor,
+             s.foto
       FROM santri s
       LEFT JOIN asrama a ON s.asrama_id = a.id
       WHERE s.status = 'Aktif'
@@ -317,6 +321,8 @@ export const getAbsenMengaji = async (req, res) => {
         nama_kelas: s.nama_kelas,
         nama_asrama: s.nama_asrama,
         jenis_kelamin: s.jenis_kelamin,
+        face_descriptor: s.face_descriptor,
+        foto: s.foto,
         status: existing ? (existing.status || existing.status_kehadiran || 'Hadir') : 'Hadir',
         keterangan: existing?.keterangan || '',
         waktu_scan: existing?.waktu_scan || '-',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { 
   FileText, 
@@ -14,9 +14,17 @@ import {
   MessageSquare,
   Calendar,
   Award,
-  Users
+  Users,
+  Camera,
+  RotateCcw,
+  AlertCircle
 } from 'lucide-react';
 import { toastSuccess, toastError } from '../../utils/alert.util';
+import {
+  initFaceApiModels,
+  detectFaceDescriptor,
+  matchFaceDescriptor
+} from '../../utils/faceApi.util';
 
 export default function PengajarPerkembanganView() {
   const [loading, setLoading] = useState(true);
@@ -25,6 +33,17 @@ export default function PengajarPerkembanganView() {
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Face Scan State
+  const [showFaceModal, setShowFaceModal] = useState(false);
+  const [facingMode, setFacingMode] = useState('environment');
+  const [faceModelStatus, setFaceModelStatus] = useState('loading');
+  const [cameraError, setCameraError] = useState('');
+
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const detectIntervalRef = useRef(null);
+  const isDetectingRef = useRef(false);
 
   const [formData, setFormData] = useState({
     santri_id: '',
@@ -62,6 +81,111 @@ export default function PengajarPerkembanganView() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Google MediaPipe Face Scanner for Quick Santri Selection
+  const startCamera = async (mode = facingMode) => {
+    setCameraError('');
+    try {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: mode, width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: false
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(() => {});
+      }
+    } catch (err) {
+      setCameraError('Izin kamera ditolak atau kamera tidak tersedia.');
+    }
+  };
+
+  const stopCamera = () => {
+    if (detectIntervalRef.current) {
+      clearInterval(detectIntervalRef.current);
+      detectIntervalRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+  };
+
+  const startDetectionLoop = () => {
+    if (detectIntervalRef.current) clearInterval(detectIntervalRef.current);
+
+    detectIntervalRef.current = setInterval(async () => {
+      if (isDetectingRef.current) return;
+      if (!videoRef.current || videoRef.current.readyState < 2) return;
+
+      try {
+        isDetectingRef.current = true;
+        const descriptor = await detectFaceDescriptor(videoRef.current);
+
+        if (descriptor && Array.isArray(descriptor) && descriptor.length > 0) {
+          const candidates = santriList
+            .filter(s => s.face_descriptor)
+            .map(s => {
+              let parsed = null;
+              try {
+                parsed = typeof s.face_descriptor === 'string'
+                  ? JSON.parse(s.face_descriptor)
+                  : s.face_descriptor;
+              } catch (e) {}
+              return {
+                id: s.id,
+                nama: s.nama_santri,
+                descriptor: parsed
+              };
+            })
+            .filter(c => Array.isArray(c.descriptor) && c.descriptor.length > 0);
+
+          if (candidates.length > 0) {
+            const match = matchFaceDescriptor(descriptor, candidates, 0.62);
+            if (match && match.santri) {
+              const matchedSantri = match.santri;
+              setFormData(prev => ({ ...prev, santri_id: String(matchedSantri.id) }));
+              toastSuccess(`Santri Terdeteksi: ${matchedSantri.nama}`);
+              setShowFaceModal(false);
+            }
+          }
+        }
+      } catch (err) {
+        // silent loop
+      } finally {
+        isDetectingRef.current = false;
+      }
+    }, 400);
+  };
+
+  useEffect(() => {
+    if (showFaceModal) {
+      setFaceModelStatus('loading');
+      initFaceApiModels()
+        .then(() => {
+          setFaceModelStatus('ready');
+          startCamera(facingMode);
+          startDetectionLoop();
+        })
+        .catch(() => {
+          setFaceModelStatus('error');
+          setCameraError('Gagal memuat Google MediaPipe FaceMesh AI.');
+        });
+    } else {
+      stopCamera();
+    }
+    return () => stopCamera();
+  }, [showFaceModal]);
+
+  const toggleFacingMode = () => {
+    const next = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(next);
+    startCamera(next);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -357,7 +481,7 @@ export default function PengajarPerkembanganView() {
         />
       </div>
 
-      {/* 4. MODAL FORM INPUT CATATAN PERKEMBANGAN (EXECUTIVE GLASS) */}
+      {/* 4. MODAL FORM INPUT CATATAN PERKEMBANGAN (DILENGKAPI SCAN WAJAH) */}
       {showForm && (
         <div
           style={{
@@ -420,9 +544,32 @@ export default function PengajarPerkembanganView() {
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
-                  PILIH SANTRI *
-                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <label style={{ fontSize: '0.68rem', fontWeight: 800, color: '#334155' }}>
+                    PILIH SANTRI *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowFaceModal(true)}
+                    style={{
+                      background: 'linear-gradient(135deg, #059669 0%, #0d9488 100%)',
+                      border: 'none',
+                      color: '#ffffff',
+                      fontSize: '0.62rem',
+                      fontWeight: 800,
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      boxShadow: '0 2px 6px rgba(13, 148, 136, 0.25)'
+                    }}
+                  >
+                    <Camera size={11} /> Scan Wajah AI
+                  </button>
+                </div>
+
                 <select
                   required
                   value={formData.santri_id}
@@ -546,6 +693,144 @@ export default function PengajarPerkembanganView() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL SCAN WAJAH UNTUK PILIH SANTRI
+      ========================================================================= */}
+      {showFaceModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(6px)',
+            zIndex: 10000,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '16px'
+          }}
+          onClick={() => setShowFaceModal(false)}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '20px',
+              maxWidth: '420px',
+              width: '100%',
+              padding: '16px',
+              boxShadow: '0 25px 40px -10px rgba(0,0,0,0.35)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Camera size={18} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a' }}>Scan Wajah Santri</div>
+                  <div style={{ fontSize: '0.6rem', color: '#64748b' }}>Arahkan kamera untuk otomatis pilih santri</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button
+                  type="button"
+                  onClick={toggleFacingMode}
+                  style={{ background: '#f1f5f9', border: 'none', borderRadius: '8px', padding: '6px 8px', fontSize: '0.65rem', fontWeight: 700, color: '#475569', cursor: 'pointer' }}
+                >
+                  <RotateCcw size={12} />
+                </button>
+                <button
+                  onClick={() => setShowFaceModal(false)}
+                  style={{ background: '#f1f5f9', border: 'none', borderRadius: '8px', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', cursor: 'pointer' }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div
+              style={{
+                position: 'relative',
+                width: '100%',
+                height: '240px',
+                background: '#0f172a',
+                borderRadius: '16px',
+                overflow: 'hidden',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+            >
+              <video
+                ref={videoRef}
+                playsInline
+                muted
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  transform: facingMode === 'user' ? 'scaleX(-1)' : 'none'
+                }}
+              />
+
+              <div
+                style={{
+                  position: 'absolute',
+                  width: '150px',
+                  height: '190px',
+                  border: '2px dashed rgba(255, 255, 255, 0.7)',
+                  borderRadius: '80px',
+                  boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.35)',
+                  pointerEvents: 'none'
+                }}
+              />
+
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '10px',
+                  left: '10px',
+                  background: 'rgba(15, 23, 42, 0.75)',
+                  color: '#ffffff',
+                  padding: '4px 8px',
+                  borderRadius: '8px',
+                  fontSize: '0.62rem',
+                  fontWeight: 700,
+                  backdropFilter: 'blur(4px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <Sparkles size={11} color="#34d399" />
+                {faceModelStatus === 'loading' && 'Memuat AI MediaPipe...'}
+                {faceModelStatus === 'ready' && 'MediaPipe 3D Aktif'}
+                {faceModelStatus === 'error' && 'Gagal Memuat AI'}
+              </div>
+
+              {cameraError && (
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.9)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#f87171', padding: '16px', textAlign: 'center', fontSize: '0.75rem' }}>
+                  <AlertCircle size={24} style={{ marginBottom: '6px' }} />
+                  {cameraError}
+                </div>
+              )}
+            </div>
+
+            <div style={{ textAlign: 'center', fontSize: '0.66rem', color: '#64748b' }}>
+              Saat wajah santri cocok, sistem otomatis memilih nama santri ke formulir.
+            </div>
           </div>
         </div>
       )}
