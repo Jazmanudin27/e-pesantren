@@ -78,6 +78,21 @@ export default function MobilePresensiMengaji() {
   const [selectedMengaji, setSelectedMengaji] = useState(null);
   const [selectedMengajiKelas, setSelectedMengajiKelas] = useState("");
 
+  const currentVerifikator = (() => {
+    try {
+      const u = JSON.parse(
+        localStorage.getItem("desktop_session") ||
+        sessionStorage.getItem("desktop_session") ||
+        localStorage.getItem("mobile_session") ||
+        sessionStorage.getItem("mobile_session") ||
+        "{}"
+      );
+      return u.nama || u.nama_asatidz || u.nama_lengkap || u.username || "Ustadz Pengajar";
+    } catch (e) {
+      return "Ustadz Pengajar";
+    }
+  })();
+
   // Data State (Lazy load per kelas)
   const [santriList, setSantriList] = useState([]);
   const [kelasList, setKelasList] = useState([]);
@@ -703,6 +718,8 @@ export default function MobilePresensiMengaji() {
       status_kehadiran: status,
       metode_presensi: metode,
       metode_scan: metode,
+      musyrif_verifikator: currentVerifikator,
+      nama_ustadz: currentVerifikator,
       keterangan: ket || (selectedMengajiKelas ? `Kelas: ${selectedMengajiKelas}` : (santri.nama_kelas ? `Kelas: ${santri.nama_kelas}` : "")),
       nama_santri: santri.nama_santri,
       nama_kelas: santri.nama_kelas || selectedMengajiKelas || "",
@@ -754,9 +771,6 @@ export default function MobilePresensiMengaji() {
     if (tabMode === "face") {
       stopScanner();
       setTimeout(() => startFaceCamera(faceFacingMode), 80);
-    } else if (tabMode === "qr") {
-      stopFaceCamera();
-      setTimeout(startScanner, 80);
     } else if (tabMode === "riwayat") {
       stopScanner();
       stopFaceCamera();
@@ -984,13 +998,10 @@ export default function MobilePresensiMengaji() {
         </div>
       </div>
 
-      {/* Tabs Mode */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", background: "#ffffff", borderRadius: "13px", padding: "3.5px", marginBottom: "12px", gap: "4px", border: "1px solid #e2e8f0" }}>
+      {/* Tabs Mode (Wajah AI, Manual, Riwayat - Tanpa Scan QR) */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", background: "#ffffff", borderRadius: "13px", padding: "3.5px", marginBottom: "12px", gap: "4px", border: "1px solid #e2e8f0" }}>
         <button onClick={() => handleSwitchTab("face")} style={{ padding: "7px 2px", borderRadius: "9px", border: "none", background: activeMode === "face" ? "#dcfce7" : "transparent", color: activeMode === "face" ? "#059669" : "#64748b", fontWeight: 800, fontSize: "0.68rem", cursor: "pointer" }}>
           <Smile size={13} style={{ verticalAlign: "middle", marginRight: "3px" }} /> Wajah AI
-        </button>
-        <button onClick={() => handleSwitchTab("qr")} style={{ padding: "7px 2px", borderRadius: "9px", border: "none", background: activeMode === "qr" ? "#dcfce7" : "transparent", color: activeMode === "qr" ? "#059669" : "#64748b", fontWeight: 800, fontSize: "0.68rem", cursor: "pointer" }}>
-          <QrCode size={13} style={{ verticalAlign: "middle", marginRight: "3px" }} /> Scan QR
         </button>
         <button onClick={() => handleSwitchTab("manual")} style={{ padding: "7px 2px", borderRadius: "9px", border: "none", background: activeMode === "manual" ? "#dcfce7" : "transparent", color: activeMode === "manual" ? "#059669" : "#64748b", fontWeight: 800, fontSize: "0.68rem", cursor: "pointer" }}>
           <ClipboardList size={13} style={{ verticalAlign: "middle", marginRight: "3px" }} /> Manual
@@ -1054,15 +1065,7 @@ export default function MobilePresensiMengaji() {
         </div>
       )}
 
-      {/* Mode 2: Scan QR */}
-      {activeMode === "qr" && (
-        <div style={{ background: "#ffffff", borderRadius: "20px", padding: "14px", border: "1.5px solid #059669", marginBottom: "14px" }}>
-          <div id="mobile-qr-reader-mengaji" style={{ width: "100%", minHeight: "260px", borderRadius: "16px", overflow: "hidden" }} />
-          {cameraError && <div style={{ color: "#dc2626", fontSize: "0.74rem", marginTop: "8px" }}>{cameraError}</div>}
-        </div>
-      )}
-
-      {/* Mode 3: Manual */}
+      {/* Mode 2: Manual */}
       {activeMode === "manual" && (
         <div>
           {(!selectedMengaji?.id || !selectedMengajiKelas) && (
@@ -1241,6 +1244,14 @@ export default function MobilePresensiMengaji() {
                   </span>
                   {" • "}
                   <span>{log.waktu_scan ? String(log.waktu_scan).substring(0, 8) : "00:00:00"} WIB</span>
+                  {(log.musyrif_verifikator || log.nama_ustadz) && (
+                    <>
+                      {" • "}
+                      <span style={{ color: "#4f46e5", fontWeight: 700 }}>
+                        Musyrif: {log.musyrif_verifikator || log.nama_ustadz}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
               <span

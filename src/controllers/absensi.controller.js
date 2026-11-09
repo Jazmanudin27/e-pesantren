@@ -46,6 +46,19 @@ export const ensureAbsensiTablesAndColumns = async () => {
       } catch (e) {}
     }
 
+    // 2b. Tambah kolom musyrif_verifikator dan nama_ustadz jika belum ada
+    if (!colNames.includes('musyrif_verifikator')) {
+      try {
+        await pool.query(`ALTER TABLE absensi_jamaah_mengaji ADD COLUMN musyrif_verifikator VARCHAR(100) NULL AFTER metode_presensi`);
+        console.log('[ABSENSI DB] Kolom musyrif_verifikator berhasil ditambahkan');
+      } catch (e) {}
+    }
+    if (!colNames.includes('nama_ustadz')) {
+      try {
+        await pool.query(`ALTER TABLE absensi_jamaah_mengaji ADD COLUMN nama_ustadz VARCHAR(100) NULL AFTER musyrif_verifikator`);
+      } catch (e) {}
+    }
+
     // 3. Pastikan kolom sesi_id boleh NULL (agar kegiatan mobile non-shalat tidak error)
     try {
       const [fks] = await pool.query(`
@@ -359,6 +372,8 @@ export const getAbsensiFingerprint = async (req, res) => {
              DATE_FORMAT(aj.tanggal, '%Y-%m-%d') as tanggal,
              aj.status as status_kehadiran,
              aj.metode_presensi as metode_scan,
+             COALESCE(aj.musyrif_verifikator, aj.nama_ustadz, '') as musyrif_verifikator,
+             COALESCE(aj.nama_ustadz, aj.musyrif_verifikator, '') as nama_ustadz,
              COALESCE(NULLIF(aj.nama_kegiatan, ''), ks.nama_sesi, 'Kegiatan Santri') as nama_sesi,
              COALESCE(NULLIF(aj.nama_kegiatan, ''), ks.nama_sesi, 'Kegiatan Santri') as kegiatan,
              CASE 
@@ -554,8 +569,12 @@ export const createAbsensiFingerprint = async (req, res) => {
       kegiatan,
       nama_sesi,
       nama_kegiatan,
-      tipe_presensi
+      tipe_presensi,
+      musyrif_verifikator,
+      nama_ustadz
     } = req.body;
+
+    const finalMusyrif = musyrif_verifikator || nama_ustadz || req.user?.nama || req.user?.nama_asatidz || req.user?.username || null;
 
     const now = new Date();
     const localDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -653,15 +672,19 @@ export const createAbsensiFingerprint = async (req, res) => {
       // UPDATE status record yang ada, JANGAN buat baru (cegah duplikasi)
       await pool.query(`
         UPDATE absensi_jamaah_mengaji 
-        SET status = ?, waktu_scan = ?, metode_presensi = ?, keterangan = ?, nama_kegiatan = ?, tipe_presensi = ?, sesi_id = ?
+        SET status = ?, waktu_scan = ?, metode_presensi = ?, keterangan = ?, nama_kegiatan = ?, tipe_presensi = ?, sesi_id = ?,
+            musyrif_verifikator = COALESCE(?, musyrif_verifikator),
+            nama_ustadz = COALESCE(?, nama_ustadz)
         WHERE id = ?
-      `, [finalStatus, scanTime, finalMetode, finalKet, finalKegiatan, finalTipe, parsedSesiId, existingId]).catch(async () => {
+      `, [finalStatus, scanTime, finalMetode, finalKet, finalKegiatan, finalTipe, parsedSesiId, finalMusyrif, finalMusyrif, existingId]).catch(async () => {
         // Fallback jika kolom nama_kegiatan belum terindeks
         await pool.query(`
           UPDATE absensi_jamaah_mengaji 
-          SET status = ?, waktu_scan = ?, metode_presensi = ?, keterangan = ?, sesi_id = ?
+          SET status = ?, waktu_scan = ?, metode_presensi = ?, keterangan = ?, sesi_id = ?,
+              musyrif_verifikator = COALESCE(?, musyrif_verifikator),
+              nama_ustadz = COALESCE(?, nama_ustadz)
           WHERE id = ?
-        `, [finalStatus, scanTime, finalMetode, finalKet, parsedSesiId, existingId]);
+        `, [finalStatus, scanTime, finalMetode, finalKet, parsedSesiId, finalMusyrif, finalMusyrif, existingId]);
       });
 
       // Hapus log pencegahan dari absensi_deleted_logs jika santri ini dicatat kembali
@@ -711,27 +734,27 @@ export const createAbsensiFingerprint = async (req, res) => {
     try {
       const [resInsert] = await pool.query(`
         INSERT INTO absensi_jamaah_mengaji (
-          tanggal, sesi_id, nama_kegiatan, tipe_presensi, santri_id, waktu_scan, status, device_id, metode_presensi, keterangan
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [tgl, parsedSesiId, finalKegiatan, finalTipe, finalSantriId, scanTime, finalStatus, device_id || 1, finalMetode, finalKet]);
+          tanggal, sesi_id, nama_kegiatan, tipe_presensi, santri_id, waktu_scan, status, device_id, metode_presensi, keterangan, musyrif_verifikator, nama_ustadz
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [tgl, parsedSesiId, finalKegiatan, finalTipe, finalSantriId, scanTime, finalStatus, device_id || 1, finalMetode, finalKet, finalMusyrif, finalMusyrif]);
       insertResult = resInsert;
     } catch (errIns) {
       console.warn('[createAbsensiFingerprint Insert 1 Failed, Retrying with parsedSesiId fallback...]', errIns?.message);
       try {
         const [resInsert] = await pool.query(`
           INSERT INTO absensi_jamaah_mengaji (
-            tanggal, sesi_id, nama_kegiatan, tipe_presensi, santri_id, waktu_scan, status, device_id, metode_presensi, keterangan
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [tgl, parsedSesiId || 1, finalKegiatan, finalTipe, finalSantriId, scanTime, finalStatus, device_id || 1, finalMetode, finalKet]);
+            tanggal, sesi_id, nama_kegiatan, tipe_presensi, santri_id, waktu_scan, status, device_id, metode_presensi, keterangan, musyrif_verifikator, nama_ustadz
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [tgl, parsedSesiId || 1, finalKegiatan, finalTipe, finalSantriId, scanTime, finalStatus, device_id || 1, finalMetode, finalKet, finalMusyrif, finalMusyrif]);
         insertResult = resInsert;
       } catch (errIns2) {
         // Fallback versi skema minimal
         console.warn('[createAbsensiFingerprint Insert 2 Failed, Falling back to minimal columns...]', errIns2?.message);
         const [resInsert] = await pool.query(`
           INSERT INTO absensi_jamaah_mengaji (
-            tanggal, sesi_id, santri_id, waktu_scan, status, device_id, metode_presensi, keterangan, nama_kegiatan, tipe_presensi
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [tgl, parsedSesiId || 1, finalSantriId, scanTime, finalStatus, device_id || 1, finalMetode, finalKet, finalKegiatan, finalTipe]);
+            tanggal, sesi_id, santri_id, waktu_scan, status, device_id, metode_presensi, keterangan, nama_kegiatan, tipe_presensi, musyrif_verifikator, nama_ustadz
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [tgl, parsedSesiId || 1, finalSantriId, scanTime, finalStatus, device_id || 1, finalMetode, finalKet, finalKegiatan, finalTipe, finalMusyrif, finalMusyrif]);
         insertResult = resInsert;
       }
     }
@@ -847,6 +870,7 @@ export const syncMobileAbsensi = async (req, res) => {
 
       const st = item.status || item.status_kehadiran || 'Hadir';
       const ket = item.keterangan || `NWF Mobile: ${kegiatanName}`;
+      const itemMusyrif = item.musyrif_verifikator || item.nama_ustadz || null;
 
       const [existing] = await pool.query(`
         SELECT id FROM absensi_jamaah_mengaji 
@@ -857,15 +881,17 @@ export const syncMobileAbsensi = async (req, res) => {
       if (existing && existing.length > 0) {
         await pool.query(`
           UPDATE absensi_jamaah_mengaji 
-          SET status = ?, waktu_scan = ?, metode_presensi = ?, keterangan = ?, nama_kegiatan = ?, tipe_presensi = ?, sesi_id = ?
+          SET status = ?, waktu_scan = ?, metode_presensi = ?, keterangan = ?, nama_kegiatan = ?, tipe_presensi = ?, sesi_id = ?,
+              musyrif_verifikator = COALESCE(?, musyrif_verifikator),
+              nama_ustadz = COALESCE(?, nama_ustadz)
           WHERE id = ?
-        `, [st, scanTime, mt, ket, kegiatanName, tipe, sesiId, existing[0].id]).catch(() => {});
+        `, [st, scanTime, mt, ket, kegiatanName, tipe, sesiId, itemMusyrif, itemMusyrif, existing[0].id]).catch(() => {});
       } else {
         await pool.query(`
           INSERT INTO absensi_jamaah_mengaji (
-            tanggal, sesi_id, nama_kegiatan, tipe_presensi, santri_id, waktu_scan, status, device_id, metode_presensi, keterangan
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
-        `, [tgl, sesiId, kegiatanName, tipe, item.santri_id, scanTime, st, mt, ket]).catch(() => {});
+            tanggal, sesi_id, nama_kegiatan, tipe_presensi, santri_id, waktu_scan, status, device_id, metode_presensi, keterangan, musyrif_verifikator, nama_ustadz
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
+        `, [tgl, sesiId, kegiatanName, tipe, item.santri_id, scanTime, st, mt, ket, itemMusyrif, itemMusyrif]).catch(() => {});
 
         const notifCopy = buildAbsensiNotifText({
           namaSantri: item.nama_santri || 'Ananda',

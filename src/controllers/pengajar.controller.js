@@ -44,6 +44,7 @@ export const ensurePengajarTables = async () => {
         \`status_kehadiran\` VARCHAR(50) DEFAULT 'Hadir',
         \`metode_presensi\` VARCHAR(50) DEFAULT 'Manual_Ustadz',
         \`keterangan\` VARCHAR(255) DEFAULT NULL,
+        \`musyrif_verifikator\` VARCHAR(150) DEFAULT NULL,
         \`nama_ustadz\` VARCHAR(150) DEFAULT NULL,
         \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -395,7 +396,9 @@ export const getAbsenMengaji = async (req, res) => {
 
     // Ambil absensi yang sudah tercatat
     let absSql = `
-      SELECT id, santri_id, status, status_kehadiran, keterangan, waktu_scan, nama_ustadz
+      SELECT id, santri_id, status, status_kehadiran, keterangan, waktu_scan,
+             COALESCE(musyrif_verifikator, nama_ustadz, '') as musyrif_verifikator,
+             COALESCE(nama_ustadz, musyrif_verifikator, '') as nama_ustadz
       FROM absensi_jamaah_mengaji
       WHERE tanggal = ?
     `;
@@ -424,7 +427,8 @@ export const getAbsenMengaji = async (req, res) => {
         status: existing ? (existing.status || existing.status_kehadiran || 'Hadir') : null,
         keterangan: existing?.keterangan || '',
         waktu_scan: existing?.waktu_scan || '-',
-        nama_ustadz: existing?.nama_ustadz || '',
+        musyrif_verifikator: existing?.musyrif_verifikator || existing?.nama_ustadz || '',
+        nama_ustadz: existing?.nama_ustadz || existing?.musyrif_verifikator || '',
         is_recorded: Boolean(existing)
       };
     });
@@ -444,7 +448,7 @@ export const saveAbsenMengajiBatch = async (req, res) => {
   await ensurePengajarTables();
   const connection = await pool.getConnection();
   try {
-    const { tanggal, sesi_id, nama_sesi, nama_ustadz, items, metode_presensi } = req.body;
+    const { tanggal, sesi_id, nama_sesi, nama_ustadz, musyrif_verifikator, items, metode_presensi } = req.body;
     if (!tanggal || !Array.isArray(items) || items.length === 0) {
       return sendError(res, 'Data presensi tidak lengkap', 400);
     }
@@ -453,13 +457,14 @@ export const saveAbsenMengajiBatch = async (req, res) => {
 
     const tgl = tanggal;
     const sId = sesi_id || null;
-    const ustadz = nama_ustadz || 'Ustadz Pengajar';
+    const ustadz = musyrif_verifikator || nama_ustadz || 'Ustadz Pengajar';
     const kegiatan = nama_sesi || 'Mengaji & Kajian Kitab';
 
     for (const item of items) {
       const statusFinal = item.status || 'Hadir';
       const ket = item.keterangan || '';
       const metode = item.metode_presensi || metode_presensi || 'Manual_Ustadz';
+      const itemUstadz = item.musyrif_verifikator || item.nama_ustadz || ustadz;
       
       // Cek apakah sudah ada catatan
       const [existing] = await connection.query(`
@@ -471,15 +476,16 @@ export const saveAbsenMengajiBatch = async (req, res) => {
       if (existing && existing.length > 0) {
         await connection.query(`
           UPDATE absensi_jamaah_mengaji 
-          SET status = ?, status_kehadiran = ?, metode_presensi = ?, keterangan = ?, nama_ustadz = ?, waktu_scan = CURTIME(), updated_at = NOW()
+          SET status = ?, status_kehadiran = ?, metode_presensi = ?, keterangan = ?,
+              musyrif_verifikator = ?, nama_ustadz = ?, waktu_scan = CURTIME(), updated_at = NOW()
           WHERE id = ?
-        `, [statusFinal, statusFinal, metode, ket, ustadz, existing[0].id]);
+        `, [statusFinal, statusFinal, metode, ket, itemUstadz, itemUstadz, existing[0].id]);
       } else {
         await connection.query(`
           INSERT INTO absensi_jamaah_mengaji 
-          (santri_id, sesi_id, nama_kegiatan, tanggal, waktu_scan, status, status_kehadiran, metode_presensi, keterangan, nama_ustadz)
-          VALUES (?, ?, ?, ?, CURTIME(), ?, ?, ?, ?, ?)
-        `, [item.santri_id, sId, kegiatan, tgl, statusFinal, statusFinal, metode, ket, ustadz]);
+          (santri_id, sesi_id, nama_kegiatan, tanggal, waktu_scan, status, status_kehadiran, metode_presensi, keterangan, musyrif_verifikator, nama_ustadz)
+          VALUES (?, ?, ?, ?, CURTIME(), ?, ?, ?, ?, ?, ?)
+        `, [item.santri_id, sId, kegiatan, tgl, statusFinal, statusFinal, metode, ket, itemUstadz, itemUstadz]);
       }
     }
 
@@ -515,7 +521,8 @@ export const getAbsenMengajiHistory = async (req, res) => {
         DATE_FORMAT(a.waktu_scan, '%H:%i') as waktu_scan,
         a.metode_presensi,
         a.keterangan,
-        a.nama_ustadz
+        COALESCE(a.musyrif_verifikator, a.nama_ustadz, '') as musyrif_verifikator,
+        COALESCE(a.nama_ustadz, a.musyrif_verifikator, '') as nama_ustadz
       FROM absensi_jamaah_mengaji a
       JOIN santri s ON a.santri_id = s.id
       LEFT JOIN kegiatan_sesi ks ON a.sesi_id = ks.id

@@ -13,6 +13,7 @@ import {
   Clock, 
   Users, 
   ChevronRight, 
+  ChevronLeft,
   Building2, 
   ArrowLeft,
   ArrowRight
@@ -765,91 +766,113 @@ export default function PengajarDashboardView({ onLogout }) {
               VIEW SUB-TAB: HEADER SUBVIEW (IDENTIK HEADER SUBVIEW OWNER)
           ========================================================================= */
           <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {/* Mobile Header Subview Identik Owner */}
             <div
               style={{
+                position: 'sticky',
+                top: 0,
+                zIndex: 40,
                 background: 'linear-gradient(135deg, #0d766e 0%, #042f2e 100%)',
-                padding: '12px 14px',
                 color: '#ffffff',
-                borderBottomLeftRadius: '20px',
-                borderBottomRightRadius: '20px',
+                padding: '12px 14px 14px',
                 display: 'flex',
-                justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '14px',
-                boxShadow: '0 4px 14px rgba(13, 118, 110, 0.2)'
+                justifyContent: 'space-between',
+                boxShadow: '0 6px 18px rgba(0,0,0,0.16)',
+                borderBottomLeftRadius: '18px',
+                borderBottomRightRadius: '18px',
+                marginBottom: '12px',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('beranda')}
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.18)',
-                    border: '1px solid rgba(255, 255, 255, 0.25)',
-                    color: '#ffffff',
-                    borderRadius: '10px',
-                    padding: '6px 10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    cursor: 'pointer',
-                    fontWeight: 700,
-                    fontSize: '0.72rem',
-                    flexShrink: 0
-                  }}
-                >
-                  <ArrowLeft size={14} /> Beranda
-                </button>
-
-                <div style={{ minWidth: 0, overflow: 'hidden' }}>
-                  <div
-                    style={{
-                      fontSize: '0.86rem',
-                      fontWeight: 900,
-                      color: '#ffffff',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}
-                  >
-                    {activeTab === 'absen-mengaji' && 'Presensi Mengaji Santri'}
-                    {activeTab === 'teguran' && 'Catatan Pelanggaran & Ta\'zir'}
-                    {activeTab === 'praktek' && 'Evaluasi Praktek Ibadah'}
-                    {activeTab === 'perkembangan' && 'Laporan Perkembangan Santri'}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: '0.58rem',
-                      color: '#a7f3d0',
-                      fontWeight: 800,
-                      letterSpacing: '0.04em',
-                      textTransform: 'uppercase',
-                      marginTop: '1px'
-                    }}
-                  >
-                    {pengajarName} • PORTAL ASATIDZ
-                  </div>
-                </div>
-              </div>
-
               <button
                 type="button"
-                onClick={handleLogout}
-                title="Keluar"
+                onClick={() => setActiveTab('beranda')}
+                aria-label="Kembali ke Beranda"
                 style={{
-                  background: 'rgba(255, 255, 255, 0.18)',
-                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  background: 'rgba(255,255,255,0.18)',
+                  border: '1px solid rgba(255,255,255,0.22)',
                   color: '#ffffff',
-                  borderRadius: '10px',
-                  padding: '7px',
+                  borderRadius: '12px',
+                  width: '36px',
+                  height: '36px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  flexShrink: 0
+                  backdropFilter: 'blur(6px)',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+                  transition: 'all 0.15s ease',
+                  flexShrink: 0,
                 }}
               >
-                <LogOut size={16} />
+                <ChevronLeft size={20} strokeWidth={2.8} />
+              </button>
+
+              <div
+                style={{
+                  textAlign: 'center',
+                  flex: 1,
+                  padding: '0 8px',
+                  minWidth: 0,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: '0.85rem',
+                    fontWeight: 900,
+                    letterSpacing: '-0.2px',
+                    display: 'block',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    color: '#ffffff',
+                    textShadow: '0 1px 3px rgba(0,0,0,0.25)',
+                  }}
+                >
+                  {activeTab === 'absen-mengaji' && 'Presensi Mengaji Santri'}
+                  {activeTab === 'teguran' && 'Catatan Pelanggaran & Ta\'zir'}
+                  {activeTab === 'praktek' && 'Evaluasi Praktek Ibadah'}
+                  {activeTab === 'perkembangan' && 'Laporan Perkembangan Santri'}
+                </span>
+                <span
+                  style={{
+                    fontSize: '0.58rem',
+                    color: '#a7f3d0',
+                    fontWeight: 800,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    display: 'inline-block',
+                    marginTop: '1px',
+                  }}
+                >
+                  PORTAL ASATIDZ / PENGAJAR
+                </span>
+              </div>
+
+              {/* Action Button Kanan Identik Owner */}
+              <button
+                type="button"
+                onClick={handleLogout}
+                aria-label="Keluar Akun"
+                title="Keluar Akun"
+                style={{
+                  background: 'rgba(255,255,255,0.18)',
+                  border: '1px solid rgba(255,255,255,0.22)',
+                  color: '#ffffff',
+                  borderRadius: '12px',
+                  width: '36px',
+                  height: '36px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  backdropFilter: 'blur(6px)',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+                  flexShrink: 0,
+                }}
+              >
+                <LogOut size={18} strokeWidth={2.4} />
               </button>
             </div>
 
