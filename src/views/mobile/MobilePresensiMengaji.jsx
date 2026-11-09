@@ -1133,49 +1133,6 @@ export default function MobilePresensiMengaji() {
       {/* Mode 4: Riwayat Khusus Kegiatan & Kelas Terpilih */}
       {activeMode === "riwayat" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          {/* Header Info Riwayat Terfilter */}
-          <div
-            style={{
-              background: "#ffffff",
-              borderRadius: "14px",
-              padding: "10px 14px",
-              border: "1px solid #e2e8f0",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "2px",
-            }}
-          >
-            <div>
-              <div style={{ fontSize: "0.78rem", fontWeight: 800, color: "#0f172a" }}>
-                Riwayat: {selectedMengaji?.nama || "Semua Kegiatan"}
-              </div>
-              <div style={{ fontSize: "0.68rem", color: "#64748b" }}>
-                {selectedMengajiKelas ? `Kelas: ${selectedMengajiKelas}` : "Semua Kelas"} • <strong>{filteredRiwayatLogs.length} Kehadiran</strong>
-              </div>
-            </div>
-            <button
-              onClick={handleRefreshRiwayat}
-              disabled={refreshingRiwayat}
-              style={{
-                background: "#f1f5f9",
-                border: "none",
-                padding: "6px 10px",
-                borderRadius: "8px",
-                fontSize: "0.7rem",
-                fontWeight: 700,
-                color: "#475569",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                cursor: "pointer",
-              }}
-            >
-              <RefreshCw size={12} className={refreshingRiwayat ? "animate-spin" : ""} />
-              {refreshingRiwayat ? "Memuat..." : "Segarkan"}
-            </button>
-          </div>
-
           {/* Search Box Riwayat */}
           {(filteredRiwayatLogs.length > 3 || searchRiwayat) && (
             <input
@@ -1193,28 +1150,6 @@ export default function MobilePresensiMengaji() {
                 background: "#ffffff",
               }}
             />
-          )}
-
-          {/* Warning jika belum pilih kegiatan atau kelas */}
-          {(!selectedMengaji || !selectedMengajiKelas) && (
-            <div
-              style={{
-                background: "#fefce8",
-                border: "1px solid #fef08a",
-                borderRadius: "12px",
-                padding: "12px 14px",
-                textAlign: "center",
-                color: "#854d0e",
-                fontSize: "0.76rem",
-              }}
-            >
-              <div style={{ fontWeight: 800, marginBottom: "3px" }}>
-                ⚠️ Filter Belum Lengkap
-              </div>
-              <div>
-                Pilih <strong>{!selectedMengaji ? "Kegiatan Mengaji" : "Kelas Santri"}</strong> di kotak atas untuk memfilter riwayat secara akurat.
-              </div>
-            </div>
           )}
 
           {/* List Kartu Riwayat Bersih & Rapi dengan Icon */}
