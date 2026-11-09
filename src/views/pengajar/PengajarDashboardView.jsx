@@ -106,11 +106,11 @@ export default function PengajarDashboardView({ onLogout }) {
         margin: 0
       }}
     >
-      {/* CONTAINER WRAPPER (Responsive: 460px on beranda mobile frame, up to 1240px for full Admin view) */}
+      {/* MOBILE CONTAINER WRAPPER (Max 440px desktop, full-width on mobile) */}
       <div
         style={{
           width: '100%',
-          maxWidth: activeTab === 'beranda' ? '460px' : '1240px',
+          maxWidth: '440px',
           minHeight: '100vh',
           backgroundColor: '#f8fafc',
           boxShadow: '0 10px 40px -10px rgba(0, 0, 0, 0.18)',
@@ -118,8 +118,7 @@ export default function PengajarDashboardView({ onLogout }) {
           display: 'flex',
           flexDirection: 'column',
           paddingBottom: '82px',
-          boxSizing: 'border-box',
-          transition: 'max-width 0.2s ease',
+          boxSizing: 'border-box'
         }}
       >
         {/* =========================================================================
@@ -855,7 +854,7 @@ export default function PengajarDashboardView({ onLogout }) {
             </div>
 
             {/* Subview Content Container */}
-            <div style={{ padding: '0 14px 20px', flex: 1 }}>
+            <div style={{ padding: activeTab === 'absen-mengaji' ? 0 : '0 14px 20px', flex: 1 }}>
               {activeTab === 'absen-mengaji' && <PengajarAbsenMengaji />}
               {activeTab === 'teguran' && <PengajarTeguranView />}
               {activeTab === 'praktek' && <PengajarPraktekView />}
@@ -874,7 +873,7 @@ export default function PengajarDashboardView({ onLogout }) {
             left: '50%',
             transform: 'translateX(-50%)',
             width: '100%',
-            maxWidth: activeTab === 'beranda' ? '460px' : '1240px',
+            maxWidth: '440px',
             height: '64px',
             backgroundColor: '#042f2e',
             borderTop: '1px solid rgba(255, 255, 255, 0.1)',
