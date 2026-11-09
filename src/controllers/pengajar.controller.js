@@ -378,7 +378,8 @@ export const getAbsenMengaji = async (req, res) => {
              COALESCE(a.nama_asrama, '') as nama_asrama,
              COALESCE(s.jk, 'L') as jenis_kelamin,
              s.face_descriptor,
-             s.foto
+             COALESCE(s.foto, s.foto_url, '') as foto,
+             COALESCE(s.foto_url, s.foto, '') as foto_url
       FROM santri s
       LEFT JOIN asrama a ON s.asrama_id = a.id
       WHERE s.status = 'Aktif'
@@ -420,7 +421,7 @@ export const getAbsenMengaji = async (req, res) => {
         jenis_kelamin: s.jenis_kelamin,
         face_descriptor: s.face_descriptor,
         foto: s.foto,
-        status: existing ? (existing.status || existing.status_kehadiran || 'Hadir') : 'Hadir',
+        status: existing ? (existing.status || existing.status_kehadiran || 'Hadir') : null,
         keterangan: existing?.keterangan || '',
         waktu_scan: existing?.waktu_scan || '-',
         nama_ustadz: existing?.nama_ustadz || '',
