@@ -1386,7 +1386,7 @@ export default function OwnerDashboardView({ onLogout }) {
                         Seluruh Program Berjalan Normal
                       </div>
                       <div style={{ fontSize: "0.64rem", color: "#64748b", marginTop: "2px" }}>
-                        KBM, Tahfidz Al-Qur'an, dan Ibadah Berjamaah terpantau aktif realtime.
+                        KBM, Kajian Kitab, dan Ibadah Berjamaah terpantau aktif realtime.
                       </div>
                     </div>
                   </div>
@@ -1407,78 +1407,77 @@ export default function OwnerDashboardView({ onLogout }) {
                 zIndex: 40,
                 background: "linear-gradient(135deg, #0d766e 0%, #042f2e 100%)",
                 color: "#ffffff",
-                padding: "12px 14px",
+                padding: "12px 14px 14px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                boxShadow: "0 4px 14px rgba(0,0,0,0.14)",
-                borderBottomLeftRadius: "16px",
-                borderBottomRightRadius: "16px",
+                boxShadow: "0 6px 18px rgba(0,0,0,0.16)",
+                borderBottomLeftRadius: "18px",
+                borderBottomRightRadius: "18px",
                 marginBottom: "12px"
               }}
             >
               <button
                 type="button"
                 onClick={() => setActiveTab("beranda")}
+                aria-label="Kembali ke Beranda"
                 style={{
                   background: "rgba(255,255,255,0.18)",
-                  border: "none",
+                  border: "1px solid rgba(255,255,255,0.22)",
                   color: "#ffffff",
-                  borderRadius: "10px",
-                  padding: "6px 10px",
+                  borderRadius: "12px",
+                  width: "36px",
+                  height: "36px",
                   display: "flex",
                   alignItems: "center",
-                  gap: "4px",
-                  fontSize: "0.74rem",
-                  fontWeight: 800,
-                  cursor: "pointer"
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  backdropFilter: "blur(6px)",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
+                  transition: "all 0.15s ease",
+                  flexShrink: 0
                 }}
               >
-                <ChevronLeft size={16} strokeWidth={2.8} />
-                <span>Beranda</span>
+                <ChevronLeft size={20} strokeWidth={2.8} />
               </button>
 
-              <div style={{ textAlign: "center", flex: 1, padding: "0 8px" }}>
+              <div style={{ textAlign: "center", flex: 1, padding: "0 8px", minWidth: 0 }}>
                 <span
                   style={{
-                    fontSize: "0.82rem",
+                    fontSize: "0.85rem",
                     fontWeight: 900,
                     letterSpacing: "-0.2px",
                     display: "block",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
-                    textOverflow: "ellipsis"
+                    textOverflow: "ellipsis",
+                    color: "#ffffff",
+                    textShadow: "0 1px 3px rgba(0,0,0,0.25)"
                   }}
                 >
-                  {activeTab === "keuangan" && "Laporan Keuangan Pesantren"}
+                  {activeTab === "keuangan" && "Laporan Keuangan"}
                   {activeTab === "presensi" && "Laporan Presensi Berjamaah"}
                   {activeTab === "perizinan" && "Laporan Perizinan Santri"}
                   {activeTab === "santri" && "Data & Demografi Santri"}
                   {activeTab === "profil" && "Profil Dewan Pembina"}
                 </span>
-                <span style={{ fontSize: "0.58rem", color: "#a7f3d0", fontWeight: 700 }}>
+                <span
+                  style={{
+                    fontSize: "0.58rem",
+                    color: "#a7f3d0",
+                    fontWeight: 800,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    display: "inline-block",
+                    marginTop: "1px"
+                  }}
+                >
                   PANEL EKSEKUTIF OWNER
                 </span>
               </div>
 
-              <button
-                type="button"
-                onClick={fetchSummary}
-                style={{
-                  background: "rgba(255,255,255,0.18)",
-                  border: "none",
-                  color: "#ffffff",
-                  borderRadius: "10px",
-                  padding: "6px 8px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer"
-                }}
-                title="Segarkan Data"
-              >
-                <RotateCw size={15} />
-              </button>
+              {/* Invisible spacer for symmetrical center alignment */}
+              <div style={{ width: "36px", height: "36px", flexShrink: 0 }} />
             </div>
 
             {/* Subview Container */}

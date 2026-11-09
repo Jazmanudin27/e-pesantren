@@ -27,6 +27,7 @@ export default function OwnerLaporanKeuangan() {
   const [periode, setPeriode] = useState("bulan_ini");
   const [activeSubTab, setActiveSubTab] = useState("transaksi"); // 'transaksi' | 'tunggakan' | 'infak'
   const [searchTable, setSearchTable] = useState("");
+  const [visibleLimit, setVisibleLimit] = useState(30);
 
   const [data, setData] = useState({
     kasPeriode: 0,
@@ -57,6 +58,18 @@ export default function OwnerLaporanKeuangan() {
     fetchData();
   }, [periode]);
 
+  useEffect(() => {
+    setVisibleLimit(30);
+  }, [periode, activeSubTab]);
+
+  const formatMetode = (m) => {
+    if (!m) return "Tunai";
+    return String(m)
+      .replace(/Virtual\s*Account/gi, "VA")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
   const filteredTransaksi = (data.transaksiTerakhir || []).filter((t) => {
     const q = searchTable.toLowerCase();
     return (
@@ -85,6 +98,10 @@ export default function OwnerLaporanKeuangan() {
       (i.metode_pembayaran || "").toLowerCase().includes(q)
     );
   });
+
+  const displayedTransaksi = filteredTransaksi.slice(0, visibleLimit);
+  const displayedTunggakan = filteredTunggakan.slice(0, visibleLimit);
+  const displayedInfak = filteredInfak.slice(0, visibleLimit);
 
   const totalObligasi = (data.kasPeriode || 0) + (data.totalPiutang || 0);
   const persenTerbayar = totalObligasi > 0
@@ -267,7 +284,7 @@ export default function OwnerLaporanKeuangan() {
               TOTAL TRANSAKSI
             </div>
             <div style={{ fontSize: "0.95rem", fontWeight: 900, color: "#ffffff", marginTop: "1px" }}>
-              {data.transaksiPeriode} <span style={{ fontSize: "0.65rem", fontWeight: 600 }}>Kuitansi</span>
+              {(data.transaksiPeriode || 0).toLocaleString("id-ID")} <span style={{ fontSize: "0.65rem", fontWeight: 600 }}>Kuitansi</span>
             </div>
           </div>
           <div>
@@ -316,7 +333,7 @@ export default function OwnerLaporanKeuangan() {
             </div>
           </div>
           <div style={{ fontSize: "1.1rem", fontWeight: 900, color: "#b91c1c", marginTop: "6px" }}>
-            {data.totalSantriMenunggak || 0} <span style={{ fontSize: "0.68rem", fontWeight: 600, color: "#64748b" }}>Santri</span>
+            {(data.totalSantriMenunggak || 0).toLocaleString("id-ID")} <span style={{ fontSize: "0.68rem", fontWeight: 600, color: "#64748b" }}>Santri</span>
           </div>
           <div style={{ fontSize: "0.64rem", color: "#991b1b", marginTop: "2px", fontWeight: 700 }}>
             {formatRp(data.totalPiutang)}
@@ -397,7 +414,7 @@ export default function OwnerLaporanKeuangan() {
           }}
         >
           <Receipt size={14} />
-          <span>Kas Masuk</span>
+          <span>Kas Masuk ({filteredTransaksi.length.toLocaleString("id-ID")})</span>
         </button>
 
         <button
@@ -420,7 +437,7 @@ export default function OwnerLaporanKeuangan() {
           }}
         >
           <AlertCircle size={14} />
-          <span>Tunggakan</span>
+          <span>Tunggakan ({filteredTunggakan.length.toLocaleString("id-ID")})</span>
         </button>
 
         <button
@@ -443,7 +460,7 @@ export default function OwnerLaporanKeuangan() {
           }}
         >
           <Heart size={14} />
-          <span>Infak</span>
+          <span>Infak ({filteredInfak.length.toLocaleString("id-ID")})</span>
         </button>
       </div>
 
@@ -507,81 +524,105 @@ export default function OwnerLaporanKeuangan() {
         ) : activeSubTab === "transaksi" ? (
           /* LIST TRANSAKSI KAS MASUK */
           filteredTransaksi.length > 0 ? (
-            filteredTransaksi.map((item, idx) => (
-              <div
-                key={idx}
-                style={{
-                  background: "#ffffff",
-                  borderRadius: "14px",
-                  padding: "12px 14px",
-                  border: "1px solid #e2e8f0",
-                  boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "10px"
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
-                  <div
-                    style={{
-                      width: "36px",
-                      height: "36px",
-                      borderRadius: "11px",
-                      background: "#ecfdf5",
-                      color: "#059669",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0
-                    }}
-                  >
-                    <Receipt size={18} />
-                  </div>
-                  <div style={{ minWidth: 0, overflow: "hidden" }}>
+            <>
+              {displayedTransaksi.map((item, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    background: "#ffffff",
+                    borderRadius: "14px",
+                    padding: "12px 14px",
+                    border: "1px solid #e2e8f0",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "10px"
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
                     <div
                       style={{
-                        fontSize: "0.8rem",
-                        fontWeight: 900,
-                        color: "#0f172a",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis"
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "11px",
+                        background: "#ecfdf5",
+                        color: "#059669",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0
                       }}
                     >
-                      {item.nama_santri || "Santri"}
+                      <Receipt size={18} />
                     </div>
-                    <div style={{ fontSize: "0.64rem", color: "#64748b", marginTop: "1px" }}>
-                      {item.nama_kelas ? `${item.nama_kelas} • ` : ""}{item.nomor_transaksi || "Kuitansi Sah"}
-                    </div>
-                    <div style={{ fontSize: "0.6rem", color: "#94a3b8", marginTop: "1px" }}>
-                      {formatDate(item.created_at || item.tanggal)}
+                    <div style={{ minWidth: 0, overflow: "hidden" }}>
+                      <div
+                        style={{
+                          fontSize: "0.8rem",
+                          fontWeight: 900,
+                          color: "#0f172a",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis"
+                        }}
+                      >
+                        {item.nama_santri || "Santri"}
+                      </div>
+                      <div style={{ fontSize: "0.64rem", color: "#64748b", marginTop: "1px" }}>
+                        {item.nama_kelas ? `${item.nama_kelas} • ` : ""}{item.nomor_transaksi || "Kuitansi Sah"}
+                      </div>
+                      <div style={{ fontSize: "0.6rem", color: "#94a3b8", marginTop: "1px" }}>
+                        {formatDate(item.tanggal_bayar || item.created_at || item.tanggal)}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <div style={{ fontSize: "0.88rem", fontWeight: 900, color: "#059669" }}>
-                    +{formatRp(item.total_bayar || item.nominal || 0)}
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div style={{ fontSize: "0.88rem", fontWeight: 900, color: "#059669" }}>
+                      +{formatRp(item.total_bayar || item.nominal || 0)}
+                    </div>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        marginTop: "3px",
+                        fontSize: "0.58rem",
+                        fontWeight: 800,
+                        color: "#047857",
+                        background: "#ecfdf5",
+                        border: "1px solid #a7f3d0",
+                        padding: "2px 6px",
+                        borderRadius: "6px"
+                      }}
+                    >
+                      {formatMetode(item.metode_pembayaran)}
+                    </span>
                   </div>
-                  <span
-                    style={{
-                      display: "inline-block",
-                      marginTop: "3px",
-                      fontSize: "0.58rem",
-                      fontWeight: 800,
-                      color: "#047857",
-                      background: "#ecfdf5",
-                      border: "1px solid #a7f3d0",
-                      padding: "2px 6px",
-                      borderRadius: "6px"
-                    }}
-                  >
-                    {item.metode_pembayaran || "Tunai"}
-                  </span>
                 </div>
-              </div>
-            ))
+              ))}
+
+              {filteredTransaksi.length > visibleLimit && (
+                <button
+                  type="button"
+                  onClick={() => setVisibleLimit((v) => v + 30)}
+                  style={{
+                    padding: "10px 14px",
+                    background: "#ffffff",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "12px",
+                    fontSize: "0.74rem",
+                    fontWeight: 800,
+                    color: "#0d766e",
+                    cursor: "pointer",
+                    textAlign: "center",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.03)",
+                    marginTop: "4px"
+                  }}
+                >
+                  Tampilkan Lebih Banyak ({(filteredTransaksi.length - visibleLimit).toLocaleString("id-ID")} lagi)
+                </button>
+              )}
+            </>
           ) : (
             <div
               style={{
@@ -604,81 +645,105 @@ export default function OwnerLaporanKeuangan() {
         ) : activeSubTab === "tunggakan" ? (
           /* LIST TUNGGAKAN SANTRI */
           filteredTunggakan.length > 0 ? (
-            filteredTunggakan.map((item, idx) => (
-              <div
-                key={idx}
-                style={{
-                  background: "#ffffff",
-                  borderRadius: "14px",
-                  padding: "12px 14px",
-                  border: "1px solid #fecaca",
-                  boxShadow: "0 2px 6px rgba(239, 68, 68, 0.05)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "10px"
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
-                  <div
-                    style={{
-                      width: "36px",
-                      height: "36px",
-                      borderRadius: "11px",
-                      background: "#fef2f2",
-                      color: "#ef4444",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0
-                    }}
-                  >
-                    <AlertCircle size={18} />
-                  </div>
-                  <div style={{ minWidth: 0, overflow: "hidden" }}>
+            <>
+              {displayedTunggakan.map((item, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    background: "#ffffff",
+                    borderRadius: "14px",
+                    padding: "12px 14px",
+                    border: "1px solid #fecaca",
+                    boxShadow: "0 2px 6px rgba(239, 68, 68, 0.05)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "10px"
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
                     <div
                       style={{
-                        fontSize: "0.8rem",
-                        fontWeight: 900,
-                        color: "#0f172a",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis"
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "11px",
+                        background: "#fef2f2",
+                        color: "#ef4444",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0
                       }}
                     >
-                      {item.nama_santri}
+                      <AlertCircle size={18} />
                     </div>
-                    <div style={{ fontSize: "0.64rem", color: "#64748b", marginTop: "1px" }}>
-                      NISN: {item.nis || "-"} • Kelas: {item.nama_kelas || "-"}
-                    </div>
-                    <div style={{ fontSize: "0.6rem", color: "#94a3b8", marginTop: "1px" }}>
-                      Wali: {item.nama_wali || "Orang Tua"} {item.no_hp_wali ? `(${item.no_hp_wali})` : ""}
+                    <div style={{ minWidth: 0, overflow: "hidden" }}>
+                      <div
+                        style={{
+                          fontSize: "0.8rem",
+                          fontWeight: 900,
+                          color: "#0f172a",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis"
+                        }}
+                      >
+                        {item.nama_santri}
+                      </div>
+                      <div style={{ fontSize: "0.64rem", color: "#64748b", marginTop: "1px" }}>
+                        NISN: {item.nis || "-"} • Kelas: {item.nama_kelas || "-"}
+                      </div>
+                      <div style={{ fontSize: "0.6rem", color: "#94a3b8", marginTop: "1px" }}>
+                        Wali: {item.nama_wali || "Orang Tua"} {item.no_wa_wali || item.no_hp_wali ? `(${item.no_wa_wali || item.no_hp_wali})` : ""}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <div style={{ fontSize: "0.88rem", fontWeight: 900, color: "#e11d48" }}>
-                    -{formatRp(item.total_tunggakan || 0)}
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div style={{ fontSize: "0.88rem", fontWeight: 900, color: "#e11d48" }}>
+                      -{formatRp(item.total_tunggakan || 0)}
+                    </div>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        marginTop: "3px",
+                        fontSize: "0.58rem",
+                        fontWeight: 800,
+                        color: "#b91c1c",
+                        background: "#fef2f2",
+                        border: "1px solid #fecaca",
+                        padding: "2px 6px",
+                        borderRadius: "6px"
+                      }}
+                    >
+                      {(item.jumlah_tagihan || 1).toLocaleString("id-ID")} Tagihan
+                    </span>
                   </div>
-                  <span
-                    style={{
-                      display: "inline-block",
-                      marginTop: "3px",
-                      fontSize: "0.58rem",
-                      fontWeight: 800,
-                      color: "#b91c1c",
-                      background: "#fef2f2",
-                      border: "1px solid #fecaca",
-                      padding: "2px 6px",
-                      borderRadius: "6px"
-                    }}
-                  >
-                    Menunggak
-                  </span>
                 </div>
-              </div>
-            ))
+              ))}
+
+              {filteredTunggakan.length > visibleLimit && (
+                <button
+                  type="button"
+                  onClick={() => setVisibleLimit((v) => v + 30)}
+                  style={{
+                    padding: "10px 14px",
+                    background: "#ffffff",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "12px",
+                    fontSize: "0.74rem",
+                    fontWeight: 800,
+                    color: "#b91c1c",
+                    cursor: "pointer",
+                    textAlign: "center",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.03)",
+                    marginTop: "4px"
+                  }}
+                >
+                  Tampilkan Lebih Banyak ({(filteredTunggakan.length - visibleLimit).toLocaleString("id-ID")} lagi)
+                </button>
+              )}
+            </>
           ) : (
             <div
               style={{
@@ -701,81 +766,105 @@ export default function OwnerLaporanKeuangan() {
         ) : (
           /* LIST INFAK & WAKAF */
           filteredInfak.length > 0 ? (
-            filteredInfak.map((item, idx) => (
-              <div
-                key={idx}
-                style={{
-                  background: "#ffffff",
-                  borderRadius: "14px",
-                  padding: "12px 14px",
-                  border: "1px solid #e2e8f0",
-                  boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "10px"
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
-                  <div
-                    style={{
-                      width: "36px",
-                      height: "36px",
-                      borderRadius: "11px",
-                      background: "#fff1f2",
-                      color: "#e11d48",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0
-                    }}
-                  >
-                    <Heart size={18} />
-                  </div>
-                  <div style={{ minWidth: 0, overflow: "hidden" }}>
+            <>
+              {displayedInfak.map((item, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    background: "#ffffff",
+                    borderRadius: "14px",
+                    padding: "12px 14px",
+                    border: "1px solid #e2e8f0",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "10px"
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
                     <div
                       style={{
-                        fontSize: "0.8rem",
-                        fontWeight: 900,
-                        color: "#0f172a",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis"
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "11px",
+                        background: "#fff1f2",
+                        color: "#e11d48",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0
                       }}
                     >
-                      {item.nama_donatur || "Hamba Allah"}
+                      <Heart size={18} />
                     </div>
-                    <div style={{ fontSize: "0.64rem", color: "#64748b", marginTop: "1px" }}>
-                      Program: {item.nama_program || "Pembangunan Pesantren"}
-                    </div>
-                    <div style={{ fontSize: "0.6rem", color: "#94a3b8", marginTop: "1px" }}>
-                      {formatDate(item.created_at || item.tanggal)}
+                    <div style={{ minWidth: 0, overflow: "hidden" }}>
+                      <div
+                        style={{
+                          fontSize: "0.8rem",
+                          fontWeight: 900,
+                          color: "#0f172a",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis"
+                        }}
+                      >
+                        {item.nama_donatur || "Hamba Allah"}
+                      </div>
+                      <div style={{ fontSize: "0.64rem", color: "#64748b", marginTop: "1px" }}>
+                        Program: {item.nama_program || "Pembangunan Pesantren"}
+                      </div>
+                      <div style={{ fontSize: "0.6rem", color: "#94a3b8", marginTop: "1px" }}>
+                        {formatDate(item.tanggal || item.created_at)}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <div style={{ fontSize: "0.88rem", fontWeight: 900, color: "#be123c" }}>
-                    +{formatRp(item.nominal || 0)}
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div style={{ fontSize: "0.88rem", fontWeight: 900, color: "#be123c" }}>
+                      +{formatRp(item.nominal || 0)}
+                    </div>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        marginTop: "3px",
+                        fontSize: "0.58rem",
+                        fontWeight: 800,
+                        color: "#be123c",
+                        background: "#fff1f2",
+                        border: "1px solid #fecdd3",
+                        padding: "2px 6px",
+                        borderRadius: "6px"
+                      }}
+                    >
+                      {formatMetode(item.metode_pembayaran || "Infak Sah")}
+                    </span>
                   </div>
-                  <span
-                    style={{
-                      display: "inline-block",
-                      marginTop: "3px",
-                      fontSize: "0.58rem",
-                      fontWeight: 800,
-                      color: "#be123c",
-                      background: "#fff1f2",
-                      border: "1px solid #fecdd3",
-                      padding: "2px 6px",
-                      borderRadius: "6px"
-                    }}
-                  >
-                    {item.metode_pembayaran || "Infak Sah"}
-                  </span>
                 </div>
-              </div>
-            ))
+              ))}
+
+              {filteredInfak.length > visibleLimit && (
+                <button
+                  type="button"
+                  onClick={() => setVisibleLimit((v) => v + 30)}
+                  style={{
+                    padding: "10px 14px",
+                    background: "#ffffff",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "12px",
+                    fontSize: "0.74rem",
+                    fontWeight: 800,
+                    color: "#be123c",
+                    cursor: "pointer",
+                    textAlign: "center",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.03)",
+                    marginTop: "4px"
+                  }}
+                >
+                  Tampilkan Lebih Banyak ({(filteredInfak.length - visibleLimit).toLocaleString("id-ID")} lagi)
+                </button>
+              )}
+            </>
           ) : (
             <div
               style={{

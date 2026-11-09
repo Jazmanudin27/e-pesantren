@@ -193,7 +193,10 @@ export const getOwnerKeuangan = async (req, res) => {
       WHERE status IN ('Belum Dibayar', 'Sebagian')
     `).catch(() => [[{ total_piutang: 0, total_santri_menunggak: 0 }]]);
 
-    // 4. Log 50 Transaksi Pembayaran Kas Terakhir
+    const limitNum = Math.min(Math.max(parseInt(req.query.limit, 10) || 100, 10), 500);
+
+    // 4. Log Transaksi Pembayaran Kas Terakhir (Filtered by selected periode)
+    const tpDateCond = getPeriodeDateCondition(periode, 'tp.tanggal_bayar');
     const [transaksiRows] = await pool.query(`
       SELECT 
         tp.id,
@@ -210,12 +213,12 @@ export const getOwnerKeuangan = async (req, res) => {
         COALESCE(s.nama_kelas, '') as nama_kelas
       FROM keuangan_transaksi_pembayaran tp
       JOIN santri s ON tp.santri_id = s.id
-      WHERE tp.status_pembayaran = 'Berhasil'
+      WHERE tp.status_pembayaran = 'Berhasil' ${tpDateCond.sql}
       ORDER BY tp.tanggal_bayar DESC, tp.id DESC
-      LIMIT 100
-    `).catch(() => [[]]);
+      LIMIT ?
+    `, [...tpDateCond.params, limitNum]).catch(() => [[]]);
 
-    // 5. Rekap 50 Santri Penunggak Teratas
+    // 5. Rekap Santri Penunggak Teratas
     const [tunggakanRows] = await pool.query(`
       SELECT 
         s.id as santri_id,
@@ -231,10 +234,11 @@ export const getOwnerKeuangan = async (req, res) => {
       WHERE t.status IN ('Belum Dibayar', 'Sebagian')
       GROUP BY s.id, s.nama_santri, s.nis, s.nama_kelas, s.nama_wali, s.no_wa_wali
       ORDER BY total_tunggakan DESC
-      LIMIT 100
-    `).catch(() => [[]]);
+      LIMIT ?
+    `, [limitNum]).catch(() => [[]]);
 
-    // 6. Rekap Infak & Sedekah
+    // 6. Rekap Infak & Sedekah (Filtered by selected periode)
+    const itDateCond = getPeriodeDateCondition(periode, 'it.tanggal');
     const [infakRows] = await pool.query(`
       SELECT 
         it.id,
@@ -247,10 +251,10 @@ export const getOwnerKeuangan = async (req, res) => {
         pi.nama_program
       FROM pesantren_infak_transaksi it
       LEFT JOIN pesantren_program_infak pi ON it.program_id = pi.id
-      WHERE it.status = 'Berhasil' OR it.status = 'Lunas'
-      ORDER BY it.id DESC
-      LIMIT 50
-    `).catch(() => [[]]);
+      WHERE (it.status = 'Berhasil' OR it.status = 'Lunas') ${itDateCond.sql}
+      ORDER BY it.tanggal DESC, it.id DESC
+      LIMIT ?
+    `, [...itDateCond.params, limitNum]).catch(() => [[]]);
 
     return sendSuccess(res, 'Data Laporan Keuangan Owner Berhasil Dimuat', {
       periode,
