@@ -261,7 +261,6 @@ export const getSantriwatiHaidList = async (req, res) => {
       WHERE ${where.join(' AND ')}
       ORDER BY is_haid DESC, s.nama_santri ASC
     `;
-    `;
 
     const [rows] = await pool.query(sql, params);
 
