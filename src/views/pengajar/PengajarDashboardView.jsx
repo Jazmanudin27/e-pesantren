@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { showConfirm, toastSuccess } from '../../utils/alert.util';
 import PengajarAbsenMengaji from './PengajarAbsenMengaji';
+import PengajarAbsenBerjamaah from './PengajarAbsenBerjamaah';
 import PengajarTeguranView from './PengajarTeguranView';
 import PengajarPraktekView from './PengajarPraktekView';
 import PengajarPerkembanganView from './PengajarPerkembanganView';
@@ -1147,6 +1148,24 @@ export default function PengajarDashboardView({ onLogout }) {
                     <span style={menuLabelStyle}>Presensi Mengaji</span>
                   </div>
 
+                  {/* 1b. Presensi Berjamaah (Shalat) */}
+                  <div
+                    onClick={() => setActiveTab("absen-berjamaah")}
+                    style={menuCardStyle}
+                  >
+                    <div
+                      style={{
+                        ...squircleIconStyle,
+                        background:
+                          "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+                        boxShadow: "0 6px 16px -2px rgba(2, 132, 199, 0.38)",
+                      }}
+                    >
+                      <Fingerprint size={23} strokeWidth={2.3} color="#ffffff" />
+                    </div>
+                    <span style={menuLabelStyle}>Presensi Shalat</span>
+                  </div>
+
                   {/* 2. Laporan Berjamaah */}
                   <div
                     onClick={() => setActiveTab("laporan-berjamaah")}
@@ -1367,6 +1386,7 @@ export default function PengajarDashboardView({ onLogout }) {
                   }}
                 >
                   {activeTab === 'absen-mengaji' && 'Presensi Mengaji Santri'}
+                  {activeTab === 'absen-berjamaah' && 'Presensi Shalat Berjamaah'}
                   {activeTab === 'laporan-berjamaah' && 'Laporan Presensi Berjamaah'}
                   {activeTab === 'teguran' && 'Catatan Pelanggaran & Ta\'zir'}
                   {activeTab === 'praktek' && 'Evaluasi Praktek Ibadah'}
@@ -1395,8 +1415,9 @@ export default function PengajarDashboardView({ onLogout }) {
             </div>
 
             {/* Subview Content Container */}
-            <div style={{ padding: activeTab === 'absen-mengaji' ? 0 : '0 14px 20px', flex: 1 }}>
+            <div style={{ padding: (activeTab === 'absen-mengaji' || activeTab === 'absen-berjamaah') ? 0 : '0 14px 20px', flex: 1 }}>
               {activeTab === 'absen-mengaji' && <PengajarAbsenMengaji />}
+              {activeTab === 'absen-berjamaah' && <PengajarAbsenBerjamaah />}
               {activeTab === 'laporan-berjamaah' && <OwnerLaporanPresensi initialStatus={presensiFilter} />}
               {activeTab === 'teguran' && <PengajarTeguranView />}
               {activeTab === 'praktek' && <PengajarPraktekView />}

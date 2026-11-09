@@ -218,8 +218,11 @@ router.get('/for-presensi', async (req, res) => {
         COALESCE(a.nama_asrama, '') as nama_asrama,
         ${hasKamarId ? 's.kamar_id,' : 'NULL as kamar_id,'}
         COALESCE(k.nama_kamar, '') as nama_kamar,
+        CASE WHEN (COALESCE(s.is_haid, 0) = 1 OR sh_haid.id IS NOT NULL) THEN 1 ELSE 0 END as is_haid,
+        sh_haid.tgl_mulai as tgl_haid_mulai,
         s.face_descriptor
       FROM santri s
+      LEFT JOIN santri_haid sh_haid ON s.id = sh_haid.santri_id AND sh_haid.status = 'aktif'
       ${asramaJoin}
       ${kamarJoin}
       ${kelasJoin}
@@ -297,8 +300,11 @@ router.get('/by-kelas/:kelas', async (req, res) => {
         COALESCE(a.nama_asrama, '') as nama_asrama,
         ${hasKamarId ? 's.kamar_id,' : 'NULL as kamar_id,'}
         COALESCE(k.nama_kamar, '') as nama_kamar,
+        CASE WHEN (COALESCE(s.is_haid, 0) = 1 OR sh_haid.id IS NOT NULL) THEN 1 ELSE 0 END as is_haid,
+        sh_haid.tgl_mulai as tgl_haid_mulai,
         s.face_descriptor
       FROM santri s
+      LEFT JOIN santri_haid sh_haid ON s.id = sh_haid.santri_id AND sh_haid.status = 'aktif'
       ${asramaJoin}
       ${kamarJoin}
       ${kelasJoin}

@@ -101,6 +101,7 @@ export default function MobilePresensiBerjamaah() {
   const [santriList, setSantriList] = useState([]);
   const [kelasList, setKelasList] = useState([]);
   const [presensiLogs, setPresensiLogs] = useState([]);
+  const [activeHaidIds, setActiveHaidIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -200,9 +201,19 @@ export default function MobilePresensiBerjamaah() {
     }
     setLoadingKelasSantri(true);
     try {
-      const res = await axios.get(`/api/santri/by-kelas/${encodeURIComponent(targetKelas)}`);
+      const [res, resHaid] = await Promise.all([
+        axios.get(`/api/santri/by-kelas/${encodeURIComponent(targetKelas)}`),
+        axios.get("/api/haid/santriwati?tab=haid").catch(() => ({ data: { data: { santriwati: [] } } }))
+      ]);
       const rows = res.data?.data || [];
       setSantriList(rows);
+      const rawHaidList = resHaid.data?.data?.santriwati || [];
+      const haidSet = new Set(rawHaidList.map((h) => String(h.id || h.santri_id)));
+      // Tambahkan juga jika di object row ada is_haid = 1
+      rows.forEach((r) => {
+        if (Number(r.is_haid) === 1) haidSet.add(String(r.id));
+      });
+      setActiveHaidIds(haidSet);
     } catch (err) {
       console.warn("Gagal load santri by kelas:", err);
     } finally {
@@ -223,12 +234,16 @@ export default function MobilePresensiBerjamaah() {
         santriPromise = Promise.resolve({ data: { data: [] } });
       }
 
-      const [resSantri, resAbs, resSesi, resKelas] = await Promise.all([
+      const [resSantri, resAbs, resSesi, resKelas, resHaid] = await Promise.all([
         santriPromise,
         axios.get("/api/absensi/fingerprint?today=true&tipe=berjamaah").catch(() => ({ data: { data: [] } })),
         axios.get("/api/absensi/sesi").catch(() => ({ data: { data: [] } })),
         axios.get("/api/kelas").catch(() => ({ data: { data: [] } })),
+        axios.get("/api/haid/santriwati?tab=haid").catch(() => ({ data: { data: { santriwati: [] } } })),
       ]);
+
+      const rawHaidList = resHaid.data?.data?.santriwati || [];
+      const haidSet = new Set(rawHaidList.map((h) => String(h.id || h.santri_id)));
 
       const rawKelas = resKelas.data?.data || [];
       if (Array.isArray(rawKelas)) setKelasList(rawKelas);
@@ -271,7 +286,11 @@ export default function MobilePresensiBerjamaah() {
 
       if (resSantri.data && resSantri.data.data) {
         setSantriList(resSantri.data.data);
+        resSantri.data.data.forEach((r) => {
+          if (Number(r.is_haid) === 1) haidSet.add(String(r.id));
+        });
       }
+      setActiveHaidIds(haidSet);
 
       const serverLogs = resAbs.data && Array.isArray(resAbs.data.data) ? resAbs.data.data : [];
       setPresensiLogs(serverLogs);
@@ -345,12 +364,42 @@ export default function MobilePresensiBerjamaah() {
     return ["p", "perempuan", "putri", "akhwat", "female", "f"].includes(raw);
   };
 
+  // Cek apakah santriwati sedang masa Haid (Udzur Syar'i)
+  const isSantriInHaid = (santri) => {
+    if (!santri || !isSantriFemale(santri)) return false;
+    if (Number(santri.is_haid) === 1) return true;
+    if (activeHaidIds.has(String(santri.id))) return true;
+    return false;
+  };
+
+  // Cek Status Efektif (Otomatis 'Haid' jika sedang masa haid)
+  const getSantriEffectiveStatus = (santri) => {
+    const log = getSantriCurrentLog(santri);
+    if (log) {
+      return String(log.status_kehadiran || log.status || "").trim();
+    }
+    if (isSantriInHaid(santri)) {
+      return "Haid";
+    }
+    return "";
+  };
+
   // Catat Hadir Manual
   const recordAttendance = async (santri, status = "Hadir") => {
     if (!selectedBerjamaahKelas) {
       showError("Pilih Kelas", "Wajib memilih Kelas santri terlebih dahulu di dropdown atas sebelum mencatat presensi!");
       return;
     }
+
+    // Proteksi Readonly: Santriwati haid terkunci, tidak bisa diubah ke Hadir/Sakit/Izin
+    if (isSantriInHaid(santri) && status !== "Haid") {
+      showError(
+        "Terkunci: Santriwati Sedang Haid",
+        `${santri.nama_santri} tercatat sedang dalam masa haid (udzur syar'i). Status otomatis Haid dan terkunci (readonly).`
+      );
+      return;
+    }
+
     const now = new Date();
     const timeStr = now.toTimeString().split(" ")[0];
     const dateStr = getTodayDateStr();
@@ -368,8 +417,8 @@ export default function MobilePresensiBerjamaah() {
       waktu_scan: timeStr,
       status: status,
       status_kehadiran: status,
-      metode_presensi: "Manual",
-      metode_scan: "Manual",
+      metode_presensi: isSantriInHaid(santri) ? "Sistem Haid" : "Manual",
+      metode_scan: isSantriInHaid(santri) ? "Sistem Haid" : "Manual",
       keterangan: selectedBerjamaahKelas ? `Kelas: ${selectedBerjamaahKelas}` : (santri.nama_kelas ? `Kelas: ${santri.nama_kelas}` : ""),
       nama_santri: santri.nama_santri,
       nama_kelas: santri.nama_kelas || selectedBerjamaahKelas || "",
@@ -397,6 +446,13 @@ export default function MobilePresensiBerjamaah() {
 
   // Batalkan Presensi (Undo jika salah klik)
   const cancelAttendance = async (santri) => {
+    if (isSantriInHaid(santri)) {
+      showError(
+        "Terkunci Udzur Haid",
+        `Status haid ${santri.nama_santri} dikelola melalui menu Haid Santri. Tidak dapat dibatalkan manual dari presensi berjamaah.`
+      );
+      return;
+    }
     const log = getSantriCurrentLog(santri);
     if (!log) return;
 
@@ -410,41 +466,37 @@ export default function MobilePresensiBerjamaah() {
 
   const hasFemaleInClass = santriList.some((s) => isSantriFemale(s));
 
-  // Santri terfilter berdasarkan Pencarian & Status
+  // Santri terfilter berdasarkan Pencarian & Status Efektif
   const filteredSantri = santriList.filter((s) => {
     const matchSearch =
       (s.nama_santri || "").toLowerCase().includes(searchManual.toLowerCase()) ||
       (s.nis || "").includes(searchManual);
-    const log = getSantriCurrentLog(s);
-    const curStatus = String(log?.status_kehadiran || log?.status || "").toLowerCase();
+    const effStatus = getSantriEffectiveStatus(s).toLowerCase();
+    const hasRecord = !!getSantriCurrentLog(s) || isSantriInHaid(s);
 
-    if (filterManualStatus === "Belum") return matchSearch && !log;
-    if (filterManualStatus === "Hadir") return matchSearch && curStatus.includes("hadir");
-    if (filterManualStatus === "Sakit") return matchSearch && curStatus.includes("sakit");
-    if (filterManualStatus === "Izin") return matchSearch && curStatus.includes("izin");
-    if (filterManualStatus === "Haid") return matchSearch && curStatus.includes("haid");
+    if (filterManualStatus === "Belum") return matchSearch && !hasRecord;
+    if (filterManualStatus === "Hadir") return matchSearch && effStatus.includes("hadir");
+    if (filterManualStatus === "Sakit") return matchSearch && effStatus.includes("sakit");
+    if (filterManualStatus === "Izin") return matchSearch && effStatus.includes("izin");
+    if (filterManualStatus === "Haid") return matchSearch && effStatus.includes("haid");
     return matchSearch;
   });
 
   const sessionTotal = santriList.length;
   const sessionHadirCount = santriList.filter((s) => {
-    const l = getSantriCurrentLog(s);
-    return l && String(l.status_kehadiran || l.status || "").toLowerCase().includes("hadir");
+    return getSantriEffectiveStatus(s).toLowerCase().includes("hadir");
   }).length;
   const sessionSakitCount = santriList.filter((s) => {
-    const l = getSantriCurrentLog(s);
-    return l && String(l.status_kehadiran || l.status || "").toLowerCase().includes("sakit");
+    return getSantriEffectiveStatus(s).toLowerCase().includes("sakit");
   }).length;
   const sessionIzinCount = santriList.filter((s) => {
-    const l = getSantriCurrentLog(s);
-    return l && String(l.status_kehadiran || l.status || "").toLowerCase().includes("izin");
+    return getSantriEffectiveStatus(s).toLowerCase().includes("izin");
   }).length;
   const sessionHaidCount = santriList.filter((s) => {
-    const l = getSantriCurrentLog(s);
-    return l && String(l.status_kehadiran || l.status || "").toLowerCase().includes("haid");
+    return getSantriEffectiveStatus(s).toLowerCase().includes("haid");
   }).length;
 
-  const sessionSudahCount = santriList.filter((s) => getSantriCurrentLog(s)).length;
+  const sessionSudahCount = santriList.filter((s) => !!getSantriCurrentLog(s) || isSantriInHaid(s)).length;
   const sessionBelumCount = sessionTotal - sessionSudahCount;
   const sessionPercent = sessionTotal > 0 ? Math.round((sessionHadirCount / sessionTotal) * 100) : 0;
 
@@ -827,13 +879,16 @@ export default function MobilePresensiBerjamaah() {
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 {filteredSantri.map((s) => {
                   const log = getSantriCurrentLog(s);
-                  const curStatus = String(log?.status_kehadiran || log?.status || "").trim();
                   const isFemale = isSantriFemale(s);
+                  const inHaid = isSantriInHaid(s);
+                  const curStatus = log 
+                    ? String(log?.status_kehadiran || log?.status || "").trim() 
+                    : (inHaid ? "Haid" : "");
 
-                  const isHadir = /hadir/i.test(curStatus);
-                  const isSakit = /sakit/i.test(curStatus);
-                  const isIzin = /izin/i.test(curStatus);
-                  const isHaid = /haid/i.test(curStatus);
+                  const isHadir = !inHaid && /hadir/i.test(curStatus);
+                  const isSakit = !inHaid && /sakit/i.test(curStatus);
+                  const isIzin = !inHaid && /izin/i.test(curStatus);
+                  const isHaid = inHaid || /haid/i.test(curStatus);
 
                   const avatarTheme = getAvatarTheme(s.nama_santri || "");
 
@@ -842,7 +897,11 @@ export default function MobilePresensiBerjamaah() {
                   let cardBg = "#ffffff";
                   let cardShadow = "0 3px 14px -2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03)";
 
-                  if (isHadir) {
+                  if (isHaid) {
+                    cardBorderLeft = "4px solid #ec4899";
+                    cardBg = "linear-gradient(to right, #fdf2f8 0%, #ffffff 40%)";
+                    cardShadow = "0 4px 16px -2px rgba(236, 72, 153, 0.14)";
+                  } else if (isHadir) {
                     cardBorderLeft = "4px solid #10b981";
                     cardBg = "linear-gradient(to right, #f0fdf4 0%, #ffffff 40%)";
                     cardShadow = "0 4px 16px -2px rgba(16, 185, 129, 0.12)";
@@ -854,10 +913,6 @@ export default function MobilePresensiBerjamaah() {
                     cardBorderLeft = "4px solid #0284c7";
                     cardBg = "linear-gradient(to right, #f0f9ff 0%, #ffffff 40%)";
                     cardShadow = "0 4px 16px -2px rgba(2, 132, 199, 0.12)";
-                  } else if (isHaid) {
-                    cardBorderLeft = "4px solid #ec4899";
-                    cardBg = "linear-gradient(to right, #fdf2f8 0%, #ffffff 40%)";
-                    cardShadow = "0 4px 16px -2px rgba(236, 72, 153, 0.12)";
                   }
 
                   return (
@@ -885,8 +940,8 @@ export default function MobilePresensiBerjamaah() {
                               width: "40px",
                               height: "40px",
                               borderRadius: "13px",
-                              background: avatarTheme.bg,
-                              color: avatarTheme.color,
+                              background: inHaid ? "linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%)" : avatarTheme.bg,
+                              color: inHaid ? "#be185d" : avatarTheme.color,
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
@@ -895,10 +950,10 @@ export default function MobilePresensiBerjamaah() {
                               letterSpacing: "0.5px",
                               flexShrink: 0,
                               boxShadow: avatarTheme.shadow,
-                              border: `1.5px solid ${avatarTheme.border}`,
+                              border: `1.5px solid ${inHaid ? "#f472b6" : avatarTheme.border}`,
                             }}
                           >
-                            {getInitials(s.nama_santri)}
+                            {inHaid ? "🌸" : getInitials(s.nama_santri)}
                           </div>
 
                           {/* Info Santri */}
@@ -918,8 +973,8 @@ export default function MobilePresensiBerjamaah() {
                                 {s.nama_santri}
                               </span>
                               {isFemale && (
-                                <span style={{ fontSize: "0.62rem", fontWeight: 700, padding: "1px 6px", borderRadius: "999px", background: "#fdf2f8", color: "#db2777", border: "1px solid #fbcfe8" }}>
-                                  Akhwat
+                                <span style={{ fontSize: "0.62rem", fontWeight: 700, padding: "1px 6px", borderRadius: "999px", background: inHaid ? "#fce7f3" : "#fdf2f8", color: inHaid ? "#be185d" : "#db2777", border: "1px solid #fbcfe8" }}>
+                                  {inHaid ? "🌸 Udzur Haid" : "Akhwat"}
                                 </span>
                               )}
                             </div>
@@ -936,7 +991,7 @@ export default function MobilePresensiBerjamaah() {
                         </div>
 
                         {/* Status Pill Indicator */}
-                        {log ? (
+                        {curStatus ? (
                           <div
                             style={{
                               display: "flex",
@@ -944,9 +999,9 @@ export default function MobilePresensiBerjamaah() {
                               gap: "5px",
                               padding: "3px 9px",
                               borderRadius: "999px",
-                              background: isHadir ? "#dcfce7" : isSakit ? "#fef3c7" : isIzin ? "#e0f2fe" : "#fce7f3",
-                              color: isHadir ? "#15803d" : isSakit ? "#b45309" : isIzin ? "#0369a1" : "#be185d",
-                              border: `1px solid ${isHadir ? "#86efac" : isSakit ? "#fde68a" : isIzin ? "#bae6fd" : "#fbcfe8"}`,
+                              background: isHaid ? "#fce7f3" : isHadir ? "#dcfce7" : isSakit ? "#fef3c7" : "#e0f2fe",
+                              color: isHaid ? "#be185d" : isHadir ? "#15803d" : isSakit ? "#b45309" : "#0369a1",
+                              border: `1px solid ${isHaid ? "#fbcfe8" : isHadir ? "#86efac" : isSakit ? "#fde68a" : "#bae6fd"}`,
                               fontSize: "0.68rem",
                               fontWeight: 800,
                               flexShrink: 0,
@@ -957,11 +1012,11 @@ export default function MobilePresensiBerjamaah() {
                                 width: "6px",
                                 height: "6px",
                                 borderRadius: "50%",
-                                background: isHadir ? "#22c55e" : isSakit ? "#f59e0b" : isIzin ? "#0284c7" : "#ec4899",
-                                boxShadow: `0 0 6px ${isHadir ? "#22c55e" : isSakit ? "#f59e0b" : isIzin ? "#0284c7" : "#ec4899"}`,
+                                background: isHaid ? "#ec4899" : isHadir ? "#22c55e" : isSakit ? "#f59e0b" : "#0284c7",
+                                boxShadow: `0 0 6px ${isHaid ? "#ec4899" : isHadir ? "#22c55e" : isSakit ? "#f59e0b" : "#0284c7"}`,
                               }}
                             />
-                            {curStatus}
+                            {inHaid ? "🌸 Haid (Udzur)" : curStatus}
                           </div>
                         ) : (
                           <div
@@ -981,17 +1036,41 @@ export default function MobilePresensiBerjamaah() {
                         )}
                       </div>
 
+                      {/* Notifikasi Status Terkunci Khusus Haid */}
+                      {inHaid && (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            padding: "6px 10px",
+                            borderRadius: "10px",
+                            background: "#fdf2f8",
+                            border: "1px dashed #f472b6",
+                            color: "#be185d",
+                            fontSize: "0.68rem",
+                            fontWeight: 700,
+                          }}
+                        >
+                          <span style={{ fontSize: "0.76rem" }}>🔒</span>
+                          <span>Sedang masa Haid — Otomatis Haid, status lain readonly</span>
+                        </div>
+                      )}
+
                       {/* Baris Tombol Aksi Segmented Modern */}
                       <div
                         style={{
                           display: "grid",
-                          gridTemplateColumns: isFemale ? (log ? "repeat(4, 1fr) auto" : "repeat(4, 1fr)") : (log ? "repeat(3, 1fr) auto" : "repeat(3, 1fr)"),
+                          gridTemplateColumns: isFemale ? (log && !inHaid ? "repeat(4, 1fr) auto" : "repeat(4, 1fr)") : (log ? "repeat(3, 1fr) auto" : "repeat(3, 1fr)"),
                           gap: "6px",
                           marginTop: "2px",
                         }}
                       >
+                        {/* Tombol Hadir: Terkunci (Readonly) saat Haid */}
                         <button
-                          onClick={() => recordAttendance(s, "Hadir")}
+                          disabled={inHaid}
+                          onClick={() => !inHaid && recordAttendance(s, "Hadir")}
+                          title={inHaid ? "Terkunci: Santriwati sedang masa haid" : "Catat Hadir"}
                           style={{
                             display: "flex",
                             alignItems: "center",
@@ -1001,20 +1080,26 @@ export default function MobilePresensiBerjamaah() {
                             borderRadius: "10px",
                             border: isHadir ? "none" : "1px solid #e2e8f0",
                             background: isHadir ? "linear-gradient(135deg, #10b981 0%, #059669 100%)" : "#f8fafc",
-                            color: isHadir ? "#ffffff" : "#334155",
+                            color: isHadir ? "#ffffff" : inHaid ? "#94a3b8" : "#334155",
                             fontSize: "0.72rem",
                             fontWeight: 800,
-                            cursor: "pointer",
+                            cursor: inHaid ? "not-allowed" : "pointer",
+                            opacity: inHaid ? 0.35 : 1,
+                            pointerEvents: inHaid ? "none" : "auto",
+                            filter: inHaid ? "grayscale(0.7)" : "none",
                             boxShadow: isHadir ? "0 4px 12px rgba(16, 185, 129, 0.35)" : "none",
                             transition: "all 0.18s ease",
                           }}
                         >
-                          <CheckCircle2 size={13} strokeWidth={2.5} color={isHadir ? "#ffffff" : "#10b981"} />
+                          <CheckCircle2 size={13} strokeWidth={2.5} color={isHadir ? "#ffffff" : inHaid ? "#94a3b8" : "#10b981"} />
                           <span>Hadir</span>
                         </button>
 
+                        {/* Tombol Sakit: Terkunci (Readonly) saat Haid */}
                         <button
-                          onClick={() => recordAttendance(s, "Sakit")}
+                          disabled={inHaid}
+                          onClick={() => !inHaid && recordAttendance(s, "Sakit")}
+                          title={inHaid ? "Terkunci: Santriwati sedang masa haid" : "Catat Sakit"}
                           style={{
                             display: "flex",
                             alignItems: "center",
@@ -1024,20 +1109,26 @@ export default function MobilePresensiBerjamaah() {
                             borderRadius: "10px",
                             border: isSakit ? "none" : "1px solid #e2e8f0",
                             background: isSakit ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)" : "#f8fafc",
-                            color: isSakit ? "#ffffff" : "#334155",
+                            color: isSakit ? "#ffffff" : inHaid ? "#94a3b8" : "#334155",
                             fontSize: "0.72rem",
                             fontWeight: 800,
-                            cursor: "pointer",
+                            cursor: inHaid ? "not-allowed" : "pointer",
+                            opacity: inHaid ? 0.35 : 1,
+                            pointerEvents: inHaid ? "none" : "auto",
+                            filter: inHaid ? "grayscale(0.7)" : "none",
                             boxShadow: isSakit ? "0 4px 12px rgba(245, 158, 11, 0.35)" : "none",
                             transition: "all 0.18s ease",
                           }}
                         >
-                          <AlertCircle size={13} strokeWidth={2.5} color={isSakit ? "#ffffff" : "#f59e0b"} />
+                          <AlertCircle size={13} strokeWidth={2.5} color={isSakit ? "#ffffff" : inHaid ? "#94a3b8" : "#f59e0b"} />
                           <span>Sakit</span>
                         </button>
 
+                        {/* Tombol Izin: Terkunci (Readonly) saat Haid */}
                         <button
-                          onClick={() => recordAttendance(s, "Izin")}
+                          disabled={inHaid}
+                          onClick={() => !inHaid && recordAttendance(s, "Izin")}
+                          title={inHaid ? "Terkunci: Santriwati sedang masa haid" : "Catat Izin"}
                           style={{
                             display: "flex",
                             alignItems: "center",
@@ -1047,22 +1138,26 @@ export default function MobilePresensiBerjamaah() {
                             borderRadius: "10px",
                             border: isIzin ? "none" : "1px solid #e2e8f0",
                             background: isIzin ? "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)" : "#f8fafc",
-                            color: isIzin ? "#ffffff" : "#334155",
+                            color: isIzin ? "#ffffff" : inHaid ? "#94a3b8" : "#334155",
                             fontSize: "0.72rem",
                             fontWeight: 800,
-                            cursor: "pointer",
+                            cursor: inHaid ? "not-allowed" : "pointer",
+                            opacity: inHaid ? 0.35 : 1,
+                            pointerEvents: inHaid ? "none" : "auto",
+                            filter: inHaid ? "grayscale(0.7)" : "none",
                             boxShadow: isIzin ? "0 4px 12px rgba(2, 132, 199, 0.35)" : "none",
                             transition: "all 0.18s ease",
                           }}
                         >
-                          <Clock size={13} strokeWidth={2.5} color={isIzin ? "#ffffff" : "#0284c7"} />
+                          <Clock size={13} strokeWidth={2.5} color={isIzin ? "#ffffff" : inHaid ? "#94a3b8" : "#0284c7"} />
                           <span>Izin</span>
                         </button>
 
-                        {/* Pilihan Haid Khusus Santriwati */}
+                        {/* Pilihan Haid Khusus Santriwati: Otomatis Terpilih saat Haid */}
                         {isFemale && (
                           <button
                             onClick={() => recordAttendance(s, "Haid")}
+                            title={inHaid ? "Otomatis Haid (Udzur Syar'i)" : "Catat Haid"}
                             style={{
                               display: "flex",
                               alignItems: "center",
@@ -1081,12 +1176,12 @@ export default function MobilePresensiBerjamaah() {
                             }}
                           >
                             <Sparkles size={13} strokeWidth={2.5} color={isHaid ? "#ffffff" : "#ec4899"} />
-                            <span>Haid</span>
+                            <span>{inHaid ? "🌸 Haid" : "Haid"}</span>
                           </button>
                         )}
 
-                        {/* Reset / Batal button */}
-                        {log && (
+                        {/* Reset / Batal button: Disembunyikan saat santriwati sedang haid */}
+                        {log && !inHaid && (
                           <button
                             onClick={() => cancelAttendance(s)}
                             title="Reset / Batalkan presensi"
@@ -1096,6 +1191,20 @@ export default function MobilePresensiBerjamaah() {
                               justifyContent: "center",
                               padding: "8px 10px",
                               borderRadius: "10px",
+                              border: "1px solid #fecaca",
+                              background: "#fef2f2",
+                              color: "#dc2626",
+                              cursor: "pointer",
+                              transition: "all 0.18s ease",
+                            }}
+                          >
+                            <RotateCcw size={13} strokeWidth={2.5} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
                               border: "1px solid #fecaca",
                               background: "#fef2f2",
                               color: "#dc2626",
