@@ -371,7 +371,7 @@ export default function AdminLayout() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <DashboardAdmin />;
+        return <DashboardAdmin onNavigate={changeTab} />;
       case 'presensi':
       case 'presensi-berjamaah':
       case 'absensi-berjamaah':

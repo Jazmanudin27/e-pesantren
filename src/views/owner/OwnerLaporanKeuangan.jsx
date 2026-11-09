@@ -295,7 +295,7 @@ export default function OwnerLaporanKeuangan() {
           </div>
           <div>
             <div style={{ fontSize: "0.6rem", color: "#fecdd3", fontWeight: 700 }}>
-              SISA PIUTANG
+              TOTAL TUNGGAKAN
             </div>
             <div style={{ fontSize: "0.95rem", fontWeight: 900, color: "#fecdd3", marginTop: "1px" }}>
               {formatRp(data.totalPiutang)}
@@ -702,6 +702,21 @@ export default function OwnerLaporanKeuangan() {
                       <div style={{ fontSize: "0.6rem", color: "#94a3b8", marginTop: "1px" }}>
                         Wali: {item.nama_wali || "Orang Tua"} {item.no_wa_wali || item.no_hp_wali ? `(${item.no_wa_wali || item.no_hp_wali})` : ""}
                       </div>
+                      {item.rincian_bulan && (
+                        <div
+                          style={{
+                            fontSize: "0.62rem",
+                            color: "#dc2626",
+                            fontWeight: 700,
+                            marginTop: "2px",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis"
+                          }}
+                        >
+                          Bulan: {item.rincian_bulan}
+                        </div>
+                      )}
                     </div>
                   </div>
 

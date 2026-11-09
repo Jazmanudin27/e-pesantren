@@ -25,7 +25,11 @@ import {
   Sparkles,
   RefreshCw,
   Calendar,
-  Settings
+  Settings,
+  X,
+  ArrowDownLeft,
+  Heart,
+  CheckCircle2
 } from "lucide-react";
 import { showConfirm, toastSuccess } from "../../utils/alert.util";
 import OwnerLaporanKeuangan from "./OwnerLaporanKeuangan";
@@ -139,9 +143,41 @@ export default function OwnerDashboardView({ onLogout }) {
     }
   };
 
+  const [showNotifModal, setShowNotifModal] = useState(false);
+  const [notifFilter, setNotifFilter] = useState("semua"); // 'semua' | 'uang_masuk' | 'infak_masuk' | 'perizinan'
+  const [loadingNotif, setLoadingNotif] = useState(false);
+  const [notifData, setNotifData] = useState({
+    totalNotif: 0,
+    totalHariIni: 0,
+    totalUangMasukHariIni: 0,
+    items: []
+  });
+
+  const fetchNotifikasi = async () => {
+    try {
+      setLoadingNotif(true);
+      const res = await axios.get("/api/owner/notifikasi");
+      if (res.data?.success && res.data.data) {
+        setNotifData(res.data.data);
+      }
+    } catch (e) {
+      console.warn("Gagal memuat notifikasi owner:", e);
+    } finally {
+      setLoadingNotif(false);
+    }
+  };
+
+  const handleNotifClick = (item) => {
+    setShowNotifModal(false);
+    if (item.target_tab) {
+      setActiveTab(item.target_tab);
+    }
+  };
+
   useEffect(() => {
     fetchSummary();
     fetchFeed();
+    fetchNotifikasi();
   }, []);
 
   const handleLogout = async () => {
@@ -343,8 +379,11 @@ export default function OwnerDashboardView({ onLogout }) {
                   </button>
 
                   <button
-                    onClick={() => setActiveTab("presensi")}
-                    title="Presensi Berjamaah Realtime"
+                    onClick={() => {
+                      setShowNotifModal(true);
+                      fetchNotifikasi();
+                    }}
+                    title="Pusat Notifikasi Arus Kas & Aktivitas"
                     style={{
                       background: "rgba(255, 255, 255, 0.15)",
                       border: "none",
@@ -359,27 +398,30 @@ export default function OwnerDashboardView({ onLogout }) {
                     }}
                   >
                     <Bell size={18} />
-                    <span
-                      style={{
-                        position: "absolute",
-                        top: "-3px",
-                        right: "-3px",
-                        minWidth: "16px",
-                        height: "16px",
-                        padding: "0 3px",
-                        borderRadius: "99px",
-                        background: "#ef4444",
-                        color: "#ffffff",
-                        fontSize: "0.58rem",
-                        fontWeight: 900,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        border: "1.5px solid #0d766e"
-                      }}
-                    >
-                      {summary.totalIzinAktif > 0 ? summary.totalIzinAktif : "!"}
-                    </span>
+                    {notifData.totalHariIni > 0 && (
+                      <span
+                        style={{
+                          position: "absolute",
+                          top: "-3px",
+                          right: "-3px",
+                          minWidth: "16px",
+                          height: "16px",
+                          padding: "0 4px",
+                          borderRadius: "99px",
+                          background: "#ef4444",
+                          color: "#ffffff",
+                          fontSize: "0.58rem",
+                          fontWeight: 900,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          border: "1.5px solid #0d766e",
+                          boxShadow: "0 0 6px rgba(239, 68, 68, 0.6)"
+                        }}
+                      >
+                        {notifData.totalHariIni > 99 ? "99+" : notifData.totalHariIni}
+                      </span>
+                    )}
                   </button>
 
                   <button
@@ -935,7 +977,7 @@ export default function OwnerDashboardView({ onLogout }) {
                             textTransform: "uppercase"
                           }}
                         >
-                          TOTAL PIUTANG / TUNGGAKAN
+                          TOTAL TUNGGAKAN
                         </div>
                         <div
                           style={{
@@ -966,7 +1008,7 @@ export default function OwnerDashboardView({ onLogout }) {
                             lineHeight: 1.1
                           }}
                         >
-                          TOTAL PIUTANG &amp; TUNGGAKAN
+                          TOTAL TUNGGAKAN
                         </div>
                         <div
                           style={{
@@ -1482,8 +1524,56 @@ export default function OwnerDashboardView({ onLogout }) {
                 </span>
               </div>
 
-              {/* Invisible spacer for symmetrical center alignment */}
-              <div style={{ width: "36px", height: "36px", flexShrink: 0 }} />
+              {/* Notifikasi Button in Subview Header */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowNotifModal(true);
+                  fetchNotifikasi();
+                }}
+                aria-label="Pusat Notifikasi"
+                style={{
+                  background: "rgba(255,255,255,0.18)",
+                  border: "1px solid rgba(255,255,255,0.22)",
+                  color: "#ffffff",
+                  borderRadius: "12px",
+                  width: "36px",
+                  height: "36px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  position: "relative",
+                  backdropFilter: "blur(6px)",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
+                  flexShrink: 0
+                }}
+              >
+                <Bell size={18} strokeWidth={2.4} />
+                {notifData.totalHariIni > 0 && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: "-3px",
+                      right: "-3px",
+                      minWidth: "16px",
+                      height: "16px",
+                      padding: "0 3px",
+                      borderRadius: "99px",
+                      background: "#ef4444",
+                      color: "#ffffff",
+                      fontSize: "0.56rem",
+                      fontWeight: 900,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "1.5px solid #0d766e"
+                    }}
+                  >
+                    {notifData.totalHariIni > 99 ? "99+" : notifData.totalHariIni}
+                  </span>
+                )}
+              </button>
             </div>
 
             {/* Subview Container */}
@@ -1565,6 +1655,324 @@ export default function OwnerDashboardView({ onLogout }) {
             <span>Settings</span>
           </button>
         </nav>
+
+        {/* =========================================================================
+            PUSAT NOTIFIKASI REALTIME MODAL SHEET (UANG MASUK, INFAK, DLL)
+        ========================================================================= */}
+        {showNotifModal && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(15, 23, 42, 0.65)",
+              backdropFilter: "blur(4px)",
+              zIndex: 9999,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "flex-end",
+              padding: 0
+            }}
+            onClick={() => setShowNotifModal(false)}
+          >
+            <div
+              style={{
+                width: "100%",
+                maxWidth: "440px",
+                maxHeight: "86vh",
+                backgroundColor: "#f8fafc",
+                borderTopLeftRadius: "24px",
+                borderTopRightRadius: "24px",
+                display: "flex",
+                flexDirection: "column",
+                boxShadow: "0 -10px 40px rgba(0,0,0,0.25)",
+                overflow: "hidden"
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drag Handle Bar */}
+              <div style={{ display: "flex", justifyContent: "center", paddingTop: "10px", paddingBottom: "4px" }}>
+                <div style={{ width: "40px", height: "4px", borderRadius: "99px", background: "#cbd5e1" }} />
+              </div>
+
+              {/* Modal Header */}
+              <div
+                style={{
+                  padding: "10px 18px 12px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  borderBottom: "1px solid #e2e8f0",
+                  background: "#ffffff"
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div
+                    style={{
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "11px",
+                      background: "#ecfdf5",
+                      color: "#059669",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center"
+                    }}
+                  >
+                    <Bell size={19} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "0.92rem", fontWeight: 900, color: "#0f172a" }}>
+                      Pusat Notifikasi
+                    </div>
+                    <div style={{ fontSize: "0.64rem", color: "#64748b", fontWeight: 600 }}>
+                      Arus Kas Masuk & Aktivitas Santri
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowNotifModal(false)}
+                  style={{
+                    background: "#f1f5f9",
+                    border: "none",
+                    borderRadius: "10px",
+                    width: "32px",
+                    height: "32px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#64748b",
+                    cursor: "pointer"
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Banner Ringkasan Uang Masuk Hari Ini */}
+              <div style={{ padding: "12px 16px 8px" }}>
+                <div
+                  style={{
+                    background: "linear-gradient(135deg, #0d766e 0%, #042f2e 100%)",
+                    borderRadius: "16px",
+                    padding: "12px 14px",
+                    color: "#ffffff",
+                    boxShadow: "0 4px 14px rgba(13, 118, 110, 0.25)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between"
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: "0.62rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "#a7f3d0", fontWeight: 800 }}>
+                      Total Uang Masuk Hari Ini
+                    </div>
+                    <div style={{ fontSize: "1.2rem", fontWeight: 900, color: "#ffffff", marginTop: "2px" }}>
+                      Rp {(notifData.totalUangMasukHariIni || 0).toLocaleString("id-ID")}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      background: "rgba(255, 255, 255, 0.15)",
+                      borderRadius: "12px",
+                      padding: "6px 10px",
+                      textAlign: "center"
+                    }}
+                  >
+                    <div style={{ fontSize: "0.58rem", color: "#e2e8f0", fontWeight: 700 }}>Aktivitas</div>
+                    <div style={{ fontSize: "0.92rem", fontWeight: 900, color: "#a7f3d0" }}>
+                      {notifData.totalHariIni || 0} Hari Ini
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Filter Tabs */}
+              <div
+                style={{
+                  padding: "4px 16px 8px",
+                  display: "flex",
+                  gap: "6px",
+                  overflowX: "auto"
+                }}
+              >
+                {[
+                  { key: "semua", label: "Semua", count: notifData.items.length },
+                  { key: "uang_masuk", label: "💰 Uang Masuk", count: notifData.items.filter(i => i.tipe === "uang_masuk").length },
+                  { key: "infak_masuk", label: "💖 Infak", count: notifData.items.filter(i => i.tipe === "infak_masuk").length },
+                  { key: "perizinan", label: "📋 Perizinan", count: notifData.items.filter(i => i.tipe === "perizinan").length }
+                ].map((f) => {
+                  const active = notifFilter === f.key;
+                  return (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => setNotifFilter(f.key)}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: "20px",
+                        fontSize: "0.68rem",
+                        fontWeight: active ? 800 : 600,
+                        whiteSpace: "nowrap",
+                        cursor: "pointer",
+                        border: active ? "1px solid #0d766e" : "1px solid #e2e8f0",
+                        background: active ? "#0d766e" : "#ffffff",
+                        color: active ? "#ffffff" : "#475569",
+                        boxShadow: active ? "0 2px 6px rgba(13, 118, 110, 0.25)" : "none",
+                        transition: "all 0.15s ease"
+                      }}
+                    >
+                      {f.label} ({f.count})
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Notification Items List */}
+              <div
+                style={{
+                  flex: 1,
+                  overflowY: "auto",
+                  padding: "4px 16px 24px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "8px"
+                }}
+              >
+                {loadingNotif ? (
+                  <div style={{ textAlign: "center", padding: "30px 10px", color: "#64748b" }}>
+                    <RotateCw size={22} className="animate-spin" color="#0d766e" style={{ margin: "0 auto 8px" }} />
+                    <div style={{ fontSize: "0.75rem", fontWeight: 700 }}>Memuat notifikasi terbaru...</div>
+                  </div>
+                ) : (notifData.items || []).filter(i => notifFilter === "semua" || i.tipe === notifFilter).length === 0 ? (
+                  <div
+                    style={{
+                      background: "#ffffff",
+                      borderRadius: "16px",
+                      padding: "28px 16px",
+                      textAlign: "center",
+                      border: "1px solid #e2e8f0"
+                    }}
+                  >
+                    <Bell size={32} color="#cbd5e1" style={{ margin: "0 auto 8px" }} />
+                    <div style={{ fontSize: "0.8rem", fontWeight: 800, color: "#334155" }}>
+                      Belum Ada Notifikasi
+                    </div>
+                    <div style={{ fontSize: "0.68rem", color: "#94a3b8", marginTop: "2px" }}>
+                      Belum ada aktivitas transaksi atau perizinan pada kategori ini.
+                    </div>
+                  </div>
+                ) : (
+                  (notifData.items || [])
+                    .filter(i => notifFilter === "semua" || i.tipe === notifFilter)
+                    .map((item) => {
+                      const isUang = item.tipe === "uang_masuk";
+                      const isInfak = item.tipe === "infak_masuk";
+                      const isIzin = item.tipe === "perizinan";
+
+                      return (
+                        <div
+                          key={item.id}
+                          onClick={() => handleNotifClick(item)}
+                          style={{
+                            background: item.is_today ? "#ffffff" : "#fbfcfe",
+                            borderRadius: "14px",
+                            padding: "11px 12px",
+                            border: item.is_today ? "1px solid #a7f3d0" : "1px solid #e2e8f0",
+                            boxShadow: item.is_today ? "0 2px 8px rgba(13, 118, 110, 0.08)" : "0 1px 3px rgba(0,0,0,0.02)",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "10px",
+                            cursor: "pointer",
+                            transition: "all 0.15s ease"
+                          }}
+                        >
+                          {/* Icon Category */}
+                          <div
+                            style={{
+                              width: "36px",
+                              height: "36px",
+                              borderRadius: "11px",
+                              background: isUang ? "#ecfdf5" : isInfak ? "#fff1f2" : "#fffbeb",
+                              color: isUang ? "#059669" : isInfak ? "#e11d48" : "#d97706",
+                              border: `1px solid ${isUang ? "#a7f3d0" : isInfak ? "#fecdd3" : "#fde68a"}`,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0
+                            }}
+                          >
+                            {isUang && <ArrowDownLeft size={18} strokeWidth={2.6} />}
+                            {isInfak && <Heart size={17} />}
+                            {isIzin && <Clock size={17} />}
+                          </div>
+
+                          {/* Detail Texts */}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px" }}>
+                              <span style={{ fontSize: "0.68rem", fontWeight: 800, color: isUang ? "#065f46" : isInfak ? "#be123c" : "#b45309" }}>
+                                {item.judul}
+                              </span>
+                              <span style={{ fontSize: "0.58rem", color: item.is_today ? "#0d766e" : "#94a3b8", fontWeight: item.is_today ? 800 : 500 }}>
+                                {item.is_today ? `Hari Ini, ${String(item.waktu_str || "").split(" ")[1] || ""}` : item.waktu_str}
+                              </span>
+                            </div>
+
+                            <div
+                              style={{
+                                fontSize: "0.78rem",
+                                fontWeight: 800,
+                                color: "#0f172a",
+                                marginTop: "1px",
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis"
+                              }}
+                            >
+                              {item.subjudul}
+                            </div>
+
+                            <div
+                              style={{
+                                fontSize: "0.64rem",
+                                color: "#64748b",
+                                marginTop: "1px",
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis"
+                              }}
+                            >
+                              {item.deskripsi}
+                            </div>
+                          </div>
+
+                          {/* Nominal / Arrow */}
+                          <div style={{ textAlign: "right", flexShrink: 0 }}>
+                            {item.nominal > 0 && (
+                              <div
+                                style={{
+                                  fontSize: "0.78rem",
+                                  fontWeight: 900,
+                                  color: isUang ? "#059669" : "#e11d48"
+                                }}
+                              >
+                                +Rp {item.nominal.toLocaleString("id-ID")}
+                              </div>
+                            )}
+                            <ChevronRight size={14} color="#94a3b8" style={{ marginTop: "2px", marginLeft: "auto" }} />
+                          </div>
+                        </div>
+                      );
+                    })
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

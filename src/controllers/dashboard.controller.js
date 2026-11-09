@@ -121,6 +121,9 @@ export const getDashboardStats = async (req, res) => {
       console.warn('Dashboard absensi query fallback:', e.message);
     }
 
+    const totalAbsen = (rekap_absensi.hadir || 0) + (rekap_absensi.sakit || 0) + (rekap_absensi.izin || 0) + (rekap_absensi.alfa || 0);
+    rekap_absensi.persen_hadir = totalAbsen > 0 ? Math.round(((rekap_absensi.hadir || 0) / totalAbsen) * 100) : 0;
+
     return sendSuccess(res, 'Dashboard stats retrieved', {
       stats: {
         total_santri: total_santri || 0,

@@ -5,13 +5,17 @@ import {
   getOwnerPresensi,
   getOwnerPerizinan,
   getOwnerSantri,
-  getOwnerPerkembangan
+  getOwnerPerkembangan,
+  getOwnerNotifikasi
 } from '../controllers/owner.controller.js';
 
 const router = express.Router();
 
 // 1. Executive Summary High-Level KPIs
 router.get('/summary', getOwnerSummary);
+
+// 2. Notifikasi Realtime Arus Kas & Aktivitas Owner
+router.get('/notifikasi', getOwnerNotifikasi);
 
 // 2. Menu Laporan Keuangan (Kas Masuk, Transaksi, Tunggakan, Infak)
 router.get('/keuangan', getOwnerKeuangan);

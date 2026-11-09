@@ -101,6 +101,11 @@ export const getOwnerSummary = async (req, res) => {
         COALESCE(SUM(sisa_tagihan), 0) as total_piutang
       FROM keuangan_tagihan
       WHERE status IN ('Belum Dibayar', 'Sebagian')
+        AND sisa_tagihan > 0
+        AND (
+          (jatuh_tempo IS NOT NULL AND DATE(jatuh_tempo) <= CURDATE())
+          OR (jatuh_tempo IS NULL AND DATE(COALESCE(tanggal_tagihan, created_at, NOW())) <= CURDATE())
+        )
     `).catch(() => [[{ total_piutang: 0 }]]);
 
     // Infak Masuk
@@ -184,13 +189,18 @@ export const getOwnerKeuangan = async (req, res) => {
       WHERE status_pembayaran = 'Berhasil'
     `).catch(() => [[{ total_semua_kas: 0 }]]);
 
-    // 3. Total Tunggakan / Piutang Belum Lunas
+    // 3. Total Tunggakan Belum Lunas yang Sudah Jatuh Tempo (Lewat Tgl Batas Akhir)
     const [[piutangAll]] = await pool.query(`
       SELECT 
         COALESCE(SUM(sisa_tagihan), 0) as total_piutang,
         COUNT(DISTINCT santri_id) as total_santri_menunggak
       FROM keuangan_tagihan
       WHERE status IN ('Belum Dibayar', 'Sebagian')
+        AND sisa_tagihan > 0
+        AND (
+          (jatuh_tempo IS NOT NULL AND DATE(jatuh_tempo) <= CURDATE())
+          OR (jatuh_tempo IS NULL AND DATE(COALESCE(tanggal_tagihan, created_at, NOW())) <= CURDATE())
+        )
     `).catch(() => [[{ total_piutang: 0, total_santri_menunggak: 0 }]]);
 
     const limitNum = Math.min(Math.max(parseInt(req.query.limit, 10) || 1000, 10), 5000);
@@ -218,7 +228,7 @@ export const getOwnerKeuangan = async (req, res) => {
       LIMIT ?
     `, [...tpDateCond.params, limitNum]).catch(() => [[]]);
 
-    // 5. Rekap Santri Penunggak (Seluruh santri yang menunggak tanpa batas 100)
+    // 5. Rekap Santri Penunggak (Khusus tagihan yang sudah jatuh tempo / lewat batas akhir tgl 10)
     const [tunggakanRows] = await pool.query(`
       SELECT 
         s.id as santri_id,
@@ -228,10 +238,16 @@ export const getOwnerKeuangan = async (req, res) => {
         s.nama_wali,
         s.no_wa_wali,
         COUNT(t.id) as jumlah_tagihan,
-        SUM(t.sisa_tagihan) as total_tunggakan
+        SUM(t.sisa_tagihan) as total_tunggakan,
+        GROUP_CONCAT(COALESCE(t.periode_bulan, t.judul_tagihan) ORDER BY t.jatuh_tempo ASC SEPARATOR ', ') as rincian_bulan
       FROM keuangan_tagihan t
       JOIN santri s ON t.santri_id = s.id
       WHERE t.status IN ('Belum Dibayar', 'Sebagian')
+        AND t.sisa_tagihan > 0
+        AND (
+          (t.jatuh_tempo IS NOT NULL AND DATE(t.jatuh_tempo) <= CURDATE())
+          OR (t.jatuh_tempo IS NULL AND DATE(COALESCE(t.tanggal_tagihan, t.created_at, NOW())) <= CURDATE())
+        )
       GROUP BY s.id, s.nama_santri, s.nis, s.nama_kelas, s.nama_wali, s.no_wa_wali
       ORDER BY total_tunggakan DESC
     `).catch(() => [[]]);
@@ -269,7 +285,8 @@ export const getOwnerKeuangan = async (req, res) => {
       tunggakanSantri: (tunggakanRows || []).map((r) => ({
         ...r,
         total_tunggakan: Math.round(Number(r.total_tunggakan || 0)),
-        jumlah_tagihan: Number(r.jumlah_tagihan || 0)
+        jumlah_tagihan: Number(r.jumlah_tagihan || 0),
+        rincian_bulan: r.rincian_bulan || ''
       })),
       riwayatInfak: (infakRows || []).map((r) => ({
         ...r,
@@ -574,4 +591,140 @@ export const getOwnerPerkembangan = async (req, res) => {
     return sendError(res, `Gagal memuat perkembangan owner: ${err.message}`, 500);
   }
 };
+
+/**
+ * 8. GET /api/owner/notifikasi
+ * Feed Notifikasi Realtime untuk Owner (Uang Masuk, Infak, Perizinan)
+ */
+export const getOwnerNotifikasi = async (req, res) => {
+  try {
+    // 1. Transaksi Kas/Uang Masuk Terakhir
+    const [transaksiRows] = await pool.query(`
+      SELECT 
+        tp.id,
+        tp.nomor_transaksi,
+        tp.total_bayar,
+        tp.metode_pembayaran,
+        tp.tanggal_bayar,
+        DATE_FORMAT(tp.tanggal_bayar, '%Y-%m-%d %H:%i') as waktu_str,
+        (DATE(tp.tanggal_bayar) = CURDATE()) as is_today,
+        s.nama_santri,
+        COALESCE(s.nama_kelas, '') as nama_kelas
+      FROM keuangan_transaksi_pembayaran tp
+      JOIN santri s ON tp.santri_id = s.id
+      WHERE tp.status_pembayaran = 'Berhasil'
+      ORDER BY tp.tanggal_bayar DESC, tp.id DESC
+      LIMIT 35
+    `).catch(() => [[]]);
+
+    // 2. Infak Masuk Terakhir
+    const [infakRows] = await pool.query(`
+      SELECT 
+        it.id,
+        it.nama_donatur,
+        it.nominal,
+        it.metode_pembayaran,
+        it.tanggal,
+        DATE_FORMAT(it.tanggal, '%Y-%m-%d %H:%i') as waktu_str,
+        (DATE(it.tanggal) = CURDATE()) as is_today,
+        pi.nama_program
+      FROM pesantren_infak_transaksi it
+      LEFT JOIN pesantren_program_infak pi ON it.program_id = pi.id
+      WHERE (it.status = 'Berhasil' OR it.status = 'Lunas')
+      ORDER BY it.tanggal DESC, it.id DESC
+      LIMIT 20
+    `).catch(() => [[]]);
+
+    // 3. Perizinan Santri Terakhir
+    const [izinRows] = await pool.query(`
+      SELECT 
+        sp.id,
+        sp.kode_izin,
+        sp.jenis_izin,
+        sp.keperluan,
+        sp.status,
+        COALESCE(sp.tgl_keluar_rencana, sp.created_at) as waktu,
+        DATE_FORMAT(COALESCE(sp.tgl_keluar_rencana, sp.created_at), '%Y-%m-%d %H:%i') as waktu_str,
+        (DATE(COALESCE(sp.tgl_keluar_rencana, sp.created_at)) = CURDATE()) as is_today,
+        s.nama_santri,
+        COALESCE(s.nama_kelas, '') as nama_kelas
+      FROM santri_perizinan sp
+      JOIN santri s ON sp.santri_id = s.id
+      ORDER BY sp.id DESC
+      LIMIT 20
+    `).catch(() => [[]]);
+
+    const notifItems = [];
+
+    for (const t of (transaksiRows || [])) {
+      const nominal = Math.round(Number(t.total_bayar || 0));
+      const metode = String(t.metode_pembayaran || 'Tunai').replace(/Virtual\s*Account/gi, 'VA');
+      notifItems.push({
+        id: `uang_${t.id}`,
+        tipe: 'uang_masuk',
+        judul: 'Uang Masuk Diterima',
+        subjudul: `${t.nama_santri}${t.nama_kelas ? ' • ' + t.nama_kelas : ''}`,
+        deskripsi: `Pembayaran kas via ${metode}`,
+        nominal,
+        waktu: t.tanggal_bayar,
+        waktu_str: t.waktu_str,
+        is_today: Boolean(t.is_today),
+        target_tab: 'keuangan',
+        sub_tab: 'transaksi'
+      });
+    }
+
+    for (const i of (infakRows || [])) {
+      const nominal = Math.round(Number(i.nominal || 0));
+      const donatur = i.nama_donatur || 'Hamba Allah';
+      const program = i.nama_program ? ` (${i.nama_program})` : '';
+      notifItems.push({
+        id: `infak_${i.id}`,
+        tipe: 'infak_masuk',
+        judul: 'Infak / Donasi Masuk',
+        subjudul: `${donatur}${program}`,
+        deskripsi: `Donasi kas masuk berhasil dicatat`,
+        nominal,
+        waktu: i.tanggal,
+        waktu_str: i.waktu_str,
+        is_today: Boolean(i.is_today),
+        target_tab: 'keuangan',
+        sub_tab: 'infak'
+      });
+    }
+
+    for (const z of (izinRows || [])) {
+      notifItems.push({
+        id: `izin_${z.id}`,
+        tipe: 'perizinan',
+        judul: z.status === 'Aktif Keluar' ? 'Santri Keluar Pondok' : 'Status Perizinan Santri',
+        subjudul: `${z.nama_santri}${z.nama_kelas ? ' • ' + z.nama_kelas : ''}`,
+        deskripsi: `${z.keperluan || z.jenis_izin || 'Izin'} [${z.status}]`,
+        nominal: 0,
+        waktu: z.waktu,
+        waktu_str: z.waktu_str,
+        is_today: Boolean(z.is_today),
+        target_tab: 'perizinan',
+        sub_tab: 'aktif'
+      });
+    }
+
+    notifItems.sort((a, b) => new Date(b.waktu).getTime() - new Date(a.waktu).getTime());
+
+    const totalHariIni = notifItems.filter((n) => n.is_today).length;
+    const totalUangMasukHariIni = notifItems
+      .filter((n) => n.is_today && (n.tipe === 'uang_masuk' || n.tipe === 'infak_masuk'))
+      .reduce((acc, curr) => acc + (curr.nominal || 0), 0);
+
+    return sendSuccess(res, 'Notifikasi Owner Berhasil Dimuat', {
+      totalNotif: notifItems.length,
+      totalHariIni,
+      totalUangMasukHariIni,
+      items: notifItems
+    });
+  } catch (err) {
+    return sendError(res, `Gagal memuat notifikasi owner: ${err.message}`, 500);
+  }
+};
+
 
