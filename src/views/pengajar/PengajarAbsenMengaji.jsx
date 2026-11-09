@@ -211,7 +211,7 @@ export default function PengajarAbsenMengaji() {
         </div>
       </div>
 
-      {/* 2. STATS BADGES COUNTER (IDENTIK OWNER STYLE) */}
+      {/* 2. STATS BADGES COUNTER (LUXURY EXECUTIVE STYLE IDENTIK OWNER) */}
       <div
         style={{
           display: 'grid',
@@ -219,21 +219,148 @@ export default function PengajarAbsenMengaji() {
           gap: '8px'
         }}
       >
-        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '8px 4px', textAlign: 'center' }}>
-          <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#15803d' }}>{countHadir}</div>
-          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#166534' }}>Hadir</div>
+        {/* Hadir */}
+        <div
+          style={{
+            background: 'linear-gradient(145deg, #f0fdf4 0%, #dcfce7 100%)',
+            border: '1px solid #bbf7d0',
+            borderRadius: '14px',
+            padding: '8px 4px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            boxShadow: '0 2px 6px rgba(16, 185, 129, 0.08)'
+          }}
+        >
+          <div
+            style={{
+              width: '26px',
+              height: '26px',
+              borderRadius: '8px',
+              background: '#10b981',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)'
+            }}
+          >
+            <Check size={14} strokeWidth={3} />
+          </div>
+          <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#15803d', marginTop: '3px', lineHeight: 1 }}>
+            {countHadir}
+          </div>
+          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#166534', marginTop: '2px' }}>
+            Hadir
+          </div>
         </div>
-        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px', padding: '8px 4px', textAlign: 'center' }}>
-          <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#b91c1c' }}>{countSakit}</div>
-          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#991b1b' }}>Sakit</div>
+
+        {/* Sakit */}
+        <div
+          style={{
+            background: 'linear-gradient(145deg, #fef2f2 0%, #fee2e2 100%)',
+            border: '1px solid #fecaca',
+            borderRadius: '14px',
+            padding: '8px 4px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            boxShadow: '0 2px 6px rgba(239, 68, 68, 0.08)'
+          }}
+        >
+          <div
+            style={{
+              width: '26px',
+              height: '26px',
+              borderRadius: '8px',
+              background: '#ef4444',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 2px 6px rgba(239, 68, 68, 0.3)'
+            }}
+          >
+            <Building2 size={13} strokeWidth={2.5} />
+          </div>
+          <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#b91c1c', marginTop: '3px', lineHeight: 1 }}>
+            {countSakit}
+          </div>
+          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#991b1b', marginTop: '2px' }}>
+            Sakit
+          </div>
         </div>
-        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '12px', padding: '8px 4px', textAlign: 'center' }}>
-          <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#b45309' }}>{countIzin}</div>
-          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#92400e' }}>Izin</div>
+
+        {/* Izin */}
+        <div
+          style={{
+            background: 'linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%)',
+            border: '1px solid #fde68a',
+            borderRadius: '14px',
+            padding: '8px 4px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            boxShadow: '0 2px 6px rgba(245, 158, 11, 0.08)'
+          }}
+        >
+          <div
+            style={{
+              width: '26px',
+              height: '26px',
+              borderRadius: '8px',
+              background: '#f59e0b',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 2px 6px rgba(245, 158, 11, 0.3)'
+            }}
+          >
+            <FileText size={13} strokeWidth={2.5} />
+          </div>
+          <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#b45309', marginTop: '3px', lineHeight: 1 }}>
+            {countIzin}
+          </div>
+          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#92400e', marginTop: '2px' }}>
+            Izin
+          </div>
         </div>
-        <div style={{ background: '#f0fdfa', border: '1px solid #99f6e4', borderRadius: '12px', padding: '8px 4px', textAlign: 'center' }}>
-          <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f766e' }}>{countAlfa}</div>
-          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#115e59' }}>Alfa</div>
+
+        {/* Alfa */}
+        <div
+          style={{
+            background: 'linear-gradient(145deg, #f0fdfa 0%, #ccfbf1 100%)',
+            border: '1px solid #99f6e4',
+            borderRadius: '14px',
+            padding: '8px 4px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            boxShadow: '0 2px 6px rgba(13, 148, 136, 0.08)'
+          }}
+        >
+          <div
+            style={{
+              width: '26px',
+              height: '26px',
+              borderRadius: '8px',
+              background: '#0d9488',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 2px 6px rgba(13, 148, 136, 0.3)'
+            }}
+          >
+            <Clock size={13} strokeWidth={2.5} />
+          </div>
+          <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f766e', marginTop: '3px', lineHeight: 1 }}>
+            {countAlfa}
+          </div>
+          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#115e59', marginTop: '2px' }}>
+            Alfa
+          </div>
         </div>
       </div>
 
@@ -272,17 +399,20 @@ export default function PengajarAbsenMengaji() {
             type="button"
             onClick={() => handleMarkAll('Hadir')}
             style={{
-              padding: '6px 10px',
-              borderRadius: '8px',
+              padding: '7px 11px',
+              borderRadius: '10px',
               border: '1px solid #a7f3d0',
               background: '#ecfdf5',
               color: '#047857',
-              fontSize: '0.68rem',
+              fontSize: '0.7rem',
               fontWeight: 800,
-              cursor: 'pointer'
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
             }}
           >
-            ✓ Semua Hadir
+            <Check size={13} strokeWidth={2.8} /> Semua Hadir
           </button>
 
           <button
@@ -290,22 +420,21 @@ export default function PengajarAbsenMengaji() {
             disabled={saving || santriList.length === 0}
             onClick={handleSave}
             style={{
-              padding: '6px 14px',
-              borderRadius: '8px',
+              padding: '7px 14px',
+              borderRadius: '10px',
               border: 'none',
-              background: '#0d766e',
+              background: 'linear-gradient(135deg, #0d766e 0%, #042f2e 100%)',
               color: '#ffffff',
               fontSize: '0.72rem',
               fontWeight: 800,
               cursor: saving ? 'wait' : 'pointer',
+              boxShadow: '0 4px 12px rgba(13, 118, 110, 0.25)',
               display: 'flex',
               alignItems: 'center',
-              gap: '5px',
-              boxShadow: '0 2px 6px rgba(13, 118, 110, 0.3)'
+              gap: '5px'
             }}
           >
-            <Save size={14} />
-            {saving ? 'Menyimpan...' : 'Simpan Presensi'}
+            <Save size={13} /> {saving ? 'Menyimpan...' : 'Simpan Presensi'}
           </button>
         </div>
       </div>

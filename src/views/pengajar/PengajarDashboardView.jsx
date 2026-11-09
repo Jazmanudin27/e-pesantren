@@ -8,14 +8,13 @@ import {
   FileText, 
   LogOut, 
   User, 
-  RotateCw, 
+  RefreshCw, 
   Check, 
   Clock, 
   Users, 
   ChevronRight, 
   Building2, 
-  Sparkles,
-  Layers,
+  ArrowLeft,
   ArrowRight
 } from 'lucide-react';
 import { showConfirm, toastSuccess } from '../../utils/alert.util';
@@ -49,7 +48,7 @@ export default function PengajarDashboardView({ onLogout }) {
     }
   })();
 
-  const pengajarName = pengajarSession.nama || pengajarSession.name || 'Ust. Pembina & Pengajar';
+  const pengajarName = pengajarSession.nama || pengajarSession.nama_asatidz || pengajarSession.username || 'Ust. Pengajar';
 
   const fetchDashboard = async () => {
     try {
@@ -91,12 +90,15 @@ export default function PengajarDashboardView({ onLogout }) {
     }
   };
 
+  const p = dashboardData.presensiHariIni || { hadir: 0, sakit: 0, izin: 0, alfa: 0, persenHadir: 0 };
+
   return (
     <div
       style={{
         minHeight: '100vh',
         backgroundColor: '#f1f5f9',
-        fontFamily: "'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+        backgroundImage: 'radial-gradient(at 0% 0%, rgba(13, 118, 110, 0.08) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(15, 23, 42, 0.06) 0px, transparent 50%)',
+        fontFamily: "'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'flex-start',
@@ -104,211 +106,504 @@ export default function PengajarDashboardView({ onLogout }) {
         margin: 0
       }}
     >
-      {/* MOBILE CONTAINER WRAPPER (Max 480px on desktop, full-width on mobile) */}
+      {/* MOBILE CONTAINER WRAPPER (Max 440px desktop, full-width on mobile) */}
       <div
         style={{
           width: '100%',
-          maxWidth: '480px',
+          maxWidth: '440px',
           minHeight: '100vh',
           backgroundColor: '#f8fafc',
-          boxShadow: '0 10px 40px -10px rgba(0, 0, 0, 0.14)',
+          boxShadow: '0 10px 40px -10px rgba(0, 0, 0, 0.18)',
           position: 'relative',
           display: 'flex',
           flexDirection: 'column',
-          paddingBottom: '84px',
+          paddingBottom: '82px',
           boxSizing: 'border-box'
         }}
       >
         {/* =========================================================================
-            HEADER GRADIENT HIJAU TEAL KHAS ASATIDZ / PENGAJAR
+            HEADER KONTEN SESUAI TAB (BERANDA vs SUBVIEW)
         ========================================================================= */}
-        <div
-          style={{
-            background: 'linear-gradient(135deg, #0d766e 0%, #042f2e 100%)',
-            padding: '14px 16px 22px',
-            color: '#ffffff',
-            borderBottomLeftRadius: '20px',
-            borderBottomRightRadius: '20px',
-            position: 'relative',
-            boxShadow: '0 6px 20px rgba(13, 118, 110, 0.22)'
-          }}
-        >
-          {/* Header Top Bar */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {activeTab === 'beranda' ? (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {/* 1. TOP MODERN TEAL GRADIENT BANNER (IDENTIK OWNER DASHBOARD) */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #0d766e 0%, #042f2e 100%)',
+                padding: '16px 16px 36px',
+                color: '#ffffff',
+                borderBottomLeftRadius: '24px',
+                borderBottomRightRadius: '24px',
+                position: 'relative'
+              }}
+            >
+              {/* Header Top Bar */}
               <div
                 style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '12px',
-                  background: 'rgba(255,255,255,0.2)',
-                  border: '1.5px solid rgba(255, 255, 255, 0.35)',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
-                  flexShrink: 0
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
                 }}
               >
-                <BookOpen size={20} color="#ffffff" />
-              </div>
+                {/* Brand Logo: NWF Asatidz + Subtitle */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    userSelect: 'none'
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '44px',
+                      height: '44px',
+                      borderRadius: '14px',
+                      background: 'linear-gradient(145deg, rgba(255,255,255,0.28) 0%, rgba(167,243,208,0.15) 100%)',
+                      border: '1.5px solid rgba(255, 255, 255, 0.42)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '3.5px',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.18)',
+                      flexShrink: 0
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        borderRadius: '10px',
+                        background: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '4.5px',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <img
+                        src="/nwf.png"
+                        alt="NWF Logo"
+                        onError={(e) => { e.target.src = '/logo.png'; }}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'contain'
+                        }}
+                      />
+                    </div>
+                  </div>
 
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <span style={{ fontWeight: 900, fontSize: '1.05rem', letterSpacing: '-0.3px', color: '#ffffff' }}>
-                    Portal Ustadz
-                  </span>
-                  <span style={{ fontSize: '0.62rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', background: '#ecfdf5', color: '#047857' }}>
-                    PENGAJAR
-                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'baseline',
+                        gap: '3px'
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontWeight: 900,
+                          fontSize: '1.45rem',
+                          letterSpacing: '-0.5px',
+                          color: '#ffffff',
+                          lineHeight: 1,
+                          textShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+                        }}
+                      >
+                        NWF
+                      </span>
+                      <span
+                        style={{
+                          fontWeight: 800,
+                          fontSize: '1.15rem',
+                          fontStyle: 'italic',
+                          letterSpacing: '-0.2px',
+                          color: '#a7f3d0',
+                          lineHeight: 1,
+                          textShadow: '0 2px 6px rgba(11, 107, 96, 0.35)'
+                        }}
+                      >
+                        Asatidz
+                      </span>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: '0.62rem',
+                        fontWeight: 700,
+                        color: 'rgba(255, 255, 255, 0.85)',
+                        letterSpacing: '0.04em',
+                        textTransform: 'uppercase',
+                        marginTop: '2px',
+                        lineHeight: 1
+                      }}
+                    >
+                      PORTAL USTADZ &amp; PENGAJAR
+                    </span>
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.66rem', color: '#a7f3d0', fontWeight: 600, marginTop: '1px' }}>
-                  PP. Nurul Wafa • Binaan Santri
+
+                {/* Top Action Buttons (Refresh & Logout) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={fetchDashboard}
+                    title="Muat Ulang Data"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.15)',
+                      border: 'none',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      padding: '7px',
+                      borderRadius: '10px'
+                    }}
+                  >
+                    <RefreshCw
+                      size={17}
+                      className={loading ? 'animate-spin' : ''}
+                    />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    title="Keluar Akun"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.15)',
+                      border: 'none',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      padding: '7px',
+                      borderRadius: '10px'
+                    }}
+                  >
+                    <LogOut size={18} />
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Logout button */}
-            <button
-              onClick={handleLogout}
-              title="Keluar"
+            {/* 2. OVERLAPPING WHITE CARD: PROFIL USTADZ & REKAP PASTEL BADGES (IDENTIK OWNER) */}
+            <div
               style={{
-                background: 'rgba(255, 255, 255, 0.15)',
-                border: 'none',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                padding: '7px',
-                borderRadius: '10px'
+                padding: '0 14px',
+                marginTop: '-24px',
+                position: 'relative',
+                zIndex: 12
               }}
             >
-              <LogOut size={17} />
-            </button>
-          </div>
-
-          {/* User info greeting card inside banner */}
-          <div
-            style={{
-              background: 'rgba(255, 255, 255, 0.12)',
-              backdropFilter: 'blur(6px)',
-              borderRadius: '12px',
-              padding: '8px 12px',
-              marginTop: '12px',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-              <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#ffffff', color: '#0d766e', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.75rem', flexShrink: 0 }}>
-                <User size={15} />
-              </div>
-              <div style={{ minWidth: 0, overflow: 'hidden' }}>
-                <div style={{ fontSize: '0.78rem', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {pengajarName}
-                </div>
-                <div style={{ fontSize: '0.62rem', color: '#a7f3d0' }}>
-                  Bimbingan Ibadah, Mengaji &amp; Akhlak
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={fetchDashboard}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#ffffff',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                fontSize: '0.64rem',
-                fontWeight: 700
-              }}
-            >
-              <RotateCw size={12} className={loading ? 'animate-spin' : ''} /> Refresh
-            </button>
-          </div>
-        </div>
-
-        {/* =========================================================================
-            BODY CONTENT AREA SESUAI TAB
-        ========================================================================= */}
-        <div style={{ padding: '14px 14px 20px', flex: 1 }}>
-          {activeTab === 'beranda' ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              
-              {/* 1. KARTU PRESENSI MENGAJI HARI INI */}
               <div
                 style={{
                   background: '#ffffff',
-                  borderRadius: '16px',
-                  padding: '14px',
+                  borderRadius: '18px',
                   border: '1px solid #e2e8f0',
-                  boxShadow: '0 4px 14px rgba(0,0,0,0.04)'
+                  padding: '12px 12px 10px',
+                  boxShadow: '0 10px 25px -4px rgba(13, 118, 110, 0.14), 0 2px 6px rgba(0, 0, 0, 0.04)'
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px', marginBottom: '10px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
-                    <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a' }}>Presensi Mengaji Hari Ini</span>
-                  </div>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#059669', background: '#ecfdf5', padding: '3px 8px', borderRadius: '99px', border: '1px solid #a7f3d0' }}>
-                    {dashboardData.presensiHariIni.persenHadir}% Kehadiran
-                  </span>
-                </div>
-
-                {/* 4 Badges */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', marginBottom: '10px' }}>
-                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '8px 4px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#15803d' }}>{dashboardData.presensiHariIni.hadir}</div>
-                    <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#166534' }}>Hadir</div>
-                  </div>
-                  <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '8px 4px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#b91c1c' }}>{dashboardData.presensiHariIni.sakit}</div>
-                    <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#991b1b' }}>Sakit</div>
-                  </div>
-                  <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '8px 4px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#b45309' }}>{dashboardData.presensiHariIni.izin}</div>
-                    <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#92400e' }}>Izin</div>
-                  </div>
-                  <div style={{ background: '#f0fdfa', border: '1px solid #99f6e4', borderRadius: '10px', padding: '8px 4px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f766e' }}>{dashboardData.presensiHariIni.alfa}</div>
-                    <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#115e59' }}>Alfa</div>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('absen-mengaji')}
+                {/* Header Profile Info: Nama Ustadz Pengajar */}
+                <div
                   style={{
-                    width: '100%',
-                    padding: '8px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: '#0d766e',
-                    color: '#ffffff',
-                    fontSize: '0.74rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
                     display: 'flex',
+                    justifyContent: 'space-between',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '5px'
+                    marginBottom: '10px',
+                    paddingBottom: '8px',
+                    borderBottom: '1px solid #f1f5f9'
                   }}
                 >
-                  <BookOpen size={14} /> Buka Lembar Absen Mengaji
-                </button>
-              </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      minWidth: 0,
+                      flex: 1,
+                      paddingRight: '8px'
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '8px',
+                        background: '#ecfdf5',
+                        border: '1px solid #a7f3d0',
+                        color: '#059669',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}
+                    >
+                      <User size={16} strokeWidth={2.5} />
+                    </div>
+                    <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          fontSize: '0.84rem',
+                          fontWeight: 900,
+                          color: '#0f172a',
+                          letterSpacing: '-0.2px',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}
+                      >
+                        {pengajarName}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '0.62rem',
+                          fontWeight: 600,
+                          color: '#64748b',
+                          lineHeight: 1.1,
+                          marginTop: '1px'
+                        }}
+                      >
+                        Status: Asatidz Aktif • {dashboardData.totalSantri || 613} Santri
+                      </div>
+                    </div>
+                  </div>
 
-              {/* 2. 4 SHORTCUT MENU UTAMA PENGAJAR */}
-              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginTop: '4px' }}>
-                Menu Layanan Asatidz &amp; Pengajar
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('absen-mengaji')}
+                    style={{
+                      background: 'rgba(13, 148, 136, 0.08)',
+                      border: '1px solid rgba(13, 148, 136, 0.2)',
+                      borderRadius: '8px',
+                      color: '#0d9488',
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                      padding: '4px 8px',
+                      flexShrink: 0,
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    Presensi <ChevronRight size={12} />
+                  </button>
+                </div>
+
+                {/* 4 Cards Grid (Pastel Touchable Badges) */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(4, 1fr)',
+                    gap: '6px'
+                  }}
+                >
+                  {/* Hadir */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('absen-mengaji')}
+                    style={{
+                      background: 'linear-gradient(145deg, #f0fdf4 0%, #dcfce7 100%)',
+                      borderRadius: '14px',
+                      padding: '8px 4px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      border: '1px solid #bbf7d0',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      userSelect: 'none'
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '10px',
+                        background: '#10b981',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 3px 8px -1px rgba(16, 185, 129, 0.35)'
+                      }}
+                    >
+                      <Check size={16} strokeWidth={2.8} />
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '1.05rem',
+                        fontWeight: 900,
+                        color: '#15803d',
+                        marginTop: '4px',
+                        lineHeight: 1
+                      }}
+                    >
+                      {p.hadir}
+                    </div>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#166534', marginTop: '2px' }}>
+                      Hadir
+                    </span>
+                  </button>
+
+                  {/* Sakit */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('absen-mengaji')}
+                    style={{
+                      background: 'linear-gradient(145deg, #fef2f2 0%, #fee2e2 100%)',
+                      borderRadius: '14px',
+                      padding: '8px 4px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      border: '1px solid #fecaca',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      userSelect: 'none'
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '10px',
+                        background: '#ef4444',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 3px 8px -1px rgba(239, 68, 68, 0.35)'
+                      }}
+                    >
+                      <Building2 size={16} strokeWidth={2.6} />
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '1.05rem',
+                        fontWeight: 900,
+                        color: '#b91c1c',
+                        marginTop: '4px',
+                        lineHeight: 1
+                      }}
+                    >
+                      {p.sakit}
+                    </div>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#991b1b', marginTop: '2px' }}>
+                      Sakit
+                    </span>
+                  </button>
+
+                  {/* Izin */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('absen-mengaji')}
+                    style={{
+                      background: 'linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%)',
+                      borderRadius: '14px',
+                      padding: '8px 4px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      border: '1px solid #fde68a',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      userSelect: 'none'
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '10px',
+                        background: '#f59e0b',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 3px 8px -1px rgba(245, 158, 11, 0.35)'
+                      }}
+                    >
+                      <FileText size={16} strokeWidth={2.6} />
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '1.05rem',
+                        fontWeight: 900,
+                        color: '#b45309',
+                        marginTop: '4px',
+                        lineHeight: 1
+                      }}
+                    >
+                      {p.izin}
+                    </div>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#92400e', marginTop: '2px' }}>
+                      Izin
+                    </span>
+                  </button>
+
+                  {/* Alfa */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('absen-mengaji')}
+                    style={{
+                      background: 'linear-gradient(145deg, #f0fdfa 0%, #ccfbf1 100%)',
+                      borderRadius: '14px',
+                      padding: '8px 4px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      border: '1px solid #99f6e4',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      userSelect: 'none'
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '10px',
+                        background: '#0d9488',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 3px 8px -1px rgba(13, 148, 136, 0.35)'
+                      }}
+                    >
+                      <Clock size={16} strokeWidth={2.6} />
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '1.05rem',
+                        fontWeight: 900,
+                        color: '#0f766e',
+                        marginTop: '4px',
+                        lineHeight: 1
+                      }}
+                    >
+                      {p.alfa}
+                    </div>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#115e59', marginTop: '2px' }}>
+                      Alfa
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. MENU SHORTCUT 4 MODUL UTAMA PENGAJAR (GAYA EKSEKUTIF) */}
+            <div style={{ padding: '16px 14px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#334155', letterSpacing: '-0.2px' }}>
+                Layanan Asatidz &amp; Pengajar
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -317,25 +612,26 @@ export default function PengajarDashboardView({ onLogout }) {
                   onClick={() => setActiveTab('absen-mengaji')}
                   style={{
                     background: '#ffffff',
-                    borderRadius: '14px',
+                    borderRadius: '16px',
                     padding: '14px',
                     border: '1px solid #e2e8f0',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '8px'
+                    gap: '8px',
+                    transition: 'all 0.15s ease'
                   }}
                 >
-                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #a7f3d0' }}>
                     <BookOpen size={20} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a' }}>Absen Mengaji</div>
-                    <div style={{ fontSize: '0.62rem', color: '#64748b', marginTop: '2px' }}>Halaqah &amp; kajian kitab</div>
+                    <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>Absen Mengaji</div>
+                    <div style={{ fontSize: '0.62rem', color: '#64748b', marginTop: '2px' }}>Presensi kajian &amp; kitab</div>
                   </div>
-                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#0d766e', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    Buka Absensi <ArrowRight size={11} />
+                  <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#0d766e', display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}>
+                    Buka Absen <ArrowRight size={12} />
                   </div>
                 </div>
 
@@ -344,25 +640,26 @@ export default function PengajarDashboardView({ onLogout }) {
                   onClick={() => setActiveTab('teguran')}
                   style={{
                     background: '#ffffff',
-                    borderRadius: '14px',
+                    borderRadius: '16px',
                     padding: '14px',
                     border: '1px solid #e2e8f0',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '8px'
+                    gap: '8px',
+                    transition: 'all 0.15s ease'
                   }}
                 >
-                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#fef2f2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #fecaca' }}>
                     <ShieldAlert size={20} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a' }}>Teguran Santri</div>
+                    <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>Teguran Santri</div>
                     <div style={{ fontSize: '0.62rem', color: '#64748b', marginTop: '2px' }}>Catatan ta'zir &amp; disiplin</div>
                   </div>
-                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#dc2626', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    {dashboardData.totalTeguranBulanIni} Bulan Ini <ArrowRight size={11} />
+                  <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#dc2626', display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}>
+                    {dashboardData.totalTeguranBulanIni} Bulan Ini <ArrowRight size={12} />
                   </div>
                 </div>
 
@@ -371,25 +668,26 @@ export default function PengajarDashboardView({ onLogout }) {
                   onClick={() => setActiveTab('praktek')}
                   style={{
                     background: '#ffffff',
-                    borderRadius: '14px',
+                    borderRadius: '16px',
                     padding: '14px',
                     border: '1px solid #e2e8f0',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '8px'
+                    gap: '8px',
+                    transition: 'all 0.15s ease'
                   }}
                 >
-                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #bfdbfe' }}>
                     <Award size={20} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a' }}>Praktek Ibadah</div>
-                    <div style={{ fontSize: '0.62rem', color: '#64748b', marginTop: '2px' }}>Shalat, wudhu &amp; doa</div>
+                    <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>Praktek Ibadah</div>
+                    <div style={{ fontSize: '0.62rem', color: '#64748b', marginTop: '2px' }}>Ujian shalat, wudhu, doa</div>
                   </div>
-                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#2563eb', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    {dashboardData.totalPraktekBulanIni} Ujian <ArrowRight size={11} />
+                  <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#2563eb', display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}>
+                    {dashboardData.totalPraktekBulanIni} Ujian <ArrowRight size={12} />
                   </div>
                 </div>
 
@@ -398,79 +696,175 @@ export default function PengajarDashboardView({ onLogout }) {
                   onClick={() => setActiveTab('perkembangan')}
                   style={{
                     background: '#ffffff',
-                    borderRadius: '14px',
+                    borderRadius: '16px',
                     padding: '14px',
                     border: '1px solid #e2e8f0',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '8px'
+                    gap: '8px',
+                    transition: 'all 0.15s ease'
                   }}
                 >
-                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#f5f3ff', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #ddd6fe' }}>
                     <FileText size={20} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a' }}>Perkembangan</div>
-                    <div style={{ fontSize: '0.62rem', color: '#64748b', marginTop: '2px' }}>Karakter &amp; nasehat ustadz</div>
+                    <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>Perkembangan</div>
+                    <div style={{ fontSize: '0.62rem', color: '#64748b', marginTop: '2px' }}>Karakter &amp; nasehat</div>
                   </div>
-                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#7c3aed', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    {dashboardData.totalPerkembangan} Laporan <ArrowRight size={11} />
+                  <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#7c3aed', display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}>
+                    {dashboardData.totalPerkembangan} Laporan <ArrowRight size={12} />
                   </div>
                 </div>
               </div>
 
-              {/* 3. JADWAL SESI MENGAJI HARI INI */}
-              <div
+              {/* 4. JADWAL SESI KEGIATAN AKTIF DARI DATABASE */}
+              {dashboardData.daftarSesi && dashboardData.daftarSesi.length > 0 && (
+                <div
+                  style={{
+                    background: '#ffffff',
+                    borderRadius: '16px',
+                    padding: '14px',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+                    marginTop: '4px'
+                  }}
+                >
+                  <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
+                    Sesi Kegiatan Pesantren Terjadwal
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {dashboardData.daftarSesi.map((s, idx) => (
+                      <div
+                        key={s.id || idx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '8px 10px',
+                          background: '#f8fafc',
+                          borderRadius: '10px',
+                          fontSize: '0.74rem'
+                        }}
+                      >
+                        <span style={{ fontWeight: 700, color: '#334155' }}>{s.nama_sesi}</span>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#0d766e', background: '#ecfdf5', padding: '2px 6px', borderRadius: '4px' }}>
+                          {String(s.jam_mulai || '').slice(0, 5)} - {String(s.jam_selesai || '').slice(0, 5)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* =========================================================================
+              VIEW SUB-TAB: HEADER SUBVIEW (IDENTIK HEADER SUBVIEW OWNER)
+          ========================================================================= */
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #0d766e 0%, #042f2e 100%)',
+                padding: '12px 14px',
+                color: '#ffffff',
+                borderBottomLeftRadius: '20px',
+                borderBottomRightRadius: '20px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '14px',
+                boxShadow: '0 4px 14px rgba(13, 118, 110, 0.2)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('beranda')}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.18)',
+                    border: '1px solid rgba(255, 255, 255, 0.25)',
+                    color: '#ffffff',
+                    borderRadius: '10px',
+                    padding: '6px 10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    fontSize: '0.72rem',
+                    flexShrink: 0
+                  }}
+                >
+                  <ArrowLeft size={14} /> Beranda
+                </button>
+
+                <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      fontSize: '0.86rem',
+                      fontWeight: 900,
+                      color: '#ffffff',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    {activeTab === 'absen-mengaji' && 'Presensi Mengaji Santri'}
+                    {activeTab === 'teguran' && 'Catatan Pelanggaran & Ta\'zir'}
+                    {activeTab === 'praktek' && 'Evaluasi Praktek Ibadah'}
+                    {activeTab === 'perkembangan' && 'Laporan Perkembangan Santri'}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '0.58rem',
+                      color: '#a7f3d0',
+                      fontWeight: 800,
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                      marginTop: '1px'
+                    }}
+                  >
+                    {pengajarName} • PORTAL ASATIDZ
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                title="Keluar"
                 style={{
-                  background: '#ffffff',
-                  borderRadius: '16px',
-                  padding: '14px',
-                  border: '1px solid #e2e8f0',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
-                  marginTop: '4px'
+                  background: 'rgba(255, 255, 255, 0.18)',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  color: '#ffffff',
+                  borderRadius: '10px',
+                  padding: '7px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  flexShrink: 0
                 }}
               >
-                <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
-                  Jadwal Sesi Kegiatan Pesantren
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {dashboardData.daftarSesi.map((s, idx) => (
-                    <div
-                      key={s.id || idx}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '8px 10px',
-                        background: '#f8fafc',
-                        borderRadius: '10px',
-                        fontSize: '0.74rem'
-                      }}
-                    >
-                      <span style={{ fontWeight: 700, color: '#334155' }}>{s.nama_sesi}</span>
-                      <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#0d766e', background: '#ecfdf5', padding: '2px 6px', borderRadius: '4px' }}>
-                        {String(s.jam_mulai || '').slice(0, 5)} - {String(s.jam_selesai || '').slice(0, 5)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                <LogOut size={16} />
+              </button>
             </div>
-          ) : activeTab === 'absen-mengaji' ? (
-            <PengajarAbsenMengaji />
-          ) : activeTab === 'teguran' ? (
-            <PengajarTeguranView />
-          ) : activeTab === 'praktek' ? (
-            <PengajarPraktekView />
-          ) : (
-            <PengajarPerkembanganView />
-          )}
-        </div>
+
+            {/* Subview Content Container */}
+            <div style={{ padding: '0 14px 20px', flex: 1 }}>
+              {activeTab === 'absen-mengaji' && <PengajarAbsenMengaji />}
+              {activeTab === 'teguran' && <PengajarTeguranView />}
+              {activeTab === 'praktek' && <PengajarPraktekView />}
+              {activeTab === 'perkembangan' && <PengajarPerkembanganView />}
+            </div>
+          </div>
+        )}
 
         {/* =========================================================================
-            BOTTOM NAVIGATION BAR PORTAL PENGAJAR (STICKY ELEVATED)
+            BOTTOM NAVIGATION BAR PORTAL PENGAJAR (ELEVATED DARK TEAL IDENTIK OWNER)
         ========================================================================= */}
         <nav
           style={{
@@ -479,7 +873,7 @@ export default function PengajarDashboardView({ onLogout }) {
             left: '50%',
             transform: 'translateX(-50%)',
             width: '100%',
-            maxWidth: '480px',
+            maxWidth: '440px',
             height: '64px',
             backgroundColor: '#042f2e',
             borderTop: '1px solid rgba(255, 255, 255, 0.1)',
@@ -492,7 +886,7 @@ export default function PengajarDashboardView({ onLogout }) {
             padding: '0 4px'
           }}
         >
-          {/* Beranda */}
+          {/* 1. Beranda */}
           <button
             type="button"
             onClick={() => setActiveTab('beranda')}
@@ -510,11 +904,11 @@ export default function PengajarDashboardView({ onLogout }) {
               flex: 1
             }}
           >
-            <Home size={18} />
+            <Home size={19} strokeWidth={activeTab === 'beranda' ? 2.5 : 2} />
             <span>Beranda</span>
           </button>
 
-          {/* Absen Mengaji */}
+          {/* 2. Absen Mengaji */}
           <button
             type="button"
             onClick={() => setActiveTab('absen-mengaji')}
@@ -532,18 +926,18 @@ export default function PengajarDashboardView({ onLogout }) {
               flex: 1
             }}
           >
-            <BookOpen size={18} />
+            <BookOpen size={19} strokeWidth={activeTab === 'absen-mengaji' ? 2.5 : 2} />
             <span>Mengaji</span>
           </button>
 
-          {/* Teguran */}
+          {/* 3. Teguran */}
           <button
             type="button"
             onClick={() => setActiveTab('teguran')}
             style={{
               background: 'transparent',
               border: 'none',
-              color: activeTab === 'teguran' ? '#f87171' : '#94a3b8',
+              color: activeTab === 'teguran' ? '#34d399' : '#94a3b8',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -554,18 +948,18 @@ export default function PengajarDashboardView({ onLogout }) {
               flex: 1
             }}
           >
-            <ShieldAlert size={18} />
+            <ShieldAlert size={19} strokeWidth={activeTab === 'teguran' ? 2.5 : 2} />
             <span>Teguran</span>
           </button>
 
-          {/* Praktek */}
+          {/* 4. Praktek */}
           <button
             type="button"
             onClick={() => setActiveTab('praktek')}
             style={{
               background: 'transparent',
               border: 'none',
-              color: activeTab === 'praktek' ? '#60a5fa' : '#94a3b8',
+              color: activeTab === 'praktek' ? '#34d399' : '#94a3b8',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -576,18 +970,18 @@ export default function PengajarDashboardView({ onLogout }) {
               flex: 1
             }}
           >
-            <Award size={18} />
+            <Award size={19} strokeWidth={activeTab === 'praktek' ? 2.5 : 2} />
             <span>Praktek</span>
           </button>
 
-          {/* Perkembangan */}
+          {/* 5. Perkembangan */}
           <button
             type="button"
             onClick={() => setActiveTab('perkembangan')}
             style={{
               background: 'transparent',
               border: 'none',
-              color: activeTab === 'perkembangan' ? '#c084fc' : '#94a3b8',
+              color: activeTab === 'perkembangan' ? '#34d399' : '#94a3b8',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -598,7 +992,7 @@ export default function PengajarDashboardView({ onLogout }) {
               flex: 1
             }}
           >
-            <FileText size={18} />
+            <FileText size={19} strokeWidth={activeTab === 'perkembangan' ? 2.5 : 2} />
             <span>Karakter</span>
           </button>
         </nav>
@@ -606,4 +1000,3 @@ export default function PengajarDashboardView({ onLogout }) {
     </div>
   );
 }
-
