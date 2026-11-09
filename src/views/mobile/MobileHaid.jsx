@@ -20,7 +20,9 @@ import {
   Loader2,
   CalendarCheck,
   BookOpen,
-  ArrowRight
+  ArrowRight,
+  ChevronDown,
+  Filter
 } from "lucide-react";
 import {
   showConfirm,
@@ -37,6 +39,8 @@ export default function MobileHaid() {
   const [kelasList, setKelasList] = useState([]);
   const [selectedKelas, setSelectedKelas] = useState("semua");
   const [search, setSearch] = useState("");
+  const [isKelasModalOpen, setIsKelasModalOpen] = useState(false);
+  const [searchKelasQuery, setSearchKelasQuery] = useState("");
 
   const [summary, setSummary] = useState({
     total_santriwati: 0,
@@ -246,7 +250,7 @@ export default function MobileHaid() {
             borderRadius: "14px",
           }}
         >
-          {/* Tab 1: Sedang Haid */}
+          {/* Tab 1: Haid */}
           <button
             type="button"
             onClick={() => setActiveTab("haid")}
@@ -271,7 +275,7 @@ export default function MobileHaid() {
             }}
           >
             <span>🩸</span>
-            <span>Sedang Haid</span>
+            <span>Haid</span>
             <span
               style={{
                 background:
@@ -289,7 +293,7 @@ export default function MobileHaid() {
             </span>
           </button>
 
-          {/* Tab 2: Suci */}
+          {/* Tab 2: Normal */}
           <button
             type="button"
             onClick={() => setActiveTab("suci")}
@@ -314,7 +318,7 @@ export default function MobileHaid() {
             }}
           >
             <span>✨</span>
-            <span>Suci / Normal</span>
+            <span>Normal</span>
             <span
               style={{
                 background:
@@ -380,9 +384,9 @@ export default function MobileHaid() {
               type="text"
               placeholder={
                 activeTab === "haid"
-                  ? "Cari santriwati sedang haid..."
+                  ? "Cari santriwati haid..."
                   : activeTab === "suci"
-                  ? "Cari santriwati suci..."
+                  ? "Cari santriwati normal..."
                   : "Cari riwayat haid..."
               }
               value={search}
@@ -439,46 +443,60 @@ export default function MobileHaid() {
           </button>
         </div>
 
-        {/* Filter Chips Kelas (Scrollable Horizontal) */}
-        {activeTab !== "riwayat" && kelasList.length > 0 && (
-          <div
-            style={{
-              display: "flex",
-              gap: "6px",
-              overflowX: "auto",
-              paddingTop: "10px",
-              paddingBottom: "2px",
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-            }}
-          >
-            {["semua", ...kelasList].map((k) => {
-              const isSel = selectedKelas === k;
-              return (
-                <button
-                  key={k}
-                  onClick={() => setSelectedKelas(k)}
-                  style={{
-                    padding: "4px 12px",
-                    borderRadius: "999px",
-                    border: isSel ? "none" : "1px solid #e2e8f0",
-                    background: isSel
-                      ? activeTab === "haid"
-                        ? "#be185d"
-                        : "#0d766e"
-                      : "#ffffff",
-                    color: isSel ? "#ffffff" : "#64748b",
-                    fontSize: "0.68rem",
-                    fontWeight: isSel ? 700 : 500,
-                    whiteSpace: "nowrap",
-                    cursor: "pointer",
-                    flexShrink: 0,
-                  }}
-                >
-                  {k === "semua" ? "Semua Kelas" : k}
-                </button>
-              );
-            })}
+        {/* Filter Kelas: Select Option dengan Fitur Search */}
+        {activeTab !== "riwayat" && (
+          <div style={{ marginTop: "10px" }}>
+            <button
+              type="button"
+              onClick={() => {
+                setSearchKelasQuery("");
+                setIsKelasModalOpen(true);
+              }}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "9px 12px",
+                borderRadius: "12px",
+                border: selectedKelas !== "semua" ? "1.5px solid #db2777" : "1px solid #cbd5e1",
+                background: selectedKelas !== "semua" ? "#fdf2f8" : "#ffffff",
+                color: selectedKelas !== "semua" ? "#be185d" : "#1e293b",
+                fontSize: "0.78rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                transition: "all 0.18s ease",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0, overflow: "hidden" }}>
+                <GraduationCap size={16} color={selectedKelas !== "semua" ? "#db2777" : "#64748b"} style={{ flexShrink: 0 }} />
+                <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {selectedKelas === "semua" ? "Filter Kelas: Semua Kelas (Pilih)" : `Kelas: ${selectedKelas}`}
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+                {selectedKelas !== "semua" && (
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedKelas("semua");
+                    }}
+                    style={{
+                      fontSize: "0.64rem",
+                      background: "#fbcfe8",
+                      color: "#9d174d",
+                      padding: "2px 7px",
+                      borderRadius: "999px",
+                      fontWeight: 800,
+                    }}
+                  >
+                    Reset ✕
+                  </span>
+                )}
+                <ChevronDown size={15} color={selectedKelas !== "semua" ? "#db2777" : "#94a3b8"} />
+              </div>
+            </button>
           </div>
         )}
       </div>
@@ -658,8 +676,8 @@ export default function MobileHaid() {
                 {search
                   ? `Tidak ada santriwati yang sesuai kata kunci "${search}"`
                   : activeTab === "haid"
-                  ? "Tidak ada santriwati yang sedang berstatus haid."
-                  : "Semua santriwati sedang berstatus normal/suci."}
+                  ? "Tidak ada santriwati yang berstatus haid."
+                  : "Semua santriwati sedang berstatus normal."}
               </div>
               {activeTab === "haid" && (
                 <button
@@ -786,7 +804,7 @@ export default function MobileHaid() {
                             }}
                           >
                             <Heart size={11} fill="#e11d48" color="#e11d48" />
-                            <span>Sedang Haid {s.hari_ke ? `(${s.hari_ke}h)` : ""}</span>
+                            <span>Haid {s.hari_ke ? `(${s.hari_ke}h)` : ""}</span>
                           </span>
                         ) : (
                           <span
@@ -804,7 +822,7 @@ export default function MobileHaid() {
                             }}
                           >
                             <CheckCircle2 size={11} />
-                            <span>Suci</span>
+                            <span>Normal</span>
                           </span>
                         )}
                       </div>
@@ -910,7 +928,7 @@ export default function MobileHaid() {
                           }}
                         >
                           <Heart size={14} strokeWidth={2.4} fill="#ffffff" />
-                          <span>Mulai Haid (Udzur)</span>
+                          <span>Mulai Haid</span>
                         </button>
                       )}
                     </div>
@@ -1273,6 +1291,206 @@ export default function MobileHaid() {
               >
                 Tutup
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Searchable Select Filter Kelas */}
+      {isKelasModalOpen && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.65)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+            zIndex: 1100,
+          }}
+          onClick={() => setIsKelasModalOpen(false)}
+        >
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: "20px",
+              maxWidth: "400px",
+              width: "100%",
+              overflow: "hidden",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.25)",
+              display: "flex",
+              flexDirection: "column",
+              maxHeight: "80vh",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header Modal */}
+            <div
+              style={{
+                padding: "14px 16px",
+                borderBottom: "1px solid #f1f5f9",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                background: "#f8fafc",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <GraduationCap size={18} color="#be185d" />
+                <h4 style={{ margin: 0, fontSize: "0.9rem", fontWeight: 800, color: "#0f172a" }}>
+                  Pilih Kelas Santriwati
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsKelasModalOpen(false)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#64748b",
+                  cursor: "pointer",
+                  display: "flex",
+                  padding: "4px",
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Input Search di dalam Select Option */}
+            <div style={{ padding: "12px 16px 8px" }}>
+              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                <Search size={15} color="#94a3b8" style={{ position: "absolute", left: "10px" }} />
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Ketik cari nama kelas..."
+                  value={searchKelasQuery}
+                  onChange={(e) => setSearchKelasQuery(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "9px 32px 9px 32px",
+                    borderRadius: "10px",
+                    border: "1.5px solid #e2e8f0",
+                    fontSize: "0.8rem",
+                    outline: "none",
+                    background: "#f8fafc",
+                    color: "#0f172a",
+                    boxSizing: "border-box",
+                  }}
+                />
+                {searchKelasQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchKelasQuery("")}
+                    style={{
+                      position: "absolute",
+                      right: "8px",
+                      background: "none",
+                      border: "none",
+                      color: "#94a3b8",
+                      cursor: "pointer",
+                      padding: "2px",
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* List Option Kelas dengan Search Filter */}
+            <div
+              style={{
+                padding: "6px 16px 16px",
+                overflowY: "auto",
+                display: "flex",
+                flexDirection: "column",
+                gap: "5px",
+              }}
+            >
+              {/* Opsi 1: Semua Kelas */}
+              {(!searchKelasQuery || "semua kelas".includes(searchKelasQuery.toLowerCase())) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedKelas("semua");
+                    setIsKelasModalOpen(false);
+                  }}
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "10px 12px",
+                    borderRadius: "10px",
+                    border: selectedKelas === "semua" ? "1.5px solid #db2777" : "1px solid #f1f5f9",
+                    background: selectedKelas === "semua" ? "#fdf2f8" : "#ffffff",
+                    color: selectedKelas === "semua" ? "#be185d" : "#334155",
+                    fontSize: "0.78rem",
+                    fontWeight: selectedKelas === "semua" ? 800 : 600,
+                    cursor: "pointer",
+                    textAlign: "left",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <BookOpen size={14} color={selectedKelas === "semua" ? "#db2777" : "#94a3b8"} />
+                    <span>Semua Kelas</span>
+                  </div>
+                  {selectedKelas === "semua" && <Check size={16} color="#db2777" strokeWidth={2.8} />}
+                </button>
+              )}
+
+              {/* Opsi Daftar Kelas */}
+              {kelasList
+                .filter((k) => k.toLowerCase().includes(searchKelasQuery.toLowerCase()))
+                .map((k) => {
+                  const isSelected = selectedKelas === k;
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => {
+                        setSelectedKelas(k);
+                        setIsKelasModalOpen(false);
+                      }}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "10px 12px",
+                        borderRadius: "10px",
+                        border: isSelected ? "1.5px solid #db2777" : "1px solid #f1f5f9",
+                        background: isSelected ? "#fdf2f8" : "#ffffff",
+                        color: isSelected ? "#be185d" : "#334155",
+                        fontSize: "0.78rem",
+                        fontWeight: isSelected ? 800 : 600,
+                        cursor: "pointer",
+                        textAlign: "left",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <GraduationCap size={14} color={isSelected ? "#db2777" : "#94a3b8"} />
+                        <span>Kelas {k}</span>
+                      </div>
+                      {isSelected && <Check size={16} color="#db2777" strokeWidth={2.8} />}
+                    </button>
+                  );
+                })}
+
+              {/* Jika Tidak Ditemukan */}
+              {kelasList.filter((k) => k.toLowerCase().includes(searchKelasQuery.toLowerCase())).length === 0 &&
+                searchKelasQuery &&
+                !"semua kelas".includes(searchKelasQuery.toLowerCase()) && (
+                  <div style={{ textAlign: "center", padding: "20px 10px", color: "#94a3b8", fontSize: "0.75rem" }}>
+                    Kelas "{searchKelasQuery}" tidak ditemukan
+                  </div>
+                )}
             </div>
           </div>
         </div>
