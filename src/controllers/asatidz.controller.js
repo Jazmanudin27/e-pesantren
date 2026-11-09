@@ -4,9 +4,21 @@ import { sendSuccess, sendError } from '../utils/response.util.js';
 
 export const getAsatidz = async (req, res) => {
   try {
-    // Pastikan kolom kategori_asatidz tersedia di tabel asatidz
+    // Pastikan kolom kategori_asatidz dan tipe password panjang untuk hash SHA-256 / SHA-512 / Bcrypt
     try {
       await pool.query(`ALTER TABLE asatidz ADD COLUMN IF NOT EXISTS kategori_asatidz VARCHAR(50) DEFAULT 'Mustahiq' AFTER tugas_utama`);
+      await pool.query(`ALTER TABLE asatidz MODIFY COLUMN password VARCHAR(255) DEFAULT NULL`);
+    } catch (e) {}
+
+    // Auto-isi username & password dengan enkripsi SHA-256 / SHA-512 jika masih NULL
+    try {
+      await pool.query(`
+        UPDATE asatidz 
+        SET 
+          username = COALESCE(NULLIF(TRIM(username), ''), LOWER(REPLACE(COALESCE(nik_niy, CONCAT('ustadz', id)), ' ', ''))),
+          password = COALESCE(NULLIF(TRIM(password), ''), SHA2('123456', 256))
+        WHERE username IS NULL OR TRIM(username) = '' OR password IS NULL OR TRIM(password) = ''
+      `);
     } catch (e) {}
 
     const [rows] = await pool.query('SELECT * FROM asatidz ORDER BY id ASC');

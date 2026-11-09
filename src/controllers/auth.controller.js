@@ -88,14 +88,16 @@ export const login = async (req, res, next) => {
              FROM asatidz ast 
              LEFT JOIN users u ON ast.user_id = u.id 
              WHERE LOWER(TRIM(COALESCE(ast.username, ''))) = LOWER(TRIM(?))
+                OR REPLACE(LOWER(TRIM(COALESCE(ast.username, ''))), '-', '') = REPLACE(LOWER(TRIM(?)), '-', '')
                 OR (u.username IS NOT NULL AND LOWER(TRIM(u.username)) = LOWER(TRIM(?)))
                 OR LOWER(TRIM(ast.nik_niy)) = LOWER(TRIM(?)) 
+                OR REPLACE(LOWER(TRIM(COALESCE(ast.nik_niy, ''))), '-', '') = REPLACE(LOWER(TRIM(?)), '-', '')
                 OR LOWER(TRIM(ast.email)) = LOWER(TRIM(?)) 
                 OR LOWER(TRIM(ast.no_hp)) = LOWER(TRIM(?))
                 OR LOWER(TRIM(ast.nama_asatidz)) = LOWER(TRIM(?))
                 OR LOWER(TRIM(ast.nama_asatidz)) LIKE LOWER(?)
              LIMIT 1`,
-            [cleanUser, cleanUser, cleanUser, cleanUser, cleanUser, cleanUser, `%${cleanUser}%`]
+            [cleanUser, cleanUser, cleanUser, cleanUser, cleanUser, cleanUser, cleanUser, cleanUser, `%${cleanUser}%`]
           );
           astRows = resWithUser;
         } catch (colErr) {
@@ -105,22 +107,26 @@ export const login = async (req, res, next) => {
              FROM asatidz ast 
              LEFT JOIN users u ON ast.user_id = u.id 
              WHERE LOWER(TRIM(ast.nik_niy)) = LOWER(TRIM(?)) 
+                OR REPLACE(LOWER(TRIM(COALESCE(ast.nik_niy, ''))), '-', '') = REPLACE(LOWER(TRIM(?)), '-', '')
                 OR LOWER(TRIM(ast.email)) = LOWER(TRIM(?)) 
                 OR LOWER(TRIM(ast.no_hp)) = LOWER(TRIM(?))
                 OR LOWER(TRIM(ast.nama_asatidz)) = LOWER(TRIM(?))
                 OR LOWER(TRIM(ast.nama_asatidz)) LIKE LOWER(?)
                 OR (u.username IS NOT NULL AND LOWER(TRIM(u.username)) = LOWER(TRIM(?)))
              LIMIT 1`,
-            [cleanUser, cleanUser, cleanUser, cleanUser, `%${cleanUser}%`, cleanUser]
+            [cleanUser, cleanUser, cleanUser, cleanUser, cleanUser, `%${cleanUser}%`, cleanUser]
           );
           astRows = resLegacy;
         }
 
         if (astRows && astRows.length > 0) {
           account = astRows[0];
-          // Jika asatidz.password kosong, gunakan user_password dari tabel users
+          // Jika asatidz.password kosong, gunakan user_password dari tabel users atau default 123456
           if (!account.password && account.user_password) {
             account.password = account.user_password;
+          }
+          if (!account.password || String(account.password).trim() === '') {
+            account.password = '123456';
           }
           userType = 'Asatidz';
         }
@@ -216,6 +222,22 @@ export const login = async (req, res, next) => {
       if (!isMatch && dbPassword.length === 40) {
         const sha1Hash = crypto.createHash('sha1').update(cleanPass).digest('hex');
         if (dbPassword.toLowerCase() === sha1Hash.toLowerCase()) {
+          isMatch = true;
+        }
+      }
+
+      // SHA256 Compare (64 chars)
+      if (!isMatch && dbPassword.length === 64) {
+        const sha256Hash = crypto.createHash('sha256').update(cleanPass).digest('hex');
+        if (dbPassword.toLowerCase() === sha256Hash.toLowerCase()) {
+          isMatch = true;
+        }
+      }
+
+      // SHA512 Compare (128 chars) - "SHA-5 / SHA512"
+      if (!isMatch && dbPassword.length === 128) {
+        const sha512Hash = crypto.createHash('sha512').update(cleanPass).digest('hex');
+        if (dbPassword.toLowerCase() === sha512Hash.toLowerCase()) {
           isMatch = true;
         }
       }

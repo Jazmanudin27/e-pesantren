@@ -113,6 +113,20 @@ export const ensurePengajarTables = async () => {
         INDEX \`idx_perkembangan_santri\` (\`santri_id\`)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+
+    // 6. Auto-generate Username & Password untuk semua Asatidz yang masih NULL / Kosong (SHA-256 Aman)
+    try {
+      await pool.query(`ALTER TABLE asatidz MODIFY COLUMN password VARCHAR(255) DEFAULT NULL`);
+      await pool.query(`
+        UPDATE asatidz 
+        SET 
+          username = COALESCE(NULLIF(TRIM(username), ''), LOWER(REPLACE(COALESCE(nik_niy, CONCAT('ustadz', id)), ' ', ''))),
+          password = COALESCE(NULLIF(TRIM(password), ''), SHA2('123456', 256))
+        WHERE username IS NULL OR TRIM(username) = '' OR password IS NULL OR TRIM(password) = ''
+      `);
+    } catch (uErr) {
+      console.warn('[AUTOGEN ASATIDZ CREDENTIALS]', uErr.message);
+    }
   } catch (err) {
     console.warn('[PENGAJAR DB INIT NOTICE]', err.message);
   }
