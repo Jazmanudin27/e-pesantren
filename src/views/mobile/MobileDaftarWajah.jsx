@@ -283,27 +283,10 @@ export default function MobileDaftarWajah() {
       if (!faceRes) {
         setIsFaceDetected(false);
         setFaceScore(0);
-        setDetectedExistingSantri(null);
       } else {
         setIsFaceDetected(true);
         const score = Math.round((faceRes.score || 0.88) * 100);
         setFaceScore(score);
-
-        // Duplicate check against registered descriptors (Strict Threshold 0.07 agar tidak salah deteksi orang lain)
-        const descriptors = registeredDescriptorsRef.current || [];
-        const curId = selectedSantri ? String(selectedSantri.id) : '';
-        const otherProfiles = descriptors.filter((p) => String(p.id) !== curId);
-
-        if (otherProfiles.length > 0) {
-          const match = matchFaceDescriptor(faceRes.descriptor, otherProfiles, 0.07);
-          if (match && match.success && !match.error && match.distance < 0.07) {
-            setDetectedExistingSantri(match);
-          } else {
-            setDetectedExistingSantri(null);
-          }
-        } else {
-          setDetectedExistingSantri(null);
-        }
       }
     } catch (e) {
       setIsFaceDetected(false);
@@ -1690,11 +1673,7 @@ export default function MobileDaftarWajah() {
                     }}
                   >
                     {isFaceDetected ? (
-                      detectedExistingSantri ? (
-                        `🟢 Wajah Terdeteksi (${faceScore}%) • Mirip: ${detectedExistingSantri.nama_santri || detectedExistingSantri.nama}`
-                      ) : (
-                        `🟢 Wajah Pas & Terdeteksi (${faceScore}%)`
-                      )
+                      `🟢 Wajah Pas & Terdeteksi (${faceScore}%)`
                     ) : (
                       `⚠️ Bukan Wajah / Belum Pas (Arahkan ke Wajah Santri)`
                     )}
