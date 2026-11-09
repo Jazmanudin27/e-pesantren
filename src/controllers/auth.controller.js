@@ -210,8 +210,30 @@ export const login = async (req, res, next) => {
         isMatch = true;
       }
 
+      // SHA512 Compare ("SHA-5" / 128 chars / truncated)
+      if (!isMatch) {
+        const sha512Hash = crypto.createHash('sha512').update(cleanPass).digest('hex');
+        if (
+          dbPassword.toLowerCase() === sha512Hash.toLowerCase() ||
+          (dbPassword.length >= 20 && sha512Hash.toLowerCase().startsWith(dbPassword.toLowerCase()))
+        ) {
+          isMatch = true;
+        }
+      }
+
+      // SHA256 Compare (64 chars / truncated)
+      if (!isMatch) {
+        const sha256Hash = crypto.createHash('sha256').update(cleanPass).digest('hex');
+        if (
+          dbPassword.toLowerCase() === sha256Hash.toLowerCase() ||
+          (dbPassword.length >= 20 && sha256Hash.toLowerCase().startsWith(dbPassword.toLowerCase()))
+        ) {
+          isMatch = true;
+        }
+      }
+
       // MD5 Compare (32 chars)
-      if (!isMatch && dbPassword.length === 32) {
+      if (!isMatch) {
         const md5Hash = crypto.createHash('md5').update(cleanPass).digest('hex');
         if (dbPassword.toLowerCase() === md5Hash.toLowerCase()) {
           isMatch = true;
@@ -219,25 +241,9 @@ export const login = async (req, res, next) => {
       }
 
       // SHA1 Compare (40 chars)
-      if (!isMatch && dbPassword.length === 40) {
+      if (!isMatch) {
         const sha1Hash = crypto.createHash('sha1').update(cleanPass).digest('hex');
         if (dbPassword.toLowerCase() === sha1Hash.toLowerCase()) {
-          isMatch = true;
-        }
-      }
-
-      // SHA256 Compare (64 chars)
-      if (!isMatch && dbPassword.length === 64) {
-        const sha256Hash = crypto.createHash('sha256').update(cleanPass).digest('hex');
-        if (dbPassword.toLowerCase() === sha256Hash.toLowerCase()) {
-          isMatch = true;
-        }
-      }
-
-      // SHA512 Compare (128 chars) - "SHA-5 / SHA512"
-      if (!isMatch && dbPassword.length === 128) {
-        const sha512Hash = crypto.createHash('sha512').update(cleanPass).digest('hex');
-        if (dbPassword.toLowerCase() === sha512Hash.toLowerCase()) {
           isMatch = true;
         }
       }
