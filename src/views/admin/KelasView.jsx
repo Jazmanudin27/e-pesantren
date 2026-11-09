@@ -73,12 +73,7 @@ export default function KelasView() {
       if (fetched.length > 0) {
         setHalaqahList(fetched);
       } else {
-        const res = await axios.get('/api/tahfidz/halaqah');
-        if (res.data && res.data.success && Array.isArray(res.data.data)) {
-          setHalaqahList(res.data.data);
-        } else {
-          setHalaqahList([]);
-        }
+        setHalaqahList([]);
       }
     } catch (err) {
       console.error('Gagal mengambil data halaqah/kelas:', err);

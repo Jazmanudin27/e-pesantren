@@ -116,14 +116,7 @@ export default function ScanBarcodeView() {
   const [faceConfidence, setFaceConfidence] = useState(null);
 
   // Registered Face Profiles: { [santri_id]: { foto, nama, nis, registered_at } }
-  const [registeredFaces, setRegisteredFaces] = useState(() => {
-    try {
-      const saved = localStorage.getItem("epesantren_face_profiles");
-      return saved ? JSON.parse(saved) : {};
-    } catch (e) {
-      return {};
-    }
-  });
+  const [registeredFaces, setRegisteredFaces] = useState({});
   const registeredFacesRef = useRef(registeredFaces);
   useEffect(() => {
     registeredFacesRef.current = registeredFaces;
@@ -147,15 +140,8 @@ export default function ScanBarcodeView() {
   const [lastScanned, setLastScanned] = useState(null);
   const [flashStatus, setFlashStatus] = useState(null); // 'success' | 'warning' | 'error'
 
-  // Scan logs today
-  const [scanLogs, setScanLogs] = useState(() => {
-    try {
-      const saved = localStorage.getItem("epesantren_live_scan_logs");
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
+  // Scan logs today (Dimuat murni dari Database Server)
+  const [scanLogs, setScanLogs] = useState([]);
 
   const scanLogsRef = useRef(scanLogs);
   useEffect(() => {
@@ -295,7 +281,6 @@ export default function ScanBarcodeView() {
 
           if (profileChanged) {
             setRegisteredFaces(currentLocalProfiles);
-            localStorage.setItem("epesantren_face_profiles", JSON.stringify(currentLocalProfiles));
           }
         } catch (eSync) {}
       } else {
@@ -333,20 +318,18 @@ export default function ScanBarcodeView() {
   };
 
   useEffect(() => {
+    try {
+      localStorage.removeItem("epesantren_face_profiles");
+      localStorage.removeItem("epesantren_live_scan_logs");
+    } catch (e) {}
     fetchSantriData();
     // Keep focus on input for USB gun barcode reader
     barcodeInputRef.current?.focus();
   }, []);
 
-  // Save logs to localStorage helper
+  // Update logs state helper
   const saveLogs = (newLogs) => {
     setScanLogs(newLogs);
-    try {
-      localStorage.setItem(
-        "epesantren_live_scan_logs",
-        JSON.stringify(newLogs),
-      );
-    } catch (e) {}
   };
 
   // Voice synthesizer announcement (Speech API)

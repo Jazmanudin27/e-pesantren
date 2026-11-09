@@ -84,18 +84,14 @@ export default function UserManagementView() {
   };
 
   useEffect(() => {
+    try {
+      localStorage.removeItem("epesantren_users_cache");
+    } catch (e) {}
     fetchUsers();
   }, []);
 
-  // Save to Cache helper (for offline / instant reactive feel)
   const syncCache = (updatedList) => {
     setUsersList(updatedList);
-    try {
-      localStorage.setItem(
-        "epesantren_users_cache",
-        JSON.stringify(updatedList),
-      );
-    } catch (e) {}
   };
 
   // Open Form: Add User

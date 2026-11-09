@@ -63,23 +63,12 @@ export default function MobilePresensiBerjamaah() {
   const [selectedBerjamaah, setSelectedBerjamaah] = useState(DAFTAR_BERJAMAAH_DEFAULT[0]);
 
   // Dropdown Kelas (Lazy load santri per-kelas seperti Mengaji agar anti-lag)
-  const [selectedBerjamaahKelas, setSelectedBerjamaahKelas] = useState(() => {
-    try {
-      return localStorage.getItem("epesantren_berjamaah_selected_kelas") || "";
-    } catch (e) {
-      return "";
-    }
-  });
+  const [selectedBerjamaahKelas, setSelectedBerjamaahKelas] = useState("");
   const [loadingKelasSantri, setLoadingKelasSantri] = useState(false);
 
   const selectedBerjamaahKelasRef = useRef(selectedBerjamaahKelas);
   useEffect(() => {
     selectedBerjamaahKelasRef.current = selectedBerjamaahKelas;
-    if (selectedBerjamaahKelas) {
-      try {
-        localStorage.setItem("epesantren_berjamaah_selected_kelas", selectedBerjamaahKelas);
-      } catch (e) {}
-    }
   }, [selectedBerjamaahKelas]);
 
   // Data State
@@ -281,6 +270,9 @@ export default function MobilePresensiBerjamaah() {
   };
 
   useEffect(() => {
+    try {
+      localStorage.removeItem("epesantren_berjamaah_selected_kelas");
+    } catch (e) {}
     fetchData();
   }, []);
 

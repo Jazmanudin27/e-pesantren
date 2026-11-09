@@ -78,14 +78,8 @@ export default function MobileDaftarWajah() {
   const detectIntervalRef = useRef(null);
   const isDetectingRef = useRef(false);
 
-  // Registered face profiles map from localStorage
-  const [registeredFaces, setRegisteredFaces] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('epesantren_face_profiles') || '{}');
-    } catch (e) {
-      return {};
-    }
-  });
+  // Registered face profiles map (dimuat murni dari Database Server)
+  const [registeredFaces, setRegisteredFaces] = useState({});
 
   const fetchUnindexed = async () => {
     try {
@@ -119,28 +113,23 @@ export default function MobileDaftarWajah() {
         const fetched = resSantri.data.data;
         setSantriList(fetched);
 
-        // Bersihkan profil wajah di localStorage yang di database sudah dihapus
-        try {
-          const currentLocal = JSON.parse(localStorage.getItem('epesantren_face_profiles') || '{}');
-          const registeredInDb = new Set(
-            fetched
-              .filter(s => s.has_face_descriptor === 1 || s.face_descriptor || s.foto)
-              .map(s => String(s.id))
-          );
-          let localChanged = false;
-          Object.keys(currentLocal).forEach((k) => {
-            const prof = currentLocal[k];
-            const pId = String(prof?.santri_id || prof?.id || k);
-            if (!registeredInDb.has(pId)) {
-              delete currentLocal[k];
-              localChanged = true;
-            }
-          });
-          if (localChanged) {
-            setRegisteredFaces(currentLocal);
-            localStorage.setItem('epesantren_face_profiles', JSON.stringify(currentLocal));
+        // Sinkronisasi profil wajah langsung dari data santri di Database
+        const faceMap = {};
+        fetched.forEach((s) => {
+          if (s.has_face_descriptor === 1 || s.face_descriptor || s.foto) {
+            faceMap[s.id] = {
+              santri_id: s.id,
+              nama: s.nama_santri,
+              nis: s.nis,
+              asrama: s.nama_asrama || '',
+              kamar: s.nama_kamar || '',
+              foto: s.foto,
+              descriptor: s.face_descriptor || null,
+              registered_at: s.updated_at || s.created_at || new Date().toISOString()
+            };
           }
-        } catch (eClean) {}
+        });
+        setRegisteredFaces(faceMap);
       }
     } catch (err) {
       console.warn('Gagal ambil santri:', err);
@@ -287,6 +276,9 @@ export default function MobileDaftarWajah() {
   };
 
   useEffect(() => {
+    try {
+      localStorage.removeItem('epesantren_face_profiles');
+    } catch (e) {}
     fetchSantri();
     // Pre-warm AI face models di background (tidak blokir render awal)
     const timer = setTimeout(() => {
@@ -552,26 +544,6 @@ export default function MobileDaftarWajah() {
       };
 
       setRegisteredFaces(updated);
-
-      try {
-        // Simpan versi ringkas ke localStorage (hanya descriptor 128 float, tanpa base64 foto raksasa)
-        const lightMap = {};
-        Object.keys(updated).forEach((k) => {
-          const p = updated[k];
-          lightMap[k] = {
-            santri_id: p.santri_id,
-            nama: p.nama,
-            nis: p.nis,
-            asrama: p.asrama || '',
-            kamar: p.kamar || '',
-            descriptor: p.descriptor,
-            registered_at: p.registered_at
-          };
-        });
-        localStorage.setItem('epesantren_face_profiles', JSON.stringify(lightMap));
-      } catch (eStorage) {
-        console.warn('Quota localStorage aman terlindungi:', eStorage);
-      }
 
       // Update state santriList lokal
       setSantriList((prev) =>

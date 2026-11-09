@@ -50,7 +50,6 @@ import SettingKegiatanView from '../views/admin/SettingKegiatanView';
 import UserManagementView from '../views/admin/UserManagementView';
 import ScanBarcodeView from '../views/admin/ScanBarcodeView';
 import PraktekIbadahView from '../views/admin/PraktekIbadahView';
-import TahfidzView from '../views/admin/TahfidzView';
 import PerizinanView from '../views/admin/PerizinanView';
 import TataTertibView from '../views/admin/TataTertibView';
 import AbsensiFingerprintView from '../views/admin/AbsensiFingerprintView';
@@ -75,7 +74,7 @@ export default function AdminLayout() {
   const isPengembanganTab = (tab) => ['perkembangan-santri-laki', 'perkembangan-ikhwan', 'perkembangan-santri-perempuan', 'perkembangan-santriwati', 'perkembangan-akhwat'].includes(tab);
   const isMasterTab = (tab) => ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-materi', 'setting-shalat', 'setting-kegiatan', 'master-kegiatan'].includes(tab);
   const isSettingsTab = (tab) => ['master-device', 'manajemen-user', 'users', 'whatsapp-gateway', 'whatsapp', 'wa-broadcast'].includes(tab);
-  const isLaporanTab = (tab) => ['laporan-presensi', 'laporan-tahfidz'].includes(tab);
+  const isLaporanTab = (tab) => ['laporan-presensi'].includes(tab);
   const isKeuanganTab = (tab) => ['keuangan-admin', 'keuangan', 'keuangan-kasir', 'keuangan-rekap', 'keuangan-spp', 'tagihan', 'tabungan-santri', 'tabungan', 'laporan-infak', 'infak'].includes(tab);
 
   // Get initial tab from URL hash
@@ -424,9 +423,6 @@ export default function AdminLayout() {
         return <AbsensiFingerprintView initialType="kegiatan" />;
       case 'laporan-presensi':
         return <AbsensiFingerprintView initialType="berjamaah" />;
-      case 'tahfidz':
-      case 'laporan-tahfidz':
-        return <TahfidzView />;
       case 'perizinan':
         return <PerizinanView />;
       case 'tata-tertib':
@@ -614,16 +610,6 @@ export default function AdminLayout() {
                 </button>
               </div>
             )}
-
-            <button 
-              className={`nav-link ${activeTab === 'tahfidz' || activeTab === 'laporan-tahfidz' ? 'active' : ''}`}
-              onClick={() => handleTabClick('tahfidz')}
-            >
-              <div className="nav-link-left">
-                <BookOpen size={15} style={{ color: '#10b981' }} />
-                <span>Tahfidz & Muroja'ah</span>
-              </div>
-            </button>
 
             <button 
               className={`nav-link ${activeTab === 'perizinan' ? 'active' : ''}`}

@@ -1047,7 +1047,7 @@ const TabBerandaWali = ({
               <span style={menuLabelStyle}>Praktek</span>
             </div>
 
-            {/* 7. Perkembangan Santri */}
+            {/* 6. Rapor Santri */}
             <div onClick={() => onNavigateTab('laporan')} style={menuCardStyle}>
               <div style={{
                 ...squircleIconStyle,
@@ -1056,10 +1056,10 @@ const TabBerandaWali = ({
               }}>
                 <Award size={23} strokeWidth={2.3} color="#ffffff" />
               </div>
-              <span style={menuLabelStyle}>Perkembangan</span>
+              <span style={menuLabelStyle}>Rapor</span>
             </div>
 
-            {/* 8. Tata Tertib */}
+            {/* 7. Tata Tertib */}
             <div onClick={() => onNavigateTab('pelanggaran')} style={menuCardStyle}>
               <div style={{
                 ...squircleIconStyle,
@@ -1071,19 +1071,7 @@ const TabBerandaWali = ({
               <span style={menuLabelStyle}>Tata Tertib</span>
             </div>
 
-            {/* 9. Infak & Sedekah */}
-            <div onClick={() => onNavigateTab('infak')} style={menuCardStyle}>
-              <div style={{
-                ...squircleIconStyle,
-                background: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
-                boxShadow: '0 6px 16px -2px rgba(236, 72, 153, 0.38)'
-              }}>
-                <Heart size={23} strokeWidth={2.3} color="#ffffff" />
-              </div>
-              <span style={menuLabelStyle}>Infak &amp; Doa</span>
-            </div>
-
-            {/* 10. Kirim Pesan / Hubungi Admin */}
+            {/* 8. Tanya Admin */}
             <div onClick={() => onNavigateTab('pesan')} style={menuCardStyle}>
               <div style={{
                 ...squircleIconStyle,
@@ -1162,9 +1150,9 @@ const TabBerandaWali = ({
             },
             {
               id: 'fb-2',
-              judul: "Setoran Tahfidz & Tasmi' Al-Qur'an",
-              kategori: 'Tahfidz',
-              konten: "Muroja'ah rutin santri dan evaluasi mutqin hafalan bersama musyrif asrama.",
+              judul: "Sorogan Kitab & Taklim Santri",
+              kategori: 'Pengajian',
+              konten: "Pembacaan dan pemaknaan kitab kuning bersama musyrif asrama.",
               tanggal_publikasi: 'Mingguan'
             },
             {

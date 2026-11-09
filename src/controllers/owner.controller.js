@@ -76,8 +76,7 @@ export const getOwnerSummary = async (req, res) => {
       SELECT 
         COUNT(*) as total_santri,
         SUM(CASE WHEN LOWER(COALESCE(jenis_kelamin, tipe_santri, '')) IN ('l', 'laki-laki', 'putra', 'ikhwan') THEN 1 ELSE 0 END) as santri_putra,
-        SUM(CASE WHEN LOWER(COALESCE(jenis_kelamin, tipe_santri, '')) IN ('p', 'perempuan', 'putri', 'akhwat') THEN 1 ELSE 0 END) as santri_putri,
-        AVG(COALESCE(capaian_hafalan_juz, 0)) as avg_juz
+        SUM(CASE WHEN LOWER(COALESCE(jenis_kelamin, tipe_santri, '')) IN ('p', 'perempuan', 'putri', 'akhwat') THEN 1 ELSE 0 END) as santri_putri
       FROM santri 
       WHERE status = 'Aktif'
     `);
@@ -142,7 +141,6 @@ export const getOwnerSummary = async (req, res) => {
       totalSantri: santriStats?.total_santri || 0,
       santriPutra: santriStats?.santri_putra || 0,
       santriPutri: santriStats?.santri_putri || 0,
-      avgJuz: santriStats?.avg_juz ? Number(santriStats.avg_juz).toFixed(1) : '0.0',
       totalIzinAktif: izinStats?.total_izin_aktif || 0,
       totalKasMasuk: Number(keuStats?.total_kas_masuk || 0),
       totalPiutang: Number(tunggakanStats?.total_piutang || 0),
@@ -364,68 +362,7 @@ export const getOwnerPresensi = async (req, res) => {
 };
 
 /**
- * 4. GET /api/owner/tahfidz
- * Laporan Tahfidz & Capaian Hafalan Qur'an (Read-Only)
- */
-export const getOwnerTahfidz = async (req, res) => {
-  try {
-    // 1. Rata-Rata Capaian & Sebaran Kelompok Juz Santri
-    const [[avgHafalan]] = await pool.query(`
-      SELECT 
-        AVG(COALESCE(capaian_hafalan_juz, 0)) as avg_juz,
-        SUM(CASE WHEN capaian_hafalan_juz >= 1 AND capaian_hafalan_juz <= 5 THEN 1 ELSE 0 END) as juz_1_5,
-        SUM(CASE WHEN capaian_hafalan_juz >= 6 AND capaian_hafalan_juz <= 10 THEN 1 ELSE 0 END) as juz_6_10,
-        SUM(CASE WHEN capaian_hafalan_juz >= 11 AND capaian_hafalan_juz <= 20 THEN 1 ELSE 0 END) as juz_11_20,
-        SUM(CASE WHEN capaian_hafalan_juz >= 21 AND capaian_hafalan_juz <= 30 THEN 1 ELSE 0 END) as juz_21_30,
-        SUM(CASE WHEN capaian_hafalan_juz = 30 THEN 1 ELSE 0 END) as khatam_30
-      FROM santri
-      WHERE status = 'Aktif'
-    `).catch(() => [[{ avg_juz: 0, juz_1_5: 0, juz_6_10: 0, juz_11_20: 0, juz_21_30: 0, khatam_30: 0 }]]);
-
-    // 2. Log 50 Setoran Hafalan Terbaru
-    const [setoranRows] = await pool.query(`
-      SELECT 
-        ts.id,
-        DATE_FORMAT(ts.tanggal, '%Y-%m-%d') as tanggal,
-        ts.juz,
-        ts.surat_mulai,
-        ts.ayat_mulai,
-        ts.surat_selesai,
-        ts.ayat_selesai,
-        ts.kualitas_tajwid,
-        ts.status,
-        ts.catatan,
-        s.nama_santri,
-        s.nis,
-        COALESCE(s.nama_kelas, '') as nama_kelas,
-        a.nama_asrama,
-        ast.nama_asatidz
-      FROM tahfidz_setoran ts
-      JOIN santri s ON ts.santri_id = s.id
-      LEFT JOIN asrama a ON s.asrama_id = a.id
-      LEFT JOIN asatidz ast ON ts.asatidz_id = ast.id
-      ORDER BY ts.tanggal DESC, ts.id DESC
-      LIMIT 75
-    `).catch(() => [[]]);
-
-    return sendSuccess(res, 'Data Laporan Tahfidz Owner Berhasil Dimuat', {
-      avgJuz: avgHafalan?.avg_juz ? Number(avgHafalan.avg_juz).toFixed(1) : '0.0',
-      sebaranJuz: {
-        juz_1_5: Number(avgHafalan?.juz_1_5 || 0),
-        juz_6_10: Number(avgHafalan?.juz_6_10 || 0),
-        juz_11_20: Number(avgHafalan?.juz_11_20 || 0),
-        juz_21_30: Number(avgHafalan?.juz_21_30 || 0),
-        khatam_30: Number(avgHafalan?.khatam_30 || 0)
-      },
-      setoranTerbaru: setoranRows
-    });
-  } catch (err) {
-    return sendError(res, `Gagal memuat tahfidz owner: ${err.message}`, 500);
-  }
-};
-
-/**
- * 5. GET /api/owner/perizinan
+ * 4. GET /api/owner/perizinan
  * Laporan Perizinan & Kedisiplinan Santri (Read-Only)
  */
 export const getOwnerPerizinan = async (req, res) => {

@@ -7,7 +7,10 @@ import {
   RotateCw,
   Search,
   PieChart,
-  UserCheck
+  UserCheck,
+  User,
+  ChevronRight,
+  Sparkles
 } from "lucide-react";
 
 export default function OwnerLaporanSantri() {
@@ -67,289 +70,461 @@ export default function OwnerLaporanSantri() {
   const putriPct = totalS > 0 ? Math.round((putriS / totalS) * 100) : 0;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px", paddingBottom: "24px" }}>
       
-      {/* 1. VISUAL DEMOGRAPHY BREAKDOWN BANNER */}
+      {/* 1. HERO DEMOGRAFI CARD */}
       <div
         style={{
-          background: "linear-gradient(145deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%)",
-          border: "1px solid rgba(51, 65, 85, 0.8)",
-          borderRadius: "18px",
-          padding: "18px 24px",
-          boxShadow: "0 6px 20px -4px rgba(0,0,0,0.3)"
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-          <div>
-            <div style={{ fontSize: "0.84rem", fontWeight: 800, color: "#ffffff" }}>
-              Sebaran Populasi Santri Mukim Pesantren
-            </div>
-            <div style={{ fontSize: "0.72rem", color: "#94a3b8", marginTop: "2px" }}>
-              Total <strong>{totalS} santri aktif</strong> di komplek asrama putra &amp; putri
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: "16px", textAlign: "right" }}>
-            <div>
-              <span style={{ fontSize: "1.25rem", fontWeight: 900, color: "#38bdf8" }}>{putraPct}%</span>
-              <span style={{ fontSize: "0.72rem", color: "#64748b", marginLeft: "4px" }}>Putra</span>
-            </div>
-            <div>
-              <span style={{ fontSize: "1.25rem", fontWeight: 900, color: "#ec4899" }}>{putriPct}%</span>
-              <span style={{ fontSize: "0.72rem", color: "#64748b", marginLeft: "4px" }}>Putri</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Gender Distribution Bar */}
-        <div style={{ width: "100%", height: "12px", background: "#0f172a", borderRadius: "999px", overflow: "hidden", display: "flex", border: "1px solid rgba(51, 65, 85, 0.6)" }}>
-          <div style={{ width: `${putraPct}%`, height: "100%", background: "#38bdf8", boxShadow: "0 0 10px rgba(56, 189, 248, 0.6)" }} title={`Putra: ${putraS}`} />
-          <div style={{ width: `${putriPct}%`, height: "100%", background: "#ec4899", boxShadow: "0 0 10px rgba(236, 72, 153, 0.6)" }} title={`Putri: ${putriS}`} />
-        </div>
-
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px", fontSize: "0.72rem" }}>
-          <span style={{ color: "#38bdf8", fontWeight: 700 }}>● Santri Putra (Ikhwan): {putraS} Santri</span>
-          <span style={{ color: "#ec4899", fontWeight: 700 }}>● Santri Putri (Akhwat): {putriS} Santri</span>
-        </div>
-      </div>
-
-      {/* 2. 3 METRIC CARDS */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "14px" }}>
-        <div style={{ background: "linear-gradient(145deg, #112133 0%, #0a1522 100%)", borderRadius: "18px", padding: "18px", border: "1px solid rgba(56, 189, 248, 0.3)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-            <span style={{ fontSize: "0.74rem", fontWeight: 800, color: "#38bdf8", textTransform: "uppercase" }}>TOTAL SANTRI AKTIF</span>
-            <Users size={18} color="#38bdf8" />
-          </div>
-          <div style={{ fontSize: "1.65rem", fontWeight: 900, color: "#ffffff" }}>
-            {totalS} <span style={{ fontSize: "0.85rem", color: "#64748b", fontWeight: 500 }}>Santri</span>
-          </div>
-          <div style={{ fontSize: "0.72rem", color: "#bae6fd", marginTop: "6px" }}>
-            Data resmi di database pesantren
-          </div>
-        </div>
-
-        <div style={{ background: "linear-gradient(145deg, #112133 0%, #0a1522 100%)", borderRadius: "18px", padding: "18px", border: "1px solid rgba(56, 189, 248, 0.3)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-            <span style={{ fontSize: "0.74rem", fontWeight: 800, color: "#38bdf8", textTransform: "uppercase" }}>SANTRI PUTRA (IKHWAN)</span>
-            <UserCheck size={18} color="#38bdf8" />
-          </div>
-          <div style={{ fontSize: "1.65rem", fontWeight: 900, color: "#38bdf8" }}>
-            {putraS} <span style={{ fontSize: "0.85rem", color: "#64748b", fontWeight: 500 }}>Santri</span>
-          </div>
-          <div style={{ fontSize: "0.72rem", color: "#bae6fd", marginTop: "6px" }}>
-            Asrama &amp; Komplek Putra
-          </div>
-        </div>
-
-        <div style={{ background: "linear-gradient(145deg, #261122 0%, #1a0a17 100%)", borderRadius: "18px", padding: "18px", border: "1px solid rgba(236, 72, 153, 0.3)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-            <span style={{ fontSize: "0.74rem", fontWeight: 800, color: "#ec4899", textTransform: "uppercase" }}>SANTRI PUTRI (AKHWAT)</span>
-            <UserCheck size={18} color="#ec4899" />
-          </div>
-          <div style={{ fontSize: "1.65rem", fontWeight: 900, color: "#ec4899" }}>
-            {putriS} <span style={{ fontSize: "0.85rem", color: "#64748b", fontWeight: 500 }}>Santri</span>
-          </div>
-          <div style={{ fontSize: "0.72rem", color: "#fbcfe8", marginTop: "6px" }}>
-            Asrama &amp; Komplek Putri
-          </div>
-        </div>
-      </div>
-
-      {/* 3. MAIN TABLE CARD */}
-      <div
-        style={{
-          background: "linear-gradient(145deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.85) 100%)",
+          background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%)",
           borderRadius: "20px",
-          padding: "20px",
-          border: "1px solid rgba(51, 65, 85, 0.8)"
+          padding: "16px 18px",
+          color: "#ffffff",
+          boxShadow: "0 10px 25px -4px rgba(37, 99, 235, 0.35)",
+          position: "relative",
+          overflow: "hidden"
         }}
       >
-        {/* Toolbar */}
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "18px" }}>
-          
-          <div style={{ display: "flex", gap: "6px", background: "rgba(15, 23, 42, 0.85)", padding: "4px", borderRadius: "12px", border: "1px solid rgba(51, 65, 85, 0.8)" }}>
-            <button
-              onClick={() => setActiveSubTab("kelas")}
-              style={{
-                padding: "8px 16px",
-                borderRadius: "9px",
-                border: "none",
-                fontSize: "0.78rem",
-                fontWeight: 800,
-                cursor: "pointer",
-                background: activeSubTab === "kelas" ? "#38bdf8" : "transparent",
-                color: activeSubTab === "kelas" ? "#0f172a" : "#94a3b8",
-                transition: "all 0.2s ease"
-              }}
-            >
-              Rombel Kelas ({data.rombelKelas?.length || 0})
-            </button>
+        <div
+          style={{
+            position: "absolute",
+            top: "-20px",
+            right: "-20px",
+            width: "90px",
+            height: "90px",
+            borderRadius: "50%",
+            background: "rgba(191, 219, 254, 0.18)",
+            filter: "blur(20px)",
+            pointerEvents: "none"
+          }}
+        />
 
-            <button
-              onClick={() => setActiveSubTab("asrama")}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div
               style={{
-                padding: "8px 16px",
-                borderRadius: "9px",
-                border: "none",
-                fontSize: "0.78rem",
+                fontSize: "0.64rem",
                 fontWeight: 800,
-                cursor: "pointer",
-                background: activeSubTab === "asrama" ? "#10b981" : "transparent",
-                color: activeSubTab === "asrama" ? "#0f172a" : "#94a3b8",
-                transition: "all 0.2s ease"
+                color: "#bfdbfe",
+                letterSpacing: "0.05em",
+                textTransform: "uppercase"
               }}
             >
-              Sebaran Asrama ({data.sebaranAsrama?.length || 0})
-            </button>
+              POPULASI SANTRI AKTIF
+            </div>
+            <div
+              style={{
+                fontSize: "1.65rem",
+                fontWeight: 900,
+                color: "#ffffff",
+                letterSpacing: "-0.5px",
+                marginTop: "4px"
+              }}
+            >
+              {totalS} <span style={{ fontSize: "0.9rem", fontWeight: 700, color: "#bfdbfe" }}>Santri Terdaftar</span>
+            </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <div style={{ position: "relative" }}>
-              <input
-                type="text"
-                placeholder="Cari kelas / asrama..."
-                value={searchTable}
-                onChange={(e) => setSearchTable(e.target.value)}
-                style={{
-                  background: "#0f172a",
-                  border: "1px solid rgba(71, 85, 105, 0.8)",
-                  borderRadius: "10px",
-                  padding: "8px 12px 8px 32px",
-                  fontSize: "0.78rem",
-                  color: "#ffffff",
-                  outline: "none",
-                  width: "190px"
-                }}
-              />
-              <Search size={14} color="#64748b" style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)" }} />
-            </div>
-
-            <button
-              onClick={fetchData}
-              title="Refresh Data"
-              style={{
-                background: "#0f172a",
-                border: "1px solid rgba(71, 85, 105, 0.8)",
-                borderRadius: "10px",
-                padding: "8px 12px",
-                color: "#38bdf8",
-                cursor: "pointer"
-              }}
-            >
-              <RotateCw size={14} className={loading ? "animate-spin" : ""} />
-            </button>
+          <div
+            style={{
+              width: "38px",
+              height: "38px",
+              borderRadius: "12px",
+              background: "rgba(255, 255, 255, 0.2)",
+              backdropFilter: "blur(6px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0
+            }}
+          >
+            <Users size={20} color="#bfdbfe" />
           </div>
         </div>
 
-        {/* Content Table */}
-        {loading ? (
-          <div style={{ padding: "50px", textAlign: "center", color: "#64748b" }}>
-            <RotateCw size={26} className="animate-spin" style={{ margin: "0 auto 10px", color: "#38bdf8" }} />
-            <div style={{ fontSize: "0.82rem", fontWeight: 600 }}>Memuat demografi santri...</div>
+        {/* Multi-gender progress bar */}
+        <div style={{ marginTop: "14px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.66rem", fontWeight: 700, marginBottom: "5px" }}>
+            <span style={{ color: "#93c5fd" }}>Putra: {putraS} ({putraPct}%)</span>
+            <span style={{ color: "#fbcfe8" }}>Putri: {putriS} ({putriPct}%)</span>
           </div>
-        ) : (
-          <div>
-            {/* 1. TABEL ROMBEL KELAS */}
-            {activeSubTab === "kelas" && (
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
-                  <thead>
-                    <tr style={{ background: "rgba(15, 23, 42, 0.9)", color: "#94a3b8", textAlign: "left", borderBottom: "2px solid #334155" }}>
-                      <th style={{ padding: "12px 16px" }}>No</th>
-                      <th style={{ padding: "12px 16px" }}>Nama Kelas</th>
-                      <th style={{ padding: "12px 16px" }}>Tingkat Pendidikan</th>
-                      <th style={{ padding: "12px 16px" }}>Wali Kelas / Guru Pengampu</th>
-                      <th style={{ padding: "12px 16px" }}>Keterangan</th>
-                      <th style={{ padding: "12px 16px", textAlign: "center" }}>Jumlah Santri</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredKelas.map((kls, idx) => (
-                      <tr 
-                        key={kls.id || idx} 
-                        style={{ 
-                          borderBottom: "1px solid rgba(51, 65, 85, 0.6)",
-                          background: idx % 2 === 0 ? "transparent" : "rgba(15, 23, 42, 0.3)"
-                        }}
-                      >
-                        <td style={{ padding: "12px 16px", color: "#64748b" }}>{idx + 1}</td>
-                        <td style={{ padding: "12px 16px", fontWeight: 900, color: "#ffffff", fontSize: "0.84rem" }}>
-                          Kelas {kls.nama_kelas}
-                        </td>
-                        <td style={{ padding: "12px 16px", color: "#38bdf8", fontWeight: 700 }}>
-                          {kls.tingkat || "Reguler"}
-                        </td>
-                        <td style={{ padding: "12px 16px", color: "#cbd5e1" }}>
-                          {kls.wali_kelas || "Ustadz Pengampu"}
-                        </td>
-                        <td style={{ padding: "12px 16px", color: "#94a3b8" }}>
-                          {kls.keterangan || "Aktif"}
-                        </td>
-                        <td style={{ padding: "12px 16px", textAlign: "center" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "rgba(16, 185, 129, 0.2)", border: "1px solid rgba(16, 185, 129, 0.4)", color: "#10b981", padding: "4px 12px", borderRadius: "999px", fontSize: "0.74rem", fontWeight: 900 }}>
-                            {kls.total_santri || 0} Santri
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                    {filteredKelas.length === 0 && (
-                      <tr>
-                        <td colSpan="6" style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
-                          Belum ada data rombel kelas tercatat.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+          <div
+            style={{
+              width: "100%",
+              height: "8px",
+              background: "rgba(0, 0, 0, 0.25)",
+              borderRadius: "99px",
+              overflow: "hidden",
+              display: "flex"
+            }}
+          >
+            <div style={{ width: `${putraPct}%`, background: "#60a5fa" }} />
+            <div style={{ width: `${putriPct}%`, background: "#f472b6" }} />
+          </div>
+        </div>
+      </div>
 
-            {/* 2. TABEL SEBARAN ASRAMA */}
-            {activeSubTab === "asrama" && (
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
-                  <thead>
-                    <tr style={{ background: "rgba(15, 23, 42, 0.9)", color: "#94a3b8", textAlign: "left", borderBottom: "2px solid #334155" }}>
-                      <th style={{ padding: "12px 16px" }}>No</th>
-                      <th style={{ padding: "12px 16px" }}>Nama Komplek Gedung Asrama</th>
-                      <th style={{ padding: "12px 16px" }}>Pembina / Musyrif Asrama</th>
-                      <th style={{ padding: "12px 16px", textAlign: "center" }}>Kapasitas Santri Mukim</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredAsrama.map((asr, idx) => (
-                      <tr 
-                        key={asr.id || idx} 
-                        style={{ 
-                          borderBottom: "1px solid rgba(51, 65, 85, 0.6)",
-                          background: idx % 2 === 0 ? "transparent" : "rgba(15, 23, 42, 0.3)"
-                        }}
-                      >
-                        <td style={{ padding: "12px 16px", color: "#64748b" }}>{idx + 1}</td>
-                        <td style={{ padding: "12px 16px", fontWeight: 900, color: "#ffffff", fontSize: "0.84rem" }}>
-                          {asr.nama_asrama}
-                        </td>
-                        <td style={{ padding: "12px 16px", color: "#cbd5e1" }}>
-                          {asr.pembina || "Ustadz Pembina"}
-                        </td>
-                        <td style={{ padding: "12px 16px", textAlign: "center" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "rgba(56, 189, 248, 0.2)", border: "1px solid rgba(56, 189, 248, 0.4)", color: "#38bdf8", padding: "4px 12px", borderRadius: "999px", fontSize: "0.74rem", fontWeight: 900 }}>
-                            {asr.total_santri || 0} Santri
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                    {filteredAsrama.length === 0 && (
-                      <tr>
-                        <td colSpan="4" style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
-                          Belum ada data asrama tercatat.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+      {/* 2. DUAL GENDER MINI CARDS */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+        <div
+          style={{
+            background: "#ffffff",
+            borderRadius: "16px",
+            padding: "12px 14px",
+            border: "1px solid #bfdbfe",
+            boxShadow: "0 2px 8px rgba(37, 99, 235, 0.04)"
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: "0.62rem", fontWeight: 800, color: "#1d4ed8", textTransform: "uppercase" }}>
+              SANTRI PUTRA (IKHWAN)
+            </span>
+            <div
+              style={{
+                width: "24px",
+                height: "24px",
+                borderRadius: "8px",
+                background: "#eff6ff",
+                color: "#2563eb",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}
+            >
+              <User size={14} />
+            </div>
           </div>
+          <div style={{ fontSize: "1.2rem", fontWeight: 900, color: "#1e3a8a", marginTop: "6px" }}>
+            {putraS} <span style={{ fontSize: "0.68rem", fontWeight: 600, color: "#64748b" }}>Santri</span>
+          </div>
+          <div style={{ fontSize: "0.62rem", color: "#3b82f6", marginTop: "2px", fontWeight: 700 }}>
+            {putraPct}% dari total
+          </div>
+        </div>
+
+        <div
+          style={{
+            background: "#ffffff",
+            borderRadius: "16px",
+            padding: "12px 14px",
+            border: "1px solid #fbcfe8",
+            boxShadow: "0 2px 8px rgba(236, 72, 153, 0.04)"
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: "0.62rem", fontWeight: 800, color: "#be185d", textTransform: "uppercase" }}>
+              SANTRI PUTRI (AKHWAT)
+            </span>
+            <div
+              style={{
+                width: "24px",
+                height: "24px",
+                borderRadius: "8px",
+                background: "#fdf2f8",
+                color: "#db2777",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}
+            >
+              <User size={14} />
+            </div>
+          </div>
+          <div style={{ fontSize: "1.2rem", fontWeight: 900, color: "#831843", marginTop: "6px" }}>
+            {putriS} <span style={{ fontSize: "0.68rem", fontWeight: 600, color: "#64748b" }}>Santri</span>
+          </div>
+          <div style={{ fontSize: "0.62rem", color: "#ec4899", marginTop: "2px", fontWeight: 700 }}>
+            {putriPct}% dari total
+          </div>
+        </div>
+      </div>
+
+      {/* 3. SUBTAB SWITCHER (ROMBEL KELAS / ASRAMA) */}
+      <div
+        style={{
+          display: "flex",
+          background: "#ffffff",
+          borderRadius: "14px",
+          padding: "4px",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+          gap: "4px"
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setActiveSubTab("kelas")}
+          style={{
+            flex: 1,
+            border: "none",
+            background: activeSubTab === "kelas" ? "#eff6ff" : "transparent",
+            color: activeSubTab === "kelas" ? "#1d4ed8" : "#64748b",
+            fontWeight: activeSubTab === "kelas" ? 800 : 600,
+            fontSize: "0.74rem",
+            padding: "8px 4px",
+            borderRadius: "10px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "5px",
+            border: activeSubTab === "kelas" ? "1px solid #bfdbfe" : "1px solid transparent"
+          }}
+        >
+          <GraduationCap size={14} />
+          <span>Rombel Kelas ({data.rombelKelas?.length || 0})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSubTab("asrama")}
+          style={{
+            flex: 1,
+            border: "none",
+            background: activeSubTab === "asrama" ? "#eff6ff" : "transparent",
+            color: activeSubTab === "asrama" ? "#1d4ed8" : "#64748b",
+            fontWeight: activeSubTab === "asrama" ? 800 : 600,
+            fontSize: "0.74rem",
+            padding: "8px 4px",
+            borderRadius: "10px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "5px",
+            border: activeSubTab === "asrama" ? "1px solid #bfdbfe" : "1px solid transparent"
+          }}
+        >
+          <Building size={14} />
+          <span>Kamar Asrama ({data.sebaranAsrama?.length || 0})</span>
+        </button>
+      </div>
+
+      {/* 4. SEARCH BAR */}
+      <div
+        style={{
+          position: "relative",
+          background: "#ffffff",
+          borderRadius: "12px",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.02)"
+        }}
+      >
+        <Search
+          size={16}
+          color="#94a3b8"
+          style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }}
+        />
+        <input
+          type="text"
+          placeholder={activeSubTab === "kelas" ? "Cari nama kelas atau wali kelas..." : "Cari nama asrama atau pembina..."}
+          value={searchTable}
+          onChange={(e) => setSearchTable(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "9px 12px 9px 36px",
+            border: "none",
+            outline: "none",
+            borderRadius: "12px",
+            fontSize: "0.75rem",
+            color: "#0f172a",
+            background: "transparent",
+            boxSizing: "border-box"
+          }}
+        />
+      </div>
+
+      {/* 5. LIST CARDS */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        {loading ? (
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: "16px",
+              padding: "28px",
+              textAlign: "center",
+              border: "1px solid #e2e8f0"
+            }}
+          >
+            <RotateCw size={24} className="animate-spin" color="#2563eb" style={{ margin: "0 auto 8px" }} />
+            <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 700 }}>
+              Memuat data santri...
+            </div>
+          </div>
+        ) : activeSubTab === "kelas" ? (
+          filteredKelas.length > 0 ? (
+            filteredKelas.map((item, idx) => (
+              <div
+                key={idx}
+                style={{
+                  background: "#ffffff",
+                  borderRadius: "14px",
+                  padding: "12px 14px",
+                  border: "1px solid #e2e8f0",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "10px"
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
+                  <div
+                    style={{
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "11px",
+                      background: "#eff6ff",
+                      color: "#2563eb",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0
+                    }}
+                  >
+                    <GraduationCap size={18} />
+                  </div>
+                  <div style={{ minWidth: 0, overflow: "hidden" }}>
+                    <div
+                      style={{
+                        fontSize: "0.82rem",
+                        fontWeight: 900,
+                        color: "#0f172a",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis"
+                      }}
+                    >
+                      {item.nama_kelas}
+                    </div>
+                    <div style={{ fontSize: "0.64rem", color: "#64748b", marginTop: "1px" }}>
+                      Wali Kelas: {item.wali_kelas || "Asatidz Pembina"}
+                    </div>
+                    <div style={{ fontSize: "0.6rem", color: "#94a3b8", marginTop: "1px" }}>
+                      Tingkat: {item.tingkat || "Reguler"}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      fontSize: "0.76rem",
+                      fontWeight: 900,
+                      color: "#1d4ed8",
+                      background: "#eff6ff",
+                      border: "1px solid #bfdbfe",
+                      padding: "4px 8px",
+                      borderRadius: "8px"
+                    }}
+                  >
+                    {item.total_santri || 0} Santri
+                  </span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: "16px",
+                padding: "24px 16px",
+                textAlign: "center",
+                border: "1px solid #e2e8f0"
+              }}
+            >
+              <GraduationCap size={32} color="#cbd5e1" style={{ margin: "0 auto 8px" }} />
+              <div style={{ fontSize: "0.78rem", fontWeight: 800, color: "#334155" }}>
+                Tidak ada data kelas
+              </div>
+            </div>
+          )
+        ) : (
+          filteredAsrama.length > 0 ? (
+            filteredAsrama.map((item, idx) => (
+              <div
+                key={idx}
+                style={{
+                  background: "#ffffff",
+                  borderRadius: "14px",
+                  padding: "12px 14px",
+                  border: "1px solid #e2e8f0",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "10px"
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
+                  <div
+                    style={{
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "11px",
+                      background: "#ecfdf5",
+                      color: "#059669",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0
+                    }}
+                  >
+                    <Building size={18} />
+                  </div>
+                  <div style={{ minWidth: 0, overflow: "hidden" }}>
+                    <div
+                      style={{
+                        fontSize: "0.82rem",
+                        fontWeight: 900,
+                        color: "#0f172a",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis"
+                      }}
+                    >
+                      {item.nama_asrama}
+                    </div>
+                    <div style={{ fontSize: "0.64rem", color: "#64748b", marginTop: "1px" }}>
+                      Musyrif: {item.pembina || "Pengasuh Asrama"}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      fontSize: "0.76rem",
+                      fontWeight: 900,
+                      color: "#047857",
+                      background: "#ecfdf5",
+                      border: "1px solid #a7f3d0",
+                      padding: "4px 8px",
+                      borderRadius: "8px"
+                    }}
+                  >
+                    {item.total_santri || 0} Santri
+                  </span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: "16px",
+                padding: "24px 16px",
+                textAlign: "center",
+                border: "1px solid #e2e8f0"
+              }}
+            >
+              <Building size={32} color="#cbd5e1" style={{ margin: "0 auto 8px" }} />
+              <div style={{ fontSize: "0.78rem", fontWeight: 800, color: "#334155" }}>
+                Tidak ada data kamar asrama
+              </div>
+            </div>
+          )
         )}
       </div>
     </div>

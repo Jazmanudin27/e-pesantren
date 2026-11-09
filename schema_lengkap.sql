@@ -25,7 +25,6 @@ CREATE TABLE IF NOT EXISTS `pesantren_profil` (
   `wa_provider` VARCHAR(50) DEFAULT 'fonnte',
   `wa_api_token` VARCHAR(255) DEFAULT NULL,
   `wa_auto_absen` TINYINT(1) DEFAULT 1,
-  `wa_auto_tahfidz` TINYINT(1) DEFAULT 1,
   `wa_auto_izin` TINYINT(1) DEFAULT 1,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -128,69 +127,7 @@ CREATE TABLE IF NOT EXISTS `santri` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------------------------------------------
--- 6. TABEL TAHFIDZ, HALAQAH & MUTABA'AH QUR'AN
--- ------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `tahfidz_halaqah` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `nama_halaqah` VARCHAR(150) NOT NULL,
-  `asatidz_id` INT NOT NULL,
-  `target_program` VARCHAR(150) DEFAULT 'Ziyadah & Muroja\'ah',
-  `waktu_halaqah` VARCHAR(100) DEFAULT 'Ba\'da Shubuh & Maghrib',
-  `gender` ENUM('L', 'P') NOT NULL DEFAULT 'L',
-  `is_active` TINYINT(1) DEFAULT 1,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX `idx_halaqah_asatidz` (`asatidz_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `tahfidz_halaqah_santri` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `halaqah_id` INT NOT NULL,
-  `santri_id` INT NOT NULL,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY `uq_halaqah_santri` (`halaqah_id`, `santri_id`),
-  INDEX `idx_hs_halaqah` (`halaqah_id`),
-  INDEX `idx_hs_santri` (`santri_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `tahfidz_setoran` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `santri_id` INT NOT NULL,
-  `halaqah_id` INT DEFAULT NULL,
-  `asatidz_id` INT NOT NULL,
-  `tanggal` DATE NOT NULL,
-  `jenis_setoran` ENUM('Ziyadah', 'Sabqi', 'Muroja\'ah', 'Tasmi\' Bil-Ghoib') NOT NULL DEFAULT 'Ziyadah',
-  `juz` INT NOT NULL,
-  `surat_mulai` VARCHAR(100) NOT NULL,
-  `ayat_mulai` INT NOT NULL,
-  `surat_selesai` VARCHAR(100) NOT NULL,
-  `ayat_selesai` INT NOT NULL,
-  `kualitas_tajwid` ENUM('Mumtaz (A)', 'Jayyid Jiddan (B+)', 'Jayyid (B)', 'Maqbul (C)', 'Rombak/Ulang') NOT NULL DEFAULT 'Mumtaz (A)',
-  `status` ENUM('Lulus', 'Perlu Pengulangan', 'Mengulang') NOT NULL DEFAULT 'Lulus',
-  `catatan` TEXT DEFAULT NULL,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX `idx_setoran_santri` (`santri_id`),
-  INDEX `idx_setoran_tgl` (`tanggal`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `tahfidz_ujian_tasmi` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `santri_id` INT NOT NULL,
-  `kategori_juz` VARCHAR(50) NOT NULL,
-  `tanggal_ujian` DATE NOT NULL,
-  `penguji_asatidz_id` INT NOT NULL,
-  `nilai_fashohah` DECIMAL(5,2) DEFAULT 0.00,
-  `nilai_tajwid` DECIMAL(5,2) DEFAULT 0.00,
-  `nilai_kelancaran` DECIMAL(5,2) DEFAULT 0.00,
-  `nilai_akhir` DECIMAL(5,2) NOT NULL DEFAULT 0.00,
-  `predikat` VARCHAR(50) DEFAULT 'Mumtaz Syaraf',
-  `syahadah_diterbitkan` TINYINT(1) DEFAULT 0,
-  `nomor_syahadah` VARCHAR(100) DEFAULT NULL,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX `idx_tasmi_santri` (`santri_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ------------------------------------------------------------------------------
--- 7. TABEL PERIZINAN SANTRI & VALIDASI MAHROM GERBANG
+-- 6. TABEL PERIZINAN SANTRI & VALIDASI MAHROM GERBANG
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `santri_perizinan` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,

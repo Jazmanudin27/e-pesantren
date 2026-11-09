@@ -530,6 +530,9 @@ export default function SantriView() {
   }, [page, activeFilterTab, filterAsrama, filterTingkat, filterTahun, filterStatus, filterSekolah]);
 
   useEffect(() => {
+    try {
+      localStorage.removeItem('epesantren_face_profiles');
+    } catch (e) {}
     fetchAsramaData();
     fetchKelasData();
     initFaceApiModels().catch(() => {});
@@ -574,7 +577,6 @@ export default function SantriView() {
       alamat_asal: '',
       status: 'Aktif',
       tahun_masuk: '2026/2027',
-      capaian_hafalan_juz: 0,
       tingkat_diniyah: 'Wustho',
       sekolah_id: 1,
       nama_sekolah: 'SMP Nurul Wafa',
@@ -657,14 +659,13 @@ export default function SantriView() {
     try {
       setSubmitting(true);
 
-      // Validasi anti-duplikasi foto wajah santri
+      // Validasi anti-duplikasi foto wajah santri menggunakan data santri server
       if (formData.foto && isFaceModelReady()) {
         try {
           const desc = await extractDescriptorFromDataUrl(formData.foto);
           if (desc) {
-            const localProfiles = JSON.parse(localStorage.getItem('epesantren_face_profiles') || '{}');
-            const otherProfiles = Object.values(localProfiles).filter(
-              (p) => String(p.santri_id) !== String(formData.id) && (p.descriptor || p.foto)
+            const otherProfiles = (santriList || []).filter(
+              (p) => String(p.id) !== String(formData.id) && (p.face_descriptor || p.foto)
             );
 
             // Ekstraksi santri lain yang belum punya descriptor
@@ -680,7 +681,7 @@ export default function SantriView() {
             if (matchedOther) {
               showError(
                 'Wajah Sudah Terdaftar Pada Santri Lain!',
-                `Wajah ini terdeteksi identik dengan santri "${matchedOther.nama || matchedOther.nama_santri}". Pendaftaran ditolak untuk mencegah duplikasi identitas santri.`
+                `Wajah ini terdeteksi identik dengan santri "${matchedOther.nama_santri || matchedOther.nama}". Pendaftaran ditolak untuk mencegah duplikasi identitas santri.`
               );
               setSubmitting(false);
               return;
@@ -705,30 +706,6 @@ export default function SantriView() {
         }
       }
 
-      // Update sinkronisasi profil wajah lokal untuk Presensi Wajah AI
-      if (formData.foto) {
-        try {
-          let preDesc = null;
-          if (isFaceModelReady()) {
-            preDesc = await extractDescriptorFromDataUrl(formData.foto);
-          }
-          const localProfiles = JSON.parse(localStorage.getItem('epesantren_face_profiles') || '{}');
-          const targetId = formData.id || Date.now();
-          localProfiles[targetId] = {
-            santri_id: targetId,
-            nama: formData.nama_santri,
-            nis: formData.nis,
-            asrama: formData.nama_asrama || '',
-            kamar: formData.nama_kamar || '',
-            foto: formData.foto,
-            descriptor: preDesc || null,
-            biometricGrid: [],
-            biometricFeature: null,
-            registered_at: new Date().toISOString()
-          };
-          localStorage.setItem('epesantren_face_profiles', JSON.stringify(localProfiles));
-        } catch (eF) {}
-      }
       setIsFormOpen(false);
       toastSuccess(formMode === 'add' ? 'Santri baru berhasil ditambahkan' : 'Data santri berhasil diperbarui');
     } catch (err) {

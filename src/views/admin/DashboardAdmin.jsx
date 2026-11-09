@@ -9,14 +9,16 @@ import {
   Loader2,
   CheckCircle,
   Clock,
-  RotateCw
+  RotateCw,
+  GraduationCap,
+  ShieldCheck,
+  Building
 } from 'lucide-react';
 
 export default function DashboardAdmin() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({
-    stats: { total_santri: 0, total_halaqah: 0, total_izin_aktif: 0, avg_juz: '0' },
-    recentSetoran: [],
+    stats: { total_santri: 0, total_kelas: 0, total_izin_aktif: 0 },
     activeIzin: []
   });
 
@@ -28,11 +30,9 @@ export default function DashboardAdmin() {
         setData({
           stats: {
             total_santri: res.data.stats?.total_santri || 0,
-            total_halaqah: res.data.stats?.total_halaqah || 0,
-            total_izin_aktif: res.data.stats?.total_izin_aktif || 0,
-            avg_juz: res.data.stats?.avg_juz || '0'
+            total_kelas: res.data.stats?.total_kelas || res.data.stats?.total_halaqah || 0,
+            total_izin_aktif: res.data.stats?.total_izin_aktif || 0
           },
-          recentSetoran: Array.isArray(res.data.recentSetoran) ? res.data.recentSetoran : [],
           activeIzin: Array.isArray(res.data.activeIzin) ? res.data.activeIzin : []
         });
       }
@@ -64,7 +64,7 @@ export default function DashboardAdmin() {
         </button>
       </div>
 
-      {/* 2. TOP 4 COLORED STATS CARDS (CLEAN WITHOUT SUBTEXT) */}
+      {/* 2. TOP 4 COLORED STATS CARDS */}
       <div className="top-stats-grid">
         <div className="stat-card-colored stat-card-blue">
           <div>
@@ -78,11 +78,11 @@ export default function DashboardAdmin() {
 
         <div className="stat-card-colored stat-card-green">
           <div>
-            <div className="stat-colored-title">HALAQAH TAHFIDZ</div>
-            <div className="stat-colored-number">{data.stats.total_halaqah}</div>
+            <div className="stat-colored-title">ROMBEL KELAS</div>
+            <div className="stat-colored-number">{data.stats.total_kelas}</div>
           </div>
           <div className="stat-colored-icon-box">
-            <BookOpen size={22} />
+            <GraduationCap size={22} />
           </div>
         </div>
 
@@ -110,52 +110,33 @@ export default function DashboardAdmin() {
       {/* 3. 2 COLUMNS GRID */}
       <div className="dashboard-content-grid">
         
-        {/* Setoran Tahfidz Card */}
+        {/* Status Operasional Pesantren Card */}
         <div className="card">
           <div className="card-header">
-            <h3>📖 Setoran Tahfidz Qur'an Terbaru</h3>
-            <span className="badge badge-info">Data Real-Time</span>
+            <h3>🏢 Status Operasional Pesantren</h3>
+            <span className="badge badge-success">Aktif Normal</span>
           </div>
-          {loading ? (
-            <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
-              <Loader2 size={18} className="animate-spin" /> Memuat data...
+          <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+              <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CheckCircle size={20} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a' }}>KBM &amp; Shalat Berjamaah Terpantau</div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Seluruh jadwal shalat fardhu dan pengajian kitab berlangsung lancar.</div>
+              </div>
             </div>
-          ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>SANTRI & KAMAR</th>
-                  <th>MATERI / SURAT</th>
-                  <th>NILAI</th>
-                  <th>PENGUJI</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.recentSetoran.map((row) => (
-                  <tr key={row.id}>
-                    <td>
-                      <div style={{ fontWeight: 700, color: '#0f172a' }}>{row.nama_santri}</div>
-                      <div style={{ fontSize: '0.68rem', color: '#64748b' }}>{row.nama_asrama || '-'} ({row.nama_kamar || '-'})</div>
-                    </td>
-                    <td>
-                      <span className="badge badge-info">Juz {row.juz}: {row.surat_mulai}</span>
-                    </td>
-                    <td>
-                      <span className={`badge ${row.kualitas_tajwid?.includes('Mumtaz') ? 'badge-success' : 'badge-warning'}`}>
-                        {row.kualitas_tajwid || 'Lulus'}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ fontSize: '0.74rem' }}>{row.nama_asatidz || '-'}</div>
-                      <div style={{ fontSize: '0.66rem', color: '#94a3b8' }}>
-                        {row.tanggal ? new Date(row.tanggal).toLocaleDateString('id-ID') : '-'}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+              <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Fingerprint size={20} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a' }}>Mesin Fingerprint &amp; Wajah AI Terhubung</div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Cloud ADMS sinkronisasi presensi otomatis realtime.</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Santri Izin Card */}

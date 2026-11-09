@@ -3,7 +3,6 @@ import {
   getOwnerSummary,
   getOwnerKeuangan,
   getOwnerPresensi,
-  getOwnerTahfidz,
   getOwnerPerizinan,
   getOwnerSantri
 } from '../controllers/owner.controller.js';
@@ -19,13 +18,10 @@ router.get('/keuangan', getOwnerKeuangan);
 // 3. Menu Laporan Presensi (Berjamaah & Mengaji)
 router.get('/presensi', getOwnerPresensi);
 
-// 4. Menu Laporan Tahfidz (Setoran & Capaian Juz)
-router.get('/tahfidz', getOwnerTahfidz);
-
-// 5. Menu Laporan Perizinan (Santri Izin & Disiplin)
+// 4. Menu Laporan Perizinan (Santri Izin & Disiplin)
 router.get('/perizinan', getOwnerPerizinan);
 
-// 6. Menu Laporan Demografi Santri & Rombel Kelas
+// 5. Menu Laporan Demografi Santri & Rombel Kelas
 router.get('/santri', getOwnerSantri);
 
 export default router;

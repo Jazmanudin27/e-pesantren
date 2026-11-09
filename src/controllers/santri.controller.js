@@ -239,10 +239,7 @@ export const createSantri = async (req, res) => {
       await pool.query("ALTER TABLE santri ADD COLUMN foto LONGTEXT NULL AFTER nama_santri");
     } catch (e3) {}
     try {
-      await pool.query("ALTER TABLE santri ADD COLUMN capaian_hafalan_juz INT DEFAULT 0 AFTER kamar_id");
-    } catch (e4) {}
-    try {
-      await pool.query("ALTER TABLE santri ADD COLUMN tingkat_diniyah VARCHAR(50) DEFAULT 'Wustho' AFTER capaian_hafalan_juz");
+      await pool.query("ALTER TABLE santri ADD COLUMN tingkat_diniyah VARCHAR(50) DEFAULT 'Wustho'");
     } catch (e5) {}
 
     // Dapatkan daftar kolom yang benar-benar ada di tabel santri
@@ -270,7 +267,6 @@ export const createSantri = async (req, res) => {
     addCol('status_santri', status_santri || 'Mukim');
     addCol('asrama_id', toIntOrNull(asrama_id));
     addCol('kamar_id', toIntOrNull(kamar_id));
-    addCol('capaian_hafalan_juz', toIntOrNull(capaian_hafalan_juz) || 0);
     addCol('tingkat_diniyah', tingkat_diniyah || 'Wustho');
     addCol('nama_kelas', req.body.nama_kelas || null);
     addCol('kelas_id', toIntOrNull(req.body.kelas_id));
@@ -321,10 +317,7 @@ export const updateSantri = async (req, res) => {
       await pool.query("ALTER TABLE santri ADD COLUMN foto LONGTEXT NULL AFTER nama_santri");
     } catch (e3) {}
     try {
-      await pool.query("ALTER TABLE santri ADD COLUMN capaian_hafalan_juz INT DEFAULT 0 AFTER kamar_id");
-    } catch (e4) {}
-    try {
-      await pool.query("ALTER TABLE santri ADD COLUMN tingkat_diniyah VARCHAR(50) DEFAULT 'Wustho' AFTER capaian_hafalan_juz");
+      await pool.query("ALTER TABLE santri ADD COLUMN tingkat_diniyah VARCHAR(50) DEFAULT 'Wustho'");
     } catch (e5) {}
 
     // Dapatkan daftar kolom yang benar-benar ada di tabel santri
@@ -359,7 +352,6 @@ export const updateSantri = async (req, res) => {
     if (alamat_asal !== undefined) addIfColExists('alamat_asal', alamat_asal);
     if (status !== undefined) addIfColExists('status', status);
     if (tahun_masuk !== undefined) addIfColExists('tahun_masuk', tahun_masuk);
-    if (capaian_hafalan_juz !== undefined) addIfColExists('capaian_hafalan_juz', toIntOrNull(capaian_hafalan_juz) || 0);
     if (tingkat_diniyah !== undefined) addIfColExists('tingkat_diniyah', tingkat_diniyah || 'Wustho');
     if (req.body.nama_kelas !== undefined) addIfColExists('nama_kelas', req.body.nama_kelas);
     if (req.body.kelas_id !== undefined) addIfColExists('kelas_id', toIntOrNull(req.body.kelas_id));

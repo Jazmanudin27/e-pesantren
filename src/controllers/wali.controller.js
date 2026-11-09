@@ -190,23 +190,8 @@ export const getWaliSantriData = async (req, res) => {
       foto_url: rawSantri.foto_url || rawSantri.foto || rawSantri.foto_santri || ''
     };
 
-    // 2. Data Tahfidz Qur'an (Setoran Ziyadah & Muroja'ah)
-    let tahfidzSetoran = [];
-    try {
-      const [tRows] = await pool.query(`
-        SELECT 
-          ts.*,
-          ast.nama_asatidz as nama_penyimak
-        FROM tahfidz_setoran ts
-        LEFT JOIN asatidz ast ON ts.asatidz_id = ast.id
-        WHERE ts.santri_id = ?
-        ORDER BY ts.tanggal DESC, ts.id DESC
-        LIMIT 30
-      `, [santriId]);
-      tahfidzSetoran = tRows || [];
-    } catch (e) {
-      tahfidzSetoran = [];
-    }
+    // 2. Data Tahfidz (Fitur dinonaktifkan)
+    const tahfidzSetoran = [];
 
     // 3. Data Ujian Praktek Ibadah (Sholat, Wudhu, Jenazah, dll)
     let praktekIbadah = [];
@@ -314,21 +299,18 @@ export const getWaliSantriData = async (req, res) => {
     }
 
     // Statistik Ringkasan Khusus Wali
-    const totalSetoran = tahfidzSetoran.length;
     const totalPraktekLulus = praktekIbadah.filter(p => p.status === 'Lulus').length;
     const totalPraktekMengulang = praktekIbadah.filter(p => p.status === 'Mengulang').length;
     const izinAktif = perizinan.find(iz => iz.status === 'Aktif Keluar' || iz.status === 'Menunggu Persetujuan');
 
     return sendSuccess(res, 'Data monitoring wali santri berhasil diambil', {
       santri,
-      tahfidzSetoran,
+      tahfidzSetoran: [],
       praktekIbadah,
       presensiJamaah,
       perizinan,
       pelanggaran,
       statistik: {
-        capaianJuz: santri.capaian_hafalan_juz || 0,
-        totalSetoran,
         totalPraktekLulus,
         totalPraktekMengulang,
         totalIzin: perizinan.length,

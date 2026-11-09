@@ -158,6 +158,12 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
       if (document.body) document.body.scrollTop = 0;
       if (document.documentElement) document.documentElement.scrollTop = 0;
     };
+    try {
+      localStorage.removeItem("nwf_wali_last_pengumuman_id");
+      localStorage.removeItem("epesantren_face_profiles");
+      localStorage.removeItem("epesantren_live_scan_logs");
+      localStorage.removeItem("epesantren_users_cache");
+    } catch (e) {}
     scrollToTop();
     const t1 = setTimeout(scrollToTop, 50);
     const t2 = setTimeout(scrollToTop, 150);
@@ -259,12 +265,13 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
           .sort((a, b) => new Date(a.jatuh_tempo) - new Date(b.jatuh_tempo));
         setTagihanJatuhTempo(overdue);
 
-        // Tampilkan modal maksimal 1x per hari per santri (agar tidak mengganggu)
+        // Tampilkan modal maksimal 1x per sesi per santri
         if (overdue.length > 0) {
           const todayKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
           const storageKey = `jatuh_tempo_notif_${targetId || 'default'}`;
-          if (localStorage.getItem(storageKey) !== todayKey) {
+          if (sessionStorage.getItem(storageKey) !== todayKey) {
             setIsJatuhTempoModalOpen(true);
+            sessionStorage.setItem(storageKey, todayKey);
           }
         }
       }
@@ -400,13 +407,13 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
 
           const alreadyShownInSession = sessionStorage.getItem("nwf_wali_pengumuman_shown_session") === "true";
           const maxId = Math.max(...validPengumuman.map((p) => Number(p.id) || 0));
-          const lastSeenMaxId = Number(localStorage.getItem("nwf_wali_last_pengumuman_id") || 0);
+          const lastSeenMaxId = Number(sessionStorage.getItem("nwf_wali_last_pengumuman_id") || 0);
 
           // Munculkan modal hanya saat awal buka aplikasi (bukan saat reload), atau jika ada pengumuman baru dari Admin
           if ((!isPageReload && !alreadyShownInSession) || maxId > lastSeenMaxId) {
             sessionStorage.setItem("nwf_wali_pengumuman_shown_session", "true");
             if (maxId > 0) {
-              localStorage.setItem("nwf_wali_last_pengumuman_id", String(maxId));
+              sessionStorage.setItem("nwf_wali_last_pengumuman_id", String(maxId));
             }
             setIsPengumumanModalOpen(true);
           } else {
@@ -539,7 +546,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
     if (!targetId) return;
     try {
       const storageKey = `nwf_last_notif_id_${targetId}`;
-      const lastSeenId = parseInt(localStorage.getItem(storageKey) || "0") || 0;
+      const lastSeenId = parseInt(sessionStorage.getItem(storageKey) || "0") || 0;
 
       const res = await axios.get(
         `/api/wali/notifikasi?santri_id=${targetId}&since_id=${lastSeenId}&limit=40`
@@ -559,7 +566,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
         if (new_notifications.length > 0) {
           const newest = new_notifications[0];
           showShopeeHeadsUpNotification(newest);
-          // Segarkan otomatis data presensi/perizinan/tahfidz saat notifikasi baru masuk
+          // Segarkan otomatis data presensi & perizinan saat notifikasi baru masuk
           fetchWaliData(targetId, true);
         } else if (lastSeenId === 0 && notifications.length > 0) {
           // Pertama kali buka & ada notifikasi yang belum dibaca -> munculkan 1x di atas layar
@@ -570,7 +577,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
         }
 
         if (latest_id > lastSeenId) {
-          localStorage.setItem(storageKey, String(latest_id));
+          sessionStorage.setItem(storageKey, String(latest_id));
         }
       }
     } catch (e) {

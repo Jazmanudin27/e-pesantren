@@ -29,7 +29,6 @@ import {
 import { showConfirm, toastSuccess } from "../../utils/alert.util";
 import OwnerLaporanKeuangan from "./OwnerLaporanKeuangan";
 import OwnerLaporanPresensi from "./OwnerLaporanPresensi";
-import OwnerLaporanTahfidz from "./OwnerLaporanTahfidz";
 import OwnerLaporanPerizinan from "./OwnerLaporanPerizinan";
 import OwnerLaporanSantri from "./OwnerLaporanSantri";
 
@@ -65,11 +64,17 @@ const menuLabelStyle = {
 };
 
 export default function OwnerDashboardView({ onLogout }) {
-  // Navigation: 'beranda' | 'keuangan' | 'presensi' | 'tahfidz' | 'perizinan' | 'santri' | 'profil'
+  // Navigation: 'beranda' | 'keuangan' | 'presensi' | 'perizinan' | 'santri' | 'profil'
   const [activeTab, setActiveTab] = useState("beranda");
   const [financeActiveTab, setFinanceActiveTab] = useState("kas"); // 'kas' | 'tagihan'
+  const [presensiFilter, setPresensiFilter] = useState("Semua");
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [feedList, setFeedList] = useState([]);
+
+  const handleOpenPresensiWithStatus = (status) => {
+    setPresensiFilter(status);
+    setActiveTab("presensi");
+  };
 
   // Session Data for Owner
   const ownerSession = (() => {
@@ -91,7 +96,6 @@ export default function OwnerDashboardView({ onLogout }) {
     totalSantri: 0,
     santriPutra: 0,
     santriPutri: 0,
-    avgJuz: "0.0",
     totalIzinAktif: 0,
     totalKasMasuk: 0,
     totalPiutang: 0,
@@ -485,7 +489,7 @@ export default function OwnerDashboardView({ onLogout }) {
                   </button>
                 </div>
 
-                {/* 4 Cards Grid (Pastel Badges) */}
+                {/* 4 Cards Grid (Pastel Touchable Badges) */}
                 <div
                   style={{
                     display: "grid",
@@ -494,8 +498,9 @@ export default function OwnerDashboardView({ onLogout }) {
                   }}
                 >
                   {/* Hadir */}
-                  <div
-                    onClick={() => setActiveTab("presensi")}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenPresensiWithStatus("Hadir")}
                     style={{
                       background: "linear-gradient(145deg, #f0fdf4 0%, #dcfce7 100%)",
                       borderRadius: "14px",
@@ -505,6 +510,8 @@ export default function OwnerDashboardView({ onLogout }) {
                       alignItems: "center",
                       border: "1px solid #bbf7d0",
                       cursor: "pointer",
+                      outline: "none",
+                      transition: "transform 0.15s ease",
                       userSelect: "none"
                     }}
                   >
@@ -537,11 +544,12 @@ export default function OwnerDashboardView({ onLogout }) {
                     <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#166534", marginTop: "2px" }}>
                       Hadir
                     </span>
-                  </div>
+                  </button>
 
                   {/* Sakit */}
-                  <div
-                    onClick={() => setActiveTab("presensi")}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenPresensiWithStatus("Sakit")}
                     style={{
                       background: "linear-gradient(145deg, #fef2f2 0%, #fee2e2 100%)",
                       borderRadius: "14px",
@@ -551,6 +559,8 @@ export default function OwnerDashboardView({ onLogout }) {
                       alignItems: "center",
                       border: "1px solid #fecaca",
                       cursor: "pointer",
+                      outline: "none",
+                      transition: "transform 0.15s ease",
                       userSelect: "none"
                     }}
                   >
@@ -583,11 +593,12 @@ export default function OwnerDashboardView({ onLogout }) {
                     <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#991b1b", marginTop: "2px" }}>
                       Sakit
                     </span>
-                  </div>
+                  </button>
 
                   {/* Izin */}
-                  <div
-                    onClick={() => setActiveTab("perizinan")}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenPresensiWithStatus("Izin")}
                     style={{
                       background: "linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%)",
                       borderRadius: "14px",
@@ -597,6 +608,8 @@ export default function OwnerDashboardView({ onLogout }) {
                       alignItems: "center",
                       border: "1px solid #fde68a",
                       cursor: "pointer",
+                      outline: "none",
+                      transition: "transform 0.15s ease",
                       userSelect: "none"
                     }}
                   >
@@ -629,11 +642,12 @@ export default function OwnerDashboardView({ onLogout }) {
                     <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#92400e", marginTop: "2px" }}>
                       Izin
                     </span>
-                  </div>
+                  </button>
 
                   {/* Alfa */}
-                  <div
-                    onClick={() => setActiveTab("presensi")}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenPresensiWithStatus("Alfa")}
                     style={{
                       background: "linear-gradient(145deg, #f0fdfa 0%, #ccfbf1 100%)",
                       borderRadius: "14px",
@@ -643,6 +657,8 @@ export default function OwnerDashboardView({ onLogout }) {
                       alignItems: "center",
                       border: "1px solid #99f6e4",
                       cursor: "pointer",
+                      outline: "none",
+                      transition: "transform 0.15s ease",
                       userSelect: "none"
                     }}
                   >
@@ -675,7 +691,7 @@ export default function OwnerDashboardView({ onLogout }) {
                     <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#115e59", marginTop: "2px" }}>
                       Alfa
                     </span>
-                  </div>
+                  </button>
                 </div>
               </div>
             </div>
@@ -1157,8 +1173,8 @@ export default function OwnerDashboardView({ onLogout }) {
                     <span style={menuLabelStyle}>Berjamaah</span>
                   </div>
 
-                  {/* 4. Tahfidz */}
-                  <div onClick={() => setActiveTab("tahfidz")} style={menuCardStyle}>
+                  {/* 4. Kamar Asrama */}
+                  <div onClick={() => setActiveTab("santri")} style={menuCardStyle}>
                     <div
                       style={{
                         ...squircleIconStyle,
@@ -1166,9 +1182,9 @@ export default function OwnerDashboardView({ onLogout }) {
                         boxShadow: "0 6px 16px -2px rgba(139, 92, 246, 0.38)"
                       }}
                     >
-                      <BookOpen size={23} strokeWidth={2.3} color="#ffffff" />
+                      <Building2 size={23} strokeWidth={2.3} color="#ffffff" />
                     </div>
-                    <span style={menuLabelStyle}>Tahfidz</span>
+                    <span style={menuLabelStyle}>Asrama</span>
                   </div>
 
                   {/* 5. Perizinan */}
@@ -1436,7 +1452,6 @@ export default function OwnerDashboardView({ onLogout }) {
                 >
                   {activeTab === "keuangan" && "Laporan Keuangan Pesantren"}
                   {activeTab === "presensi" && "Laporan Presensi Berjamaah"}
-                  {activeTab === "tahfidz" && "Laporan Capaian Tahfidz"}
                   {activeTab === "perizinan" && "Laporan Perizinan Santri"}
                   {activeTab === "santri" && "Data & Demografi Santri"}
                   {activeTab === "profil" && "Profil Dewan Pembina"}
@@ -1467,7 +1482,7 @@ export default function OwnerDashboardView({ onLogout }) {
             </div>
 
             {/* Subview Container */}
-            <div style={{ padding: "0 10px 20px" }}>
+            <div style={{ padding: "0 14px 20px" }}>
               {activeTab === "profil" ? (
                 <div
                   style={{
@@ -1546,18 +1561,9 @@ export default function OwnerDashboardView({ onLogout }) {
                   </button>
                 </div>
               ) : (
-                <div
-                  style={{
-                    background: "#090d16",
-                    borderRadius: "20px",
-                    padding: "14px 10px",
-                    border: "1px solid rgba(51, 65, 85, 0.6)",
-                    boxShadow: "0 10px 25px -4px rgba(0,0,0,0.3)"
-                  }}
-                >
+                <div>
                   {activeTab === "keuangan" && <OwnerLaporanKeuangan />}
-                  {activeTab === "presensi" && <OwnerLaporanPresensi />}
-                  {activeTab === "tahfidz" && <OwnerLaporanTahfidz />}
+                  {activeTab === "presensi" && <OwnerLaporanPresensi initialStatus={presensiFilter} />}
                   {activeTab === "perizinan" && <OwnerLaporanPerizinan />}
                   {activeTab === "santri" && <OwnerLaporanSantri />}
                 </div>
@@ -1606,16 +1612,16 @@ export default function OwnerDashboardView({ onLogout }) {
             </div>
           </button>
 
-          {/* 4. Tahfidz */}
+          {/* 4. Data Santri */}
           <button
             type="button"
-            className={`mobile-nav-item ${activeTab === "tahfidz" ? "active" : ""}`}
-            onClick={() => setActiveTab("tahfidz")}
+            className={`mobile-nav-item ${activeTab === "santri" ? "active" : ""}`}
+            onClick={() => setActiveTab("santri")}
           >
-            <div className={`nav-icon-wrapper ${activeTab === "tahfidz" ? "active" : ""}`}>
-              <BookOpen size={20} />
+            <div className={`nav-icon-wrapper ${activeTab === "santri" ? "active" : ""}`}>
+              <Users size={20} />
             </div>
-            <span>Tahfidz</span>
+            <span>Santri</span>
           </button>
 
           {/* 5. Profil */}

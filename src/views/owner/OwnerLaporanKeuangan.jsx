@@ -13,7 +13,13 @@ import {
   DollarSign,
   ArrowUpRight,
   Receipt,
-  FileSpreadsheet
+  FileSpreadsheet,
+  User,
+  Clock,
+  ChevronRight,
+  ShieldCheck,
+  Sparkles,
+  Layers
 } from "lucide-react";
 
 export default function OwnerLaporanKeuangan() {
@@ -56,7 +62,8 @@ export default function OwnerLaporanKeuangan() {
     return (
       (t.nama_santri || "").toLowerCase().includes(q) ||
       (t.nomor_transaksi || "").toLowerCase().includes(q) ||
-      (t.metode_pembayaran || "").toLowerCase().includes(q)
+      (t.metode_pembayaran || "").toLowerCase().includes(q) ||
+      (t.nama_kelas || "").toLowerCase().includes(q)
     );
   });
 
@@ -80,423 +87,717 @@ export default function OwnerLaporanKeuangan() {
   });
 
   const totalObligasi = (data.kasPeriode || 0) + (data.totalPiutang || 0);
-  const persenTerbayar = totalObligasi > 0 
-    ? Math.round(((data.kasPeriode || 0) / totalObligasi) * 100) 
+  const persenTerbayar = totalObligasi > 0
+    ? Math.round(((data.kasPeriode || 0) / totalObligasi) * 100)
     : 0;
 
+  const formatRp = (n) => `Rp ${(n || 0).toLocaleString("id-ID")}`;
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "-";
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "short",
+        year: "numeric"
+      });
+    } catch (e) {
+      return String(dateStr);
+    }
+  };
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px", paddingBottom: "24px" }}>
       
-      {/* 1. VISUAL PROGRESS BAR RASIO KEUANGAN */}
+      {/* 1. PERIODE FILTER PILLS */}
       <div
         style={{
-          background: "linear-gradient(145deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%)",
-          border: "1px solid rgba(51, 65, 85, 0.8)",
-          borderRadius: "18px",
-          padding: "18px 24px",
-          boxShadow: "0 6px 20px -4px rgba(0,0,0,0.3)"
+          display: "flex",
+          background: "#ffffff",
+          borderRadius: "14px",
+          padding: "4px",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+          gap: "4px"
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-          <div>
-            <div style={{ fontSize: "0.82rem", fontWeight: 800, color: "#ffffff" }}>
-              Tingkat Kolektibilitas Tagihan SPP &amp; Biaya Masuk ({periode === 'hari_ini' ? 'Hari Ini' : periode === 'tahun_ini' ? 'Tahun Ini' : 'Bulan Ini'})
-            </div>
-            <div style={{ fontSize: "0.72rem", color: "#94a3b8", marginTop: "2px" }}>
-              Perbandingan kas terbayar lunas terhadap total piutang yang masih tertahan
-            </div>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <span style={{ fontSize: "1.25rem", fontWeight: 900, color: "#10b981" }}>{persenTerbayar}%</span>
-            <span style={{ fontSize: "0.74rem", color: "#64748b", marginLeft: "4px" }}>Tercapai</span>
-          </div>
-        </div>
-
-        {/* Multi-segmented Progress Bar */}
-        <div style={{ width: "100%", height: "10px", background: "rgba(15, 23, 42, 0.9)", borderRadius: "999px", overflow: "hidden", display: "flex", border: "1px solid rgba(51, 65, 85, 0.6)" }}>
-          <div 
-            style={{ 
-              width: `${Math.min(100, Math.max(0, persenTerbayar))}%`, 
-              height: "100%", 
-              background: "linear-gradient(90deg, #059669 0%, #10b981 100%)", 
-              transition: "width 0.4s ease",
-              boxShadow: "0 0 12px rgba(16, 185, 129, 0.6)"
-            }} 
-          />
-          <div 
-            style={{ 
-              width: `${Math.min(100, Math.max(0, 100 - persenTerbayar))}%`, 
-              height: "100%", 
-              background: "rgba(244, 63, 94, 0.4)" 
-            }} 
-          />
-        </div>
-
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px", fontSize: "0.7rem", color: "#94a3b8" }}>
-          <span style={{ color: "#34d399", fontWeight: 700 }}>● Kas Terbayar: Rp {Number(data.kasPeriode || 0).toLocaleString("id-ID")}</span>
-          <span style={{ color: "#fb7185", fontWeight: 700 }}>● Piutang Tertahan: Rp {Number(data.totalPiutang || 0).toLocaleString("id-ID")}</span>
-        </div>
+        {[
+          { key: "hari_ini", label: "Hari Ini" },
+          { key: "bulan_ini", label: "Bulan Ini" },
+          { key: "tahun_ini", label: "Tahun Ini" }
+        ].map((p) => {
+          const isActive = periode === p.key;
+          return (
+            <button
+              key={p.key}
+              type="button"
+              onClick={() => setPeriode(p.key)}
+              style={{
+                flex: 1,
+                border: "none",
+                background: isActive
+                  ? "linear-gradient(135deg, #0d766e 0%, #059669 100%)"
+                  : "transparent",
+                color: isActive ? "#ffffff" : "#64748b",
+                fontWeight: isActive ? 800 : 600,
+                fontSize: "0.74rem",
+                padding: "8px 4px",
+                borderRadius: "10px",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+                boxShadow: isActive ? "0 4px 10px rgba(13, 118, 110, 0.25)" : "none"
+              }}
+            >
+              {p.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* 2. 3 METRIC CARDS */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "14px" }}>
-        {/* Card 1 */}
-        <div style={{ background: "linear-gradient(145deg, #132220 0%, #0c1a17 100%)", borderRadius: "18px", padding: "18px", border: "1px solid rgba(16, 185, 129, 0.3)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-            <span style={{ fontSize: "0.74rem", fontWeight: 800, color: "#34d399", textTransform: "uppercase" }}>
-              Penerimaan Kas ({periode === 'hari_ini' ? 'Hari Ini' : periode === 'tahun_ini' ? 'Tahun Ini' : 'Bulan Ini'})
-            </span>
-            <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "rgba(16, 185, 129, 0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <TrendingUp size={18} color="#10b981" />
-            </div>
-          </div>
-          <div style={{ fontSize: "1.5rem", fontWeight: 900, color: "#ffffff", letterSpacing: "-0.02em" }}>
-            Rp {Number(data.kasPeriode || 0).toLocaleString("id-ID")}
-          </div>
-          <div style={{ fontSize: "0.72rem", color: "#94a3b8", marginTop: "6px" }}>
-            Total <strong>{data.transaksiPeriode} transaksi</strong> pembayaran sah
-          </div>
-        </div>
-
-        {/* Card 2 */}
-        <div style={{ background: "linear-gradient(145deg, #251419 0%, #1a0b10 100%)", borderRadius: "18px", padding: "18px", border: "1px solid rgba(244, 63, 94, 0.3)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-            <span style={{ fontSize: "0.74rem", fontWeight: 800, color: "#fb7185", textTransform: "uppercase" }}>
-              Piutang Belum Tertagih
-            </span>
-            <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "rgba(244, 63, 94, 0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <AlertCircle size={18} color="#f43f5e" />
-            </div>
-          </div>
-          <div style={{ fontSize: "1.5rem", fontWeight: 900, color: "#ffffff", letterSpacing: "-0.02em" }}>
-            Rp {Number(data.totalPiutang || 0).toLocaleString("id-ID")}
-          </div>
-          <div style={{ fontSize: "0.72rem", color: "#94a3b8", marginTop: "6px" }}>
-            Tertahan pada <strong>{data.totalSantriMenunggak} santri</strong>
-          </div>
-        </div>
-
-        {/* Card 3 */}
-        <div style={{ background: "linear-gradient(145deg, #112133 0%, #0a1522 100%)", borderRadius: "18px", padding: "18px", border: "1px solid rgba(56, 189, 248, 0.3)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-            <span style={{ fontSize: "0.74rem", fontWeight: 800, color: "#38bdf8", textTransform: "uppercase" }}>
-              Akumulasi Kas (Sepanjang Waktu)
-            </span>
-            <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "rgba(56, 189, 248, 0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Wallet size={18} color="#38bdf8" />
-            </div>
-          </div>
-          <div style={{ fontSize: "1.5rem", fontWeight: 900, color: "#ffffff", letterSpacing: "-0.02em" }}>
-            Rp {Number(data.totalSemuaKas || 0).toLocaleString("id-ID")}
-          </div>
-          <div style={{ fontSize: "0.72rem", color: "#94a3b8", marginTop: "6px" }}>
-            Saldo kas riil tervalidasi bendahara
-          </div>
-        </div>
-      </div>
-
-      {/* 3. MAIN TABLE CARD WITH MODERN TOOLBAR */}
+      {/* 2. HERO KAS MASUK CARD (MODERN LUXURY GREEN) */}
       <div
         style={{
-          background: "linear-gradient(145deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.85) 100%)",
+          background: "linear-gradient(135deg, #064e3b 0%, #047857 50%, #065f46 100%)",
           borderRadius: "20px",
-          padding: "20px",
-          border: "1px solid rgba(51, 65, 85, 0.8)",
-          boxShadow: "0 8px 30px -5px rgba(0, 0, 0, 0.35)"
+          padding: "16px 18px",
+          color: "#ffffff",
+          boxShadow: "0 10px 25px -4px rgba(4, 120, 87, 0.35)",
+          position: "relative",
+          overflow: "hidden"
         }}
       >
-        {/* Toolbar: Sub-tabs & Filter Controls */}
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "18px" }}>
-          
-          {/* Sub-tab Pill Switcher */}
-          <div style={{ display: "flex", gap: "6px", background: "rgba(15, 23, 42, 0.85)", padding: "4px", borderRadius: "12px", border: "1px solid rgba(51, 65, 85, 0.8)" }}>
-            <button
-              onClick={() => setActiveSubTab("transaksi")}
-              style={{
-                padding: "8px 16px",
-                borderRadius: "9px",
-                border: "none",
-                fontSize: "0.78rem",
-                fontWeight: 800,
-                cursor: "pointer",
-                background: activeSubTab === "transaksi" ? "#38bdf8" : "transparent",
-                color: activeSubTab === "transaksi" ? "#0f172a" : "#94a3b8",
-                transition: "all 0.2s ease"
-              }}
-            >
-              Log Kas Masuk ({data.transaksiTerakhir?.length || 0})
-            </button>
+        <div
+          style={{
+            position: "absolute",
+            top: "-20px",
+            right: "-20px",
+            width: "90px",
+            height: "90px",
+            borderRadius: "50%",
+            background: "rgba(167, 243, 208, 0.18)",
+            filter: "blur(20px)",
+            pointerEvents: "none"
+          }}
+        />
 
-            <button
-              onClick={() => setActiveSubTab("tunggakan")}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div
               style={{
-                padding: "8px 16px",
-                borderRadius: "9px",
-                border: "none",
-                fontSize: "0.78rem",
+                fontSize: "0.64rem",
                 fontWeight: 800,
-                cursor: "pointer",
-                background: activeSubTab === "tunggakan" ? "#f43f5e" : "transparent",
-                color: activeSubTab === "tunggakan" ? "#ffffff" : "#94a3b8",
-                transition: "all 0.2s ease"
+                color: "#a7f3d0",
+                letterSpacing: "0.05em",
+                textTransform: "uppercase"
               }}
             >
-              Rekap Penunggak SPP ({data.tunggakanSantri?.length || 0})
-            </button>
-
-            <button
-              onClick={() => setActiveSubTab("infak")}
+              PENERIMAAN KAS PESANTREN
+            </div>
+            <div
               style={{
-                padding: "8px 16px",
-                borderRadius: "9px",
-                border: "none",
-                fontSize: "0.78rem",
-                fontWeight: 800,
-                cursor: "pointer",
-                background: activeSubTab === "infak" ? "#ec4899" : "transparent",
-                color: activeSubTab === "infak" ? "#ffffff" : "#94a3b8",
-                transition: "all 0.2s ease"
+                fontSize: "1.5rem",
+                fontWeight: 900,
+                color: "#ffffff",
+                letterSpacing: "-0.5px",
+                marginTop: "4px",
+                textShadow: "0 2px 6px rgba(0,0,0,0.2)"
               }}
             >
-              Infak &amp; Sedekah ({data.riwayatInfak?.length || 0})
-            </button>
+              {formatRp(data.kasPeriode)}
+            </div>
           </div>
 
-          {/* Right Controls */}
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <select
-              value={periode}
-              onChange={(e) => setPeriode(e.target.value)}
-              style={{
-                background: "#0f172a",
-                border: "1px solid rgba(71, 85, 105, 0.8)",
-                borderRadius: "10px",
-                padding: "8px 14px",
-                color: "#ffffff",
-                fontSize: "0.78rem",
-                fontWeight: 700,
-                outline: "none",
-                cursor: "pointer"
-              }}
-            >
-              <option value="hari_ini">Hari Ini</option>
-              <option value="bulan_ini">Bulan Ini</option>
-              <option value="tahun_ini">Tahun Ini</option>
-            </select>
-
-            <div style={{ position: "relative" }}>
-              <input
-                type="text"
-                placeholder="Cari data..."
-                value={searchTable}
-                onChange={(e) => setSearchTable(e.target.value)}
-                style={{
-                  background: "#0f172a",
-                  border: "1px solid rgba(71, 85, 105, 0.8)",
-                  borderRadius: "10px",
-                  padding: "8px 12px 8px 32px",
-                  fontSize: "0.78rem",
-                  color: "#ffffff",
-                  outline: "none",
-                  width: "180px"
-                }}
-              />
-              <Search size={14} color="#64748b" style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)" }} />
-            </div>
-
-            <button
-              onClick={fetchData}
-              title="Refresh Data"
-              style={{
-                background: "#0f172a",
-                border: "1px solid rgba(71, 85, 105, 0.8)",
-                borderRadius: "10px",
-                padding: "8px 12px",
-                color: "#38bdf8",
-                cursor: "pointer"
-              }}
-            >
-              <RotateCw size={14} className={loading ? "animate-spin" : ""} />
-            </button>
+          <div
+            style={{
+              width: "38px",
+              height: "38px",
+              borderRadius: "12px",
+              background: "rgba(255, 255, 255, 0.2)",
+              backdropFilter: "blur(6px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0
+            }}
+          >
+            <TrendingUp size={20} color="#a7f3d0" />
           </div>
         </div>
 
-        {/* Content Table */}
-        {loading ? (
-          <div style={{ padding: "50px", textAlign: "center", color: "#64748b" }}>
-            <RotateCw size={26} className="animate-spin" style={{ margin: "0 auto 10px", color: "#38bdf8" }} />
-            <div style={{ fontSize: "0.82rem", fontWeight: 600 }}>Memuat laporan keuangan resmi owner...</div>
+        {/* Progress Bar Kelancaran */}
+        <div style={{ marginTop: "14px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.66rem", fontWeight: 700, marginBottom: "5px" }}>
+            <span style={{ color: "#a7f3d0" }}>Kelancaran Pembayaran</span>
+            <span style={{ color: "#ffffff" }}>{persenTerbayar}% Tercapai</span>
           </div>
-        ) : (
+          <div
+            style={{
+              width: "100%",
+              height: "8px",
+              background: "rgba(0, 0, 0, 0.25)",
+              borderRadius: "99px",
+              overflow: "hidden",
+              display: "flex"
+            }}
+          >
+            <div
+              style={{
+                width: `${persenTerbayar}%`,
+                background: "linear-gradient(90deg, #34d399 0%, #10b981 100%)",
+                borderRadius: "99px"
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Sub Mini Stats */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "8px",
+            marginTop: "14px",
+            paddingTop: "12px",
+            borderTop: "1px solid rgba(255, 255, 255, 0.15)"
+          }}
+        >
           <div>
-            {/* 1. TABEL PENERIMAAN KAS */}
-            {activeSubTab === "transaksi" && (
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
-                  <thead>
-                    <tr style={{ background: "rgba(15, 23, 42, 0.9)", color: "#94a3b8", textAlign: "left", borderBottom: "2px solid #334155" }}>
-                      <th style={{ padding: "12px 14px" }}>No</th>
-                      <th style={{ padding: "12px 14px" }}>No. Transaksi &amp; Kuitansi</th>
-                      <th style={{ padding: "12px 14px" }}>Nama Santri &amp; Kelas</th>
-                      <th style={{ padding: "12px 14px" }}>Waktu Bayar</th>
-                      <th style={{ padding: "12px 14px" }}>Kanal Pembayaran</th>
-                      <th style={{ padding: "12px 14px", textAlign: "right" }}>Nominal Lunas</th>
-                      <th style={{ padding: "12px 14px", textAlign: "center" }}>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredTransaksi.map((trx, idx) => (
-                      <tr 
-                        key={trx.id || idx} 
-                        style={{ 
-                          borderBottom: "1px solid rgba(51, 65, 85, 0.6)",
-                          background: idx % 2 === 0 ? "transparent" : "rgba(15, 23, 42, 0.3)"
-                        }}
-                      >
-                        <td style={{ padding: "12px 14px", color: "#64748b" }}>{idx + 1}</td>
-                        <td style={{ padding: "12px 14px" }}>
-                          <div style={{ fontWeight: 800, color: "#38bdf8" }}>{trx.nomor_transaksi}</div>
-                          <div style={{ fontSize: "0.7rem", color: "#64748b" }}>{trx.kuitansi_nomor || "-"}</div>
-                        </td>
-                        <td style={{ padding: "12px 14px" }}>
-                          <div style={{ fontWeight: 800, color: "#ffffff" }}>{trx.nama_santri}</div>
-                          <div style={{ fontSize: "0.7rem", color: "#94a3b8" }}>{trx.nama_kelas ? `Kelas ${trx.nama_kelas}` : `NIS: ${trx.nis || "-"}`}</div>
-                        </td>
-                        <td style={{ padding: "12px 14px", color: "#cbd5e1" }}>{trx.tanggal_bayar || "-"}</td>
-                        <td style={{ padding: "12px 14px" }}>
-                          <span style={{ background: "rgba(15, 23, 42, 0.8)", border: "1px solid rgba(71, 85, 105, 0.6)", padding: "3px 8px", borderRadius: "6px", fontSize: "0.72rem", color: "#94a3b8", fontWeight: 700 }}>
-                            {trx.metode_pembayaran || "Kasir"}
-                          </span>
-                        </td>
-                        <td style={{ padding: "12px 14px", textAlign: "right", fontWeight: 900, color: "#10b981", fontSize: "0.86rem" }}>
-                          Rp {Number(trx.total_bayar || 0).toLocaleString("id-ID")}
-                        </td>
-                        <td style={{ padding: "12px 14px", textAlign: "center" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "rgba(16, 185, 129, 0.2)", border: "1px solid rgba(16, 185, 129, 0.4)", color: "#10b981", padding: "3px 10px", borderRadius: "999px", fontSize: "0.7rem", fontWeight: 800 }}>
-                            <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#10b981" }} />
-                            {trx.status_pembayaran || "Berhasil"}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                    {filteredTransaksi.length === 0 && (
-                      <tr>
-                        <td colSpan="7" style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
-                          Tidak ada catatan transaksi kas pada filter ini.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* 2. TABEL REKAP TUNGGAKAN */}
-            {activeSubTab === "tunggakan" && (
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
-                  <thead>
-                    <tr style={{ background: "rgba(15, 23, 42, 0.9)", color: "#94a3b8", textAlign: "left", borderBottom: "2px solid #334155" }}>
-                      <th style={{ padding: "12px 14px" }}>No</th>
-                      <th style={{ padding: "12px 14px" }}>Nama Santri</th>
-                      <th style={{ padding: "12px 14px" }}>NIS &amp; Kelas</th>
-                      <th style={{ padding: "12px 14px" }}>Wali Santri &amp; No. WhatsApp</th>
-                      <th style={{ padding: "12px 14px", textAlign: "center" }}>Item Tagihan</th>
-                      <th style={{ padding: "12px 14px", textAlign: "right" }}>Total Tunggakan</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredTunggakan.map((tg, idx) => (
-                      <tr 
-                        key={tg.santri_id || idx} 
-                        style={{ 
-                          borderBottom: "1px solid rgba(51, 65, 85, 0.6)",
-                          background: idx % 2 === 0 ? "transparent" : "rgba(15, 23, 42, 0.3)"
-                        }}
-                      >
-                        <td style={{ padding: "12px 14px", color: "#64748b" }}>{idx + 1}</td>
-                        <td style={{ padding: "12px 14px", fontWeight: 800, color: "#ffffff" }}>
-                          {tg.nama_santri}
-                        </td>
-                        <td style={{ padding: "12px 14px", color: "#94a3b8" }}>
-                          <div>{tg.nama_kelas ? `Kelas ${tg.nama_kelas}` : "-"}</div>
-                          <div style={{ fontSize: "0.7rem", color: "#64748b" }}>NIS: {tg.nis || "-"}</div>
-                        </td>
-                        <td style={{ padding: "12px 14px", color: "#cbd5e1" }}>
-                          <div>{tg.nama_wali || "-"}</div>
-                          <div style={{ fontSize: "0.7rem", color: "#38bdf8", fontWeight: 700 }}>{tg.no_wa_wali || "-"}</div>
-                        </td>
-                        <td style={{ padding: "12px 14px", textAlign: "center" }}>
-                          <span style={{ background: "rgba(245, 158, 11, 0.18)", border: "1px solid rgba(245, 158, 11, 0.4)", color: "#facc15", padding: "2px 8px", borderRadius: "6px", fontSize: "0.72rem", fontWeight: 800 }}>
-                            {tg.jumlah_tagihan} Tagihan
-                          </span>
-                        </td>
-                        <td style={{ padding: "12px 14px", textAlign: "right", fontWeight: 900, color: "#f43f5e", fontSize: "0.88rem" }}>
-                          Rp {Number(tg.total_tunggakan || 0).toLocaleString("id-ID")}
-                        </td>
-                      </tr>
-                    ))}
-                    {filteredTunggakan.length === 0 && (
-                      <tr>
-                        <td colSpan="6" style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
-                          Alhamdulillah! Tidak ada santri yang menunggak SPP.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* 3. TABEL INFAK & SEDEKAH */}
-            {activeSubTab === "infak" && (
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
-                  <thead>
-                    <tr style={{ background: "rgba(15, 23, 42, 0.9)", color: "#94a3b8", textAlign: "left", borderBottom: "2px solid #334155" }}>
-                      <th style={{ padding: "12px 14px" }}>No</th>
-                      <th style={{ padding: "12px 14px" }}>Nama Donatur / Santri</th>
-                      <th style={{ padding: "12px 14px" }}>Program Infak</th>
-                      <th style={{ padding: "12px 14px" }}>Waktu Penerimaan</th>
-                      <th style={{ padding: "12px 14px" }}>Kanal</th>
-                      <th style={{ padding: "12px 14px", textAlign: "right" }}>Nominal</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredInfak.map((inf, idx) => (
-                      <tr 
-                        key={inf.id || idx} 
-                        style={{ 
-                          borderBottom: "1px solid rgba(51, 65, 85, 0.6)",
-                          background: idx % 2 === 0 ? "transparent" : "rgba(15, 23, 42, 0.3)"
-                        }}
-                      >
-                        <td style={{ padding: "12px 14px", color: "#64748b" }}>{idx + 1}</td>
-                        <td style={{ padding: "12px 14px", fontWeight: 800, color: "#ffffff" }}>
-                          {inf.nama_donatur || "Hamba Allah"}
-                        </td>
-                        <td style={{ padding: "12px 14px", color: "#ec4899", fontWeight: 800 }}>
-                          {inf.nama_program || "Infak Pengembangan Pesantren"}
-                        </td>
-                        <td style={{ padding: "12px 14px", color: "#cbd5e1" }}>{inf.tanggal || "-"}</td>
-                        <td style={{ padding: "12px 14px", color: "#94a3b8" }}>{inf.metode_pembayaran || "QRIS"}</td>
-                        <td style={{ padding: "12px 14px", textAlign: "right", fontWeight: 900, color: "#ec4899", fontSize: "0.86rem" }}>
-                          Rp {Number(inf.nominal || 0).toLocaleString("id-ID")}
-                        </td>
-                      </tr>
-                    ))}
-                    {filteredInfak.length === 0 && (
-                      <tr>
-                        <td colSpan="6" style={{ textAlign: "center", padding: "36px", color: "#64748b" }}>
-                          Belum ada riwayat infak tercatat.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <div style={{ fontSize: "0.6rem", color: "#a7f3d0", fontWeight: 700 }}>
+              TOTAL TRANSAKSI
+            </div>
+            <div style={{ fontSize: "0.95rem", fontWeight: 900, color: "#ffffff", marginTop: "1px" }}>
+              {data.transaksiPeriode} <span style={{ fontSize: "0.65rem", fontWeight: 600 }}>Kuitansi</span>
+            </div>
           </div>
+          <div>
+            <div style={{ fontSize: "0.6rem", color: "#fecdd3", fontWeight: 700 }}>
+              SISA PIUTANG
+            </div>
+            <div style={{ fontSize: "0.95rem", fontWeight: 900, color: "#fecdd3", marginTop: "1px" }}>
+              {formatRp(data.totalPiutang)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. DUAL SUB SUMMARY STAT CARDS */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+        {/* Card 1: Piutang / Tunggakan */}
+        <div
+          onClick={() => setActiveSubTab("tunggakan")}
+          style={{
+            background: "#ffffff",
+            borderRadius: "16px",
+            padding: "12px 14px",
+            border: activeSubTab === "tunggakan" ? "1.5px solid #ef4444" : "1px solid #e2e8f0",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+            cursor: "pointer",
+            transition: "all 0.15s ease"
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: "0.62rem", fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>
+              SANTRI MENUNGGAK
+            </span>
+            <div
+              style={{
+                width: "24px",
+                height: "24px",
+                borderRadius: "8px",
+                background: "#fef2f2",
+                color: "#ef4444",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}
+            >
+              <AlertCircle size={14} />
+            </div>
+          </div>
+          <div style={{ fontSize: "1.1rem", fontWeight: 900, color: "#b91c1c", marginTop: "6px" }}>
+            {data.totalSantriMenunggak || 0} <span style={{ fontSize: "0.68rem", fontWeight: 600, color: "#64748b" }}>Santri</span>
+          </div>
+          <div style={{ fontSize: "0.64rem", color: "#991b1b", marginTop: "2px", fontWeight: 700 }}>
+            {formatRp(data.totalPiutang)}
+          </div>
+        </div>
+
+        {/* Card 2: Total Kas Akumulasi */}
+        <div
+          onClick={() => setActiveSubTab("transaksi")}
+          style={{
+            background: "#ffffff",
+            borderRadius: "16px",
+            padding: "12px 14px",
+            border: activeSubTab === "transaksi" ? "1.5px solid #0d766e" : "1px solid #e2e8f0",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+            cursor: "pointer",
+            transition: "all 0.15s ease"
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: "0.62rem", fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>
+              TOTAL KAS SEMUA
+            </span>
+            <div
+              style={{
+                width: "24px",
+                height: "24px",
+                borderRadius: "8px",
+                background: "#ecfdf5",
+                color: "#059669",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}
+            >
+              <Wallet size={14} />
+            </div>
+          </div>
+          <div style={{ fontSize: "1.1rem", fontWeight: 900, color: "#065f46", marginTop: "6px" }}>
+            {formatRp(data.totalSemuaKas)}
+          </div>
+          <div style={{ fontSize: "0.64rem", color: "#059669", marginTop: "2px", fontWeight: 700 }}>
+            Seluruh saldo masuk
+          </div>
+        </div>
+      </div>
+
+      {/* 4. SUBTAB SWITCHER (TRANSAKSI / TUNGGAKAN / INFAK) */}
+      <div
+        style={{
+          display: "flex",
+          background: "#ffffff",
+          borderRadius: "14px",
+          padding: "4px",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+          gap: "4px",
+          marginTop: "4px"
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setActiveSubTab("transaksi")}
+          style={{
+            flex: 1,
+            border: "none",
+            background: activeSubTab === "transaksi" ? "#ecfdf5" : "transparent",
+            color: activeSubTab === "transaksi" ? "#065f46" : "#64748b",
+            fontWeight: activeSubTab === "transaksi" ? 800 : 600,
+            fontSize: "0.72rem",
+            padding: "8px 4px",
+            borderRadius: "10px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "5px",
+            border: activeSubTab === "transaksi" ? "1px solid #a7f3d0" : "1px solid transparent"
+          }}
+        >
+          <Receipt size={14} />
+          <span>Kas Masuk</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSubTab("tunggakan")}
+          style={{
+            flex: 1,
+            border: "none",
+            background: activeSubTab === "tunggakan" ? "#fef2f2" : "transparent",
+            color: activeSubTab === "tunggakan" ? "#b91c1c" : "#64748b",
+            fontWeight: activeSubTab === "tunggakan" ? 800 : 600,
+            fontSize: "0.72rem",
+            padding: "8px 4px",
+            borderRadius: "10px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "5px",
+            border: activeSubTab === "tunggakan" ? "1px solid #fecaca" : "1px solid transparent"
+          }}
+        >
+          <AlertCircle size={14} />
+          <span>Tunggakan</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSubTab("infak")}
+          style={{
+            flex: 1,
+            border: "none",
+            background: activeSubTab === "infak" ? "#fff1f2" : "transparent",
+            color: activeSubTab === "infak" ? "#be123c" : "#64748b",
+            fontWeight: activeSubTab === "infak" ? 800 : 600,
+            fontSize: "0.72rem",
+            padding: "8px 4px",
+            borderRadius: "10px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "5px",
+            border: activeSubTab === "infak" ? "1px solid #fecdd3" : "1px solid transparent"
+          }}
+        >
+          <Heart size={14} />
+          <span>Infak</span>
+        </button>
+      </div>
+
+      {/* 5. SEARCH INPUT */}
+      <div
+        style={{
+          position: "relative",
+          background: "#ffffff",
+          borderRadius: "12px",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.02)"
+        }}
+      >
+        <Search
+          size={16}
+          color="#94a3b8"
+          style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }}
+        />
+        <input
+          type="text"
+          placeholder={
+            activeSubTab === "transaksi"
+              ? "Cari nama santri, kuitansi, atau kelas..."
+              : activeSubTab === "tunggakan"
+              ? "Cari santri menunggak / wali..."
+              : "Cari nama donatur / program..."
+          }
+          value={searchTable}
+          onChange={(e) => setSearchTable(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "9px 12px 9px 36px",
+            border: "none",
+            outline: "none",
+            borderRadius: "12px",
+            fontSize: "0.75rem",
+            color: "#0f172a",
+            background: "transparent",
+            boxSizing: "border-box"
+          }}
+        />
+      </div>
+
+      {/* 6. MOBILE CARD LIST (NO BULKY HORIZONTAL TABLES!) */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        {loading ? (
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: "16px",
+              padding: "28px",
+              textAlign: "center",
+              border: "1px solid #e2e8f0"
+            }}
+          >
+            <RotateCw size={24} className="animate-spin" color="#0d766e" style={{ margin: "0 auto 8px" }} />
+            <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 700 }}>
+              Memuat data keuangan...
+            </div>
+          </div>
+        ) : activeSubTab === "transaksi" ? (
+          /* LIST TRANSAKSI KAS MASUK */
+          filteredTransaksi.length > 0 ? (
+            filteredTransaksi.map((item, idx) => (
+              <div
+                key={idx}
+                style={{
+                  background: "#ffffff",
+                  borderRadius: "14px",
+                  padding: "12px 14px",
+                  border: "1px solid #e2e8f0",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "10px"
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
+                  <div
+                    style={{
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "11px",
+                      background: "#ecfdf5",
+                      color: "#059669",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0
+                    }}
+                  >
+                    <Receipt size={18} />
+                  </div>
+                  <div style={{ minWidth: 0, overflow: "hidden" }}>
+                    <div
+                      style={{
+                        fontSize: "0.8rem",
+                        fontWeight: 900,
+                        color: "#0f172a",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis"
+                      }}
+                    >
+                      {item.nama_santri || "Santri"}
+                    </div>
+                    <div style={{ fontSize: "0.64rem", color: "#64748b", marginTop: "1px" }}>
+                      {item.nama_kelas ? `${item.nama_kelas} • ` : ""}{item.nomor_transaksi || "Kuitansi Sah"}
+                    </div>
+                    <div style={{ fontSize: "0.6rem", color: "#94a3b8", marginTop: "1px" }}>
+                      {formatDate(item.created_at || item.tanggal)}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div style={{ fontSize: "0.88rem", fontWeight: 900, color: "#059669" }}>
+                    +{formatRp(item.total_bayar || item.nominal || 0)}
+                  </div>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      marginTop: "3px",
+                      fontSize: "0.58rem",
+                      fontWeight: 800,
+                      color: "#047857",
+                      background: "#ecfdf5",
+                      border: "1px solid #a7f3d0",
+                      padding: "2px 6px",
+                      borderRadius: "6px"
+                    }}
+                  >
+                    {item.metode_pembayaran || "Tunai"}
+                  </span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: "16px",
+                padding: "24px 16px",
+                textAlign: "center",
+                border: "1px solid #e2e8f0"
+              }}
+            >
+              <Receipt size={32} color="#cbd5e1" style={{ margin: "0 auto 8px" }} />
+              <div style={{ fontSize: "0.78rem", fontWeight: 800, color: "#334155" }}>
+                Tidak ada riwayat transaksi
+              </div>
+              <div style={{ fontSize: "0.68rem", color: "#94a3b8", marginTop: "2px" }}>
+                Belum ada kas masuk pada periode yang dipilih.
+              </div>
+            </div>
+          )
+        ) : activeSubTab === "tunggakan" ? (
+          /* LIST TUNGGAKAN SANTRI */
+          filteredTunggakan.length > 0 ? (
+            filteredTunggakan.map((item, idx) => (
+              <div
+                key={idx}
+                style={{
+                  background: "#ffffff",
+                  borderRadius: "14px",
+                  padding: "12px 14px",
+                  border: "1px solid #fecaca",
+                  boxShadow: "0 2px 6px rgba(239, 68, 68, 0.05)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "10px"
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
+                  <div
+                    style={{
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "11px",
+                      background: "#fef2f2",
+                      color: "#ef4444",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0
+                    }}
+                  >
+                    <AlertCircle size={18} />
+                  </div>
+                  <div style={{ minWidth: 0, overflow: "hidden" }}>
+                    <div
+                      style={{
+                        fontSize: "0.8rem",
+                        fontWeight: 900,
+                        color: "#0f172a",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis"
+                      }}
+                    >
+                      {item.nama_santri}
+                    </div>
+                    <div style={{ fontSize: "0.64rem", color: "#64748b", marginTop: "1px" }}>
+                      NISN: {item.nis || "-"} • Kelas: {item.nama_kelas || "-"}
+                    </div>
+                    <div style={{ fontSize: "0.6rem", color: "#94a3b8", marginTop: "1px" }}>
+                      Wali: {item.nama_wali || "Orang Tua"} {item.no_hp_wali ? `(${item.no_hp_wali})` : ""}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div style={{ fontSize: "0.88rem", fontWeight: 900, color: "#e11d48" }}>
+                    -{formatRp(item.total_tunggakan || 0)}
+                  </div>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      marginTop: "3px",
+                      fontSize: "0.58rem",
+                      fontWeight: 800,
+                      color: "#b91c1c",
+                      background: "#fef2f2",
+                      border: "1px solid #fecaca",
+                      padding: "2px 6px",
+                      borderRadius: "6px"
+                    }}
+                  >
+                    Menunggak
+                  </span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: "16px",
+                padding: "24px 16px",
+                textAlign: "center",
+                border: "1px solid #e2e8f0"
+              }}
+            >
+              <CheckCircle2 size={32} color="#10b981" style={{ margin: "0 auto 8px" }} />
+              <div style={{ fontSize: "0.78rem", fontWeight: 800, color: "#166534" }}>
+                Luar Biasa, Tidak Ada Tunggakan!
+              </div>
+              <div style={{ fontSize: "0.68rem", color: "#64748b", marginTop: "2px" }}>
+                Semua tagihan santri telah lunas terbayar.
+              </div>
+            </div>
+          )
+        ) : (
+          /* LIST INFAK & WAKAF */
+          filteredInfak.length > 0 ? (
+            filteredInfak.map((item, idx) => (
+              <div
+                key={idx}
+                style={{
+                  background: "#ffffff",
+                  borderRadius: "14px",
+                  padding: "12px 14px",
+                  border: "1px solid #e2e8f0",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "10px"
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
+                  <div
+                    style={{
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "11px",
+                      background: "#fff1f2",
+                      color: "#e11d48",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0
+                    }}
+                  >
+                    <Heart size={18} />
+                  </div>
+                  <div style={{ minWidth: 0, overflow: "hidden" }}>
+                    <div
+                      style={{
+                        fontSize: "0.8rem",
+                        fontWeight: 900,
+                        color: "#0f172a",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis"
+                      }}
+                    >
+                      {item.nama_donatur || "Hamba Allah"}
+                    </div>
+                    <div style={{ fontSize: "0.64rem", color: "#64748b", marginTop: "1px" }}>
+                      Program: {item.nama_program || "Pembangunan Pesantren"}
+                    </div>
+                    <div style={{ fontSize: "0.6rem", color: "#94a3b8", marginTop: "1px" }}>
+                      {formatDate(item.created_at || item.tanggal)}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div style={{ fontSize: "0.88rem", fontWeight: 900, color: "#be123c" }}>
+                    +{formatRp(item.nominal || 0)}
+                  </div>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      marginTop: "3px",
+                      fontSize: "0.58rem",
+                      fontWeight: 800,
+                      color: "#be123c",
+                      background: "#fff1f2",
+                      border: "1px solid #fecdd3",
+                      padding: "2px 6px",
+                      borderRadius: "6px"
+                    }}
+                  >
+                    {item.metode_pembayaran || "Infak Sah"}
+                  </span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: "16px",
+                padding: "24px 16px",
+                textAlign: "center",
+                border: "1px solid #e2e8f0"
+              }}
+            >
+              <Heart size={32} color="#f43f5e" style={{ margin: "0 auto 8px" }} />
+              <div style={{ fontSize: "0.78rem", fontWeight: 800, color: "#334155" }}>
+                Belum ada donasi infak
+              </div>
+              <div style={{ fontSize: "0.68rem", color: "#94a3b8", marginTop: "2px" }}>
+                Riwayat sedekah sukarela akan muncul di sini.
+              </div>
+            </div>
+          )
         )}
       </div>
     </div>

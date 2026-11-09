@@ -32,7 +32,6 @@ import {
   Send
 } from 'lucide-react';
 import MobileHome from '../views/mobile/MobileHome';
-import MobileTahfidz from '../views/mobile/MobileTahfidz';
 import MobileSyahriah from '../views/mobile/MobileSyahriah';
 import KeuanganAdminView from '../views/keuangan/KeuanganAdminView';
 import MobileKeuangan from '../views/mobile/MobileKeuangan';
@@ -47,7 +46,6 @@ import MobileAsatidz from '../views/mobile/MobileAsatidz';
 import MobileDevice from '../views/mobile/MobileDevice';
 import MobileTataTertib from '../views/mobile/MobileTataTertib';
 import MobileLaporanPresensi from '../views/mobile/MobileLaporanPresensi';
-import MobileLaporanTahfidz from '../views/mobile/MobileLaporanTahfidz';
 import MobileKitab from '../views/mobile/MobileKitab';
 import MobileProfil from '../views/mobile/MobileProfil';
 import MobileDaftarWajah from '../views/mobile/MobileDaftarWajah';
@@ -386,8 +384,6 @@ export default function MobileLayout() {
         return <MobilePresensiMengaji />;
       case 'presensi':
         return <MobilePresensiBerjamaah />;
-      case 'tahfidz':
-        return <MobileTahfidz />;
       case 'praktek-ibadah':
       case 'praktek':
         return <MobilePraktek />;
@@ -430,8 +426,6 @@ export default function MobileLayout() {
         return <MobileTataTertib />;
       case 'laporan-presensi':
         return <MobileLaporanPresensi />;
-      case 'laporan-tahfidz':
-        return <MobileLaporanTahfidz />;
       case 'syahriah':
       case 'keuangan':
       case 'keuangan-kasir':

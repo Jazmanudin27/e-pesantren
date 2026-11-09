@@ -75,22 +75,8 @@ const normalizeDateStr = (rawDate) => {
 export default function MobilePresensiMengaji() {
   const [activeMode, setActiveMode] = useState("manual");
   const [daftarMengaji, setDaftarMengaji] = useState([]);
-  const [selectedMengaji, setSelectedMengaji] = useState(() => {
-    try {
-      const saved = localStorage.getItem("epesantren_mengaji_selected_kegiatan");
-      return saved ? JSON.parse(saved) : null;
-    } catch (e) {
-      return null;
-    }
-  });
-
-  const [selectedMengajiKelas, setSelectedMengajiKelas] = useState(() => {
-    try {
-      return localStorage.getItem("epesantren_mengaji_selected_kelas") || "";
-    } catch (e) {
-      return "";
-    }
-  });
+  const [selectedMengaji, setSelectedMengaji] = useState(null);
+  const [selectedMengajiKelas, setSelectedMengajiKelas] = useState("");
 
   // Data State (Lazy load per kelas)
   const [santriList, setSantriList] = useState([]);
@@ -145,21 +131,11 @@ export default function MobilePresensiMengaji() {
   const selectedMengajiRef = useRef(selectedMengaji);
   useEffect(() => {
     selectedMengajiRef.current = selectedMengaji;
-    if (selectedMengaji) {
-      try {
-        localStorage.setItem("epesantren_mengaji_selected_kegiatan", JSON.stringify(selectedMengaji));
-      } catch (e) {}
-    }
   }, [selectedMengaji]);
 
   const selectedMengajiKelasRef = useRef(selectedMengajiKelas);
   useEffect(() => {
     selectedMengajiKelasRef.current = selectedMengajiKelas;
-    if (selectedMengajiKelas) {
-      try {
-        localStorage.setItem("epesantren_mengaji_selected_kelas", selectedMengajiKelas);
-      } catch (e) {}
-    }
   }, [selectedMengajiKelas]);
 
   // Load santri khusus berdasarkan kelas (Lazy load hemat memori)
@@ -307,6 +283,10 @@ export default function MobilePresensiMengaji() {
   };
 
   useEffect(() => {
+    try {
+      localStorage.removeItem("epesantren_mengaji_selected_kegiatan");
+      localStorage.removeItem("epesantren_mengaji_selected_kelas");
+    } catch (e) {}
     fetchData();
   }, []);
 
