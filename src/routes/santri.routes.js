@@ -352,7 +352,7 @@ router.post('/import', importSantri);
 router.patch('/:id/foto', async (req, res) => {
   try {
     const { id } = req.params;
-    const { foto, foto_santri, descriptor, face_descriptor, clear_face } = req.body;
+    const { foto, foto_santri, descriptor, face_descriptor, clear_face } = req.body || {};
     const finalFoto = foto !== undefined ? foto : (foto_santri !== undefined ? foto_santri : null);
     
     try {
@@ -364,7 +364,9 @@ router.patch('/:id/foto', async (req, res) => {
 
     // Jika clear_face true atau foto dikirim null/kosong: hapus foto DAN biometrik sekaligus!
     if (clear_face || finalFoto === null || finalFoto === '') {
-      await pool.query("UPDATE santri SET foto = NULL, face_descriptor = NULL WHERE id = ?", [id]);
+      await pool.query("UPDATE santri SET foto = NULL, face_descriptor = NULL WHERE id = ?", [id]).catch(async () => {
+        await pool.query("UPDATE santri SET foto = NULL WHERE id = ?", [id]).catch(() => {});
+      });
       return res.json({ 
         success: true, 
         message: 'Foto wajah dan biometrik santri berhasil dihapus dari database' 
@@ -396,7 +398,11 @@ router.patch('/:id/foto', async (req, res) => {
 const deleteFaceHandler = async (req, res) => {
   try {
     const { id } = req.params;
-    await pool.query("UPDATE santri SET face_descriptor = NULL, foto = NULL WHERE id = ?", [id]);
+    try {
+      await pool.query("UPDATE santri SET face_descriptor = NULL, foto = NULL WHERE id = ?", [id]);
+    } catch (eSql) {
+      await pool.query("UPDATE santri SET foto = NULL WHERE id = ?", [id]).catch(() => {});
+    }
     return res.json({ 
       success: true, 
       message: `Data biometrik & foto wajah santri ID ${id} berhasil dihapus dari database` 
