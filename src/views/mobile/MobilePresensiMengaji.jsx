@@ -733,12 +733,32 @@ export default function MobilePresensiMengaji() {
       foto_bukti: snapshot || santri.foto || null,
     };
 
-    const newRecord = { id: Date.now(), ...payload };
-    setPresensiLogs((prev) => [newRecord, ...prev]);
+    const tempId = `log_${Date.now()}_${santri.id}`;
+    const newRecord = { id: tempId, ...payload };
 
-    axios.post("/api/absensi/fingerprint", payload).catch((err) => {
-      console.warn("Gagal simpan presensi mengaji ke server:", err);
+    // 1. Simpan seketika ke riwayat lokal (Optimistic UI Update langsung muncul)
+    setPresensiLogs((prev) => {
+      const filtered = prev.filter((l) => {
+        const sameSantri = String(l.santri_id) === String(santri.id);
+        const sameDate = normalizeDateStr(l.tanggal) === dateStr;
+        const sameKegiatan = !selectedMengaji?.id || String(l.sesi_id) === String(targetKegiatan.id) || String(l.kegiatan || l.nama_sesi || "").toLowerCase() === String(targetKegiatan.nama || "").toLowerCase();
+        return !(sameSantri && sameDate && sameKegiatan);
+      });
+      return [newRecord, ...filtered];
     });
+
+    // 2. Simpan ke database MySQL
+    try {
+      const res = await axios.post("/api/absensi/fingerprint", payload);
+      const serverData = res.data?.data;
+      if (serverData && serverData.id) {
+        setPresensiLogs((prev) =>
+          prev.map((l) => (l.id === tempId ? { ...l, id: serverData.id } : l))
+        );
+      }
+    } catch (err) {
+      console.warn("Gagal simpan presensi mengaji ke server:", err);
+    }
   };
 
   const handleRefreshRiwayat = async () => {
@@ -749,14 +769,14 @@ export default function MobilePresensiMengaji() {
       const serverLogs = res.data?.data;
       if (Array.isArray(serverLogs)) {
         setPresensiLogs((prev) => {
-          const serverKeys = new Set(
-            serverLogs.map(
-              (l) => `${l.santri_id}__${normalizeDateStr(l.tanggal)}__${(l.kegiatan || l.nama_sesi || l.nama_kegiatan || "").toLowerCase()}`
-            )
+          const serverSantriKeys = new Set(
+            serverLogs.map((s) => `${s.santri_id}__${normalizeDateStr(s.tanggal)}`)
           );
-          const pendingLogs = prev.filter((l) => {
-            const key = `${l.santri_id}__${normalizeDateStr(l.tanggal)}__${(l.kegiatan || l.nama_sesi || l.nama_kegiatan || "").toLowerCase()}`;
-            return !serverKeys.has(key);
+          // Pertahankan log lokal yang baru saja discan
+          const pendingLogs = prev.filter((p) => {
+            if (String(p.id).startsWith("log_")) return true;
+            const k = `${p.santri_id}__${normalizeDateStr(p.tanggal)}`;
+            return !serverSantriKeys.has(k);
           });
           return [...pendingLogs, ...serverLogs];
         });
@@ -816,8 +836,8 @@ export default function MobilePresensiMengaji() {
   const filteredSantri = santriList.filter((s) => {
     const matchSearch = (s.nama_santri || "").toLowerCase().includes(searchManual.toLowerCase()) || (s.nis || "").includes(searchManual);
     const log = getSantriCurrentLog(s);
-    if (filterManualStatus === "Hadir") return matchSearch && log;
-    if (filterManualStatus === "Belum") return matchSearch && !log;
+    // Jika santri sudah presensi (via scan wajah AI / manual), otomatis tidak tampil di manual, langsung pindah ke riwayat
+    if (log) return false;
     return matchSearch;
   });
 
@@ -831,18 +851,20 @@ export default function MobilePresensiMengaji() {
       if (isShalat) return false;
 
       // 2. Filter Kategori / Kegiatan Mengaji
-      if (selectedMengaji) {
-        const targetKegiatan = String(selectedMengaji.nama || "").trim().toLowerCase();
+      if (selectedMengaji && selectedMengaji.nama) {
+        const targetKegiatan = String(selectedMengaji.nama).trim().toLowerCase();
         const logKegiatan = String(log.kegiatan || log.nama_sesi || log.nama_kegiatan || "").trim().toLowerCase();
         const matchId = log.sesi_id && String(log.sesi_id) === String(selectedMengaji.id);
         const matchNama =
+          !logKegiatan ||
           logKegiatan === targetKegiatan ||
-          (logKegiatan && targetKegiatan && (logKegiatan.includes(targetKegiatan) || targetKegiatan.includes(logKegiatan)));
+          logKegiatan.includes(targetKegiatan) ||
+          targetKegiatan.includes(logKegiatan);
         if (!matchId && !matchNama) return false;
       }
 
       // 3. Filter Kelas Santri
-      if (selectedMengajiKelas) {
+      if (selectedMengajiKelas && selectedMengajiKelas !== "Semua") {
         const targetKelas = String(selectedMengajiKelas).trim().toLowerCase();
         const ketStr = String(log.keterangan || "").toLowerCase();
         const klsStr = String(log.nama_kelas || log.kelas || "").toLowerCase();
@@ -1177,7 +1199,18 @@ export default function MobilePresensiMengaji() {
             if (!kls) kls = "Semua Kelas";
 
             const kegiatanName = log.kegiatan || log.nama_sesi || log.nama_kegiatan || selectedMengaji?.nama || "Kegiatan Mengaji";
-            const statusTxt = log.status_kehadiran || log.status || "Hadir";
+            const rawStatus = String(log.status_kehadiran || log.status || "Hadir").trim();
+            const isIzin = /izin|pulang|keluar/i.test(rawStatus);
+            const isSakit = /sakit|berobat/i.test(rawStatus);
+            const statusTxt = isIzin ? "Izin" : isSakit ? "Sakit" : (rawStatus || "Hadir");
+
+            const avatarBg = isIzin ? "#eff6ff" : isSakit ? "#fefce8" : "#ecfdf5";
+            const avatarBorder = isIzin ? "#bfdbfe" : isSakit ? "#fef08a" : "#a7f3d0";
+            const avatarColor = isIzin ? "#2563eb" : isSakit ? "#ca8a04" : "#059669";
+
+            const badgeBg = isIzin ? "#eff6ff" : isSakit ? "#fefce8" : "#ecfdf5";
+            const badgeBorder = isIzin ? "#bfdbfe" : isSakit ? "#fef08a" : "#a7f3d0";
+            const badgeColor = isIzin ? "#2563eb" : isSakit ? "#ca8a04" : "#059669";
 
             return (
               <div
@@ -1186,7 +1219,7 @@ export default function MobilePresensiMengaji() {
                   background: "#ffffff",
                   borderRadius: "14px",
                   padding: "12px 14px",
-                  border: "1px solid #e2e8f0",
+                  border: isIzin ? "1px solid #dbeafe" : isSakit ? "1px solid #fef9c3" : "1px solid #e2e8f0",
                   boxShadow: "0 2px 6px rgba(0,0,0,0.025)",
                   display: "flex",
                   flexDirection: "column",
@@ -1201,9 +1234,9 @@ export default function MobilePresensiMengaji() {
                         width: "34px",
                         height: "34px",
                         borderRadius: "10px",
-                        background: "#ecfdf5",
-                        border: "1px solid #a7f3d0",
-                        color: "#059669",
+                        background: avatarBg,
+                        border: `1px solid ${avatarBorder}`,
+                        color: avatarColor,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -1235,9 +1268,9 @@ export default function MobilePresensiMengaji() {
 
                   <span
                     style={{
-                      background: "#ecfdf5",
-                      color: "#059669",
-                      border: "1px solid #a7f3d0",
+                      background: badgeBg,
+                      color: badgeColor,
+                      border: `1px solid ${badgeBorder}`,
                       padding: "3px 9px",
                       borderRadius: "999px",
                       fontSize: "0.68rem",
@@ -1249,12 +1282,31 @@ export default function MobilePresensiMengaji() {
                       flexShrink: 0,
                     }}
                   >
-                    <Check size={12} strokeWidth={3} /> {statusTxt}
+                    {!isIzin && !isSakit && <Check size={12} strokeWidth={3} />}
+                    {isIzin ? "✈️ Izin" : isSakit ? "💊 Sakit" : statusTxt}
                   </span>
                 </div>
 
                 {/* Divider tipis */}
                 <div style={{ height: "1px", background: "#f1f5f9" }} />
+
+                {/* Info Keterangan Perizinan Santri jika ada */}
+                {log.keterangan && (isIzin || isSakit || String(log.metode_presensi || "").includes("Perizinan")) && (
+                  <div
+                    style={{
+                      background: isIzin ? "#f8fafc" : "#fffbeb",
+                      border: isIzin ? "1px solid #e2e8f0" : "1px solid #fef3c7",
+                      borderRadius: "8px",
+                      padding: "5px 8px",
+                      fontSize: "0.68rem",
+                      color: isIzin ? "#334155" : "#92400e",
+                      fontWeight: 600,
+                      lineHeight: 1.25,
+                    }}
+                  >
+                    ℹ️ {log.keterangan}
+                  </div>
+                )}
 
                 {/* 2. Baris Tengah: Kegiatan & Kelas */}
                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px" }}>

@@ -219,18 +219,17 @@ export const syncActivePerizinanToAbsensi = async () => {
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-    // 1. Ambil semua perizinan yang sedang aktif keluar / disetujui pada tanggal hari ini
+    // 1. Ambil semua santri yang izin keluar/pulang dan sampai hari ini belum kembali
     const [activeIzins] = await pool.query(`
       SELECT sp.*
       FROM santri_perizinan sp
-      WHERE sp.status IN ('Aktif Keluar', 'Disetujui Pengasuh')
-        AND DATE(COALESCE(sp.tgl_keluar_aktual, sp.tgl_keluar_rencana)) <= ?
-        AND (
-          sp.tgl_kembali_rencana IS NULL
-          OR DATE(sp.tgl_kembali_rencana) >= ?
-          OR sp.status = 'Aktif Keluar'
+      WHERE (
+          sp.tgl_kembali_aktual IS NULL 
+          OR sp.status IN ('Aktif Keluar', 'Terlambat Kembali', 'Disetujui Pengasuh')
         )
-    `, [todayStr, todayStr]).catch(() => [[]]);
+        AND sp.status NOT IN ('Kembali Tepat Waktu', 'Ditolak', 'Dibatalkan', 'Selesai')
+        AND DATE(COALESCE(sp.tgl_keluar_aktual, sp.tgl_keluar_rencana, sp.created_at)) <= ?
+    `, [todayStr]).catch(() => [[]]);
 
     if (!activeIzins || activeIzins.length === 0) return;
 
@@ -310,9 +309,9 @@ export const syncActivePerizinanToAbsensi = async () => {
     for (const izin of activeIzins) {
       const jenisLower = String(izin.jenis_izin || '').toLowerCase();
       const kepLower = String(izin.keperluan || '').toLowerCase();
-      const isSakit = jenisLower.includes('sakit') || jenisLower.includes('berobat') || kepLower.includes('sakit');
+      const isSakit = jenisLower.includes('sakit') || jenisLower.includes('berobat') || kepLower.includes('sakit') || kepLower.includes('berobat');
       const statusAbsen = isSakit ? 'Sakit' : 'Izin';
-      const ketText = `Otomatis ${izin.jenis_izin || 'Izin Pulang'}${izin.keperluan ? ': ' + izin.keperluan : ''}`;
+      const ketText = `${izin.jenis_izin || 'Izin Pulang'}${izin.keperluan ? ': ' + izin.keperluan : ''} (Belum Kembali)`;
 
       for (const sess of allSessions) {
         const key = `${izin.santri_id}__${sess.nama_kegiatan.trim().toLowerCase()}`;
@@ -320,8 +319,8 @@ export const syncActivePerizinanToAbsensi = async () => {
 
         await pool.query(`
           INSERT INTO absensi_jamaah_mengaji (
-            santri_id, sesi_id, tanggal, waktu_scan, status, metode_presensi, nama_kegiatan, tipe_presensi, keterangan
-          ) VALUES (?, ?, ?, ?, ?, 'Perizinan', ?, ?, ?)
+            santri_id, sesi_id, tanggal, waktu_scan, status, metode_presensi, nama_kegiatan, tipe_presensi, keterangan, musyrif_verifikator, nama_ustadz
+          ) VALUES (?, ?, ?, ?, ?, 'Perizinan', ?, ?, ?, 'Sistem Perizinan', 'Sistem Perizinan')
         `, [
           izin.santri_id,
           sess.sesi_id,
@@ -344,8 +343,8 @@ export const syncActivePerizinanToAbsensi = async () => {
 export const getAbsensiFingerprint = async (req, res) => {
   try {
     await ensureAbsensiTablesAndColumns();
-    // Jalankan sync perizinan secara non-blocking di background agar respons instan
-    syncActivePerizinanToAbsensi().catch(() => {});
+    // Sinkronisasi santri yang sedang izin pulang / sakit sebelum query
+    await syncActivePerizinanToAbsensi().catch(() => {});
 
     const tipeParam = (req.query.tipe || req.query.type || '').toLowerCase(); // 'berjamaah' | 'kegiatan' | ''
     const isToday = req.query.today === 'true' || req.query.hari_ini === 'true';

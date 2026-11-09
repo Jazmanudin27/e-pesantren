@@ -1,5 +1,6 @@
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
+import { syncActivePerizinanToAbsensi } from './absensi.controller.js';
 
 /**
  * Pastikan tabel-tabel esensial untuk Pengajar tersedia
@@ -368,6 +369,7 @@ export const getSesiMengajiList = async (req, res) => {
  */
 export const getAbsenMengaji = async (req, res) => {
   await ensurePengajarTables();
+  await syncActivePerizinanToAbsensi().catch(() => {});
   try {
     const tanggal = req.query.tanggal || new Date().toISOString().split('T')[0];
     const sesiId = req.query.sesi_id ? parseInt(req.query.sesi_id, 10) : null;
