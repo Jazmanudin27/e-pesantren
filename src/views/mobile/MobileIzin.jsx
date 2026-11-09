@@ -69,13 +69,32 @@ export default function MobileIzin() {
 
   const defaultIzin = [];
 
+  const fetchSantriOptions = async () => {
+    try {
+      const resSantri = await axios
+        .get("/api/santri/for-face-registration")
+        .catch(() => axios.get("/api/santri?all=true&compact=true&without_photo=true"))
+        .catch(() => ({ data: { data: [] } }));
+
+      if (
+        resSantri.data &&
+        resSantri.data.data &&
+        Array.isArray(resSantri.data.data) &&
+        resSantri.data.data.length > 0
+      ) {
+        setSantriOptions(resSantri.data.data);
+      }
+    } catch (e) {
+      console.warn("Gagal memuat list santri perizinan:", e);
+    }
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [resIzin, resSantri] = await Promise.all([
-        axios.get("/api/perizinan").catch(() => ({ data: { data: [] } })),
-        axios.get("/api/santri?all=true").catch(() => ({ data: { data: [] } })),
-      ]);
+      const resIzin = await axios
+        .get("/api/perizinan")
+        .catch(() => ({ data: { data: [] } }));
 
       const sanitizeItems = (arr) => {
         if (!Array.isArray(arr)) return [];
@@ -89,14 +108,6 @@ export default function MobileIzin() {
           return rest;
         });
       };
-
-      if (
-        resSantri.data &&
-        resSantri.data.data &&
-        resSantri.data.data.length > 0
-      ) {
-        setSantriOptions(resSantri.data.data);
-      }
 
       if (resIzin.data && Array.isArray(resIzin.data.data)) {
         const sanitized = sanitizeItems(resIzin.data.data);
@@ -117,6 +128,7 @@ export default function MobileIzin() {
   useEffect(() => {
     localStorage.removeItem("mobile_izin_list");
     fetchData();
+    fetchSantriOptions();
   }, []);
 
   // Format Helpers
@@ -200,6 +212,9 @@ export default function MobileIzin() {
 
   // Modal handlers
   const handleOpenAdd = () => {
+    if (santriOptions.length === 0) {
+      fetchSantriOptions();
+    }
     setFormMode("add");
     setFormData({
       ...initialForm,
