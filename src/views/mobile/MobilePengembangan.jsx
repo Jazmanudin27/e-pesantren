@@ -873,8 +873,8 @@ export default function MobilePengembangan() {
         )
           return false;
         if (
-          filterManualStatus === "Pembinaan" &&
-          lastEval?.status_kelulusan !== "Tidak Lulus"
+          filterManualStatus === "Belum Lulus" &&
+          (lastEval?.status_kelulusan === "Lulus" || !lastEval)
         )
           return false;
       }
@@ -891,11 +891,16 @@ export default function MobilePengembangan() {
       ) {
         return false;
       }
-      if (
-        filterHistoriStatus !== "Semua" &&
-        r.status_kelulusan !== filterHistoriStatus
-      ) {
-        return false;
+      if (filterHistoriStatus !== "Semua") {
+        if (filterHistoriStatus === "Lulus" && r.status_kelulusan !== "Lulus") {
+          return false;
+        }
+        if (
+          filterHistoriStatus === "Belum Lulus" &&
+          r.status_kelulusan === "Lulus"
+        ) {
+          return false;
+        }
       }
       if (searchHistori.trim()) {
         const q = searchHistori.toLowerCase();
@@ -913,7 +918,7 @@ export default function MobilePengembangan() {
     (r) => r.status_kelulusan === "Lulus",
   ).length;
   const countTidakLulus = rekapList.filter(
-    (r) => r.status_kelulusan === "Tidak Lulus",
+    (r) => r.status_kelulusan !== "Lulus",
   ).length;
 
   if (loading) {
@@ -1007,13 +1012,13 @@ export default function MobilePengembangan() {
           </span>
         </div>
 
-        {/* DUA KARTU STATISTIK MENARIK (LULUS & BINA) */}
+        {/* DUA KARTU STATISTIK (LULUS & BELUM LULUS - COMPACT) */}
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
-            gap: "10px",
-            marginBottom: "14px",
+            gap: "8px",
+            marginBottom: "10px",
           }}
         >
           {/* Card 1: Lulus (Vibrant Emerald Glow) */}
@@ -1023,34 +1028,34 @@ export default function MobilePengembangan() {
                 "linear-gradient(135deg, rgba(16, 185, 129, 0.28) 0%, rgba(5, 150, 105, 0.38) 100%)",
               border: "1.5px solid rgba(134, 239, 172, 0.55)",
               backdropFilter: "blur(10px)",
-              borderRadius: "15px",
-              padding: "10px 12px",
+              borderRadius: "12px",
+              padding: "7px 10px",
               display: "flex",
               alignItems: "center",
-              gap: "10px",
-              boxShadow: "0 4px 14px rgba(0, 0, 0, 0.08)",
+              gap: "8px",
+              boxShadow: "0 3px 10px rgba(0, 0, 0, 0.06)",
             }}
           >
             <div
               style={{
-                width: "38px",
-                height: "38px",
-                borderRadius: "11px",
+                width: "30px",
+                height: "30px",
+                borderRadius: "9px",
                 background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
                 color: "#ffffff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                boxShadow: "0 4px 12px rgba(16, 185, 129, 0.4)",
+                boxShadow: "0 3px 8px rgba(16, 185, 129, 0.4)",
                 flexShrink: 0,
               }}
             >
-              <CheckCircle size={20} strokeWidth={2.5} />
+              <CheckCircle size={16} strokeWidth={2.5} />
             </div>
             <div>
               <div
                 style={{
-                  fontSize: "1.25rem",
+                  fontSize: "1.05rem",
                   fontWeight: 900,
                   lineHeight: 1.1,
                   color: "#ffffff",
@@ -1060,53 +1065,53 @@ export default function MobilePengembangan() {
               </div>
               <div
                 style={{
-                  fontSize: "0.68rem",
+                  fontSize: "0.64rem",
                   color: "#bbf7d0",
                   fontWeight: 800,
                   textTransform: "uppercase",
                   letterSpacing: "0.03em",
                 }}
               >
-                Santri Lulus
+                Lulus
               </div>
             </div>
           </div>
 
-          {/* Card 2: Butuh Pembinaan (Vibrant Rose/Red Glow) */}
+          {/* Card 2: Belum Lulus (Vibrant Rose/Red Glow) */}
           <div
             style={{
               background:
                 "linear-gradient(135deg, rgba(239, 68, 68, 0.28) 0%, rgba(220, 38, 38, 0.38) 100%)",
               border: "1.5px solid rgba(254, 205, 211, 0.55)",
               backdropFilter: "blur(10px)",
-              borderRadius: "15px",
-              padding: "10px 12px",
+              borderRadius: "12px",
+              padding: "7px 10px",
               display: "flex",
               alignItems: "center",
-              gap: "10px",
-              boxShadow: "0 4px 14px rgba(0, 0, 0, 0.08)",
+              gap: "8px",
+              boxShadow: "0 3px 10px rgba(0, 0, 0, 0.06)",
             }}
           >
             <div
               style={{
-                width: "38px",
-                height: "38px",
-                borderRadius: "11px",
+                width: "30px",
+                height: "30px",
+                borderRadius: "9px",
                 background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
                 color: "#ffffff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                boxShadow: "0 4px 12px rgba(239, 68, 68, 0.4)",
+                boxShadow: "0 3px 8px rgba(239, 68, 68, 0.4)",
                 flexShrink: 0,
               }}
             >
-              <AlertTriangle size={19} strokeWidth={2.5} />
+              <XCircle size={16} strokeWidth={2.5} />
             </div>
             <div>
               <div
                 style={{
-                  fontSize: "1.25rem",
+                  fontSize: "1.05rem",
                   fontWeight: 900,
                   lineHeight: 1.1,
                   color: "#ffffff",
@@ -1116,14 +1121,14 @@ export default function MobilePengembangan() {
               </div>
               <div
                 style={{
-                  fontSize: "0.68rem",
+                  fontSize: "0.64rem",
                   color: "#fecdd3",
                   fontWeight: 800,
                   textTransform: "uppercase",
                   letterSpacing: "0.03em",
                 }}
               >
-                Butuh Bina
+                Belum Lulus
               </div>
             </div>
           </div>
@@ -1186,30 +1191,6 @@ export default function MobilePengembangan() {
             </div>
           )}
         </div>
-
-        {/* Info Santri Terpilih */}
-        {selectedKelas && (
-          <div
-            style={{
-              marginTop: "8px",
-              background: "rgba(0, 0, 0, 0.18)",
-              borderRadius: "10px",
-              padding: "6px 10px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              fontSize: "0.68rem",
-              color: "#e0f2fe",
-            }}
-          >
-            <span>
-              🏫 Kelas: <strong>{selectedKelas}</strong>
-            </span>
-            <span style={{ fontWeight: 800, color: "#fef08a" }}>
-              👥 {santriList.length} Santri Terdaftar
-            </span>
-          </div>
-        )}
       </div>
 
       {/* =========================================================================
@@ -1678,7 +1659,7 @@ export default function MobilePengembangan() {
                   <option value="Semua">Semua</option>
                   <option value="Belum Evaluasi">Belum Evaluasi</option>
                   <option value="Lulus">Lulus</option>
-                  <option value="Pembinaan">Pembinaan</option>
+                  <option value="Belum Lulus">Belum Lulus</option>
                 </select>
               </div>
 
@@ -1841,7 +1822,7 @@ export default function MobilePengembangan() {
                                   </>
                                 ) : (
                                   <>
-                                    <AlertTriangle size={11} /> Butuh Bina
+                                    <XCircle size={11} /> Belum Lulus
                                   </>
                                 )}{" "}
                                 • {lastEval.nama_kategori || "Bidang"}
@@ -1990,7 +1971,7 @@ export default function MobilePengembangan() {
             >
               <option value="Semua">Semua Status</option>
               <option value="Lulus">✅ Lulus</option>
-              <option value="Tidak Lulus">⚠️ Tidak Lulus (Bina)</option>
+              <option value="Belum Lulus">❌ Belum Lulus</option>
             </select>
           </div>
 
@@ -2159,8 +2140,7 @@ export default function MobilePengembangan() {
                             flexShrink: 0,
                           }}
                         >
-                          <AlertTriangle size={13} strokeWidth={2.5} />{" "}
-                          PEMBINAAN
+                          <XCircle size={13} strokeWidth={2.5} /> BELUM LULUS
                         </span>
                       )}
                     </div>
@@ -2491,85 +2471,72 @@ export default function MobilePengembangan() {
       )}
 
       {/* =========================================================================
-          MODAL EVALUASI SANTRI (LULUS / TIDAK LULUS + CHECKLIST DIAGNOSTIK)
+          MODAL EVALUASI SANTRI (FULL SCREEN - LULUS vs BELUM LULUS)
       ========================================================================= */}
       {isEvalModalOpen && (
         <div
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(15, 23, 42, 0.75)",
-            backdropFilter: "blur(4px)",
-            zIndex: 9999,
+            background: "#ffffff",
+            zIndex: 99999,
             display: "flex",
-            alignItems: "flex-end",
-            justifyContent: "center",
+            flexDirection: "column",
+            overflow: "hidden",
           }}
         >
+          {/* Header Modal */}
           <div
             style={{
-              background: "#ffffff",
-              width: "100%",
-              maxWidth: "430px",
-              maxHeight: "92vh",
-              borderTopLeftRadius: "24px",
-              borderTopRightRadius: "24px",
+              padding: "14px 18px",
+              background: "#0369a1",
+              color: "#ffffff",
               display: "flex",
-              flexDirection: "column",
-              overflow: "hidden",
-              boxShadow: "0 -10px 35px rgba(0,0,0,0.3)",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexShrink: 0,
             }}
           >
-            {/* Header Modal */}
-            <div
-              style={{
-                padding: "14px 18px",
-                background: "#0369a1",
-                color: "#ffffff",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <div>
-                <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 800 }}>
-                  Input Evaluasi Perkembangan
-                </h3>
-                <div style={{ fontSize: "0.7rem", opacity: 0.9 }}>
-                  Pilih Bidang ➔ Lulus / Tidak Lulus ➔ Diagnostik
-                </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 800 }}>
+                Input Evaluasi Perkembangan
+              </h3>
+              <div style={{ fontSize: "0.7rem", opacity: 0.9 }}>
+                Pilih Bidang ➔ Hasil Kelulusan ➔ Diagnostik
               </div>
-              <button
-                type="button"
-                onClick={handleCloseEvalModal}
-                style={{
-                  background: "rgba(255, 255, 255, 0.2)",
-                  border: "none",
-                  color: "#ffffff",
-                  width: "32px",
-                  height: "32px",
-                  borderRadius: "50%",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <X size={17} />
-              </button>
             </div>
-
-            {/* Body Form */}
-            <form
-              onSubmit={handleSaveEvaluasi}
+            <button
+              type="button"
+              onClick={handleCloseEvalModal}
               style={{
-                padding: "16px",
-                overflowY: "auto",
+                background: "rgba(255, 255, 255, 0.2)",
+                border: "none",
+                color: "#ffffff",
+                width: "32px",
+                height: "32px",
+                borderRadius: "50%",
+                cursor: "pointer",
                 display: "flex",
-                flexDirection: "column",
-                gap: "14px",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
+              <X size={17} />
+            </button>
+          </div>
+
+          {/* Body Form Full Screen */}
+          <form
+            onSubmit={handleSaveEvaluasi}
+            style={{
+              flex: 1,
+              padding: "16px",
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: "14px",
+            }}
+          >
               {/* Santri Card */}
               <div
                 style={{
@@ -2729,15 +2696,15 @@ export default function MobilePengembangan() {
                 </div>
               </div>
 
-              {/* STEP 2: STATUS KELULUSAN (LULUS vs TIDAK LULUS) */}
+              {/* STEP 2: STATUS KELULUSAN (LULUS vs BELUM LULUS - SMALL) */}
               <div>
                 <label
                   style={{
                     display: "block",
-                    fontSize: "0.75rem",
+                    fontSize: "0.74rem",
                     fontWeight: 800,
                     color: "#334155",
-                    marginBottom: "6px",
+                    marginBottom: "5px",
                   }}
                 >
                   2. Hasil Keputusan Kelulusan:
@@ -2746,7 +2713,7 @@ export default function MobilePengembangan() {
                   style={{
                     display: "grid",
                     gridTemplateColumns: "1fr 1fr",
-                    gap: "10px",
+                    gap: "8px",
                   }}
                 >
                   <button
@@ -2758,11 +2725,12 @@ export default function MobilePengembangan() {
                       }))
                     }
                     style={{
-                      padding: "12px",
-                      borderRadius: "12px",
+                      height: "36px",
+                      padding: "0 10px",
+                      borderRadius: "10px",
                       border:
                         evalForm.status_kelulusan === "Lulus"
-                          ? "2px solid #059669"
+                          ? "1.5px solid #059669"
                           : "1px solid #cbd5e1",
                       background:
                         evalForm.status_kelulusan === "Lulus"
@@ -2773,19 +2741,20 @@ export default function MobilePengembangan() {
                           ? "#ffffff"
                           : "#475569",
                       fontWeight: 800,
-                      fontSize: "0.84rem",
+                      fontSize: "0.76rem",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      gap: "6px",
+                      gap: "5px",
                       cursor: "pointer",
                       boxShadow:
                         evalForm.status_kelulusan === "Lulus"
-                          ? "0 6px 14px rgba(16,185,129,0.35)"
+                          ? "0 3px 8px rgba(16,185,129,0.3)"
                           : "none",
+                      transition: "all 0.15s ease",
                     }}
                   >
-                    <CheckCircle size={17} /> LULUS
+                    <CheckCircle size={15} /> LULUS
                   </button>
 
                   <button
@@ -2793,44 +2762,46 @@ export default function MobilePengembangan() {
                     onClick={() =>
                       setEvalForm((prev) => ({
                         ...prev,
-                        status_kelulusan: "Tidak Lulus",
+                        status_kelulusan: "Belum Lulus",
                       }))
                     }
                     style={{
-                      padding: "12px",
-                      borderRadius: "12px",
+                      height: "36px",
+                      padding: "0 10px",
+                      borderRadius: "10px",
                       border:
-                        evalForm.status_kelulusan === "Tidak Lulus"
-                          ? "2px solid #dc2626"
+                        evalForm.status_kelulusan !== "Lulus"
+                          ? "1.5px solid #dc2626"
                           : "1px solid #cbd5e1",
                       background:
-                        evalForm.status_kelulusan === "Tidak Lulus"
+                        evalForm.status_kelulusan !== "Lulus"
                           ? "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"
                           : "#ffffff",
                       color:
-                        evalForm.status_kelulusan === "Tidak Lulus"
+                        evalForm.status_kelulusan !== "Lulus"
                           ? "#ffffff"
                           : "#475569",
                       fontWeight: 800,
-                      fontSize: "0.84rem",
+                      fontSize: "0.76rem",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      gap: "6px",
+                      gap: "5px",
                       cursor: "pointer",
                       boxShadow:
-                        evalForm.status_kelulusan === "Tidak Lulus"
-                          ? "0 6px 14px rgba(239,68,68,0.35)"
+                        evalForm.status_kelulusan !== "Lulus"
+                          ? "0 3px 8px rgba(239,68,68,0.3)"
                           : "none",
+                      transition: "all 0.15s ease",
                     }}
                   >
-                    <AlertTriangle size={17} /> TIDAK LULUS (BINA)
+                    <XCircle size={15} /> BELUM LULUS
                   </button>
                 </div>
               </div>
 
-              {/* STEP 3: CHECKLIST DIAGNOSTIK SAAT TIDAK LULUS */}
-              {evalForm.status_kelulusan === "Tidak Lulus" &&
+              {/* STEP 3: CHECKLIST DIAGNOSTIK SAAT BELUM LULUS */}
+              {evalForm.status_kelulusan !== "Lulus" &&
                 activeEvalKategoriObj && (
                   <div
                     style={{
@@ -3141,7 +3112,6 @@ export default function MobilePengembangan() {
                 </button>
               </div>
             </form>
-          </div>
         </div>
       )}
     </div>
