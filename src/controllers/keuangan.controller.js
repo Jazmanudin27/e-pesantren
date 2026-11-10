@@ -1022,7 +1022,7 @@ export const getHomeKeuanganSummary = async (req, res) => {
 };
 
 /**
- * Admin / Mobile: Halaman Khusus Rincian Kas Masuk Sah (Ultra Cepat)
+ * Admin / Mobile: Halaman Khusus Rincian Kas Masuk Sah (Ultra Cepat + Filter Periode, Kelas & Sekolah)
  * Menampilkan transaksi yang sudah lunas dan rincian itemnya
  */
 export const getKasMasukSahList = async (req, res) => {
@@ -1031,7 +1031,58 @@ export const getKasMasukSahList = async (req, res) => {
       return sendError(res, 'Akses Ditolak: Fitur keuangan khusus untuk Admin Keuangan / Bendahara.', 403);
     }
 
-    const { limit = 200 } = req.query;
+    const {
+      limit = 1000,
+      tanggal_dari = '',
+      tanggal_sampai = '',
+      kelas = '',
+      sekolah = ''
+    } = req.query;
+
+    const whereClauses = [`p.status_pembayaran = 'Berhasil'`];
+    const whereParams = [];
+
+    const fromClean = String(tanggal_dari || '').trim();
+    const toClean = String(tanggal_sampai || '').trim();
+    if (fromClean && toClean) {
+      const [startDate, endDate] = fromClean <= toClean ? [fromClean, toClean] : [toClean, fromClean];
+      whereClauses.push(`DATE(COALESCE(p.tanggal_bayar, p.created_at)) BETWEEN ? AND ?`);
+      whereParams.push(startDate, endDate);
+    } else if (fromClean) {
+      whereClauses.push(`DATE(COALESCE(p.tanggal_bayar, p.created_at)) >= ?`);
+      whereParams.push(fromClean);
+    } else if (toClean) {
+      whereClauses.push(`DATE(COALESCE(p.tanggal_bayar, p.created_at)) <= ?`);
+      whereParams.push(toClean);
+    }
+
+    const sekolahClean = String(sekolah || '').trim();
+    if (sekolahClean && sekolahClean.toLowerCase() !== 'semua') {
+      whereClauses.push(`(
+        LOWER(COALESCE(NULLIF(TRIM(sk.nama_sekolah), ''), NULLIF(TRIM(s.nama_sekolah), ''), '')) = LOWER(?)
+        OR LOWER(COALESCE(sk.jenjang, '')) = LOWER(?)
+        OR LOWER(COALESCE(NULLIF(TRIM(sk.nama_sekolah), ''), NULLIF(TRIM(s.nama_sekolah), ''), '')) LIKE LOWER(?)
+      )`);
+      whereParams.push(sekolahClean, sekolahClean, `%${sekolahClean}%`);
+    }
+
+    const kelasClean = String(kelas || '').trim();
+    if (kelasClean && kelasClean.toLowerCase() !== 'semua') {
+      whereClauses.push(`LOWER(TRIM(COALESCE(NULLIF(TRIM(s.nama_kelas), ''), kl.nama_kelas, ''))) = LOWER(TRIM(?))`);
+      whereParams.push(kelasClean);
+    }
+
+    const whereSql = whereClauses.join(' AND ');
+    const limitNum = Math.min(Math.max(parseInt(limit, 10) || 1000, 10), 5000);
+
+    const baseJoinSql = `
+      FROM keuangan_transaksi_pembayaran p
+      LEFT JOIN santri s ON p.santri_id = s.id
+      LEFT JOIN asrama a ON s.asrama_id = a.id
+      LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+      LEFT JOIN sekolah sk ON s.sekolah_id = sk.id
+      LEFT JOIN kelas kl ON s.kelas_id = kl.id
+    `;
 
     const [
       [totalRows],
@@ -1039,18 +1090,21 @@ export const getKasMasukSahList = async (req, res) => {
     ] = await Promise.all([
       pool.query(`
         SELECT 
-          COALESCE(SUM(total_bayar), 0) as total_kas_masuk_sah,
+          COALESCE(SUM(p.total_bayar), 0) as total_kas_masuk_sah,
           COUNT(*) as total_transaksi
-        FROM keuangan_transaksi_pembayaran
-        WHERE status_pembayaran = 'Berhasil'
-      `),
+        ${baseJoinSql}
+        WHERE ${whereSql}
+      `, whereParams),
       pool.query(`
         SELECT 
           p.*,
           COALESCE(s.nama_santri, p.keterangan, 'Santri NWF') as nama_santri,
           COALESCE(s.nis, '-') as nis,
-          COALESCE(s.nama_sekolah, 'SMP') as nama_sekolah,
-          COALESCE(s.tingkat_sekolah, '-') as tingkat_sekolah,
+          s.nama_wali,
+          s.no_wa_wali,
+          COALESCE(NULLIF(TRIM(s.nama_kelas), ''), NULLIF(TRIM(kl.nama_kelas), ''), '') as nama_kelas,
+          COALESCE(NULLIF(TRIM(sk.nama_sekolah), ''), NULLIF(TRIM(s.nama_sekolah), ''), '') as nama_sekolah,
+          COALESCE(NULLIF(TRIM(sk.jenjang), ''), NULLIF(TRIM(s.tingkat_sekolah), ''), '-') as tingkat_sekolah,
           a.nama_asrama,
           k.nama_kamar,
           (
@@ -1059,14 +1113,11 @@ export const getKasMasukSahList = async (req, res) => {
             JOIN keuangan_tagihan t ON d.tagihan_id = t.id
             WHERE d.transaksi_id = p.id
           ) as rincian_item
-        FROM keuangan_transaksi_pembayaran p
-        LEFT JOIN santri s ON p.santri_id = s.id
-        LEFT JOIN asrama a ON s.asrama_id = a.id
-        LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
-        WHERE p.status_pembayaran = 'Berhasil'
+        ${baseJoinSql}
+        WHERE ${whereSql}
         ORDER BY p.tanggal_bayar DESC, p.id DESC
         LIMIT ?
-      `, [parseInt(limit) || 200])
+      `, [...whereParams, limitNum])
     ]);
 
     return sendSuccess(res, 'Data kas masuk sah berhasil dimuat', {
@@ -2501,7 +2552,7 @@ export const getSantriKasirSearch = async (req, res) => {
       LEFT JOIN asrama a ON s.asrama_id = a.id
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
       LEFT JOIN sekolah sk ON s.sekolah_id = sk.id
-      LEFT JOIN kelas kl ON (s.kelas_id = kl.id OR s.nama_kelas = kl.nama_kelas)
+      LEFT JOIN kelas kl ON s.kelas_id = kl.id
     `;
     const params = [];
 

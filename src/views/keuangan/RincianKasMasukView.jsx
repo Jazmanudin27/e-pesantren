@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
 import {
   Receipt,
@@ -6,16 +6,83 @@ import {
   ArrowLeft,
   RotateCw,
   X,
-  CreditCard,
-  QrCode,
   CheckCircle2,
-  Building,
-  GraduationCap,
   Calendar,
   Share2,
+  SlidersHorizontal,
+  Building2,
+  GraduationCap,
+  Wallet,
+  CreditCard,
+  QrCode,
+  RotateCcw,
 } from "lucide-react";
 import ModalKuitansi from "./components/ModalKuitansi";
-import { toastSuccess, toastError, showConfirm } from "../../utils/alert.util";
+import MobileLoadingState from "../../components/MobileLoadingState";
+import { toastError } from "../../utils/alert.util";
+
+const getInitials = (name = "") => {
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "S";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
+
+const getMethodMeta = (metode = "") => {
+  const low = String(metode || "").toLowerCase();
+  if (low.includes("qris")) {
+    return {
+      label: "QRIS",
+      color: "#6d28d9",
+      bg: "#f5f3ff",
+      border: "#ddd6fe",
+      accent: "#7c3aed",
+      Icon: QrCode,
+    };
+  }
+  if (low.includes("va") || low.includes("virtual") || low.includes("transfer")) {
+    return {
+      label: String(metode).replace(/Virtual\s*Account/gi, "VA").trim() || "VA",
+      color: "#0369a1",
+      bg: "#f0f9ff",
+      border: "#bae6fd",
+      accent: "#0284c7",
+      Icon: CreditCard,
+    };
+  }
+  return {
+    label: String(metode || "Tunai / Kasir").trim(),
+    color: "#047857",
+    bg: "#ecfdf5",
+    border: "#a7f3d0",
+    accent: "#059669",
+    Icon: Wallet,
+  };
+};
+
+const extractYmd = (val) => {
+  if (!val) return "";
+  const str = String(val).trim();
+  const match = str.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (match) return match[1];
+  const d = new Date(val);
+  if (Number.isNaN(d.getTime())) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
+const formatDateId = (val) => {
+  if (!val) return "-";
+  const d = new Date(val);
+  if (Number.isNaN(d.getTime())) return String(val);
+  return d.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
 
 export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
   const [loading, setLoading] = useState(true);
@@ -24,8 +91,16 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
     total_transaksi: 0,
   });
   const [transaksiList, setTransaksiList] = useState([]);
+  const [sekolahMaster, setSekolahMaster] = useState([]);
+  const [kelasMaster, setKelasMaster] = useState([]);
+
+  // Filter States
   const [search, setSearch] = useState("");
+  const [tanggalDari, setTanggalDari] = useState("");
+  const [tanggalSampai, setTanggalSampai] = useState("");
   const [filterSekolah, setFilterSekolah] = useState("semua");
+  const [filterKelas, setFilterKelas] = useState("semua");
+  const [visibleLimit, setVisibleLimit] = useState(30);
 
   // Modal Kuitansi
   const [kuitansiModal, setKuitansiModal] = useState({
@@ -35,11 +110,32 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
 
   const formatRp = (num) => `Rp ${(Number(num) || 0).toLocaleString("id-ID")}`;
 
-  const fetchKasMasuk = async () => {
+  // Fetch Master Sekolah & Kelas
+  useEffect(() => {
+    Promise.all([
+      axios.get("/api/sekolah").catch(() => ({ data: { data: [] } })),
+      axios.get("/api/kelas").catch(() => ({ data: { data: [] } })),
+    ]).then(([resSekolah, resKelas]) => {
+      const sRaw = resSekolah.data?.data || resSekolah.data || [];
+      if (Array.isArray(sRaw)) setSekolahMaster(sRaw);
+
+      const kRaw = resKelas.data?.data?.data || resKelas.data?.data || resKelas.data?.kelas || [];
+      if (Array.isArray(kRaw)) setKelasMaster(kRaw);
+    });
+  }, []);
+
+  const fetchKasMasuk = useCallback(async () => {
     try {
       setLoading(true);
+      const params = new URLSearchParams();
+      params.set("limit", "1500");
+      if (tanggalDari) params.set("tanggal_dari", tanggalDari);
+      if (tanggalSampai) params.set("tanggal_sampai", tanggalSampai);
+      if (filterSekolah && filterSekolah !== "semua") params.set("sekolah", filterSekolah);
+      if (filterKelas && filterKelas !== "semua") params.set("kelas", filterKelas);
+
       const res = await axios
-        .get("/api/keuangan/admin/kas-masuk-sah")
+        .get(`/api/keuangan/admin/kas-masuk-sah?${params.toString()}`)
         .catch(() => axios.get("/api/keuangan/admin/rekap"));
 
       if (res.data?.success && res.data.data) {
@@ -63,61 +159,144 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tanggalDari, tanggalSampai, filterSekolah, filterKelas]);
 
   useEffect(() => {
     fetchKasMasuk();
-  }, []);
+  }, [fetchKasMasuk]);
 
-  // Filter List Transaksi
-  const filteredTrx = React.useMemo(() => {
+  useEffect(() => {
+    setVisibleLimit(30);
+  }, [tanggalDari, tanggalSampai, filterSekolah, filterKelas, search]);
+
+  // Opsi Select Sekolah & Kelas (gabung master + data transaksi riil)
+  const sekolahOptions = useMemo(() => {
+    const map = new Map();
+    sekolahMaster.forEach((s) => {
+      const label = String(s.nama_sekolah || s.jenjang || "").trim();
+      if (label) map.set(label.toLowerCase(), label);
+    });
+    transaksiList.forEach((t) => {
+      const label = String(t.nama_sekolah || "").trim();
+      if (label && label !== "-") map.set(label.toLowerCase(), label);
+    });
+    if (map.size === 0) {
+      ["SMP Nurul Wafa", "SMA Nurul Wafa", "SMK Nurul Wafa"].forEach((s) =>
+        map.set(s.toLowerCase(), s),
+      );
+    }
+    return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
+  }, [sekolahMaster, transaksiList]);
+
+  const kelasOptions = useMemo(() => {
+    const map = new Map();
+    kelasMaster.forEach((k) => {
+      const label = String(k.nama_kelas || "").trim();
+      if (label) map.set(label.toLowerCase(), label);
+    });
+    transaksiList.forEach((t) => {
+      const label = String(t.nama_kelas || "").trim();
+      if (label && label !== "-") map.set(label.toLowerCase(), label);
+    });
+    return Array.from(map.values()).sort((a, b) => a.localeCompare(b, "id", { numeric: true }));
+  }, [kelasMaster, transaksiList]);
+
+  // Filter Client-side tambahan (instant search & fallback parity)
+  const filteredTrx = useMemo(() => {
+    const [dateStart, dateEnd] =
+      tanggalDari && tanggalSampai
+        ? tanggalDari <= tanggalSampai
+          ? [tanggalDari, tanggalSampai]
+          : [tanggalSampai, tanggalDari]
+        : [tanggalDari, tanggalSampai];
+
     return (transaksiList || []).filter((trx) => {
+      const trxDate = extractYmd(trx.tanggal_bayar || trx.created_at);
+      if (dateStart && trxDate && trxDate < dateStart) return false;
+      if (dateEnd && trxDate && trxDate > dateEnd) return false;
+
       if (filterSekolah !== "semua") {
-        const sk = String(
-          trx.nama_sekolah || trx.tingkat_sekolah || "",
-        ).toUpperCase();
-        if (!sk.includes(filterSekolah)) return false;
+        const sk = String(trx.nama_sekolah || "").toLowerCase();
+        const tj = String(trx.tingkat_sekolah || "").toLowerCase();
+        const target = filterSekolah.toLowerCase();
+        if (sk !== target && !sk.includes(target) && tj !== target) return false;
       }
+
+      if (filterKelas !== "semua") {
+        const kl = String(trx.nama_kelas || "").trim().toLowerCase();
+        if (kl !== filterKelas.trim().toLowerCase()) return false;
+      }
+
       if (search.trim()) {
         const q = search.toLowerCase().trim();
-        const sName = String(trx.nama_santri || "").toLowerCase();
-        const sNis = String(trx.nis || "").toLowerCase();
-        const sNo = String(
-          trx.nomor_transaksi || trx.nomor_kuitansi || "",
-        ).toLowerCase();
-        const sItem = String(
-          trx.rincian_item || trx.keterangan || "",
-        ).toLowerCase();
-        return (
-          sName.includes(q) ||
-          sNis.includes(q) ||
-          sNo.includes(q) ||
-          sItem.includes(q)
-        );
+        const fields = [
+          trx.nama_santri,
+          trx.nis,
+          trx.nama_kelas,
+          trx.nama_sekolah,
+          trx.nomor_transaksi,
+          trx.nomor_kuitansi,
+          trx.rincian_item,
+          trx.keterangan,
+        ];
+        return fields.some((f) => String(f || "").toLowerCase().includes(q));
       }
       return true;
     });
-  }, [transaksiList, filterSekolah, search]);
+  }, [transaksiList, tanggalDari, tanggalSampai, filterSekolah, filterKelas, search]);
+
+  const hasActiveFilter = Boolean(
+    tanggalDari ||
+      tanggalSampai ||
+      filterSekolah !== "semua" ||
+      filterKelas !== "semua" ||
+      search.trim(),
+  );
+
+  const handleResetFilters = () => {
+    setTanggalDari("");
+    setTanggalSampai("");
+    setFilterSekolah("semua");
+    setFilterKelas("semua");
+    setSearch("");
+  };
+
+  // Ringkasan sesuai daftar terfilter
+  const liveTotals = useMemo(() => {
+    let tunaiSum = 0;
+    let digitalSum = 0;
+    let totalSum = 0;
+    for (const trx of filteredTrx) {
+      const amt = Number(trx.total_bayar || 0);
+      totalSum += amt;
+      const m = String(trx.metode_pembayaran || "").toLowerCase();
+      if (m.includes("qris") || m.includes("va") || m.includes("virtual")) {
+        digitalSum += amt;
+      } else {
+        tunaiSum += amt;
+      }
+    }
+    return {
+      total: search.trim() ? totalSum : Number(summary.total_kas_masuk_sah || totalSum),
+      tunai: tunaiSum,
+      digital: digitalSum,
+    };
+  }, [filteredTrx, search, summary.total_kas_masuk_sah]);
+
+  const displayedTrx = useMemo(
+    () => filteredTrx.slice(0, visibleLimit),
+    [filteredTrx, visibleLimit],
+  );
 
   const handleSendWaKuitansi = (kData) => {
     if (!kData?.no_wa_wali) {
-      alert("Nomor WhatsApp wali santri belum terdaftar.");
+      toastError("Nomor WhatsApp wali santri belum terdaftar.");
       return;
     }
     let phone = String(kData.no_wa_wali).replace(/[^0-9]/g, "");
     if (phone.startsWith("0")) phone = "62" + phone.slice(1);
 
-    const dateStr = kData.tanggal_bayar
-      ? new Date(kData.tanggal_bayar).toLocaleDateString("id-ID", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        })
-      : new Date().toLocaleDateString("id-ID", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        });
+    const dateStr = formatDateId(kData.tanggal_bayar || new Date());
 
     const text =
       `*KUITANSI PEMBAYARAN RESMI*\n` +
@@ -146,28 +325,47 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
   return (
     <div
       style={{
-        paddingBottom: "90px",
+        paddingBottom: "96px",
         background: "#f8fafc",
         minHeight: "100vh",
       }}
     >
-      {/* 1. TOP CURVED HEADER CARD (PERSIS TABUNGAN SANTRI) */}
+      {/* 1. HERO HEADER CURVED GRADIENT */}
       <div
         style={{
-          background: "linear-gradient(135deg, #0d766e 0%, #064e3b 100%)",
-          padding: "20px 16px 28px",
+          background:
+            "linear-gradient(135deg, #047857 0%, #065f46 55%, #022c22 100%)",
+          padding: "18px 16px 26px",
           color: "#ffffff",
-          boxShadow: "0 4px 20px rgba(13, 118, 110, 0.25)",
-          borderBottomLeftRadius: "24px",
-          borderBottomRightRadius: "24px",
+          boxShadow: "0 10px 28px -6px rgba(4, 120, 87, 0.35)",
+          borderBottomLeftRadius: "26px",
+          borderBottomRightRadius: "26px",
+          position: "relative",
+          overflow: "hidden",
         }}
       >
+        <div
+          style={{
+            position: "absolute",
+            right: "-28px",
+            top: "-28px",
+            width: "120px",
+            height: "120px",
+            borderRadius: "50%",
+            background: "rgba(52, 211, 153, 0.14)",
+            pointerEvents: "none",
+          }}
+        />
+
+        {/* Top Bar */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             marginBottom: "14px",
+            position: "relative",
+            zIndex: 1,
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -177,11 +375,11 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
                 onClick={onBackToHome}
                 style={{
                   background: "rgba(255, 255, 255, 0.16)",
-                  border: "none",
+                  border: "1px solid rgba(255, 255, 255, 0.2)",
                   color: "#ffffff",
                   width: "36px",
                   height: "36px",
-                  borderRadius: "10px",
+                  borderRadius: "11px",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -195,21 +393,19 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
               <h2
                 style={{
                   margin: 0,
-                  fontSize: "1.25rem",
+                  fontSize: "1.18rem",
                   fontWeight: 900,
                   letterSpacing: "-0.3px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
                 }}
               >
-                <span>Rincian Kas Masuk Sah</span>
+                Rincian Kas Masuk Sah
               </h2>
               <div
                 style={{
-                  fontSize: "0.72rem",
+                  fontSize: "0.7rem",
                   color: "#a7f3d0",
                   marginTop: "2px",
+                  fontWeight: 600,
                 }}
               >
                 Penerimaan Pembayaran Lunas Terverifikasi
@@ -221,12 +417,12 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
             type="button"
             onClick={fetchKasMasuk}
             style={{
-              background: "rgba(255, 255, 255, 0.15)",
-              border: "none",
+              background: "rgba(255, 255, 255, 0.16)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
               color: "#ffffff",
-              width: "34px",
-              height: "34px",
-              borderRadius: "10px",
+              width: "36px",
+              height: "36px",
+              borderRadius: "11px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -238,171 +434,405 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
           </button>
         </div>
 
-        {/* Global Total Saldo Glassmorphism Card */}
+        {/* Hero Glass Summary Card */}
         <div
           style={{
             background:
-              "linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%)",
+              "linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.06) 100%)",
             backdropFilter: "blur(10px)",
-            border: "1px solid rgba(255, 255, 255, 0.2)",
-            borderRadius: "16px",
+            border: "1px solid rgba(255, 255, 255, 0.22)",
+            borderRadius: "18px",
             padding: "14px 16px",
-            marginTop: "8px",
+            position: "relative",
+            zIndex: 1,
           }}
         >
-          <div
-            style={{
-              fontSize: "0.72rem",
-              color: "#a7f3d0",
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.04em",
-            }}
-          >
-            Total Kas Masuk Diterima
-          </div>
-          <div
-            style={{
-              fontSize: "1.65rem",
-              fontWeight: 900,
-              color: "#ffffff",
-              marginTop: "4px",
-              letterSpacing: "-0.5px",
-            }}
-          >
-            {formatRp(summary.total_kas_masuk_sah)}
-          </div>
-
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              marginTop: "12px",
-              paddingTop: "10px",
-              borderTop: "1px solid rgba(255, 255, 255, 0.15)",
+              gap: "8px",
             }}
           >
             <div
               style={{
-                fontSize: "0.74rem",
-                color: "#ecfdf5",
+                fontSize: "0.68rem",
+                color: "#a7f3d0",
                 fontWeight: 800,
-                display: "flex",
-                alignItems: "center",
-                gap: "5px",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
               }}
             >
-              <CheckCircle2 size={14} color="#34d399" />
-              <span>{filteredTrx.length} Transaksi Sah Terdaftar</span>
+              {hasActiveFilter ? "Total Kas (Terfilter)" : "Total Kas Masuk Diterima"}
             </div>
             {onChangeTab && (
               <button
                 type="button"
                 onClick={() => onChangeTab("keuangan-kasir")}
                 style={{
-                  background: "rgba(255, 255, 255, 0.2)",
+                  background: "#ffffff",
                   border: "none",
-                  color: "#ffffff",
-                  padding: "4px 10px",
-                  borderRadius: "8px",
+                  color: "#047857",
+                  padding: "5px 10px",
+                  borderRadius: "9px",
                   fontSize: "0.68rem",
                   fontWeight: 800,
                   cursor: "pointer",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
                 }}
               >
-                + Buka Kasir
+                + Kasir
               </button>
             )}
+          </div>
+
+          <div
+            style={{
+              fontSize: "1.6rem",
+              fontWeight: 900,
+              color: "#ffffff",
+              marginTop: "4px",
+              letterSpacing: "-0.5px",
+            }}
+          >
+            {formatRp(liveTotals.total)}
+          </div>
+
+          {/* 3 Mini Metric Strip */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "6px",
+              marginTop: "12px",
+              paddingTop: "10px",
+              borderTop: "1px solid rgba(255, 255, 255, 0.16)",
+            }}
+          >
+            <div
+              style={{
+                background: "rgba(0, 0, 0, 0.16)",
+                borderRadius: "10px",
+                padding: "7px 8px",
+              }}
+            >
+              <div style={{ fontSize: "0.6rem", color: "#a7f3d0", fontWeight: 700 }}>
+                Transaksi Sah
+              </div>
+              <div style={{ fontSize: "0.86rem", fontWeight: 900, marginTop: "2px", display: "flex", alignItems: "center", gap: "4px" }}>
+                <CheckCircle2 size={12} color="#34d399" />
+                {filteredTrx.length.toLocaleString("id-ID")}
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: "rgba(0, 0, 0, 0.16)",
+                borderRadius: "10px",
+                padding: "7px 8px",
+              }}
+            >
+              <div style={{ fontSize: "0.6rem", color: "#a7f3d0", fontWeight: 700 }}>
+                Tunai / Kasir
+              </div>
+              <div style={{ fontSize: "0.74rem", fontWeight: 800, marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {formatRp(liveTotals.tunai)}
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: "rgba(0, 0, 0, 0.16)",
+                borderRadius: "10px",
+                padding: "7px 8px",
+              }}
+            >
+              <div style={{ fontSize: "0.6rem", color: "#a7f3d0", fontWeight: 700 }}>
+                QRIS / VA
+              </div>
+              <div style={{ fontSize: "0.74rem", fontWeight: 800, marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {formatRp(liveTotals.digital)}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 2. SEARCH & FILTER SECTION */}
-      <div style={{ padding: "14px 14px 8px" }}>
-        {/* Search Bar */}
+      {/* 2. SEARCH & FILTER PANEL */}
+      <div style={{ padding: "14px 14px 10px" }}>
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
             background: "#ffffff",
-            borderRadius: "14px",
-            padding: "0 12px",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
+            borderRadius: "18px",
+            padding: "13px",
             border: "1px solid #e2e8f0",
-            marginBottom: "10px",
+            boxShadow: "0 4px 14px -4px rgba(15, 23, 42, 0.05)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
           }}
         >
-          <Search size={18} color="#94a3b8" />
-          <input
-            type="text"
-            placeholder="Cari santri, NIS, no kuitansi, atau item..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+          <div
             style={{
-              width: "100%",
-              padding: "12px 10px",
-              border: "none",
-              outline: "none",
-              fontSize: "0.82rem",
-              color: "#1e293b",
-              background: "transparent",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
             }}
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => setSearch("")}
+          >
+            <div
               style={{
-                background: "transparent",
-                border: "none",
-                color: "#94a3b8",
-                cursor: "pointer",
-                padding: 0,
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "0.74rem",
+                fontWeight: 800,
+                color: "#0f172a",
               }}
             >
-              <X size={16} />
-            </button>
-          )}
-        </div>
-
-        {/* Filter Pills Sekolah */}
-        <div
-          style={{
-            display: "flex",
-            gap: "6px",
-            overflowX: "auto",
-            paddingBottom: "4px",
-          }}
-        >
-          {[
-            { id: "semua", label: "Semua Sekolah" },
-            { id: "SMP", label: "SMP Nurul Wafa" },
-            { id: "SMA", label: "SMA Nurul Wafa" },
-            { id: "SMK", label: "SMK" },
-          ].map((f) => {
-            const active = filterSekolah === f.id;
-            return (
+              <SlidersHorizontal size={14} color="#059669" />
+              <span>Filter &amp; Pencarian</span>
+            </div>
+            {hasActiveFilter && (
               <button
-                key={f.id}
                 type="button"
-                onClick={() => setFilterSekolah(f.id)}
+                onClick={handleResetFilters}
                 style={{
-                  padding: "5px 12px",
+                  border: "none",
+                  background: "#fef2f2",
+                  color: "#dc2626",
+                  padding: "4px 9px",
                   borderRadius: "8px",
-                  fontSize: "0.72rem",
-                  fontWeight: 700,
-                  border: active ? "1px solid #059669" : "1px solid #cbd5e1",
-                  background: active ? "#ecfdf5" : "#ffffff",
-                  color: active ? "#059669" : "#64748b",
+                  fontSize: "0.68rem",
+                  fontWeight: 800,
                   cursor: "pointer",
-                  whiteSpace: "nowrap",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
                 }}
               >
-                {f.label}
+                <RotateCcw size={11} />
+                Reset
               </button>
-            );
-          })}
+            )}
+          </div>
+
+          {/* Search Input */}
+          <div style={{ position: "relative" }}>
+            <Search
+              size={16}
+              color="#94a3b8"
+              style={{
+                position: "absolute",
+                left: "12px",
+                top: "50%",
+                transform: "translateY(-50%)",
+              }}
+            />
+            <input
+              type="text"
+              placeholder="Cari santri, NIS, no kuitansi, atau item..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px 32px 10px 36px",
+                borderRadius: "12px",
+                border: "1px solid #e2e8f0",
+                background: "#f8fafc",
+                outline: "none",
+                fontSize: "0.8rem",
+                color: "#0f172a",
+                boxSizing: "border-box",
+              }}
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                style={{
+                  position: "absolute",
+                  right: "10px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "#e2e8f0",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: "19px",
+                  height: "19px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#475569",
+                  cursor: "pointer",
+                }}
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+
+          {/* Date Range: Dari - Sampai */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "8px",
+            }}
+          >
+            <div>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontSize: "0.67rem",
+                  fontWeight: 700,
+                  color: "#64748b",
+                  marginBottom: "4px",
+                }}
+              >
+                <Calendar size={11} color="#059669" />
+                <span>Dari Tanggal</span>
+              </label>
+              <input
+                type="date"
+                value={tanggalDari}
+                onChange={(e) => setTanggalDari(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "8px 9px",
+                  borderRadius: "10px",
+                  border: "1px solid #cbd5e1",
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                  color: "#0f172a",
+                  background: "#f8fafc",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            <div>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontSize: "0.67rem",
+                  fontWeight: 700,
+                  color: "#64748b",
+                  marginBottom: "4px",
+                }}
+              >
+                <Calendar size={11} color="#059669" />
+                <span>Sampai Tanggal</span>
+              </label>
+              <input
+                type="date"
+                value={tanggalSampai}
+                onChange={(e) => setTanggalSampai(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "8px 9px",
+                  borderRadius: "10px",
+                  border: "1px solid #cbd5e1",
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                  color: "#0f172a",
+                  background: "#f8fafc",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Select Option: Sekolah & Kelas */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "8px",
+            }}
+          >
+            <div>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontSize: "0.67rem",
+                  fontWeight: 700,
+                  color: "#64748b",
+                  marginBottom: "4px",
+                }}
+              >
+                <Building2 size={11} color="#059669" />
+                <span>Sekolah</span>
+              </label>
+              <select
+                value={filterSekolah}
+                onChange={(e) => setFilterSekolah(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "9px 10px",
+                  borderRadius: "10px",
+                  border: "1px solid #cbd5e1",
+                  fontSize: "0.76rem",
+                  fontWeight: 700,
+                  color: "#0f172a",
+                  background: "#f8fafc",
+                  boxSizing: "border-box",
+                }}
+              >
+                <option value="semua">Semua Sekolah</option>
+                {sekolahOptions.map((sk) => (
+                  <option key={sk} value={sk}>
+                    {sk}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontSize: "0.67rem",
+                  fontWeight: 700,
+                  color: "#64748b",
+                  marginBottom: "4px",
+                }}
+              >
+                <GraduationCap size={11} color="#059669" />
+                <span>Kelas</span>
+              </label>
+              <select
+                value={filterKelas}
+                onChange={(e) => setFilterKelas(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "9px 10px",
+                  borderRadius: "10px",
+                  border: "1px solid #cbd5e1",
+                  fontSize: "0.76rem",
+                  fontWeight: 700,
+                  color: "#0f172a",
+                  background: "#f8fafc",
+                  boxSizing: "border-box",
+                }}
+              >
+                <option value="semua">Semua Kelas</option>
+                {kelasOptions.map((kl) => (
+                  <option key={kl} value={kl}>
+                    {kl}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -416,281 +846,321 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
         }}
       >
         {loading && transaksiList.length === 0 ? (
-          <div
-            style={{
-              background: "#ffffff",
-              borderRadius: "18px",
-              padding: "36px 20px",
-              textAlign: "center",
-              border: "1px solid #e2e8f0",
-              color: "#64748b",
-              fontSize: "0.8rem",
-            }}
-          >
-            <RotateCw
-              size={22}
-              className="animate-spin"
-              style={{ margin: "0 auto 8px", color: "#059669" }}
-            />
-            <div>Memuat seluruh kas masuk sah...</div>
-          </div>
+          <MobileLoadingState
+            title="Memuat Kas Masuk Sah..."
+            subtitle="Menghimpun kuitansi dan rincian pembayaran terverifikasi..."
+            iconColor="#059669"
+          />
         ) : filteredTrx.length === 0 ? (
           <div
             style={{
               background: "#ffffff",
-              borderRadius: "18px",
+              borderRadius: "20px",
               padding: "36px 20px",
               textAlign: "center",
               border: "1px solid #e2e8f0",
+              boxShadow: "0 4px 12px rgba(15, 23, 42, 0.03)",
             }}
           >
-            <Receipt
-              size={36}
-              color="#cbd5e1"
-              style={{ margin: "0 auto 8px", display: "block" }}
-            />
             <div
-              style={{ fontWeight: 800, fontSize: "0.9rem", color: "#1e293b" }}
+              style={{
+                width: "54px",
+                height: "54px",
+                borderRadius: "16px",
+                background: "#f1f5f9",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 10px",
+              }}
             >
+              <Receipt size={26} color="#94a3b8" />
+            </div>
+            <div style={{ fontWeight: 800, fontSize: "0.9rem", color: "#1e293b" }}>
               Tidak Ada Transaksi Ditemukan
             </div>
             <div
               style={{
                 fontSize: "0.74rem",
                 color: "#64748b",
-                marginTop: "3px",
+                marginTop: "4px",
               }}
             >
-              Coba sesuaikan kata kunci atau filter sekolah.
+              Coba sesuaikan rentang tanggal, sekolah, kelas, atau kata kunci.
             </div>
           </div>
         ) : (
-          filteredTrx.map((trx) => {
-            const dateStr = trx.tanggal_bayar
-              ? new Date(trx.tanggal_bayar).toLocaleDateString("id-ID", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })
-              : "-";
+          <>
+            {displayedTrx.map((trx) => {
+              const dateStr = formatDateId(trx.tanggal_bayar || trx.created_at);
+              const methodMeta = getMethodMeta(trx.metode_pembayaran);
+              const MethodIcon = methodMeta.Icon;
 
-            return (
-              <div
-                key={trx.id}
-                style={{
-                  background: "#ffffff",
-                  borderRadius: "16px",
-                  padding: "14px",
-                  border: "1px solid #e2e8f0",
-                  boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
-                }}
-              >
-                {/* Header Card: Avatar + Nama Santri + Nominal */}
+              return (
                 <div
+                  key={trx.id}
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
+                    background: "#ffffff",
+                    borderRadius: "18px",
+                    padding: "14px",
+                    border: "1px solid #e2e8f0",
+                    borderLeft: `4px solid ${methodMeta.accent}`,
+                    boxShadow: "0 4px 14px -4px rgba(15, 23, 42, 0.05)",
                   }}
                 >
+                  {/* Header Card */}
                   <div
                     style={{
                       display: "flex",
-                      alignItems: "center",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
                       gap: "10px",
                     }}
                   >
                     <div
                       style={{
-                        width: "42px",
-                        height: "42px",
-                        borderRadius: "12px",
-                        background:
-                          "linear-gradient(135deg, #059669 0%, #047857 100%)",
-                        color: "#ffffff",
                         display: "flex",
                         alignItems: "center",
-                        justifyContent: "center",
-                        fontWeight: 900,
-                        fontSize: "0.9rem",
-                        flexShrink: 0,
-                        boxShadow: "0 3px 8px rgba(5, 150, 105, 0.25)",
+                        gap: "10px",
+                        minWidth: 0,
                       }}
                     >
-                      {(trx.nama_santri || "S").slice(0, 2).toUpperCase()}
+                      <div
+                        style={{
+                          width: "40px",
+                          height: "40px",
+                          borderRadius: "12px",
+                          background: methodMeta.bg,
+                          color: methodMeta.color,
+                          border: `1px solid ${methodMeta.border}`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontWeight: 900,
+                          fontSize: "0.84rem",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {getInitials(trx.nama_santri)}
+                      </div>
+
+                      <div style={{ minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontWeight: 800,
+                            fontSize: "0.88rem",
+                            color: "#0f172a",
+                            lineHeight: 1.25,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {trx.nama_santri}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.67rem",
+                            color: "#64748b",
+                            marginTop: "3px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <span>NIS {trx.nis || "-"}</span>
+                          {trx.nama_kelas && (
+                            <span
+                              style={{
+                                background: "#f1f5f9",
+                                color: "#334155",
+                                padding: "1px 6px",
+                                borderRadius: "6px",
+                                fontWeight: 700,
+                              }}
+                            >
+                              {trx.nama_kelas}
+                            </span>
+                          )}
+                          {trx.nama_sekolah && trx.nama_sekolah !== "-" && (
+                            <span
+                              style={{
+                                background: "#ecfdf5",
+                                color: "#047857",
+                                padding: "1px 6px",
+                                borderRadius: "6px",
+                                fontWeight: 700,
+                              }}
+                            >
+                              {trx.nama_sekolah}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
 
-                    <div>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
                       <div
                         style={{
                           fontWeight: 900,
-                          fontSize: "0.9rem",
-                          color: "#0f172a",
-                          lineHeight: 1.25,
+                          fontSize: "0.94rem",
+                          color: "#047857",
                         }}
                       >
-                        {trx.nama_santri}
+                        +{formatRp(trx.total_bayar)}
                       </div>
-                      <div
+                      <span
                         style={{
-                          fontSize: "0.7rem",
-                          color: "#64748b",
-                          marginTop: "2px",
-                          display: "flex",
+                          fontSize: "0.61rem",
+                          fontWeight: 800,
+                          color: methodMeta.color,
+                          background: methodMeta.bg,
+                          border: `1px solid ${methodMeta.border}`,
+                          padding: "2px 7px",
+                          borderRadius: "999px",
+                          marginTop: "4px",
+                          display: "inline-flex",
                           alignItems: "center",
-                          gap: "4px",
+                          gap: "3px",
                         }}
                       >
-                        <span>NIS: {trx.nis || "-"}</span>
-                        {trx.nama_sekolah && (
-                          <>
-                            <span>•</span>
-                            <span style={{ fontWeight: 700, color: "#047857" }}>
-                              {trx.nama_sekolah}
-                            </span>
-                          </>
-                        )}
-                      </div>
+                        <MethodIcon size={10} />
+                        <span>{methodMeta.label}</span>
+                      </span>
                     </div>
                   </div>
 
-                  <div style={{ textAlign: "right" }}>
+                  {/* Rincian Item yang Dibayar */}
+                  <div
+                    style={{
+                      marginTop: "10px",
+                      background: "#f8fafc",
+                      border: "1px solid #f1f5f9",
+                      borderRadius: "12px",
+                      padding: "8px 10px",
+                      fontSize: "0.74rem",
+                      color: "#334155",
+                      lineHeight: 1.4,
+                    }}
+                  >
                     <div
-                      style={{
-                        fontWeight: 900,
-                        fontSize: "0.96rem",
-                        color: "#047857",
-                      }}
-                    >
-                      {formatRp(trx.total_bayar)}
-                    </div>
-                    <span
                       style={{
                         fontSize: "0.62rem",
                         fontWeight: 800,
-                        color: "#059669",
-                        background: "#ecfdf5",
-                        border: "1px solid #a7f3d0",
-                        padding: "1px 6px",
-                        borderRadius: "6px",
-                        marginTop: "3px",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "3px",
+                        color: "#64748b",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.04em",
+                        marginBottom: "2px",
                       }}
                     >
-                      <CheckCircle2 size={10} />
-                      <span>Lunas</span>
-                    </span>
+                      Item Dibayar
+                    </div>
+                    <div style={{ fontWeight: 600, color: "#0f172a" }}>
+                      {trx.rincian_item ||
+                        trx.keterangan ||
+                        "Pembayaran Tagihan Santri"}
+                    </div>
                   </div>
-                </div>
 
-                {/* Rincian Item yang Dibayar */}
-                <div
-                  style={{
-                    marginTop: "10px",
-                    background: "#f8fafc",
-                    border: "1px solid #f1f5f9",
-                    borderRadius: "10px",
-                    padding: "8px 10px",
-                    fontSize: "0.74rem",
-                    color: "#334155",
-                    lineHeight: 1.35,
-                  }}
-                >
+                  {/* Footer */}
                   <div
                     style={{
-                      fontSize: "0.66rem",
-                      fontWeight: 800,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginTop: "10px",
+                      paddingTop: "9px",
+                      borderTop: "1px solid #f1f5f9",
+                      fontSize: "0.68rem",
                       color: "#64748b",
-                      textTransform: "uppercase",
-                      marginBottom: "2px",
                     }}
                   >
-                    ITEM DIBAYAR:
-                  </div>
-                  <div>
-                    {trx.rincian_item ||
-                      trx.keterangan ||
-                      "Pembayaran Tagihan Santri"}
-                  </div>
-                </div>
+                    <div>
+                      <span style={{ fontWeight: 800, color: "#0f172a" }}>
+                        {trx.nomor_kuitansi ||
+                          trx.nomor_transaksi ||
+                          `KW-${trx.id}`}
+                      </span>
+                      <span style={{ margin: "0 5px" }}>•</span>
+                      <span>{dateStr}</span>
+                    </div>
 
-                {/* Footer Info: No Kuitansi, Tanggal, Metode & Tombol Aksi */}
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginTop: "10px",
-                    paddingTop: "8px",
-                    borderTop: "1px solid #f1f5f9",
-                    fontSize: "0.68rem",
-                    color: "#64748b",
-                  }}
-                >
-                  <div>
-                    <span style={{ fontWeight: 700, color: "#0f172a" }}>
-                      {trx.nomor_kuitansi ||
-                        trx.nomor_transaksi ||
-                        `KW-${trx.id}`}
-                    </span>
-                    <span style={{ margin: "0 4px" }}>•</span>
-                    <span>{dateStr}</span>
-                  </div>
-
-                  <div style={{ display: "flex", gap: "6px" }}>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setKuitansiModal({ isOpen: true, data: trx })
-                      }
-                      style={{
-                        background: "#f1f5f9",
-                        border: "1px solid #cbd5e1",
-                        borderRadius: "8px",
-                        padding: "4px 8px",
-                        fontSize: "0.68rem",
-                        fontWeight: 800,
-                        color: "#334155",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <Receipt size={12} color="#059669" />
-                      <span>Kuitansi</span>
-                    </button>
-
-                    {trx.no_wa_wali && (
+                    <div style={{ display: "flex", gap: "6px" }}>
                       <button
                         type="button"
-                        onClick={() => handleSendWaKuitansi(trx)}
+                        onClick={() =>
+                          setKuitansiModal({ isOpen: true, data: trx })
+                        }
                         style={{
-                          background: "#ecfdf5",
-                          border: "1px solid #a7f3d0",
-                          borderRadius: "8px",
-                          padding: "4px 8px",
-                          fontSize: "0.68rem",
+                          background: "#f8fafc",
+                          border: "1px solid #cbd5e1",
+                          borderRadius: "9px",
+                          padding: "5px 9px",
+                          fontSize: "0.69rem",
                           fontWeight: 800,
-                          color: "#059669",
+                          color: "#334155",
                           display: "flex",
                           alignItems: "center",
                           gap: "4px",
                           cursor: "pointer",
                         }}
-                        title="Kirim ke WhatsApp Wali"
                       >
-                        <Share2 size={12} />
-                        <span>WA</span>
+                        <Receipt size={12} color="#059669" />
+                        <span>Kuitansi</span>
                       </button>
-                    )}
+
+                      {trx.no_wa_wali && (
+                        <button
+                          type="button"
+                          onClick={() => handleSendWaKuitansi(trx)}
+                          style={{
+                            background: "#ecfdf5",
+                            border: "1px solid #a7f3d0",
+                            borderRadius: "9px",
+                            padding: "5px 9px",
+                            fontSize: "0.69rem",
+                            fontWeight: 800,
+                            color: "#059669",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            cursor: "pointer",
+                          }}
+                          title="Kirim ke WhatsApp Wali"
+                        >
+                          <Share2 size={12} />
+                          <span>WA</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+
+            {filteredTrx.length > visibleLimit && (
+              <button
+                type="button"
+                onClick={() => setVisibleLimit((v) => v + 30)}
+                style={{
+                  padding: "11px 14px",
+                  background: "#ffffff",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "14px",
+                  fontSize: "0.75rem",
+                  fontWeight: 800,
+                  color: "#047857",
+                  cursor: "pointer",
+                  textAlign: "center",
+                  boxShadow: "0 2px 6px rgba(15, 23, 42, 0.04)",
+                }}
+              >
+                Tampilkan Lebih Banyak (
+                {(filteredTrx.length - visibleLimit).toLocaleString("id-ID")} lagi)
+              </button>
+            )}
+          </>
         )}
       </div>
 

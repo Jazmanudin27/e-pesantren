@@ -268,10 +268,7 @@ export default function MobileTataTertib() {
       return;
     }
     if (!String(formData.jenis_pelanggaran || "").trim()) {
-      showError(
-        "Pelanggaran Kosong",
-        "Silakan isi jenis pelanggaran santri.",
-      );
+      showError("Pelanggaran Kosong", "Silakan isi jenis pelanggaran santri.");
       return;
     }
 
