@@ -12,8 +12,10 @@ import {
   getPraktekList,
   savePraktek,
   getPerkembanganList,
-  savePerkembangan
+  savePerkembangan,
+  updatePengajarAccount
 } from '../controllers/pengajar.controller.js';
+import { verifyToken } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
@@ -43,6 +45,9 @@ router.post('/praktek', savePraktek);
 // 6. Laporan Perkembangan Santri
 router.get('/perkembangan', getPerkembanganList);
 router.post('/perkembangan', savePerkembangan);
+
+// 7. Pengaturan Akun Pengajar (Ubah Username & Password)
+router.post('/account', verifyToken, updatePengajarAccount);
 
 export default router;
 

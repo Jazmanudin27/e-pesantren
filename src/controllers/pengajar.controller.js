@@ -1,5 +1,9 @@
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
+import { JWT_SECRET } from '../middleware/auth.middleware.js';
 import { syncActivePerizinanToAbsensi } from './absensi.controller.js';
 import { deactivateHaidForSantri, syncActiveHaidToAbsensi } from './haid.controller.js';
 import { getPresensiReportWithAutoAlfa } from '../utils/presensiReport.util.js';
@@ -766,6 +770,177 @@ export const savePerkembangan = async (req, res) => {
     return sendSuccess(res, 'Catatan perkembangan santri berhasil disimpan', { id: insertRes.insertId });
   } catch (err) {
     return sendError(res, `Gagal menyimpan perkembangan: ${err.message}`, 500);
+  }
+};
+
+const verifyStoredPassword = (rawPass, storedPass) => {
+  const dbPass = String(storedPass || '').trim();
+  const cleanPass = String(rawPass || '').trim();
+  if (!dbPass) return cleanPass === '123456';
+
+  if (dbPass.startsWith('$2y$') || dbPass.startsWith('$2a$') || dbPass.startsWith('$2b$')) {
+    const hash = dbPass.startsWith('$2y$') ? '$2a$' + dbPass.substring(4) : dbPass;
+    try {
+      if (bcrypt.compareSync(cleanPass, hash)) return true;
+    } catch (e) {}
+  }
+
+  if (dbPass === cleanPass || dbPass.toLowerCase() === cleanPass.toLowerCase()) return true;
+
+  const sha512 = crypto.createHash('sha512').update(cleanPass).digest('hex');
+  if (
+    dbPass.toLowerCase() === sha512.toLowerCase() ||
+    (dbPass.length >= 20 && sha512.toLowerCase().startsWith(dbPass.toLowerCase()))
+  ) {
+    return true;
+  }
+
+  const sha256 = crypto.createHash('sha256').update(cleanPass).digest('hex');
+  if (
+    dbPass.toLowerCase() === sha256.toLowerCase() ||
+    (dbPass.length >= 20 && sha256.toLowerCase().startsWith(dbPass.toLowerCase()))
+  ) {
+    return true;
+  }
+
+  const md5 = crypto.createHash('md5').update(cleanPass).digest('hex');
+  if (dbPass.toLowerCase() === md5.toLowerCase()) return true;
+
+  const sha1 = crypto.createHash('sha1').update(cleanPass).digest('hex');
+  if (dbPass.toLowerCase() === sha1.toLowerCase()) return true;
+
+  return false;
+};
+
+/**
+ * 7. POST /api/pengajar/account
+ * Ubah Username & Password Akun Pengajar / Asatidz
+ */
+export const updatePengajarAccount = async (req, res) => {
+  await ensurePengajarTables();
+  try {
+    const { username_baru, password_lama, password_baru } = req.body || {};
+    const newUsername = String(username_baru || '').trim();
+    const oldPassword = String(password_lama || '').trim();
+    const newPassword = String(password_baru || '').trim();
+
+    if (!newUsername && !newPassword) {
+      return sendError(res, 'Username baru atau Password baru wajib diisi.', 400);
+    }
+    if (newUsername && newUsername.length < 3) {
+      return sendError(res, 'Username minimal 3 karakter.', 400);
+    }
+    if (newPassword && newPassword.length < 4) {
+      return sendError(res, 'Password baru minimal 4 karakter.', 400);
+    }
+
+    const userId = req.user?.id;
+    const currentUsername = String(req.user?.username || '').trim();
+
+    // Cari akun di tabel asatidz
+    let astRow = null;
+    try {
+      const [rows] = await pool.query(
+        `SELECT * FROM asatidz WHERE id = ? OR LOWER(TRIM(COALESCE(username, ''))) = LOWER(TRIM(?)) LIMIT 1`,
+        [userId || 0, currentUsername]
+      );
+      if (rows && rows.length > 0) astRow = rows[0];
+    } catch (e) {}
+
+    // Cari akun di tabel users (bisa link via user_id atau login langsung via users)
+    let usrRow = null;
+    try {
+      const targetUserId = astRow?.user_id || userId || 0;
+      const [rows] = await pool.query(
+        `SELECT * FROM users WHERE id = ? OR LOWER(TRIM(COALESCE(username, ''))) = LOWER(TRIM(?)) LIMIT 1`,
+        [targetUserId, currentUsername]
+      );
+      if (rows && rows.length > 0) usrRow = rows[0];
+    } catch (e) {}
+
+    if (!astRow && !usrRow) {
+      return sendError(res, 'Akun pengajar tidak ditemukan di database.', 404);
+    }
+
+    // Jika mengubah password, verifikasi password lama terlebih dahulu
+    if (newPassword) {
+      if (!oldPassword) {
+        return sendError(res, 'Password lama wajib diisi untuk mengganti password.', 400);
+      }
+      const storedPass = astRow?.password || usrRow?.password || '';
+      if (!verifyStoredPassword(oldPassword, storedPass)) {
+        return sendError(res, 'Password lama tidak sesuai.', 400);
+      }
+    }
+
+    // Cek keunikan username baru agar tidak bentrok dengan akun lain
+    if (newUsername && newUsername.toLowerCase() !== currentUsername.toLowerCase()) {
+      const [dupUsers] = await pool
+        .query(
+          `SELECT id FROM users WHERE LOWER(TRIM(username)) = LOWER(TRIM(?)) AND id != ? LIMIT 1`,
+          [newUsername, usrRow?.id || 0]
+        )
+        .catch(() => [[]]);
+      if (dupUsers && dupUsers.length > 0) {
+        return sendError(res, `Username "${newUsername}" sudah digunakan oleh pengguna lain.`, 400);
+      }
+
+      const [dupAst] = await pool
+        .query(
+          `SELECT id FROM asatidz WHERE LOWER(TRIM(COALESCE(username, ''))) = LOWER(TRIM(?)) AND id != ? LIMIT 1`,
+          [newUsername, astRow?.id || 0]
+        )
+        .catch(() => [[]]);
+      if (dupAst && dupAst.length > 0) {
+        return sendError(res, `Username "${newUsername}" sudah digunakan oleh pengajar lain.`, 400);
+      }
+    }
+
+    const finalUsername = newUsername || currentUsername;
+    const hashedNewPass = newPassword ? bcrypt.hashSync(newPassword, 10) : null;
+
+    if (astRow) {
+      if (hashedNewPass) {
+        await pool.query(
+          `UPDATE asatidz SET username = ?, password = ? WHERE id = ?`,
+          [finalUsername, hashedNewPass, astRow.id]
+        );
+      } else {
+        await pool.query(
+          `UPDATE asatidz SET username = ? WHERE id = ?`,
+          [finalUsername, astRow.id]
+        );
+      }
+    }
+
+    if (usrRow) {
+      if (hashedNewPass) {
+        await pool.query(
+          `UPDATE users SET username = ?, password = ? WHERE id = ?`,
+          [finalUsername, hashedNewPass, usrRow.id]
+        );
+      } else {
+        await pool.query(
+          `UPDATE users SET username = ? WHERE id = ?`,
+          [finalUsername, usrRow.id]
+        );
+      }
+    }
+
+    const tokenPayload = {
+      ...req.user,
+      username: finalUsername,
+    };
+    delete tokenPayload.iat;
+    delete tokenPayload.exp;
+    const newToken = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '7d' });
+
+    return sendSuccess(res, 'Username & password berhasil diperbarui', {
+      username: finalUsername,
+      token: newToken,
+    });
+  } catch (err) {
+    return sendError(res, `Gagal memperbarui akun: ${err.message}`, 500);
   }
 };
 

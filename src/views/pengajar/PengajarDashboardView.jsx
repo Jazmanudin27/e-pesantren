@@ -25,8 +25,7 @@ import PengajarTeguranView from "./PengajarTeguranView";
 import PengajarPraktekView from "./PengajarPraktekView";
 import PengajarPerkembanganView from "./PengajarPerkembanganView";
 import OwnerLaporanSantri from "../owner/OwnerLaporanSantri";
-import MobileProfil from "../mobile/MobileProfil";
-import MobileMasterPengembangan from "../mobile/MobileMasterPengembangan";
+import PengajarSettingsView from "./PengajarSettingsView";
 
 const squircleIconStyle = {
   width: "48px",
@@ -73,8 +72,6 @@ const PENGAJAR_TABS = new Set([
   "teguran",
   "praktek",
   "perkembangan",
-  "master-pengembangan",
-  "setting-pengembangan",
   "santri",
   "settings",
   "profil",
@@ -86,7 +83,12 @@ const getInitialPengajarTab = () => {
     if (rawHash.includes("/")) {
       const sub = rawHash.split("/")[1];
       if (sub && PENGAJAR_TABS.has(sub)) return sub;
-    } else if (rawHash && rawHash !== "pengajar" && rawHash !== "ustadz" && PENGAJAR_TABS.has(rawHash)) {
+    } else if (
+      rawHash &&
+      rawHash !== "pengajar" &&
+      rawHash !== "ustadz" &&
+      PENGAJAR_TABS.has(rawHash)
+    ) {
       return rawHash;
     }
     const saved =
@@ -137,7 +139,9 @@ export default function PengajarDashboardView({ onLogout }) {
 
   const handleOpenPresensiWithStatus = (status = "Semua") => {
     setPresensiFilter(status);
-    setActiveTab(rekapTipe === "mengaji" ? "laporan-mengaji" : "laporan-berjamaah");
+    setActiveTab(
+      rekapTipe === "mengaji" ? "laporan-mengaji" : "laporan-berjamaah",
+    );
   };
 
   const handleTouchStartRekap = (e) => {
@@ -147,7 +151,12 @@ export default function PengajarDashboardView({ onLogout }) {
   };
 
   const handleTouchEndRekap = (e) => {
-    if (touchStartXRef.current === null || !e.changedTouches || e.changedTouches.length === 0) return;
+    if (
+      touchStartXRef.current === null ||
+      !e.changedTouches ||
+      e.changedTouches.length === 0
+    )
+      return;
     const diffX = e.changedTouches[0].clientX - touchStartXRef.current;
     if (diffX > 45) setRekapTipe("mengaji");
     else if (diffX < -45) setRekapTipe("berjamaah");
@@ -198,7 +207,8 @@ export default function PengajarDashboardView({ onLogout }) {
       localStorage.setItem("pengajar_active_tab", activeTab);
       const curHash = window.location.hash || "";
       if (!curHash.toLowerCase().includes("login")) {
-        const targetHash = activeTab === "beranda" ? "#pengajar" : `#pengajar/${activeTab}`;
+        const targetHash =
+          activeTab === "beranda" ? "#pengajar" : `#pengajar/${activeTab}`;
         if (curHash !== targetHash) {
           window.history.replaceState(null, "", targetHash);
         }
@@ -243,10 +253,9 @@ export default function PengajarDashboardView({ onLogout }) {
     }
   };
 
-  const p =
-    (rekapTipe === "mengaji"
-      ? dashboardData.presensiMengajiHariIni
-      : dashboardData.presensiBerjamaahHariIni) ||
+  const p = (rekapTipe === "mengaji"
+    ? dashboardData.presensiMengajiHariIni
+    : dashboardData.presensiBerjamaahHariIni) ||
     dashboardData.presensiHariIni || {
       hadir: 0,
       sakit: 0,
@@ -931,7 +940,7 @@ export default function PengajarDashboardView({ onLogout }) {
                       borderRadius: "4px",
                     }}
                   />
-                  Menu Layanan Asatidz &amp; Pengajar
+                  Menu Layanan
                 </div>
 
                 <div
@@ -1138,12 +1147,9 @@ export default function PengajarDashboardView({ onLogout }) {
                   {activeTab === "praktek" && "Evaluasi Praktek Ibadah"}
                   {activeTab === "perkembangan" &&
                     "Laporan Perkembangan Santri"}
-                  {(activeTab === "master-pengembangan" ||
-                    activeTab === "setting-pengembangan") &&
-                    "Master Bidang & Penilaian Perkembangan"}
                   {activeTab === "santri" && "Data & Demografi Santri"}
                   {(activeTab === "settings" || activeTab === "profil") &&
-                    "Pengaturan & Profil Pengajar"}
+                    "Pengaturan Akun Pengajar"}
                 </span>
               </div>
 
@@ -1160,9 +1166,7 @@ export default function PengajarDashboardView({ onLogout }) {
                   activeTab === "teguran" ||
                   activeTab === "praktek" ||
                   activeTab === "settings" ||
-                  activeTab === "profil" ||
-                  activeTab === "master-pengembangan" ||
-                  activeTab === "setting-pengembangan"
+                  activeTab === "profil"
                     ? 0
                     : "0 14px 20px",
                 flex: 1,
@@ -1178,28 +1182,9 @@ export default function PengajarDashboardView({ onLogout }) {
               {activeTab === "teguran" && <PengajarTeguranView />}
               {activeTab === "praktek" && <PengajarPraktekView />}
               {activeTab === "perkembangan" && <PengajarPerkembanganView />}
-              {(activeTab === "master-pengembangan" ||
-                activeTab === "setting-pengembangan") && (
-                <MobileMasterPengembangan
-                  onBack={() => setActiveTab("settings")}
-                />
-              )}
               {activeTab === "santri" && <OwnerLaporanSantri />}
               {(activeTab === "settings" || activeTab === "profil") && (
-                <MobileProfil
-                  onChangeTab={(tab) => {
-                    if (tab === "home") setActiveTab("beranda");
-                    else if (
-                      tab === "master-pengembangan" ||
-                      tab === "setting-pengembangan"
-                    ) {
-                      setActiveTab("master-pengembangan");
-                    } else {
-                      setActiveTab(tab);
-                    }
-                  }}
-                  onLogout={onLogout}
-                />
+                <PengajarSettingsView onLogout={onLogout} />
               )}
             </div>
           </div>
@@ -1240,11 +1225,11 @@ export default function PengajarDashboardView({ onLogout }) {
           {/* 3. Perkembangan */}
           <button
             type="button"
-            className={`mobile-nav-item ${activeTab === "perkembangan" || activeTab === "master-pengembangan" || activeTab === "setting-pengembangan" ? "active" : ""}`}
+            className={`mobile-nav-item ${activeTab === "perkembangan" ? "active" : ""}`}
             onClick={() => setActiveTab("perkembangan")}
           >
             <div
-              className={`nav-icon-wrapper ${activeTab === "perkembangan" || activeTab === "master-pengembangan" || activeTab === "setting-pengembangan" ? "active" : ""}`}
+              className={`nav-icon-wrapper ${activeTab === "perkembangan" ? "active" : ""}`}
             >
               <Award size={20} />
             </div>
