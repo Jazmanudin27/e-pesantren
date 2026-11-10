@@ -4,6 +4,37 @@ import { ensureAbsensiTablesAndColumns } from '../controllers/absensi.controller
 const SHALAT_REGEX_SQL =
   'shalat|sholat|subuh|shubuh|dzuhur|zuhur|ashar|asar|maghrib|magrib|isya|dhuha|berjamaah';
 
+let santriSchemaCache = null;
+const getSantriSchema = async () => {
+  if (santriSchemaCache) return santriSchemaCache;
+  try {
+    const [cols] = await pool.query('SHOW COLUMNS FROM santri');
+    const colSet = new Set((cols || []).map((c) => String(c.Field).toLowerCase()));
+    santriSchemaCache = {
+      hasNamaKelas: colSet.has('nama_kelas'),
+      hasKelasId: colSet.has('kelas_id'),
+      hasAsramaId: colSet.has('asrama_id'),
+      hasJk: colSet.has('jk'),
+      hasJenisKelamin: colSet.has('jenis_kelamin'),
+      hasTipeSantri: colSet.has('tipe_santri'),
+      hasStatusSantri: colSet.has('status_santri'),
+      hasStatus: colSet.has('status'),
+    };
+  } catch (e) {
+    santriSchemaCache = {
+      hasNamaKelas: true,
+      hasKelasId: true,
+      hasAsramaId: true,
+      hasJk: true,
+      hasJenisKelamin: false,
+      hasTipeSantri: false,
+      hasStatusSantri: true,
+      hasStatus: true,
+    };
+  }
+  return santriSchemaCache;
+};
+
 /**
  * Normalisasi tanggal ke format YYYY-MM-DD
  */
@@ -21,6 +52,14 @@ const toDateStr = (val) => {
     return `${y}-${m}-${day}`;
   }
   return '';
+};
+
+/**
+ * Ekstrak nama kelas dari keterangan jika kolom kelas kosong (mis. "Kelas: 7A")
+ */
+const extractKelasFromKeterangan = (ket = '') => {
+  const m = String(ket || '').match(/kelas\s*:\s*([^•|\n]+)/i);
+  return m && m[1] ? m[1].trim() : '';
 };
 
 /**
@@ -92,16 +131,42 @@ const isSantriEligibleForSession = (santri, sesiMeta) => {
 };
 
 /**
- * Ambil laporan presensi lengkap dengan perhitungan otomatis ALFA
- * bagi santri aktif yang tidak melakukan absen dan tidak punya inputan izin/sakit/haid.
+ * Ambil laporan presensi lengkap dengan perhitungan otomatis ALFA:
+ * - Untuk Mengaji: evaluasi seluruh santri aktif di kelas yang melaksanakan absensi (mis. kelas 31 santri, absen 19 -> sisanya 12 minus izin masuk Alfa).
+ * - Untuk Shalat Berjamaah: evaluasi seluruh santri aktif sesuai aturan sesi (gender/peserta), cek izin/sakit/haid, sisanya masuk Alfa.
  */
 export const getPresensiReportWithAutoAlfa = async ({
   dateCond = { sql: '', params: [] },
   tipe = 'semua',
-  limitNum = 2000,
+  limitNum = 3000,
   includeLogs = true,
 }) => {
   await ensureAbsensiTablesAndColumns().catch(() => {});
+  const schema = await getSantriSchema();
+
+  const kelasJoinSql = schema.hasKelasId
+    ? 'LEFT JOIN kelas kl ON s.kelas_id = kl.id'
+    : schema.hasNamaKelas
+      ? 'LEFT JOIN kelas kl ON LOWER(TRIM(s.nama_kelas)) = LOWER(TRIM(kl.nama_kelas))'
+      : '';
+  const kelasSelectExpr = schema.hasNamaKelas
+    ? `COALESCE(NULLIF(TRIM(kl.nama_kelas), ''), NULLIF(TRIM(s.nama_kelas), ''), '')`
+    : schema.hasKelasId
+      ? `COALESCE(NULLIF(TRIM(kl.nama_kelas), ''), '')`
+      : `''`;
+  const asramaJoinSql = schema.hasAsramaId ? 'LEFT JOIN asrama a ON s.asrama_id = a.id' : '';
+  const asramaSelectExpr = schema.hasAsramaId ? "COALESCE(a.nama_asrama, '')" : "''";
+  const jkExpr = schema.hasJk
+    ? "LOWER(COALESCE(s.jk, ''))"
+    : schema.hasJenisKelamin
+      ? "LOWER(COALESCE(s.jenis_kelamin, ''))"
+      : "''";
+  const tipeSantriExpr = schema.hasTipeSantri
+    ? "LOWER(COALESCE(s.tipe_santri, ''))"
+    : schema.hasStatusSantri
+      ? "LOWER(COALESCE(s.status_santri, ''))"
+      : "''";
+  const activeStatusWhere = schema.hasStatus ? "WHERE LOWER(COALESCE(s.status, 'Aktif')) = 'aktif'" : '';
 
   const tipeFilterSql = buildPresensiTipeFilterSql(tipe, 'aj', 'ks');
 
@@ -122,11 +187,12 @@ export const getPresensiReportWithAutoAlfa = async ({
         aj.keterangan,
         s.nama_santri,
         s.nis,
-        COALESCE(s.nama_kelas, '') as nama_kelas,
-        COALESCE(a.nama_asrama, '') as nama_asrama
+        ${kelasSelectExpr} as nama_kelas,
+        ${asramaSelectExpr} as nama_asrama
       FROM absensi_jamaah_mengaji aj
       JOIN santri s ON aj.santri_id = s.id
-      LEFT JOIN asrama a ON s.asrama_id = a.id
+      ${kelasJoinSql}
+      ${asramaJoinSql}
       LEFT JOIN kegiatan_sesi ks ON aj.sesi_id = ks.id
       WHERE 1=1 ${dateCond.sql} ${tipeFilterSql}
       ORDER BY aj.tanggal DESC, aj.waktu_scan DESC, aj.id DESC
@@ -147,17 +213,21 @@ export const getPresensiReportWithAutoAlfa = async ({
           s.id,
           s.nama_santri,
           s.nis,
-          COALESCE(s.nama_kelas, '') as nama_kelas,
-          COALESCE(a.nama_asrama, '') as nama_asrama,
-          LOWER(COALESCE(s.jk, '')) as jk,
-          LOWER(COALESCE(s.tipe_santri, '')) as tipe_santri
+          ${kelasSelectExpr} as nama_kelas,
+          ${asramaSelectExpr} as nama_asrama,
+          ${jkExpr} as jk,
+          ${tipeSantriExpr} as tipe_santri
         FROM santri s
-        LEFT JOIN asrama a ON s.asrama_id = a.id
-        WHERE s.status = 'Aktif'
+        ${kelasJoinSql}
+        ${asramaJoinSql}
+        ${activeStatusWhere}
         ORDER BY s.nama_santri ASC
       `
       )
-      .catch(() => [[]]),
+      .catch((err) => {
+        console.warn('[PRESENSI ACTIVE SANTRI ERROR]:', err.message);
+        return [[]];
+      }),
     pool
       .query(
         `
@@ -221,6 +291,8 @@ export const getPresensiReportWithAutoAlfa = async ({
         nama_kegiatan: kegName,
         kegLower,
         tipe_presensi: row.tipe_presensi || 'Berjamaah',
+        actualRecordedCount: 0,
+        recordedKelasSet: new Set(),
         hadir: 0,
         sakit: 0,
         izin: 0,
@@ -230,6 +302,19 @@ export const getPresensiReportWithAutoAlfa = async ({
     }
 
     const bucket = sessionMap.get(sessKey);
+    const metodeLow = String(row.metode_presensi || '').toLowerCase();
+    const isAutoSyncRow =
+      metodeLow.includes('perizinan') || metodeLow.includes('sistem haid');
+
+    if (!isAutoSyncRow) {
+      bucket.actualRecordedCount += 1;
+      const kelasName =
+        String(row.nama_kelas || '').trim() || extractKelasFromKeterangan(row.keterangan);
+      if (kelasName) {
+        bucket.recordedKelasSet.add(kelasName.toLowerCase());
+      }
+    }
+
     const st = String(row.status || '').toLowerCase();
     if (st.includes('sakit')) bucket.sakit += 1;
     else if (st.includes('haid')) bucket.haid += 1;
@@ -274,6 +359,8 @@ export const getPresensiReportWithAutoAlfa = async ({
   const MAX_EXPANDED_SESSIONS = 20;
 
   sessionsSorted.forEach((sess, sIdx) => {
+    if (sess.actualRecordedCount === 0) return;
+
     const sessKey = `${sess.tanggal}__${sess.kegLower}`;
     const sesiMeta = sesiMetaMap.get(sess.kegLower) || null;
     const isBerjamaahSess =
@@ -283,8 +370,17 @@ export const getPresensiReportWithAutoAlfa = async ({
       );
     const shouldExpand = includeLogs && sIdx < MAX_EXPANDED_SESSIONS;
 
+    // Untuk Mengaji: hanya evaluasi santri di kelas yang melaksanakan absen pada sesi tersebut
+    const filterByRecordedKelas = !isBerjamaahSess && sess.recordedKelasSet.size > 0;
+
     for (const santri of activeSantri || []) {
-      if (!isSantriEligibleForSession(santri, sesiMeta)) continue;
+      if (filterByRecordedKelas) {
+        const sKelasLow = String(santri.nama_kelas || '').trim().toLowerCase();
+        if (!sKelasLow || !sess.recordedKelasSet.has(sKelasLow)) continue;
+      } else {
+        if (!isSantriEligibleForSession(santri, sesiMeta)) continue;
+      }
+
       if (recordedKeySet.has(`${sessKey}__${santri.id}`)) continue;
 
       const izinType = getIzinStatusOnDate(santri.id, sess.tanggal);
@@ -419,4 +515,3 @@ export const getPresensiReportWithAutoAlfa = async ({
     logPresensi: combinedLogs,
   };
 };
-
