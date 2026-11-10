@@ -31,6 +31,7 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "
   const [filterKelas, setFilterKelas] = useState("Semua");
   const [filterSesi, setFilterSesi] = useState("Semua");
   const [searchTable, setSearchTable] = useState("");
+  const [visibleLimit, setVisibleLimit] = useState(100);
 
   const [data, setData] = useState({
     summary: {
@@ -55,7 +56,7 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "
   const fetchData = async () => {
     try {
       setLoading(true);
-      const url = `/api/owner/presensi?${buildPeriodeQueryParams(periodeFilter)}${tipe && tipe !== "semua" ? `&tipe=${tipe}` : ""}`;
+      const url = `/api/owner/presensi?${buildPeriodeQueryParams(periodeFilter)}${tipe && tipe !== "semua" ? `&tipe=${tipe}` : ""}&limit=5000`;
       const res = await axios.get(url);
       if (res.data?.success && res.data.data) {
         setData(res.data.data);
@@ -70,6 +71,10 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "
   useEffect(() => {
     fetchData();
   }, [periodeFilter, tipe]);
+
+  useEffect(() => {
+    setVisibleLimit(100);
+  }, [periodeFilter, tipe, statusFilter, filterKelas, filterSesi, searchTable]);
 
   const s = data.summary || {};
   const totalPresensi = (s.hadir || 0) + (s.sakit || 0) + (s.izin || 0) + (s.alfa || 0);
@@ -589,33 +594,6 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "
           </div>
         </div>
 
-        {/* Status Filter Badges */}
-        <div style={{ display: "flex", gap: "6px", overflowX: "auto", paddingBottom: "2px", alignItems: "center" }}>
-          {["Semua", "Hadir", "Sakit", "Izin", "Alfa"].map((st) => {
-            const isSel = statusFilter === st;
-            return (
-              <button
-                key={st}
-                type="button"
-                onClick={() => setStatusFilter(st)}
-                style={{
-                  border: isSel ? "1.5px solid #0d766e" : "1px solid #cbd5e1",
-                  background: isSel ? "#0d766e" : "#ffffff",
-                  color: isSel ? "#ffffff" : "#475569",
-                  padding: "4px 10px",
-                  borderRadius: "8px",
-                  fontSize: "0.68rem",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap"
-                }}
-              >
-                {st}
-              </button>
-            );
-          })}
-        </div>
-
         {/* Active Filters Reset Indicator */}
         {(searchTable || filterKelas !== "Semua" || filterSesi !== "Semua" || statusFilter !== "Semua") && (
           <div
@@ -682,114 +660,136 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "
             </div>
           </div>
         ) : filteredLogs.length > 0 ? (
-          filteredLogs.map((item, idx) => {
-            const st = (item.status || "").toLowerCase();
-            const isHaid = st.includes("haid");
-            const isHadir = !isHaid && (st.includes("hadir") || st.includes("tepat") || st.includes("masbuq"));
-            const isSakit = st.includes("sakit");
-            const isIzin = st.includes("izin");
-            const isAlfa = st.includes("alfa") || st.includes("alpha") || st.includes("absen");
+          <>
+            {filteredLogs.slice(0, visibleLimit).map((item, idx) => {
+              const st = (item.status || "").toLowerCase();
+              const isHaid = st.includes("haid");
+              const isHadir = !isHaid && (st.includes("hadir") || st.includes("tepat") || st.includes("masbuq"));
+              const isSakit = st.includes("sakit");
+              const isIzin = st.includes("izin");
 
-            const badgeBg = isHaid
-              ? "#fdf2f8"
-              : isHadir
-              ? "#ecfdf5"
-              : isSakit
-              ? "#fef2f2"
-              : isIzin
-              ? "#fffbeb"
-              : "#f0fdfa";
-            const badgeColor = isHaid
-              ? "#be185d"
-              : isHadir
-              ? "#059669"
-              : isSakit
-              ? "#dc2626"
-              : isIzin
-              ? "#d97706"
-              : "#0d9488";
-            const badgeBorder = isHaid
-              ? "#fbcfe8"
-              : isHadir
-              ? "#a7f3d0"
-              : isSakit
-              ? "#fecaca"
-              : isIzin
-              ? "#fde68a"
-              : "#99f6e4";
+              const badgeBg = isHaid
+                ? "#fdf2f8"
+                : isHadir
+                ? "#ecfdf5"
+                : isSakit
+                ? "#fef2f2"
+                : isIzin
+                ? "#fffbeb"
+                : "#f0fdfa";
+              const badgeColor = isHaid
+                ? "#be185d"
+                : isHadir
+                ? "#059669"
+                : isSakit
+                ? "#dc2626"
+                : isIzin
+                ? "#d97706"
+                : "#0d9488";
+              const badgeBorder = isHaid
+                ? "#fbcfe8"
+                : isHadir
+                ? "#a7f3d0"
+                : isSakit
+                ? "#fecaca"
+                : isIzin
+                ? "#fde68a"
+                : "#99f6e4";
 
-            return (
-              <div
-                key={idx}
-                style={{
-                  background: "#ffffff",
-                  borderRadius: "14px",
-                  padding: "12px 14px",
-                  border: "1px solid #e2e8f0",
-                  boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "10px"
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
-                  <div
-                    style={{
-                      width: "36px",
-                      height: "36px",
-                      borderRadius: "11px",
-                      background: badgeBg,
-                      color: badgeColor,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0
-                    }}
-                  >
-                    <Fingerprint size={18} />
-                  </div>
-                  <div style={{ minWidth: 0, overflow: "hidden" }}>
+              return (
+                <div
+                  key={item.id || idx}
+                  style={{
+                    background: "#ffffff",
+                    borderRadius: "14px",
+                    padding: "12px 14px",
+                    border: "1px solid #e2e8f0",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "10px"
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
                     <div
                       style={{
-                        fontSize: "0.8rem",
-                        fontWeight: 900,
-                        color: "#0f172a",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis"
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "11px",
+                        background: badgeBg,
+                        color: badgeColor,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0
                       }}
                     >
-                      {item.nama_santri}
+                      <Fingerprint size={18} />
                     </div>
-                    <div style={{ fontSize: "0.64rem", color: "#64748b", marginTop: "1px" }}>
-                      {item.nama_kegiatan || item.nama_sesi || "Shalat Berjamaah"} {item.nama_kelas ? `• ${item.nama_kelas}` : ""}
-                    </div>
-                    <div style={{ fontSize: "0.6rem", color: "#94a3b8", marginTop: "1px" }}>
-                      {item.waktu_scan || item.jam_absen || item.waktu || formatDate(item.tanggal)} • {item.metode_presensi || item.metode || "Fingerprint / AI"}
+                    <div style={{ minWidth: 0, overflow: "hidden" }}>
+                      <div
+                        style={{
+                          fontSize: "0.8rem",
+                          fontWeight: 900,
+                          color: "#0f172a",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis"
+                        }}
+                      >
+                        {item.nama_santri}
+                      </div>
+                      <div style={{ fontSize: "0.64rem", color: "#64748b", marginTop: "1px" }}>
+                        {item.nama_kegiatan || item.nama_sesi || "Shalat Berjamaah"} {item.nama_kelas ? `• ${item.nama_kelas}` : ""}
+                      </div>
+                      <div style={{ fontSize: "0.6rem", color: "#94a3b8", marginTop: "1px" }}>
+                        {item.waktu_scan || item.jam_absen || item.waktu || formatDate(item.tanggal)} • {item.metode_presensi || item.metode || "Fingerprint / AI"}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <span
-                    style={{
-                      display: "inline-block",
-                      fontSize: "0.66rem",
-                      fontWeight: 800,
-                      color: badgeColor,
-                      background: badgeBg,
-                      border: `1px solid ${badgeBorder}`,
-                      padding: "4px 8px",
-                      borderRadius: "8px"
-                    }}
-                  >
-                    {item.status || "Hadir"}
-                  </span>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        fontSize: "0.66rem",
+                        fontWeight: 800,
+                        color: badgeColor,
+                        background: badgeBg,
+                        border: `1px solid ${badgeBorder}`,
+                        padding: "4px 8px",
+                        borderRadius: "8px"
+                      }}
+                    >
+                      {item.status || "Hadir"}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+            {filteredLogs.length > visibleLimit && (
+              <button
+                type="button"
+                onClick={() => setVisibleLimit((v) => v + 100)}
+                style={{
+                  padding: "10px 14px",
+                  background: "#ffffff",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "12px",
+                  fontSize: "0.74rem",
+                  fontWeight: 800,
+                  color: "#0d766e",
+                  cursor: "pointer",
+                  textAlign: "center",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.03)",
+                  marginTop: "2px"
+                }}
+              >
+                Tampilkan Lebih Banyak ({(filteredLogs.length - visibleLimit).toLocaleString("id-ID")} lagi)
+              </button>
+            )}
+          </>
         ) : (
           <div
             style={{

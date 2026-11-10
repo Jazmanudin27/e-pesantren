@@ -20,7 +20,6 @@ import LaporanPeriodeFilter, {
 export default function OwnerLaporanMengaji() {
   const [loading, setLoading] = useState(true);
   const [periodeFilter, setPeriodeFilter] = useState(() => createInitialPeriodeState("hari"));
-  const [statusFilter, setStatusFilter] = useState("Semua");
   const [searchTable, setSearchTable] = useState("");
   const [visibleLimit, setVisibleLimit] = useState(30);
 
@@ -40,7 +39,7 @@ export default function OwnerLaporanMengaji() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`/api/owner/presensi?${buildPeriodeQueryParams(periodeFilter)}&tipe=mengaji`);
+      const res = await axios.get(`/api/owner/presensi?${buildPeriodeQueryParams(periodeFilter)}&tipe=mengaji&limit=5000`);
       if (res.data?.success && res.data.data) {
         setData(res.data.data);
       }
@@ -57,7 +56,7 @@ export default function OwnerLaporanMengaji() {
 
   useEffect(() => {
     setVisibleLimit(30);
-  }, [periodeFilter, statusFilter, searchTable]);
+  }, [periodeFilter, searchTable]);
 
   const s = data.summary || {};
   const totalPresensi = (s.hadir || 0) + (s.sakit || 0) + (s.izin || 0) + (s.alfa || 0);
@@ -68,20 +67,12 @@ export default function OwnerLaporanMengaji() {
 
   const filteredLogs = (data.logPresensi || []).filter((p) => {
     const q = searchTable.toLowerCase();
-    const matchQuery =
+    return (
       (p.nama_santri || "").toLowerCase().includes(q) ||
       (p.nis || "").toLowerCase().includes(q) ||
       (p.nama_kelas || "").toLowerCase().includes(q) ||
-      (p.nama_kegiatan || "").toLowerCase().includes(q);
-
-    if (!matchQuery) return false;
-
-    if (statusFilter === "Semua") return true;
-    const st = (p.status || "").toLowerCase();
-    const flt = statusFilter.toLowerCase();
-    if (flt === "hadir") return st.includes("hadir") || st.includes("tepat") || st.includes("masbuq");
-    if (flt === "alfa") return st.includes("alfa") || st.includes("alpha") || st.includes("absen");
-    return st.includes(flt);
+      (p.nama_kegiatan || "").toLowerCase().includes(q)
+    );
   });
 
   const displayedLogs = filteredLogs.slice(0, visibleLimit);
@@ -241,44 +232,7 @@ export default function OwnerLaporanMengaji() {
         </div>
       </div>
 
-      {/* 3. STATUS FILTER PILLS */}
-      <div
-        style={{
-          display: "flex",
-          background: "#ffffff",
-          borderRadius: "14px",
-          padding: "4px",
-          border: "1px solid #e2e8f0",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
-          gap: "4px"
-        }}
-      >
-        {["Semua", "Hadir", "Sakit", "Izin", "Alfa"].map((st) => {
-          const isActive = statusFilter === st;
-          return (
-            <button
-              key={st}
-              type="button"
-              onClick={() => setStatusFilter(st)}
-              style={{
-                flex: 1,
-                background: isActive ? "#ccfbf1" : "transparent",
-                color: isActive ? "#0f766e" : "#64748b",
-                fontWeight: isActive ? 800 : 600,
-                fontSize: "0.7rem",
-                padding: "7px 2px",
-                borderRadius: "10px",
-                cursor: "pointer",
-                border: isActive ? "1px solid #99f6e4" : "1px solid transparent"
-              }}
-            >
-              {st}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* 4. SEARCH BAR */}
+      {/* 3. SEARCH BAR */}
       <div
         style={{
           position: "relative",

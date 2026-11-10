@@ -2,6 +2,8 @@ import bcrypt from 'bcryptjs';
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
 import { syncActiveHaidToAbsensi } from './haid.controller.js';
+import { syncActivePerizinanToAbsensi } from './absensi.controller.js';
+import { getPresensiReportWithAutoAlfa } from '../utils/presensiReport.util.js';
 
 /**
  * Otomatis membuat akun default Owner jika belum ada di database
@@ -355,111 +357,27 @@ export const getOwnerKeuangan = async (req, res) => {
  */
 export const getOwnerPresensi = async (req, res) => {
   try {
+    await syncActivePerizinanToAbsensi().catch(() => {});
     await syncActiveHaidToAbsensi().catch(() => {});
     const periode = req.query.periode || 'hari_ini';
     const tipe = req.query.tipe || 'semua';
-    const limitNum = Math.min(Math.max(Number(req.query.limit) || 200, 10), 1000);
+    const limitNum = Math.min(Math.max(Number(req.query.limit) || 3000, 10), 10000);
 
     const dateCond = getPeriodeDateCondition({ periode, ...req.query }, 'aj.tanggal');
 
-    let tipeFilterSql = '';
-    if (tipe === 'mengaji') {
-      tipeFilterSql = ` AND (
-        LOWER(COALESCE(aj.tipe_presensi, '')) LIKE '%mengaji%' 
-        OR LOWER(COALESCE(aj.tipe_presensi, '')) LIKE '%kegiatan%'
-        OR (LOWER(COALESCE(aj.nama_kegiatan, '')) NOT REGEXP 'subuh|dzuhur|ashar|maghrib|isya|dhuha' AND LOWER(COALESCE(ks.nama_sesi, '')) NOT REGEXP 'subuh|dzuhur|ashar|maghrib|isya|dhuha')
-      )`;
-    } else if (tipe === 'berjamaah') {
-      tipeFilterSql = ` AND (
-        LOWER(COALESCE(aj.tipe_presensi, '')) LIKE '%berjamaah%' 
-        OR LOWER(COALESCE(aj.nama_kegiatan, '')) REGEXP 'shalat|sholat|subuh|dzuhur|ashar|maghrib|isya|dhuha|berjamaah'
-        OR LOWER(COALESCE(ks.nama_sesi, '')) REGEXP 'shalat|sholat|subuh|dzuhur|ashar|maghrib|isya|dhuha|berjamaah'
-      )`;
-    }
-
-    // 1. Rekap Status Presensi
-    const [statusSummary] = await pool.query(`
-      SELECT 
-        aj.status,
-        COUNT(*) as jml
-      FROM absensi_jamaah_mengaji aj
-      LEFT JOIN kegiatan_sesi ks ON aj.sesi_id = ks.id
-      WHERE 1=1 ${dateCond.sql} ${tipeFilterSql}
-      GROUP BY aj.status
-    `, dateCond.params).catch(() => [[]]);
-
-    let hadir = 0;
-    let sakit = 0;
-    let izin = 0;
-    let haid = 0;
-    let alfa = 0;
-    for (const r of statusSummary) {
-      const st = String(r.status || '').toLowerCase();
-      if (st.includes('hadir')) hadir += Number(r.jml);
-      else if (st.includes('sakit')) sakit += Number(r.jml);
-      else if (st.includes('haid')) haid += Number(r.jml);
-      else if (st.includes('izin')) izin += Number(r.jml);
-      else if (st.includes('alfa') || st.includes('alpha')) alfa += Number(r.jml);
-      else hadir += Number(r.jml);
-    }
-    const total = hadir + sakit + izin + haid + alfa;
-    const persen = total > 0 ? Math.round((hadir / total) * 100) : 0;
-
-    // 2. Rekap Per Sesi & Kegiatan
-    const [rekapPerSesi] = await pool.query(`
-      SELECT 
-        COALESCE(NULLIF(aj.nama_kegiatan, ''), ks.nama_sesi, 'Kegiatan Santri') as nama_kegiatan,
-        COALESCE(aj.tipe_presensi, 'Berjamaah') as tipe_presensi,
-        COUNT(*) as total_presensi,
-        SUM(CASE WHEN LOWER(aj.status) LIKE '%hadir%' THEN 1 ELSE 0 END) as jml_hadir,
-        SUM(CASE WHEN LOWER(aj.status) LIKE '%sakit%' THEN 1 ELSE 0 END) as jml_sakit,
-        SUM(CASE WHEN LOWER(aj.status) LIKE '%izin%' THEN 1 ELSE 0 END) as jml_izin,
-        SUM(CASE WHEN LOWER(aj.status) LIKE '%alfa%' THEN 1 ELSE 0 END) as jml_alfa
-      FROM absensi_jamaah_mengaji aj
-      LEFT JOIN kegiatan_sesi ks ON aj.sesi_id = ks.id
-      WHERE 1=1 ${dateCond.sql} ${tipeFilterSql}
-      GROUP BY nama_kegiatan, tipe_presensi
-      ORDER BY total_presensi DESC
-    `, dateCond.params).catch(() => [[]]);
-
-    // 3. Log 100 Rekaman Presensi Terbaru
-    const [logPresensi] = await pool.query(`
-      SELECT 
-        aj.id,
-        DATE_FORMAT(aj.tanggal, '%Y-%m-%d') as tanggal,
-        aj.waktu_scan,
-        aj.status,
-        COALESCE(aj.metode_presensi, aj.metode_scan, 'Fingerprint') as metode_presensi,
-        COALESCE(NULLIF(aj.nama_kegiatan, ''), ks.nama_sesi, 'Kegiatan Santri') as nama_kegiatan,
-        COALESCE(aj.tipe_presensi, 'Berjamaah') as tipe_presensi,
-        aj.keterangan,
-        s.nama_santri,
-        s.nis,
-        COALESCE(s.nama_kelas, '') as nama_kelas,
-        a.nama_asrama
-      FROM absensi_jamaah_mengaji aj
-      JOIN santri s ON aj.santri_id = s.id
-      LEFT JOIN asrama a ON s.asrama_id = a.id
-      LEFT JOIN kegiatan_sesi ks ON aj.sesi_id = ks.id
-      WHERE 1=1 ${dateCond.sql} ${tipeFilterSql}
-      ORDER BY aj.tanggal DESC, aj.waktu_scan DESC, aj.id DESC
-      LIMIT ?
-    `, [...dateCond.params, limitNum]).catch(() => [[]]);
+    const report = await getPresensiReportWithAutoAlfa({
+      dateCond,
+      tipe,
+      limitNum,
+      includeLogs: true,
+    });
 
     return sendSuccess(res, 'Data Laporan Presensi Owner Berhasil Dimuat', {
       periode,
       tipe,
-      summary: {
-        total,
-        hadir,
-        sakit,
-        izin,
-        haid,
-        alfa,
-        persen
-      },
-      rekapPerSesi,
-      logPresensi
+      summary: report.summary,
+      rekapPerSesi: report.rekapPerSesi,
+      logPresensi: report.logPresensi,
     });
   } catch (err) {
     return sendError(res, `Gagal memuat presensi owner: ${err.message}`, 500);

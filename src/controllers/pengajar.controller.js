@@ -2,6 +2,7 @@ import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
 import { syncActivePerizinanToAbsensi } from './absensi.controller.js';
 import { deactivateHaidForSantri, syncActiveHaidToAbsensi } from './haid.controller.js';
+import { getPresensiReportWithAutoAlfa } from '../utils/presensiReport.util.js';
 
 /**
  * Pastikan tabel-tabel esensial untuk Pengajar tersedia
@@ -146,71 +147,28 @@ export const getPengajarDashboard = async (req, res) => {
   try {
     const [[santriStat]] = await pool.query("SELECT COUNT(*) as total_santri FROM santri WHERE status = 'Aktif'");
     
-    const calcPresensiStats = (rows = []) => {
-      let hadir = 0;
-      let sakit = 0;
-      let izin = 0;
-      let alfa = 0;
-      for (const r of rows) {
-        const s = String(r.st || '').toLowerCase();
-        if (s.includes('sakit')) sakit += Number(r.jml);
-        else if (s.includes('izin') || s.includes('haid')) izin += Number(r.jml);
-        else if (s.includes('alfa') || s.includes('alpha') || s.includes('teledor')) alfa += Number(r.jml);
-        else hadir += Number(r.jml);
-      }
-      const total = hadir + sakit + izin + alfa;
-      const persenHadir = total > 0 ? Math.round((hadir / total) * 100) : 0;
-      return { total, hadir, sakit, izin, alfa, persenHadir };
-    };
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const todayCond = { sql: 'AND DATE(aj.tanggal) = ?', params: [todayStr] };
 
-    // Presensi Total Hari Ini
-    const [presensiRows] = await pool.query(`
-      SELECT 
-        COALESCE(status, status_kehadiran, 'Hadir') as st,
-        COUNT(*) as jml
-      FROM absensi_jamaah_mengaji
-      WHERE tanggal = CURDATE()
-      GROUP BY COALESCE(status, status_kehadiran, 'Hadir')
-    `).catch(() => [[]]);
+    const mapSummaryToDashboard = (s = {}) => ({
+      total: Number(s.total || 0),
+      hadir: Number(s.hadir || 0),
+      sakit: Number(s.sakit || 0),
+      izin: Number(s.izin || 0) + Number(s.haid || 0),
+      alfa: Number(s.alfa || 0),
+      persenHadir: Number(s.persen || 0),
+    });
 
-    // Presensi Mengaji Hari Ini
-    const [presensiMengajiRows] = await pool.query(`
-      SELECT 
-        COALESCE(aj.status, aj.status_kehadiran, 'Hadir') as st,
-        COUNT(*) as jml
-      FROM absensi_jamaah_mengaji aj
-      LEFT JOIN kegiatan_sesi ks ON aj.sesi_id = ks.id
-      WHERE aj.tanggal = CURDATE()
-        AND (
-          LOWER(COALESCE(aj.tipe_presensi, '')) LIKE '%mengaji%'
-          OR LOWER(COALESCE(aj.tipe_presensi, '')) LIKE '%kegiatan%'
-          OR (
-            LOWER(COALESCE(aj.nama_kegiatan, '')) NOT REGEXP 'shalat|sholat|subuh|shubuh|dzuhur|zuhur|ashar|asar|maghrib|magrib|isya|dhuha|berjamaah'
-            AND LOWER(COALESCE(ks.nama_sesi, '')) NOT REGEXP 'shalat|sholat|subuh|shubuh|dzuhur|zuhur|ashar|asar|maghrib|magrib|isya|dhuha|berjamaah'
-          )
-        )
-      GROUP BY COALESCE(aj.status, aj.status_kehadiran, 'Hadir')
-    `).catch(() => [[]]);
+    const [repAll, repMengaji, repBerjamaah] = await Promise.all([
+      getPresensiReportWithAutoAlfa({ dateCond: todayCond, tipe: 'semua', includeLogs: false }),
+      getPresensiReportWithAutoAlfa({ dateCond: todayCond, tipe: 'mengaji', includeLogs: false }),
+      getPresensiReportWithAutoAlfa({ dateCond: todayCond, tipe: 'berjamaah', includeLogs: false }),
+    ]);
 
-    // Presensi Berjamaah Hari Ini
-    const [presensiBerjamaahRows] = await pool.query(`
-      SELECT 
-        COALESCE(aj.status, aj.status_kehadiran, 'Hadir') as st,
-        COUNT(*) as jml
-      FROM absensi_jamaah_mengaji aj
-      LEFT JOIN kegiatan_sesi ks ON aj.sesi_id = ks.id
-      WHERE aj.tanggal = CURDATE()
-        AND (
-          LOWER(COALESCE(aj.tipe_presensi, '')) LIKE '%berjamaah%'
-          OR LOWER(COALESCE(aj.nama_kegiatan, '')) REGEXP 'shalat|sholat|subuh|shubuh|dzuhur|zuhur|ashar|asar|maghrib|magrib|isya|dhuha|berjamaah'
-          OR LOWER(COALESCE(ks.nama_sesi, '')) REGEXP 'shalat|sholat|subuh|shubuh|dzuhur|zuhur|ashar|asar|maghrib|magrib|isya|dhuha|berjamaah'
-        )
-      GROUP BY COALESCE(aj.status, aj.status_kehadiran, 'Hadir')
-    `).catch(() => [[]]);
-
-    const presensiHariIniStats = calcPresensiStats(presensiRows);
-    const presensiMengajiStats = calcPresensiStats(presensiMengajiRows);
-    const presensiBerjamaahStats = calcPresensiStats(presensiBerjamaahRows);
+    const presensiHariIniStats = mapSummaryToDashboard(repAll.summary);
+    const presensiMengajiStats = mapSummaryToDashboard(repMengaji.summary);
+    const presensiBerjamaahStats = mapSummaryToDashboard(repBerjamaah.summary);
 
     // Total Teguran Bulan Ini
     const [[teguranStat]] = await pool.query(`
@@ -522,15 +480,15 @@ export const saveAbsenMengajiBatch = async (req, res) => {
       if (existing && existing.length > 0) {
         await connection.query(`
           UPDATE absensi_jamaah_mengaji 
-          SET status = ?, status_kehadiran = ?, metode_presensi = ?, keterangan = ?,
+          SET status = ?, status_kehadiran = ?, metode_presensi = ?, tipe_presensi = 'Kegiatan', keterangan = ?,
               musyrif_verifikator = ?, nama_ustadz = ?, waktu_scan = CURTIME(), updated_at = NOW()
           WHERE id = ?
         `, [statusFinal, statusFinal, metode, ket, itemUstadz, itemUstadz, existing[0].id]);
       } else {
         await connection.query(`
           INSERT INTO absensi_jamaah_mengaji 
-          (santri_id, sesi_id, nama_kegiatan, tanggal, waktu_scan, status, status_kehadiran, metode_presensi, keterangan, musyrif_verifikator, nama_ustadz)
-          VALUES (?, ?, ?, ?, CURTIME(), ?, ?, ?, ?, ?, ?)
+          (santri_id, sesi_id, nama_kegiatan, tipe_presensi, tanggal, waktu_scan, status, status_kehadiran, metode_presensi, keterangan, musyrif_verifikator, nama_ustadz)
+          VALUES (?, ?, ?, 'Kegiatan', ?, CURTIME(), ?, ?, ?, ?, ?, ?)
         `, [item.santri_id, sId, kegiatan, tgl, statusFinal, statusFinal, metode, ket, itemUstadz, itemUstadz]);
       }
     }
