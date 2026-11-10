@@ -3,7 +3,8 @@ import {
   getSantriwatiHaidList,
   startHaid,
   stopHaid,
-  getHaidHistory
+  getHaidHistory,
+  deleteHaidRecord
 } from '../controllers/haid.controller.js';
 
 const router = express.Router();
@@ -19,6 +20,9 @@ router.post('/selesai', stopHaid);
 
 // 4. Riwayat siklus haid
 router.get('/riwayat', getHaidHistory);
+
+// 5. Hapus record haid
+router.delete('/:id', deleteHaidRecord);
 
 export default router;
 

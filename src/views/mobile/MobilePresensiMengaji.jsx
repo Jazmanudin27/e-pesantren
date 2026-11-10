@@ -36,6 +36,7 @@ import {
   BookOpen,
   User,
   GraduationCap,
+  XCircle,
 } from "lucide-react";
 import {
   showSuccess,
@@ -44,6 +45,7 @@ import {
   toastError,
   showConfirm,
 } from "../../utils/alert.util";
+import SearchableSelect from "../../components/SearchableSelect";
 import {
   initFaceApiModels,
   detectFaceDescriptor,
@@ -901,6 +903,7 @@ export default function MobilePresensiMengaji() {
     if (filterManualStatus === "Hadir") return matchSearch && curStatus.includes("hadir");
     if (filterManualStatus === "Sakit") return matchSearch && curStatus.includes("sakit");
     if (filterManualStatus === "Izin") return matchSearch && curStatus.includes("izin");
+    if (filterManualStatus === "Alfa") return matchSearch && (curStatus.includes("alfa") || curStatus.includes("alpha"));
     return matchSearch;
   });
 
@@ -916,6 +919,10 @@ export default function MobilePresensiMengaji() {
   const sessionIzinCount = santriList.filter((s) => {
     const l = getSantriCurrentLog(s);
     return l && String(l.status_kehadiran || l.status || "").toLowerCase().includes("izin");
+  }).length;
+  const sessionAlfaCount = santriList.filter((s) => {
+    const l = getSantriCurrentLog(s);
+    return l && /alfa|alpha/i.test(String(l.status_kehadiran || l.status || ""));
   }).length;
   const sessionSudahCount = santriList.filter((s) => getSantriCurrentLog(s)).length;
   const sessionBelumCount = sessionTotal - sessionSudahCount;
@@ -1007,17 +1014,22 @@ export default function MobilePresensiMengaji() {
 
         {/* 2 Dropdown Bertingkat: Kegiatan & Kelas */}
         <div style={{ display: "flex", flexDirection: "column", gap: "7px", marginBottom: "8px" }}>
-          {/* Dropdown 1: Kegiatan Mengaji */}
-          <div style={{ position: "relative" }}>
-            <select
+          {/* Searchable Dropdown 1: Kegiatan Mengaji */}
+          <div>
+            <SearchableSelect
+              options={daftarMengaji.map((k) => ({
+                value: k.id,
+                label: `📖 ${k.nama}`
+              }))}
               value={selectedMengaji?.id || ""}
-              onChange={(e) => {
-                const k = daftarMengaji.find((x) => String(x.id) === String(e.target.value));
+              onChange={(val) => {
+                const k = daftarMengaji.find((x) => String(x.id) === String(val));
                 setSelectedMengaji(k || null);
               }}
-              style={{
-                width: "100%",
-                padding: "9px 32px 9px 12px",
+              placeholder="-- 1. Wajib Pilih Kegiatan Mengaji --"
+              searchPlaceholder="Cari kegiatan mengaji / kajian..."
+              triggerStyle={{
+                padding: "9px 12px",
                 borderRadius: "11px",
                 border: !selectedMengaji?.id ? "2px solid #facc15" : "1px solid rgba(255, 255, 255, 0.32)",
                 background: !selectedMengaji?.id ? "rgba(234, 179, 8, 0.28)" : "rgba(255, 255, 255, 0.16)",
@@ -1025,35 +1037,26 @@ export default function MobilePresensiMengaji() {
                 color: "#ffffff",
                 fontSize: "0.82rem",
                 fontWeight: 800,
-                outline: "none",
-                appearance: "none",
-                cursor: "pointer",
               }}
-            >
-              <option value="" style={{ color: "#0f172a", fontWeight: 700 }}>
-                -- 1. Wajib Pilih Kegiatan Mengaji --
-              </option>
-              {daftarMengaji.map((k) => (
-                <option key={k.id} value={k.id} style={{ color: "#0f172a", fontWeight: 700 }}>
-                  📖 {k.nama}
-                </option>
-              ))}
-            </select>
-            <ChevronDown size={15} color="#ffffff" style={{ position: "absolute", right: "11px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+            />
           </div>
 
-          {/* Dropdown 2: Kelas Santri (Lazy load data) */}
+          {/* Searchable Dropdown 2: Kelas Santri (Lazy load data) */}
           <div style={{ position: "relative" }}>
-            <select
+            <SearchableSelect
+              options={availableKelasOptions.map((kls) => ({
+                value: kls,
+                label: `🏫 Kelas: ${kls}`
+              }))}
               value={selectedMengajiKelas}
-              onChange={(e) => {
-                const val = e.target.value;
-                setSelectedMengajiKelas(val);
-                loadSantriByKelas(val);
+              onChange={(val) => {
+                setSelectedMengajiKelas(val || "");
+                loadSantriByKelas(val || "");
               }}
-              style={{
-                width: "100%",
-                padding: "9px 32px 9px 12px",
+              placeholder="-- 2. Wajib Pilih Kelas Santri --"
+              searchPlaceholder="Cari kelas santri..."
+              triggerStyle={{
+                padding: "9px 12px",
                 borderRadius: "11px",
                 border: !selectedMengajiKelas ? "2px solid #facc15" : "1px solid rgba(255, 255, 255, 0.32)",
                 background: !selectedMengajiKelas ? "rgba(234, 179, 8, 0.28)" : "rgba(255, 255, 255, 0.16)",
@@ -1061,23 +1064,10 @@ export default function MobilePresensiMengaji() {
                 color: "#ffffff",
                 fontSize: "0.82rem",
                 fontWeight: 800,
-                outline: "none",
-                appearance: "none",
-                cursor: "pointer",
               }}
-            >
-              <option value="" style={{ color: "#0f172a", fontWeight: 700 }}>
-                -- 2. Wajib Pilih Kelas Santri --
-              </option>
-              {availableKelasOptions.map((kls) => (
-                <option key={kls} value={kls} style={{ color: "#0f172a", fontWeight: 700 }}>
-                  🏫 Kelas: {kls}
-                </option>
-              ))}
-            </select>
-            <ChevronDown size={15} color="#ffffff" style={{ position: "absolute", right: "11px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+            />
             {loadingKelasSantri && (
-              <div style={{ position: "absolute", right: "32px", top: "50%", transform: "translateY(-50%)", fontSize: "0.66rem", color: "#fef08a", fontWeight: 700 }}>
+              <div style={{ position: "absolute", right: "32px", top: "50%", transform: "translateY(-50%)", fontSize: "0.66rem", color: "#fef08a", fontWeight: 700, pointerEvents: "none" }}>
                 Memuat...
               </div>
             )}
@@ -1239,6 +1229,7 @@ export default function MobilePresensiMengaji() {
               { key: "Hadir", label: "Hadir", count: sessionHadirCount, color: "#10b981" },
               { key: "Sakit", label: "Sakit", count: sessionSakitCount, color: "#f59e0b" },
               { key: "Izin", label: "Izin", count: sessionIzinCount, color: "#0284c7" },
+              { key: "Alfa", label: "Alfa", count: sessionAlfaCount, color: "#ef4444" },
             ].map((st) => {
               const isActive = filterManualStatus === st.key;
               return (
@@ -1290,6 +1281,7 @@ export default function MobilePresensiMengaji() {
               const isHadir = /hadir/i.test(curStatus);
               const isSakit = /sakit/i.test(curStatus);
               const isIzin = /izin/i.test(curStatus);
+              const isAlfa = /alfa|alpha/i.test(curStatus);
 
               const avatarTheme = getAvatarTheme(s.nama_santri || "");
 
@@ -1310,6 +1302,10 @@ export default function MobilePresensiMengaji() {
                 cardBorderLeft = "4px solid #0284c7";
                 cardBg = "linear-gradient(to right, #f0f9ff 0%, #ffffff 40%)";
                 cardShadow = "0 4px 16px -2px rgba(2, 132, 199, 0.12)";
+              } else if (isAlfa) {
+                cardBorderLeft = "4px solid #ef4444";
+                cardBg = "linear-gradient(to right, #fef2f2 0%, #ffffff 40%)";
+                cardShadow = "0 4px 16px -2px rgba(239, 68, 68, 0.12)";
               }
 
               return (
@@ -1389,9 +1385,9 @@ export default function MobilePresensiMengaji() {
                           gap: "5px",
                           padding: "3px 9px",
                           borderRadius: "999px",
-                          background: isHadir ? "#dcfce7" : isSakit ? "#fef3c7" : "#e0f2fe",
-                          color: isHadir ? "#15803d" : isSakit ? "#b45309" : "#0369a1",
-                          border: `1px solid ${isHadir ? "#86efac" : isSakit ? "#fde68a" : "#bae6fd"}`,
+                          background: isHadir ? "#dcfce7" : isSakit ? "#fef3c7" : isIzin ? "#e0f2fe" : "#fee2e2",
+                          color: isHadir ? "#15803d" : isSakit ? "#b45309" : isIzin ? "#0369a1" : "#b91c1c",
+                          border: `1px solid ${isHadir ? "#86efac" : isSakit ? "#fde68a" : isIzin ? "#bae6fd" : "#fca5a5"}`,
                           fontSize: "0.68rem",
                           fontWeight: 800,
                           flexShrink: 0,
@@ -1402,8 +1398,8 @@ export default function MobilePresensiMengaji() {
                             width: "6px",
                             height: "6px",
                             borderRadius: "50%",
-                            background: isHadir ? "#22c55e" : isSakit ? "#f59e0b" : "#0284c7",
-                            boxShadow: `0 0 6px ${isHadir ? "#22c55e" : isSakit ? "#f59e0b" : "#0284c7"}`,
+                            background: isHadir ? "#22c55e" : isSakit ? "#f59e0b" : isIzin ? "#0284c7" : "#ef4444",
+                            boxShadow: `0 0 6px ${isHadir ? "#22c55e" : isSakit ? "#f59e0b" : isIzin ? "#0284c7" : "#ef4444"}`,
                           }}
                         />
                         {curStatus}
@@ -1430,7 +1426,7 @@ export default function MobilePresensiMengaji() {
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: log ? "repeat(3, 1fr) auto" : "repeat(3, 1fr)",
+                      gridTemplateColumns: log ? "repeat(4, 1fr) auto" : "repeat(4, 1fr)",
                       gap: "6px",
                       marginTop: "2px",
                     }}
@@ -1508,6 +1504,31 @@ export default function MobilePresensiMengaji() {
                     >
                       <Clock size={13} strokeWidth={2.5} color={isIzin ? "#ffffff" : "#0284c7"} />
                       <span>Izin</span>
+                    </button>
+
+                    <button
+                      onClick={() => recordAttendance(s, "Alfa", "Manual")}
+                      disabled={isLocked}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "4px",
+                        padding: "8px 6px",
+                        borderRadius: "10px",
+                        border: isAlfa ? "none" : "1px solid #e2e8f0",
+                        background: isAlfa ? "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)" : "#f8fafc",
+                        color: isAlfa ? "#ffffff" : "#334155",
+                        fontSize: "0.72rem",
+                        fontWeight: 800,
+                        cursor: isLocked ? "not-allowed" : "pointer",
+                        boxShadow: isAlfa ? "0 4px 12px rgba(239, 68, 68, 0.35)" : "none",
+                        opacity: isLocked ? 0.6 : 1,
+                        transition: "all 0.18s ease",
+                      }}
+                    >
+                      <XCircle size={13} strokeWidth={2.5} color={isAlfa ? "#ffffff" : "#ef4444"} />
+                      <span>Alfa</span>
                     </button>
 
                     {/* Reset Button jika sudah ada log */}

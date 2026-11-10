@@ -29,6 +29,7 @@ import {
   showConfirm,
 } from "../../utils/alert.util";
 import MobileLoadingState from "../../components/MobileLoadingState";
+import SearchableSelect from "../../components/SearchableSelect";
 
 const DAFTAR_BERJAMAAH_DEFAULT = [
   { id: "s-1", nama: "Shalat Shubuh", kategori: "Shalat Berjamaah", tempat: "Masjid Jami", jam_target: "04:30:00" },
@@ -579,17 +580,23 @@ export default function MobilePresensiBerjamaah() {
           </span>
         </div>
 
-        {/* Dropdown Jadwal Shalat */}
-        <div style={{ position: "relative", marginBottom: "8px" }}>
-          <select
+        {/* Searchable Dropdown Jadwal Shalat */}
+        <div style={{ marginBottom: "8px" }}>
+          <SearchableSelect
+            options={daftarBerjamaah.map((k) => ({
+              value: k.id,
+              label: `🕌 ${k.nama}`,
+              sublabel: k.jam_target ? `Jam: ${String(k.jam_target).substring(0, 5)}` : (k.jam_mulai_presensi ? `Mulai: ${String(k.jam_mulai_presensi).substring(0, 5)}` : null)
+            }))}
             value={selectedBerjamaah?.id || ""}
-            onChange={(e) => {
-              const k = daftarBerjamaah.find((x) => String(x.id) === String(e.target.value));
+            onChange={(val) => {
+              const k = daftarBerjamaah.find((x) => String(x.id) === String(val));
               if (k) setSelectedBerjamaah(k);
             }}
-            style={{
-              width: "100%",
-              padding: "9px 32px 9px 12px",
+            placeholder="-- Pilih Jadwal Shalat --"
+            searchPlaceholder="Cari sesi shalat berjamaah..."
+            triggerStyle={{
+              padding: "9px 12px",
               borderRadius: "11px",
               border: "1px solid rgba(255, 255, 255, 0.32)",
               background: "rgba(255, 255, 255, 0.18)",
@@ -597,54 +604,35 @@ export default function MobilePresensiBerjamaah() {
               color: "#ffffff",
               fontSize: "0.84rem",
               fontWeight: 800,
-              outline: "none",
-              appearance: "none",
-              cursor: "pointer",
             }}
-          >
-            {daftarBerjamaah.map((k) => (
-              <option key={k.id} value={k.id} style={{ color: "#0f172a", fontWeight: 700 }}>
-                🕌 {k.nama} {k.jam_target ? `(${String(k.jam_target).substring(0, 5)})` : (k.jam_mulai_presensi ? `(${String(k.jam_mulai_presensi).substring(0, 5)})` : "")}
-              </option>
-            ))}
-          </select>
-          <ChevronDown size={15} color="#ffffff" style={{ position: "absolute", right: "11px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+          />
         </div>
 
-        {/* Dropdown Kelas Santri (Pilih Kelas Dulu Agar Loading Instan) */}
-        <div style={{ position: "relative", marginBottom: "10px" }}>
-          <select
+        {/* Searchable Dropdown Kelas Santri (Pilih Kelas Dulu Agar Loading Instan) */}
+        <div style={{ marginBottom: "10px" }}>
+          <SearchableSelect
+            options={kelasList.map((k) => ({
+              value: k.nama_kelas,
+              label: `🏫 Kelas: ${k.nama_kelas}`
+            }))}
             value={selectedBerjamaahKelas}
-            onChange={(e) => {
-              const k = e.target.value;
-              setSelectedBerjamaahKelas(k);
-              loadSantriByKelas(k);
+            onChange={(val) => {
+              setSelectedBerjamaahKelas(val || "");
+              loadSantriByKelas(val || "");
             }}
-            style={{
-              width: "100%",
-              padding: "9px 32px 9px 12px",
+            placeholder="-- Pilih Kelas Santri --"
+            searchPlaceholder="Cari nama kelas santri..."
+            triggerStyle={{
+              padding: "9px 12px",
               borderRadius: "11px",
-              border: "1px solid rgba(255, 255, 255, 0.32)",
-              background: "rgba(255, 255, 255, 0.18)",
+              border: !selectedBerjamaahKelas ? "2px solid #facc15" : "1px solid rgba(255, 255, 255, 0.32)",
+              background: !selectedBerjamaahKelas ? "rgba(234, 179, 8, 0.28)" : "rgba(255, 255, 255, 0.18)",
               backdropFilter: "blur(10px)",
               color: "#ffffff",
               fontSize: "0.84rem",
               fontWeight: 800,
-              outline: "none",
-              appearance: "none",
-              cursor: "pointer",
             }}
-          >
-            <option value="" style={{ color: "#0f172a", fontWeight: 700 }}>
-              -- Pilih Kelas Santri --
-            </option>
-            {kelasList.map((k) => (
-              <option key={k.id || k.nama_kelas} value={k.nama_kelas} style={{ color: "#0f172a", fontWeight: 700 }}>
-                🏫 Kelas: {k.nama_kelas}
-              </option>
-            ))}
-          </select>
-          <ChevronDown size={15} color="#ffffff" style={{ position: "absolute", right: "11px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+          />
         </div>
 
         {/* Progress Bar & Realtime Count */}

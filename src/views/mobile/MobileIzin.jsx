@@ -25,6 +25,7 @@ import {
   showConfirm,
 } from "../../utils/alert.util";
 import MobileLoadingState from "../../components/MobileLoadingState";
+import SearchableSelect from "../../components/SearchableSelect";
 
 export default function MobileIzin() {
   const [izinList, setIzinList] = useState([]);
@@ -1108,34 +1109,32 @@ export default function MobileIzin() {
                 >
                   Pilih Santri *
                 </label>
-                <select
+                <SearchableSelect
+                  options={santriOptions.map((s) => ({
+                    value: s.id,
+                    label: s.nama_santri,
+                    sublabel: s.nis ? `NIS: ${s.nis}` : null,
+                  }))}
                   value={formData.santri_id}
-                  onChange={(e) =>
+                  onChange={(val) =>
                     setFormData({
                       ...formData,
-                      santri_id: parseInt(e.target.value),
+                      santri_id: parseInt(val),
                     })
                   }
-                  style={{
+                  placeholder="-- Pilih Santri --"
+                  searchPlaceholder="Cari nama santri atau NIS..."
+                  triggerStyle={{
                     width: "100%",
                     padding: "10px 12px",
                     borderRadius: "12px",
                     border: "1.5px solid #cbd5e1",
                     fontSize: "0.85rem",
                     background: "#ffffff",
-                    outline: "none",
+                    color: "#0f172a",
+                    fontWeight: 600,
                   }}
-                >
-                  {santriOptions.length > 0 ? (
-                    santriOptions.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.nama_santri} (NIS: {s.nis})
-                      </option>
-                    ))
-                  ) : (
-                    <option value={1}>Muhammad Al-Fatih</option>
-                  )}
-                </select>
+                />
               </div>
 
               {/* Jenis Izin Interaktif */}

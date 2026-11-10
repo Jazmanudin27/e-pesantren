@@ -18,6 +18,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { toastSuccess, toastError } from "../../utils/alert.util";
+import SearchableSelect from "../../components/SearchableSelect";
 
 export default function PengajarTeguranView() {
   const [loading, setLoading] = useState(true);
@@ -629,30 +630,29 @@ export default function PengajarTeguranView() {
                 >
                   PILIH SANTRI *
                 </label>
-                <select
-                  required
+                <SearchableSelect
+                  options={santriList.map((s) => ({
+                    value: s.id,
+                    label: s.nama_santri,
+                    sublabel: s.nama_kelas ? `Kelas: ${s.nama_kelas}` : null,
+                  }))}
                   value={formData.santri_id}
-                  onChange={(e) =>
-                    setFormData({ ...formData, santri_id: e.target.value })
+                  onChange={(val) =>
+                    setFormData({ ...formData, santri_id: val })
                   }
-                  style={{
+                  placeholder="-- Pilih Santri Penerima Teguran --"
+                  searchPlaceholder="Cari nama santri atau kelas..."
+                  triggerStyle={{
                     width: "100%",
                     padding: "9px 12px",
                     borderRadius: "10px",
                     border: "1.5px solid #cbd5e1",
                     fontSize: "0.78rem",
                     background: "#ffffff",
-                    outline: "none",
+                    color: "#0f172a",
                     fontWeight: 600,
                   }}
-                >
-                  <option value="">-- Pilih Santri Penerima Teguran --</option>
-                  {santriList.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.nama_santri} ({s.nama_kelas || "Santri"})
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
               {/* Kategori Pilihan (Pill Buttons) */}

@@ -135,11 +135,11 @@ export default function SearchableSelect({
       >
         <div style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: '6px' }}>
           {selectedOption ? (
-            <span style={{ color: '#0f172a', fontWeight: 600, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <span style={{ color: triggerStyle?.color || '#0f172a', fontWeight: triggerStyle?.fontWeight || 600, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {selectedOption.label} {selectedOption.sublabel ? `(${selectedOption.sublabel})` : ''}
             </span>
           ) : (
-            <span style={{ color: '#94a3b8', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>{placeholder}</span>
+            <span style={{ color: triggerStyle?.color ? 'rgba(255,255,255,0.7)' : '#94a3b8', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>{placeholder}</span>
           )}
         </div>
 
@@ -152,7 +152,7 @@ export default function SearchableSelect({
                 border: 'none',
                 background: 'transparent',
                 cursor: 'pointer',
-                color: '#94a3b8',
+                color: triggerStyle?.color ? 'rgba(255,255,255,0.75)' : '#94a3b8',
                 padding: '1px',
                 borderRadius: '50%',
                 display: 'flex',
@@ -163,7 +163,7 @@ export default function SearchableSelect({
               <X size={12} />
             </button>
           )}
-          <ChevronDown size={14} color="#64748b" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+          <ChevronDown size={14} color={triggerStyle?.color || "#64748b"} style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
         </div>
       </div>
 

@@ -49,6 +49,16 @@ export const ensureHaidTablesAndColumns = async () => {
       } catch (e) {}
     }
 
+    // 3. Selalu sinkronkan flag santri.is_haid dengan data nyata di tabel santri_haid
+    try {
+      await pool.query(`
+        UPDATE santri s
+        LEFT JOIN santri_haid sh ON s.id = sh.santri_id AND sh.status = 'aktif'
+        SET s.is_haid = CASE WHEN sh.id IS NOT NULL THEN 1 ELSE 0 END,
+            s.tgl_haid_mulai = CASE WHEN sh.id IS NOT NULL THEN sh.tgl_mulai ELSE NULL END
+      `);
+    } catch (e) {}
+
     isHaidTableChecked = true;
   } catch (err) {
     console.warn('[HAID DB INIT NOTICE]', err.message);
@@ -103,18 +113,30 @@ export const syncActiveHaidToAbsensi = async () => {
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-    // 1. Ambil semua santriwati (P) yang sedang haid aktif
+    // 0. Bersihkan absensi haid (Sistem Haid) hari ini untuk santri yang TIDAK memiliki status aktif di santri_haid
+    // Ini memastikan jika admin/user menghapus record di santri_haid lewat Navicat, absensi haid hari ini otomatis bersih!
+    await pool.query(`
+      DELETE FROM absensi_jamaah_mengaji
+      WHERE tanggal = ?
+        AND status = 'Haid'
+        AND metode_presensi = 'Sistem Haid'
+        AND santri_id NOT IN (
+          SELECT santri_id FROM santri_haid WHERE status = 'aktif'
+        )
+    `, [todayStr]).catch(() => {});
+
+    // 1. Ambil santriwati (P) yang BENAR-BENAR memiliki record aktif di tabel santri_haid
     const [activeHaids] = await pool.query(`
-      SELECT s.id as santri_id, s.nama_santri, s.nis, COALESCE(s.tgl_haid_mulai, sh.tgl_mulai) as tgl_mulai, sh.id as haid_id, sh.keterangan
-      FROM santri s
-      LEFT JOIN santri_haid sh ON s.id = sh.santri_id AND sh.status = 'aktif'
-      WHERE LOWER(COALESCE(s.jk, '')) IN ('p', 'perempuan', 'putri', 'akhwat')
-        AND (s.is_haid = 1 OR sh.id IS NOT NULL)
+      SELECT sh.santri_id, s.nama_santri, s.nis, sh.tgl_mulai, sh.id as haid_id, sh.keterangan
+      FROM santri_haid sh
+      JOIN santri s ON sh.santri_id = s.id
+      WHERE sh.status = 'aktif'
+        AND LOWER(COALESCE(s.jk, '')) IN ('p', 'perempuan', 'putri', 'akhwat')
     `).catch(() => [[]]);
 
     if (!activeHaids || activeHaids.length === 0) return;
 
-    // 2. Ambil sesi Shalat Berjamaah aktif
+    // 2. Ambil sesi Shalat Berjamaah aktif murni dari database kegiatan_sesi
     const [sesiRows] = await pool.query(`
       SELECT id, nama_sesi, kategori, jam_target
       FROM kegiatan_sesi
@@ -125,24 +147,14 @@ export const syncActiveHaidToAbsensi = async () => {
         )
     `).catch(() => [[]]);
 
-    let shalatSessions = [];
-    if (sesiRows && sesiRows.length > 0) {
-      shalatSessions = sesiRows.map(s => ({
-        sesi_id: s.id,
-        nama_kegiatan: s.nama_sesi,
-        tipe_presensi: 'Berjamaah',
-        waktu_scan: s.jam_target ? String(s.jam_target).substring(0, 8) : '05:00:00'
-      }));
-    } else {
-      // Fallback sesi shalat standar jika kegiatan_sesi kosong
-      shalatSessions = [
-        { sesi_id: 1, nama_kegiatan: 'Shalat Subuh', tipe_presensi: 'Berjamaah', waktu_scan: '04:45:00' },
-        { sesi_id: 2, nama_kegiatan: 'Shalat Dzuhur', tipe_presensi: 'Berjamaah', waktu_scan: '12:00:00' },
-        { sesi_id: 3, nama_kegiatan: 'Shalat Ashar', tipe_presensi: 'Berjamaah', waktu_scan: '15:15:00' },
-        { sesi_id: 4, nama_kegiatan: 'Shalat Maghrib', tipe_presensi: 'Berjamaah', waktu_scan: '18:00:00' },
-        { sesi_id: 5, nama_kegiatan: 'Shalat Isya', tipe_presensi: 'Berjamaah', waktu_scan: '19:15:00' }
-      ];
-    }
+    if (!sesiRows || sesiRows.length === 0) return;
+
+    const shalatSessions = sesiRows.map(s => ({
+      sesi_id: s.id,
+      nama_kegiatan: s.nama_sesi,
+      tipe_presensi: 'Berjamaah',
+      waktu_scan: s.jam_target ? String(s.jam_target).substring(0, 8) : '05:00:00'
+    }));
 
     // 3. Ambil log absensi hari ini agar tidak overwrite log yang sudah Hadir (misal sudah suci & scan)
     const [existingToday] = await pool.query(`
@@ -207,6 +219,16 @@ export const syncActiveHaidToAbsensi = async () => {
 export const getSantriwatiHaidList = async (req, res) => {
   try {
     await ensureHaidTablesAndColumns();
+
+    // Selalu sinkronkan flag santri.is_haid dengan data nyata di tabel santri_haid
+    // Menghilangkan kemungkinan 'ghost haid' saat user hapus data di Navicat
+    await pool.query(`
+      UPDATE santri s
+      LEFT JOIN santri_haid sh ON s.id = sh.santri_id AND sh.status = 'aktif'
+      SET s.is_haid = CASE WHEN sh.id IS NOT NULL THEN 1 ELSE 0 END,
+          s.tgl_haid_mulai = CASE WHEN sh.id IS NOT NULL THEN sh.tgl_mulai ELSE NULL END
+    `).catch(() => {});
+
     // Sinkronisasi status haid ke absensi secara asynchronous tanpa menahan response HTTP
     syncActiveHaidToAbsensi().catch(() => {});
 
@@ -231,11 +253,11 @@ export const getSantriwatiHaidList = async (req, res) => {
       params.push(asrama_id);
     }
 
-    // Tab filter
+    // Tab filter: HANYA berdasarkan keberadaan record aktif di santri_haid
     if (tab === 'haid' || tab === 'aktif') {
-      where.push(`(s.is_haid = 1 OR sh.id IS NOT NULL)`);
+      where.push(`sh.id IS NOT NULL`);
     } else if (tab === 'suci') {
-      where.push(`(COALESCE(s.is_haid, 0) = 0 AND sh.id IS NULL)`);
+      where.push(`sh.id IS NULL`);
     }
 
     const sql = `
@@ -247,11 +269,11 @@ export const getSantriwatiHaidList = async (req, res) => {
         COALESCE(s.nama_kelas, '') as nama_kelas,
         COALESCE(a.nama_asrama, '') as nama_asrama,
         COALESCE(k.nama_kamar, '') as nama_kamar,
-        CASE WHEN (s.is_haid = 1 OR sh.id IS NOT NULL) THEN 1 ELSE 0 END as is_haid,
+        CASE WHEN sh.id IS NOT NULL THEN 1 ELSE 0 END as is_haid,
         sh.id as active_haid_id,
-        DATE_FORMAT(COALESCE(sh.tgl_mulai, s.tgl_haid_mulai), '%Y-%m-%d') as tgl_mulai,
+        DATE_FORMAT(sh.tgl_mulai, '%Y-%m-%d') as tgl_mulai,
         sh.waktu_mulai,
-        DATEDIFF(CURDATE(), COALESCE(sh.tgl_mulai, s.tgl_haid_mulai)) + 1 as hari_ke,
+        CASE WHEN sh.id IS NOT NULL THEN DATEDIFF(CURDATE(), sh.tgl_mulai) + 1 ELSE 0 END as hari_ke,
         sh.keterangan as haid_keterangan,
         sh.dicatat_oleh
       FROM santri s
@@ -264,12 +286,12 @@ export const getSantriwatiHaidList = async (req, res) => {
 
     const [rows] = await pool.query(sql, params);
 
-    // Hitung ringkasan statistik akhwat
+    // Hitung ringkasan statistik akhwat murni dari santri_haid
     const [[summary]] = await pool.query(`
       SELECT 
         COUNT(*) as total_santriwati,
-        SUM(CASE WHEN (s.is_haid = 1 OR sh.id IS NOT NULL) THEN 1 ELSE 0 END) as sedang_haid,
-        SUM(CASE WHEN (COALESCE(s.is_haid, 0) = 0 AND sh.id IS NULL) THEN 1 ELSE 0 END) as suci
+        SUM(CASE WHEN sh.id IS NOT NULL THEN 1 ELSE 0 END) as sedang_haid,
+        SUM(CASE WHEN sh.id IS NULL THEN 1 ELSE 0 END) as suci
       FROM santri s
       LEFT JOIN santri_haid sh ON s.id = sh.santri_id AND sh.status = 'aktif'
       WHERE LOWER(COALESCE(s.jk, '')) IN ('p', 'perempuan', 'putri', 'akhwat')
@@ -440,6 +462,47 @@ export const getHaidHistory = async (req, res) => {
     return sendSuccess(res, 'Riwayat haid berhasil dimuat', rows || []);
   } catch (err) {
     return sendError(res, `Gagal memuat riwayat haid: ${err.message}`, 500);
+  }
+};
+
+/**
+ * 5. DELETE /api/haid/:id
+ * Menghapus record haid dan otomatis re-sync santri serta absensi
+ */
+export const deleteHaidRecord = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.query('SELECT santri_id FROM santri_haid WHERE id = ?', [id]);
+    const santriId = rows?.[0]?.santri_id;
+
+    await pool.query('DELETE FROM santri_haid WHERE id = ?', [id]);
+
+    if (santriId) {
+      // Re-sync santri.is_haid
+      await pool.query(`
+        UPDATE santri s
+        LEFT JOIN santri_haid sh ON s.id = sh.santri_id AND sh.status = 'aktif'
+        SET s.is_haid = CASE WHEN sh.id IS NOT NULL THEN 1 ELSE 0 END,
+            s.tgl_haid_mulai = CASE WHEN sh.id IS NOT NULL THEN sh.tgl_mulai ELSE NULL END
+        WHERE s.id = ?
+      `, [santriId]).catch(() => {});
+
+      // Hapus absensi shalat hari ini jika tidak lagi aktif haid
+      await pool.query(`
+        DELETE FROM absensi_jamaah_mengaji
+        WHERE tanggal = CURDATE()
+          AND status = 'Haid'
+          AND metode_presensi = 'Sistem Haid'
+          AND santri_id = ?
+          AND santri_id NOT IN (
+            SELECT santri_id FROM santri_haid WHERE status = 'aktif'
+          )
+      `, [santriId]).catch(() => {});
+    }
+
+    return sendSuccess(res, 'Record haid berhasil dihapus dan disinkronisasi ke database');
+  } catch (err) {
+    return sendError(res, `Gagal menghapus record haid: ${err.message}`, 500);
   }
 };
 

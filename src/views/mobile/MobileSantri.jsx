@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { showConfirm, toastSuccess, showError } from "../../utils/alert.util";
 import MobileLoadingState from "../../components/MobileLoadingState";
+import SearchableSelect from "../../components/SearchableSelect";
 
 export default function MobileSantri() {
   const [santriList, setSantriList] = useState([]);
@@ -1042,36 +1043,34 @@ export default function MobileSantri() {
                       <label style={{ fontSize: "0.74rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "4px" }}>
                         ASRAMA (GEDUNG PONDOK) *
                       </label>
-                      <select
+                      <SearchableSelect
+                        options={asramaList.map((a) => ({
+                          value: a.id,
+                          label: `🏢 ${a.nama_asrama} (${a.gender === "L" ? "Ikhwan" : "Akhwat"})`
+                        }))}
                         value={formData.asrama_id}
-                        onChange={(e) => handleAsramaChange(e.target.value)}
-                        style={{ width: "100%", padding: "10px", borderRadius: "10px", border: "1.5px solid #cbd5e1", fontSize: "0.82rem", boxSizing: "border-box" }}
-                      >
-                        <option value="">-- Pilih Gedung Asrama --</option>
-                        {asramaList.map((a) => (
-                          <option key={a.id} value={a.id}>
-                            🏢 {a.nama_asrama} ({a.gender === "L" ? "Ikhwan" : "Akhwat"})
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(val) => handleAsramaChange(val)}
+                        placeholder="-- Pilih Gedung Asrama --"
+                        searchPlaceholder="Cari gedung asrama..."
+                        triggerStyle={{ width: "100%", padding: "10px", borderRadius: "10px", border: "1.5px solid #cbd5e1", fontSize: "0.82rem", background: "#ffffff", color: "#0f172a", fontWeight: 600 }}
+                      />
                     </div>
 
                     <div>
                       <label style={{ fontSize: "0.74rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "4px" }}>
                         KAMAR KOBONG *
                       </label>
-                      <select
+                      <SearchableSelect
+                        options={availableKamars.map((k) => ({
+                          value: k.id,
+                          label: `🚪 ${k.nama_kamar} ${k.kapasitas ? `(Kapasitas: ${k.kapasitas})` : ""}`
+                        }))}
                         value={formData.kamar_id}
-                        onChange={(e) => handleKamarChange(e.target.value)}
-                        style={{ width: "100%", padding: "10px", borderRadius: "10px", border: "1.5px solid #cbd5e1", fontSize: "0.82rem", boxSizing: "border-box" }}
-                      >
-                        <option value="">-- Pilih Kamar Kobong --</option>
-                        {availableKamars.map((k) => (
-                          <option key={k.id} value={k.id}>
-                            🚪 {k.nama_kamar} {k.kapasitas ? `(Kapasitas: ${k.kapasitas})` : ""}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(val) => handleKamarChange(val)}
+                        placeholder="-- Pilih Kamar Kobong --"
+                        searchPlaceholder="Cari kamar kobong..."
+                        triggerStyle={{ width: "100%", padding: "10px", borderRadius: "10px", border: "1.5px solid #cbd5e1", fontSize: "0.82rem", background: "#ffffff", color: "#0f172a", fontWeight: 600 }}
+                      />
                     </div>
 
                     <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "10px" }}>
@@ -1079,18 +1078,17 @@ export default function MobileSantri() {
                         <label style={{ fontSize: "0.74rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "4px" }}>
                           KELAS PENGAJIAN / HALAQAH *
                         </label>
-                        <select
+                        <SearchableSelect
+                          options={kelasList.map((kls) => ({
+                            value: kls.id,
+                            label: `🏫 Kelas: ${kls.nama_kelas}`
+                          }))}
                           value={formData.kelas_id || formData.nama_kelas}
-                          onChange={(e) => handleKelasChange(e.target.value)}
-                          style={{ width: "100%", padding: "10px", borderRadius: "10px", border: "1.5px solid #cbd5e1", fontSize: "0.82rem", boxSizing: "border-box" }}
-                        >
-                          <option value="">-- Pilih Kelas Santri --</option>
-                          {kelasList.map((kls) => (
-                            <option key={kls.id} value={kls.id}>
-                              🏫 Kelas: {kls.nama_kelas}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={(val) => handleKelasChange(val)}
+                          placeholder="-- Pilih Kelas Santri --"
+                          searchPlaceholder="Cari kelas santri..."
+                          triggerStyle={{ width: "100%", padding: "10px", borderRadius: "10px", border: "1.5px solid #cbd5e1", fontSize: "0.82rem", background: "#ffffff", color: "#0f172a", fontWeight: 600 }}
+                        />
                       </div>
                       <div>
                         <label style={{ fontSize: "0.74rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "4px" }}>
