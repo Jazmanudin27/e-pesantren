@@ -23,6 +23,9 @@ import {
   Users,
   Volume2,
   VolumeX,
+  FileCheck,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import {
   showConfirm,
@@ -68,7 +71,7 @@ export default function MobilePengembangan() {
   // 3 Tabs Utama: 'scan' (Scan Wajah AI) | 'manual' (Pilih Santri) | 'histori' (Riwayat)
   const [activeTab, setActiveTab] = useState("manual");
 
-  // State Kelas & Data
+  // State Dropdown Kelas & Bidang Utama
   const [kelasList, setKelasList] = useState([]);
   const [selectedKelas, setSelectedKelas] = useState(() => {
     try {
@@ -79,6 +82,17 @@ export default function MobilePengembangan() {
       return "";
     }
   });
+
+  const [selectedBidang, setSelectedBidang] = useState(() => {
+    try {
+      return (
+        localStorage.getItem("epesantren_pengembangan_selected_bidang") || ""
+      );
+    } catch (e) {
+      return "";
+    }
+  });
+
   const [santriList, setSantriList] = useState([]);
   const [loadingKelasSantri, setLoadingKelasSantri] = useState(false);
   const [masterKategoriAll, setMasterKategoriAll] = useState([]);
@@ -150,7 +164,7 @@ export default function MobilePengembangan() {
     catatan_tambahan: "",
   });
 
-  // Simpan preferensi kelas terpilih
+  // Simpan preferensi pilihan di localStorage
   useEffect(() => {
     if (selectedKelas) {
       try {
@@ -161,6 +175,15 @@ export default function MobilePengembangan() {
       } catch (e) {}
     }
   }, [selectedKelas]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "epesantren_pengembangan_selected_bidang",
+        selectedBidang,
+      );
+    } catch (e) {}
+  }, [selectedBidang]);
 
   // Load santri khusus per kelas
   const loadSantriByKelas = async (targetKelas) => {
@@ -375,7 +398,7 @@ export default function MobilePengembangan() {
 
       ctx.beginPath();
       ctx.moveTo(boxX + boxW - corner, boxY);
-      ctx.lineTo(boxX + boxW, boxY);
+      ctx.lineTo(boxX + boxW);
       ctx.lineTo(boxX + boxW, boxY + corner);
       ctx.stroke();
 
@@ -387,7 +410,7 @@ export default function MobilePengembangan() {
 
       ctx.beginPath();
       ctx.moveTo(boxX + boxW - corner, boxY + boxH);
-      ctx.lineTo(boxX + boxW, boxY + boxH);
+      ctx.lineTo(boxX + boxW);
       ctx.lineTo(boxX + boxW, boxY + boxH - corner);
       ctx.stroke();
 
@@ -626,7 +649,13 @@ export default function MobilePengembangan() {
     const availableKats = (masterKategoriRef.current || []).filter(
       (k) => !k.gender || k.gender === detectedGender || k.gender === "Semua",
     );
-    const defaultKatId = availableKats[0] ? String(availableKats[0].id) : "";
+    // Prioritaskan kategori yang sedang dipilih di header, jika cocok
+    const defaultKatId =
+      selectedBidang && availableKats.some((k) => String(k.id) === String(selectedBidang))
+        ? String(selectedBidang)
+        : availableKats[0]
+          ? String(availableKats[0].id)
+          : "";
 
     setEvalForm({
       santri_id: santriObj.id,
@@ -867,19 +896,35 @@ export default function MobilePengembangan() {
   return (
     <div style={{ padding: "14px", paddingBottom: "95px" }}>
       {/* =========================================================================
-          1. HEADER CARD (SEPERTI PRESIENSI MENGAJI)
+          1. HEADER CARD DENGAN STATS LULUS & BINA YANG MENARIK + DUA DROPDOWN
       ========================================================================= */}
       <div
         style={{
-          background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
-          borderRadius: "20px",
+          background: "linear-gradient(135deg, #0369a1 0%, #0284c7 50%, #0ea5e9 100%)",
+          borderRadius: "22px",
           padding: "16px",
           color: "#ffffff",
           marginBottom: "12px",
-          boxShadow: "0 8px 24px -4px rgba(2, 132, 199, 0.4)",
+          boxShadow: "0 10px 28px -6px rgba(2, 132, 199, 0.45)",
+          position: "relative",
+          overflow: "hidden",
         }}
       >
-        {/* Title & Stats Ringkas */}
+        {/* Subtle Background Glow Accent */}
+        <div
+          style={{
+            position: "absolute",
+            top: "-30px",
+            right: "-30px",
+            width: "120px",
+            height: "120px",
+            borderRadius: "50%",
+            background: "rgba(255, 255, 255, 0.12)",
+            pointerEvents: "none",
+          }}
+        />
+
+        {/* Title Header */}
         <div
           style={{
             display: "flex",
@@ -889,40 +934,195 @@ export default function MobilePengembangan() {
           }}
         >
           <div>
-            <div style={{ fontSize: "0.98rem", fontWeight: 800 }}>
-              Evaluasi Pengembangan
+            <div
+              style={{
+                fontSize: "1.02rem",
+                fontWeight: 900,
+                letterSpacing: "-0.01em",
+              }}
+            >
+              Evaluasi Perkembangan
             </div>
-            <div style={{ fontSize: "0.68rem", color: "#e0f2fe", opacity: 0.9 }}>
-              Diagnostik Perkembangan & Pembinaan Santri
+            <div
+              style={{
+                fontSize: "0.68rem",
+                color: "#e0f2fe",
+                opacity: 0.92,
+                marginTop: "1px",
+              }}
+            >
+              Uji Kelulusan &amp; Pembinaan Karakter Santri
             </div>
           </div>
-          <div style={{ display: "flex", gap: "6px" }}>
-            <span
+          <span
+            style={{
+              fontSize: "0.64rem",
+              background: "rgba(255, 255, 255, 0.22)",
+              backdropFilter: "blur(6px)",
+              padding: "3px 9px",
+              borderRadius: "999px",
+              fontWeight: 800,
+              border: "1px solid rgba(255, 255, 255, 0.35)",
+            }}
+          >
+            {rekapList.length} Total Uji
+          </span>
+        </div>
+
+        {/* DUA KARTU STATISTIK MENARIK (LULUS & BINA) */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "10px",
+            marginBottom: "14px",
+          }}
+        >
+          {/* Card 1: Lulus (Vibrant Emerald Glow) */}
+          <div
+            style={{
+              background: "linear-gradient(135deg, rgba(16, 185, 129, 0.28) 0%, rgba(5, 150, 105, 0.38) 100%)",
+              border: "1.5px solid rgba(134, 239, 172, 0.55)",
+              backdropFilter: "blur(10px)",
+              borderRadius: "15px",
+              padding: "10px 12px",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              boxShadow: "0 4px 14px rgba(0, 0, 0, 0.08)",
+            }}
+          >
+            <div
               style={{
-                fontSize: "0.68rem",
-                background: "rgba(255,255,255,0.2)",
-                padding: "3px 8px",
-                borderRadius: "8px",
-                fontWeight: 700,
+                width: "38px",
+                height: "38px",
+                borderRadius: "11px",
+                background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 4px 12px rgba(16, 185, 129, 0.4)",
+                flexShrink: 0,
               }}
             >
-              ✅ Lulus: {countLulus}
-            </span>
-            <span
+              <CheckCircle size={20} strokeWidth={2.5} />
+            </div>
+            <div>
+              <div
+                style={{
+                  fontSize: "1.25rem",
+                  fontWeight: 900,
+                  lineHeight: 1.1,
+                  color: "#ffffff",
+                }}
+              >
+                {countLulus}
+              </div>
+              <div
+                style={{
+                  fontSize: "0.68rem",
+                  color: "#bbf7d0",
+                  fontWeight: 800,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.03em",
+                }}
+              >
+                Santri Lulus
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Butuh Pembinaan (Vibrant Rose/Red Glow) */}
+          <div
+            style={{
+              background: "linear-gradient(135deg, rgba(239, 68, 68, 0.28) 0%, rgba(220, 38, 38, 0.38) 100%)",
+              border: "1.5px solid rgba(254, 205, 211, 0.55)",
+              backdropFilter: "blur(10px)",
+              borderRadius: "15px",
+              padding: "10px 12px",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              boxShadow: "0 4px 14px rgba(0, 0, 0, 0.08)",
+            }}
+          >
+            <div
               style={{
-                fontSize: "0.68rem",
-                background: "rgba(239, 68, 68, 0.35)",
-                padding: "3px 8px",
-                borderRadius: "8px",
-                fontWeight: 700,
+                width: "38px",
+                height: "38px",
+                borderRadius: "11px",
+                background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 4px 12px rgba(239, 68, 68, 0.4)",
+                flexShrink: 0,
               }}
             >
-              ⚠️ Bina: {countTidakLulus}
-            </span>
+              <AlertTriangle size={19} strokeWidth={2.5} />
+            </div>
+            <div>
+              <div
+                style={{
+                  fontSize: "1.25rem",
+                  fontWeight: 900,
+                  lineHeight: 1.1,
+                  color: "#ffffff",
+                }}
+              >
+                {countTidakLulus}
+              </div>
+              <div
+                style={{
+                  fontSize: "0.68rem",
+                  color: "#fecdd3",
+                  fontWeight: 800,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.03em",
+                }}
+              >
+                Butuh Bina
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Dropdown 1: Wajib Pilih Kelas Santri */}
+        {/* SELECT OPTION 1: BIDANG PENGEMBANGAN (DROPDOWN ATAS) */}
+        <div style={{ position: "relative", marginBottom: "8px" }}>
+          <SearchableSelect
+            options={[
+              { value: "", label: "📘 -- Semua Bidang / Bebas Saat Evaluasi --" },
+              ...masterKategoriAll.map((k) => ({
+                value: String(k.id),
+                label: `📘 Bidang: ${k.nama_kategori}`,
+              })),
+            ]}
+            value={selectedBidang}
+            onChange={(val) => {
+              const target = val || "";
+              setSelectedBidang(target);
+              if (target) {
+                setFilterHistoriKategori(target);
+              }
+            }}
+            placeholder="-- Pilih Bidang Pengembangan (Opsional) --"
+            searchPlaceholder="Cari bidang pengembangan..."
+            triggerStyle={{
+              padding: "9px 12px",
+              borderRadius: "12px",
+              border: "1px solid rgba(255, 255, 255, 0.35)",
+              background: "rgba(255, 255, 255, 0.16)",
+              backdropFilter: "blur(10px)",
+              color: "#ffffff",
+              fontSize: "0.82rem",
+              fontWeight: 800,
+            }}
+          />
+        </div>
+
+        {/* SELECT OPTION 2: KELAS SANTRI (WAJIB PILIH) */}
         <div style={{ position: "relative" }}>
           <SearchableSelect
             options={availableKelasOptions.map((kls) => ({
@@ -941,11 +1141,11 @@ export default function MobilePengembangan() {
                 }
               }
             }}
-            placeholder="-- 1. Wajib Pilih Kelas Santri --"
+            placeholder="-- Wajib Pilih Kelas Santri --"
             searchPlaceholder="Cari kelas santri..."
             triggerStyle={{
               padding: "9px 12px",
-              borderRadius: "11px",
+              borderRadius: "12px",
               border: !selectedKelas
                 ? "2px solid #facc15"
                 : "1px solid rgba(255, 255, 255, 0.35)",
@@ -1002,7 +1202,7 @@ export default function MobilePengembangan() {
       </div>
 
       {/* =========================================================================
-          2. TAB NAVIGASI: SCAN, MANUAL, HISTORI (SEPERTI PRESIENSI MENGAJI)
+          2. TAB NAVIGASI: SCAN, MANUAL, HISTORI
       ========================================================================= */}
       <div
         style={{
@@ -1081,7 +1281,7 @@ export default function MobilePengembangan() {
       </div>
 
       {/* =========================================================================
-          TAB 1: SCAN WAJAH AI (KAMERA INLINE PERSIS MENGAJI)
+          TAB 1: SCAN WAJAH AI (KAMERA INLINE)
       ========================================================================= */}
       {activeTab === "scan" && (
         <div
@@ -1364,7 +1564,6 @@ export default function MobilePengembangan() {
       ========================================================================= */}
       {activeTab === "manual" && (
         <div>
-          {/* Notice jika Kelas belum dipilih */}
           {!selectedKelas ? (
             <div
               style={{
@@ -1515,7 +1714,16 @@ export default function MobilePengembangan() {
                           background: "#ffffff",
                           borderRadius: "14px",
                           padding: "12px",
-                          border: "1px solid #e2e8f0",
+                          border: lastEval
+                            ? isLulus
+                              ? "1.5px solid #86efac"
+                              : "1.5px solid #fca5a5"
+                            : "1px solid #e2e8f0",
+                          borderLeft: lastEval
+                            ? isLulus
+                              ? "4px solid #10b981"
+                              : "4px solid #ef4444"
+                            : "4px solid #94a3b8",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "space-between",
@@ -1589,31 +1797,44 @@ export default function MobilePengembangan() {
                               {santri.nama_asrama || "Asrama"}
                             </div>
 
-                            {/* Status Terakhir */}
+                            {/* Status Terakhir Badge */}
                             {lastEval ? (
                               <span
                                 style={{
-                                  display: "inline-block",
-                                  marginTop: "3px",
-                                  fontSize: "0.62rem",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "4px",
+                                  marginTop: "4px",
+                                  fontSize: "0.64rem",
                                   fontWeight: 800,
-                                  padding: "1px 7px",
+                                  padding: "2px 8px",
                                   borderRadius: "6px",
                                   background: isLulus ? "#dcfce7" : "#fee2e2",
                                   color: isLulus ? "#15803d" : "#b91c1c",
+                                  border: isLulus
+                                    ? "1px solid #86efac"
+                                    : "1px solid #fca5a5",
                                 }}
                               >
-                                {isLulus ? "✅ Lulus" : "⚠️ Pembinaan"} •{" "}
-                                {lastEval.nama_kategori || "Bidang"}
+                                {isLulus ? (
+                                  <>
+                                    <CheckCircle size={11} /> Lulus
+                                  </>
+                                ) : (
+                                  <>
+                                    <AlertTriangle size={11} /> Butuh Bina
+                                  </>
+                                )}{" "}
+                                • {lastEval.nama_kategori || "Bidang"}
                               </span>
                             ) : (
                               <span
                                 style={{
                                   display: "inline-block",
-                                  marginTop: "3px",
+                                  marginTop: "4px",
                                   fontSize: "0.62rem",
                                   fontWeight: 700,
-                                  padding: "1px 6px",
+                                  padding: "1px 7px",
                                   borderRadius: "6px",
                                   background: "#f1f5f9",
                                   color: "#64748b",
@@ -1660,68 +1881,48 @@ export default function MobilePengembangan() {
       )}
 
       {/* =========================================================================
-          TAB 3: HISTORI (DAFTAR RIWAYAT EVALUASI LENGKAP)
+          TAB 3: HISTORI (DAFTAR RIWAYAT EVALUASI LENGKAP - CARD LULUS & BINA KEREN)
       ========================================================================= */}
       {activeTab === "histori" && (
         <div>
-          {/* Filter Chips Bidang Pengembangan */}
-          <div
-            style={{
-              display: "flex",
-              gap: "6px",
-              overflowX: "auto",
-              paddingBottom: "8px",
-              marginBottom: "8px",
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => setFilterHistoriKategori("Semua")}
+          {/* SELECT OPTION BIDANG PENGEMBANGAN (PENGGANTI TAB/CHIPS) */}
+          <div style={{ position: "relative", marginBottom: "8px" }}>
+            <select
+              value={filterHistoriKategori}
+              onChange={(e) => setFilterHistoriKategori(e.target.value)}
               style={{
-                padding: "6px 12px",
-                borderRadius: "20px",
-                border:
-                  filterHistoriKategori === "Semua" ? "none" : "1px solid #cbd5e1",
-                background:
-                  filterHistoriKategori === "Semua" ? "#0f172a" : "#ffffff",
-                color: filterHistoriKategori === "Semua" ? "#ffffff" : "#475569",
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                whiteSpace: "nowrap",
+                width: "100%",
+                padding: "10px 32px 10px 12px",
+                borderRadius: "12px",
+                border: "1.5px solid #cbd5e1",
+                background: "#ffffff",
+                fontSize: "0.82rem",
+                fontWeight: 800,
+                color: "#0f172a",
+                outline: "none",
+                appearance: "none",
                 cursor: "pointer",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
               }}
             >
-              Semua Bidang
-            </button>
-            {masterKategoriAll.map((kat) => (
-              <button
-                key={kat.id}
-                type="button"
-                onClick={() => setFilterHistoriKategori(String(kat.id))}
-                style={{
-                  padding: "6px 12px",
-                  borderRadius: "20px",
-                  border:
-                    String(filterHistoriKategori) === String(kat.id)
-                      ? "none"
-                      : "1px solid #cbd5e1",
-                  background:
-                    String(filterHistoriKategori) === String(kat.id)
-                      ? "#0284c7"
-                      : "#ffffff",
-                  color:
-                    String(filterHistoriKategori) === String(kat.id)
-                      ? "#ffffff"
-                      : "#475569",
-                  fontSize: "0.72rem",
-                  fontWeight: 700,
-                  whiteSpace: "nowrap",
-                  cursor: "pointer",
-                }}
-              >
-                {kat.nama_kategori}
-              </button>
-            ))}
+              <option value="Semua">📘 Semua Bidang Pengembangan</option>
+              {masterKategoriAll.map((kat) => (
+                <option key={kat.id} value={String(kat.id)}>
+                  📘 {kat.nama_kategori}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              size={16}
+              color="#64748b"
+              style={{
+                position: "absolute",
+                right: "12px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                pointerEvents: "none",
+              }}
+            />
           </div>
 
           {/* Search & Status Filter */}
@@ -1741,7 +1942,7 @@ export default function MobilePengembangan() {
               <Search size={15} color="#94a3b8" />
               <input
                 type="text"
-                placeholder="Cari santri, NIS, bidang..."
+                placeholder="Cari nama santri, NIS, bidang..."
                 value={searchHistori}
                 onChange={(e) => setSearchHistori(e.target.value)}
                 style={{
@@ -1765,15 +1966,16 @@ export default function MobilePengembangan() {
                 fontSize: "0.76rem",
                 fontWeight: 700,
                 color: "#334155",
+                outline: "none",
               }}
             >
-              <option value="Semua">Semua</option>
-              <option value="Lulus">Lulus</option>
-              <option value="Tidak Lulus">Tidak Lulus</option>
+              <option value="Semua">Semua Status</option>
+              <option value="Lulus">✅ Lulus</option>
+              <option value="Tidak Lulus">⚠️ Tidak Lulus (Bina)</option>
             </select>
           </div>
 
-          {/* List Data Rekap */}
+          {/* LIST CARD EVALUASI PERKEMBANGAN DENGAN DESAIN LULUS & BINA SANGAT MENARIK */}
           {filteredHistori.length === 0 ? (
             <div
               style={{
@@ -1809,141 +2011,365 @@ export default function MobilePengembangan() {
               </div>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {filteredHistori.map((row) => {
                 const isLulus = row.status_kelulusan === "Lulus";
+                const theme = getAvatarTheme(row.nama_santri);
+
                 return (
                   <div
                     key={row.id}
                     style={{
                       background: "#ffffff",
-                      borderRadius: "16px",
-                      padding: "14px",
-                      border: "1px solid #e2e8f0",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                      borderRadius: "18px",
+                      padding: "15px",
+                      border: isLulus ? "1.5px solid #bbf7d0" : "1.5px solid #fecdd3",
+                      borderLeft: isLulus ? "6px solid #10b981" : "6px solid #ef4444",
+                      boxShadow: isLulus
+                        ? "0 4px 16px rgba(16, 185, 129, 0.08)"
+                        : "0 4px 16px rgba(239, 68, 68, 0.08)",
+                      position: "relative",
+                      transition: "transform 0.15s ease",
                     }}
                   >
+                    {/* Header Baris 1: Profil Santri & Badge Lulus / Bina */}
                     <div
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        marginBottom: "8px",
+                        alignItems: "center",
+                        marginBottom: "10px",
                       }}
                     >
-                      <div>
-                        <div
-                          style={{
-                            fontWeight: 800,
-                            fontSize: "0.88rem",
-                            color: "#0f172a",
-                          }}
-                        >
-                          {row.nama_santri}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "0.7rem",
-                            color: "#64748b",
-                            marginTop: "2px",
-                          }}
-                        >
-                          NIS: <strong>{row.nis}</strong> •{" "}
-                          {row.nama_asrama || "Asrama"}
-                        </div>
-                      </div>
-                      <span
+                      <div
                         style={{
-                          padding: "4px 10px",
-                          borderRadius: "20px",
-                          fontSize: "0.68rem",
-                          fontWeight: 800,
-                          background: isLulus ? "#dcfce7" : "#fee2e2",
-                          color: isLulus ? "#15803d" : "#b91c1c",
-                          display: "inline-flex",
+                          display: "flex",
                           alignItems: "center",
-                          gap: "4px",
+                          gap: "10px",
+                          flex: 1,
+                          minWidth: 0,
                         }}
                       >
-                        {isLulus ? (
-                          <Check size={12} />
-                        ) : (
-                          <AlertTriangle size={12} />
-                        )}
-                        {row.status_kelulusan}
-                      </span>
+                        <div
+                          style={{
+                            width: "38px",
+                            height: "38px",
+                            borderRadius: "11px",
+                            background: theme.bg,
+                            color: theme.color,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: 800,
+                            fontSize: "0.82rem",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {getInitials(row.nama_santri)}
+                        </div>
+
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div
+                            style={{
+                              fontWeight: 800,
+                              fontSize: "0.9rem",
+                              color: "#0f172a",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {row.nama_santri}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "0.68rem",
+                              color: "#64748b",
+                              marginTop: "1px",
+                            }}
+                          >
+                            NIS: <strong>{row.nis}</strong> •{" "}
+                            {row.nama_asrama || "Asrama"}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* BADGE LULUS / BINA MENARIK DENGAN GLOW */}
+                      {isLulus ? (
+                        <span
+                          style={{
+                            background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                            color: "#ffffff",
+                            padding: "5px 12px",
+                            borderRadius: "999px",
+                            fontSize: "0.72rem",
+                            fontWeight: 900,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            boxShadow: "0 3px 10px rgba(16, 185, 129, 0.35)",
+                            letterSpacing: "0.02em",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <CheckCircle size={13} strokeWidth={2.5} /> LULUS
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+                            color: "#ffffff",
+                            padding: "5px 12px",
+                            borderRadius: "999px",
+                            fontSize: "0.72rem",
+                            fontWeight: 900,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            boxShadow: "0 3px 10px rgba(239, 68, 68, 0.35)",
+                            letterSpacing: "0.02em",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <AlertTriangle size={13} strokeWidth={2.5} /> PEMBINAAN
+                        </span>
+                      )}
                     </div>
 
+                    {/* Baris 2: Bidang Uji & Tanggal */}
                     <div
                       style={{
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
-                        background: "#f8fafc",
-                        padding: "7px 10px",
-                        borderRadius: "8px",
-                        marginBottom: !isLulus ? "10px" : "6px",
+                        background: isLulus ? "#f0fdf4" : "#fff1f2",
+                        padding: "7px 12px",
+                        borderRadius: "10px",
+                        marginBottom: "10px",
+                        border: isLulus
+                          ? "1px solid #dcfce7"
+                          : "1px solid #ffe4e6",
                       }}
                     >
-                      <span
+                      <div
                         style={{
-                          fontSize: "0.75rem",
+                          fontSize: "0.78rem",
                           fontWeight: 800,
-                          color: "#0284c7",
+                          color: isLulus ? "#15803d" : "#b91c1c",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "5px",
                         }}
                       >
-                        📘 {row.nama_kategori}
-                      </span>
-                      <span style={{ fontSize: "0.68rem", color: "#64748b" }}>
+                        <BookOpen size={14} /> {row.nama_kategori}
+                      </div>
+                      <span
+                        style={{
+                          fontSize: "0.68rem",
+                          color: isLulus ? "#166534" : "#991b1b",
+                          fontWeight: 700,
+                        }}
+                      >
                         {row.tanggal
-                          ? new Date(row.tanggal).toLocaleDateString("id-ID")
+                          ? new Date(row.tanggal).toLocaleDateString("id-ID", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })
                           : "-"}
                       </span>
                     </div>
 
-                    {/* Rincian Diagnostik Jika Tidak Lulus */}
+                    {/* KONTEN JIKA LULUS: BANNER PRESTASI BERSIH */}
+                    {isLulus && (
+                      <div
+                        style={{
+                          background: "#f0fdf4",
+                          border: "1px dashed #86efac",
+                          borderRadius: "10px",
+                          padding: "8px 12px",
+                          marginBottom: "10px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          fontSize: "0.72rem",
+                          color: "#166534",
+                          fontWeight: 700,
+                        }}
+                      >
+                        <Sparkles size={16} color="#16a34a" />
+                        <span>
+                          Santri memenuhi kriteria kelulusan pada materi bidang ini
+                          dengan baik.
+                        </span>
+                      </div>
+                    )}
+
+                    {/* KONTEN JIKA PEMBINAAN: KARTU RINCIAN DIAGNOSTIK LENGKAP & TERSTRUKTUR */}
                     {!isLulus && (
                       <div
                         style={{
-                          background: "#fff1f2",
-                          border: "1px solid #fecdd3",
-                          borderRadius: "10px",
-                          padding: "10px",
-                          marginBottom: "8px",
+                          background: "#fff5f5",
+                          border: "1.5px solid #fecdd3",
+                          borderRadius: "12px",
+                          padding: "10px 12px",
+                          marginBottom: "10px",
                           display: "flex",
                           flexDirection: "column",
-                          gap: "6px",
+                          gap: "8px",
                         }}
                       >
+                        {/* Permasalahan */}
                         {row.permasalahan_list?.length > 0 && (
-                          <div
-                            style={{ fontSize: "0.72rem", color: "#991b1b" }}
-                          >
-                            <strong>Permasalahan:</strong>{" "}
-                            {row.permasalahan_list.join(", ")}
+                          <div>
+                            <div
+                              style={{
+                                fontSize: "0.7rem",
+                                fontWeight: 800,
+                                color: "#b91c1c",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.02em",
+                                marginBottom: "4px",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "4px",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: "6px",
+                                  height: "6px",
+                                  borderRadius: "50%",
+                                  background: "#ef4444",
+                                }}
+                              />
+                              Permasalahan Ditemukan:
+                            </div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                              {row.permasalahan_list.map((t, idx) => (
+                                <span
+                                  key={idx}
+                                  style={{
+                                    background: "#fee2e2",
+                                    color: "#991b1b",
+                                    border: "1px solid #fca5a5",
+                                    padding: "2px 8px",
+                                    borderRadius: "6px",
+                                    fontSize: "0.68rem",
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         )}
+
+                        {/* Penyebab */}
                         {row.penyebab_list?.length > 0 && (
-                          <div
-                            style={{ fontSize: "0.72rem", color: "#9a3412" }}
-                          >
-                            <strong>Penyebab:</strong>{" "}
-                            {row.penyebab_list.join(", ")}
+                          <div>
+                            <div
+                              style={{
+                                fontSize: "0.7rem",
+                                fontWeight: 800,
+                                color: "#c2410c",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.02em",
+                                marginBottom: "4px",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "4px",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: "6px",
+                                  height: "6px",
+                                  borderRadius: "50%",
+                                  background: "#f97316",
+                                }}
+                              />
+                              Faktor Penyebab:
+                            </div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                              {row.penyebab_list.map((t, idx) => (
+                                <span
+                                  key={idx}
+                                  style={{
+                                    background: "#ffedd5",
+                                    color: "#9a3412",
+                                    border: "1px solid #fdba74",
+                                    padding: "2px 8px",
+                                    borderRadius: "6px",
+                                    fontSize: "0.68rem",
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         )}
+
+                        {/* Tindakan Pembinaan */}
                         {row.tindakan_list?.length > 0 && (
-                          <div
-                            style={{ fontSize: "0.72rem", color: "#065f46" }}
-                          >
-                            <strong>Tindakan:</strong>{" "}
-                            {row.tindakan_list.join(", ")}
+                          <div>
+                            <div
+                              style={{
+                                fontSize: "0.7rem",
+                                fontWeight: 800,
+                                color: "#047857",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.02em",
+                                marginBottom: "4px",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "4px",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: "6px",
+                                  height: "6px",
+                                  borderRadius: "50%",
+                                  background: "#10b981",
+                                }}
+                              />
+                              Rekomendasi Tindakan:
+                            </div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                              {row.tindakan_list.map((t, idx) => (
+                                <span
+                                  key={idx}
+                                  style={{
+                                    background: "#dcfce7",
+                                    color: "#166534",
+                                    border: "1px solid #86efac",
+                                    padding: "2px 8px",
+                                    borderRadius: "6px",
+                                    fontSize: "0.68rem",
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         )}
+
+                        {/* Catatan Khusus Penguji */}
                         {row.catatan_tambahan && (
                           <div
                             style={{
-                              fontSize: "0.72rem",
-                              color: "#334155",
+                              background: "#ffffff",
+                              borderLeft: "3px solid #f43f5e",
+                              borderRadius: "4px",
+                              padding: "6px 10px",
+                              fontSize: "0.7rem",
+                              color: "#475569",
                               fontStyle: "italic",
                             }}
                           >
@@ -1953,18 +2379,19 @@ export default function MobilePengembangan() {
                       </div>
                     )}
 
+                    {/* Footer: Penguji & Tombol Aksi */}
                     <div
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
-                        paddingTop: "6px",
+                        paddingTop: "8px",
                         borderTop: "1px solid #f1f5f9",
                       }}
                     >
                       <span style={{ fontSize: "0.68rem", color: "#64748b" }}>
                         Penguji:{" "}
-                        <strong>
+                        <strong style={{ color: "#334155" }}>
                           {row.asatidz_pencatat || currentPenguji}
                         </strong>
                       </span>
@@ -1974,12 +2401,12 @@ export default function MobilePengembangan() {
                           onClick={() => handleEditRekap(row)}
                           style={{
                             background: "#eff6ff",
-                            color: "#2563eb",
-                            border: "1px solid #bfdbfe",
+                            color: "#0284c7",
+                            border: "1px solid #bae6fd",
                             padding: "4px 10px",
-                            borderRadius: "6px",
+                            borderRadius: "8px",
                             fontSize: "0.7rem",
-                            fontWeight: 700,
+                            fontWeight: 800,
                             cursor: "pointer",
                             display: "inline-flex",
                             alignItems: "center",
@@ -1998,7 +2425,7 @@ export default function MobilePengembangan() {
                             color: "#dc2626",
                             border: "1px solid #fecaca",
                             padding: "4px 8px",
-                            borderRadius: "6px",
+                            borderRadius: "8px",
                             fontSize: "0.7rem",
                             fontWeight: 700,
                             cursor: "pointer",
@@ -2059,7 +2486,7 @@ export default function MobilePengembangan() {
             >
               <div>
                 <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 800 }}>
-                  Input Evaluasi Pengembangan
+                  Input Evaluasi Perkembangan
                 </h3>
                 <div style={{ fontSize: "0.7rem", opacity: 0.9 }}>
                   Pilih Bidang ➔ Lulus / Tidak Lulus ➔ Diagnostik
@@ -2292,7 +2719,7 @@ export default function MobilePengembangan() {
                           : "1px solid #cbd5e1",
                       background:
                         evalForm.status_kelulusan === "Lulus"
-                          ? "#10b981"
+                          ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
                           : "#ffffff",
                       color:
                         evalForm.status_kelulusan === "Lulus"
@@ -2311,7 +2738,7 @@ export default function MobilePengembangan() {
                           : "none",
                     }}
                   >
-                    <Check size={17} /> LULUS
+                    <CheckCircle size={17} /> LULUS
                   </button>
 
                   <button
@@ -2331,7 +2758,7 @@ export default function MobilePengembangan() {
                           : "1px solid #cbd5e1",
                       background:
                         evalForm.status_kelulusan === "Tidak Lulus"
-                          ? "#ef4444"
+                          ? "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"
                           : "#ffffff",
                       color:
                         evalForm.status_kelulusan === "Tidak Lulus"
@@ -2350,7 +2777,7 @@ export default function MobilePengembangan() {
                           : "none",
                     }}
                   >
-                    <X size={17} /> TIDAK LULUS
+                    <AlertTriangle size={17} /> TIDAK LULUS (BINA)
                   </button>
                 </div>
               </div>
