@@ -28,6 +28,7 @@ import PengajarPerkembanganView from "./PengajarPerkembanganView";
 import OwnerLaporanSantri from "../owner/OwnerLaporanSantri";
 import PengajarSettingsView from "./PengajarSettingsView";
 import MobileDaftarWajah from "../mobile/MobileDaftarWajah";
+import { stopAllActiveCameraStreams } from "../../utils/cameraCleanup.util";
 
 const squircleIconStyle = {
   width: "48px",
@@ -205,6 +206,9 @@ export default function PengajarDashboardView({ onLogout }) {
 
   // Persist activeTab ke sessionStorage/localStorage & URL hash agar saat reload tetap di menu aktif
   useEffect(() => {
+    if (!["absen-mengaji", "perkembangan", "praktek", "daftar-wajah"].includes(activeTab)) {
+      stopAllActiveCameraStreams();
+    }
     try {
       sessionStorage.setItem("pengajar_active_tab", activeTab);
       localStorage.setItem("pengajar_active_tab", activeTab);

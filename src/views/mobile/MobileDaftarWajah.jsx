@@ -33,6 +33,10 @@ import {
 } from "../../utils/faceApi.util";
 import SearchableSelect from "../../components/SearchableSelect";
 import MobileLoadingState from "../../components/MobileLoadingState";
+import {
+  stopStreamAndVideo,
+  stopAllActiveCameraStreams,
+} from "../../utils/cameraCleanup.util";
 
 export default function MobileDaftarWajah() {
   // Lightweight list (no raw base64 photos in global memory)
@@ -154,8 +158,15 @@ export default function MobileDaftarWajah() {
 
   useEffect(() => {
     fetchSantri();
-    return () => {
+    const handlePageHide = () => {
       stopCamera();
+      stopAllActiveCameraStreams();
+    };
+    window.addEventListener("pagehide", handlePageHide);
+    return () => {
+      window.removeEventListener("pagehide", handlePageHide);
+      stopCamera();
+      stopAllActiveCameraStreams();
     };
   }, []);
 
@@ -229,10 +240,7 @@ export default function MobileDaftarWajah() {
       clearTimeout(detectTimeoutRef.current);
       detectTimeoutRef.current = null;
     }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
+    stopStreamAndVideo(streamRef, videoRef);
     setIsCameraActive(false);
     setIsFaceDetected(false);
     setFaceScore(0);

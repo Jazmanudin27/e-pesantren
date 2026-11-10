@@ -55,6 +55,10 @@ import {
   isFaceModelReady,
 } from "../../utils/faceApi.util";
 import MobileLoadingState from "../../components/MobileLoadingState";
+import {
+  stopStreamAndVideo,
+  stopAllActiveCameraStreams,
+} from "../../utils/cameraCleanup.util";
 
 const getTodayDateStr = () => {
   const now = new Date();
@@ -161,6 +165,9 @@ export default function MobilePresensiMengaji() {
   const autoDetectFaceTickRef = useRef(0);
   const isDetectingRef = useRef(false);
   const matchedStreakRef = useRef({ id: null, count: 0 });
+  const isMountedRef = useRef(true);
+  const faceCameraWantedRef = useRef(false);
+  const qrWantedRef = useRef(false);
 
   const santriListRef = useRef(santriList);
   useEffect(() => {
@@ -356,9 +363,11 @@ export default function MobilePresensiMengaji() {
   const startScanner = async () => {
     if (isStartingRef.current) return;
     isStartingRef.current = true;
+    qrWantedRef.current = true;
     setCameraError("");
     try {
       const Html5QrcodeClass = await loadHtml5QrcodeScript();
+      if (!isMountedRef.current || !qrWantedRef.current) return;
       if (!Html5QrcodeClass) throw new Error("Library kamera tidak tersedia.");
       const container = document.getElementById("mobile-qr-reader-mengaji");
       if (!container) return;
@@ -382,16 +391,32 @@ export default function MobilePresensiMengaji() {
         (decodedText) => handleQrDecoded(decodedText),
         () => {}
       );
+
+      if (!isMountedRef.current || !qrWantedRef.current) {
+        try {
+          if (html5QrCode.isScanning) await html5QrCode.stop();
+        } catch (e) {}
+        try {
+          html5QrCode.clear();
+        } catch (e) {}
+        qrInstanceRef.current = null;
+        stopAllActiveCameraStreams(container);
+        setScannerActive(false);
+        return;
+      }
       setScannerActive(true);
     } catch (err) {
-      setCameraError("Izin kamera belum aktif atau tidak ditemukan.");
-      setScannerActive(false);
+      if (isMountedRef.current) {
+        setCameraError("Izin kamera belum aktif atau tidak ditemukan.");
+        setScannerActive(false);
+      }
     } finally {
       isStartingRef.current = false;
     }
   };
 
   const stopScanner = async () => {
+    qrWantedRef.current = false;
     if (isStoppingRef.current) return;
     isStoppingRef.current = true;
     try {
@@ -405,9 +430,12 @@ export default function MobilePresensiMengaji() {
           instance.clear();
         } catch (e) {}
       }
+      if (typeof document !== "undefined") {
+        stopAllActiveCameraStreams(document.getElementById("mobile-qr-reader-mengaji"));
+      }
     } catch (e) {
     } finally {
-      setScannerActive(false);
+      if (isMountedRef.current) setScannerActive(false);
       isStoppingRef.current = false;
     }
   };
@@ -433,15 +461,13 @@ export default function MobilePresensiMengaji() {
   }, [activeMode]);
 
   const startFaceCamera = async (facing = faceFacingMode) => {
+    faceCameraWantedRef.current = true;
     setFaceCameraError("");
     setIsFaceCameraActive(true);
     setFaceStatusText("Membuka kamera...");
 
     try {
-      if (faceStreamRef.current) {
-        faceStreamRef.current.getTracks().forEach((track) => track.stop());
-        faceStreamRef.current = null;
-      }
+      stopStreamAndVideo(faceStreamRef, faceVideoRef);
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -452,14 +478,25 @@ export default function MobilePresensiMengaji() {
         },
         audio: false,
       });
+
+      if (!isMountedRef.current || !faceCameraWantedRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+
       faceStreamRef.current = stream;
 
       let retries = 0;
       const attachVideo = () => {
+        if (!isMountedRef.current || !faceCameraWantedRef.current) {
+          stopStreamAndVideo(faceStreamRef, faceVideoRef);
+          return;
+        }
         if (faceVideoRef.current) {
           faceVideoRef.current.srcObject = stream;
           faceVideoRef.current.onloadedmetadata = () => {
-            faceVideoRef.current.play().catch(() => {});
+            if (!isMountedRef.current || !faceCameraWantedRef.current) return;
+            faceVideoRef.current?.play().catch(() => {});
             startFaceDetectionLoop();
           };
           faceVideoRef.current.play().catch(() => {});
@@ -467,27 +504,31 @@ export default function MobilePresensiMengaji() {
         } else if (retries < 15) {
           retries++;
           setTimeout(attachVideo, 50);
+        } else {
+          stopStreamAndVideo(faceStreamRef, faceVideoRef);
         }
       };
       attachVideo();
     } catch (err) {
-      setFaceCameraError("Kamera tidak dapat diakses atau izin belum diberikan.");
-      setIsFaceCameraActive(false);
+      if (isMountedRef.current) {
+        setFaceCameraError("Kamera tidak dapat diakses atau izin belum diberikan.");
+        setIsFaceCameraActive(false);
+      }
     }
   };
 
   const stopFaceCamera = () => {
+    faceCameraWantedRef.current = false;
     if (faceLoopIntervalRef.current) {
       clearInterval(faceLoopIntervalRef.current);
       faceLoopIntervalRef.current = null;
     }
-    if (faceStreamRef.current) {
-      faceStreamRef.current.getTracks().forEach((track) => track.stop());
-      faceStreamRef.current = null;
+    stopStreamAndVideo(faceStreamRef, faceVideoRef);
+    if (isMountedRef.current) {
+      setIsFaceCameraActive(false);
+      setFaceStatusText("Kamera nonaktif");
+      setFaceDetected(false);
     }
-    setIsFaceCameraActive(false);
-    setFaceStatusText("Kamera nonaktif");
-    setFaceDetected(false);
   };
 
   const toggleFaceFacingMode = () => {
@@ -864,14 +905,24 @@ export default function MobilePresensiMengaji() {
   };
 
   useEffect(() => {
+    isMountedRef.current = true;
     if (activeMode === "face") {
       startFaceCamera(faceFacingMode);
     } else if (activeMode === "qr") {
       startScanner();
     }
-    return () => {
+    const handlePageHide = () => {
       stopScanner();
       stopFaceCamera();
+      stopAllActiveCameraStreams();
+    };
+    window.addEventListener("pagehide", handlePageHide);
+    return () => {
+      isMountedRef.current = false;
+      window.removeEventListener("pagehide", handlePageHide);
+      stopScanner();
+      stopFaceCamera();
+      stopAllActiveCameraStreams();
     };
   }, []);
 

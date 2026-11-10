@@ -37,6 +37,10 @@ import {
   normalizeDescriptor,
   isFaceModelReady,
 } from "../../utils/faceApi.util";
+import {
+  stopStreamAndVideo,
+  stopAllActiveCameraStreams,
+} from "../../utils/cameraCleanup.util";
 
 export default function MobilePraktek() {
   const [praktekList, setPraktekList] = useState([]);
@@ -81,6 +85,8 @@ export default function MobilePraktek() {
   const faceStreamRef = useRef(null);
   const faceLoopIntervalRef = useRef(null);
   const isDetectingRef = useRef(false);
+  const isMountedRef = useRef(true);
+  const faceCameraWantedRef = useRef(false);
   const santriListRef = useRef(santriList);
   const isMatchedCooldownRef = useRef(false);
   const matchedStreakRef = useRef({ id: null, count: 0 });
@@ -101,8 +107,17 @@ export default function MobilePraktek() {
   }, [isFaceScanOpen]);
 
   useEffect(() => {
-    return () => {
+    isMountedRef.current = true;
+    const handlePageHide = () => {
       stopFaceCamera();
+      stopAllActiveCameraStreams();
+    };
+    window.addEventListener("pagehide", handlePageHide);
+    return () => {
+      isMountedRef.current = false;
+      window.removeEventListener("pagehide", handlePageHide);
+      stopFaceCamera();
+      stopAllActiveCameraStreams();
     };
   }, []);
 
@@ -125,6 +140,7 @@ export default function MobilePraktek() {
   };
 
   const startFaceCamera = async (facing = faceFacingMode) => {
+    faceCameraWantedRef.current = true;
     setFaceCameraError("");
     setFaceStatusText("Menghubungkan ke kamera...");
     setMatchedSantriPreview(null);
@@ -133,10 +149,7 @@ export default function MobilePraktek() {
     matchedStreakRef.current = { id: null, count: 0 };
 
     try {
-      if (faceStreamRef.current) {
-        faceStreamRef.current.getTracks().forEach((t) => t.stop());
-        faceStreamRef.current = null;
-      }
+      stopStreamAndVideo(faceStreamRef, faceVideoRef);
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -147,32 +160,40 @@ export default function MobilePraktek() {
         audio: false,
       });
 
+      if (!isMountedRef.current || !faceCameraWantedRef.current) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+
       faceStreamRef.current = stream;
       if (faceVideoRef.current) {
         faceVideoRef.current.srcObject = stream;
         faceVideoRef.current.onloadedmetadata = () => {
-          faceVideoRef.current.play().catch(() => {});
+          if (!isMountedRef.current || !faceCameraWantedRef.current) return;
+          faceVideoRef.current?.play().catch(() => {});
           startFaceDetectionLoop();
         };
         faceVideoRef.current.play().catch(() => {});
         startFaceDetectionLoop();
       }
     } catch (err) {
-      setFaceCameraError("Kamera tidak dapat diakses atau izin ditolak.");
-      setFaceStatusText("Kamera gagal diakses");
+      if (isMountedRef.current) {
+        setFaceCameraError("Kamera tidak dapat diakses atau izin ditolak.");
+        setFaceStatusText("Kamera gagal diakses");
+      }
     }
   };
 
   const stopFaceCamera = () => {
+    faceCameraWantedRef.current = false;
     if (faceLoopIntervalRef.current) {
       clearInterval(faceLoopIntervalRef.current);
       faceLoopIntervalRef.current = null;
     }
-    if (faceStreamRef.current) {
-      faceStreamRef.current.getTracks().forEach((t) => t.stop());
-      faceStreamRef.current = null;
+    stopStreamAndVideo(faceStreamRef, faceVideoRef);
+    if (isMountedRef.current) {
+      setIsFaceDetected(false);
     }
-    setIsFaceDetected(false);
   };
 
   const toggleFaceFacingMode = () => {

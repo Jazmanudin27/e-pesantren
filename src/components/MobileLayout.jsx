@@ -32,6 +32,7 @@ import {
   Send,
 } from "lucide-react";
 import { canAccessKeuangan } from "../utils/authRole.util";
+import { stopAllActiveCameraStreams } from "../utils/cameraCleanup.util";
 
 // Safe Lazy Wrapper: Cegah Chunk Load Error saat ada rilis/build baru di server
 const lazySafe = (importer) =>
@@ -270,8 +271,11 @@ export default function MobileLayout() {
     return () => window.removeEventListener("hashchange", syncTabFromHash);
   }, [isMobileDomain]);
 
-  // Scroll to top saat ganti tab atau refresh (Cegah header ketutup)
+  // Scroll to top saat ganti tab atau refresh (Cegah header ketutup) & matikan kamera jika keluar menu kamera
   useEffect(() => {
+    if (!["mengaji", "pengembangan", "praktek-ibadah", "daftar-wajah"].includes(mobileTab)) {
+      stopAllActiveCameraStreams();
+    }
     if (
       typeof window !== "undefined" &&
       "scrollRestoration" in window.history
