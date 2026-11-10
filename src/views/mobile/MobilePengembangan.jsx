@@ -53,7 +53,9 @@ export default function MobilePengembangan() {
   const [kelasList, setKelasList] = useState([]);
   const [selectedKelas, setSelectedKelas] = useState(() => {
     try {
-      return localStorage.getItem("epesantren_pengembangan_selected_kelas") || "";
+      return (
+        localStorage.getItem("epesantren_pengembangan_selected_kelas") || ""
+      );
     } catch (e) {
       return "";
     }
@@ -148,7 +150,10 @@ export default function MobilePengembangan() {
   useEffect(() => {
     if (selectedKelas) {
       try {
-        localStorage.setItem("epesantren_pengembangan_selected_kelas", selectedKelas);
+        localStorage.setItem(
+          "epesantren_pengembangan_selected_kelas",
+          selectedKelas,
+        );
       } catch (e) {}
     }
   }, [selectedKelas]);
@@ -161,7 +166,9 @@ export default function MobilePengembangan() {
     }
     setLoadingKelasSantri(true);
     try {
-      const res = await axios.get(`/api/santri/by-kelas/${encodeURIComponent(targetKelas)}`);
+      const res = await axios.get(
+        `/api/santri/by-kelas/${encodeURIComponent(targetKelas)}`,
+      );
       const rows = res.data?.data || [];
       setSantriList(rows);
     } catch (err) {
@@ -373,7 +380,10 @@ export default function MobilePengembangan() {
 
   const openFaceScanner = () => {
     if (!selectedKelas) {
-      showError("Pilih Kelas Dahulu", "Silakan pilih kelas santri terlebih dahulu sebelum memulai scan wajah pengembangan.");
+      showError(
+        "Pilih Kelas Dahulu",
+        "Silakan pilih kelas santri terlebih dahulu sebelum memulai scan wajah pengembangan.",
+      );
       return;
     }
     setScannerTab("face");
@@ -481,7 +491,9 @@ export default function MobilePengembangan() {
         const seenIds = new Set();
 
         (santriListRef.current || []).forEach((s) => {
-          let desc = normalizeDescriptor(s.face_descriptor) || normalizeDescriptor(registeredMap[s.id]?.descriptor);
+          let desc =
+            normalizeDescriptor(s.face_descriptor) ||
+            normalizeDescriptor(registeredMap[s.id]?.descriptor);
           if (desc) {
             registeredList.push({
               santri_id: s.id,
@@ -490,15 +502,17 @@ export default function MobilePengembangan() {
               nama: s.nama_santri,
               nis: s.nis,
               descriptor: desc,
-              foto: s.foto || s.foto_santri
+              foto: s.foto || s.foto_santri,
             });
             seenIds.add(String(s.id));
           }
         });
 
-        const allowedIds = new Set((santriListRef.current || []).map((s) => String(s.id)));
+        const allowedIds = new Set(
+          (santriListRef.current || []).map((s) => String(s.id)),
+        );
         Object.values(registeredMap).forEach((p) => {
-          const pId = String(p.santri_id || p.id || '');
+          const pId = String(p.santri_id || p.id || "");
           if (pId && allowedIds.has(pId) && !seenIds.has(pId) && p.descriptor) {
             registeredList.push(p);
             seenIds.add(pId);
@@ -522,18 +536,21 @@ export default function MobilePengembangan() {
             0.62,
           );
 
-          if (matched && matched.error === 'no_profiles') {
+          if (matched && matched.error === "no_profiles") {
             matchedStreakRef.current = { id: null, count: 0 };
-            setFaceStatusText("⚠️ Belum Ada Biometrik Wajah di Sistem (0 Profil)");
+            setFaceStatusText(
+              "⚠️ Belum Ada Biometrik Wajah di Sistem (0 Profil)",
+            );
             return;
           }
 
           if (matched && !matched.error && (matched.santri_id || matched.id)) {
             const mId = String(matched.santri_id || matched.id);
-            const fullSantri = (santriListRef.current || []).find(
-              (s) => String(s.id) === mId,
-            ) || matched;
-            const displayName = fullSantri.nama_santri || fullSantri.nama || 'Santri';
+            const fullSantri =
+              (santriListRef.current || []).find((s) => String(s.id) === mId) ||
+              matched;
+            const displayName =
+              fullSantri.nama_santri || fullSantri.nama || "Santri";
 
             if (matchedStreakRef.current.id === mId) {
               matchedStreakRef.current.count += 1;
@@ -542,16 +559,22 @@ export default function MobilePengembangan() {
             }
 
             // Jika skor sangat meyakinkan (< 0.55), langsung kenali tanpa tunggu 2 frame
-            if (matchedStreakRef.current.count >= 2 || (matched.distance && matched.distance < 0.55)) {
+            if (
+              matchedStreakRef.current.count >= 2 ||
+              (matched.distance && matched.distance < 0.55)
+            ) {
               handleFaceRecognized(fullSantri, displayName);
             } else {
               setFaceStatusText(`Memverifikasi: ${displayName}...`);
             }
           } else {
             matchedStreakRef.current = { id: null, count: 0 };
-            const distInfo = (matched && typeof matched.bestDistance === 'number' && matched.bestDistance < 900)
-              ? ` (Jarak: ${matched.bestDistance.toFixed(2)} | Target: < ${matched.threshold?.toFixed(2) || '0.62'})`
-              : '';
+            const distInfo =
+              matched &&
+              typeof matched.bestDistance === "number" &&
+              matched.bestDistance < 900
+                ? ` (Jarak: ${matched.bestDistance.toFixed(2)} | Target: < ${matched.threshold?.toFixed(2) || "0.62"})`
+                : "";
             setFaceStatusText(`⛔ Belum Cocok${distInfo}`);
           }
         } else {
@@ -590,7 +613,9 @@ export default function MobilePengembangan() {
       const registeredList = [];
       const seenIds = new Set();
       (santriListRef.current || []).forEach((s) => {
-        let desc = normalizeDescriptor(s.face_descriptor) || normalizeDescriptor(registeredMap[s.id]?.descriptor);
+        let desc =
+          normalizeDescriptor(s.face_descriptor) ||
+          normalizeDescriptor(registeredMap[s.id]?.descriptor);
         if (desc) {
           registeredList.push({
             santri_id: s.id,
@@ -605,7 +630,9 @@ export default function MobilePengembangan() {
         }
       });
 
-      const allowedIds = new Set((santriListRef.current || []).map((s) => String(s.id)));
+      const allowedIds = new Set(
+        (santriListRef.current || []).map((s) => String(s.id)),
+      );
       Object.values(registeredMap).forEach((p) => {
         const pId = String(p.santri_id || p.id || "");
         if (pId && allowedIds.has(pId) && !seenIds.has(pId) && p.descriptor) {
@@ -625,16 +652,26 @@ export default function MobilePengembangan() {
         return;
       }
 
-      const matched = matchFaceDescriptor(faceRes.descriptor, registeredList, 0.72);
+      const matched = matchFaceDescriptor(
+        faceRes.descriptor,
+        registeredList,
+        0.72,
+      );
       if (matched && !matched.error && (matched.santri_id || matched.id)) {
         const mId = String(matched.santri_id || matched.id);
-        const fullSantri = (santriListRef.current || []).find((s) => String(s.id) === mId) || matched;
-        const displayName = fullSantri.nama_santri || fullSantri.nama || "Santri";
+        const fullSantri =
+          (santriListRef.current || []).find((s) => String(s.id) === mId) ||
+          matched;
+        const displayName =
+          fullSantri.nama_santri || fullSantri.nama || "Santri";
         handleFaceRecognized(fullSantri, displayName);
       } else {
-        const distInfo = (matched && typeof matched.bestDistance === "number" && matched.bestDistance < 900)
-          ? ` (Jarak: ${matched.bestDistance.toFixed(2)} | Target: < 0.72)`
-          : "";
+        const distInfo =
+          matched &&
+          typeof matched.bestDistance === "number" &&
+          matched.bestDistance < 900
+            ? ` (Jarak: ${matched.bestDistance.toFixed(2)} | Target: < 0.72)`
+            : "";
         setFaceStatusText(`⛔ Belum Cocok${distInfo}`);
       }
     } catch (e) {
@@ -990,7 +1027,7 @@ export default function MobilePengembangan() {
             transition: "all 0.2s",
           }}
         >
-          👦 Pengembangan Ikhwan
+          Ikhwan
         </button>
         <button
           type="button"
@@ -1012,7 +1049,7 @@ export default function MobilePengembangan() {
             transition: "all 0.2s",
           }}
         >
-          🧕 Pengembangan Akhwat
+          Akhwat
         </button>
       </div>
 
@@ -1035,44 +1072,6 @@ export default function MobilePengembangan() {
               : "0 10px 24px -6px rgba(219, 39, 119, 0.4)",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            marginBottom: "12px",
-          }}
-        >
-          <div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                fontSize: "0.72rem",
-                opacity: 0.9,
-                fontWeight: 700,
-              }}
-            >
-              <Sparkles size={14} /> EVALUASI PENGEMBANGAN SANTRI
-            </div>
-            <h2
-              style={{
-                margin: "4px 0 2px",
-                fontSize: "1.15rem",
-                fontWeight: 800,
-              }}
-            >
-              {activeGender === "L"
-                ? "Bidang Pengembangan Ikhwan"
-                : "Bidang Pengembangan Akhwat"}
-            </h2>
-            <p style={{ margin: 0, fontSize: "0.73rem", opacity: 0.9 }}>
-              Alur: Scan Wajah ➔ Pilih Bidang ➔ Lulus / Tidak Lulus (Diagnostik)
-            </p>
-          </div>
-        </div>
-
         {/* Statistik Ringkas */}
         <div
           style={{
@@ -1138,8 +1137,12 @@ export default function MobilePengembangan() {
               width: "100%",
               padding: "10px 32px 10px 12px",
               borderRadius: "12px",
-              border: !selectedKelas ? "2px solid #facc15" : "1px solid rgba(255, 255, 255, 0.4)",
-              background: !selectedKelas ? "rgba(234, 179, 8, 0.3)" : "rgba(255, 255, 255, 0.2)",
+              border: !selectedKelas
+                ? "2px solid #facc15"
+                : "1px solid rgba(255, 255, 255, 0.4)",
+              background: !selectedKelas
+                ? "rgba(234, 179, 8, 0.3)"
+                : "rgba(255, 255, 255, 0.2)",
               backdropFilter: "blur(10px)",
               color: "#ffffff",
               fontSize: "0.82rem",
@@ -1153,7 +1156,11 @@ export default function MobilePengembangan() {
               -- Wajib Pilih Kelas Santri Terlebih Dahulu --
             </option>
             {availableKelasOptions.map((kName) => (
-              <option key={kName} value={kName} style={{ color: "#0f172a", fontWeight: 700 }}>
+              <option
+                key={kName}
+                value={kName}
+                style={{ color: "#0f172a", fontWeight: 700 }}
+              >
                 🏫 Kelas: {kName}
               </option>
             ))}
@@ -1200,8 +1207,12 @@ export default function MobilePengembangan() {
               marginBottom: "10px",
             }}
           >
-            <span>🏫 Kelas Terpilih: <strong>{selectedKelas}</strong></span>
-            <span>👥 <strong>{santriList.length}</strong> Santri</span>
+            <span>
+              🏫 Kelas Terpilih: <strong>{selectedKelas}</strong>
+            </span>
+            <span>
+              👥 <strong>{santriList.length}</strong> Santri
+            </span>
           </div>
         )}
 
@@ -1239,7 +1250,10 @@ export default function MobilePengembangan() {
             type="button"
             onClick={() => {
               if (!selectedKelas) {
-                showError("Pilih Kelas Dahulu", "Silakan pilih kelas santri terlebih dahulu.");
+                showError(
+                  "Pilih Kelas Dahulu",
+                  "Silakan pilih kelas santri terlebih dahulu.",
+                );
                 return;
               }
               const firstKat = kategoriByActiveGender[0]
@@ -2030,8 +2044,16 @@ export default function MobilePengembangan() {
                 >
                   Scan Wajah Pengembangan
                 </div>
-                <div style={{ fontSize: "0.7rem", color: "#38bdf8", fontWeight: 700 }}>
-                  {selectedKelas ? `🏫 Kelas: ${selectedKelas} (${santriList.length} Santri)` : "⚠️ Belum Pilih Kelas"}
+                <div
+                  style={{
+                    fontSize: "0.7rem",
+                    color: "#38bdf8",
+                    fontWeight: 700,
+                  }}
+                >
+                  {selectedKelas
+                    ? `🏫 Kelas: ${selectedKelas} (${santriList.length} Santri)`
+                    : "⚠️ Belum Pilih Kelas"}
                 </div>
               </div>
             </div>
@@ -2137,14 +2159,38 @@ export default function MobilePengembangan() {
                   color: "#ffffff",
                 }}
               >
-                <AlertTriangle size={38} color="#facc15" style={{ marginBottom: "8px" }} />
-                <span style={{ fontWeight: 800, fontSize: "0.96rem", marginBottom: "4px" }}>
+                <AlertTriangle
+                  size={38}
+                  color="#facc15"
+                  style={{ marginBottom: "8px" }}
+                />
+                <span
+                  style={{
+                    fontWeight: 800,
+                    fontSize: "0.96rem",
+                    marginBottom: "4px",
+                  }}
+                >
                   Pilih Kelas Terlebih Dahulu
                 </span>
-                <span style={{ fontSize: "0.74rem", color: "#94a3b8", maxWidth: "260px", marginBottom: "14px" }}>
-                  Silakan tentukan kelas santri di bawah untuk memulai pencocokan biometrik wajah pengembangan.
+                <span
+                  style={{
+                    fontSize: "0.74rem",
+                    color: "#94a3b8",
+                    maxWidth: "260px",
+                    marginBottom: "14px",
+                  }}
+                >
+                  Silakan tentukan kelas santri di bawah untuk memulai
+                  pencocokan biometrik wajah pengembangan.
                 </span>
-                <div style={{ position: "relative", width: "100%", maxWidth: "240px" }}>
+                <div
+                  style={{
+                    position: "relative",
+                    width: "100%",
+                    maxWidth: "240px",
+                  }}
+                >
                   <select
                     value={selectedKelas}
                     onChange={(e) => {
@@ -2458,7 +2504,7 @@ export default function MobilePengembangan() {
                   >
                     Pilih Santri di Kelas Terpilih *
                   </label>
-                  {(selectedEvalKelas || selectedKelas) ? (
+                  {selectedEvalKelas || selectedKelas ? (
                     <SearchableSelect
                       options={santriList
                         .filter((s) => {
