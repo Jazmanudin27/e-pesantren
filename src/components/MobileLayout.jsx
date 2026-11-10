@@ -374,7 +374,7 @@ export default function MobileLayout() {
       case "setting-kegiatan":
       case "master-kegiatan":
       case "kegiatan":
-        return "Jadwal & Master Kegiatan";
+        return "Master Kegiatan";
       case "informasi":
       case "informasi-kegiatan":
         return "Informasi & Pengumuman";
@@ -1577,7 +1577,7 @@ export default function MobileLayout() {
                             cursor: "pointer",
                           }}
                         >
-                          <Calendar size={16} color="#d97706" /> Jadwal Kegiatan
+                          <Calendar size={16} color="#d97706" /> Master Kegiatan
                         </button>
                         <button
                           onClick={() => handleSelectTab("master-device")}

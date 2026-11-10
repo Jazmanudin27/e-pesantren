@@ -777,7 +777,7 @@ export default function MobileKegiatan() {
             }}
           >
             <span>🕌</span>
-            <span>Kegiatan Berjamaah</span>
+            <span>Berjamaah</span>
             <span
               style={{
                 background:
@@ -820,7 +820,7 @@ export default function MobileKegiatan() {
             }}
           >
             <span>📖</span>
-            <span>Kegiatan Mengaji</span>
+            <span>Mengaji</span>
             <span
               style={{
                 background:

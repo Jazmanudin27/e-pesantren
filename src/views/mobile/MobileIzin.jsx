@@ -44,25 +44,25 @@ export default function MobileIzin() {
   const [returningItem, setReturningItem] = useState(null);
   const [returnTime, setReturnTime] = useState("");
 
-  const getNowLocalString = () => {
+  const getNowLocalDate = () => {
     const now = new Date();
-    const offset = now.getTimezoneOffset() * 60000;
-    return new Date(now.getTime() - offset).toISOString().slice(0, 16);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
   };
 
-  const getFutureLocalString = (days = 3) => {
+  const getFutureLocalDate = (days = 3) => {
     const future = new Date(Date.now() + 86400000 * days);
-    const offset = future.getTimezoneOffset() * 60000;
-    return new Date(future.getTime() - offset).toISOString().slice(0, 16);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${future.getFullYear()}-${pad(future.getMonth() + 1)}-${pad(future.getDate())}`;
   };
 
   const initialForm = {
     id: null,
-    santri_id: 1,
+    santri_id: "",
     jenis_izin: "Izin Pulang",
     keperluan: "",
-    tgl_keluar_rencana: getNowLocalString(),
-    tgl_kembali_rencana: getFutureLocalString(3),
+    tgl_keluar_rencana: getNowLocalDate(),
+    tgl_kembali_rencana: getFutureLocalDate(3),
     status: "Aktif Keluar",
   };
 
@@ -73,17 +73,14 @@ export default function MobileIzin() {
   const fetchSantriOptions = async () => {
     try {
       const resSantri = await axios
-        .get("/api/santri/for-face-registration")
+        .get("/api/santri/for-presensi")
+        .catch(() => axios.get("/api/santri/for-face-registration"))
         .catch(() => axios.get("/api/santri?all=true&compact=true&without_photo=true"))
         .catch(() => ({ data: { data: [] } }));
 
-      if (
-        resSantri.data &&
-        resSantri.data.data &&
-        Array.isArray(resSantri.data.data) &&
-        resSantri.data.data.length > 0
-      ) {
-        setSantriOptions(resSantri.data.data);
+      const raw = resSantri.data?.data?.data || resSantri.data?.data || [];
+      if (Array.isArray(raw) && raw.length > 0) {
+        setSantriOptions(raw);
       }
     } catch (e) {
       console.warn("Gagal memuat list santri perizinan:", e);
@@ -219,9 +216,9 @@ export default function MobileIzin() {
     setFormMode("add");
     setFormData({
       ...initialForm,
-      santri_id: santriOptions[0]?.id || 1,
-      tgl_keluar_rencana: getNowLocalString(),
-      tgl_kembali_rencana: getFutureLocalString(3),
+      santri_id: santriOptions[0]?.id || "",
+      tgl_keluar_rencana: getNowLocalDate(),
+      tgl_kembali_rencana: getFutureLocalDate(3),
       status: "Aktif Keluar",
     });
     setIsModalOpen(true);
@@ -229,17 +226,17 @@ export default function MobileIzin() {
 
   const handleOpenEdit = (item) => {
     setFormMode("edit");
+    const getCleanDate = (val) => {
+      if (!val) return "";
+      return String(val).split("T")[0].split(" ")[0];
+    };
     setFormData({
       id: item.id,
-      santri_id: item.santri_id || 1,
+      santri_id: item.santri_id || "",
       jenis_izin: item.jenis_izin || "Izin Pulang",
       keperluan: item.keperluan || "",
-      tgl_keluar_rencana: item.tgl_keluar_rencana
-        ? String(item.tgl_keluar_rencana).replace(" ", "T").slice(0, 16)
-        : getNowLocalString(),
-      tgl_kembali_rencana: item.tgl_kembali_rencana
-        ? String(item.tgl_kembali_rencana).replace(" ", "T").slice(0, 16)
-        : getFutureLocalString(3),
+      tgl_keluar_rencana: getCleanDate(item.tgl_keluar_rencana) || getNowLocalDate(),
+      tgl_kembali_rencana: getCleanDate(item.tgl_kembali_rencana) || getFutureLocalDate(3),
       status: item.status || "Aktif Keluar",
     });
     setIsModalOpen(true);
@@ -1206,7 +1203,7 @@ export default function MobileIzin() {
                 </div>
               </div>
 
-              {/* Rencana Keluar & Rencana Kembali dengan Preset Cepat */}
+              {/* Tanggal Keluar & Batas Tanggal Kembali (Hanya Tanggal, Tanpa Waktu / Jam) */}
               <div
                 style={{
                   background: "#f8fafc",
@@ -1215,7 +1212,7 @@ export default function MobileIzin() {
                   padding: "14px"
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                <div style={{ marginBottom: "10px" }}>
                   <label
                     style={{
                       fontSize: "0.78rem",
@@ -1224,49 +1221,8 @@ export default function MobileIzin() {
                       margin: 0,
                     }}
                   >
-                    Jadwal Keluar & Batas Kembali *
+                    Jadwal Tanggal Keluar &amp; Batas Kembali *
                   </label>
-                  <span style={{ fontSize: "0.66rem", fontWeight: 700, color: "#0284c7" }}>
-                    Preset Cepat:
-                  </span>
-                </div>
-
-                {/* 4 Chips Preset Durasi Cepat */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "6px", marginBottom: "12px" }}>
-                  {[
-                    { label: "Sore Ini", days: 0, hour: 17 },
-                    { label: "1 Hari", days: 1, hour: 17 },
-                    { label: "2 Hari", days: 2, hour: 17 },
-                    { label: "3 Hari", days: 3, hour: 17 }
-                  ].map((p, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => {
-                        const now = new Date();
-                        const pad = (n) => String(n).padStart(2, "0");
-                        const nowStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
-                        const ret = new Date(now.getTime() + p.days * 24 * 60 * 60 * 1000);
-                        ret.setHours(p.hour, 0, 0, 0);
-                        const retStr = `${ret.getFullYear()}-${pad(ret.getMonth() + 1)}-${pad(ret.getDate())}T${pad(ret.getHours())}:${pad(ret.getMinutes())}`;
-                        setFormData({ ...formData, tgl_keluar_rencana: nowStr, tgl_kembali_rencana: retStr });
-                      }}
-                      style={{
-                        padding: "6px 4px",
-                        borderRadius: "10px",
-                        border: "1px solid #cbd5e1",
-                        background: "#ffffff",
-                        color: "#334155",
-                        fontSize: "0.72rem",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        transition: "all 0.15s ease",
-                        textAlign: "center"
-                      }}
-                    >
-                      ⏱️ {p.label}
-                    </button>
-                  ))}
                 </div>
 
                 <div
@@ -1286,10 +1242,10 @@ export default function MobileIzin() {
                         marginBottom: "4px",
                       }}
                     >
-                      Waktu Keluar *
+                      Tanggal Keluar *
                     </label>
                     <input
-                      type="datetime-local"
+                      type="date"
                       required
                       value={formData.tgl_keluar_rencana}
                       onChange={(e) =>
@@ -1303,7 +1259,7 @@ export default function MobileIzin() {
                         padding: "9px 10px",
                         borderRadius: "10px",
                         border: "1.5px solid #cbd5e1",
-                        fontSize: "0.78rem",
+                        fontSize: "0.8rem",
                         fontWeight: 700,
                         color: "#0f172a",
                         background: "#ffffff",
@@ -1325,7 +1281,7 @@ export default function MobileIzin() {
                       Batas Kembali *
                     </label>
                     <input
-                      type="datetime-local"
+                      type="date"
                       required
                       value={formData.tgl_kembali_rencana}
                       onChange={(e) =>
@@ -1339,7 +1295,7 @@ export default function MobileIzin() {
                         padding: "9px 10px",
                         borderRadius: "10px",
                         border: "1.5px solid #cbd5e1",
-                        fontSize: "0.78rem",
+                        fontSize: "0.8rem",
                         fontWeight: 700,
                         color: "#0f172a",
                         background: "#ffffff",
@@ -1350,17 +1306,14 @@ export default function MobileIzin() {
                   </div>
                 </div>
 
-                {/* Live Estimasi Durasi Badge */}
+                {/* Live Estimasi Durasi Hari */}
                 {(() => {
                   if (!formData.tgl_keluar_rencana || !formData.tgl_kembali_rencana) return null;
                   const st = new Date(formData.tgl_keluar_rencana);
                   const en = new Date(formData.tgl_kembali_rencana);
                   const diffMs = en - st;
-                  if (isNaN(diffMs) || diffMs <= 0) return null;
-                  const totalHours = Math.round(diffMs / (1000 * 60 * 60));
-                  const days = Math.floor(totalHours / 24);
-                  const hours = totalHours % 24;
-                  const durStr = days > 0 ? (hours > 0 ? `${days} Hari ${hours} Jam` : `${days} Hari`) : `${hours} Jam`;
+                  if (isNaN(diffMs) || diffMs < 0) return null;
+                  const totalDays = Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1;
                   return (
                     <div style={{
                       marginTop: "10px",
@@ -1375,59 +1328,48 @@ export default function MobileIzin() {
                       alignItems: "center",
                       gap: "6px"
                     }}>
-                      <Clock size={13} color="#059669" />
-                      <span>Estimasi Durasi: <strong>{durStr}</strong> ({totalHours} Jam)</span>
+                      <Calendar size={13} color="#059669" />
+                      <span>Estimasi Durasi Izin: <strong>{totalDays} Hari</strong></span>
                     </div>
                   );
                 })()}
               </div>
 
-              {/* Keperluan dengan Template Cepat */}
+              {/* Keperluan / Alasan Izin (Tanpa Tombol Isi Cepat) */}
               <div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                  <label
-                    style={{
-                      fontSize: "0.78rem",
-                      fontWeight: 800,
-                      color: "#1e293b",
-                      margin: 0,
-                    }}
-                  >
-                    Keperluan / Alasan Izin *
-                  </label>
-                  <span style={{ fontSize: "0.66rem", color: "#64748b" }}>Isi cepat:</span>
-                </div>
-
-                {/* Template Chips */}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginBottom: "8px" }}>
-                  {[
-                    "Pernikahan Saudara",
-                    "Silaturahmi Keluarga",
-                    "Periksa Dokter / Berobat",
-                    "Keperluan Mendesak",
-                    "Libur Terjadwal Pondok"
-                  ].map((tpl, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, keperluan: tpl })}
-                      style={{
-                        padding: "4px 9px",
-                        borderRadius: "8px",
-                        border: formData.keperluan === tpl ? "1px solid #0284c7" : "1px solid #e2e8f0",
-                        background: formData.keperluan === tpl ? "#e0f2fe" : "#f8fafc",
-                        color: formData.keperluan === tpl ? "#0369a1" : "#475569",
-                        fontSize: "0.7rem",
-                        fontWeight: 700,
-                        cursor: "pointer"
-                      }}
-                    >
-                      + {tpl}
-                    </button>
-                  ))}
-                </div>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.78rem",
+                    fontWeight: 800,
+                    color: "#1e293b",
+                    marginBottom: "6px",
+                  }}
+                >
+                  Keperluan / Alasan Izin *
+                </label>
 
                 <textarea
+                  required
+                  rows={3}
+                  placeholder="Contoh: Menghadiri walimah pernikahan kakak kandung di Tasikmalaya..."
+                  value={formData.keperluan}
+                  onChange={(e) =>
+                    setFormData({ ...formData, keperluan: e.target.value })
+                  }
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: "12px",
+                    border: "1.5px solid #cbd5e1",
+                    fontSize: "0.82rem",
+                    boxSizing: "border-box",
+                    outline: "none",
+                    fontFamily: "inherit",
+                    background: "#ffffff",
+                    resize: "none"
+                  }}
+                />
                   required
                   rows={2}
                   placeholder="Contoh: Menghadiri walimah pernikahan kakak kandung"

@@ -130,6 +130,7 @@ export default function MobilePresensiMengaji() {
   const [searchManual, setSearchManual] = useState("");
   const [filterManualStatus, setFilterManualStatus] = useState("Semua");
   const [searchRiwayat, setSearchRiwayat] = useState("");
+  const [selectedRiwayatTanggal, setSelectedRiwayatTanggal] = useState(getTodayDateStr());
   const [refreshingRiwayat, setRefreshingRiwayat] = useState(false);
 
   // Audio & Sound
@@ -820,11 +821,11 @@ export default function MobilePresensiMengaji() {
     }
   };
 
-  const handleRefreshRiwayat = async () => {
+  const handleRefreshRiwayat = async (customDate) => {
     setRefreshingRiwayat(true);
     try {
-      const todayStr = getTodayDateStr();
-      const res = await axios.get(`/api/absensi/fingerprint?tanggal=${todayStr}&tipe=kegiatan`);
+      const targetDate = customDate || selectedRiwayatTanggal || getTodayDateStr();
+      const res = await axios.get(`/api/absensi/fingerprint?tanggal=${targetDate}&tipe=kegiatan`);
       const serverLogs = res.data?.data;
       if (Array.isArray(serverLogs)) {
         setPresensiLogs((prev) => {
@@ -855,7 +856,7 @@ export default function MobilePresensiMengaji() {
     } else if (tabMode === "riwayat") {
       stopScanner();
       stopFaceCamera();
-      handleRefreshRiwayat();
+      handleRefreshRiwayat(selectedRiwayatTanggal);
     } else {
       stopScanner();
       stopFaceCamera();
@@ -928,9 +929,15 @@ export default function MobilePresensiMengaji() {
   const sessionBelumCount = sessionTotal - sessionSudahCount;
   const sessionPercent = sessionTotal > 0 ? Math.round((sessionHadirCount / sessionTotal) * 100) : 0;
 
-  // Filter Riwayat khusus berdasarkan Kegiatan Mengaji & Kelas Terpilih
+  // Filter Riwayat khusus berdasarkan Kegiatan Mengaji & Kelas Terpilih (Per Hari Saja)
   const filteredRiwayatLogs = React.useMemo(() => {
+    const targetTanggal = selectedRiwayatTanggal || getTodayDateStr();
+
     return presensiLogs.filter((log) => {
+      // 0. Filter Tanggal: Hanya tanggal yang dipilih (per hari saja)
+      const logTanggal = normalizeDateStr(log.tanggal);
+      if (logTanggal !== targetTanggal) return false;
+
       // 1. Abaikan shalat
       const isShalat = /shalat|sholat|subuh|dzuhur|ashar|maghrib|isya|berjamaah/i.test(
         String(log.kegiatan || log.nama_sesi || "")
@@ -977,7 +984,7 @@ export default function MobilePresensiMengaji() {
 
       return true;
     });
-  }, [presensiLogs, selectedMengaji, selectedMengajiKelas, santriList, searchRiwayat]);
+  }, [presensiLogs, selectedMengaji, selectedMengajiKelas, santriList, searchRiwayat, selectedRiwayatTanggal]);
 
   if (loading) {
     return (
@@ -1565,9 +1572,123 @@ export default function MobilePresensiMengaji() {
         </div>
       )}
 
-      {/* Mode 4: Riwayat Khusus Kegiatan & Kelas Terpilih */}
+      {/* Mode 4: Riwayat Khusus Kegiatan & Kelas Terpilih (Per Hari Saja) */}
       {activeMode === "riwayat" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {/* Card Filter Tanggal Riwayat (Per Hari) */}
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: "14px",
+              padding: "10px 14px",
+              border: "1px solid #e2e8f0",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <Calendar size={15} color="#059669" />
+                <span style={{ fontSize: "0.78rem", fontWeight: 800, color: "#0f172a" }}>
+                  Riwayat Presensi Per Hari
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleRefreshRiwayat(selectedRiwayatTanggal)}
+                disabled={refreshingRiwayat}
+                style={{
+                  background: "#f1f5f9",
+                  border: "none",
+                  padding: "5px 9px",
+                  borderRadius: "8px",
+                  fontSize: "0.68rem",
+                  fontWeight: 700,
+                  color: "#475569",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  cursor: "pointer",
+                }}
+              >
+                <RefreshCw size={11} className={refreshingRiwayat ? "animate-spin" : ""} />
+                {refreshingRiwayat ? "Memuat..." : "Segarkan"}
+              </button>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div style={{ position: "relative", flex: 1 }}>
+                <input
+                  type="date"
+                  value={selectedRiwayatTanggal}
+                  onChange={(e) => {
+                    const newDate = e.target.value;
+                    setSelectedRiwayatTanggal(newDate);
+                    handleRefreshRiwayat(newDate);
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "8px 10px",
+                    borderRadius: "10px",
+                    border: "1.5px solid #cbd5e1",
+                    fontSize: "0.78rem",
+                    fontWeight: 700,
+                    color: "#0f172a",
+                    background: "#f8fafc",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+
+              {selectedRiwayatTanggal !== getTodayDateStr() ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const today = getTodayDateStr();
+                    setSelectedRiwayatTanggal(today);
+                    handleRefreshRiwayat(today);
+                  }}
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: "10px",
+                    border: "1px solid #a7f3d0",
+                    background: "#ecfdf5",
+                    color: "#059669",
+                    fontSize: "0.72rem",
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Hari Ini
+                </button>
+              ) : (
+                <span
+                  style={{
+                    padding: "6px 10px",
+                    borderRadius: "8px",
+                    background: "#f0fdf4",
+                    border: "1px solid #bbf7d0",
+                    color: "#166534",
+                    fontSize: "0.68rem",
+                    fontWeight: 800,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Hari Ini
+                </span>
+              )}
+            </div>
+
+            <div style={{ fontSize: "0.68rem", color: "#64748b", display: "flex", justifyContent: "space-between" }}>
+              <span>{selectedMengaji?.nama ? `📖 ${selectedMengaji.nama}` : "Semua Kegiatan"}</span>
+              <strong>{filteredRiwayatLogs.length} Santri Tercatat</strong>
+            </div>
+          </div>
+
           {/* Search Box Riwayat */}
           {(filteredRiwayatLogs.length > 3 || searchRiwayat) && (
             <input
@@ -1808,8 +1929,8 @@ export default function MobilePresensiMengaji() {
               </div>
               <div style={{ fontSize: "0.72rem", marginTop: "4px" }}>
                 {selectedMengaji && selectedMengajiKelas
-                  ? `Belum ada santri yang presensi untuk kegiatan "${selectedMengaji.nama}" di kelas "${selectedMengajiKelas}".`
-                  : "Silakan tentukan kegiatan dan kelas santri di atas."}
+                  ? `Belum ada riwayat santri untuk kegiatan "${selectedMengaji.nama}" di kelas "${selectedMengajiKelas}" pada tanggal ini.`
+                  : "Silakan tentukan kegiatan dan kelas santri di atas, atau pilih tanggal lain."}
               </div>
             </div>
           )}
