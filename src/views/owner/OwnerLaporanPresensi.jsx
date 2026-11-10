@@ -22,6 +22,7 @@ import {
 import LaporanPeriodeFilter, {
   createInitialPeriodeState,
   buildPeriodeQueryParams,
+  getInitials,
 } from "./components/LaporanPeriodeFilter";
 
 export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "semua" }) {
@@ -644,6 +645,32 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "
 
       {/* 5. MOBILE LIST CARDS: LOG PRESENSI REALTIME */}
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "2px 4px",
+          }}
+        >
+          <span style={{ fontSize: "0.78rem", fontWeight: 800, color: "#0f172a" }}>
+            Daftar Kehadiran Santri
+          </span>
+          <span
+            style={{
+              fontSize: "0.66rem",
+              fontWeight: 800,
+              color: "#0f766e",
+              background: "#f0fdfa",
+              border: "1px solid #ccfbf1",
+              padding: "2px 8px",
+              borderRadius: "999px",
+            }}
+          >
+            {filteredLogs.length.toLocaleString("id-ID")} Catatan
+          </span>
+        </div>
+
         {loading ? (
           <div
             style={{
@@ -668,101 +695,170 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "
               const isSakit = st.includes("sakit");
               const isIzin = st.includes("izin");
 
-              const badgeBg = isHaid
-                ? "#fdf2f8"
+              const theme = isHaid
+                ? { bg: "#fdf2f8", color: "#be185d", border: "#fbcfe8", accent: "#ec4899", avatarBg: "linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%)" }
                 : isHadir
-                ? "#ecfdf5"
+                ? { bg: "#ecfdf5", color: "#059669", border: "#a7f3d0", accent: "#10b981", avatarBg: "linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)" }
                 : isSakit
-                ? "#fef2f2"
+                ? { bg: "#fef2f2", color: "#dc2626", border: "#fecaca", accent: "#ef4444", avatarBg: "linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)" }
                 : isIzin
-                ? "#fffbeb"
-                : "#f0fdfa";
-              const badgeColor = isHaid
-                ? "#be185d"
-                : isHadir
-                ? "#059669"
-                : isSakit
-                ? "#dc2626"
-                : isIzin
-                ? "#d97706"
-                : "#0d9488";
-              const badgeBorder = isHaid
-                ? "#fbcfe8"
-                : isHadir
-                ? "#a7f3d0"
-                : isSakit
-                ? "#fecaca"
-                : isIzin
-                ? "#fde68a"
-                : "#99f6e4";
+                ? { bg: "#fffbeb", color: "#d97706", border: "#fde68a", accent: "#f59e0b", avatarBg: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)" }
+                : { bg: "#fff1f2", color: "#e11d48", border: "#fecdd3", accent: "#f43f5e", avatarBg: "linear-gradient(135deg, #ffe4e6 0%, #fecdd3 100%)" };
+
+              const StatusIcon = isHadir ? CheckCircle2 : AlertCircle;
+              const kegiatanLabel = item.nama_kegiatan || item.nama_sesi || "Shalat Berjamaah";
+              const metodeLabel = item.metode_presensi || item.metode || "Fingerprint";
 
               return (
                 <div
                   key={item.id || idx}
                   style={{
                     background: "#ffffff",
-                    borderRadius: "14px",
-                    padding: "12px 14px",
+                    borderRadius: "16px",
+                    padding: "11px 12px",
                     border: "1px solid #e2e8f0",
-                    boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+                    borderLeft: `4px solid ${theme.accent}`,
+                    boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
                     display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: "10px"
+                    flexDirection: "column",
+                    gap: "8px",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
-                    <div
-                      style={{
-                        width: "36px",
-                        height: "36px",
-                        borderRadius: "11px",
-                        background: badgeBg,
-                        color: badgeColor,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0
-                      }}
-                    >
-                      <Fingerprint size={18} />
-                    </div>
-                    <div style={{ minWidth: 0, overflow: "hidden" }}>
+                  {/* Top Row: Avatar + Name + Status Pill */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
                       <div
                         style={{
-                          fontSize: "0.8rem",
+                          width: "38px",
+                          height: "38px",
+                          borderRadius: "12px",
+                          background: theme.avatarBg,
+                          color: theme.color,
+                          border: `1px solid ${theme.border}`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "0.78rem",
                           fontWeight: 900,
-                          color: "#0f172a",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis"
+                          letterSpacing: "-0.3px",
+                          flexShrink: 0,
+                          position: "relative",
                         }}
                       >
-                        {item.nama_santri}
+                        {getInitials(item.nama_santri)}
+                        <span
+                          style={{
+                            position: "absolute",
+                            bottom: "-2px",
+                            right: "-2px",
+                            width: "10px",
+                            height: "10px",
+                            borderRadius: "50%",
+                            background: theme.accent,
+                            border: "2px solid #ffffff",
+                          }}
+                        />
                       </div>
-                      <div style={{ fontSize: "0.64rem", color: "#64748b", marginTop: "1px" }}>
-                        {item.nama_kegiatan || item.nama_sesi || "Shalat Berjamaah"} {item.nama_kelas ? `• ${item.nama_kelas}` : ""}
-                      </div>
-                      <div style={{ fontSize: "0.6rem", color: "#94a3b8", marginTop: "1px" }}>
-                        {item.waktu_scan || item.jam_absen || item.waktu || formatDate(item.tanggal)} • {item.metode_presensi || item.metode || "Fingerprint / AI"}
+
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div
+                          style={{
+                            fontSize: "0.83rem",
+                            fontWeight: 800,
+                            color: "#0f172a",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          {item.nama_santri}
+                        </div>
+                        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "4px", marginTop: "4px" }}>
+                          <span
+                            style={{
+                              fontSize: "0.6rem",
+                              fontWeight: 700,
+                              color: "#475569",
+                              background: "#f1f5f9",
+                              padding: "2px 6px",
+                              borderRadius: "6px",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {kegiatanLabel}
+                          </span>
+                          {item.nama_kelas && (
+                            <span
+                              style={{
+                                fontSize: "0.6rem",
+                                fontWeight: 700,
+                                color: "#0f766e",
+                                background: "#f0fdfa",
+                                border: "1px solid #ccfbf1",
+                                padding: "1.5px 6px",
+                                borderRadius: "6px",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {item.nama_kelas}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
                     <span
                       style={{
-                        display: "inline-block",
-                        fontSize: "0.66rem",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        fontSize: "0.65rem",
                         fontWeight: 800,
-                        color: badgeColor,
-                        background: badgeBg,
-                        border: `1px solid ${badgeBorder}`,
+                        color: theme.color,
+                        background: theme.bg,
+                        border: `1px solid ${theme.border}`,
                         padding: "4px 8px",
-                        borderRadius: "8px"
+                        borderRadius: "999px",
+                        flexShrink: 0,
                       }}
                     >
-                      {item.status || "Hadir"}
+                      <StatusIcon size={11} strokeWidth={2.6} />
+                      <span>{item.status || "Hadir"}</span>
+                    </span>
+                  </div>
+
+                  {/* Bottom Footer Bar: Date/Time + Metode Badge */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      paddingTop: "6px",
+                      borderTop: "1px dashed #f1f5f9",
+                      fontSize: "0.6rem",
+                      color: "#64748b",
+                    }}
+                  >
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontWeight: 600 }}>
+                      <Clock size={11} color="#94a3b8" />
+                      <span>
+                        {formatDate(item.tanggal)}
+                        {item.waktu_scan && item.waktu_scan !== "-" ? ` • ${item.waktu_scan}` : ""}
+                      </span>
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "0.58rem",
+                        fontWeight: 700,
+                        color: "#64748b",
+                        background: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                        padding: "1.5px 6px",
+                        borderRadius: "6px",
+                      }}
+                    >
+                      {metodeLabel}
                     </span>
                   </div>
                 </div>

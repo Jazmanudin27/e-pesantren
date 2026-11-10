@@ -2,6 +2,16 @@ import React from "react";
 import { Calendar, ChevronDown } from "lucide-react";
 
 /**
+ * Helper: Ambil 1-2 huruf inisial nama santri
+ */
+export function getInitials(name = "") {
+  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "S";
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+/**
  * Helper: Buat state awal filter periode laporan ('hari' | 'bulan' | 'tahun')
  */
 export function createInitialPeriodeState(defaultMode = "hari") {

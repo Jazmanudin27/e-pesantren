@@ -13,6 +13,7 @@ import {
   Sparkles,
   ShieldCheck,
 } from "lucide-react";
+import { getInitials } from "./components/LaporanPeriodeFilter";
 
 export default function OwnerLaporanPerkembangan() {
   const [loading, setLoading] = useState(true);
@@ -255,7 +256,33 @@ export default function OwnerLaporanPerkembangan() {
       </div>
 
       {/* 3. LIST LAPORAN PERKEMBANGAN */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "2px 4px",
+          }}
+        >
+          <span style={{ fontSize: "0.78rem", fontWeight: 800, color: "#0f172a" }}>
+            Daftar Evaluasi Santri
+          </span>
+          <span
+            style={{
+              fontSize: "0.66rem",
+              fontWeight: 800,
+              color: "#4338ca",
+              background: "#eef2ff",
+              border: "1px solid #c7d2fe",
+              padding: "2px 8px",
+              borderRadius: "999px",
+            }}
+          >
+            {filteredList.length.toLocaleString("id-ID")} Dokumen
+          </span>
+        </div>
+
         {loading ? (
           <div
             style={{
@@ -288,13 +315,17 @@ export default function OwnerLaporanPerkembangan() {
                   key={item.id || idx}
                   style={{
                     background: "#ffffff",
-                    borderRadius: "14px",
-                    padding: "12px 14px",
-                    border: "1px solid #e2e8f0",
-                    boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+                    borderRadius: "16px",
+                    padding: "12px 13px",
+                    border: isExpanded ? "1px solid #a5b4fc" : "1px solid #e2e8f0",
+                    borderLeft: "4px solid #6366f1",
+                    boxShadow: isExpanded
+                      ? "0 8px 20px -4px rgba(79, 70, 229, 0.16)"
+                      : "0 2px 8px rgba(15, 23, 42, 0.04)",
                     display: "flex",
                     flexDirection: "column",
-                    gap: "8px",
+                    gap: "9px",
+                    transition: "all 0.2s ease",
                   }}
                 >
                   <div
@@ -320,51 +351,73 @@ export default function OwnerLaporanPerkembangan() {
                     >
                       <div
                         style={{
-                          width: "38px",
-                          height: "38px",
+                          width: "40px",
+                          height: "40px",
                           borderRadius: "12px",
-                          background: "#eef2ff",
-                          color: "#4f46e5",
+                          background: "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)",
+                          color: "#4338ca",
+                          border: "1px solid #c7d2fe",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
+                          fontSize: "0.8rem",
+                          fontWeight: 900,
+                          letterSpacing: "-0.3px",
                           flexShrink: 0,
                         }}
                       >
-                        <Award size={18} />
+                        {getInitials(item.nama_santri)}
                       </div>
-                      <div style={{ minWidth: 0, overflow: "hidden" }}>
+                      <div style={{ minWidth: 0, flex: 1 }}>
                         <div
                           style={{
-                            fontSize: "0.82rem",
-                            fontWeight: 900,
+                            fontSize: "0.84rem",
+                            fontWeight: 800,
                             color: "#0f172a",
                             whiteSpace: "nowrap",
                             overflow: "hidden",
                             textOverflow: "ellipsis",
+                            lineHeight: 1.2,
                           }}
                         >
                           {item.nama_santri}
                         </div>
                         <div
                           style={{
-                            fontSize: "0.64rem",
-                            color: "#64748b",
-                            marginTop: "1px",
+                            display: "flex",
+                            flexWrap: "wrap",
+                            alignItems: "center",
+                            gap: "4px",
+                            marginTop: "4px",
                           }}
                         >
-                          Periode: <strong>{item.periode || "Semester"}</strong>{" "}
-                          {item.nama_kelas ? `• ${item.nama_kelas}` : ""}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "0.6rem",
-                            color: "#94a3b8",
-                            marginTop: "1px",
-                          }}
-                        >
-                          Tgl: {formatDate(item.tanggal_laporan)} • Asatidz:{" "}
-                          {item.nama_penulis || "Pengasuh"}
+                          <span
+                            style={{
+                              fontSize: "0.6rem",
+                              fontWeight: 800,
+                              color: "#4338ca",
+                              background: "#eef2ff",
+                              border: "1px solid #c7d2fe",
+                              padding: "1.5px 6px",
+                              borderRadius: "6px",
+                            }}
+                          >
+                            {item.periode || "Semester"}
+                          </span>
+                          {item.nama_kelas && (
+                            <span
+                              style={{
+                                fontSize: "0.6rem",
+                                fontWeight: 700,
+                                color: "#475569",
+                                background: "#f1f5f9",
+                                padding: "2px 6px",
+                                borderRadius: "6px",
+                              }}
+                            >
+                              {item.nama_kelas}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -379,22 +432,36 @@ export default function OwnerLaporanPerkembangan() {
                     >
                       <span
                         style={{
-                          fontSize: "0.58rem",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "3px",
+                          fontSize: "0.6rem",
                           fontWeight: 800,
                           padding: "3px 7px",
-                          borderRadius: "6px",
-                          background: "#eef2ff",
-                          color: "#4338ca",
-                          border: "1px solid #c7d2fe",
+                          borderRadius: "999px",
+                          background: "#ecfdf5",
+                          color: "#059669",
+                          border: "1px solid #a7f3d0",
                         }}
                       >
-                        Diterbitkan
+                        <ShieldCheck size={10} />
+                        <span>Terbit</span>
                       </span>
-                      {isExpanded ? (
-                        <ChevronUp size={16} color="#64748b" />
-                      ) : (
-                        <ChevronDown size={16} color="#64748b" />
-                      )}
+                      <div
+                        style={{
+                          width: "24px",
+                          height: "24px",
+                          borderRadius: "8px",
+                          background: isExpanded ? "#eef2ff" : "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: isExpanded ? "#4f46e5" : "#64748b",
+                        }}
+                      >
+                        {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      </div>
                     </div>
                   </div>
 
@@ -407,16 +474,37 @@ export default function OwnerLaporanPerkembangan() {
                         padding: "8px 10px",
                         fontSize: "0.68rem",
                         color: "#334155",
-                        border: "1px solid #f1f5f9",
-                        lineHeight: 1.4,
+                        border: "1px solid #e2e8f0",
+                        borderLeft: "3px solid #6366f1",
+                        lineHeight: 1.45,
                       }}
                     >
-                      <strong style={{ color: "#4f46e5" }}>
-                        Evaluasi Pengasuh:
-                      </strong>{" "}
+                      <strong style={{ color: "#4338ca" }}>Evaluasi:</strong>{" "}
                       {item.catatan_ustadz}
                     </div>
                   )}
+
+                  {/* Meta Footer */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      fontSize: "0.6rem",
+                      color: "#64748b",
+                      paddingTop: "4px",
+                      borderTop: "1px dashed #f1f5f9",
+                    }}
+                  >
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontWeight: 600 }}>
+                      <Calendar size={11} color="#94a3b8" />
+                      <span>{formatDate(item.tanggal_laporan)}</span>
+                    </span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontWeight: 700, color: "#475569" }}>
+                      <User size={11} color="#94a3b8" />
+                      <span>{item.nama_penulis || "Pengasuh"}</span>
+                    </span>
+                  </div>
 
                   {/* Expanded Detail Sections */}
                   {isExpanded && (
@@ -426,22 +514,26 @@ export default function OwnerLaporanPerkembangan() {
                         flexDirection: "column",
                         gap: "6px",
                         paddingTop: "6px",
-                        borderTop: "1px solid #f1f5f9",
-                        fontSize: "0.66rem",
+                        borderTop: "1px solid #e2e8f0",
+                        fontSize: "0.67rem",
                       }}
                     >
                       {item.catatan_perilaku && (
                         <div
                           style={{
                             background: "#ecfdf5",
-                            padding: "6px 8px",
-                            borderRadius: "8px",
+                            padding: "8px 10px",
+                            borderRadius: "10px",
                             border: "1px solid #a7f3d0",
                             color: "#065f46",
+                            lineHeight: 1.4,
                           }}
                         >
-                          <strong>Karakter &amp; Kedisiplinan:</strong>{" "}
-                          {item.catatan_perilaku}
+                          <div style={{ display: "flex", alignItems: "center", gap: "4px", fontWeight: 800, marginBottom: "2px" }}>
+                            <ShieldCheck size={12} />
+                            <span>Karakter &amp; Kedisiplinan</span>
+                          </div>
+                          <div>{item.catatan_perilaku}</div>
                         </div>
                       )}
 
@@ -449,14 +541,18 @@ export default function OwnerLaporanPerkembangan() {
                         <div
                           style={{
                             background: "#eff6ff",
-                            padding: "6px 8px",
-                            borderRadius: "8px",
+                            padding: "8px 10px",
+                            borderRadius: "10px",
                             border: "1px solid #bfdbfe",
                             color: "#1e40af",
+                            lineHeight: 1.4,
                           }}
                         >
-                          <strong>Ibadah &amp; Shalat:</strong>{" "}
-                          {item.catatan_ibadah}
+                          <div style={{ display: "flex", alignItems: "center", gap: "4px", fontWeight: 800, marginBottom: "2px" }}>
+                            <Sparkles size={12} />
+                            <span>Ibadah &amp; Shalat</span>
+                          </div>
+                          <div>{item.catatan_ibadah}</div>
                         </div>
                       )}
 
@@ -464,14 +560,18 @@ export default function OwnerLaporanPerkembangan() {
                         <div
                           style={{
                             background: "#fdf4ff",
-                            padding: "6px 8px",
-                            borderRadius: "8px",
+                            padding: "8px 10px",
+                            borderRadius: "10px",
                             border: "1px solid #f0abfc",
                             color: "#86198f",
+                            lineHeight: 1.4,
                           }}
                         >
-                          <strong>Capaian Hafalan:</strong>{" "}
-                          {item.catatan_hafalan}
+                          <div style={{ display: "flex", alignItems: "center", gap: "4px", fontWeight: 800, marginBottom: "2px" }}>
+                            <Award size={12} />
+                            <span>Capaian Hafalan</span>
+                          </div>
+                          <div>{item.catatan_hafalan}</div>
                         </div>
                       )}
 
@@ -479,14 +579,18 @@ export default function OwnerLaporanPerkembangan() {
                         <div
                           style={{
                             background: "#fffbeb",
-                            padding: "6px 8px",
-                            borderRadius: "8px",
+                            padding: "8px 10px",
+                            borderRadius: "10px",
                             border: "1px solid #fde68a",
                             color: "#92400e",
+                            lineHeight: 1.4,
                           }}
                         >
-                          <strong>Akademik Kitab:</strong>{" "}
-                          {item.catatan_akademik}
+                          <div style={{ display: "flex", alignItems: "center", gap: "4px", fontWeight: 800, marginBottom: "2px" }}>
+                            <BookOpen size={12} />
+                            <span>Akademik Kitab</span>
+                          </div>
+                          <div>{item.catatan_akademik}</div>
                         </div>
                       )}
                     </div>

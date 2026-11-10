@@ -1118,8 +1118,8 @@ export default function PengajarDashboardView({ onLogout }) {
               >
                 <span
                   style={{
-                    fontSize: "0.85rem",
-                    fontWeight: 900,
+                    fontSize: "0.94rem",
+                    fontWeight: 800,
                     letterSpacing: "-0.2px",
                     display: "block",
                     whiteSpace: "nowrap",
@@ -1144,19 +1144,6 @@ export default function PengajarDashboardView({ onLogout }) {
                   {activeTab === "santri" && "Data & Demografi Santri"}
                   {(activeTab === "settings" || activeTab === "profil") &&
                     "Pengaturan & Profil Pengajar"}
-                </span>
-                <span
-                  style={{
-                    fontSize: "0.58rem",
-                    color: "#a7f3d0",
-                    fontWeight: 800,
-                    letterSpacing: "0.06em",
-                    textTransform: "uppercase",
-                    display: "inline-block",
-                    marginTop: "1px",
-                  }}
-                >
-                  PORTAL ASATIDZ / PENGAJAR
                 </span>
               </div>
 

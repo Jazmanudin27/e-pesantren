@@ -122,6 +122,18 @@ export default function MobileLogin({ onLoginSuccess, onBackToOnboarding }) {
         ) {
           detectedRole = "bendahara";
           detectedType = "Bendahara / Keuangan";
+        } else if (
+          rawRole.includes("asatidz") ||
+          rawRole.includes("ustadz") ||
+          rawRole.includes("pengajar") ||
+          rawRole.includes("guru") ||
+          rawType.includes("asatidz") ||
+          rawType.includes("ustadz") ||
+          rawType.includes("pengajar") ||
+          rawType.includes("guru")
+        ) {
+          detectedRole = "asatidz";
+          detectedType = "Ustadz / Guru";
         } else if (rawRole === "admin" || rawType.includes("admin")) {
           detectedRole = "admin";
           detectedType = "Administrator";
@@ -137,17 +149,17 @@ export default function MobileLogin({ onLoginSuccess, onBackToOnboarding }) {
           token: res.data.token,
           role: detectedRole,
           userType: detectedType,
-          santri_id: res.data.santri_id || userObj.santri_id,
+          santri_id: detectedRole === "wali" ? (res.data.santri_id || userObj.santri_id) : undefined,
           nama:
             res.data.nama ||
-            userObj.nama_santri ||
+            (detectedRole === "wali" ? userObj.nama_santri : "") ||
             userObj.nama_asatidz ||
             userObj.nama ||
             userObj.name ||
             cleanUser,
-          nama_santri: res.data.nama_santri || userObj.nama_santri || res.data.nama || cleanUser,
-          nis: res.data.nis || userObj.nis || '',
-          nisn: res.data.nisn || userObj.nisn || '',
+          nama_santri: detectedRole === "wali" ? (res.data.nama_santri || userObj.nama_santri || res.data.nama || cleanUser) : "",
+          nis: detectedRole === "wali" ? (res.data.nis || userObj.nis || '') : '',
+          nisn: detectedRole === "wali" ? (res.data.nisn || userObj.nisn || '') : '',
           nama_asatidz:
             res.data.nama_asatidz || userObj.nama_asatidz || cleanUser,
           asrama_id: res.data.asrama_id || userObj.asrama_id || 1,
@@ -162,13 +174,25 @@ export default function MobileLogin({ onLoginSuccess, onBackToOnboarding }) {
         localStorage.setItem("desktop_session", JSON.stringify(sessionData));
         if (detectedRole === "wali") {
           localStorage.setItem("wali_session", JSON.stringify(sessionData));
+        } else {
+          localStorage.removeItem("wali_session");
         }
 
         setLoading(false);
         toastSuccess(`Login berhasil (${detectedType}): ${sessionData.nama}`);
 
         if (detectedRole === "owner") {
+          localStorage.removeItem("owner_active_tab");
+          sessionStorage.removeItem("owner_active_tab");
           window.location.hash = "#owner";
+          window.location.reload();
+          return;
+        }
+
+        if (detectedRole === "asatidz") {
+          localStorage.removeItem("pengajar_active_tab");
+          sessionStorage.removeItem("pengajar_active_tab");
+          window.location.hash = "#pengajar";
           window.location.reload();
           return;
         }
@@ -401,7 +425,7 @@ export default function MobileLogin({ onLoginSuccess, onBackToOnboarding }) {
                 marginBottom: "6px",
               }}
             >
-              Username / NIS Santri / NIK
+              Username / NISN / NIK
             </label>
             <div
               style={{
@@ -427,7 +451,7 @@ export default function MobileLogin({ onLoginSuccess, onBackToOnboarding }) {
               />
               <input
                 type="text"
-                placeholder="NISN / NIS Santri, Username, atau NIK..."
+                placeholder="Username, NISN (Wali), atau NIK..."
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 onFocus={() => setFocusedField("user")}

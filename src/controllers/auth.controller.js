@@ -135,7 +135,7 @@ export const login = async (req, res, next) => {
       }
     }
 
-    // 4. Query santri table (Orang Tua / Wali Santri)
+    // 4. Query santri table (Orang Tua / Wali Santri - hanya NISN / NIS / Username, jangan nama santri)
     if (!account) {
       try {
         let strRows = [];
@@ -146,13 +146,10 @@ export const login = async (req, res, next) => {
              LEFT JOIN asrama a ON s.asrama_id = a.id 
              LEFT JOIN kamar_kobong k ON s.kamar_id = k.id 
              WHERE LOWER(TRIM(COALESCE(s.username, ''))) = LOWER(TRIM(?))
-                OR LOWER(TRIM(s.nis)) = LOWER(TRIM(?)) 
                 OR LOWER(TRIM(COALESCE(s.nisn, ''))) = LOWER(TRIM(?)) 
-                OR LOWER(TRIM(s.kode_santri)) = LOWER(TRIM(?)) 
-                OR LOWER(TRIM(s.nama_santri)) = LOWER(TRIM(?))
-                OR LOWER(TRIM(s.nama_santri)) LIKE LOWER(?)
+                OR LOWER(TRIM(COALESCE(s.nis, ''))) = LOWER(TRIM(?))
              LIMIT 1`,
-            [cleanUser, cleanUser, cleanUser, cleanUser, cleanUser, `%${cleanUser}%`]
+            [cleanUser, cleanUser, cleanUser]
           );
           strRows = resWithUser;
         } catch (colErr) {
@@ -161,13 +158,10 @@ export const login = async (req, res, next) => {
              FROM santri s 
              LEFT JOIN asrama a ON s.asrama_id = a.id 
              LEFT JOIN kamar_kobong k ON s.kamar_id = k.id 
-             WHERE LOWER(TRIM(s.nis)) = LOWER(TRIM(?)) 
-                OR LOWER(TRIM(s.nisn)) = LOWER(TRIM(?)) 
-                OR LOWER(TRIM(s.kode_santri)) = LOWER(TRIM(?)) 
-                OR LOWER(TRIM(s.nama_santri)) = LOWER(TRIM(?))
-                OR LOWER(TRIM(s.nama_santri)) LIKE LOWER(?)
+             WHERE LOWER(TRIM(COALESCE(s.nisn, ''))) = LOWER(TRIM(?)) 
+                OR LOWER(TRIM(COALESCE(s.nis, ''))) = LOWER(TRIM(?))
              LIMIT 1`,
-            [cleanUser, cleanUser, cleanUser, cleanUser, `%${cleanUser}%`]
+            [cleanUser, cleanUser]
           );
           strRows = resLegacy;
         }
@@ -253,60 +247,99 @@ export const login = async (req, res, next) => {
       return sendError(res, `Password untuk akun "${cleanUser}" salah!`, 401);
     }
 
-    let isWali = userType === 'Wali Santri' || account.role === 'wali' || account.role === 'santri';
+    const rawRoleLow = String(account.role || '').toLowerCase();
+    const isExplicitWali =
+      userType === 'Wali Santri' ||
+      rawRoleLow === 'wali' ||
+      rawRoleLow === 'wali santri' ||
+      rawRoleLow === 'santri';
 
-    // Cari data santri asli dari database MySQL
-    let namaSantriDb = account.nama_santri || '';
-    let nisnDb = account.nisn || '';
-    let nisDb = account.nis || '';
-    let santriRealId = isWali ? account.id : (account.santri_id || null);
+    const isStaffAccount =
+      !isExplicitWali &&
+      (userType === 'Admin' ||
+        userType === 'Asatidz' ||
+        userType === 'Asrama' ||
+        rawRoleLow.includes('admin') ||
+        rawRoleLow.includes('asatidz') ||
+        rawRoleLow.includes('ustadz') ||
+        rawRoleLow.includes('pengajar') ||
+        rawRoleLow.includes('guru') ||
+        rawRoleLow.includes('asrama') ||
+        rawRoleLow.includes('bendahara') ||
+        rawRoleLow.includes('keuangan') ||
+        rawRoleLow.includes('owner') ||
+        rawRoleLow.includes('yayasan'));
 
-    try {
-      const [sRow] = await pool.query(
-        `SELECT id, nama_santri, nisn, nis, foto_url, foto FROM santri 
-         WHERE id = ? 
-            OR LOWER(TRIM(COALESCE(username, ''))) = LOWER(TRIM(?))
-            OR LOWER(TRIM(nis)) = LOWER(TRIM(?)) 
-            OR LOWER(TRIM(COALESCE(nisn, ''))) = LOWER(TRIM(?))
-            OR LOWER(TRIM(nama_santri)) = LOWER(TRIM(?))
-            OR LOWER(TRIM(nama_santri)) LIKE LOWER(?)
-         ORDER BY (LOWER(TRIM(nama_santri)) = LOWER(TRIM(?))) DESC, id ASC
-         LIMIT 1`,
-        [santriRealId || 0, cleanUser, cleanUser, cleanUser, cleanUser, `%${cleanUser}%`, cleanUser]
-      );
-      if (sRow && sRow.length > 0) {
-        namaSantriDb = sRow[0].nama_santri || namaSantriDb;
-        nisnDb = sRow[0].nisn || sRow[0].nis || nisnDb;
-        nisDb = sRow[0].nis || sRow[0].nisn || nisDb;
-        santriRealId = sRow[0].id;
-        const rLow = String(account.role || '').toLowerCase();
-        if (rLow !== 'admin' && rLow !== 'asatidz' && rLow !== 'asrama' && !rLow.includes('owner')) {
-          isWali = true;
-          userType = 'Wali Santri';
+    const isWali = isExplicitWali && !isStaffAccount;
+
+    // Cari data santri asli dari database MySQL HANYA jika akun memang Wali / Santri
+    let namaSantriDb = isWali ? (account.nama_santri || '') : '';
+    let nisnDb = isWali ? (account.nisn || '') : '';
+    let nisDb = isWali ? (account.nis || '') : '';
+    let santriRealId = isWali ? account.id : null;
+
+    if (isWali) {
+      try {
+        const [sRow] = await pool.query(
+          `SELECT id, nama_santri, nisn, nis, foto_url, foto FROM santri
+           WHERE id = ?
+              OR LOWER(TRIM(COALESCE(username, ''))) = LOWER(TRIM(?))
+              OR LOWER(TRIM(COALESCE(nisn, ''))) = LOWER(TRIM(?))
+              OR LOWER(TRIM(COALESCE(nis, ''))) = LOWER(TRIM(?))
+           LIMIT 1`,
+          [santriRealId || 0, cleanUser, cleanUser, cleanUser]
+        );
+        if (sRow && sRow.length > 0) {
+          namaSantriDb = sRow[0].nama_santri || namaSantriDb;
+          nisnDb = sRow[0].nisn || sRow[0].nis || nisnDb;
+          nisDb = sRow[0].nis || sRow[0].nisn || nisDb;
+          santriRealId = sRow[0].id;
         }
+      } catch (e) {
+        console.warn('Gagal fetch nama santri database:', e.message);
       }
-    } catch (e) {
-      console.warn('Gagal fetch nama santri database:', e.message);
     }
+
+    const resolvedRole = isWali
+      ? 'wali'
+      : (rawRoleLow || (userType === 'Asatidz' ? 'asatidz' : userType) || 'asrama').toLowerCase();
+
+    const isPengajarAccount =
+      !isWali &&
+      (userType === 'Asatidz' ||
+        resolvedRole.includes('asatidz') ||
+        resolvedRole.includes('ustadz') ||
+        resolvedRole.includes('pengajar') ||
+        resolvedRole.includes('guru'));
+
+    const resolvedUserType = isWali
+      ? 'Wali Santri'
+      : resolvedRole.includes('owner') || resolvedRole.includes('yayasan')
+        ? 'Owner / Yayasan (Eksekutif)'
+        : isPengajarAccount
+          ? 'Ustadz / Guru'
+          : userType;
 
     const tokenPayload = {
       id: account.id,
-      santri_id: santriRealId || (isWali ? account.id : undefined),
+      santri_id: isWali ? (santriRealId || account.id) : undefined,
       username: account.username || account.kode_asrama || account.nik_niy || nisDb || nisnDb || cleanUser,
-      nama_santri: namaSantriDb || account.nama_santri || undefined,
-      nisn: nisnDb || account.nisn || undefined,
-      nis: nisDb || account.nis || undefined,
-      role: isWali ? 'wali' : (account.role || (userType === 'Asatidz' ? 'asatidz' : userType) || 'asrama').toLowerCase(),
-      userType: isWali ? 'Wali Santri' : (String(account.role || '').toLowerCase().includes('owner') ? 'Owner / Yayasan (Eksekutif)' : (userType === 'Asatidz' ? 'Ustadz / Guru' : userType)),
+      nama_santri: isWali ? (namaSantriDb || account.nama_santri || undefined) : undefined,
+      nisn: isWali ? (nisnDb || account.nisn || undefined) : undefined,
+      nis: isWali ? (nisDb || account.nis || undefined) : undefined,
+      role: resolvedRole,
+      userType: resolvedUserType,
       asrama_id: account.asrama_id || account.id || 1
     };
 
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '7d' });
 
-    // Nama tampilan: jika Wali Santri, WAJIB menggunakan Nama Santri asli dari database!
+    // Nama tampilan: jika Wali Santri menggunakan Nama Santri; jika Asatidz gunakan nama_asatidz
     const displayName = isWali
       ? (namaSantriDb || account.nama_santri || account.nama || cleanUser)
-      : (account.nama_asatidz || account.nama_asrama || account.nama_santri || account.name || cleanUser);
+      : (account.nama_asatidz || account.nama_asrama || account.name || account.nama || cleanUser);
+
+    const { password: _omittedPass, user_password: _omittedUserPass, ...safeAccount } = account;
 
     // Success response with JWT Token
     return sendSuccess(res, 'Login berhasil', {
@@ -316,14 +349,15 @@ export const login = async (req, res, next) => {
       asrama_id: tokenPayload.asrama_id,
       santri_id: tokenPayload.santri_id,
       nama: displayName,
-      nama_santri: namaSantriDb || account.nama_santri || displayName,
-      nama_asatidz: account.nama_asatidz || '',
-      nama_asrama: account.nama_asrama || (isWali ? account.nama_asrama : account.nama_santri) || 'Asrama',
+      nama_santri: isWali ? (namaSantriDb || account.nama_santri || displayName) : '',
+      nama_asatidz: account.nama_asatidz || (isPengajarAccount ? displayName : ''),
+      nama_asrama: account.nama_asrama || (isWali ? account.nama_asrama : '') || 'Asrama',
       pembina: account.pembina || account.nama_asatidz || 'Musyrif Asrama',
       username: tokenPayload.username,
       nis: nisDb,
       nisn: nisnDb,
       user: {
+        ...safeAccount,
         id: account.id,
         santri_id: tokenPayload.santri_id,
         username: tokenPayload.username,
@@ -331,10 +365,9 @@ export const login = async (req, res, next) => {
         userType: tokenPayload.userType,
         nama: displayName,
         nama_wali: account.nama_wali,
-        nama_santri: namaSantriDb || account.nama_santri || displayName,
+        nama_santri: isWali ? (namaSantriDb || account.nama_santri || displayName) : '',
         nis: nisDb,
-        nisn: nisnDb,
-        ...account
+        nisn: nisnDb
       }
     });
   } catch (err) {

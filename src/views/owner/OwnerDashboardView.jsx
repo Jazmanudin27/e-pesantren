@@ -1750,8 +1750,8 @@ export default function OwnerDashboardView({ onLogout }) {
               >
                 <span
                   style={{
-                    fontSize: "0.85rem",
-                    fontWeight: 900,
+                    fontSize: "0.94rem",
+                    fontWeight: 800,
                     letterSpacing: "-0.2px",
                     display: "block",
                     whiteSpace: "nowrap",
@@ -1769,19 +1769,6 @@ export default function OwnerDashboardView({ onLogout }) {
                   {activeTab === "perizinan" && "Laporan Perizinan Santri"}
                   {activeTab === "santri" && "Data & Demografi Santri"}
                   {activeTab === "settings" && "Pengaturan & Konfigurasi"}
-                </span>
-                <span
-                  style={{
-                    fontSize: "0.58rem",
-                    color: "#a7f3d0",
-                    fontWeight: 800,
-                    letterSpacing: "0.06em",
-                    textTransform: "uppercase",
-                    display: "inline-block",
-                    marginTop: "1px",
-                  }}
-                >
-                  PANEL EKSEKUTIF OWNER
                 </span>
               </div>
 
