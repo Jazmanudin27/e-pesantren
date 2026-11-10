@@ -18,6 +18,7 @@ import {
   RotateCw,
   MessageSquare,
   Check,
+  ArrowLeft,
 } from "lucide-react";
 import { showConfirm, toastSuccess, showError } from "../../utils/alert.util";
 import SearchableSelect from "../../components/SearchableSelect";
@@ -1097,142 +1098,125 @@ export default function MobileTataTertib() {
         </div>
       )}
 
-      {/* MODAL INPUTAN PELANGGARAN MODERN (BOTTOM SHEET) */}
+      {/* MODAL INPUT & EDIT PELANGGARAN (FULL SCREEN MODERN) */}
       {isModalOpen && (
         <div
           style={{
             position: "fixed",
             inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.65)",
+            background: "#f8fafc",
             zIndex: 10000,
             display: "flex",
-            alignItems: "flex-end",
-            justifyContent: "center",
-            backdropFilter: "blur(4px)",
+            flexDirection: "column",
+            width: "100%",
+            height: "100dvh",
+            overflow: "hidden",
           }}
         >
+          {/* Sticky Full-Screen Header */}
           <div
             style={{
-              background: "#ffffff",
-              width: "100%",
-              maxWidth: "440px",
-              maxHeight: "92vh",
-              borderTopLeftRadius: "26px",
-              borderTopRightRadius: "26px",
-              overflowY: "auto",
-              boxShadow: "0 -14px 36px rgba(15, 23, 42, 0.28)",
+              background: "linear-gradient(135deg, #be123c 0%, #881337 100%)",
+              padding: "14px 16px",
+              color: "#ffffff",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              boxShadow: "0 4px 16px rgba(136, 19, 55, 0.25)",
+              flexShrink: 0,
             }}
           >
-            {/* Drag Handle + Gradient Header */}
-            <div
-              style={{
-                background: "linear-gradient(135deg, #be123c 0%, #881337 100%)",
-                padding: "10px 18px 16px",
-                color: "#ffffff",
-                position: "sticky",
-                top: 0,
-                zIndex: 10,
-              }}
-            >
-              <div
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
                 style={{
-                  width: "40px",
-                  height: "4px",
-                  borderRadius: "999px",
-                  background: "rgba(255, 255, 255, 0.35)",
-                  margin: "0 auto 12px",
-                }}
-              />
-              <div
-                style={{
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "11px",
+                  background: "rgba(255, 255, 255, 0.2)",
+                  border: "none",
+                  color: "#ffffff",
                   display: "flex",
-                  justifyContent: "space-between",
                   alignItems: "center",
-                  gap: "10px",
+                  justifyContent: "center",
+                  cursor: "pointer",
                 }}
               >
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "10px" }}
-                >
-                  <div
-                    style={{
-                      width: "36px",
-                      height: "36px",
-                      borderRadius: "11px",
-                      background: "rgba(255, 255, 255, 0.18)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <ShieldAlert size={19} color="#ffffff" />
-                  </div>
-                  <div>
-                    <h3
-                      style={{
-                        margin: 0,
-                        fontSize: "0.98rem",
-                        fontWeight: 800,
-                      }}
-                    >
-                      {formMode === "add"
-                        ? "Catat Pelanggaran Santri"
-                        : "Edit Catatan Pelanggaran"}
-                    </h3>
-                    <div
-                      style={{
-                        fontSize: "0.69rem",
-                        opacity: 0.85,
-                        marginTop: "1px",
-                      }}
-                    >
-                      Pembinaan adab &amp; kedisiplinan santri
-                    </div>
-                  </div>
+                <ArrowLeft size={18} />
+              </button>
+              <div>
+                <div style={{ fontSize: "0.65rem", opacity: 0.9, fontWeight: 700 }}>
+                  {formMode === "add" ? "FORM INPUT KEDISIPLINAN" : "EDIT CATATAN KEDISIPLINAN"}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
+                <h3
                   style={{
-                    background: "rgba(255, 255, 255, 0.18)",
-                    border: "none",
-                    borderRadius: "50%",
-                    width: "32px",
-                    height: "32px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                    color: "#ffffff",
+                    margin: 0,
+                    fontSize: "0.98rem",
+                    fontWeight: 900,
                   }}
                 >
-                  <X size={17} />
-                </button>
+                  {formMode === "add"
+                    ? "Catat Pelanggaran Santri"
+                    : "Edit Catatan Pelanggaran"}
+                </h3>
               </div>
             </div>
-
-            <form
-              onSubmit={handleSave}
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
               style={{
-                padding: "16px 18px 22px",
+                background: "rgba(255, 255, 255, 0.18)",
+                border: "none",
+                borderRadius: "50%",
+                width: "34px",
+                height: "34px",
                 display: "flex",
-                flexDirection: "column",
-                gap: "15px",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                color: "#ffffff",
               }}
             >
-              {/* 1. PILIH SANTRI */}
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.75rem",
-                    fontWeight: 800,
-                    color: "#334155",
-                    marginBottom: "6px",
-                  }}
-                >
-                  1. Pilih Santri *
-                </label>
+              <X size={17} />
+            </button>
+          </div>
+
+          <form
+            onSubmit={handleSave}
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              padding: "16px",
+              maxWidth: "640px",
+              width: "100%",
+              margin: "0 auto",
+              boxSizing: "border-box",
+              display: "flex",
+              flexDirection: "column",
+              gap: "14px",
+            }}
+          >
+            {/* 1. PILIH SANTRI */}
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: "16px",
+                padding: "14px",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "0.75rem",
+                  fontWeight: 800,
+                  color: "#334155",
+                  marginBottom: "8px",
+                }}
+              >
+                1. Pilih Santri *
+              </label>
                 <SearchableSelect
                   options={santriOptions.map((s) => ({
                     value: s.id,
@@ -1620,13 +1604,13 @@ export default function MobileTataTertib() {
               </button>
 
               {/* ACTION BUTTONS */}
-              <div style={{ display: "flex", gap: "10px", marginTop: "4px" }}>
+              <div style={{ display: "flex", gap: "10px", marginTop: "4px", paddingBottom: "20px" }}>
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
                   style={{
                     flex: 1,
-                    padding: "12px",
+                    padding: "13px",
                     borderRadius: "13px",
                     border: "1px solid #cbd5e1",
                     background: "#ffffff",
@@ -1643,7 +1627,7 @@ export default function MobileTataTertib() {
                   disabled={submitting}
                   style={{
                     flex: 1.5,
-                    padding: "12px",
+                    padding: "13px",
                     borderRadius: "13px",
                     border: "none",
                     background:
@@ -1668,7 +1652,6 @@ export default function MobileTataTertib() {
                 </button>
               </div>
             </form>
-          </div>
         </div>
       )}
 

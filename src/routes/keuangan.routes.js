@@ -28,6 +28,7 @@ import {
   getSantriKasirSearch,
   getBukuKasAndKantong,
   createBukuKasEntry,
+  updateBukuKasEntry,
   cairkanSaldoMidtransKeBank,
   deleteBukuKasEntry
 } from '../controllers/keuangan.controller.js';
@@ -90,6 +91,8 @@ router.get('/buku-kas', getBukuKasAndKantong);
 router.get('/admin/buku-kas', getBukuKasAndKantong);
 router.post('/buku-kas', createBukuKasEntry);
 router.post('/admin/buku-kas', createBukuKasEntry);
+router.put('/buku-kas/:id', updateBukuKasEntry);
+router.put('/admin/buku-kas/:id', updateBukuKasEntry);
 router.post('/cairkan-midtrans', cairkanSaldoMidtransKeBank);
 router.post('/admin/cairkan-midtrans', cairkanSaldoMidtransKeBank);
 router.delete('/buku-kas/:id', deleteBukuKasEntry);

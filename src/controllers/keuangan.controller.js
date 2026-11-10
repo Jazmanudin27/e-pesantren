@@ -3427,6 +3427,122 @@ export const deleteBukuKasEntry = async (req, res) => {
   }
 };
 
+/**
+ * PUT /api/keuangan/buku-kas/:id (dan /api/keuangan/admin/buku-kas/:id)
+ * Mengedit catatan Buku Kas (Pengeluaran, Pemasukan Lain, Setor Tunai, Tarik Tunai, atau Pencairan Midtrans)
+ */
+export const updateBukuKasEntry = async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    if (req.user && !canAccessKeuangan(req.user)) {
+      return sendError(res, 'Akses Ditolak: Fitur keuangan khusus untuk Admin Keuangan / Bendahara.', 403);
+    }
+
+    const { id } = req.params;
+    const {
+      jenis_transaksi,
+      kategori = 'Operasional',
+      kantong_sumber = null,
+      kantong_tujuan = null,
+      nominal,
+      biaya_admin = 0,
+      keterangan,
+      tanggal,
+      penanggung_jawab
+    } = req.body;
+
+    const nominalNum = Math.round(parseFloat(nominal) || 0);
+    const biayaAdminNum = Math.max(0, Math.round(parseFloat(biaya_admin) || 0));
+
+    if (nominalNum <= 0) {
+      return sendError(res, 'Nominal harus lebih besar dari Rp 0', 400);
+    }
+    if (!keterangan || !String(keterangan).trim()) {
+      return sendError(res, 'Keterangan / keperluan wajib diisi', 400);
+    }
+
+    await connection.beginTransaction();
+
+    const [rows] = await connection.query('SELECT * FROM keuangan_buku_kas WHERE id = ? FOR UPDATE', [id]);
+    if (!rows || rows.length === 0) {
+      await connection.rollback();
+      return sendError(res, 'Catatan buku kas tidak ditemukan', 404);
+    }
+
+    const existing = rows[0];
+    const finalJenis = jenis_transaksi || existing.jenis_transaksi;
+
+    let finalSumber = existing.kantong_sumber;
+    let finalTujuan = existing.kantong_tujuan;
+    let finalKategori = String(kategori || existing.kategori || 'Operasional').trim();
+
+    if (finalJenis === 'Pengeluaran') {
+      finalSumber = kantong_sumber === 'Rekening Bank' ? 'Rekening Bank' : 'Kas Tunai';
+      finalTujuan = null;
+    } else if (finalJenis === 'Pemasukan Lain') {
+      finalSumber = null;
+      finalTujuan = kantong_tujuan === 'Rekening Bank' ? 'Rekening Bank' : 'Kas Tunai';
+    } else if (finalJenis === 'Setor Tunai ke Bank') {
+      finalSumber = 'Kas Tunai';
+      finalTujuan = 'Rekening Bank';
+      finalKategori = 'Setoran Bank';
+    } else if (finalJenis === 'Tarik Tunai dari Bank') {
+      finalSumber = 'Rekening Bank';
+      finalTujuan = 'Kas Tunai';
+      finalKategori = 'Tarik Tunai Bank';
+    } else if (finalJenis === 'Pencairan Midtrans ke Bank') {
+      finalSumber = 'Midtrans';
+      finalTujuan = 'Rekening Bank';
+      finalKategori = 'Pencairan Midtrans';
+    }
+
+    const tglVal = tanggal && String(tanggal).trim()
+      ? (String(tanggal).trim().length === 10 ? `${String(tanggal).trim()} ${new Date().toTimeString().slice(0, 8)}` : String(tanggal).trim())
+      : existing.tanggal;
+
+    const pjNama = String(penanggung_jawab || existing.penanggung_jawab || req.user?.nama || 'Bendahara').trim();
+
+    await connection.query(`
+      UPDATE keuangan_buku_kas
+      SET tanggal = ?,
+          jenis_transaksi = ?,
+          kategori = ?,
+          kantong_sumber = ?,
+          kantong_tujuan = ?,
+          nominal = ?,
+          biaya_admin = ?,
+          keterangan = ?,
+          penanggung_jawab = ?
+      WHERE id = ?
+    `, [
+      tglVal,
+      finalJenis,
+      finalKategori,
+      finalSumber,
+      finalTujuan,
+      nominalNum,
+      biayaAdminNum,
+      String(keterangan).trim(),
+      pjNama,
+      id
+    ]);
+
+    await connection.commit();
+
+    const kantongSummary = await getRingkasanKantongKas();
+
+    return sendSuccess(res, 'Catatan buku kas berhasil diperbarui!', {
+      id: Number(id),
+      kantong: kantongSummary
+    });
+  } catch (err) {
+    await connection.rollback();
+    return sendError(res, `Gagal memperbarui buku kas: ${err.message}`, 500);
+  } finally {
+    connection.release();
+  }
+};
+
 
 
 

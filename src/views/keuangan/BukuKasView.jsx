@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ArrowLeft, Landmark, RotateCw } from "lucide-react";
+import { ArrowLeft, Wallet, RotateCw } from "lucide-react";
 import PanelKantongDanBukuKas from "./components/PanelKantongDanBukuKas";
 
 export default function BukuKasView({ onBackToHome }) {
@@ -13,132 +13,101 @@ export default function BukuKasView({ onBackToHome }) {
         minHeight: "100vh",
       }}
     >
-      {/* Top Curved Header */}
+      {/* Simple Sticky Top Bar */}
       <div
         style={{
-          background:
-            "linear-gradient(135deg, #064e3b 0%, #047857 55%, #0f766e 100%)",
-          padding: "18px 16px 24px",
-          color: "#ffffff",
-          borderBottomLeftRadius: "26px",
-          borderBottomRightRadius: "26px",
-          boxShadow: "0 10px 28px -6px rgba(4, 120, 87, 0.35)",
-          position: "relative",
-          overflow: "hidden",
+          background: "#ffffff",
+          borderBottom: "1px solid #e2e8f0",
+          padding: "12px 16px",
+          position: "sticky",
+          top: 0,
+          zIndex: 30,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
         }}
       >
-        <div
-          style={{
-            position: "absolute",
-            right: "-24px",
-            top: "-24px",
-            width: "110px",
-            height: "110px",
-            borderRadius: "50%",
-            background: "rgba(52, 211, 153, 0.14)",
-            pointerEvents: "none",
-          }}
-        />
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          {onBackToHome ? (
+            <button
+              type="button"
+              onClick={onBackToHome}
+              style={{
+                background: "#f1f5f9",
+                border: "none",
+                color: "#0f172a",
+                width: "34px",
+                height: "34px",
+                borderRadius: "10px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+              }}
+              title="Kembali"
+            >
+              <ArrowLeft size={18} />
+            </button>
+          ) : (
+            <div
+              style={{
+                background: "#ecfdf5",
+                color: "#059669",
+                width: "34px",
+                height: "34px",
+                borderRadius: "10px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Wallet size={18} />
+            </div>
+          )}
 
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            position: "relative",
-            zIndex: 1,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            {onBackToHome ? (
-              <button
-                type="button"
-                onClick={onBackToHome}
-                style={{
-                  background: "rgba(255, 255, 255, 0.16)",
-                  border: "1px solid rgba(255, 255, 255, 0.22)",
-                  color: "#ffffff",
-                  width: "36px",
-                  height: "36px",
-                  borderRadius: "11px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                }}
-                title="Kembali ke Beranda"
-              >
-                <ArrowLeft size={18} />
-              </button>
-            ) : (
-              <div
-                style={{
-                  background: "rgba(255, 255, 255, 0.16)",
-                  border: "1px solid rgba(255, 255, 255, 0.22)",
-                  color: "#ffffff",
-                  width: "38px",
-                  height: "38px",
-                  borderRadius: "12px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Landmark size={20} />
-              </div>
-            )}
-
-            <div>
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: "1.16rem",
-                  fontWeight: 900,
-                  letterSpacing: "-0.3px",
-                }}
-              >
-                Buku Kas &amp; 3 Kantong Saldo
-              </h2>
-              <div
-                style={{
-                  fontSize: "0.7rem",
-                  color: "#a7f3d0",
-                  marginTop: "2px",
-                  fontWeight: 600,
-                }}
-              >
-                Kas Tunai, Rekening Bank, Pencairan Midtrans &amp; Pengeluaran
-              </div>
+          <div>
+            <h2
+              style={{
+                margin: 0,
+                fontSize: "1rem",
+                fontWeight: 900,
+                color: "#0f172a",
+                letterSpacing: "-0.2px",
+              }}
+            >
+              Buku Kas &amp; Kantong Saldo
+            </h2>
+            <div style={{ fontSize: "0.68rem", color: "#64748b", fontWeight: 600 }}>
+              Kas Tunai • Rekening Bank • Midtrans
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={() => setRefreshTick((t) => t + 1)}
-            style={{
-              background: "rgba(255, 255, 255, 0.16)",
-              border: "1px solid rgba(255, 255, 255, 0.22)",
-              color: "#ffffff",
-              width: "36px",
-              height: "36px",
-              borderRadius: "11px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-            }}
-            title="Segarkan Buku Kas"
-          >
-            <RotateCw size={16} />
-          </button>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setRefreshTick((t) => t + 1)}
+          style={{
+            background: "#f1f5f9",
+            border: "none",
+            color: "#334155",
+            width: "34px",
+            height: "34px",
+            borderRadius: "10px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+          }}
+          title="Segarkan Data"
+        >
+          <RotateCw size={15} />
+        </button>
       </div>
 
       {/* Main Content */}
-      <div style={{ padding: "14px", maxWidth: "1280px", margin: "0 auto" }}>
+      <div style={{ padding: "14px", maxWidth: "1080px", margin: "0 auto" }}>
         <PanelKantongDanBukuKas key={refreshTick} />
       </div>
     </div>
   );
 }
-

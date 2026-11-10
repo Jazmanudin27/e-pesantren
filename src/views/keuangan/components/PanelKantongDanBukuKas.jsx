@@ -9,16 +9,19 @@ import {
   TrendingUp,
   Plus,
   CheckCircle2,
-  Clock,
   Trash2,
-  RotateCw,
   X,
   CheckSquare,
   Square,
-  ShieldCheck,
   FileText,
   ArrowUpRight,
   ArrowDownRight,
+  Edit3,
+  ArrowLeft,
+  Calendar,
+  User,
+  Save,
+  Sparkles,
 } from "lucide-react";
 import { toastSuccess, toastError, showConfirm } from "../../../utils/alert.util";
 
@@ -68,7 +71,6 @@ const formatDateId = (val) => {
 export default function PanelKantongDanBukuKas({
   readOnly = false,
   onDataChanged,
-  compact = false,
 }) {
   const [loading, setLoading] = useState(true);
   const [kantong, setKantong] = useState({
@@ -94,33 +96,15 @@ export default function PanelKantongDanBukuKas({
   const [unsettledMidtrans, setUnsettledMidtrans] = useState([]);
   const [bukuKas, setBukuKas] = useState([]);
 
-  // Tab Aktif Kantong: 'tunai' | 'bank' | 'midtrans' | 'buku_kas'
-  const [activeKantongTab, setActiveKantongTab] = useState("tunai");
-
-  // Filter Buku Kas
+  // Tab Aktif: 'tunai' | 'bank' | 'midtrans' | 'buku_kas'
+  const [activeTab, setActiveTab] = useState("tunai");
   const [filterJenis, setFilterJenis] = useState("semua");
-  const [filterKantong, setFilterKantong] = useState("Kas Tunai");
 
-  const handleSelectKantongTab = (tab) => {
-    setActiveKantongTab(tab);
-    if (tab === "tunai") {
-      setFilterKantong("Kas Tunai");
-      setFilterJenis("semua");
-    } else if (tab === "bank") {
-      setFilterKantong("Rekening Bank");
-      setFilterJenis("semua");
-    } else if (tab === "midtrans") {
-      setFilterKantong("Midtrans");
-      setFilterJenis("semua");
-    } else {
-      setFilterKantong("semua");
-      setFilterJenis("semua");
-    }
-  };
-
-  // Modal Form Buku Kas (Pengeluaran, Pemasukan Lain, Setor Tunai, Tarik Tunai)
+  // Modal Form Buku Kas (Add & Edit)
   const [formModal, setFormModal] = useState({
     isOpen: false,
+    mode: "add",
+    editId: null,
     jenis_transaksi: "Pengeluaran",
     kategori: KATEGORI_PENGELUARAN[0],
     kantong_sumber: "Kas Tunai",
@@ -164,9 +148,11 @@ export default function PanelKantongDanBukuKas({
     fetchKantongAndBukuKas();
   }, [fetchKantongAndBukuKas]);
 
-  const openFormModal = (jenis) => {
+  const openFormModal = (jenis, defaultSumber = "Kas Tunai") => {
     setFormModal({
       isOpen: true,
+      mode: "add",
+      editId: null,
       jenis_transaksi: jenis,
       kategori:
         jenis === "Pengeluaran"
@@ -177,7 +163,7 @@ export default function PanelKantongDanBukuKas({
               ? "Setoran Bank"
               : "Tarik Tunai Bank",
       kantong_sumber:
-        jenis === "Tarik Tunai dari Bank" ? "Rekening Bank" : "Kas Tunai",
+        jenis === "Tarik Tunai dari Bank" ? "Rekening Bank" : defaultSumber,
       kantong_tujuan:
         jenis === "Tarik Tunai dari Bank" || jenis === "Pemasukan Lain"
           ? "Kas Tunai"
@@ -186,12 +172,32 @@ export default function PanelKantongDanBukuKas({
       biaya_admin: "",
       keterangan:
         jenis === "Setor Tunai ke Bank"
-          ? "Setor uang kas tunai bendahara ke Rekening Bank Pesantren"
+          ? "Setor kas tunai ke Rekening Bank Pesantren"
           : jenis === "Tarik Tunai dari Bank"
-            ? "Tarik tunai dari Rekening Bank ke Kas Tunai bendahara"
+            ? "Tarik tunai dari Rekening Bank ke Kas Tunai"
             : "",
       tanggal: new Date().toISOString().slice(0, 10),
       penanggung_jawab: "Bendahara",
+    });
+  };
+
+  const openEditFormModal = (item) => {
+    const tglStr = item.tanggal
+      ? new Date(item.tanggal).toISOString().slice(0, 10)
+      : new Date().toISOString().slice(0, 10);
+    setFormModal({
+      isOpen: true,
+      mode: "edit",
+      editId: item.id,
+      jenis_transaksi: item.jenis_transaksi || "Pengeluaran",
+      kategori: item.kategori || KATEGORI_PENGELUARAN[0],
+      kantong_sumber: item.kantong_sumber || "Kas Tunai",
+      kantong_tujuan: item.kantong_tujuan || "Rekening Bank",
+      nominal: String(Math.round(Number(item.nominal) || 0)),
+      biaya_admin: item.biaya_admin ? String(Math.round(Number(item.biaya_admin) || 0)) : "",
+      keterangan: item.keterangan || "",
+      tanggal: tglStr,
+      penanggung_jawab: item.penanggung_jawab || "Bendahara",
     });
   };
 
@@ -201,7 +207,7 @@ export default function PanelKantongDanBukuKas({
       isOpen: true,
       selectedIds: allIds,
       biaya_admin: "",
-      keterangan: `Pencairan (Settlement) ${allIds.length} transaksi Midtrans ke Rekening Bank Pesantren`,
+      keterangan: `Pencairan ${allIds.length} transaksi Midtrans ke Rekening Bank`,
       tanggal: new Date().toISOString().slice(0, 10),
     });
   };
@@ -215,7 +221,7 @@ export default function PanelKantongDanBukuKas({
       return {
         ...prev,
         selectedIds: nextIds,
-        keterangan: `Pencairan (Settlement) ${nextIds.length} transaksi Midtrans ke Rekening Bank Pesantren`,
+        keterangan: `Pencairan ${nextIds.length} transaksi Midtrans ke Rekening Bank`,
       };
     });
   };
@@ -228,7 +234,7 @@ export default function PanelKantongDanBukuKas({
     setCairModal((prev) => ({
       ...prev,
       selectedIds: nextIds,
-      keterangan: `Pencairan (Settlement) ${nextIds.length} transaksi Midtrans ke Rekening Bank Pesantren`,
+      keterangan: `Pencairan ${nextIds.length} transaksi Midtrans ke Rekening Bank`,
     }));
   };
 
@@ -245,17 +251,17 @@ export default function PanelKantongDanBukuKas({
     const biayaAdminVal = parseNumberInput(formModal.biaya_admin);
 
     if (nominalVal <= 0) {
-      toastError("Masukkan nominal yang valid (lebih dari Rp 0)");
+      toastError("Masukkan nominal lebih dari Rp 0");
       return;
     }
     if (!String(formModal.keterangan || "").trim()) {
-      toastError("Keterangan / uraian wajib diisi");
+      toastError("Keterangan wajib diisi");
       return;
     }
 
     try {
       setSubmittingForm(true);
-      const res = await axios.post("/api/keuangan/admin/buku-kas", {
+      const payload = {
         jenis_transaksi: formModal.jenis_transaksi,
         kategori: formModal.kategori,
         kantong_sumber: formModal.kantong_sumber,
@@ -265,10 +271,18 @@ export default function PanelKantongDanBukuKas({
         keterangan: formModal.keterangan,
         tanggal: formModal.tanggal,
         penanggung_jawab: formModal.penanggung_jawab,
-      });
+      };
+
+      const res =
+        formModal.mode === "edit" && formModal.editId
+          ? await axios.put(`/api/keuangan/admin/buku-kas/${formModal.editId}`, payload)
+          : await axios.post("/api/keuangan/admin/buku-kas", payload);
 
       if (res.data?.success) {
-        toastSuccess(res.data.message || "Catatan Buku Kas berhasil disimpan!");
+        toastSuccess(
+          res.data.message ||
+            (formModal.mode === "edit" ? "Catatan diperbarui" : "Catatan Buku Kas tersimpan"),
+        );
         setFormModal((prev) => ({ ...prev, isOpen: false }));
         await fetchKantongAndBukuKas();
         if (onDataChanged) onDataChanged();
@@ -283,7 +297,7 @@ export default function PanelKantongDanBukuKas({
   const handleSubmitCairMidtrans = async (e) => {
     e?.preventDefault();
     if (cairModal.selectedIds.length === 0) {
-      toastError("Pilih minimal 1 transaksi Midtrans yang akan dicairkan");
+      toastError("Pilih minimal 1 transaksi Midtrans");
       return;
     }
 
@@ -297,7 +311,7 @@ export default function PanelKantongDanBukuKas({
       });
 
       if (res.data?.success) {
-        toastSuccess(res.data.message || "Saldo Midtrans berhasil dicairkan ke Bank!");
+        toastSuccess(res.data.message || "Saldo Midtrans dicairkan ke Bank");
         setCairModal((prev) => ({ ...prev, isOpen: false }));
         await fetchKantongAndBukuKas();
         if (onDataChanged) onDataChanged();
@@ -311,10 +325,10 @@ export default function PanelKantongDanBukuKas({
 
   const handleDeleteBukuKas = async (item) => {
     const confirmed = await showConfirm(
-      "Hapus Catatan Buku Kas?",
+      "Hapus Catatan?",
       item.jenis_transaksi === "Pencairan Midtrans ke Bank"
-        ? `Menghapus catatan ini akan mengembalikan ${item.jumlah_trx_dicairkan || ""} transaksi Midtrans (${formatRp(item.nominal)}) kembali ke status "Mengendap di Midtrans". Lanjutkan?`
-        : `Hapus catatan "${item.keterangan}" (${formatRp(item.nominal)})? Saldo kantong terkait akan otomatis disesuaikan kembali.`,
+        ? `Hapus pencairan ini? Transaksi (${formatRp(item.nominal)}) akan dikembalikan ke Mengendap di Midtrans.`
+        : `Hapus "${item.keterangan}" (${formatRp(item.nominal)})?`,
       "Ya, Hapus",
     );
     if (!confirmed) return;
@@ -322,7 +336,7 @@ export default function PanelKantongDanBukuKas({
     try {
       const res = await axios.delete(`/api/keuangan/admin/buku-kas/${item.id}`);
       if (res.data?.success) {
-        toastSuccess("Catatan buku kas berhasil dihapus");
+        toastSuccess("Catatan dihapus");
         await fetchKantongAndBukuKas();
         if (onDataChanged) onDataChanged();
       }
@@ -331,660 +345,606 @@ export default function PanelKantongDanBukuKas({
     }
   };
 
-  const filteredBukuKas = useMemo(() => {
+  // Filter mutasi sesuai tab aktif
+  const displayedMutasi = useMemo(() => {
     return (bukuKas || []).filter((item) => {
-      if (filterJenis !== "semua" && item.jenis_transaksi !== filterJenis) {
-        return false;
+      if (activeTab === "tunai") {
+        return (
+          item.kantong_sumber === "Kas Tunai" ||
+          item.kantong_tujuan === "Kas Tunai"
+        );
       }
-      if (
-        filterKantong !== "semua" &&
-        item.kantong_sumber !== filterKantong &&
-        item.kantong_tujuan !== filterKantong
-      ) {
+      if (activeTab === "bank") {
+        return (
+          item.kantong_sumber === "Rekening Bank" ||
+          item.kantong_tujuan === "Rekening Bank"
+        );
+      }
+      if (activeTab === "midtrans") {
+        return (
+          item.kantong_sumber === "Midtrans" ||
+          item.jenis_transaksi === "Pencairan Midtrans ke Bank"
+        );
+      }
+      if (filterJenis !== "semua" && item.jenis_transaksi !== filterJenis) {
         return false;
       }
       return true;
     });
-  }, [bukuKas, filterJenis, filterKantong]);
+  }, [bukuKas, activeTab, filterJenis]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-      {/* 1. BANNER SALDO RIIL SIAP PAKAI VS MENGENDAP MIDTRANS */}
+      {/* 1. HERO CARD: SALDO SIAP PAKAI (MODERN & SIMPLE) */}
       <div
         style={{
-          background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-          borderRadius: "20px",
-          padding: compact ? "14px 16px" : "18px 20px",
+          background:
+            "linear-gradient(135deg, #065f46 0%, #047857 55%, #0d9488 100%)",
+          borderRadius: "22px",
+          padding: "18px",
           color: "#ffffff",
-          boxShadow: "0 10px 25px -6px rgba(15, 23, 42, 0.3)",
+          boxShadow: "0 12px 26px -8px rgba(4, 120, 87, 0.38)",
           position: "relative",
           overflow: "hidden",
         }}
       >
         <div
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            gap: "12px",
-            flexWrap: "wrap",
+            position: "absolute",
+            right: "-25px",
+            top: "-25px",
+            width: "110px",
+            height: "110px",
+            borderRadius: "50%",
+            background: "rgba(255, 255, 255, 0.1)",
+            pointerEvents: "none",
+          }}
+        />
+
+        <div style={{ fontSize: "0.7rem", color: "#a7f3d0", fontWeight: 700 }}>
+          Saldo Aktif Siap Pakai (Tunai + Bank)
+        </div>
+        <div
+          style={{
+            fontSize: "1.75rem",
+            fontWeight: 900,
+            letterSpacing: "-0.6px",
+            marginTop: "2px",
           }}
         >
-          <div>
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "5px",
-                background: "rgba(16, 185, 129, 0.2)",
-                border: "1px solid rgba(52, 211, 153, 0.35)",
-                color: "#6ee7b7",
-                padding: "3px 9px",
-                borderRadius: "999px",
-                fontSize: "0.64rem",
-                fontWeight: 800,
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-              }}
-            >
-              <ShieldCheck size={12} />
-              <span>Saldo Riil Siap Pakai (Tunai + Bank)</span>
-            </div>
-            <div
-              style={{
-                fontSize: compact ? "1.45rem" : "1.7rem",
-                fontWeight: 900,
-                color: "#ffffff",
-                marginTop: "6px",
-                letterSpacing: "-0.5px",
-              }}
-            >
-              {formatRp(kantong.saldo_siap_pakai)}
-            </div>
-            <div
-              style={{
-                fontSize: "0.7rem",
-                color: "#94a3b8",
-                marginTop: "3px",
-              }}
-            >
-              Uang nyata di Kas Tunai Bendahara &amp; Rekening Bank (tidak termasuk dana yang masih mengendap di Midtrans)
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={fetchKantongAndBukuKas}
-            style={{
-              background: "rgba(255,255,255,0.1)",
-              border: "1px solid rgba(255,255,255,0.18)",
-              color: "#ffffff",
-              borderRadius: "10px",
-              padding: "7px 11px",
-              fontSize: "0.7rem",
-              fontWeight: 700,
-              display: "flex",
-              alignItems: "center",
-              gap: "5px",
-              cursor: "pointer",
-            }}
-          >
-            <RotateCw size={13} className={loading ? "animate-spin" : ""} />
-            <span>Segarkan</span>
-          </button>
+          {formatRp(kantong.saldo_siap_pakai)}
         </div>
 
-        {/* Strip Ringkasan Total Masuk vs Pengeluaran */}
+        {/* 2 Mini Summary Pills: Total Masuk vs Total Keluar */}
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+            gridTemplateColumns: "1fr 1fr",
             gap: "8px",
             marginTop: "14px",
-            paddingTop: "12px",
-            borderTop: "1px solid rgba(255, 255, 255, 0.12)",
           }}
         >
           <div
             style={{
-              background: "rgba(255,255,255,0.06)",
+              background: "rgba(255, 255, 255, 0.14)",
               borderRadius: "12px",
               padding: "8px 10px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
             }}
           >
-            <div style={{ fontSize: "0.62rem", color: "#94a3b8", fontWeight: 700 }}>
-              TOTAL HAK TAGIHAN LUNAS
+            <div
+              style={{
+                width: "28px",
+                height: "28px",
+                borderRadius: "8px",
+                background: "rgba(255, 255, 255, 0.2)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <TrendingUp size={15} color="#a7f3d0" />
             </div>
-            <div style={{ fontSize: "0.86rem", fontWeight: 900, color: "#34d399", marginTop: "2px" }}>
-              {formatRp(kantong.total_tagihan_pokok_sah)}
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: "0.6rem", color: "#d1fae5" }}>Total Masuk</div>
+              <div
+                style={{
+                  fontSize: "0.78rem",
+                  fontWeight: 900,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {formatRp(
+                  Number(kantong.total_tagihan_pokok_sah || 0) +
+                    Number(kantong.total_pemasukan_lain || 0),
+                )}
+              </div>
             </div>
           </div>
 
           <div
             style={{
-              background: "rgba(255,255,255,0.06)",
+              background: "rgba(255, 255, 255, 0.14)",
               borderRadius: "12px",
               padding: "8px 10px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
             }}
           >
-            <div style={{ fontSize: "0.62rem", color: "#94a3b8", fontWeight: 700 }}>
-              PEMASUKAN LAINNYA
+            <div
+              style={{
+                width: "28px",
+                height: "28px",
+                borderRadius: "8px",
+                background: "rgba(254, 202, 202, 0.22)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <TrendingDown size={15} color="#fecaca" />
             </div>
-            <div style={{ fontSize: "0.86rem", fontWeight: 900, color: "#60a5fa", marginTop: "2px" }}>
-              +{formatRp(kantong.total_pemasukan_lain)}
-            </div>
-          </div>
-
-          <div
-            style={{
-              background: "rgba(255,255,255,0.06)",
-              borderRadius: "12px",
-              padding: "8px 10px",
-            }}
-          >
-            <div style={{ fontSize: "0.62rem", color: "#94a3b8", fontWeight: 700 }}>
-              TOTAL PENGELUARAN KAS
-            </div>
-            <div style={{ fontSize: "0.86rem", fontWeight: 900, color: "#f87171", marginTop: "2px" }}>
-              -{formatRp(kantong.total_pengeluaran)}
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: "0.6rem", color: "#fecaca" }}>Pengeluaran</div>
+              <div
+                style={{
+                  fontSize: "0.78rem",
+                  fontWeight: 900,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {formatRp(kantong.total_pengeluaran)}
+              </div>
             </div>
           </div>
         </div>
+
+        {/* 3 Quick Action Buttons inside Hero */}
+        {!readOnly && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "7px",
+              marginTop: "12px",
+              paddingTop: "12px",
+              borderTop: "1px solid rgba(255, 255, 255, 0.16)",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => openFormModal("Pengeluaran", "Kas Tunai")}
+              style={{
+                background: "#ffffff",
+                color: "#dc2626",
+                border: "none",
+                borderRadius: "10px",
+                padding: "8px 6px",
+                fontSize: "0.68rem",
+                fontWeight: 800,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "4px",
+              }}
+            >
+              <TrendingDown size={13} />
+              <span>Pengeluaran</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openFormModal("Pemasukan Lain", "Kas Tunai")}
+              style={{
+                background: "rgba(255, 255, 255, 0.18)",
+                color: "#ffffff",
+                border: "1px solid rgba(255, 255, 255, 0.28)",
+                borderRadius: "10px",
+                padding: "8px 6px",
+                fontSize: "0.68rem",
+                fontWeight: 800,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "4px",
+              }}
+            >
+              <Plus size={13} />
+              <span>Pemasukan</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openFormModal("Setor Tunai ke Bank", "Kas Tunai")}
+              style={{
+                background: "rgba(255, 255, 255, 0.18)",
+                color: "#ffffff",
+                border: "1px solid rgba(255, 255, 255, 0.28)",
+                borderRadius: "10px",
+                padding: "8px 6px",
+                fontSize: "0.68rem",
+                fontWeight: 800,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "4px",
+              }}
+            >
+              <ArrowRightLeft size={13} />
+              <span>Setor Bank</span>
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* 2. TAB SWITCHER KANTONG SALDO & BUKU KAS */}
+      {/* 2. SIMPLE 4-TAB BAR */}
       <div
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(4, 1fr)",
-          gap: "6px",
-          background: "#ffffff",
-          padding: "5px",
-          borderRadius: "16px",
-          border: "1px solid #e2e8f0",
-          boxShadow: "0 4px 12px rgba(15, 23, 42, 0.04)",
+          gap: "5px",
+          background: "#e2e8f0",
+          padding: "4px",
+          borderRadius: "14px",
         }}
       >
         {[
-          {
-            id: "tunai",
-            label: "Kas Tunai",
-            sub: formatRp(kantong.saldo_kas_tunai),
-            Icon: Wallet,
-            activeBg: "linear-gradient(135deg, #059669 0%, #047857 100%)",
-            activeColor: "#ffffff",
-            dotColor: "#10b981",
-          },
-          {
-            id: "bank",
-            label: "Rek. Bank",
-            sub: formatRp(kantong.saldo_rekening_bank),
-            Icon: Building2,
-            activeBg: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
-            activeColor: "#ffffff",
-            dotColor: "#0ea5e9",
-          },
+          { id: "tunai", label: "Kas Tunai", Icon: Wallet, color: "#059669" },
+          { id: "bank", label: "Rek. Bank", Icon: Building2, color: "#0284c7" },
           {
             id: "midtrans",
             label: "Midtrans",
-            sub: formatRp(kantong.saldo_mengendap_midtrans),
-            badge: kantong.jumlah_trx_mengendap_midtrans,
             Icon: QrCode,
-            activeBg: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)",
-            activeColor: "#ffffff",
-            dotColor: "#8b5cf6",
+            color: "#7c3aed",
+            badge: kantong.jumlah_trx_mengendap_midtrans,
           },
-          {
-            id: "buku_kas",
-            label: "Buku Kas",
-            sub: `${bukuKas.length} Mutasi`,
-            Icon: FileText,
-            activeBg: "linear-gradient(135deg, #0f172a 0%, #334155 100%)",
-            activeColor: "#ffffff",
-            dotColor: "#475569",
-          },
-        ].map((tab) => {
-          const isActive = activeKantongTab === tab.id;
-          const TabIcon = tab.Icon;
+          { id: "buku_kas", label: "Semua Kas", Icon: FileText, color: "#0f172a" },
+        ].map((t) => {
+          const active = activeTab === t.id;
+          const Icon = t.Icon;
           return (
             <button
-              key={tab.id}
+              key={t.id}
               type="button"
-              onClick={() => handleSelectKantongTab(tab.id)}
+              onClick={() => setActiveTab(t.id)}
               style={{
-                border: isActive ? "none" : "1px solid transparent",
-                background: isActive ? tab.activeBg : "#f8fafc",
-                color: isActive ? tab.activeColor : "#334155",
-                borderRadius: "12px",
-                padding: "9px 6px",
+                border: "none",
+                background: active ? "#ffffff" : "transparent",
+                color: active ? t.color : "#475569",
+                borderRadius: "10px",
+                padding: "9px 4px",
+                fontSize: "0.7rem",
+                fontWeight: active ? 900 : 700,
                 cursor: "pointer",
                 display: "flex",
-                flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: "3px",
+                gap: "4px",
+                boxShadow: active ? "0 2px 6px rgba(15, 23, 42, 0.08)" : "none",
                 position: "relative",
-                transition: "all 0.16s ease",
-                boxShadow: isActive ? "0 4px 12px rgba(15, 23, 42, 0.16)" : "none",
-                minWidth: 0,
               }}
             >
-              {tab.badge > 0 && (
+              <Icon size={14} />
+              <span>{t.label}</span>
+              {t.badge > 0 && (
                 <span
                   style={{
-                    position: "absolute",
-                    top: "4px",
-                    right: "4px",
-                    background: isActive ? "#fef3c7" : "#7c3aed",
-                    color: isActive ? "#6d28d9" : "#ffffff",
+                    background: "#7c3aed",
+                    color: "#ffffff",
                     fontSize: "0.56rem",
                     fontWeight: 900,
                     padding: "1px 5px",
                     borderRadius: "999px",
                   }}
                 >
-                  {tab.badge}
+                  {t.badge}
                 </span>
               )}
-              <TabIcon size={16} color={isActive ? "#ffffff" : tab.dotColor} />
-              <span
-                style={{
-                  fontSize: "0.7rem",
-                  fontWeight: 800,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  maxWidth: "100%",
-                }}
-              >
-                {tab.label}
-              </span>
-              <span
-                style={{
-                  fontSize: "0.6rem",
-                  fontWeight: 700,
-                  opacity: isActive ? 0.92 : 0.75,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  maxWidth: "100%",
-                }}
-              >
-                {tab.sub}
-              </span>
             </button>
           );
         })}
       </div>
 
-      {/* 3. DETAIL KANTONG SESUAI TAB AKTIF */}
-      <div>
-        {/* KANTONG 1: KAS TUNAI DI TANGAN */}
-        {activeKantongTab === "tunai" && (
+      {/* 3. KARTU RINGKAS SESUAI TAB AKTIF */}
+      {activeTab === "tunai" && (
         <div
           style={{
             background: "#ffffff",
             borderRadius: "18px",
-            padding: "14px",
-            border: "1.5px solid #a7f3d0",
-            boxShadow: "0 4px 12px rgba(5, 150, 105, 0.06)",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
+            padding: "16px",
+            border: "1px solid #d1fae5",
+            boxShadow: "0 4px 12px rgba(15, 23, 42, 0.03)",
           }}
         >
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span
-                style={{
-                  fontSize: "0.66rem",
-                  fontWeight: 800,
-                  color: "#047857",
-                  background: "#ecfdf5",
-                  padding: "3px 8px",
-                  borderRadius: "8px",
-                  textTransform: "uppercase",
-                }}
-              >
-                Kantong 1 • Uang Fisik
-              </span>
-              <div
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  borderRadius: "10px",
-                  background: "#ecfdf5",
-                  color: "#059669",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Wallet size={17} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ fontSize: "0.7rem", fontWeight: 700, color: "#64748b" }}>
+                Kantong 1 • Uang Tunai di Laci Bendahara
+              </div>
+              <div style={{ fontSize: "1.45rem", fontWeight: 900, color: "#059669", marginTop: "2px" }}>
+                {formatRp(kantong.saldo_kas_tunai)}
               </div>
             </div>
-
-            <div style={{ fontSize: "0.76rem", fontWeight: 800, color: "#334155", marginTop: "8px" }}>
-              Kas Tunai di Tangan (Bendahara)
-            </div>
-            <div style={{ fontSize: "1.28rem", fontWeight: 900, color: "#047857", marginTop: "2px" }}>
-              {formatRp(kantong.saldo_kas_tunai)}
-            </div>
-
             <div
               style={{
-                marginTop: "10px",
-                paddingTop: "8px",
-                borderTop: "1px dashed #e2e8f0",
-                fontSize: "0.68rem",
-                color: "#64748b",
+                width: "42px",
+                height: "42px",
+                borderRadius: "13px",
+                background: "#ecfdf5",
+                color: "#059669",
                 display: "flex",
-                flexDirection: "column",
-                gap: "3px",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span>Bayar Tagihan Cash:</span>
-                <strong style={{ color: "#059669" }}>+{formatRp(kantong.masuk_tagihan_tunai)}</strong>
+              <Wallet size={22} />
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "8px",
+              marginTop: "12px",
+              paddingTop: "12px",
+              borderTop: "1px solid #f1f5f9",
+            }}
+          >
+            <div style={{ background: "#f8fafc", padding: "8px", borderRadius: "10px" }}>
+              <div style={{ fontSize: "0.6rem", color: "#64748b" }}>Masuk Cash</div>
+              <div style={{ fontSize: "0.74rem", fontWeight: 800, color: "#059669", marginTop: "2px" }}>
+                +{formatRp(Number(kantong.masuk_tagihan_tunai || 0) + Number(kantong.pemasukan_lain_tunai || 0))}
               </div>
-              {kantong.pemasukan_lain_tunai > 0 && (
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>Pemasukan Lain (Tunai):</span>
-                  <strong style={{ color: "#059669" }}>+{formatRp(kantong.pemasukan_lain_tunai)}</strong>
-                </div>
-              )}
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span>Disetor ke Bank:</span>
-                <strong style={{ color: "#0284c7" }}>-{formatRp(kantong.setor_tunai_ke_bank)}</strong>
+            </div>
+            <div style={{ background: "#f8fafc", padding: "8px", borderRadius: "10px" }}>
+              <div style={{ fontSize: "0.6rem", color: "#64748b" }}>Setor ke Bank</div>
+              <div style={{ fontSize: "0.74rem", fontWeight: 800, color: "#0284c7", marginTop: "2px" }}>
+                -{formatRp(kantong.setor_tunai_ke_bank)}
               </div>
-              {kantong.tarik_tunai_dari_bank > 0 && (
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>Tarik Tunai dari Bank:</span>
-                  <strong style={{ color: "#059669" }}>+{formatRp(kantong.tarik_tunai_dari_bank)}</strong>
-                </div>
-              )}
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span>Pengeluaran Tunai:</span>
-                <strong style={{ color: "#dc2626" }}>-{formatRp(kantong.pengeluaran_tunai)}</strong>
+            </div>
+            <div style={{ background: "#f8fafc", padding: "8px", borderRadius: "10px" }}>
+              <div style={{ fontSize: "0.6rem", color: "#64748b" }}>Keluar Tunai</div>
+              <div style={{ fontSize: "0.74rem", fontWeight: 800, color: "#dc2626", marginTop: "2px" }}>
+                -{formatRp(kantong.pengeluaran_tunai)}
               </div>
             </div>
           </div>
 
           {!readOnly && (
-            <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
+            <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
               <button
                 type="button"
-                onClick={() => openFormModal("Setor Tunai ke Bank")}
+                onClick={() => openFormModal("Setor Tunai ke Bank", "Kas Tunai")}
                 style={{
                   flex: 1,
                   background: "#ecfdf5",
-                  border: "1px solid #6ee7b7",
                   color: "#047857",
-                  borderRadius: "10px",
-                  padding: "7px 8px",
-                  fontSize: "0.68rem",
+                  border: "1px solid #a7f3d0",
+                  borderRadius: "11px",
+                  padding: "9px",
+                  fontSize: "0.72rem",
                   fontWeight: 800,
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: "4px",
+                  gap: "5px",
                 }}
               >
-                <ArrowRightLeft size={12} />
+                <ArrowRightLeft size={14} />
                 <span>Setor ke Bank</span>
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  openFormModal("Pengeluaran");
-                  setFormModal((p) => ({ ...p, kantong_sumber: "Kas Tunai" }));
-                }}
+                onClick={() => openFormModal("Pengeluaran", "Kas Tunai")}
                 style={{
                   flex: 1,
                   background: "#fef2f2",
-                  border: "1px solid #fecaca",
                   color: "#dc2626",
-                  borderRadius: "10px",
-                  padding: "7px 8px",
-                  fontSize: "0.68rem",
+                  border: "1px solid #fecaca",
+                  borderRadius: "11px",
+                  padding: "9px",
+                  fontSize: "0.72rem",
                   fontWeight: 800,
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: "4px",
+                  gap: "5px",
                 }}
               >
-                <TrendingDown size={12} />
-                <span>Pakai Tunai</span>
+                <TrendingDown size={14} />
+                <span>Pakai Kas Tunai</span>
               </button>
             </div>
           )}
         </div>
-        )}
+      )}
 
-        {/* KANTONG 2: SALDO REKENING BANK PESANTREN */}
-        {activeKantongTab === "bank" && (
+      {activeTab === "bank" && (
         <div
           style={{
             background: "#ffffff",
             borderRadius: "18px",
-            padding: "14px",
-            border: "1.5px solid #bae6fd",
-            boxShadow: "0 4px 12px rgba(2, 132, 199, 0.06)",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
+            padding: "16px",
+            border: "1px solid #bae6fd",
+            boxShadow: "0 4px 12px rgba(15, 23, 42, 0.03)",
           }}
         >
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span
-                style={{
-                  fontSize: "0.66rem",
-                  fontWeight: 800,
-                  color: "#0369a1",
-                  background: "#f0f9ff",
-                  padding: "3px 8px",
-                  borderRadius: "8px",
-                  textTransform: "uppercase",
-                }}
-              >
-                Kantong 2 • Saldo Bank
-              </span>
-              <div
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  borderRadius: "10px",
-                  background: "#f0f9ff",
-                  color: "#0284c7",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Building2 size={17} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ fontSize: "0.7rem", fontWeight: 700, color: "#64748b" }}>
+                Kantong 2 • Saldo Rekening Bank Pesantren
+              </div>
+              <div style={{ fontSize: "1.45rem", fontWeight: 900, color: "#0284c7", marginTop: "2px" }}>
+                {formatRp(kantong.saldo_rekening_bank)}
               </div>
             </div>
-
-            <div style={{ fontSize: "0.76rem", fontWeight: 800, color: "#334155", marginTop: "8px" }}>
-              Rekening Bank Pesantren (Siap Pakai)
-            </div>
-            <div style={{ fontSize: "1.28rem", fontWeight: 900, color: "#0369a1", marginTop: "2px" }}>
-              {formatRp(kantong.saldo_rekening_bank)}
-            </div>
-
             <div
               style={{
-                marginTop: "10px",
-                paddingTop: "8px",
-                borderTop: "1px dashed #e2e8f0",
-                fontSize: "0.68rem",
-                color: "#64748b",
+                width: "42px",
+                height: "42px",
+                borderRadius: "13px",
+                background: "#f0f9ff",
+                color: "#0284c7",
                 display: "flex",
-                flexDirection: "column",
-                gap: "3px",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span>Transfer Manual Sah:</span>
-                <strong style={{ color: "#0284c7" }}>+{formatRp(kantong.masuk_tagihan_transfer)}</strong>
+              <Building2 size={22} />
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "8px",
+              marginTop: "12px",
+              paddingTop: "12px",
+              borderTop: "1px solid #f1f5f9",
+            }}
+          >
+            <div style={{ background: "#f8fafc", padding: "8px", borderRadius: "10px" }}>
+              <div style={{ fontSize: "0.6rem", color: "#64748b" }}>Transfer &amp; Cair</div>
+              <div style={{ fontSize: "0.74rem", fontWeight: 800, color: "#0284c7", marginTop: "2px" }}>
+                +{formatRp(Number(kantong.masuk_tagihan_transfer || 0) + Number(kantong.total_midtrans_sudah_cair || 0))}
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span>Cair dari Midtrans:</span>
-                <strong style={{ color: "#7c3aed" }}>+{formatRp(kantong.total_midtrans_sudah_cair)}</strong>
+            </div>
+            <div style={{ background: "#f8fafc", padding: "8px", borderRadius: "10px" }}>
+              <div style={{ fontSize: "0.6rem", color: "#64748b" }}>Setoran Tunai</div>
+              <div style={{ fontSize: "0.74rem", fontWeight: 800, color: "#059669", marginTop: "2px" }}>
+                +{formatRp(kantong.setor_tunai_ke_bank)}
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span>Setoran Tunai Masuk:</span>
-                <strong style={{ color: "#059669" }}>+{formatRp(kantong.setor_tunai_ke_bank)}</strong>
-              </div>
-              {kantong.tarik_tunai_dari_bank > 0 && (
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>Ditarik ke Tunai:</span>
-                  <strong style={{ color: "#d97706" }}>-{formatRp(kantong.tarik_tunai_dari_bank)}</strong>
-                </div>
-              )}
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span>Pengeluaran via Bank:</span>
-                <strong style={{ color: "#dc2626" }}>-{formatRp(kantong.pengeluaran_bank)}</strong>
+            </div>
+            <div style={{ background: "#f8fafc", padding: "8px", borderRadius: "10px" }}>
+              <div style={{ fontSize: "0.6rem", color: "#64748b" }}>Keluar Bank</div>
+              <div style={{ fontSize: "0.74rem", fontWeight: 800, color: "#dc2626", marginTop: "2px" }}>
+                -{formatRp(kantong.pengeluaran_bank)}
               </div>
             </div>
           </div>
 
           {!readOnly && (
-            <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
+            <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
               <button
                 type="button"
-                onClick={() => openFormModal("Tarik Tunai dari Bank")}
+                onClick={() => openFormModal("Tarik Tunai dari Bank", "Rekening Bank")}
                 style={{
                   flex: 1,
                   background: "#f0f9ff",
-                  border: "1px solid #7dd3fc",
                   color: "#0369a1",
-                  borderRadius: "10px",
-                  padding: "7px 8px",
-                  fontSize: "0.68rem",
+                  border: "1px solid #bae6fd",
+                  borderRadius: "11px",
+                  padding: "9px",
+                  fontSize: "0.72rem",
                   fontWeight: 800,
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: "4px",
+                  gap: "5px",
                 }}
               >
-                <ArrowRightLeft size={12} />
+                <ArrowRightLeft size={14} />
                 <span>Tarik Tunai</span>
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  openFormModal("Pengeluaran");
-                  setFormModal((p) => ({ ...p, kantong_sumber: "Rekening Bank" }));
-                }}
+                onClick={() => openFormModal("Pengeluaran", "Rekening Bank")}
                 style={{
                   flex: 1,
                   background: "#fef2f2",
-                  border: "1px solid #fecaca",
                   color: "#dc2626",
-                  borderRadius: "10px",
-                  padding: "7px 8px",
-                  fontSize: "0.68rem",
+                  border: "1px solid #fecaca",
+                  borderRadius: "11px",
+                  padding: "9px",
+                  fontSize: "0.72rem",
                   fontWeight: 800,
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: "4px",
+                  gap: "5px",
                 }}
               >
-                <TrendingDown size={12} />
-                <span>Pakai Bank</span>
+                <TrendingDown size={14} />
+                <span>Pakai Saldo Bank</span>
               </button>
             </div>
           )}
         </div>
-        )}
+      )}
 
-        {/* KANTONG 3: SALDO MENGENDAP MIDTRANS (BELUM CAIR) */}
-        {activeKantongTab === "midtrans" && (
+      {activeTab === "midtrans" && (
         <div
           style={{
             background: "#ffffff",
             borderRadius: "18px",
-            padding: "14px",
-            border: "1.5px solid #ddd6fe",
-            boxShadow: "0 4px 12px rgba(124, 58, 237, 0.06)",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
+            padding: "16px",
+            border: "1px solid #ddd6fe",
+            boxShadow: "0 4px 12px rgba(15, 23, 42, 0.03)",
           }}
         >
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span
-                style={{
-                  fontSize: "0.66rem",
-                  fontWeight: 800,
-                  color: "#6d28d9",
-                  background: "#f5f3ff",
-                  padding: "3px 8px",
-                  borderRadius: "8px",
-                  textTransform: "uppercase",
-                }}
-              >
-                Kantong 3 • Belum Cair
-              </span>
-              <div
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  borderRadius: "10px",
-                  background: "#f5f3ff",
-                  color: "#7c3aed",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <QrCode size={17} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ fontSize: "0.7rem", fontWeight: 700, color: "#64748b" }}>
+                Kantong 3 • Saldo Mengendap di Midtrans (QRIS/VA)
+              </div>
+              <div style={{ fontSize: "1.45rem", fontWeight: 900, color: "#6d28d9", marginTop: "2px" }}>
+                {formatRp(kantong.saldo_mengendap_midtrans)}
               </div>
             </div>
-
-            <div style={{ fontSize: "0.76rem", fontWeight: 800, color: "#334155", marginTop: "8px" }}>
-              Mengendap di Midtrans (QRIS / VA)
-            </div>
-            <div style={{ fontSize: "1.28rem", fontWeight: 900, color: "#6d28d9", marginTop: "2px" }}>
-              {formatRp(kantong.saldo_mengendap_midtrans)}
-            </div>
-
             <div
               style={{
-                marginTop: "10px",
-                paddingTop: "8px",
-                borderTop: "1px dashed #e2e8f0",
-                fontSize: "0.68rem",
-                color: "#64748b",
+                width: "42px",
+                height: "42px",
+                borderRadius: "13px",
+                background: "#f5f3ff",
+                color: "#7c3aed",
                 display: "flex",
-                flexDirection: "column",
-                gap: "3px",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span>Transaksi Belum Cair:</span>
-                <strong style={{ color: "#6d28d9" }}>
-                  {kantong.jumlah_trx_mengendap_midtrans} Transaksi
-                </strong>
+              <QrCode size={22} />
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "8px",
+              marginTop: "12px",
+              paddingTop: "12px",
+              borderTop: "1px solid #f1f5f9",
+            }}
+          >
+            <div style={{ background: "#f8fafc", padding: "8px 10px", borderRadius: "10px" }}>
+              <div style={{ fontSize: "0.6rem", color: "#64748b" }}>Menunggu Cair</div>
+              <div style={{ fontSize: "0.76rem", fontWeight: 800, color: "#6d28d9", marginTop: "2px" }}>
+                {kantong.jumlah_trx_mengendap_midtrans} Transaksi
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span>Sudah Dicairkan ke Bank:</span>
-                <strong style={{ color: "#059669" }}>
-                  {formatRp(kantong.total_midtrans_sudah_cair)}
-                </strong>
-              </div>
-              <div style={{ fontSize: "0.64rem", color: "#7c3aed", marginTop: "2px" }}>
-                * Tagihan santri sudah Lunas, namun dana baru masuk ke Saldo Bank setelah dicairkan (Settlement/Payout).
+            </div>
+            <div style={{ background: "#f8fafc", padding: "8px 10px", borderRadius: "10px" }}>
+              <div style={{ fontSize: "0.6rem", color: "#64748b" }}>Sudah Cair ke Bank</div>
+              <div style={{ fontSize: "0.76rem", fontWeight: 800, color: "#059669", marginTop: "2px" }}>
+                {formatRp(kantong.total_midtrans_sudah_cair)}
               </div>
             </div>
           </div>
@@ -1000,13 +960,10 @@ export default function PanelKantongDanBukuKas({
                 display: "flex",
                 flexDirection: "column",
                 gap: "6px",
-                maxHeight: "220px",
+                maxHeight: "200px",
                 overflowY: "auto",
               }}
             >
-              <div style={{ fontSize: "0.66rem", fontWeight: 800, color: "#6d28d9" }}>
-                Daftar Transaksi Midtrans Menunggu Pencairan ({unsettledMidtrans.length}):
-              </div>
               {unsettledMidtrans.map((u) => (
                 <div
                   key={u.id}
@@ -1014,23 +971,20 @@ export default function PanelKantongDanBukuKas({
                     background: "#ffffff",
                     border: "1px solid #ede9fe",
                     borderRadius: "9px",
-                    padding: "7px 9px",
+                    padding: "7px 10px",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    gap: "8px",
-                    fontSize: "0.68rem",
+                    fontSize: "0.7rem",
                   }}
                 >
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 800, color: "#0f172a" }}>
-                      {u.nama_santri} ({u.nis || "-"})
-                    </div>
+                  <div>
+                    <div style={{ fontWeight: 800, color: "#0f172a" }}>{u.nama_santri}</div>
                     <div style={{ fontSize: "0.62rem", color: "#64748b" }}>
                       {u.nomor_transaksi} • {formatDateId(u.tanggal_bayar)}
                     </div>
                   </div>
-                  <div style={{ fontWeight: 900, color: "#6d28d9", whiteSpace: "nowrap" }}>
+                  <div style={{ fontWeight: 900, color: "#6d28d9" }}>
                     {formatRp(u.nominal_pokok || u.total_bayar)}
                   </div>
                 </div>
@@ -1052,119 +1006,29 @@ export default function PanelKantongDanBukuKas({
                     : "#f1f5f9",
                 border: "none",
                 color: unsettledMidtrans.length > 0 ? "#ffffff" : "#94a3b8",
-                borderRadius: "10px",
-                padding: "8px 12px",
-                fontSize: "0.72rem",
+                borderRadius: "11px",
+                padding: "10px",
+                fontSize: "0.75rem",
                 fontWeight: 800,
                 cursor: unsettledMidtrans.length > 0 ? "pointer" : "not-allowed",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 gap: "6px",
-                boxShadow:
-                  unsettledMidtrans.length > 0
-                    ? "0 4px 12px rgba(124, 58, 237, 0.25)"
-                    : "none",
               }}
             >
-              <CheckCircle2 size={14} />
+              <CheckCircle2 size={15} />
               <span>
                 {unsettledMidtrans.length > 0
-                  ? `Cairkan ke Bank (${unsettledMidtrans.length} Trx)`
-                  : "Semua Saldo Midtrans Sudah Cair"}
+                  ? `Cairkan ke Rekening Bank (${unsettledMidtrans.length} Trx)`
+                  : "Semua Dana Midtrans Sudah Cair"}
               </span>
             </button>
           )}
         </div>
-        )}
-      </div>
-
-      {/* 3. BAR AKSI BUKU KAS & MUTASI (KHUSUS TAB BUKU KAS) */}
-      {!readOnly && activeKantongTab === "buku_kas" && (
-        <div
-          style={{
-            background: "#ffffff",
-            borderRadius: "16px",
-            padding: "12px 14px",
-            border: "1px solid #e2e8f0",
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "8px",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <div style={{ fontSize: "0.76rem", fontWeight: 800, color: "#0f172a" }}>
-            Input Buku Kas &amp; Mutasi Saldo:
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
-            <button
-              type="button"
-              onClick={() => openFormModal("Pengeluaran")}
-              style={{
-                background: "#dc2626",
-                color: "#ffffff",
-                border: "none",
-                borderRadius: "10px",
-                padding: "8px 12px",
-                fontSize: "0.72rem",
-                fontWeight: 800,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "5px",
-              }}
-            >
-              <TrendingDown size={14} />
-              <span>+ Catat Pengeluaran</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => openFormModal("Pemasukan Lain")}
-              style={{
-                background: "#059669",
-                color: "#ffffff",
-                border: "none",
-                borderRadius: "10px",
-                padding: "8px 12px",
-                fontSize: "0.72rem",
-                fontWeight: 800,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "5px",
-              }}
-            >
-              <Plus size={14} />
-              <span>+ Pemasukan Lain</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => openFormModal("Setor Tunai ke Bank")}
-              style={{
-                background: "#0284c7",
-                color: "#ffffff",
-                border: "none",
-                borderRadius: "10px",
-                padding: "8px 12px",
-                fontSize: "0.72rem",
-                fontWeight: 800,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "5px",
-              }}
-            >
-              <ArrowRightLeft size={14} />
-              <span>Setor Tunai ke Bank</span>
-            </button>
-          </div>
-        </div>
       )}
 
-      {/* 4. DAFTAR BUKU KAS OPERASIONAL & RIWAYAT SETORAN/PENCAIRAN */}
+      {/* 4. RIWAYAT MUTASI KAS (CLEAN LIST) */}
       <div
         style={{
           background: "#ffffff",
@@ -1179,96 +1043,85 @@ export default function PanelKantongDanBukuKas({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            flexWrap: "wrap",
             gap: "8px",
-            marginBottom: "12px",
+            marginBottom: "10px",
+            flexWrap: "wrap",
           }}
         >
-          <div>
-            <div style={{ fontSize: "0.86rem", fontWeight: 900, color: "#0f172a" }}>
-              Buku Kas Pengeluaran, Setoran &amp; Pencairan Midtrans
-            </div>
-            <div style={{ fontSize: "0.68rem", color: "#64748b" }}>
-              Log mutasi uang keluar, pemasukan non-tagihan, setor tunai, dan pencairan Midtrans
-            </div>
+          <div style={{ fontSize: "0.82rem", fontWeight: 900, color: "#0f172a" }}>
+            {activeTab === "tunai"
+              ? "Riwayat Mutasi Kas Tunai"
+              : activeTab === "bank"
+                ? "Riwayat Mutasi Rekening Bank"
+                : activeTab === "midtrans"
+                  ? "Riwayat Pencairan Midtrans"
+                  : "Semua Riwayat Buku Kas"}
           </div>
 
-          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-            <select
-              value={filterJenis}
-              onChange={(e) => setFilterJenis(e.target.value)}
-              style={{
-                padding: "6px 10px",
-                borderRadius: "9px",
-                border: "1px solid #cbd5e1",
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#0f172a",
-                background: "#f8fafc",
-              }}
-            >
-              <option value="semua">Semua Jenis Mutasi</option>
-              <option value="Pengeluaran">Pengeluaran Kas</option>
-              <option value="Pemasukan Lain">Pemasukan Lain</option>
-              <option value="Setor Tunai ke Bank">Setor Tunai ke Bank</option>
-              <option value="Tarik Tunai dari Bank">Tarik Tunai dari Bank</option>
-              <option value="Pencairan Midtrans ke Bank">Pencairan Midtrans</option>
-            </select>
-
-            <select
-              value={filterKantong}
-              onChange={(e) => setFilterKantong(e.target.value)}
-              style={{
-                padding: "6px 10px",
-                borderRadius: "9px",
-                border: "1px solid #cbd5e1",
-                fontSize: "0.72rem",
-                fontWeight: 700,
-                color: "#0f172a",
-                background: "#f8fafc",
-              }}
-            >
-              <option value="semua">Semua Kantong</option>
-              <option value="Kas Tunai">Kas Tunai</option>
-              <option value="Rekening Bank">Rekening Bank</option>
-              <option value="Midtrans">Midtrans</option>
-            </select>
-          </div>
+          {activeTab === "buku_kas" && (
+            <div style={{ display: "flex", gap: "4px", overflowX: "auto" }}>
+              {[
+                { id: "semua", label: "Semua" },
+                { id: "Pengeluaran", label: "Pengeluaran" },
+                { id: "Pemasukan Lain", label: "Pemasukan" },
+                { id: "Setor Tunai ke Bank", label: "Setor Bank" },
+                { id: "Pencairan Midtrans ke Bank", label: "Cair Midtrans" },
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setFilterJenis(f.id)}
+                  style={{
+                    border: filterJenis === f.id ? "1px solid #059669" : "1px solid #e2e8f0",
+                    background: filterJenis === f.id ? "#ecfdf5" : "#f8fafc",
+                    color: filterJenis === f.id ? "#047857" : "#64748b",
+                    borderRadius: "999px",
+                    padding: "4px 9px",
+                    fontSize: "0.65rem",
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {filteredBukuKas.length === 0 ? (
+        {loading && bukuKas.length === 0 ? (
+          <div style={{ padding: "24px", textAlign: "center", fontSize: "0.75rem", color: "#64748b" }}>
+            Memuat data buku kas...
+          </div>
+        ) : displayedMutasi.length === 0 ? (
           <div
             style={{
-              padding: "28px 16px",
+              padding: "24px 14px",
               textAlign: "center",
               background: "#f8fafc",
-              borderRadius: "14px",
-              border: "1px dashed #cbd5e1",
+              borderRadius: "12px",
+              color: "#64748b",
+              fontSize: "0.74rem",
             }}
           >
-            <FileText size={24} color="#94a3b8" style={{ margin: "0 auto 6px" }} />
-            <div style={{ fontSize: "0.8rem", fontWeight: 800, color: "#334155" }}>
-              Belum Ada Catatan Mutasi / Pengeluaran di Buku Kas
-            </div>
-            <div style={{ fontSize: "0.7rem", color: "#64748b", marginTop: "2px" }}>
-              Gunakan tombol di atas saat mencairkan Midtrans, menyetor uang tunai ke bank, atau mencatat pengeluaran.
-            </div>
+            Belum ada catatan mutasi pada kantong ini.
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {filteredBukuKas.map((item) => {
+            {displayedMutasi.map((item) => {
               const isOut = item.jenis_transaksi === "Pengeluaran";
               const isIn = item.jenis_transaksi === "Pemasukan Lain";
               const isCair = item.jenis_transaksi === "Pencairan Midtrans ke Bank";
 
-              const accentColor = isOut
+              const color = isOut
                 ? "#dc2626"
                 : isIn
                   ? "#059669"
                   : isCair
                     ? "#7c3aed"
                     : "#0284c7";
-              const bgBadge = isOut
+              const bg = isOut
                 ? "#fef2f2"
                 : isIn
                   ? "#ecfdf5"
@@ -1280,150 +1133,130 @@ export default function PanelKantongDanBukuKas({
                 <div
                   key={item.id}
                   style={{
-                    border: "1px solid #e2e8f0",
-                    borderLeft: `4px solid ${accentColor}`,
-                    borderRadius: "14px",
-                    padding: "11px 13px",
-                    background: "#ffffff",
                     display: "flex",
-                    justifyContent: "space-between",
                     alignItems: "center",
+                    justifyContent: "space-between",
                     gap: "10px",
-                    flexWrap: "wrap",
+                    padding: "10px 12px",
+                    borderRadius: "13px",
+                    border: "1px solid #f1f5f9",
+                    background: "#f8fafc",
                   }}
                 >
-                  <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
                     <div
                       style={{
+                        width: "34px",
+                        height: "34px",
+                        borderRadius: "10px",
+                        background: bg,
+                        color,
                         display: "flex",
                         alignItems: "center",
-                        gap: "6px",
-                        flexWrap: "wrap",
+                        justifyContent: "center",
+                        flexShrink: 0,
                       }}
                     >
-                      <span
-                        style={{
-                          fontSize: "0.62rem",
-                          fontWeight: 800,
-                          color: accentColor,
-                          background: bgBadge,
-                          padding: "2px 8px",
-                          borderRadius: "999px",
-                        }}
-                      >
-                        {item.jenis_transaksi}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: "0.64rem",
-                          fontWeight: 700,
-                          color: "#475569",
-                          background: "#f1f5f9",
-                          padding: "2px 7px",
-                          borderRadius: "6px",
-                        }}
-                      >
-                        {item.kategori || "Operasional"}
-                      </span>
-                      <span style={{ fontSize: "0.65rem", color: "#64748b" }}>
-                        • {formatDateId(item.tanggal)}
-                      </span>
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: "0.82rem",
-                        fontWeight: 800,
-                        color: "#0f172a",
-                        marginTop: "5px",
-                      }}
-                    >
-                      {item.keterangan}
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: "0.68rem",
-                        color: "#64748b",
-                        marginTop: "3px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <span>Kode: <strong>{item.kode_mutasi}</strong></span>
-                      {item.kantong_sumber && item.kantong_tujuan ? (
-                        <span>
-                          Alur: <strong>{item.kantong_sumber}</strong> → <strong>{item.kantong_tujuan}</strong>
-                        </span>
-                      ) : item.kantong_sumber ? (
-                        <span>
-                          Sumber Dana: <strong>{item.kantong_sumber}</strong>
-                        </span>
-                      ) : item.kantong_tujuan ? (
-                        <span>
-                          Masuk ke: <strong>{item.kantong_tujuan}</strong>
-                        </span>
-                      ) : null}
-                      {item.biaya_admin > 0 && (
-                        <span style={{ color: "#dc2626" }}>
-                          Biaya Admin: {formatRp(item.biaya_admin)}
-                        </span>
+                      {isOut ? (
+                        <ArrowDownRight size={17} />
+                      ) : isIn ? (
+                        <ArrowUpRight size={17} />
+                      ) : (
+                        <ArrowRightLeft size={15} />
                       )}
+                    </div>
+
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div
+                        style={{
+                          fontSize: "0.78rem",
+                          fontWeight: 800,
+                          color: "#0f172a",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {item.keterangan}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "0.65rem",
+                          color: "#64748b",
+                          marginTop: "2px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "5px",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <span style={{ color, fontWeight: 800 }}>{item.jenis_transaksi}</span>
+                        <span>•</span>
+                        <span>{formatDateId(item.tanggal)}</span>
+                        {item.kantong_sumber && (
+                          <>
+                            <span>•</span>
+                            <span>{item.kantong_sumber}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
                     <div style={{ textAlign: "right" }}>
-                      <div
-                        style={{
-                          fontSize: "0.92rem",
-                          fontWeight: 900,
-                          color: accentColor,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "flex-end",
-                          gap: "2px",
-                        }}
-                      >
-                        {isOut ? (
-                          <ArrowDownRight size={15} />
-                        ) : isIn ? (
-                          <ArrowUpRight size={15} />
-                        ) : (
-                          <ArrowRightLeft size={13} />
-                        )}
-                        <span>
-                          {isOut ? "-" : isIn ? "+" : ""}
-                          {formatRp(item.nominal)}
-                        </span>
+                      <div style={{ fontSize: "0.82rem", fontWeight: 900, color }}>
+                        {isOut ? "-" : isIn ? "+" : ""}
+                        {formatRp(item.nominal)}
                       </div>
-                      <div style={{ fontSize: "0.62rem", color: "#94a3b8" }}>
-                        Oleh: {item.penanggung_jawab || "Bendahara"}
-                      </div>
+                      {item.biaya_admin > 0 && (
+                        <div style={{ fontSize: "0.58rem", color: "#dc2626" }}>
+                          Admin: {formatRp(item.biaya_admin)}
+                        </div>
+                      )}
                     </div>
 
                     {!readOnly && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteBukuKas(item)}
-                        style={{
-                          background: "#fef2f2",
-                          border: "1px solid #fecaca",
-                          color: "#dc2626",
-                          width: "30px",
-                          height: "30px",
-                          borderRadius: "8px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          cursor: "pointer",
-                        }}
-                        title="Hapus Catatan"
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                        <button
+                          type="button"
+                          onClick={() => openEditFormModal(item)}
+                          style={{
+                            background: "#ffffff",
+                            border: "1px solid #e0f2fe",
+                            color: "#0284c7",
+                            width: "28px",
+                            height: "28px",
+                            borderRadius: "8px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            cursor: "pointer",
+                          }}
+                          title="Edit Catatan"
+                        >
+                          <Edit3 size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteBukuKas(item)}
+                          style={{
+                            background: "#ffffff",
+                            border: "1px solid #fee2e2",
+                            color: "#dc2626",
+                            width: "28px",
+                            height: "28px",
+                            borderRadius: "8px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            cursor: "pointer",
+                          }}
+                          title="Hapus"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -1433,608 +1266,998 @@ export default function PanelKantongDanBukuKas({
         )}
       </div>
 
-      {/* MODAL 1: INPUT BUKU KAS (PENGELUARAN / PEMASUKAN LAIN / SETOR TUNAI / TARIK TUNAI) */}
+      {/* MODAL 1: FULL SCREEN FORM INPUT & EDIT BUKU KAS */}
       {formModal.isOpen && (
         <div
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(15, 23, 42, 0.6)",
-            backdropFilter: "blur(4px)",
-            zIndex: 9999,
+            background: "#f8fafc",
+            zIndex: 10000,
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "16px",
+            flexDirection: "column",
+            width: "100%",
+            height: "100dvh",
+            overflow: "hidden",
           }}
         >
+          {/* Sticky Full-Screen Header */}
           <div
             style={{
-              background: "#ffffff",
-              borderRadius: "20px",
-              width: "100%",
-              maxWidth: "460px",
-              maxHeight: "90vh",
-              overflowY: "auto",
-              padding: "20px",
-              boxShadow: "0 20px 40px rgba(0,0,0,0.25)",
+              padding: "14px 16px",
+              background:
+                formModal.jenis_transaksi === "Pengeluaran"
+                  ? "linear-gradient(135deg, #b91c1c 0%, #dc2626 100%)"
+                  : formModal.jenis_transaksi === "Pemasukan Lain"
+                    ? "linear-gradient(135deg, #065f46 0%, #059669 100%)"
+                    : "linear-gradient(135deg, #0369a1 0%, #0284c7 100%)",
+              color: "#ffffff",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              boxShadow: "0 4px 16px rgba(15, 23, 42, 0.14)",
+              flexShrink: 0,
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "14px",
-              }}
-            >
-              <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 900, color: "#0f172a" }}>
-                {formModal.jenis_transaksi === "Pengeluaran"
-                  ? "Catat Pengeluaran Kas"
-                  : formModal.jenis_transaksi === "Pemasukan Lain"
-                    ? "Catat Pemasukan Kas Lainnya"
-                    : formModal.jenis_transaksi}
-              </h3>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <button
                 type="button"
                 onClick={() => setFormModal((p) => ({ ...p, isOpen: false }))}
                 style={{
-                  background: "#f1f5f9",
+                  background: "rgba(255, 255, 255, 0.2)",
                   border: "none",
-                  borderRadius: "50%",
-                  width: "30px",
-                  height: "30px",
+                  color: "#ffffff",
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "11px",
+                  cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  cursor: "pointer",
                 }}
               >
-                <X size={16} color="#475569" />
+                <ArrowLeft size={18} />
               </button>
+              <div>
+                <div style={{ fontSize: "0.65rem", opacity: 0.9, fontWeight: 700 }}>
+                  {formModal.mode === "edit" ? "EDIT CATATAN BUKU KAS" : "INPUT TRANSAKSI BARU"}
+                </div>
+                <div style={{ fontWeight: 900, fontSize: "0.98rem", lineHeight: 1.2 }}>
+                  {formModal.jenis_transaksi}
+                </div>
+              </div>
             </div>
 
-            <form
-              onSubmit={handleSubmitFormBukuKas}
-              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+            <button
+              type="button"
+              onClick={() => setFormModal((p) => ({ ...p, isOpen: false }))}
+              style={{
+                background: "rgba(255, 255, 255, 0.18)",
+                border: "none",
+                color: "#ffffff",
+                width: "34px",
+                height: "34px",
+                borderRadius: "50%",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
-              {/* Pilihan Jenis Transaksi */}
-              <div>
-                <label style={{ fontSize: "0.72rem", fontWeight: 800, color: "#334155" }}>
-                  Jenis Pencatatan
-                </label>
-                <select
-                  value={formModal.jenis_transaksi}
-                  onChange={(e) => openFormModal(e.target.value)}
+              <X size={17} />
+            </button>
+          </div>
+
+          {/* Scrollable Form Body */}
+          <form
+            onSubmit={handleSubmitFormBukuKas}
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              padding: "16px",
+              maxWidth: "640px",
+              width: "100%",
+              margin: "0 auto",
+              boxSizing: "border-box",
+              display: "flex",
+              flexDirection: "column",
+              gap: "14px",
+            }}
+          >
+            {/* 1. PILIH JENIS TRANSAKSI (4 TAB CARDS) */}
+            {formModal.jenis_transaksi !== "Pencairan Midtrans ke Bank" && (
+              <div
+                style={{
+                  background: "#ffffff",
+                  borderRadius: "16px",
+                  padding: "12px",
+                  border: "1px solid #e2e8f0",
+                  boxShadow: "0 2px 8px rgba(15, 23, 42, 0.03)",
+                }}
+              >
+                <div
                   style={{
-                    width: "100%",
-                    marginTop: "4px",
-                    padding: "10px 12px",
-                    borderRadius: "10px",
-                    border: "1px solid #cbd5e1",
-                    fontSize: "0.8rem",
-                    fontWeight: 700,
-                    background: "#f8fafc",
+                    fontSize: "0.7rem",
+                    fontWeight: 800,
+                    color: "#64748b",
+                    marginBottom: "8px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.03em",
                   }}
                 >
-                  <option value="Pengeluaran">Pengeluaran Operasional</option>
-                  <option value="Pemasukan Lain">Pemasukan Lain (Non-Tagihan)</option>
-                  <option value="Setor Tunai ke Bank">Setor Tunai ke Rekening Bank</option>
-                  <option value="Tarik Tunai dari Bank">Tarik Tunai dari Bank ke Kas Tunai</option>
-                </select>
+                  Jenis Transaksi Buku Kas
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(2, 1fr)",
+                    gap: "7px",
+                  }}
+                >
+                  {[
+                    {
+                      id: "Pengeluaran",
+                      label: "Pengeluaran Kas",
+                      Icon: TrendingDown,
+                      color: "#dc2626",
+                      bg: "#fef2f2",
+                      border: "#fca5a5",
+                    },
+                    {
+                      id: "Pemasukan Lain",
+                      label: "Pemasukan Lain",
+                      Icon: TrendingUp,
+                      color: "#059669",
+                      bg: "#ecfdf5",
+                      border: "#6ee7b7",
+                    },
+                    {
+                      id: "Setor Tunai ke Bank",
+                      label: "Setor Tunai ke Bank",
+                      Icon: ArrowRightLeft,
+                      color: "#0284c7",
+                      bg: "#f0f9ff",
+                      border: "#7dd3fc",
+                    },
+                    {
+                      id: "Tarik Tunai dari Bank",
+                      label: "Tarik Tunai Bank",
+                      Icon: Building2,
+                      color: "#0369a1",
+                      bg: "#f0f9ff",
+                      border: "#7dd3fc",
+                    },
+                  ].map((j) => {
+                    const active = formModal.jenis_transaksi === j.id;
+                    const Icon = j.Icon;
+                    return (
+                      <button
+                        key={j.id}
+                        type="button"
+                        onClick={() =>
+                          setFormModal((p) => ({
+                            ...p,
+                            jenis_transaksi: j.id,
+                            kategori:
+                              j.id === "Pengeluaran"
+                                ? KATEGORI_PENGELUARAN[0]
+                                : j.id === "Pemasukan Lain"
+                                  ? KATEGORI_PEMASUKAN_LAIN[0]
+                                  : j.id === "Setor Tunai ke Bank"
+                                    ? "Setoran Bank"
+                                    : "Tarik Tunai Bank",
+                            kantong_sumber:
+                              j.id === "Tarik Tunai dari Bank"
+                                ? "Rekening Bank"
+                                : p.kantong_sumber || "Kas Tunai",
+                            kantong_tujuan:
+                              j.id === "Tarik Tunai dari Bank" || j.id === "Pemasukan Lain"
+                                ? "Kas Tunai"
+                                : "Rekening Bank",
+                          }))
+                        }
+                        style={{
+                          padding: "10px 11px",
+                          borderRadius: "12px",
+                          border: active ? `2px solid ${j.color}` : "1px solid #e2e8f0",
+                          background: active ? j.bg : "#f8fafc",
+                          color: active ? j.color : "#475569",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          cursor: "pointer",
+                          textAlign: "left",
+                        }}
+                      >
+                        <Icon size={16} />
+                        <span style={{ fontSize: "0.74rem", fontWeight: 800 }}>{j.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+            )}
 
-              {/* Pilih Kantong Sumber / Tujuan */}
-              {formModal.jenis_transaksi === "Pengeluaran" && (
-                <div>
-                  <label style={{ fontSize: "0.72rem", fontWeight: 800, color: "#334155" }}>
-                    Diambil dari Kantong Saldo Mana?
-                  </label>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginTop: "5px" }}>
-                    {["Kas Tunai", "Rekening Bank"].map((k) => {
-                      const active = formModal.kantong_sumber === k;
-                      const avail =
-                        k === "Kas Tunai"
-                          ? kantong.saldo_kas_tunai
-                          : kantong.saldo_rekening_bank;
-                      return (
-                        <button
-                          key={k}
-                          type="button"
-                          onClick={() => setFormModal((p) => ({ ...p, kantong_sumber: k }))}
-                          style={{
-                            padding: "10px",
-                            borderRadius: "12px",
-                            border: active ? "2px solid #dc2626" : "1px solid #cbd5e1",
-                            background: active ? "#fef2f2" : "#f8fafc",
-                            textAlign: "left",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <div style={{ fontSize: "0.74rem", fontWeight: 800, color: "#0f172a" }}>
-                            {k}
-                          </div>
-                          <div style={{ fontSize: "0.66rem", color: "#64748b", marginTop: "2px" }}>
-                            Saldo: {formatRp(avail)}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+            {/* 2. HERO CARD INPUT NOMINAL + QUICK CHIPS */}
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: "18px",
+                padding: "16px",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 4px 12px rgba(15, 23, 42, 0.04)",
+              }}
+            >
+              <label
+                style={{
+                  fontSize: "0.72rem",
+                  fontWeight: 800,
+                  color: "#64748b",
+                  display: "block",
+                  marginBottom: "8px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.03em",
+                }}
+              >
+                Nominal Transaksi (Rp) *
+              </label>
 
-              {formModal.jenis_transaksi === "Pemasukan Lain" && (
-                <div>
-                  <label style={{ fontSize: "0.72rem", fontWeight: 800, color: "#334155" }}>
-                    Masuk ke Kantong Saldo Mana?
-                  </label>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginTop: "5px" }}>
-                    {["Kas Tunai", "Rekening Bank"].map((k) => {
-                      const active = formModal.kantong_tujuan === k;
-                      return (
-                        <button
-                          key={k}
-                          type="button"
-                          onClick={() => setFormModal((p) => ({ ...p, kantong_tujuan: k }))}
-                          style={{
-                            padding: "10px",
-                            borderRadius: "12px",
-                            border: active ? "2px solid #059669" : "1px solid #cbd5e1",
-                            background: active ? "#ecfdf5" : "#f8fafc",
-                            textAlign: "left",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <div style={{ fontSize: "0.74rem", fontWeight: 800, color: "#0f172a" }}>
-                            {k}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {(formModal.jenis_transaksi === "Pengeluaran" ||
-                formModal.jenis_transaksi === "Pemasukan Lain") && (
-                <div>
-                  <label style={{ fontSize: "0.72rem", fontWeight: 800, color: "#334155" }}>
-                    Kategori
-                  </label>
-                  <select
-                    value={formModal.kategori}
-                    onChange={(e) => setFormModal((p) => ({ ...p, kategori: e.target.value }))}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  background: "#f8fafc",
+                  border: "2px solid #cbd5e1",
+                  borderRadius: "14px",
+                  padding: "12px 14px",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "1.2rem",
+                    fontWeight: 900,
+                    color:
+                      formModal.jenis_transaksi === "Pengeluaran"
+                        ? "#dc2626"
+                        : formModal.jenis_transaksi === "Pemasukan Lain"
+                          ? "#059669"
+                          : "#0284c7",
+                  }}
+                >
+                  Rp
+                </span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="0"
+                  value={formatNumberInput(formModal.nominal)}
+                  onChange={(e) => setFormModal((p) => ({ ...p, nominal: e.target.value }))}
+                  style={{
+                    width: "100%",
+                    border: "none",
+                    background: "transparent",
+                    outline: "none",
+                    fontSize: "1.45rem",
+                    fontWeight: 900,
+                    color: "#0f172a",
+                  }}
+                />
+                {formModal.nominal && (
+                  <button
+                    type="button"
+                    onClick={() => setFormModal((p) => ({ ...p, nominal: "" }))}
                     style={{
-                      width: "100%",
-                      marginTop: "4px",
-                      padding: "10px 12px",
-                      borderRadius: "10px",
-                      border: "1px solid #cbd5e1",
-                      fontSize: "0.8rem",
-                      fontWeight: 700,
-                      background: "#f8fafc",
+                      background: "#e2e8f0",
+                      border: "none",
+                      borderRadius: "50%",
+                      width: "24px",
+                      height: "24px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      color: "#475569",
                     }}
                   >
-                    {(formModal.jenis_transaksi === "Pengeluaran"
-                      ? KATEGORI_PENGELUARAN
-                      : KATEGORI_PEMASUKAN_LAIN
-                    ).map((kat) => (
-                      <option key={kat} value={kat}>
-                        {kat}
-                      </option>
-                    ))}
-                  </select>
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+
+              {/* Quick Nominal Add Buttons */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: "6px",
+                  flexWrap: "wrap",
+                  marginTop: "10px",
+                }}
+              >
+                {[
+                  { label: "+50 Rb", add: 50000 },
+                  { label: "+100 Rb", add: 100000 },
+                  { label: "+250 Rb", add: 250000 },
+                  { label: "+500 Rb", add: 500000 },
+                  { label: "+1 Jt", add: 1000000 },
+                ].map((chip) => (
+                  <button
+                    key={chip.label}
+                    type="button"
+                    onClick={() => {
+                      const cur = parseNumberInput(formModal.nominal);
+                      setFormModal((p) => ({ ...p, nominal: String(cur + chip.add) }));
+                    }}
+                    style={{
+                      background: "#f1f5f9",
+                      border: "1px solid #cbd5e1",
+                      borderRadius: "999px",
+                      padding: "5px 11px",
+                      fontSize: "0.7rem",
+                      fontWeight: 800,
+                      color: "#334155",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 3. PILIH KANTONG SALDO (DENGAN INFO SALDO AKTUAL) */}
+            {(formModal.jenis_transaksi === "Pengeluaran" ||
+              formModal.jenis_transaksi === "Pemasukan Lain") && (
+              <div
+                style={{
+                  background: "#ffffff",
+                  borderRadius: "16px",
+                  padding: "14px",
+                  border: "1px solid #e2e8f0",
+                }}
+              >
+                <label
+                  style={{
+                    fontSize: "0.72rem",
+                    fontWeight: 800,
+                    color: "#64748b",
+                    display: "block",
+                    marginBottom: "8px",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {formModal.jenis_transaksi === "Pengeluaran"
+                    ? "Diambil dari Kantong Mana?"
+                    : "Masuk ke Kantong Mana?"}
+                </label>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                  {[
+                    {
+                      id: "Kas Tunai",
+                      label: "Kas Tunai",
+                      sub: formatRp(kantong.saldo_kas_tunai),
+                      Icon: Wallet,
+                      color: "#059669",
+                      bg: "#ecfdf5",
+                    },
+                    {
+                      id: "Rekening Bank",
+                      label: "Rekening Bank",
+                      sub: formatRp(kantong.saldo_rekening_bank),
+                      Icon: Building2,
+                      color: "#0284c7",
+                      bg: "#f0f9ff",
+                    },
+                  ].map((k) => {
+                    const selected =
+                      formModal.jenis_transaksi === "Pengeluaran"
+                        ? formModal.kantong_sumber === k.id
+                        : formModal.kantong_tujuan === k.id;
+                    const Icon = k.Icon;
+                    return (
+                      <button
+                        key={k.id}
+                        type="button"
+                        onClick={() =>
+                          setFormModal((p) =>
+                            p.jenis_transaksi === "Pengeluaran"
+                              ? { ...p, kantong_sumber: k.id }
+                              : { ...p, kantong_tujuan: k.id },
+                          )
+                        }
+                        style={{
+                          padding: "12px",
+                          borderRadius: "14px",
+                          border: selected ? `2px solid ${k.color}` : "1px solid #e2e8f0",
+                          background: selected ? k.bg : "#f8fafc",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "4px",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: "0.78rem",
+                              fontWeight: 900,
+                              color: selected ? k.color : "#334155",
+                            }}
+                          >
+                            {k.label}
+                          </span>
+                          <Icon size={16} color={selected ? k.color : "#94a3b8"} />
+                        </div>
+                        <div style={{ fontSize: "0.7rem", fontWeight: 700, color: "#64748b" }}>
+                          Saldo: {k.sub}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
+              </div>
+            )}
+
+            {/* 4. KATEGORI (INTERACTIVE CHIPS) */}
+            {(formModal.jenis_transaksi === "Pengeluaran" ||
+              formModal.jenis_transaksi === "Pemasukan Lain") && (
+              <div
+                style={{
+                  background: "#ffffff",
+                  borderRadius: "16px",
+                  padding: "14px",
+                  border: "1px solid #e2e8f0",
+                }}
+              >
+                <label
+                  style={{
+                    fontSize: "0.72rem",
+                    fontWeight: 800,
+                    color: "#64748b",
+                    display: "block",
+                    marginBottom: "8px",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Pilih Kategori
+                </label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
+                  {(formModal.jenis_transaksi === "Pengeluaran"
+                    ? KATEGORI_PENGELUARAN
+                    : KATEGORI_PEMASUKAN_LAIN
+                  ).map((kat) => {
+                    const active = formModal.kategori === kat;
+                    const activeColor =
+                      formModal.jenis_transaksi === "Pengeluaran" ? "#dc2626" : "#059669";
+                    const activeBg =
+                      formModal.jenis_transaksi === "Pengeluaran" ? "#fef2f2" : "#ecfdf5";
+                    return (
+                      <button
+                        key={kat}
+                        type="button"
+                        onClick={() => setFormModal((p) => ({ ...p, kategori: kat }))}
+                        style={{
+                          padding: "8px 12px",
+                          borderRadius: "10px",
+                          border: active ? `1.5px solid ${activeColor}` : "1px solid #e2e8f0",
+                          background: active ? activeBg : "#f8fafc",
+                          color: active ? activeColor : "#475569",
+                          fontSize: "0.73rem",
+                          fontWeight: active ? 800 : 700,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {kat}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 5. RINCIAN KETERANGAN, TANGGAL & PENANGGUNG JAWAB */}
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: "16px",
+                padding: "14px",
+                border: "1px solid #e2e8f0",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
+              <div>
+                <label
+                  style={{
+                    fontSize: "0.72rem",
+                    fontWeight: 800,
+                    color: "#334155",
+                    display: "block",
+                    marginBottom: "6px",
+                  }}
+                >
+                  Uraian / Keterangan Transaksi *
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Contoh: Beli beras dapur 5 karung / Setor uang tunai SPP ke Bank"
+                  value={formModal.keterangan}
+                  onChange={(e) => setFormModal((p) => ({ ...p, keterangan: e.target.value }))}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: "12px",
+                    border: "1.5px solid #cbd5e1",
+                    fontSize: "0.82rem",
+                    fontFamily: "inherit",
+                    boxSizing: "border-box",
+                    background: "#f8fafc",
+                  }}
+                />
+              </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
                 <div>
-                  <label style={{ fontSize: "0.72rem", fontWeight: 800, color: "#334155" }}>
-                    Nominal (Rp)
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="Contoh: 500.000"
-                    value={formModal.nominal}
-                    onChange={(e) =>
-                      setFormModal((p) => ({
-                        ...p,
-                        nominal: formatNumberInput(e.target.value),
-                      }))
-                    }
+                  <label
                     style={{
-                      width: "100%",
-                      marginTop: "4px",
-                      padding: "10px 12px",
-                      borderRadius: "10px",
-                      border: "1px solid #cbd5e1",
-                      fontSize: "0.85rem",
+                      fontSize: "0.72rem",
                       fontWeight: 800,
-                      boxSizing: "border-box",
+                      color: "#334155",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      marginBottom: "6px",
                     }}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label style={{ fontSize: "0.72rem", fontWeight: 800, color: "#334155" }}>
-                    Tanggal
+                  >
+                    <Calendar size={13} />
+                    <span>Tanggal</span>
                   </label>
                   <input
                     type="date"
                     value={formModal.tanggal}
+                    onChange={(e) => setFormModal((p) => ({ ...p, tanggal: e.target.value }))}
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      borderRadius: "11px",
+                      border: "1.5px solid #cbd5e1",
+                      fontSize: "0.78rem",
+                      fontWeight: 700,
+                      background: "#f8fafc",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      fontSize: "0.72rem",
+                      fontWeight: 800,
+                      color: "#334155",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    <User size={13} />
+                    <span>Petugas / PJ</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Bendahara"
+                    value={formModal.penanggung_jawab}
                     onChange={(e) =>
-                      setFormModal((p) => ({ ...p, tanggal: e.target.value }))
+                      setFormModal((p) => ({ ...p, penanggung_jawab: e.target.value }))
                     }
                     style={{
                       width: "100%",
-                      marginTop: "4px",
-                      padding: "10px 12px",
-                      borderRadius: "10px",
-                      border: "1px solid #cbd5e1",
-                      fontSize: "0.8rem",
+                      padding: "10px",
+                      borderRadius: "11px",
+                      border: "1.5px solid #cbd5e1",
+                      fontSize: "0.78rem",
                       fontWeight: 700,
+                      background: "#f8fafc",
                       boxSizing: "border-box",
                     }}
-                    required
                   />
                 </div>
               </div>
+            </div>
 
-              <div>
-                <label style={{ fontSize: "0.72rem", fontWeight: 800, color: "#334155" }}>
-                  Keterangan / Uraian Lengkap
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Contoh: Pembayaran tagihan listrik asrama putra bulan November..."
-                  value={formModal.keterangan}
-                  onChange={(e) =>
-                    setFormModal((p) => ({ ...p, keterangan: e.target.value }))
-                  }
-                  style={{
-                    width: "100%",
-                    marginTop: "4px",
-                    padding: "10px 12px",
-                    borderRadius: "10px",
-                    border: "1px solid #cbd5e1",
-                    fontSize: "0.8rem",
-                    boxSizing: "border-box",
-                  }}
-                  required
-                />
-              </div>
-
-              <div style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
-                <button
-                  type="button"
-                  onClick={() => setFormModal((p) => ({ ...p, isOpen: false }))}
-                  style={{
-                    flex: 1,
-                    padding: "11px",
-                    borderRadius: "11px",
-                    border: "1px solid #cbd5e1",
-                    background: "#ffffff",
-                    fontWeight: 800,
-                    fontSize: "0.8rem",
-                    cursor: "pointer",
-                  }}
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingForm}
-                  style={{
-                    flex: 1.5,
-                    padding: "11px",
-                    borderRadius: "11px",
-                    border: "none",
-                    background: "#047857",
-                    color: "#ffffff",
-                    fontWeight: 800,
-                    fontSize: "0.8rem",
-                    cursor: "pointer",
-                  }}
-                >
-                  {submittingForm ? "Menyimpan..." : "Simpan ke Buku Kas"}
-                </button>
-              </div>
-            </form>
-          </div>
+            {/* Sticky Bottom Submit Bar */}
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                paddingTop: "6px",
+                paddingBottom: "20px",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setFormModal((p) => ({ ...p, isOpen: false }))}
+                style={{
+                  flex: 1,
+                  padding: "13px",
+                  borderRadius: "13px",
+                  border: "1px solid #cbd5e1",
+                  background: "#ffffff",
+                  fontWeight: 800,
+                  fontSize: "0.82rem",
+                  color: "#475569",
+                  cursor: "pointer",
+                }}
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={submittingForm}
+                style={{
+                  flex: 2,
+                  padding: "13px",
+                  borderRadius: "13px",
+                  border: "none",
+                  background:
+                    formModal.jenis_transaksi === "Pengeluaran"
+                      ? "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)"
+                      : formModal.jenis_transaksi === "Pemasukan Lain"
+                        ? "linear-gradient(135deg, #059669 0%, #047857 100%)"
+                        : "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+                  color: "#ffffff",
+                  fontWeight: 900,
+                  fontSize: "0.85rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "7px",
+                  boxShadow: "0 8px 20px rgba(15, 23, 42, 0.18)",
+                }}
+              >
+                <Save size={16} />
+                <span>
+                  {submittingForm
+                    ? "Menyimpan..."
+                    : formModal.mode === "edit"
+                      ? "Simpan Perubahan"
+                      : "Simpan ke Buku Kas"}
+                </span>
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
-      {/* MODAL 2: PENCAIRAN SALDO MIDTRANS (SETTLEMENT / PAYOUT KE BANK) */}
+      {/* MODAL 2: FULL SCREEN PENCAIRAN SALDO MIDTRANS KE BANK */}
       {cairModal.isOpen && (
         <div
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(15, 23, 42, 0.6)",
-            backdropFilter: "blur(4px)",
-            zIndex: 9999,
+            background: "#f8fafc",
+            zIndex: 10000,
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "16px",
+            flexDirection: "column",
+            width: "100%",
+            height: "100dvh",
+            overflow: "hidden",
           }}
         >
+          {/* Sticky Full-Screen Header */}
           <div
             style={{
-              background: "#ffffff",
-              borderRadius: "20px",
-              width: "100%",
-              maxWidth: "520px",
-              maxHeight: "90vh",
-              overflowY: "auto",
-              padding: "20px",
-              boxShadow: "0 20px 40px rgba(0,0,0,0.25)",
+              padding: "14px 16px",
+              background: "linear-gradient(135deg, #6d28d9 0%, #7c3aed 100%)",
+              color: "#ffffff",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              boxShadow: "0 4px 16px rgba(109, 40, 217, 0.25)",
+              flexShrink: 0,
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "10px",
-              }}
-            >
-              <div>
-                <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 900, color: "#0f172a" }}>
-                  Cairkan Saldo Midtrans ke Rekening Bank
-                </h3>
-                <div style={{ fontSize: "0.7rem", color: "#64748b", marginTop: "2px" }}>
-                  Pindahkan dana QRIS/VA yang sudah cair (Payout) dari Midtrans ke Saldo Bank Pesantren
-                </div>
-              </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <button
                 type="button"
                 onClick={() => setCairModal((p) => ({ ...p, isOpen: false }))}
                 style={{
-                  background: "#f1f5f9",
+                  background: "rgba(255,255,255,0.2)",
                   border: "none",
-                  borderRadius: "50%",
-                  width: "30px",
-                  height: "30px",
+                  color: "#fff",
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "11px",
+                  cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  cursor: "pointer",
                 }}
               >
-                <X size={16} color="#475569" />
+                <ArrowLeft size={18} />
               </button>
+              <div>
+                <div style={{ fontSize: "0.65rem", opacity: 0.9, fontWeight: 700 }}>
+                  SETTLEMENT / PAYOUT MIDTRANS
+                </div>
+                <div style={{ fontWeight: 900, fontSize: "0.98rem" }}>
+                  Cairkan Saldo Midtrans ke Bank
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCairModal((p) => ({ ...p, isOpen: false }))}
+              style={{
+                background: "rgba(255,255,255,0.18)",
+                border: "none",
+                color: "#fff",
+                width: "34px",
+                height: "34px",
+                borderRadius: "50%",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <X size={17} />
+            </button>
+          </div>
+
+          <form
+            onSubmit={handleSubmitCairMidtrans}
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              padding: "16px",
+              maxWidth: "640px",
+              width: "100%",
+              margin: "0 auto",
+              boxSizing: "border-box",
+              display: "flex",
+              flexDirection: "column",
+              gap: "14px",
+            }}
+          >
+            {/* Ringkasan Total Cair */}
+            <div
+              style={{
+                background: "linear-gradient(135deg, #5b21b6 0%, #7c3aed 100%)",
+                borderRadius: "18px",
+                padding: "16px",
+                color: "#ffffff",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: "0.7rem", color: "#ddd6fe", fontWeight: 700 }}>
+                  Total Masuk ke Rekening Bank ({cairModal.selectedIds.length} Trx)
+                </div>
+                <div style={{ fontSize: "1.55rem", fontWeight: 900, marginTop: "2px" }}>
+                  {formatRp(
+                    Math.max(0, selectedMidtransTotal - parseNumberInput(cairModal.biaya_admin)),
+                  )}
+                </div>
+              </div>
+              <QrCode size={32} color="#ddd6fe" />
             </div>
 
-            <form
-              onSubmit={handleSubmitCairMidtrans}
-              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+            {/* Daftar Transaksi Midtrans */}
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: "16px",
+                padding: "14px",
+                border: "1px solid #e2e8f0",
+              }}
             >
-              {/* Checklist Transaksi Mengendap */}
               <div
                 style={{
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "14px",
-                  padding: "10px 12px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "10px",
                 }}
               >
-                <div
+                <span style={{ fontSize: "0.76rem", fontWeight: 900, color: "#0f172a" }}>
+                  Pilih Transaksi ({cairModal.selectedIds.length}/{unsettledMidtrans.length})
+                </span>
+                <button
+                  type="button"
+                  onClick={handleToggleAllMidtrans}
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "8px",
+                    border: "none",
+                    background: "#f5f3ff",
+                    color: "#6d28d9",
+                    padding: "6px 12px",
+                    borderRadius: "999px",
+                    fontSize: "0.7rem",
+                    fontWeight: 800,
+                    cursor: "pointer",
                   }}
                 >
-                  <button
-                    type="button"
-                    onClick={handleToggleAllMidtrans}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      padding: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      fontSize: "0.74rem",
-                      fontWeight: 800,
-                      color: "#6d28d9",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {cairModal.selectedIds.length === unsettledMidtrans.length ? (
-                      <CheckSquare size={16} />
-                    ) : (
-                      <Square size={16} />
-                    )}
-                    <span>
-                      Pilih Semua ({cairModal.selectedIds.length}/{unsettledMidtrans.length} Transaksi)
-                    </span>
-                  </button>
+                  {cairModal.selectedIds.length === unsettledMidtrans.length
+                    ? "Batal Pilih Semua"
+                    : "Pilih Semua"}
+                </button>
+              </div>
 
-                  <span style={{ fontSize: "0.76rem", fontWeight: 900, color: "#047857" }}>
-                    Total Pokok: {formatRp(selectedMidtransTotal)}
-                  </span>
-                </div>
-
-                <div
-                  style={{
-                    maxHeight: "200px",
-                    overflowY: "auto",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "6px",
-                  }}
-                >
-                  {unsettledMidtrans.map((u) => {
-                    const checked = cairModal.selectedIds.includes(u.id);
-                    return (
-                      <div
-                        key={u.id}
-                        onClick={() => handleToggleSelectMidtrans(u.id)}
-                        style={{
-                          padding: "8px 10px",
-                          borderRadius: "10px",
-                          background: checked ? "#f5f3ff" : "#ffffff",
-                          border: checked ? "1.5px solid #8b5cf6" : "1px solid #e2e8f0",
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          {checked ? (
-                            <CheckSquare size={15} color="#6d28d9" />
-                          ) : (
-                            <Square size={15} color="#94a3b8" />
-                          )}
-                          <div>
-                            <div style={{ fontSize: "0.75rem", fontWeight: 800, color: "#0f172a" }}>
-                              {u.nama_santri}
-                            </div>
-                            <div style={{ fontSize: "0.64rem", color: "#64748b" }}>
-                              {u.nomor_transaksi} • {formatDateId(u.tanggal_bayar)}
-                            </div>
+              <div
+                style={{
+                  maxHeight: "280px",
+                  overflowY: "auto",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "6px",
+                }}
+              >
+                {unsettledMidtrans.map((u) => {
+                  const checked = cairModal.selectedIds.includes(u.id);
+                  const pokok = Number(u.nominal_pokok || u.total_bayar || 0);
+                  return (
+                    <div
+                      key={u.id}
+                      onClick={() => handleToggleSelectMidtrans(u.id)}
+                      style={{
+                        padding: "10px 12px",
+                        borderRadius: "12px",
+                        background: checked ? "#f5f3ff" : "#f8fafc",
+                        border: checked ? "1.5px solid #8b5cf6" : "1px solid #e2e8f0",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        {checked ? (
+                          <CheckSquare size={17} color="#7c3aed" />
+                        ) : (
+                          <Square size={17} color="#94a3b8" />
+                        )}
+                        <div>
+                          <div style={{ fontSize: "0.78rem", fontWeight: 800, color: "#0f172a" }}>
+                            {u.nama_santri}
                           </div>
-                        </div>
-                        <div style={{ textAlign: "right" }}>
-                          <div style={{ fontSize: "0.78rem", fontWeight: 900, color: "#6d28d9" }}>
-                            {formatRp(u.nominal_pokok)}
+                          <div style={{ fontSize: "0.65rem", color: "#64748b" }}>
+                            {u.nomor_transaksi} • {formatDateId(u.tanggal_bayar)}
                           </div>
-                          {u.nominal_fee_gateway > 0 && (
-                            <div style={{ fontSize: "0.6rem", color: "#94a3b8" }}>
-                              +Fee {formatRp(u.nominal_fee_gateway)}
-                            </div>
-                          )}
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                      <div style={{ fontSize: "0.82rem", fontWeight: 900, color: "#6d28d9" }}>
+                        {formatRp(pokok)}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
+            </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                <div>
-                  <label style={{ fontSize: "0.72rem", fontWeight: 800, color: "#334155" }}>
-                    Tanggal Cair ke Bank
-                  </label>
-                  <input
-                    type="date"
-                    value={cairModal.tanggal}
-                    onChange={(e) =>
-                      setCairModal((p) => ({ ...p, tanggal: e.target.value }))
-                    }
-                    style={{
-                      width: "100%",
-                      marginTop: "4px",
-                      padding: "9px 10px",
-                      borderRadius: "10px",
-                      border: "1px solid #cbd5e1",
-                      fontSize: "0.78rem",
-                      fontWeight: 700,
-                      boxSizing: "border-box",
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ fontSize: "0.72rem", fontWeight: 800, color: "#334155" }}>
-                    Biaya Admin Payout (Opsional)
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="0"
-                    value={cairModal.biaya_admin}
-                    onChange={(e) =>
-                      setCairModal((p) => ({
-                        ...p,
-                        biaya_admin: formatNumberInput(e.target.value),
-                      }))
-                    }
-                    style={{
-                      width: "100%",
-                      marginTop: "4px",
-                      padding: "9px 10px",
-                      borderRadius: "10px",
-                      border: "1px solid #cbd5e1",
-                      fontSize: "0.78rem",
-                      fontWeight: 700,
-                      boxSizing: "border-box",
-                    }}
-                  />
-                </div>
-              </div>
-
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: "16px",
+                padding: "14px",
+                border: "1px solid #e2e8f0",
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "10px",
+              }}
+            >
               <div>
-                <label style={{ fontSize: "0.72rem", fontWeight: 800, color: "#334155" }}>
-                  Keterangan Pencairan
+                <label
+                  style={{
+                    fontSize: "0.7rem",
+                    fontWeight: 800,
+                    color: "#334155",
+                    display: "block",
+                    marginBottom: "5px",
+                  }}
+                >
+                  Potongan Admin Cair (Opsional)
                 </label>
                 <input
                   type="text"
-                  value={cairModal.keterangan}
-                  onChange={(e) =>
-                    setCairModal((p) => ({ ...p, keterangan: e.target.value }))
-                  }
+                  inputMode="numeric"
+                  placeholder="0"
+                  value={formatNumberInput(cairModal.biaya_admin)}
+                  onChange={(e) => setCairModal((p) => ({ ...p, biaya_admin: e.target.value }))}
                   style={{
                     width: "100%",
-                    marginTop: "4px",
-                    padding: "9px 10px",
+                    padding: "10px",
                     borderRadius: "10px",
-                    border: "1px solid #cbd5e1",
-                    fontSize: "0.78rem",
+                    border: "1.5px solid #cbd5e1",
+                    fontSize: "0.8rem",
+                    fontWeight: 800,
+                    background: "#f8fafc",
                     boxSizing: "border-box",
                   }}
                 />
               </div>
-
-              <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
-                <button
-                  type="button"
-                  onClick={() => setCairModal((p) => ({ ...p, isOpen: false }))}
+              <div>
+                <label
                   style={{
-                    flex: 1,
-                    padding: "11px",
-                    borderRadius: "11px",
-                    border: "1px solid #cbd5e1",
-                    background: "#ffffff",
+                    fontSize: "0.7rem",
                     fontWeight: 800,
-                    fontSize: "0.8rem",
-                    cursor: "pointer",
+                    color: "#334155",
+                    display: "block",
+                    marginBottom: "5px",
                   }}
                 >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingCair || cairModal.selectedIds.length === 0}
+                  Tanggal Cair ke Bank
+                </label>
+                <input
+                  type="date"
+                  value={cairModal.tanggal}
+                  onChange={(e) => setCairModal((p) => ({ ...p, tanggal: e.target.value }))}
                   style={{
-                    flex: 1.6,
-                    padding: "11px",
-                    borderRadius: "11px",
-                    border: "none",
-                    background: "#6d28d9",
-                    color: "#ffffff",
-                    fontWeight: 800,
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "10px",
+                    border: "1.5px solid #cbd5e1",
                     fontSize: "0.8rem",
-                    cursor: "pointer",
+                    fontWeight: 700,
+                    background: "#f8fafc",
+                    boxSizing: "border-box",
                   }}
-                >
-                  {submittingCair
-                    ? "Memproses..."
-                    : `Cairkan ${formatRp(selectedMidtransTotal)} ke Bank`}
-                </button>
+                />
               </div>
-            </form>
-          </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "10px", paddingBottom: "20px" }}>
+              <button
+                type="button"
+                onClick={() => setCairModal((p) => ({ ...p, isOpen: false }))}
+                style={{
+                  flex: 1,
+                  padding: "13px",
+                  borderRadius: "13px",
+                  border: "1px solid #cbd5e1",
+                  background: "#ffffff",
+                  fontWeight: 800,
+                  fontSize: "0.82rem",
+                  color: "#475569",
+                  cursor: "pointer",
+                }}
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={submittingCair || cairModal.selectedIds.length === 0}
+                style={{
+                  flex: 2,
+                  padding: "13px",
+                  borderRadius: "13px",
+                  border: "none",
+                  background: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)",
+                  color: "#ffffff",
+                  fontWeight: 900,
+                  fontSize: "0.85rem",
+                  cursor: "pointer",
+                  boxShadow: "0 8px 20px rgba(109, 40, 217, 0.28)",
+                }}
+              >
+                {submittingCair ? "Memproses..." : "Konfirmasi Cair ke Bank"}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>
   );
 }
-
