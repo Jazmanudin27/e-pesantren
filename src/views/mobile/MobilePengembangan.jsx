@@ -52,12 +52,30 @@ const getInitials = (name) => {
 
 const getAvatarTheme = (name = "") => {
   const themes = [
-    { bg: "linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)", color: "#166534" },
-    { bg: "linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)", color: "#075985" },
-    { bg: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)", color: "#854d0e" },
-    { bg: "linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)", color: "#6b21a8" },
-    { bg: "linear-gradient(135deg, #ffe4e6 0%, #fecdd3 100%)", color: "#9f1239" },
-    { bg: "linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%)", color: "#115e59" },
+    {
+      bg: "linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)",
+      color: "#166534",
+    },
+    {
+      bg: "linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)",
+      color: "#075985",
+    },
+    {
+      bg: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
+      color: "#854d0e",
+    },
+    {
+      bg: "linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)",
+      color: "#6b21a8",
+    },
+    {
+      bg: "linear-gradient(135deg, #ffe4e6 0%, #fecdd3 100%)",
+      color: "#9f1239",
+    },
+    {
+      bg: "linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%)",
+      color: "#115e59",
+    },
   ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
@@ -123,7 +141,9 @@ export default function MobilePengembangan() {
   // Camera & Face Scanner AI State
   const [faceFacingMode, setFaceFacingMode] = useState("environment");
   const [isFaceCameraActive, setIsFaceCameraActive] = useState(false);
-  const [faceStatusText, setFaceStatusText] = useState("Arahkan wajah santri ke kamera");
+  const [faceStatusText, setFaceStatusText] = useState(
+    "Arahkan wajah santri ke kamera",
+  );
   const [faceCameraError, setFaceCameraError] = useState("");
   const [isFaceDetected, setIsFaceDetected] = useState(false);
   const [matchedSantriPreview, setMatchedSantriPreview] = useState(null);
@@ -651,7 +671,8 @@ export default function MobilePengembangan() {
     );
     // Prioritaskan kategori yang sedang dipilih di header, jika cocok
     const defaultKatId =
-      selectedBidang && availableKats.some((k) => String(k.id) === String(selectedBidang))
+      selectedBidang &&
+      availableKats.some((k) => String(k.id) === String(selectedBidang))
         ? String(selectedBidang)
         : availableKats[0]
           ? String(availableKats[0].id)
@@ -697,10 +718,7 @@ export default function MobilePengembangan() {
   const handleSaveEvaluasi = async (e) => {
     e.preventDefault();
     if (!evalForm.santri_id) {
-      showError(
-        "Validasi Gagal",
-        "Pilih santri terlebih dahulu.",
-      );
+      showError("Validasi Gagal", "Pilih santri terlebih dahulu.");
       return;
     }
     if (!evalForm.kategori_id) {
@@ -772,7 +790,11 @@ export default function MobilePengembangan() {
       nama_kelas: row.nama_kelas,
       kelas_id: row.kelas_id,
     };
-    const g = String(row.jk || "L").toUpperCase().startsWith("P") ? "P" : "L";
+    const g = String(row.jk || "L")
+      .toUpperCase()
+      .startsWith("P")
+      ? "P"
+      : "L";
     setEvalForm({
       santri_id: row.santri_id,
       santriObj: sObj,
@@ -833,7 +855,9 @@ export default function MobilePengembangan() {
   const filteredSantriManual = React.useMemo(() => {
     return santriList.filter((s) => {
       const matchSearch =
-        (s.nama_santri || "").toLowerCase().includes(searchManual.toLowerCase()) ||
+        (s.nama_santri || "")
+          .toLowerCase()
+          .includes(searchManual.toLowerCase()) ||
         (s.nis || "").includes(searchManual);
       if (!matchSearch) return false;
 
@@ -843,8 +867,16 @@ export default function MobilePengembangan() {
         );
         if (filterManualStatus === "Sudah Evaluasi" && !lastEval) return false;
         if (filterManualStatus === "Belum Evaluasi" && lastEval) return false;
-        if (filterManualStatus === "Lulus" && lastEval?.status_kelulusan !== "Lulus") return false;
-        if (filterManualStatus === "Pembinaan" && lastEval?.status_kelulusan !== "Tidak Lulus") return false;
+        if (
+          filterManualStatus === "Lulus" &&
+          lastEval?.status_kelulusan !== "Lulus"
+        )
+          return false;
+        if (
+          filterManualStatus === "Pembinaan" &&
+          lastEval?.status_kelulusan !== "Tidak Lulus"
+        )
+          return false;
       }
       return true;
     });
@@ -877,8 +909,12 @@ export default function MobilePengembangan() {
   }, [rekapList, filterHistoriKategori, filterHistoriStatus, searchHistori]);
 
   // Statistik Global
-  const countLulus = rekapList.filter((r) => r.status_kelulusan === "Lulus").length;
-  const countTidakLulus = rekapList.filter((r) => r.status_kelulusan === "Tidak Lulus").length;
+  const countLulus = rekapList.filter(
+    (r) => r.status_kelulusan === "Lulus",
+  ).length;
+  const countTidakLulus = rekapList.filter(
+    (r) => r.status_kelulusan === "Tidak Lulus",
+  ).length;
 
   if (loading) {
     return (
@@ -900,26 +936,28 @@ export default function MobilePengembangan() {
       ========================================================================= */}
       <div
         style={{
-          background: "linear-gradient(135deg, #0369a1 0%, #0284c7 50%, #0ea5e9 100%)",
+          background:
+            "linear-gradient(135deg, #0369a1 0%, #0284c7 50%, #0ea5e9 100%)",
           borderRadius: "22px",
           padding: "16px",
           color: "#ffffff",
           marginBottom: "12px",
           boxShadow: "0 10px 28px -6px rgba(2, 132, 199, 0.45)",
           position: "relative",
-          overflow: "hidden",
+          zIndex: 40,
         }}
       >
         {/* Subtle Background Glow Accent */}
         <div
           style={{
             position: "absolute",
-            top: "-30px",
-            right: "-30px",
-            width: "120px",
-            height: "120px",
-            borderRadius: "50%",
-            background: "rgba(255, 255, 255, 0.12)",
+            top: 0,
+            right: 0,
+            width: "90px",
+            height: "90px",
+            borderTopRightRadius: "22px",
+            background:
+              "radial-gradient(circle at top right, rgba(255,255,255,0.2), transparent 70%)",
             pointerEvents: "none",
           }}
         />
@@ -981,7 +1019,8 @@ export default function MobilePengembangan() {
           {/* Card 1: Lulus (Vibrant Emerald Glow) */}
           <div
             style={{
-              background: "linear-gradient(135deg, rgba(16, 185, 129, 0.28) 0%, rgba(5, 150, 105, 0.38) 100%)",
+              background:
+                "linear-gradient(135deg, rgba(16, 185, 129, 0.28) 0%, rgba(5, 150, 105, 0.38) 100%)",
               border: "1.5px solid rgba(134, 239, 172, 0.55)",
               backdropFilter: "blur(10px)",
               borderRadius: "15px",
@@ -1036,7 +1075,8 @@ export default function MobilePengembangan() {
           {/* Card 2: Butuh Pembinaan (Vibrant Rose/Red Glow) */}
           <div
             style={{
-              background: "linear-gradient(135deg, rgba(239, 68, 68, 0.28) 0%, rgba(220, 38, 38, 0.38) 100%)",
+              background:
+                "linear-gradient(135deg, rgba(239, 68, 68, 0.28) 0%, rgba(220, 38, 38, 0.38) 100%)",
               border: "1.5px solid rgba(254, 205, 211, 0.55)",
               backdropFilter: "blur(10px)",
               borderRadius: "15px",
@@ -1089,41 +1129,8 @@ export default function MobilePengembangan() {
           </div>
         </div>
 
-        {/* SELECT OPTION 1: BIDANG PENGEMBANGAN (DROPDOWN ATAS) */}
-        <div style={{ position: "relative", marginBottom: "8px" }}>
-          <SearchableSelect
-            options={[
-              { value: "", label: "📘 -- Semua Bidang / Bebas Saat Evaluasi --" },
-              ...masterKategoriAll.map((k) => ({
-                value: String(k.id),
-                label: `📘 Bidang: ${k.nama_kategori}`,
-              })),
-            ]}
-            value={selectedBidang}
-            onChange={(val) => {
-              const target = val || "";
-              setSelectedBidang(target);
-              if (target) {
-                setFilterHistoriKategori(target);
-              }
-            }}
-            placeholder="-- Pilih Bidang Pengembangan (Opsional) --"
-            searchPlaceholder="Cari bidang pengembangan..."
-            triggerStyle={{
-              padding: "9px 12px",
-              borderRadius: "12px",
-              border: "1px solid rgba(255, 255, 255, 0.35)",
-              background: "rgba(255, 255, 255, 0.16)",
-              backdropFilter: "blur(10px)",
-              color: "#ffffff",
-              fontSize: "0.82rem",
-              fontWeight: 800,
-            }}
-          />
-        </div>
-
-        {/* SELECT OPTION 2: KELAS SANTRI (WAJIB PILIH) */}
-        <div style={{ position: "relative" }}>
+        {/* SELECT OPTION: KELAS SANTRI (WAJIB PILIH) */}
+        <div style={{ position: "relative", zIndex: 45 }}>
           <SearchableSelect
             options={availableKelasOptions.map((kls) => ({
               value: kls,
@@ -1143,6 +1150,10 @@ export default function MobilePengembangan() {
             }}
             placeholder="-- Wajib Pilih Kelas Santri --"
             searchPlaceholder="Cari kelas santri..."
+            dropdownStyle={{
+              zIndex: 99999,
+              boxShadow: "0 14px 36px rgba(0,0,0,0.25)",
+            }}
             triggerStyle={{
               padding: "9px 12px",
               borderRadius: "12px",
@@ -1368,7 +1379,9 @@ export default function MobilePengembangan() {
                 color: "#166534",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "5px" }}
+              >
                 <span>🏫 Kelas: {selectedKelas}</span>
                 <span style={{ color: "#9ca3af" }}>•</span>
                 <span>👥 {santriList.length} Santri</span>
@@ -1699,7 +1712,13 @@ export default function MobilePengembangan() {
                   Santri tidak cocok dengan pencarian / filter.
                 </div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                  }}
+                >
                   {filteredSantriManual.map((santri) => {
                     const theme = getAvatarTheme(santri.nama_santri);
                     const lastEval = rekapList.find(
@@ -2007,11 +2026,14 @@ export default function MobilePengembangan() {
                   marginTop: "4px",
                 }}
               >
-                Gunakan tab "Scan" atau "Manual" untuk menginput evaluasi santri.
+                Gunakan tab "Scan" atau "Manual" untuk menginput evaluasi
+                santri.
               </div>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+            >
               {filteredHistori.map((row) => {
                 const isLulus = row.status_kelulusan === "Lulus";
                 const theme = getAvatarTheme(row.nama_santri);
@@ -2023,8 +2045,12 @@ export default function MobilePengembangan() {
                       background: "#ffffff",
                       borderRadius: "18px",
                       padding: "15px",
-                      border: isLulus ? "1.5px solid #bbf7d0" : "1.5px solid #fecdd3",
-                      borderLeft: isLulus ? "6px solid #10b981" : "6px solid #ef4444",
+                      border: isLulus
+                        ? "1.5px solid #bbf7d0"
+                        : "1.5px solid #fecdd3",
+                      borderLeft: isLulus
+                        ? "6px solid #10b981"
+                        : "6px solid #ef4444",
                       boxShadow: isLulus
                         ? "0 4px 16px rgba(16, 185, 129, 0.08)"
                         : "0 4px 16px rgba(239, 68, 68, 0.08)",
@@ -2098,7 +2124,8 @@ export default function MobilePengembangan() {
                       {isLulus ? (
                         <span
                           style={{
-                            background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                            background:
+                              "linear-gradient(135deg, #10b981 0%, #059669 100%)",
                             color: "#ffffff",
                             padding: "5px 12px",
                             borderRadius: "999px",
@@ -2117,7 +2144,8 @@ export default function MobilePengembangan() {
                       ) : (
                         <span
                           style={{
-                            background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+                            background:
+                              "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
                             color: "#ffffff",
                             padding: "5px 12px",
                             borderRadius: "999px",
@@ -2131,7 +2159,8 @@ export default function MobilePengembangan() {
                             flexShrink: 0,
                           }}
                         >
-                          <AlertTriangle size={13} strokeWidth={2.5} /> PEMBINAAN
+                          <AlertTriangle size={13} strokeWidth={2.5} />{" "}
+                          PEMBINAAN
                         </span>
                       )}
                     </div>
@@ -2199,8 +2228,8 @@ export default function MobilePengembangan() {
                       >
                         <Sparkles size={16} color="#16a34a" />
                         <span>
-                          Santri memenuhi kriteria kelulusan pada materi bidang ini
-                          dengan baik.
+                          Santri memenuhi kriteria kelulusan pada materi bidang
+                          ini dengan baik.
                         </span>
                       </div>
                     )}
@@ -2245,7 +2274,13 @@ export default function MobilePengembangan() {
                               />
                               Permasalahan Ditemukan:
                             </div>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: "4px",
+                              }}
+                            >
                               {row.permasalahan_list.map((t, idx) => (
                                 <span
                                   key={idx}
@@ -2292,7 +2327,13 @@ export default function MobilePengembangan() {
                               />
                               Faktor Penyebab:
                             </div>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: "4px",
+                              }}
+                            >
                               {row.penyebab_list.map((t, idx) => (
                                 <span
                                   key={idx}
@@ -2339,7 +2380,13 @@ export default function MobilePengembangan() {
                               />
                               Rekomendasi Tindakan:
                             </div>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: "4px",
+                              }}
+                            >
                               {row.tindakan_list.map((t, idx) => (
                                 <span
                                   key={idx}
