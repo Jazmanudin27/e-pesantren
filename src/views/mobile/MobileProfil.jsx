@@ -446,6 +446,102 @@ export default function MobileProfil({ onChangeTab, onLogout }) {
         </button>
       </div>
 
+      {/* Pengaturan Master Akademik & Karakter */}
+      <div
+        style={{
+          background: "#ffffff",
+          borderRadius: "16px",
+          padding: "8px 16px",
+          border: "1px solid #e2e8f0",
+          marginBottom: "16px",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "0.8rem",
+            fontWeight: 800,
+            color: "#0f172a",
+            textTransform: "uppercase",
+            margin: "12px 0 8px",
+            letterSpacing: "0.04em",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <span>Pengaturan Master Pengembangan</span>
+          <span
+            style={{
+              fontSize: "0.65rem",
+              background: "#e0f2fe",
+              color: "#0284c7",
+              padding: "2px 7px",
+              borderRadius: "6px",
+              fontWeight: 700,
+            }}
+          >
+            P-F-T
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onChangeTab && onChangeTab("master-pengembangan")}
+          style={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "12px 0",
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div
+              style={{
+                width: "38px",
+                height: "38px",
+                borderRadius: "10px",
+                background: "#e0f2fe",
+                color: "#0284c7",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "1px solid #bae6fd",
+                flexShrink: 0,
+              }}
+            >
+              <Award size={18} />
+            </div>
+            <div>
+              <div
+                style={{
+                  fontSize: "0.85rem",
+                  fontWeight: 700,
+                  color: "#1e293b",
+                }}
+              >
+                Master Bidang Pengembangan
+              </div>
+              <div
+                style={{
+                  fontSize: "0.7rem",
+                  color: "#64748b",
+                  marginTop: "2px",
+                }}
+              >
+                Kelola butir Permasalahan, Penyebab &amp; Tindakan (Ikhwan &amp; Akhwat)
+              </div>
+            </div>
+          </div>
+          <ChevronRight size={16} color="#94a3b8" />
+        </button>
+      </div>
+
       {/* Account Settings Menu */}
       <div
         style={{

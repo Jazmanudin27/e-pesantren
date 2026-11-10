@@ -86,6 +86,9 @@ const MobilePraktek = lazySafe(() => import("../views/mobile/MobilePraktek"));
 const MobilePengembangan = lazySafe(
   () => import("../views/mobile/MobilePengembangan"),
 );
+const MobileMasterPengembangan = lazySafe(
+  () => import("../views/mobile/MobileMasterPengembangan"),
+);
 const MobileMateriHafalan = lazySafe(
   () => import("../views/mobile/MobileMateriHafalan"),
 );
@@ -373,6 +376,9 @@ export default function MobileLayout() {
       case "perkembangan-ikhwan":
       case "perkembangan-akhwat":
         return "Pengembangan (Ikhwan & Akhwat)";
+      case "master-pengembangan":
+      case "setting-pengembangan":
+        return "Master Bidang Pengembangan";
       case "perizinan":
       case "izin":
         return "Perizinan";
@@ -456,6 +462,8 @@ export default function MobileLayout() {
     "master-asrama",
     "master-kelas",
     "master-asatidz",
+    "master-pengembangan",
+    "setting-pengembangan",
     "master-materi",
     "kitab",
     "master-device",
@@ -611,6 +619,11 @@ export default function MobileLayout() {
       case "perkembangan-ikhwan":
       case "perkembangan-akhwat":
         return <MobilePengembangan />;
+      case "master-pengembangan":
+      case "setting-pengembangan":
+        return (
+          <MobileMasterPengembangan onBack={() => handleSelectTab("home")} />
+        );
       case "perizinan":
       case "izin":
         return <MobileIzin />;
@@ -1654,6 +1667,32 @@ export default function MobileLayout() {
                           }}
                         >
                           <ShieldAlert size={16} color="#be123c" /> Tata Tertib
+                        </button>
+                        <button
+                          onClick={() => handleSelectTab("master-pengembangan")}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            padding: "10px",
+                            background:
+                              mobileTab === "master-pengembangan" ||
+                              mobileTab === "setting-pengembangan"
+                                ? "#e0f2fe"
+                                : "#f8fafc",
+                            border:
+                              mobileTab === "master-pengembangan" ||
+                              mobileTab === "setting-pengembangan"
+                                ? "1px solid #0284c7"
+                                : "1px solid #e2e8f0",
+                            borderRadius: "10px",
+                            fontSize: "0.78rem",
+                            fontWeight: 700,
+                            color: "#1e293b",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <Award size={16} color="#0284c7" /> Master Pengembangan
                         </button>
                       </div>
                     </div>
