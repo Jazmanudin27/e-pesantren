@@ -353,30 +353,78 @@ export default function PanelKantongDanBukuKas({
     }
   };
 
-  // Filter mutasi sesuai kantong aktif
+  // Filter mutasi sesuai kantong aktif (Limit 50)
   const displayedMutasi = useMemo(() => {
-    return (bukuKas || []).filter((item) => {
-      if (activeTab === "tunai") {
-        return (
-          item.kantong_sumber === "Kas Tunai" ||
-          item.kantong_tujuan === "Kas Tunai"
-        );
-      }
-      if (activeTab === "bank") {
-        return (
-          item.kantong_sumber === "Rekening Bank" ||
-          item.kantong_tujuan === "Rekening Bank"
-        );
-      }
-      if (activeTab === "midtrans") {
-        return (
-          item.kantong_sumber === "Midtrans" ||
-          item.jenis_transaksi === "Pencairan Midtrans ke Bank"
-        );
-      }
-      return false;
-    });
+    return (bukuKas || [])
+      .filter((item) => {
+        if (activeTab === "tunai") {
+          return (
+            item.kantong_sumber === "Kas Tunai" ||
+            item.kantong_tujuan === "Kas Tunai"
+          );
+        }
+        if (activeTab === "bank") {
+          return (
+            item.kantong_sumber === "Rekening Bank" ||
+            item.kantong_tujuan === "Rekening Bank"
+          );
+        }
+        if (activeTab === "midtrans") {
+          return (
+            item.kantong_sumber === "Midtrans" ||
+            item.jenis_transaksi === "Pencairan Midtrans ke Bank"
+          );
+        }
+        return false;
+      })
+      .slice(0, 50);
   }, [bukuKas, activeTab]);
+
+  const heroInfo = useMemo(() => {
+    if (activeTab === "bank") {
+      return {
+        title: "Saldo Rekening Bank Pesantren",
+        saldo: kantong.saldo_rekening_bank,
+        masukLabel: "Total Masuk Bank",
+        masukVal: formatRp(
+          Number(kantong.masuk_tagihan_transfer || 0) +
+            Number(kantong.total_midtrans_sudah_cair || 0) +
+            Number(kantong.setor_tunai_ke_bank || 0) +
+            Number(kantong.pemasukan_lain_bank || 0),
+        ),
+        keluarLabel: "Pengeluaran Bank",
+        keluarVal: formatRp(
+          Number(kantong.pengeluaran_bank || 0) +
+            Number(kantong.tarik_tunai_dari_bank || 0),
+        ),
+      };
+    }
+    if (activeTab === "midtrans") {
+      return {
+        title: "Saldo Mengendap Midtrans (QRIS/VA)",
+        saldo: kantong.saldo_mengendap_midtrans,
+        masukLabel: "Sudah Cair ke Bank",
+        masukVal: formatRp(kantong.total_midtrans_sudah_cair),
+        keluarLabel: "Menunggu Cair",
+        keluarVal: `${kantong.jumlah_trx_mengendap_midtrans || 0} Trx`,
+      };
+    }
+    return {
+      title: "Saldo Kas Tunai (Bendahara)",
+      saldo: kantong.saldo_kas_tunai,
+      masukLabel: "Total Masuk Tunai",
+      masukVal: formatRp(
+        Number(kantong.masuk_tagihan_tunai || 0) +
+          Number(kantong.pemasukan_lain_tunai || 0) +
+          Number(kantong.tarik_tunai_dari_bank || 0),
+      ),
+      keluarLabel: "Keluar & Setor Bank",
+      keluarVal: formatRp(
+        Number(kantong.pengeluaran_tunai || 0) +
+          Number(kantong.setor_tunai_ke_bank || 0),
+      ),
+    };
+  }, [activeTab, kantong]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -406,8 +454,30 @@ export default function PanelKantongDanBukuKas({
           }}
         />
 
-        <div style={{ fontSize: "0.7rem", color: "#a7f3d0", fontWeight: 700 }}>
-          Saldo Aktif Siap Pakai (Tunai + Bank)
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "8px",
+          }}
+        >
+          <div style={{ fontSize: "0.7rem", color: "#a7f3d0", fontWeight: 700 }}>
+            {heroInfo.title}
+          </div>
+          <div
+            style={{
+              fontSize: "0.62rem",
+              color: "#ecfdf5",
+              background: "rgba(255, 255, 255, 0.16)",
+              padding: "2px 8px",
+              borderRadius: "999px",
+              fontWeight: 800,
+              whiteSpace: "nowrap",
+            }}
+          >
+            Total Kas + Bank: {formatRp(kantong.saldo_siap_pakai)}
+          </div>
         </div>
         <div
           style={{
@@ -417,7 +487,7 @@ export default function PanelKantongDanBukuKas({
             marginTop: "2px",
           }}
         >
-          {formatRp(kantong.saldo_siap_pakai)}
+          {formatRp(heroInfo.saldo)}
         </div>
 
         {/* 2 Mini Summary Pills: Total Masuk vs Total Keluar */}
@@ -454,7 +524,9 @@ export default function PanelKantongDanBukuKas({
               <TrendingUp size={15} color="#a7f3d0" />
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: "0.6rem", color: "#d1fae5" }}>Total Masuk</div>
+              <div style={{ fontSize: "0.6rem", color: "#d1fae5" }}>
+                {heroInfo.masukLabel}
+              </div>
               <div
                 style={{
                   fontSize: "0.78rem",
@@ -464,10 +536,7 @@ export default function PanelKantongDanBukuKas({
                   textOverflow: "ellipsis",
                 }}
               >
-                {formatRp(
-                  Number(kantong.total_tagihan_pokok_sah || 0) +
-                    Number(kantong.total_pemasukan_lain || 0),
-                )}
+                {heroInfo.masukVal}
               </div>
             </div>
           </div>
@@ -497,7 +566,9 @@ export default function PanelKantongDanBukuKas({
               <TrendingDown size={15} color="#fecaca" />
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: "0.6rem", color: "#fecaca" }}>Pengeluaran</div>
+              <div style={{ fontSize: "0.6rem", color: "#fecaca" }}>
+                {heroInfo.keluarLabel}
+              </div>
               <div
                 style={{
                   fontSize: "0.78rem",
@@ -507,7 +578,7 @@ export default function PanelKantongDanBukuKas({
                   textOverflow: "ellipsis",
                 }}
               >
-                {formatRp(kantong.total_pengeluaran)}
+                {heroInfo.keluarVal}
               </div>
             </div>
           </div>
@@ -569,273 +640,7 @@ export default function PanelKantongDanBukuKas({
         </select>
       </div>
 
-      {/* 3. KARTU RINGKAS SESUAI PILIHAN SELECT */}
-      {activeTab === "tunai" && (
-        <div
-          style={{
-            background: "#ffffff",
-            borderRadius: "18px",
-            padding: "15px 16px",
-            border: "1px solid #d1fae5",
-            boxShadow: "0 4px 12px rgba(15, 23, 42, 0.03)",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <div
-                style={{
-                  width: "38px",
-                  height: "38px",
-                  borderRadius: "11px",
-                  background: "#ecfdf5",
-                  color: "#059669",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <Wallet size={20} />
-              </div>
-              <div>
-                <div style={{ fontSize: "0.8rem", fontWeight: 900, color: "#0f172a" }}>
-                  Kas Tunai
-                </div>
-                <div style={{ fontSize: "0.65rem", fontWeight: 600, color: "#64748b" }}>
-                  Uang Tunai di Bendahara
-                </div>
-              </div>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: "0.6rem", fontWeight: 700, color: "#64748b" }}>Saldo Tunai</div>
-              <div style={{ fontSize: "1.25rem", fontWeight: 900, color: "#059669", marginTop: "1px" }}>
-                {formatRp(kantong.saldo_kas_tunai)}
-              </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "6px",
-              marginTop: "12px",
-              paddingTop: "10px",
-              borderTop: "1px solid #f1f5f9",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.72rem" }}>
-              <span style={{ color: "#64748b", fontWeight: 600 }}>Masuk Cash</span>
-              <span style={{ fontWeight: 800, color: "#059669", textAlign: "right" }}>
-                + {formatRp(Number(kantong.masuk_tagihan_tunai || 0) + Number(kantong.pemasukan_lain_tunai || 0))}
-              </span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.72rem" }}>
-              <span style={{ color: "#64748b", fontWeight: 600 }}>Setor ke Bank</span>
-              <span style={{ fontWeight: 800, color: "#0284c7", textAlign: "right" }}>
-                - {formatRp(kantong.setor_tunai_ke_bank)}
-              </span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.72rem" }}>
-              <span style={{ color: "#64748b", fontWeight: 600 }}>Keluar Tunai</span>
-              <span style={{ fontWeight: 800, color: "#dc2626", textAlign: "right" }}>
-                - {formatRp(kantong.pengeluaran_tunai)}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === "bank" && (
-        <div
-          style={{
-            background: "#ffffff",
-            borderRadius: "18px",
-            padding: "15px 16px",
-            border: "1px solid #bae6fd",
-            boxShadow: "0 4px 12px rgba(15, 23, 42, 0.03)",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <div
-                style={{
-                  width: "38px",
-                  height: "38px",
-                  borderRadius: "11px",
-                  background: "#f0f9ff",
-                  color: "#0284c7",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <Building2 size={20} />
-              </div>
-              <div>
-                <div style={{ fontSize: "0.8rem", fontWeight: 900, color: "#0f172a" }}>
-                  Rekening Bank
-                </div>
-                <div style={{ fontSize: "0.65rem", fontWeight: 600, color: "#64748b" }}>
-                  Rekening Resmi Pesantren
-                </div>
-              </div>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: "0.6rem", fontWeight: 700, color: "#64748b" }}>Saldo Bank</div>
-              <div style={{ fontSize: "1.25rem", fontWeight: 900, color: "#0284c7", marginTop: "1px" }}>
-                {formatRp(kantong.saldo_rekening_bank)}
-              </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "6px",
-              marginTop: "12px",
-              paddingTop: "10px",
-              borderTop: "1px solid #f1f5f9",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.72rem" }}>
-              <span style={{ color: "#64748b", fontWeight: 600 }}>Transfer &amp; Pencairan Midtrans</span>
-              <span style={{ fontWeight: 800, color: "#0284c7", textAlign: "right" }}>
-                + {formatRp(Number(kantong.masuk_tagihan_transfer || 0) + Number(kantong.total_midtrans_sudah_cair || 0))}
-              </span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.72rem" }}>
-              <span style={{ color: "#64748b", fontWeight: 600 }}>Setoran dari Kas Tunai</span>
-              <span style={{ fontWeight: 800, color: "#059669", textAlign: "right" }}>
-                + {formatRp(kantong.setor_tunai_ke_bank)}
-              </span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.72rem" }}>
-              <span style={{ color: "#64748b", fontWeight: 600 }}>Pengeluaran via Bank</span>
-              <span style={{ fontWeight: 800, color: "#dc2626", textAlign: "right" }}>
-                - {formatRp(kantong.pengeluaran_bank)}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === "midtrans" && (
-        <div
-          style={{
-            background: "#ffffff",
-            borderRadius: "18px",
-            padding: "15px 16px",
-            border: "1px solid #ddd6fe",
-            boxShadow: "0 4px 12px rgba(15, 23, 42, 0.03)",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <div
-                style={{
-                  width: "38px",
-                  height: "38px",
-                  borderRadius: "11px",
-                  background: "#f5f3ff",
-                  color: "#7c3aed",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <QrCode size={20} />
-              </div>
-              <div>
-                <div style={{ fontSize: "0.8rem", fontWeight: 900, color: "#0f172a" }}>
-                  Saldo Midtrans
-                </div>
-                <div style={{ fontSize: "0.65rem", fontWeight: 600, color: "#64748b" }}>
-                  QRIS &amp; Virtual Account
-                </div>
-              </div>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: "0.6rem", fontWeight: 700, color: "#64748b" }}>Mengendap</div>
-              <div style={{ fontSize: "1.25rem", fontWeight: 900, color: "#6d28d9", marginTop: "1px" }}>
-                {formatRp(kantong.saldo_mengendap_midtrans)}
-              </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "6px",
-              marginTop: "12px",
-              paddingTop: "10px",
-              borderTop: "1px solid #f1f5f9",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.72rem" }}>
-              <span style={{ color: "#64748b", fontWeight: 600 }}>Menunggu Pencairan</span>
-              <span style={{ fontWeight: 800, color: "#6d28d9", textAlign: "right" }}>
-                {kantong.jumlah_trx_mengendap_midtrans} Transaksi
-              </span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.72rem" }}>
-              <span style={{ color: "#64748b", fontWeight: 600 }}>Sudah Cair ke Bank</span>
-              <span style={{ fontWeight: 800, color: "#059669", textAlign: "right" }}>
-                {formatRp(kantong.total_midtrans_sudah_cair)}
-              </span>
-            </div>
-          </div>
-
-          {unsettledMidtrans.length > 0 && (
-            <div
-              style={{
-                marginTop: "12px",
-                background: "#faf5ff",
-                border: "1px solid #e9d5ff",
-                borderRadius: "12px",
-                padding: "10px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "6px",
-                maxHeight: "200px",
-                overflowY: "auto",
-              }}
-            >
-              {unsettledMidtrans.map((u) => (
-                <div
-                  key={u.id}
-                  style={{
-                    background: "#ffffff",
-                    border: "1px solid #ede9fe",
-                    borderRadius: "9px",
-                    padding: "7px 10px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    fontSize: "0.7rem",
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: 800, color: "#0f172a" }}>{u.nama_santri}</div>
-                    <div style={{ fontSize: "0.62rem", color: "#64748b" }}>
-                      {u.nomor_transaksi} • {formatDateId(u.tanggal_bayar)}
-                    </div>
-                  </div>
-                  <div style={{ fontWeight: 900, color: "#6d28d9" }}>
-                    {formatRp(u.nominal_pokok || u.total_bayar)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 4. RIWAYAT MUTASI KAS (CLEAN LIST) */}
+      {/* 3. RIWAYAT MUTASI KAS (LIMIT 50) */}
       <div
         style={{
           background: "#ffffff",
