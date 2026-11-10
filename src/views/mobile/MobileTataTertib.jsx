@@ -6,7 +6,6 @@ import {
   AlertTriangle,
   AlertCircle,
   Plus,
-  Minus,
   Edit3,
   Trash2,
   X,
@@ -27,7 +26,6 @@ import MobileLoadingState from "../../components/MobileLoadingState";
 const SEVERITY_CONFIG = {
   Ringan: {
     label: "Ringan",
-    defaultPoin: 5,
     color: "#d97706",
     bg: "#fef3c7",
     softBg: "#fffbeb",
@@ -37,7 +35,6 @@ const SEVERITY_CONFIG = {
   },
   Sedang: {
     label: "Sedang",
-    defaultPoin: 15,
     color: "#ea580c",
     bg: "#ffedd5",
     softBg: "#fff7ed",
@@ -47,7 +44,6 @@ const SEVERITY_CONFIG = {
   },
   Berat: {
     label: "Berat",
-    defaultPoin: 30,
     color: "#be123c",
     bg: "#ffe4e6",
     softBg: "#fff1f2",
@@ -56,39 +52,6 @@ const SEVERITY_CONFIG = {
     Icon: ShieldAlert,
   },
 };
-
-const PELANGGARAN_PRESETS = {
-  Ringan: [
-    "Terlambat Shalat Berjamaah",
-    "Tidak Membawa Kitab / Al-Qur'an",
-    "Kamar / Lemari Kurang Rapi",
-    "Terlambat Masuk Kelas Mengaji",
-    "Tidak Memakai Peci / Seragam",
-  ],
-  Sedang: [
-    "Tidak Mengikuti Kegiatan Wajib",
-    "Ghosob Barang Milik Teman",
-    "Tidur Saat Pengajian Berlangsung",
-    "Berbicara Kasar / Tidak Sopan",
-    "Membuat Gaduh di Asrama / Masjid",
-  ],
-  Berat: [
-    "Keluar Pondok Tanpa Izin",
-    "Membawa HP / Barang Elektronik Terlarang",
-    "Berkelahi / Kekerasan Fisik",
-    "Merokok di Lingkungan Pesantren",
-    "Melawan / Tidak Mengindahkan Ustadz",
-  ],
-};
-
-const TAZIR_PRESETS = [
-  "Membaca Surat Yasin & Istighfar",
-  "Bersih-bersih Masjid & Halaman",
-  "Menghafal Surat Pendek / Doa",
-  "Menulis Mufradat / Istighfar 100x",
-  "Pembinaan Khusus & Mengaji Tambahan",
-  "Pemanggilan & Koordinasi Wali Santri",
-];
 
 const STATUS_TAZIR_OPTIONS = [
   {
@@ -193,7 +156,7 @@ export default function MobileTataTertib() {
     tanggal: getTodayDateStr(),
     kategori: "Ringan",
     jenis_pelanggaran: "",
-    poin_pelanggaran: 5,
+    poin_pelanggaran: 0,
     bentuk_tazir: "Membaca Surat Yasin & Istighfar",
     status_tazir: "Belum Dikerjakan",
     musyrif_pencatat: actorName,
@@ -278,8 +241,7 @@ export default function MobileTataTertib() {
         : getTodayDateStr(),
       kategori: kat,
       jenis_pelanggaran: item.jenis_pelanggaran || "",
-      poin_pelanggaran:
-        Number(item.poin_pelanggaran) || SEVERITY_CONFIG[kat].defaultPoin,
+      poin_pelanggaran: 0,
       bentuk_tazir: item.bentuk_tazir || "",
       status_tazir: item.status_tazir || "Belum Dikerjakan",
       musyrif_pencatat: item.musyrif_pencatat || actorName,
@@ -290,14 +252,9 @@ export default function MobileTataTertib() {
   };
 
   const handleSelectSeverity = (kat) => {
-    const cfg = SEVERITY_CONFIG[kat] || SEVERITY_CONFIG.Ringan;
     setFormData((prev) => ({
       ...prev,
       kategori: kat,
-      poin_pelanggaran:
-        formMode === "add"
-          ? cfg.defaultPoin
-          : prev.poin_pelanggaran || cfg.defaultPoin,
     }));
   };
 
@@ -313,7 +270,7 @@ export default function MobileTataTertib() {
     if (!String(formData.jenis_pelanggaran || "").trim()) {
       showError(
         "Pelanggaran Kosong",
-        "Silakan isi atau pilih jenis pelanggaran santri.",
+        "Silakan isi jenis pelanggaran santri.",
       );
       return;
     }
@@ -440,9 +397,6 @@ export default function MobileTataTertib() {
       null,
     [santriOptions, formData.santri_id],
   );
-
-  const activeSeverity =
-    SEVERITY_CONFIG[formData.kategori] || SEVERITY_CONFIG.Ringan;
 
   const filterTabs = [
     { key: "Semua", label: "Semua", count: summary.total },
@@ -957,17 +911,6 @@ export default function MobileTataTertib() {
                       <SevIcon size={11} />
                       {item.kategori || "Ringan"}
                     </span>
-                    {Number(item.poin_pelanggaran) > 0 && (
-                      <span
-                        style={{
-                          fontSize: "0.66rem",
-                          fontWeight: 800,
-                          color: "#64748b",
-                        }}
-                      >
-                        +{item.poin_pelanggaran} Poin
-                      </span>
-                    )}
                   </div>
                 </div>
 
@@ -1382,35 +1325,19 @@ export default function MobileTataTertib() {
                 )}
               </div>
 
-              {/* 2. TINGKAT KATEGORI (INTERACTIVE CARDS) */}
+              {/* 2. TINGKAT KATEGORI (INTERACTIVE CARDS TANPA POIN) */}
               <div>
-                <div
+                <label
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
+                    display: "block",
+                    fontSize: "0.75rem",
+                    fontWeight: 800,
+                    color: "#334155",
                     marginBottom: "6px",
                   }}
                 >
-                  <label
-                    style={{
-                      fontSize: "0.75rem",
-                      fontWeight: 800,
-                      color: "#334155",
-                    }}
-                  >
-                    2. Tingkat Pelanggaran
-                  </label>
-                  <span
-                    style={{
-                      fontSize: "0.68rem",
-                      fontWeight: 700,
-                      color: activeSeverity.color,
-                    }}
-                  >
-                    Rekomendasi +{activeSeverity.defaultPoin} poin
-                  </span>
-                </div>
+                  2. Tingkat Pelanggaran
+                </label>
                 <div
                   style={{
                     display: "grid",
@@ -1428,7 +1355,7 @@ export default function MobileTataTertib() {
                         type="button"
                         onClick={() => handleSelectSeverity(key)}
                         style={{
-                          padding: "10px 6px",
+                          padding: "11px 6px",
                           borderRadius: "13px",
                           border: selected
                             ? `2px solid ${cfg.accent}`
@@ -1438,23 +1365,14 @@ export default function MobileTataTertib() {
                           display: "flex",
                           flexDirection: "column",
                           alignItems: "center",
-                          gap: "4px",
+                          gap: "5px",
                           cursor: "pointer",
                           transition: "all 0.15s ease",
                         }}
                       >
                         <Icon size={18} />
-                        <span style={{ fontSize: "0.76rem", fontWeight: 800 }}>
+                        <span style={{ fontSize: "0.77rem", fontWeight: 800 }}>
                           {cfg.label}
-                        </span>
-                        <span
-                          style={{
-                            fontSize: "0.64rem",
-                            fontWeight: 700,
-                            opacity: 0.85,
-                          }}
-                        >
-                          +{cfg.defaultPoin} Poin
                         </span>
                       </button>
                     );
@@ -1462,7 +1380,7 @@ export default function MobileTataTertib() {
                 </div>
               </div>
 
-              {/* 3. JENIS PELANGGARAN + QUICK PRESET CHIPS */}
+              {/* 3. JENIS PELANGGARAN */}
               <div>
                 <label
                   style={{
@@ -1475,51 +1393,10 @@ export default function MobileTataTertib() {
                 >
                   3. Jenis Pelanggaran *
                 </label>
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: "6px",
-                    marginBottom: "8px",
-                  }}
-                >
-                  {(
-                    PELANGGARAN_PRESETS[formData.kategori] ||
-                    PELANGGARAN_PRESETS.Ringan
-                  ).map((preset) => {
-                    const picked = formData.jenis_pelanggaran === preset;
-                    return (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() =>
-                          setFormData({
-                            ...formData,
-                            jenis_pelanggaran: preset,
-                          })
-                        }
-                        style={{
-                          border: picked
-                            ? `1.5px solid ${activeSeverity.accent}`
-                            : "1px solid #e2e8f0",
-                          background: picked ? activeSeverity.bg : "#f8fafc",
-                          color: picked ? activeSeverity.color : "#475569",
-                          borderRadius: "999px",
-                          padding: "5px 10px",
-                          fontSize: "0.69rem",
-                          fontWeight: 700,
-                          cursor: "pointer",
-                        }}
-                      >
-                        {preset}
-                      </button>
-                    );
-                  })}
-                </div>
                 <textarea
                   required
                   rows={2}
-                  placeholder="Tulis detail pelanggaran santri atau pilih cepat di atas..."
+                  placeholder="Tulis detail pelanggaran santri..."
                   value={formData.jenis_pelanggaran}
                   onChange={(e) =>
                     setFormData({
@@ -1540,7 +1417,7 @@ export default function MobileTataTertib() {
                 />
               </div>
 
-              {/* 4. BENTUK TA'ZIR + QUICK PRESETS */}
+              {/* 4. BENTUK TA'ZIR */}
               <div>
                 <label
                   style={{
@@ -1553,41 +1430,6 @@ export default function MobileTataTertib() {
                 >
                   4. Bentuk Ta'zir / Pembinaan *
                 </label>
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: "6px",
-                    marginBottom: "8px",
-                  }}
-                >
-                  {TAZIR_PRESETS.map((preset) => {
-                    const picked = formData.bentuk_tazir === preset;
-                    return (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() =>
-                          setFormData({ ...formData, bentuk_tazir: preset })
-                        }
-                        style={{
-                          border: picked
-                            ? "1.5px solid #0d9488"
-                            : "1px solid #e2e8f0",
-                          background: picked ? "#ccfbf1" : "#f8fafc",
-                          color: picked ? "#0f766e" : "#475569",
-                          borderRadius: "999px",
-                          padding: "5px 10px",
-                          fontSize: "0.69rem",
-                          fontWeight: 700,
-                          cursor: "pointer",
-                        }}
-                      >
-                        {preset}
-                      </button>
-                    );
-                  })}
-                </div>
                 <textarea
                   required
                   rows={2}
@@ -1609,132 +1451,37 @@ export default function MobileTataTertib() {
                 />
               </div>
 
-              {/* 5. POIN STEPPER & TANGGAL */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "10px",
-                }}
-              >
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "0.75rem",
-                      fontWeight: 800,
-                      color: "#334155",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    Poin Kedisiplinan
-                  </label>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      border: "1.5px solid #cbd5e1",
-                      borderRadius: "12px",
-                      padding: "4px 6px",
-                      background: "#f8fafc",
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setFormData({
-                          ...formData,
-                          poin_pelanggaran: Math.max(
-                            0,
-                            (Number(formData.poin_pelanggaran) || 0) - 5,
-                          ),
-                        })
-                      }
-                      style={{
-                        width: "32px",
-                        height: "32px",
-                        borderRadius: "9px",
-                        border: "none",
-                        background: "#ffffff",
-                        color: "#334155",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        cursor: "pointer",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                      }}
-                    >
-                      <Minus size={14} />
-                    </button>
-                    <span
-                      style={{
-                        fontWeight: 900,
-                        fontSize: "0.95rem",
-                        color: activeSeverity.color,
-                      }}
-                    >
-                      {formData.poin_pelanggaran}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setFormData({
-                          ...formData,
-                          poin_pelanggaran:
-                            (Number(formData.poin_pelanggaran) || 0) + 5,
-                        })
-                      }
-                      style={{
-                        width: "32px",
-                        height: "32px",
-                        borderRadius: "9px",
-                        border: "none",
-                        background: "#ffffff",
-                        color: "#334155",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        cursor: "pointer",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                      }}
-                    >
-                      <Plus size={14} />
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "0.75rem",
-                      fontWeight: 800,
-                      color: "#334155",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    Tanggal Kejadian
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.tanggal}
-                    onChange={(e) =>
-                      setFormData({ ...formData, tanggal: e.target.value })
-                    }
-                    style={{
-                      width: "100%",
-                      padding: "10px 11px",
-                      borderRadius: "12px",
-                      border: "1.5px solid #cbd5e1",
-                      fontSize: "0.82rem",
-                      fontWeight: 600,
-                      background: "#f8fafc",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                </div>
+              {/* 5. TANGGAL KEJADIAN */}
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.75rem",
+                    fontWeight: 800,
+                    color: "#334155",
+                    marginBottom: "6px",
+                  }}
+                >
+                  5. Tanggal Kejadian
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={formData.tanggal}
+                  onChange={(e) =>
+                    setFormData({ ...formData, tanggal: e.target.value })
+                  }
+                  style={{
+                    width: "100%",
+                    padding: "10px 11px",
+                    borderRadius: "12px",
+                    border: "1.5px solid #cbd5e1",
+                    fontSize: "0.82rem",
+                    fontWeight: 600,
+                    background: "#f8fafc",
+                    boxSizing: "border-box",
+                  }}
+                />
               </div>
 
               {/* 6. STATUS TA'ZIR SEGMENTED PILLS */}
