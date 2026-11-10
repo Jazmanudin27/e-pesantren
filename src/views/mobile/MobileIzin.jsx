@@ -1370,24 +1370,6 @@ export default function MobileIzin() {
                     resize: "none"
                   }}
                 />
-                  required
-                  rows={2}
-                  placeholder="Contoh: Menghadiri walimah pernikahan kakak kandung"
-                  value={formData.keperluan}
-                  onChange={(e) =>
-                    setFormData({ ...formData, keperluan: e.target.value })
-                  }
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "12px",
-                    border: "1.5px solid #cbd5e1",
-                    fontSize: "0.82rem",
-                    boxSizing: "border-box",
-                    outline: "none",
-                    resize: "none"
-                  }}
-                />
               </div>
 
               {/* Action Buttons */}
