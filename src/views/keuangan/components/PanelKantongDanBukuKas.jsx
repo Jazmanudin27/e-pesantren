@@ -42,13 +42,22 @@ const KATEGORI_PEMASUKAN_LAIN = [
   "Pemasukan Administrasi Lainnya",
 ];
 
-const formatRp = (val) => `Rp ${Math.round(Number(val) || 0).toLocaleString("id-ID")}`;
+const formatAngkaTitik = (val) => {
+  const num = Math.round(Math.abs(Number(val) || 0));
+  return String(num).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+};
+
+const formatRp = (val) => {
+  const n = Number(val) || 0;
+  return `${n < 0 ? "- " : ""}Rp ${formatAngkaTitik(n)}`;
+};
 
 const formatNumberInput = (val) => {
   if (val === undefined || val === null || val === "") return "";
   const clean = String(val).replace(/\D/g, "");
   if (!clean) return "";
-  return parseInt(clean, 10).toLocaleString("id-ID");
+  const normalized = String(parseInt(clean, 10));
+  return normalized.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 };
 
 const parseNumberInput = (str) => {
@@ -514,7 +523,7 @@ export default function PanelKantongDanBukuKas({
         style={{
           background: "#ffffff",
           borderRadius: "16px",
-          padding: "12px 14px",
+          padding: "11px 14px",
           border: "1px solid #e2e8f0",
           boxShadow: "0 2px 8px rgba(15, 23, 42, 0.03)",
           display: "flex",
@@ -525,20 +534,21 @@ export default function PanelKantongDanBukuKas({
       >
         <label
           style={{
-            fontSize: "0.74rem",
+            fontSize: "0.75rem",
             fontWeight: 800,
             color: "#334155",
             whiteSpace: "nowrap",
           }}
         >
-          Pilih Kantong Kas:
+          Kantong Kas
         </label>
         <select
           value={activeTab}
           onChange={(e) => setActiveTab(e.target.value)}
           style={{
-            flex: 1,
-            padding: "9px 12px",
+            marginLeft: "auto",
+            maxWidth: "72%",
+            padding: "8px 12px",
             borderRadius: "11px",
             border: "1.5px solid #059669",
             background: "#ecfdf5",
@@ -547,19 +557,21 @@ export default function PanelKantongDanBukuKas({
             fontWeight: 800,
             cursor: "pointer",
             outline: "none",
+            textAlign: "right",
+            textAlignLast: "right",
           }}
         >
           <option value="tunai">
-            Kas Tunai ({formatRp(kantong.saldo_kas_tunai)})
+            Kas Tunai — {formatRp(kantong.saldo_kas_tunai)}
           </option>
           <option value="bank">
-            Rekening Bank ({formatRp(kantong.saldo_rekening_bank)})
+            Rek. Bank — {formatRp(kantong.saldo_rekening_bank)}
           </option>
           <option value="midtrans">
-            Midtrans ({formatRp(kantong.saldo_mengendap_midtrans)} • {kantong.jumlah_trx_mengendap_midtrans} Trx)
+            Midtrans — {formatRp(kantong.saldo_mengendap_midtrans)} ({kantong.jumlah_trx_mengendap_midtrans} Trx)
           </option>
           <option value="buku_kas">
-            Semuanya (Semua Riwayat Buku Kas)
+            Semuanya (Semua Riwayat Kas)
           </option>
         </select>
       </div>
@@ -570,63 +582,72 @@ export default function PanelKantongDanBukuKas({
           style={{
             background: "#ffffff",
             borderRadius: "18px",
-            padding: "16px",
+            padding: "15px 16px",
             border: "1px solid #d1fae5",
             boxShadow: "0 4px 12px rgba(15, 23, 42, 0.03)",
           }}
         >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <div style={{ fontSize: "0.7rem", fontWeight: 700, color: "#64748b" }}>
-                Kantong 1 • Uang Tunai di Laci Bendahara
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div
+                style={{
+                  width: "38px",
+                  height: "38px",
+                  borderRadius: "11px",
+                  background: "#ecfdf5",
+                  color: "#059669",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <Wallet size={20} />
               </div>
-              <div style={{ fontSize: "1.45rem", fontWeight: 900, color: "#059669", marginTop: "2px" }}>
-                {formatRp(kantong.saldo_kas_tunai)}
+              <div>
+                <div style={{ fontSize: "0.8rem", fontWeight: 900, color: "#0f172a" }}>
+                  Kas Tunai
+                </div>
+                <div style={{ fontSize: "0.65rem", fontWeight: 600, color: "#64748b" }}>
+                  Uang Tunai di Bendahara
+                </div>
               </div>
             </div>
-            <div
-              style={{
-                width: "42px",
-                height: "42px",
-                borderRadius: "13px",
-                background: "#ecfdf5",
-                color: "#059669",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Wallet size={22} />
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: "0.6rem", fontWeight: 700, color: "#64748b" }}>Saldo Tunai</div>
+              <div style={{ fontSize: "1.25rem", fontWeight: 900, color: "#059669", marginTop: "1px" }}>
+                {formatRp(kantong.saldo_kas_tunai)}
+              </div>
             </div>
           </div>
 
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "8px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "6px",
               marginTop: "12px",
-              paddingTop: "12px",
+              paddingTop: "10px",
               borderTop: "1px solid #f1f5f9",
             }}
           >
-            <div style={{ background: "#f8fafc", padding: "8px", borderRadius: "10px" }}>
-              <div style={{ fontSize: "0.6rem", color: "#64748b" }}>Masuk Cash</div>
-              <div style={{ fontSize: "0.74rem", fontWeight: 800, color: "#059669", marginTop: "2px" }}>
-                +{formatRp(Number(kantong.masuk_tagihan_tunai || 0) + Number(kantong.pemasukan_lain_tunai || 0))}
-              </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.72rem" }}>
+              <span style={{ color: "#64748b", fontWeight: 600 }}>Masuk Cash</span>
+              <span style={{ fontWeight: 800, color: "#059669", textAlign: "right" }}>
+                + {formatRp(Number(kantong.masuk_tagihan_tunai || 0) + Number(kantong.pemasukan_lain_tunai || 0))}
+              </span>
             </div>
-            <div style={{ background: "#f8fafc", padding: "8px", borderRadius: "10px" }}>
-              <div style={{ fontSize: "0.6rem", color: "#64748b" }}>Setor ke Bank</div>
-              <div style={{ fontSize: "0.74rem", fontWeight: 800, color: "#0284c7", marginTop: "2px" }}>
-                -{formatRp(kantong.setor_tunai_ke_bank)}
-              </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.72rem" }}>
+              <span style={{ color: "#64748b", fontWeight: 600 }}>Setor ke Bank</span>
+              <span style={{ fontWeight: 800, color: "#0284c7", textAlign: "right" }}>
+                - {formatRp(kantong.setor_tunai_ke_bank)}
+              </span>
             </div>
-            <div style={{ background: "#f8fafc", padding: "8px", borderRadius: "10px" }}>
-              <div style={{ fontSize: "0.6rem", color: "#64748b" }}>Keluar Tunai</div>
-              <div style={{ fontSize: "0.74rem", fontWeight: 800, color: "#dc2626", marginTop: "2px" }}>
-                -{formatRp(kantong.pengeluaran_tunai)}
-              </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.72rem" }}>
+              <span style={{ color: "#64748b", fontWeight: 600 }}>Keluar Tunai</span>
+              <span style={{ fontWeight: 800, color: "#dc2626", textAlign: "right" }}>
+                - {formatRp(kantong.pengeluaran_tunai)}
+              </span>
             </div>
           </div>
         </div>
@@ -637,63 +658,72 @@ export default function PanelKantongDanBukuKas({
           style={{
             background: "#ffffff",
             borderRadius: "18px",
-            padding: "16px",
+            padding: "15px 16px",
             border: "1px solid #bae6fd",
             boxShadow: "0 4px 12px rgba(15, 23, 42, 0.03)",
           }}
         >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <div style={{ fontSize: "0.7rem", fontWeight: 700, color: "#64748b" }}>
-                Kantong 2 • Saldo Rekening Bank Pesantren
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div
+                style={{
+                  width: "38px",
+                  height: "38px",
+                  borderRadius: "11px",
+                  background: "#f0f9ff",
+                  color: "#0284c7",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <Building2 size={20} />
               </div>
-              <div style={{ fontSize: "1.45rem", fontWeight: 900, color: "#0284c7", marginTop: "2px" }}>
-                {formatRp(kantong.saldo_rekening_bank)}
+              <div>
+                <div style={{ fontSize: "0.8rem", fontWeight: 900, color: "#0f172a" }}>
+                  Rekening Bank
+                </div>
+                <div style={{ fontSize: "0.65rem", fontWeight: 600, color: "#64748b" }}>
+                  Rekening Resmi Pesantren
+                </div>
               </div>
             </div>
-            <div
-              style={{
-                width: "42px",
-                height: "42px",
-                borderRadius: "13px",
-                background: "#f0f9ff",
-                color: "#0284c7",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Building2 size={22} />
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: "0.6rem", fontWeight: 700, color: "#64748b" }}>Saldo Bank</div>
+              <div style={{ fontSize: "1.25rem", fontWeight: 900, color: "#0284c7", marginTop: "1px" }}>
+                {formatRp(kantong.saldo_rekening_bank)}
+              </div>
             </div>
           </div>
 
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "8px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "6px",
               marginTop: "12px",
-              paddingTop: "12px",
+              paddingTop: "10px",
               borderTop: "1px solid #f1f5f9",
             }}
           >
-            <div style={{ background: "#f8fafc", padding: "8px", borderRadius: "10px" }}>
-              <div style={{ fontSize: "0.6rem", color: "#64748b" }}>Transfer &amp; Cair</div>
-              <div style={{ fontSize: "0.74rem", fontWeight: 800, color: "#0284c7", marginTop: "2px" }}>
-                +{formatRp(Number(kantong.masuk_tagihan_transfer || 0) + Number(kantong.total_midtrans_sudah_cair || 0))}
-              </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.72rem" }}>
+              <span style={{ color: "#64748b", fontWeight: 600 }}>Transfer &amp; Pencairan Midtrans</span>
+              <span style={{ fontWeight: 800, color: "#0284c7", textAlign: "right" }}>
+                + {formatRp(Number(kantong.masuk_tagihan_transfer || 0) + Number(kantong.total_midtrans_sudah_cair || 0))}
+              </span>
             </div>
-            <div style={{ background: "#f8fafc", padding: "8px", borderRadius: "10px" }}>
-              <div style={{ fontSize: "0.6rem", color: "#64748b" }}>Setoran Tunai</div>
-              <div style={{ fontSize: "0.74rem", fontWeight: 800, color: "#059669", marginTop: "2px" }}>
-                +{formatRp(kantong.setor_tunai_ke_bank)}
-              </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.72rem" }}>
+              <span style={{ color: "#64748b", fontWeight: 600 }}>Setoran dari Kas Tunai</span>
+              <span style={{ fontWeight: 800, color: "#059669", textAlign: "right" }}>
+                + {formatRp(kantong.setor_tunai_ke_bank)}
+              </span>
             </div>
-            <div style={{ background: "#f8fafc", padding: "8px", borderRadius: "10px" }}>
-              <div style={{ fontSize: "0.6rem", color: "#64748b" }}>Keluar Bank</div>
-              <div style={{ fontSize: "0.74rem", fontWeight: 800, color: "#dc2626", marginTop: "2px" }}>
-                -{formatRp(kantong.pengeluaran_bank)}
-              </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.72rem" }}>
+              <span style={{ color: "#64748b", fontWeight: 600 }}>Pengeluaran via Bank</span>
+              <span style={{ fontWeight: 800, color: "#dc2626", textAlign: "right" }}>
+                - {formatRp(kantong.pengeluaran_bank)}
+              </span>
             </div>
           </div>
         </div>
@@ -704,57 +734,66 @@ export default function PanelKantongDanBukuKas({
           style={{
             background: "#ffffff",
             borderRadius: "18px",
-            padding: "16px",
+            padding: "15px 16px",
             border: "1px solid #ddd6fe",
             boxShadow: "0 4px 12px rgba(15, 23, 42, 0.03)",
           }}
         >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <div style={{ fontSize: "0.7rem", fontWeight: 700, color: "#64748b" }}>
-                Kantong 3 • Saldo Mengendap di Midtrans (QRIS/VA)
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div
+                style={{
+                  width: "38px",
+                  height: "38px",
+                  borderRadius: "11px",
+                  background: "#f5f3ff",
+                  color: "#7c3aed",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <QrCode size={20} />
               </div>
-              <div style={{ fontSize: "1.45rem", fontWeight: 900, color: "#6d28d9", marginTop: "2px" }}>
-                {formatRp(kantong.saldo_mengendap_midtrans)}
+              <div>
+                <div style={{ fontSize: "0.8rem", fontWeight: 900, color: "#0f172a" }}>
+                  Saldo Midtrans
+                </div>
+                <div style={{ fontSize: "0.65rem", fontWeight: 600, color: "#64748b" }}>
+                  QRIS &amp; Virtual Account
+                </div>
               </div>
             </div>
-            <div
-              style={{
-                width: "42px",
-                height: "42px",
-                borderRadius: "13px",
-                background: "#f5f3ff",
-                color: "#7c3aed",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <QrCode size={22} />
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: "0.6rem", fontWeight: 700, color: "#64748b" }}>Mengendap</div>
+              <div style={{ fontSize: "1.25rem", fontWeight: 900, color: "#6d28d9", marginTop: "1px" }}>
+                {formatRp(kantong.saldo_mengendap_midtrans)}
+              </div>
             </div>
           </div>
 
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "8px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "6px",
               marginTop: "12px",
-              paddingTop: "12px",
+              paddingTop: "10px",
               borderTop: "1px solid #f1f5f9",
             }}
           >
-            <div style={{ background: "#f8fafc", padding: "8px 10px", borderRadius: "10px" }}>
-              <div style={{ fontSize: "0.6rem", color: "#64748b" }}>Menunggu Cair</div>
-              <div style={{ fontSize: "0.76rem", fontWeight: 800, color: "#6d28d9", marginTop: "2px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.72rem" }}>
+              <span style={{ color: "#64748b", fontWeight: 600 }}>Menunggu Pencairan</span>
+              <span style={{ fontWeight: 800, color: "#6d28d9", textAlign: "right" }}>
                 {kantong.jumlah_trx_mengendap_midtrans} Transaksi
-              </div>
+              </span>
             </div>
-            <div style={{ background: "#f8fafc", padding: "8px 10px", borderRadius: "10px" }}>
-              <div style={{ fontSize: "0.6rem", color: "#64748b" }}>Sudah Cair ke Bank</div>
-              <div style={{ fontSize: "0.76rem", fontWeight: 800, color: "#059669", marginTop: "2px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.72rem" }}>
+              <span style={{ color: "#64748b", fontWeight: 600 }}>Sudah Cair ke Bank</span>
+              <span style={{ fontWeight: 800, color: "#059669", textAlign: "right" }}>
                 {formatRp(kantong.total_midtrans_sudah_cair)}
-              </div>
+              </span>
             </div>
           </div>
 
@@ -1324,6 +1363,7 @@ export default function PanelKantongDanBukuKas({
                 style={{
                   display: "flex",
                   alignItems: "center",
+                  justifyContent: "space-between",
                   gap: "10px",
                   background: "#f8fafc",
                   border: "2px solid #cbd5e1",
@@ -1335,6 +1375,7 @@ export default function PanelKantongDanBukuKas({
                   style={{
                     fontSize: "1.2rem",
                     fontWeight: 900,
+                    flexShrink: 0,
                     color:
                       formModal.jenis_transaksi === "Pengeluaran"
                         ? "#dc2626"
@@ -1350,15 +1391,22 @@ export default function PanelKantongDanBukuKas({
                   inputMode="numeric"
                   placeholder="0"
                   value={formatNumberInput(formModal.nominal)}
-                  onChange={(e) => setFormModal((p) => ({ ...p, nominal: e.target.value }))}
+                  onChange={(e) =>
+                    setFormModal((p) => ({
+                      ...p,
+                      nominal: e.target.value.replace(/\D/g, ""),
+                    }))
+                  }
                   style={{
                     width: "100%",
                     border: "none",
                     background: "transparent",
                     outline: "none",
-                    fontSize: "1.45rem",
+                    fontSize: "1.5rem",
                     fontWeight: 900,
                     color: "#0f172a",
+                    textAlign: "right",
+                    letterSpacing: "0.02em",
                   }}
                 />
                 {formModal.nominal && (
@@ -1376,6 +1424,7 @@ export default function PanelKantongDanBukuKas({
                       justifyContent: "center",
                       cursor: "pointer",
                       color: "#475569",
+                      flexShrink: 0,
                     }}
                   >
                     <X size={13} />
@@ -1991,23 +2040,42 @@ export default function PanelKantongDanBukuKas({
                 >
                   Potongan Admin Cair (Opsional)
                 </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="0"
-                  value={formatNumberInput(cairModal.biaya_admin)}
-                  onChange={(e) => setCairModal((p) => ({ ...p, biaya_admin: e.target.value }))}
+                <div
                   style={{
-                    width: "100%",
-                    padding: "10px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "6px",
+                    padding: "9px 10px",
                     borderRadius: "10px",
                     border: "1.5px solid #cbd5e1",
-                    fontSize: "0.8rem",
-                    fontWeight: 800,
                     background: "#f8fafc",
-                    boxSizing: "border-box",
                   }}
-                />
+                >
+                  <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#64748b" }}>Rp</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="0"
+                    value={formatNumberInput(cairModal.biaya_admin)}
+                    onChange={(e) =>
+                      setCairModal((p) => ({
+                        ...p,
+                        biaya_admin: e.target.value.replace(/\D/g, ""),
+                      }))
+                    }
+                    style={{
+                      width: "100%",
+                      border: "none",
+                      background: "transparent",
+                      outline: "none",
+                      fontSize: "0.84rem",
+                      fontWeight: 900,
+                      color: "#0f172a",
+                      textAlign: "right",
+                    }}
+                  />
+                </div>
               </div>
               <div>
                 <label

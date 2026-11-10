@@ -133,7 +133,25 @@ export default function ModalGenerateTagihan({
 
   if (!isOpen) return null;
 
-  const formatRp = (num) => `Rp ${(Number(num) || 0).toLocaleString('id-ID')}`;
+  const formatAngkaTitik = (val) => {
+    const num = Math.round(Math.abs(Number(val) || 0));
+    return String(num).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+
+  const formatRp = (num) => `Rp ${formatAngkaTitik(num)}`;
+
+  const formatNumberInput = (val) => {
+    if (val === undefined || val === null || val === '') return '';
+    const clean = String(val).replace(/\D/g, '');
+    if (!clean) return '';
+    return String(parseInt(clean, 10)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+
+  const parseNumberInput = (str) => {
+    if (!str) return 0;
+    const clean = String(str).replace(/\D/g, '');
+    return clean ? parseInt(clean, 10) : 0;
+  };
 
   // Filter Items sesuai Jenjang yang dipilih
   const currentTargetJenjang = jenjangMasuk === 'SEMUA' ? 'SMP' : jenjangMasuk;
@@ -157,7 +175,7 @@ export default function ModalGenerateTagihan({
       showError('Uraian Kosong', 'Silakan masukkan nama uraian item.');
       return;
     }
-    const biayaNum = parseFloat(addForm.biaya) || 0;
+    const biayaNum = parseNumberInput(addForm.biaya);
     if (biayaNum <= 0) {
       showError('Biaya Tidak Valid', 'Masukkan nominal biaya lebih dari Rp 0.');
       return;
@@ -196,7 +214,7 @@ export default function ModalGenerateTagihan({
       setSavingEdit(true);
       const res = await axios.put(`/api/sekolah/rincian-biaya/${item.id}`, {
         uraian: editForm.uraian.trim(),
-        biaya: parseFloat(editForm.biaya) || 0,
+        biaya: parseNumberInput(editForm.biaya),
         kategori_komponen: item.kategori_komponen
       });
 
@@ -716,11 +734,12 @@ export default function ModalGenerateTagihan({
                             style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
                           />
                           <input
-                            type="number"
+                            type="text"
+                            inputMode="numeric"
                             placeholder="Biaya (Rp)"
-                            value={addForm.biaya}
-                            onChange={(e) => setAddForm({ ...addForm, biaya: e.target.value })}
-                            style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                            value={formatNumberInput(addForm.biaya)}
+                            onChange={(e) => setAddForm({ ...addForm, biaya: e.target.value.replace(/\D/g, '') })}
+                            style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem', fontWeight: 700, textAlign: 'right' }}
                           />
                           <button
                             type="button"
@@ -761,10 +780,11 @@ export default function ModalGenerateTagihan({
                                   style={{ flex: 1.4, padding: '4px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
                                 />
                                 <input
-                                  type="number"
-                                  value={editForm.biaya}
-                                  onChange={(e) => setEditForm({ ...editForm, biaya: e.target.value })}
-                                  style={{ flex: 1, padding: '4px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                                  type="text"
+                                  inputMode="numeric"
+                                  value={formatNumberInput(editForm.biaya)}
+                                  onChange={(e) => setEditForm({ ...editForm, biaya: e.target.value.replace(/\D/g, '') })}
+                                  style={{ flex: 1, padding: '4px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem', fontWeight: 700, textAlign: 'right' }}
                                 />
                                 <button
                                   type="button"
@@ -872,11 +892,12 @@ export default function ModalGenerateTagihan({
                             style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
                           />
                           <input
-                            type="number"
+                            type="text"
+                            inputMode="numeric"
                             placeholder="Biaya (Rp)"
-                            value={addForm.biaya}
-                            onChange={(e) => setAddForm({ ...addForm, biaya: e.target.value })}
-                            style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                            value={formatNumberInput(addForm.biaya)}
+                            onChange={(e) => setAddForm({ ...addForm, biaya: e.target.value.replace(/\D/g, '') })}
+                            style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem', fontWeight: 700, textAlign: 'right' }}
                           />
                           <button
                             type="button"
@@ -917,10 +938,11 @@ export default function ModalGenerateTagihan({
                                   style={{ flex: 1.4, padding: '4px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
                                 />
                                 <input
-                                  type="number"
-                                  value={editForm.biaya}
-                                  onChange={(e) => setEditForm({ ...editForm, biaya: e.target.value })}
-                                  style={{ flex: 1, padding: '4px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                                  type="text"
+                                  inputMode="numeric"
+                                  value={formatNumberInput(editForm.biaya)}
+                                  onChange={(e) => setEditForm({ ...editForm, biaya: e.target.value.replace(/\D/g, '') })}
+                                  style={{ flex: 1, padding: '4px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem', fontWeight: 700, textAlign: 'right' }}
                                 />
                                 <button
                                   type="button"
