@@ -723,70 +723,7 @@ export default function MobileDaftarWajah() {
         fontFamily: "'Inter', sans-serif",
       }}
     >
-      {/* Header Info Card */}
-      <div
-        style={{
-          background:
-            "linear-gradient(135deg, #0284c7 0%, #0369a1 50%, #075985 100%)",
-          borderRadius: "20px",
-          padding: "16px 18px",
-          color: "#ffffff",
-          marginBottom: "14px",
-          boxShadow: "0 8px 20px -4px rgba(2, 132, 199, 0.35)",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: "8px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <div
-              style={{
-                width: "32px",
-                height: "32px",
-                borderRadius: "10px",
-                background: "rgba(255,255,255,0.2)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Smile size={18} color="#ffffff" />
-            </div>
-            <span style={{ fontSize: "0.94rem", fontWeight: 800 }}>
-              Pendaftaran Wajah Santri
-            </span>
-          </div>
-          <span
-            style={{
-              background: "rgba(255,255,255,0.22)",
-              padding: "3px 10px",
-              borderRadius: "999px",
-              fontSize: "0.72rem",
-              fontWeight: 800,
-            }}
-          >
-            {selectedKelas === "Semua"
-              ? `${totalRegistered} / ${santriList.length} Terdaftar`
-              : `${totalRegisteredInClass} / ${classFilteredSantri.length} Terdaftar`}
-          </span>
-        </div>
-        <p
-          style={{
-            margin: 0,
-            fontSize: "0.74rem",
-            color: "#e0f2fe",
-            lineHeight: 1.4,
-          }}
-        >
-          Daftarkan foto wajah santri di sini untuk digunakan pada kamera
-          Presensi Wajah AI otomatis.
-        </p>
-      </div>
+
 
       {/* Banner Scan Otomatis Foto Tanpa Biometrik */}
       {unindexedList.length > 0 && (

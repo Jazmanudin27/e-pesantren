@@ -14,5 +14,17 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 3000,
+    rollupOptions: {
+      onwarn(warning, warn) {
+        // Abaikan notifikasi peringatan dynamic vs static import chunk
+        if (
+          warning.message?.includes('dynamic import will not move module into another chunk') ||
+          warning.code === 'DYNAMIC_IMPORT_WILL_NOT_MOVE_MODULE_INTO_ANOTHER_CHUNK'
+        ) {
+          return;
+        }
+        warn(warning);
+      },
+    },
   },
 });
