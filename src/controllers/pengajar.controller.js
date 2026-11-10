@@ -146,7 +146,24 @@ export const getPengajarDashboard = async (req, res) => {
   try {
     const [[santriStat]] = await pool.query("SELECT COUNT(*) as total_santri FROM santri WHERE status = 'Aktif'");
     
-    // Presensi Mengaji Hari Ini
+    const calcPresensiStats = (rows = []) => {
+      let hadir = 0;
+      let sakit = 0;
+      let izin = 0;
+      let alfa = 0;
+      for (const r of rows) {
+        const s = String(r.st || '').toLowerCase();
+        if (s.includes('sakit')) sakit += Number(r.jml);
+        else if (s.includes('izin') || s.includes('haid')) izin += Number(r.jml);
+        else if (s.includes('alfa') || s.includes('alpha') || s.includes('teledor')) alfa += Number(r.jml);
+        else hadir += Number(r.jml);
+      }
+      const total = hadir + sakit + izin + alfa;
+      const persenHadir = total > 0 ? Math.round((hadir / total) * 100) : 0;
+      return { total, hadir, sakit, izin, alfa, persenHadir };
+    };
+
+    // Presensi Total Hari Ini
     const [presensiRows] = await pool.query(`
       SELECT 
         COALESCE(status, status_kehadiran, 'Hadir') as st,
@@ -156,21 +173,44 @@ export const getPengajarDashboard = async (req, res) => {
       GROUP BY COALESCE(status, status_kehadiran, 'Hadir')
     `).catch(() => [[]]);
 
-    let hadir = 0;
-    let sakit = 0;
-    let izin = 0;
-    let alfa = 0;
+    // Presensi Mengaji Hari Ini
+    const [presensiMengajiRows] = await pool.query(`
+      SELECT 
+        COALESCE(aj.status, aj.status_kehadiran, 'Hadir') as st,
+        COUNT(*) as jml
+      FROM absensi_jamaah_mengaji aj
+      LEFT JOIN kegiatan_sesi ks ON aj.sesi_id = ks.id
+      WHERE aj.tanggal = CURDATE()
+        AND (
+          LOWER(COALESCE(aj.tipe_presensi, '')) LIKE '%mengaji%'
+          OR LOWER(COALESCE(aj.tipe_presensi, '')) LIKE '%kegiatan%'
+          OR (
+            LOWER(COALESCE(aj.nama_kegiatan, '')) NOT REGEXP 'shalat|sholat|subuh|shubuh|dzuhur|zuhur|ashar|asar|maghrib|magrib|isya|dhuha|berjamaah'
+            AND LOWER(COALESCE(ks.nama_sesi, '')) NOT REGEXP 'shalat|sholat|subuh|shubuh|dzuhur|zuhur|ashar|asar|maghrib|magrib|isya|dhuha|berjamaah'
+          )
+        )
+      GROUP BY COALESCE(aj.status, aj.status_kehadiran, 'Hadir')
+    `).catch(() => [[]]);
 
-    for (const r of presensiRows) {
-      const s = String(r.st || '').toLowerCase();
-      if (s.includes('sakit')) sakit += Number(r.jml);
-      else if (s.includes('izin') || s.includes('haid')) izin += Number(r.jml);
-      else if (s.includes('alfa') || s.includes('alpha') || s.includes('teledor')) alfa += Number(r.jml);
-      else hadir += Number(r.jml);
-    }
+    // Presensi Berjamaah Hari Ini
+    const [presensiBerjamaahRows] = await pool.query(`
+      SELECT 
+        COALESCE(aj.status, aj.status_kehadiran, 'Hadir') as st,
+        COUNT(*) as jml
+      FROM absensi_jamaah_mengaji aj
+      LEFT JOIN kegiatan_sesi ks ON aj.sesi_id = ks.id
+      WHERE aj.tanggal = CURDATE()
+        AND (
+          LOWER(COALESCE(aj.tipe_presensi, '')) LIKE '%berjamaah%'
+          OR LOWER(COALESCE(aj.nama_kegiatan, '')) REGEXP 'shalat|sholat|subuh|shubuh|dzuhur|zuhur|ashar|asar|maghrib|magrib|isya|dhuha|berjamaah'
+          OR LOWER(COALESCE(ks.nama_sesi, '')) REGEXP 'shalat|sholat|subuh|shubuh|dzuhur|zuhur|ashar|asar|maghrib|magrib|isya|dhuha|berjamaah'
+        )
+      GROUP BY COALESCE(aj.status, aj.status_kehadiran, 'Hadir')
+    `).catch(() => [[]]);
 
-    const totalAbsen = hadir + sakit + izin + alfa;
-    const persenHadir = totalAbsen > 0 ? Math.round((hadir / totalAbsen) * 100) : 0;
+    const presensiHariIniStats = calcPresensiStats(presensiRows);
+    const presensiMengajiStats = calcPresensiStats(presensiMengajiRows);
+    const presensiBerjamaahStats = calcPresensiStats(presensiBerjamaahRows);
 
     // Total Teguran Bulan Ini
     const [[teguranStat]] = await pool.query(`
@@ -251,14 +291,9 @@ export const getPengajarDashboard = async (req, res) => {
 
     return sendSuccess(res, 'Dashboard Pengajar Berhasil Dimuat', {
       totalSantri: Number(santriStat?.total_santri || 0),
-      presensiHariIni: {
-        total: totalAbsen,
-        hadir,
-        sakit,
-        izin,
-        alfa,
-        persenHadir
-      },
+      presensiHariIni: presensiHariIniStats,
+      presensiMengajiHariIni: presensiMengajiStats,
+      presensiBerjamaahHariIni: presensiBerjamaahStats,
       totalTeguranBulanIni: Number(teguranStat?.total_teguran || 0),
       totalPraktekBulanIni: Number(praktekStat?.total_praktek || 0),
       totalPerkembangan: Number(perkembanganStat?.total_perkembangan || 0),

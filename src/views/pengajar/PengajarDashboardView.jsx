@@ -15,7 +15,7 @@ import {
   ChevronLeft,
   Building2,
   Fingerprint,
-  Heart,
+  Settings,
 } from "lucide-react";
 import { showConfirm, toastSuccess } from "../../utils/alert.util";
 import PengajarAbsenMengaji from "./PengajarAbsenMengaji";
@@ -25,8 +25,8 @@ import PengajarTeguranView from "./PengajarTeguranView";
 import PengajarPraktekView from "./PengajarPraktekView";
 import PengajarPerkembanganView from "./PengajarPerkembanganView";
 import OwnerLaporanSantri from "../owner/OwnerLaporanSantri";
-import OwnerLaporanPerizinan from "../owner/OwnerLaporanPerizinan";
-import MobileHaid from "../mobile/MobileHaid";
+import MobileProfil from "../mobile/MobileProfil";
+import MobileMasterPengembangan from "../mobile/MobileMasterPengembangan";
 
 const squircleIconStyle = {
   width: "50px",
@@ -60,13 +60,31 @@ const menuLabelStyle = {
 };
 
 export default function PengajarDashboardView({ onLogout }) {
-  const [activeTab, setActiveTab] = useState("beranda"); // 'beranda' | 'absen-mengaji' | 'laporan-berjamaah' | 'teguran' | 'praktek' | 'perkembangan' | 'santri' | 'perizinan'
+  const [activeTab, setActiveTab] = useState("beranda"); // 'beranda' | 'absen-mengaji' | 'laporan-berjamaah' | 'teguran' | 'praktek' | 'perkembangan' | 'santri' | 'settings'
   const [loading, setLoading] = useState(true);
   const [presensiFilter, setPresensiFilter] = useState("Semua");
+  const [rekapTipe, setRekapTipe] = useState("mengaji"); // 'mengaji' | 'berjamaah'
   const [activityActiveTab, setActivityActiveTab] = useState("kehadiran"); // 'kehadiran' | 'kedisiplinan'
+  const touchStartXRef = React.useRef(null);
   const [dashboardData, setDashboardData] = useState({
     totalSantri: 0,
     presensiHariIni: {
+      total: 0,
+      hadir: 0,
+      sakit: 0,
+      izin: 0,
+      alfa: 0,
+      persenHadir: 0,
+    },
+    presensiMengajiHariIni: {
+      total: 0,
+      hadir: 0,
+      sakit: 0,
+      izin: 0,
+      alfa: 0,
+      persenHadir: 0,
+    },
+    presensiBerjamaahHariIni: {
       total: 0,
       hadir: 0,
       sakit: 0,
@@ -80,9 +98,23 @@ export default function PengajarDashboardView({ onLogout }) {
     daftarSesi: [],
   });
 
-  const handleOpenPresensiWithStatus = (status) => {
+  const handleOpenPresensiWithStatus = (status = "Semua") => {
     setPresensiFilter(status);
-    setActiveTab("laporan-berjamaah");
+    setActiveTab(rekapTipe === "mengaji" ? "laporan-mengaji" : "laporan-berjamaah");
+  };
+
+  const handleTouchStartRekap = (e) => {
+    if (e.touches && e.touches.length > 0) {
+      touchStartXRef.current = e.touches[0].clientX;
+    }
+  };
+
+  const handleTouchEndRekap = (e) => {
+    if (touchStartXRef.current === null || !e.changedTouches || e.changedTouches.length === 0) return;
+    const diffX = e.changedTouches[0].clientX - touchStartXRef.current;
+    if (diffX > 45) setRekapTipe("mengaji");
+    else if (diffX < -45) setRekapTipe("berjamaah");
+    touchStartXRef.current = null;
   };
 
   const pengajarSession = (() => {
@@ -144,13 +176,17 @@ export default function PengajarDashboardView({ onLogout }) {
     }
   };
 
-  const p = dashboardData.presensiHariIni || {
-    hadir: 0,
-    sakit: 0,
-    izin: 0,
-    alfa: 0,
-    persenHadir: 0,
-  };
+  const p =
+    (rekapTipe === "mengaji"
+      ? dashboardData.presensiMengajiHariIni
+      : dashboardData.presensiBerjamaahHariIni) ||
+    dashboardData.presensiHariIni || {
+      hadir: 0,
+      sakit: 0,
+      izin: 0,
+      alfa: 0,
+      persenHadir: 0,
+    };
 
   return (
     <div
@@ -445,7 +481,7 @@ export default function PengajarDashboardView({ onLogout }) {
 
                   <button
                     type="button"
-                    onClick={() => setActiveTab("laporan-berjamaah")}
+                    onClick={() => handleOpenPresensiWithStatus("Semua")}
                     style={{
                       background: "rgba(13, 148, 136, 0.08)",
                       border: "1px solid rgba(13, 148, 136, 0.2)",
@@ -466,8 +502,97 @@ export default function PengajarDashboardView({ onLogout }) {
                   </button>
                 </div>
 
+                {/* Slide Bar: Mengaji vs Shalat Berjamaah */}
+                <div
+                  style={{
+                    position: "relative",
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    background: "#f1f5f9",
+                    padding: "3.5px",
+                    borderRadius: "12px",
+                    border: "1px solid #e2e8f0",
+                    marginBottom: "10px",
+                  }}
+                >
+                  {/* Animated Sliding Active Indicator Pill */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "3.5px",
+                      bottom: "3.5px",
+                      left: "3.5px",
+                      width: "calc(50% - 3.5px)",
+                      borderRadius: "9px",
+                      background:
+                        rekapTipe === "mengaji"
+                          ? "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)"
+                          : "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+                      boxShadow:
+                        rekapTipe === "mengaji"
+                          ? "0 2px 8px rgba(13, 148, 136, 0.35)"
+                          : "0 2px 8px rgba(2, 132, 199, 0.35)",
+                      transform:
+                        rekapTipe === "mengaji"
+                          ? "translateX(0%)"
+                          : "translateX(100%)",
+                      transition:
+                        "transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.25s ease",
+                      pointerEvents: "none",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setRekapTipe("mengaji")}
+                    style={{
+                      position: "relative",
+                      zIndex: 1,
+                      border: "none",
+                      background: "transparent",
+                      color: rekapTipe === "mengaji" ? "#ffffff" : "#64748b",
+                      fontWeight: 800,
+                      fontSize: "0.72rem",
+                      padding: "6px 4px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "5px",
+                      transition: "color 0.2s ease",
+                    }}
+                  >
+                    <BookOpen size={13} />
+                    <span>Presensi Mengaji</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRekapTipe("berjamaah")}
+                    style={{
+                      position: "relative",
+                      zIndex: 1,
+                      border: "none",
+                      background: "transparent",
+                      color: rekapTipe === "berjamaah" ? "#ffffff" : "#64748b",
+                      fontWeight: 800,
+                      fontSize: "0.72rem",
+                      padding: "6px 4px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "5px",
+                      transition: "color 0.2s ease",
+                    }}
+                  >
+                    <Fingerprint size={13} />
+                    <span>Shalat Berjamaah</span>
+                  </button>
+                </div>
+
                 {/* 4 Cards Grid (Pastel Touchable Badges Identik Owner) */}
                 <div
+                  onTouchStart={handleTouchStartRekap}
+                  onTouchEnd={handleTouchEndRekap}
                   style={{
                     display: "grid",
                     gridTemplateColumns: "repeat(4, 1fr)",
@@ -869,7 +994,7 @@ export default function PengajarDashboardView({ onLogout }) {
                             lineHeight: 1.1,
                           }}
                         >
-                          TINGKAT KEHADIRAN HARI INI
+                          TINGKAT KEHADIRAN {rekapTipe === "mengaji" ? "MENGAJI" : "BERJAMAAH"} HARI INI
                         </div>
                         <div
                           style={{
@@ -887,7 +1012,7 @@ export default function PengajarDashboardView({ onLogout }) {
                       </div>
 
                       <div
-                        onClick={() => setActiveTab("laporan-berjamaah")}
+                        onClick={() => handleOpenPresensiWithStatus("Semua")}
                         title="Buka Laporan Presensi Lengkap"
                         style={{
                           width: "32px",
@@ -1186,7 +1311,7 @@ export default function PengajarDashboardView({ onLogout }) {
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "repeat(4, 1fr)",
+                    gridTemplateColumns: "repeat(3, 1fr)",
                     gap: "14px 4px",
                     justifyItems: "center",
                   }}
@@ -1306,47 +1431,6 @@ export default function PengajarDashboardView({ onLogout }) {
                     </div>
                     <span style={menuLabelStyle}>Perkembangan</span>
                   </div>
-
-                  {/* 6. Perizinan */}
-                  <div
-                    onClick={() => setActiveTab("perizinan")}
-                    style={menuCardStyle}
-                  >
-                    <div
-                      style={{
-                        ...squircleIconStyle,
-                        background:
-                          "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
-                        boxShadow: "0 6px 16px -2px rgba(249, 115, 22, 0.38)",
-                      }}
-                    >
-                      <Clock size={23} strokeWidth={2.3} color="#ffffff" />
-                    </div>
-                    <span style={menuLabelStyle}>Perizinan</span>
-                  </div>
-
-                  {/* 7. Haid Santriwati */}
-                  <div
-                    onClick={() => setActiveTab("haid")}
-                    style={menuCardStyle}
-                  >
-                    <div
-                      style={{
-                        ...squircleIconStyle,
-                        background:
-                          "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
-                        boxShadow: "0 6px 16px -2px rgba(219, 39, 119, 0.38)",
-                      }}
-                    >
-                      <Heart
-                        size={23}
-                        strokeWidth={2.3}
-                        color="#ffffff"
-                        fill="#ffffff"
-                      />
-                    </div>
-                    <span style={menuLabelStyle}>Haid Santri</span>
-                  </div>
                 </div>
               </div>
             </div>
@@ -1428,9 +1512,12 @@ export default function PengajarDashboardView({ onLogout }) {
                   {activeTab === "praktek" && "Evaluasi Praktek Ibadah"}
                   {activeTab === "perkembangan" &&
                     "Laporan Perkembangan Santri"}
+                  {(activeTab === "master-pengembangan" ||
+                    activeTab === "setting-pengembangan") &&
+                    "Master Bidang & Penilaian Perkembangan"}
                   {activeTab === "santri" && "Data & Demografi Santri"}
-                  {activeTab === "perizinan" && "Laporan Perizinan Santri"}
-                  {activeTab === "haid" && "Pencatatan Haid Santriwati"}
+                  {(activeTab === "settings" || activeTab === "profil") &&
+                    "Pengaturan & Profil Pengajar"}
                 </span>
                 <span
                   style={{
@@ -1458,7 +1545,11 @@ export default function PengajarDashboardView({ onLogout }) {
                   activeTab === "absen-mengaji" ||
                   activeTab === "perkembangan" ||
                   activeTab === "teguran" ||
-                  activeTab === "praktek"
+                  activeTab === "praktek" ||
+                  activeTab === "settings" ||
+                  activeTab === "profil" ||
+                  activeTab === "master-pengembangan" ||
+                  activeTab === "setting-pengembangan"
                     ? 0
                     : "0 14px 20px",
                 flex: 1,
@@ -1474,153 +1565,91 @@ export default function PengajarDashboardView({ onLogout }) {
               {activeTab === "teguran" && <PengajarTeguranView />}
               {activeTab === "praktek" && <PengajarPraktekView />}
               {activeTab === "perkembangan" && <PengajarPerkembanganView />}
+              {(activeTab === "master-pengembangan" ||
+                activeTab === "setting-pengembangan") && (
+                <MobileMasterPengembangan
+                  onBack={() => setActiveTab("settings")}
+                />
+              )}
               {activeTab === "santri" && <OwnerLaporanSantri />}
-              {activeTab === "perizinan" && <OwnerLaporanPerizinan />}
-              {activeTab === "haid" && <MobileHaid />}
+              {(activeTab === "settings" || activeTab === "profil") && (
+                <MobileProfil
+                  onChangeTab={(tab) => {
+                    if (tab === "home") setActiveTab("beranda");
+                    else if (
+                      tab === "master-pengembangan" ||
+                      tab === "setting-pengembangan"
+                    ) {
+                      setActiveTab("master-pengembangan");
+                    } else {
+                      setActiveTab(tab);
+                    }
+                  }}
+                  onLogout={onLogout}
+                />
+              )}
             </div>
           </div>
         )}
 
         {/* =========================================================================
-            BOTTOM NAVIGATION BAR PORTAL PENGAJAR (ELEVATED DARK TEAL IDENTIK OWNER)
+            BOTTOM NAVIGATION BAR PORTAL PENGAJAR (IDENTIK DENGAN ADMIN MOBILE - 4 MENU)
         ========================================================================= */}
-        <nav
-          style={{
-            position: "fixed",
-            bottom: 0,
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "100%",
-            maxWidth: "440px",
-            height: "64px",
-            backgroundColor: "#042f2e",
-            borderTop: "1px solid rgba(255, 255, 255, 0.1)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-around",
-            zIndex: 999,
-            boxShadow: "0 -4px 20px rgba(0, 0, 0, 0.25)",
-            boxSizing: "border-box",
-            padding: "0 4px",
-          }}
-        >
+        <nav className="mobile-bottom-nav">
           {/* 1. Beranda */}
           <button
             type="button"
+            className={`mobile-nav-item ${activeTab === "beranda" ? "active" : ""}`}
             onClick={() => setActiveTab("beranda")}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: activeTab === "beranda" ? "#34d399" : "#94a3b8",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              cursor: "pointer",
-              fontSize: "0.62rem",
-              fontWeight: activeTab === "beranda" ? 800 : 500,
-              gap: "2px",
-              flex: 1,
-            }}
           >
-            <Home size={19} strokeWidth={activeTab === "beranda" ? 2.5 : 2} />
+            <div
+              className={`nav-icon-wrapper ${activeTab === "beranda" ? "active" : ""}`}
+            >
+              <Home size={20} />
+            </div>
             <span>Beranda</span>
           </button>
 
-          {/* 2. Absen Mengaji */}
+          {/* 2. Mengaji */}
           <button
             type="button"
+            className={`mobile-nav-item ${activeTab === "absen-mengaji" || activeTab === "laporan-mengaji" ? "active" : ""}`}
             onClick={() => setActiveTab("absen-mengaji")}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: activeTab === "absen-mengaji" ? "#34d399" : "#94a3b8",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              cursor: "pointer",
-              fontSize: "0.62rem",
-              fontWeight: activeTab === "absen-mengaji" ? 800 : 500,
-              gap: "2px",
-              flex: 1,
-            }}
           >
-            <BookOpen
-              size={19}
-              strokeWidth={activeTab === "absen-mengaji" ? 2.5 : 2}
-            />
+            <div
+              className={`nav-icon-wrapper ${activeTab === "absen-mengaji" || activeTab === "laporan-mengaji" ? "active" : ""}`}
+            >
+              <BookOpen size={20} />
+            </div>
             <span>Mengaji</span>
           </button>
 
-          {/* 3. Laporan Berjamaah */}
+          {/* 3. Perkembangan */}
           <button
             type="button"
-            onClick={() => setActiveTab("laporan-berjamaah")}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: activeTab === "laporan-berjamaah" ? "#34d399" : "#94a3b8",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              cursor: "pointer",
-              fontSize: "0.62rem",
-              fontWeight: activeTab === "laporan-berjamaah" ? 800 : 500,
-              gap: "2px",
-              flex: 1,
-            }}
+            className={`mobile-nav-item ${activeTab === "perkembangan" || activeTab === "master-pengembangan" || activeTab === "setting-pengembangan" ? "active" : ""}`}
+            onClick={() => setActiveTab("perkembangan")}
           >
-            <Fingerprint
-              size={19}
-              strokeWidth={activeTab === "laporan-berjamaah" ? 2.5 : 2}
-            />
-            <span>Berjamaah</span>
+            <div
+              className={`nav-icon-wrapper ${activeTab === "perkembangan" || activeTab === "master-pengembangan" || activeTab === "setting-pengembangan" ? "active" : ""}`}
+            >
+              <Award size={20} />
+            </div>
+            <span>Perkembangan</span>
           </button>
 
-          {/* 4. Teguran */}
+          {/* 4. Settings */}
           <button
             type="button"
-            onClick={() => setActiveTab("teguran")}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: activeTab === "teguran" ? "#34d399" : "#94a3b8",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              cursor: "pointer",
-              fontSize: "0.62rem",
-              fontWeight: activeTab === "teguran" ? 800 : 500,
-              gap: "2px",
-              flex: 1,
-            }}
+            className={`mobile-nav-item ${activeTab === "settings" || activeTab === "profil" ? "active" : ""}`}
+            onClick={() => setActiveTab("settings")}
           >
-            <ShieldAlert
-              size={19}
-              strokeWidth={activeTab === "teguran" ? 2.5 : 2}
-            />
-            <span>Teguran</span>
-          </button>
-
-          {/* 5. Praktek */}
-          <button
-            type="button"
-            onClick={() => setActiveTab("praktek")}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: activeTab === "praktek" ? "#34d399" : "#94a3b8",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              cursor: "pointer",
-              fontSize: "0.62rem",
-              fontWeight: activeTab === "praktek" ? 800 : 500,
-              gap: "2px",
-              flex: 1,
-            }}
-          >
-            <Award size={19} strokeWidth={activeTab === "praktek" ? 2.5 : 2} />
-            <span>Praktek</span>
+            <div
+              className={`nav-icon-wrapper ${activeTab === "settings" || activeTab === "profil" ? "active" : ""}`}
+            >
+              <Settings size={20} />
+            </div>
+            <span>Settings</span>
           </button>
         </nav>
       </div>

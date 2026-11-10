@@ -607,9 +607,17 @@ export default function MobileLayout() {
       case "mengaji":
         return <MobilePresensiMengaji />;
       case "laporan-berjamaah":
-        return <PengajarLaporanBerjamaah />;
+        return (
+          <div style={{ padding: "0 14px 24px" }}>
+            <PengajarLaporanBerjamaah />
+          </div>
+        );
       case "laporan-mengaji":
-        return <PengajarLaporanMengaji />;
+        return (
+          <div style={{ padding: "0 14px 24px" }}>
+            <PengajarLaporanMengaji />
+          </div>
+        );
       case "presensi":
         return <MobilePresensiBerjamaah />;
       case "praktek-ibadah":
@@ -745,6 +753,7 @@ export default function MobileLayout() {
               position: "sticky",
               top: 0,
               zIndex: 20,
+              marginBottom: "12px",
             }}
           >
             <button

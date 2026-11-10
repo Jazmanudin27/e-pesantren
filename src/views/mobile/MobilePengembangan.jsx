@@ -935,7 +935,7 @@ export default function MobilePengembangan() {
   }
 
   return (
-    <div style={{ padding: "14px", paddingBottom: "95px" }}>
+    <div style={{ padding: "0 14px 95px" }}>
       {/* =========================================================================
           1. HEADER CARD DENGAN STATS LULUS & BINA YANG MENARIK + DUA DROPDOWN
       ========================================================================= */}
@@ -943,11 +943,11 @@ export default function MobilePengembangan() {
         style={{
           background:
             "linear-gradient(135deg, #0369a1 0%, #0284c7 50%, #0ea5e9 100%)",
-          borderRadius: "22px",
-          padding: "16px",
+          borderRadius: "18px",
+          padding: "12px 14px",
           color: "#ffffff",
-          marginBottom: "12px",
-          boxShadow: "0 10px 28px -6px rgba(2, 132, 199, 0.45)",
+          marginBottom: "10px",
+          boxShadow: "0 8px 24px -4px rgba(2, 132, 199, 0.4)",
           position: "relative",
           zIndex: 40,
         }}
@@ -960,7 +960,7 @@ export default function MobilePengembangan() {
             right: 0,
             width: "90px",
             height: "90px",
-            borderTopRightRadius: "22px",
+            borderTopRightRadius: "18px",
             background:
               "radial-gradient(circle at top right, rgba(255,255,255,0.2), transparent 70%)",
             pointerEvents: "none",
@@ -973,7 +973,7 @@ export default function MobilePengembangan() {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: "12px",
+            marginBottom: "8px",
           }}
         >
           <div>
@@ -1018,7 +1018,7 @@ export default function MobilePengembangan() {
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
             gap: "8px",
-            marginBottom: "10px",
+            marginBottom: "8px",
           }}
         >
           {/* Card 1: Lulus (Vibrant Emerald Glow) */}
@@ -1202,8 +1202,8 @@ export default function MobilePengembangan() {
           gridTemplateColumns: "repeat(3, 1fr)",
           background: "#ffffff",
           borderRadius: "13px",
-          padding: "3.5px",
-          marginBottom: "12px",
+          padding: "3px",
+          marginBottom: "10px",
           gap: "4px",
           border: "1px solid #e2e8f0",
         }}
@@ -1212,7 +1212,7 @@ export default function MobilePengembangan() {
           type="button"
           onClick={() => handleSwitchTab("scan")}
           style={{
-            padding: "8px 2px",
+            padding: "7px 2px",
             borderRadius: "9px",
             border: "none",
             background: activeTab === "scan" ? "#e0f2fe" : "transparent",
@@ -1233,7 +1233,7 @@ export default function MobilePengembangan() {
           type="button"
           onClick={() => handleSwitchTab("manual")}
           style={{
-            padding: "8px 2px",
+            padding: "7px 2px",
             borderRadius: "9px",
             border: "none",
             background: activeTab === "manual" ? "#e0f2fe" : "transparent",
@@ -2537,497 +2537,104 @@ export default function MobilePengembangan() {
               gap: "14px",
             }}
           >
-              {/* Santri Card */}
+            {/* Santri Card */}
+            <div
+              style={{
+                background: "#f8fafc",
+                padding: "12px",
+                borderRadius: "14px",
+                border: "1px solid #e2e8f0",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+              }}
+            >
               <div
                 style={{
-                  background: "#f8fafc",
-                  padding: "12px",
-                  borderRadius: "14px",
-                  border: "1px solid #e2e8f0",
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "12px",
+                  background: "#0284c7",
+                  color: "#ffffff",
                   display: "flex",
                   alignItems: "center",
-                  gap: "10px",
+                  justifyContent: "center",
+                  fontWeight: 800,
+                  fontSize: "0.9rem",
+                  flexShrink: 0,
                 }}
               >
+                {getInitials(evalForm.santriObj?.nama_santri)}
+              </div>
+              <div>
                 <div
                   style={{
-                    width: "44px",
-                    height: "44px",
-                    borderRadius: "12px",
-                    background: "#0284c7",
-                    color: "#ffffff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
                     fontWeight: 800,
                     fontSize: "0.9rem",
-                    flexShrink: 0,
-                  }}
-                >
-                  {getInitials(evalForm.santriObj?.nama_santri)}
-                </div>
-                <div>
-                  <div
-                    style={{
-                      fontWeight: 800,
-                      fontSize: "0.9rem",
-                      color: "#0f172a",
-                    }}
-                  >
-                    {evalForm.santriObj?.nama_santri || "Santri"}
-                  </div>
-                  <div style={{ fontSize: "0.72rem", color: "#64748b" }}>
-                    NIS: <strong>{evalForm.santriObj?.nis || "-"}</strong> •{" "}
-                    Kelas: <strong>{selectedKelas || "-"}</strong>
-                  </div>
-                </div>
-              </div>
-
-              {/* STEP 1: PILIH BIDANG PENGEMBANGAN */}
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.75rem",
-                    fontWeight: 800,
-                    color: "#334155",
-                    marginBottom: "6px",
-                  }}
-                >
-                  1. Pilih Bidang Uji Pengembangan:
-                </label>
-                <select
-                  value={evalForm.kategori_id}
-                  onChange={(e) =>
-                    setEvalForm((prev) => ({
-                      ...prev,
-                      kategori_id: e.target.value,
-                      permasalahan: [],
-                      penyebab: [],
-                      tindakan: [],
-                    }))
-                  }
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "10px",
-                    border: "1px solid #cbd5e1",
-                    background: "#ffffff",
-                    fontSize: "0.82rem",
-                    fontWeight: 700,
                     color: "#0f172a",
-                    outline: "none",
                   }}
                 >
-                  {kategoriForEvalModal.map((k) => (
-                    <option key={k.id} value={k.id}>
-                      📘 {k.nama_kategori}
-                    </option>
-                  ))}
-                </select>
+                  {evalForm.santriObj?.nama_santri || "Santri"}
+                </div>
+                <div style={{ fontSize: "0.72rem", color: "#64748b" }}>
+                  NIS: <strong>{evalForm.santriObj?.nis || "-"}</strong> •{" "}
+                  Kelas: <strong>{selectedKelas || "-"}</strong>
+                </div>
               </div>
+            </div>
 
-              {/* Tanggal & Penguji */}
-              <div
+            {/* STEP 1: PILIH BIDANG PENGEMBANGAN */}
+            <div>
+              <label
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "10px",
+                  display: "block",
+                  fontSize: "0.75rem",
+                  fontWeight: 800,
+                  color: "#334155",
+                  marginBottom: "6px",
                 }}
               >
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "0.72rem",
-                      fontWeight: 700,
-                      color: "#475569",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    Tanggal Uji:
-                  </label>
-                  <input
-                    type="date"
-                    value={evalForm.tanggal}
-                    onChange={(e) =>
-                      setEvalForm((prev) => ({
-                        ...prev,
-                        tanggal: e.target.value,
-                      }))
-                    }
-                    style={{
-                      width: "100%",
-                      padding: "8px 10px",
-                      borderRadius: "8px",
-                      border: "1px solid #cbd5e1",
-                      fontSize: "0.78rem",
-                      fontWeight: 600,
-                    }}
-                  />
-                </div>
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "0.72rem",
-                      fontWeight: 700,
-                      color: "#475569",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    Ustadz Penguji:
-                  </label>
-                  <input
-                    type="text"
-                    disabled
-                    value={currentPenguji}
-                    style={{
-                      width: "100%",
-                      padding: "8px 10px",
-                      borderRadius: "8px",
-                      border: "1px solid #e2e8f0",
-                      background: "#f1f5f9",
-                      fontSize: "0.78rem",
-                      fontWeight: 600,
-                      color: "#475569",
-                    }}
-                  />
-                </div>
-              </div>
+                1. Pilih Bidang Uji Pengembangan:
+              </label>
+              <select
+                value={evalForm.kategori_id}
+                onChange={(e) =>
+                  setEvalForm((prev) => ({
+                    ...prev,
+                    kategori_id: e.target.value,
+                    permasalahan: [],
+                    penyebab: [],
+                    tindakan: [],
+                  }))
+                }
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: "10px",
+                  border: "1px solid #cbd5e1",
+                  background: "#ffffff",
+                  fontSize: "0.82rem",
+                  fontWeight: 700,
+                  color: "#0f172a",
+                  outline: "none",
+                }}
+              >
+                {kategoriForEvalModal.map((k) => (
+                  <option key={k.id} value={k.id}>
+                    📘 {k.nama_kategori}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-              {/* STEP 2: STATUS KELULUSAN (LULUS vs BELUM LULUS - SMALL) */}
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.74rem",
-                    fontWeight: 800,
-                    color: "#334155",
-                    marginBottom: "5px",
-                  }}
-                >
-                  2. Hasil Keputusan Kelulusan:
-                </label>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: "8px",
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setEvalForm((prev) => ({
-                        ...prev,
-                        status_kelulusan: "Lulus",
-                      }))
-                    }
-                    style={{
-                      height: "36px",
-                      padding: "0 10px",
-                      borderRadius: "10px",
-                      border:
-                        evalForm.status_kelulusan === "Lulus"
-                          ? "1.5px solid #059669"
-                          : "1px solid #cbd5e1",
-                      background:
-                        evalForm.status_kelulusan === "Lulus"
-                          ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
-                          : "#ffffff",
-                      color:
-                        evalForm.status_kelulusan === "Lulus"
-                          ? "#ffffff"
-                          : "#475569",
-                      fontWeight: 800,
-                      fontSize: "0.76rem",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "5px",
-                      cursor: "pointer",
-                      boxShadow:
-                        evalForm.status_kelulusan === "Lulus"
-                          ? "0 3px 8px rgba(16,185,129,0.3)"
-                          : "none",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    <CheckCircle size={15} /> LULUS
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setEvalForm((prev) => ({
-                        ...prev,
-                        status_kelulusan: "Belum Lulus",
-                      }))
-                    }
-                    style={{
-                      height: "36px",
-                      padding: "0 10px",
-                      borderRadius: "10px",
-                      border:
-                        evalForm.status_kelulusan !== "Lulus"
-                          ? "1.5px solid #dc2626"
-                          : "1px solid #cbd5e1",
-                      background:
-                        evalForm.status_kelulusan !== "Lulus"
-                          ? "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"
-                          : "#ffffff",
-                      color:
-                        evalForm.status_kelulusan !== "Lulus"
-                          ? "#ffffff"
-                          : "#475569",
-                      fontWeight: 800,
-                      fontSize: "0.76rem",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "5px",
-                      cursor: "pointer",
-                      boxShadow:
-                        evalForm.status_kelulusan !== "Lulus"
-                          ? "0 3px 8px rgba(239,68,68,0.3)"
-                          : "none",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    <XCircle size={15} /> BELUM LULUS
-                  </button>
-                </div>
-              </div>
-
-              {/* STEP 3: CHECKLIST DIAGNOSTIK SAAT BELUM LULUS */}
-              {evalForm.status_kelulusan !== "Lulus" &&
-                activeEvalKategoriObj && (
-                  <div
-                    style={{
-                      background: "#fff1f2",
-                      border: "1.5px solid #fecdd3",
-                      borderRadius: "14px",
-                      padding: "12px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "12px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: "0.78rem",
-                        fontWeight: 800,
-                        color: "#991b1b",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                      }}
-                    >
-                      <AlertTriangle size={15} /> Checklist Diagnostik (
-                      {activeEvalKategoriObj.nama_kategori})
-                    </div>
-
-                    {/* (A) Permasalahan */}
-                    <div>
-                      <div
-                        style={{
-                          fontSize: "0.73rem",
-                          fontWeight: 800,
-                          color: "#b91c1c",
-                          marginBottom: "5px",
-                        }}
-                      >
-                        (A.) Permasalahan yang Ditemukan:
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "5px",
-                        }}
-                      >
-                        {(activeEvalKategoriObj.permasalahan || []).map(
-                          (p, idx) => {
-                            const checked = evalForm.permasalahan.includes(
-                              p.teks,
-                            );
-                            return (
-                              <label
-                                key={p.id}
-                                style={{
-                                  display: "flex",
-                                  alignItems: "flex-start",
-                                  gap: "8px",
-                                  background: checked ? "#fee2e2" : "#ffffff",
-                                  padding: "7px 9px",
-                                  borderRadius: "8px",
-                                  border: checked
-                                    ? "1px solid #f87171"
-                                    : "1px solid #e2e8f0",
-                                  fontSize: "0.73rem",
-                                  color: "#1e293b",
-                                  cursor: "pointer",
-                                }}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={() =>
-                                    handleToggleChecklist(
-                                      "permasalahan",
-                                      p.teks,
-                                    )
-                                  }
-                                  style={{
-                                    accentColor: "#dc2626",
-                                    marginTop: "2px",
-                                  }}
-                                />
-                                <span>
-                                  <strong>
-                                    {p.kode || String.fromCharCode(97 + idx)}.
-                                  </strong>{" "}
-                                  {p.teks}
-                                </span>
-                              </label>
-                            );
-                          },
-                        )}
-                      </div>
-                    </div>
-
-                    {/* (B) Penyebab */}
-                    <div>
-                      <div
-                        style={{
-                          fontSize: "0.73rem",
-                          fontWeight: 800,
-                          color: "#c2410c",
-                          marginBottom: "5px",
-                        }}
-                      >
-                        (B.) Faktor Penyebab:
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "5px",
-                        }}
-                      >
-                        {(activeEvalKategoriObj.penyebab || []).map(
-                          (p, idx) => {
-                            const checked = evalForm.penyebab.includes(p.teks);
-                            return (
-                              <label
-                                key={p.id}
-                                style={{
-                                  display: "flex",
-                                  alignItems: "flex-start",
-                                  gap: "8px",
-                                  background: checked ? "#ffedd5" : "#ffffff",
-                                  padding: "7px 9px",
-                                  borderRadius: "8px",
-                                  border: checked
-                                    ? "1px solid #fb923c"
-                                    : "1px solid #e2e8f0",
-                                  fontSize: "0.73rem",
-                                  color: "#1e293b",
-                                  cursor: "pointer",
-                                }}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={() =>
-                                    handleToggleChecklist("penyebab", p.teks)
-                                  }
-                                  style={{
-                                    accentColor: "#ea580c",
-                                    marginTop: "2px",
-                                  }}
-                                />
-                                <span>
-                                  <strong>
-                                    {p.kode || String.fromCharCode(97 + idx)}.
-                                  </strong>{" "}
-                                  {p.teks}
-                                </span>
-                              </label>
-                            );
-                          },
-                        )}
-                      </div>
-                    </div>
-
-                    {/* (C) Tindakan */}
-                    <div>
-                      <div
-                        style={{
-                          fontSize: "0.73rem",
-                          fontWeight: 800,
-                          color: "#047857",
-                          marginBottom: "5px",
-                        }}
-                      >
-                        (C.) Rekomendasi Tindakan / Pembinaan:
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "5px",
-                        }}
-                      >
-                        {(activeEvalKategoriObj.tindakan || []).map(
-                          (p, idx) => {
-                            const checked = evalForm.tindakan.includes(p.teks);
-                            return (
-                              <label
-                                key={p.id}
-                                style={{
-                                  display: "flex",
-                                  alignItems: "flex-start",
-                                  gap: "8px",
-                                  background: checked ? "#dcfce7" : "#ffffff",
-                                  padding: "7px 9px",
-                                  borderRadius: "8px",
-                                  border: checked
-                                    ? "1px solid #4ade80"
-                                    : "1px solid #e2e8f0",
-                                  fontSize: "0.73rem",
-                                  color: "#1e293b",
-                                  cursor: "pointer",
-                                }}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={() =>
-                                    handleToggleChecklist("tindakan", p.teks)
-                                  }
-                                  style={{
-                                    accentColor: "#16a34a",
-                                    marginTop: "2px",
-                                  }}
-                                />
-                                <span>
-                                  <strong>
-                                    {p.kode || String.fromCharCode(97 + idx)}.
-                                  </strong>{" "}
-                                  {p.teks}
-                                </span>
-                              </label>
-                            );
-                          },
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-              {/* Catatan Tambahan */}
+            {/* Tanggal & Penguji */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "10px",
+              }}
+            >
               <div>
                 <label
                   style={{
@@ -3038,80 +2645,463 @@ export default function MobilePengembangan() {
                     marginBottom: "4px",
                   }}
                 >
-                  Catatan Tambahan Penguji (Opsional):
+                  Tanggal Uji:
                 </label>
-                <textarea
-                  rows={2}
-                  value={evalForm.catatan_tambahan}
+                <input
+                  type="date"
+                  value={evalForm.tanggal}
                   onChange={(e) =>
                     setEvalForm((prev) => ({
                       ...prev,
-                      catatan_tambahan: e.target.value,
+                      tanggal: e.target.value,
                     }))
                   }
-                  placeholder="Tuliskan catatan kemajuan santri di sini..."
                   style={{
                     width: "100%",
                     padding: "8px 10px",
                     borderRadius: "8px",
                     border: "1px solid #cbd5e1",
                     fontSize: "0.78rem",
-                    resize: "none",
-                    outline: "none",
+                    fontWeight: 600,
                   }}
                 />
               </div>
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    color: "#475569",
+                    marginBottom: "4px",
+                  }}
+                >
+                  Ustadz Penguji:
+                </label>
+                <input
+                  type="text"
+                  disabled
+                  value={currentPenguji}
+                  style={{
+                    width: "100%",
+                    padding: "8px 10px",
+                    borderRadius: "8px",
+                    border: "1px solid #e2e8f0",
+                    background: "#f1f5f9",
+                    fontSize: "0.78rem",
+                    fontWeight: 600,
+                    color: "#475569",
+                  }}
+                />
+              </div>
+            </div>
 
-              {/* Action Buttons */}
+            {/* STEP 2: STATUS KELULUSAN (LULUS vs BELUM LULUS - SMALL) */}
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "0.74rem",
+                  fontWeight: 800,
+                  color: "#334155",
+                  marginBottom: "5px",
+                }}
+              >
+                2. Hasil Keputusan Kelulusan:
+              </label>
               <div
                 style={{
-                  display: "flex",
-                  gap: "10px",
-                  paddingTop: "6px",
-                  borderTop: "1px solid #e2e8f0",
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "8px",
                 }}
               >
                 <button
                   type="button"
-                  onClick={handleCloseEvalModal}
+                  onClick={() =>
+                    setEvalForm((prev) => ({
+                      ...prev,
+                      status_kelulusan: "Lulus",
+                    }))
+                  }
                   style={{
-                    flex: 1,
-                    padding: "11px",
+                    height: "36px",
+                    padding: "0 10px",
                     borderRadius: "10px",
-                    border: "1px solid #cbd5e1",
-                    background: "#ffffff",
-                    color: "#475569",
-                    fontWeight: 700,
-                    fontSize: "0.8rem",
-                    cursor: "pointer",
-                  }}
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  style={{
-                    flex: 2,
-                    padding: "11px",
-                    borderRadius: "10px",
-                    border: "none",
-                    background: "#0284c7",
-                    color: "#ffffff",
+                    border:
+                      evalForm.status_kelulusan === "Lulus"
+                        ? "1.5px solid #059669"
+                        : "1px solid #cbd5e1",
+                    background:
+                      evalForm.status_kelulusan === "Lulus"
+                        ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
+                        : "#ffffff",
+                    color:
+                      evalForm.status_kelulusan === "Lulus"
+                        ? "#ffffff"
+                        : "#475569",
                     fontWeight: 800,
-                    fontSize: "0.82rem",
-                    cursor: "pointer",
+                    fontSize: "0.76rem",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    gap: "5px",
+                    cursor: "pointer",
+                    boxShadow:
+                      evalForm.status_kelulusan === "Lulus"
+                        ? "0 3px 8px rgba(16,185,129,0.3)"
+                        : "none",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <CheckCircle size={15} /> LULUS
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEvalForm((prev) => ({
+                      ...prev,
+                      status_kelulusan: "Belum Lulus",
+                    }))
+                  }
+                  style={{
+                    height: "36px",
+                    padding: "0 10px",
+                    borderRadius: "10px",
+                    border:
+                      evalForm.status_kelulusan !== "Lulus"
+                        ? "1.5px solid #dc2626"
+                        : "1px solid #cbd5e1",
+                    background:
+                      evalForm.status_kelulusan !== "Lulus"
+                        ? "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"
+                        : "#ffffff",
+                    color:
+                      evalForm.status_kelulusan !== "Lulus"
+                        ? "#ffffff"
+                        : "#475569",
+                    fontWeight: 800,
+                    fontSize: "0.76rem",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "5px",
+                    cursor: "pointer",
+                    boxShadow:
+                      evalForm.status_kelulusan !== "Lulus"
+                        ? "0 3px 8px rgba(239,68,68,0.3)"
+                        : "none",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <XCircle size={15} /> BELUM LULUS
+                </button>
+              </div>
+            </div>
+
+            {/* STEP 3: CHECKLIST DIAGNOSTIK SAAT BELUM LULUS */}
+            {evalForm.status_kelulusan !== "Lulus" && activeEvalKategoriObj && (
+              <div
+                style={{
+                  background: "#fff1f2",
+                  border: "1.5px solid #fecdd3",
+                  borderRadius: "14px",
+                  padding: "12px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "12px",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "0.78rem",
+                    fontWeight: 800,
+                    color: "#991b1b",
+                    display: "flex",
+                    alignItems: "center",
                     gap: "6px",
                   }}
                 >
-                  <Save size={15} />{" "}
-                  {submitting ? "Menyimpan..." : "Simpan Evaluasi"}
-                </button>
+                  <AlertTriangle size={15} /> Checklist Diagnostik (
+                  {activeEvalKategoriObj.nama_kategori})
+                </div>
+
+                {/* (A) Permasalahan */}
+                <div>
+                  <div
+                    style={{
+                      fontSize: "0.73rem",
+                      fontWeight: 800,
+                      color: "#b91c1c",
+                      marginBottom: "5px",
+                    }}
+                  >
+                    (A.) Permasalahan yang Ditemukan:
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "5px",
+                    }}
+                  >
+                    {(activeEvalKategoriObj.permasalahan || []).map(
+                      (p, idx) => {
+                        const checked = evalForm.permasalahan.includes(p.teks);
+                        return (
+                          <label
+                            key={p.id}
+                            style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: "8px",
+                              background: checked ? "#fee2e2" : "#ffffff",
+                              padding: "7px 9px",
+                              borderRadius: "8px",
+                              border: checked
+                                ? "1px solid #f87171"
+                                : "1px solid #e2e8f0",
+                              fontSize: "0.73rem",
+                              color: "#1e293b",
+                              cursor: "pointer",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() =>
+                                handleToggleChecklist("permasalahan", p.teks)
+                              }
+                              style={{
+                                accentColor: "#dc2626",
+                                marginTop: "2px",
+                              }}
+                            />
+                            <span>
+                              <strong>
+                                {p.kode || String.fromCharCode(97 + idx)}.
+                              </strong>{" "}
+                              {p.teks}
+                            </span>
+                          </label>
+                        );
+                      },
+                    )}
+                  </div>
+                </div>
+
+                {/* (B) Penyebab */}
+                <div>
+                  <div
+                    style={{
+                      fontSize: "0.73rem",
+                      fontWeight: 800,
+                      color: "#c2410c",
+                      marginBottom: "5px",
+                    }}
+                  >
+                    (B.) Faktor Penyebab:
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "5px",
+                    }}
+                  >
+                    {(activeEvalKategoriObj.penyebab || []).map((p, idx) => {
+                      const checked = evalForm.penyebab.includes(p.teks);
+                      return (
+                        <label
+                          key={p.id}
+                          style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: "8px",
+                            background: checked ? "#ffedd5" : "#ffffff",
+                            padding: "7px 9px",
+                            borderRadius: "8px",
+                            border: checked
+                              ? "1px solid #fb923c"
+                              : "1px solid #e2e8f0",
+                            fontSize: "0.73rem",
+                            color: "#1e293b",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() =>
+                              handleToggleChecklist("penyebab", p.teks)
+                            }
+                            style={{
+                              accentColor: "#ea580c",
+                              marginTop: "2px",
+                            }}
+                          />
+                          <span>
+                            <strong>
+                              {p.kode || String.fromCharCode(97 + idx)}.
+                            </strong>{" "}
+                            {p.teks}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* (C) Tindakan */}
+                <div>
+                  <div
+                    style={{
+                      fontSize: "0.73rem",
+                      fontWeight: 800,
+                      color: "#047857",
+                      marginBottom: "5px",
+                    }}
+                  >
+                    (C.) Rekomendasi Tindakan / Pembinaan:
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "5px",
+                    }}
+                  >
+                    {(activeEvalKategoriObj.tindakan || []).map((p, idx) => {
+                      const checked = evalForm.tindakan.includes(p.teks);
+                      return (
+                        <label
+                          key={p.id}
+                          style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: "8px",
+                            background: checked ? "#dcfce7" : "#ffffff",
+                            padding: "7px 9px",
+                            borderRadius: "8px",
+                            border: checked
+                              ? "1px solid #4ade80"
+                              : "1px solid #e2e8f0",
+                            fontSize: "0.73rem",
+                            color: "#1e293b",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() =>
+                              handleToggleChecklist("tindakan", p.teks)
+                            }
+                            style={{
+                              accentColor: "#16a34a",
+                              marginTop: "2px",
+                            }}
+                          />
+                          <span>
+                            <strong>
+                              {p.kode || String.fromCharCode(97 + idx)}.
+                            </strong>{" "}
+                            {p.teks}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-            </form>
+            )}
+
+            {/* Catatan Tambahan */}
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "0.72rem",
+                  fontWeight: 700,
+                  color: "#475569",
+                  marginBottom: "4px",
+                }}
+              >
+                Catatan Tambahan Penguji (Opsional):
+              </label>
+              <textarea
+                rows={2}
+                value={evalForm.catatan_tambahan}
+                onChange={(e) =>
+                  setEvalForm((prev) => ({
+                    ...prev,
+                    catatan_tambahan: e.target.value,
+                  }))
+                }
+                placeholder="Tuliskan catatan kemajuan santri di sini..."
+                style={{
+                  width: "100%",
+                  padding: "8px 10px",
+                  borderRadius: "8px",
+                  border: "1px solid #cbd5e1",
+                  fontSize: "0.78rem",
+                  resize: "none",
+                  outline: "none",
+                }}
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                paddingTop: "6px",
+                borderTop: "1px solid #e2e8f0",
+              }}
+            >
+              <button
+                type="button"
+                onClick={handleCloseEvalModal}
+                style={{
+                  flex: 1,
+                  padding: "11px",
+                  borderRadius: "10px",
+                  border: "1px solid #cbd5e1",
+                  background: "#ffffff",
+                  color: "#475569",
+                  fontWeight: 700,
+                  fontSize: "0.8rem",
+                  cursor: "pointer",
+                }}
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                style={{
+                  flex: 2,
+                  padding: "11px",
+                  borderRadius: "10px",
+                  border: "none",
+                  background: "#0284c7",
+                  color: "#ffffff",
+                  fontWeight: 800,
+                  fontSize: "0.82rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                }}
+              >
+                <Save size={15} />{" "}
+                {submitting ? "Menyimpan..." : "Simpan Evaluasi"}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

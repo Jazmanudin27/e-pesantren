@@ -15,13 +15,19 @@ import {
   User,
   Check,
   ChevronRight,
+  ChevronDown,
+  Filter,
+  X,
   Sparkles
 } from "lucide-react";
 
 export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "semua" }) {
   const [loading, setLoading] = useState(true);
   const [periode, setPeriode] = useState("hari_ini");
+  const [selectedTanggal, setSelectedTanggal] = useState("");
   const [statusFilter, setStatusFilter] = useState(initialStatus || "Semua");
+  const [filterKelas, setFilterKelas] = useState("Semua");
+  const [filterSesi, setFilterSesi] = useState("Semua");
   const [searchTable, setSearchTable] = useState("");
 
   const [data, setData] = useState({
@@ -47,7 +53,7 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "
   const fetchData = async () => {
     try {
       setLoading(true);
-      const url = `/api/owner/presensi?periode=${periode}${tipe && tipe !== "semua" ? `&tipe=${tipe}` : ""}`;
+      const url = `/api/owner/presensi?${selectedTanggal ? `tanggal=${selectedTanggal}` : `periode=${periode}`}${tipe && tipe !== "semua" ? `&tipe=${tipe}` : ""}`;
       const res = await axios.get(url);
       if (res.data?.success && res.data.data) {
         setData(res.data.data);
@@ -61,7 +67,7 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "
 
   useEffect(() => {
     fetchData();
-  }, [periode, tipe]);
+  }, [periode, tipe, selectedTanggal]);
 
   const s = data.summary || {};
   const totalPresensi = (s.hadir || 0) + (s.sakit || 0) + (s.izin || 0) + (s.alfa || 0);
@@ -70,15 +76,41 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "
   const izinPct = totalPresensi > 0 ? Math.round(((s.izin || 0) / totalPresensi) * 100) : 0;
   const alfaPct = totalPresensi > 0 ? Math.round(((s.alfa || 0) / totalPresensi) * 100) : 0;
 
-  const filteredLogs = (data.logPresensi || []).filter((p) => {
-    const q = searchTable.toLowerCase();
-    const matchQuery =
-      (p.nama_santri || "").toLowerCase().includes(q) ||
-      (p.nis || "").toLowerCase().includes(q) ||
-      (p.nama_kelas || "").toLowerCase().includes(q) ||
-      (p.nama_kegiatan || "").toLowerCase().includes(q);
+  const availableKelas = Array.from(
+    new Set((data.logPresensi || []).map((p) => p.nama_kelas).filter(Boolean))
+  ).sort();
 
-    if (!matchQuery) return false;
+  const availableSesi = Array.from(
+    new Set(
+      [
+        ...(data.rekapPerSesi || []).map((ses) => ses.nama_kegiatan || ses.nama_sesi),
+        ...(data.logPresensi || []).map((p) => p.nama_kegiatan || p.nama_sesi)
+      ].filter(Boolean)
+    )
+  ).sort();
+
+  const filteredLogs = (data.logPresensi || []).filter((p) => {
+    const q = searchTable.toLowerCase().trim();
+    if (q) {
+      const matchQuery =
+        (p.nama_santri || "").toLowerCase().includes(q) ||
+        (p.nis || "").toLowerCase().includes(q) ||
+        (p.nama_kelas || "").toLowerCase().includes(q) ||
+        (p.nama_kegiatan || p.nama_sesi || "").toLowerCase().includes(q);
+      if (!matchQuery) return false;
+    }
+
+    if (filterKelas && filterKelas !== "Semua") {
+      if ((p.nama_kelas || "").toLowerCase() !== filterKelas.toLowerCase()) {
+        return false;
+      }
+    }
+
+    if (filterSesi && filterSesi !== "Semua") {
+      if ((p.nama_kegiatan || p.nama_sesi || "").toLowerCase() !== filterSesi.toLowerCase()) {
+        return false;
+      }
+    }
 
     if (statusFilter === "Semua") return true;
     const st = (p.status || "").toLowerCase();
@@ -104,49 +136,111 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px", paddingBottom: "24px" }}>
       
-      {/* 1. PERIODE FILTER PILLS */}
+      {/* 1. PERIODE & TANGGAL FILTER */}
       <div
         style={{
           display: "flex",
+          flexDirection: "column",
+          gap: "6px",
           background: "#ffffff",
-          borderRadius: "14px",
-          padding: "4px",
+          borderRadius: "16px",
+          padding: "6px 8px",
           border: "1px solid #e2e8f0",
           boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
-          gap: "4px"
         }}
       >
-        {[
-          { key: "hari_ini", label: "Hari Ini" },
-          { key: "bulan_ini", label: "Bulan Ini" },
-          { key: "tahun_ini", label: "Tahun Ini" }
-        ].map((p) => {
-          const isActive = periode === p.key;
-          return (
+        <div style={{ display: "flex", gap: "4px" }}>
+          {[
+            { key: "hari_ini", label: "Hari Ini" },
+            { key: "bulan_ini", label: "Bulan Ini" },
+            { key: "tahun_ini", label: "Tahun Ini" }
+          ].map((p) => {
+            const isActive = !selectedTanggal && periode === p.key;
+            return (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => {
+                  setSelectedTanggal("");
+                  setPeriode(p.key);
+                }}
+                style={{
+                  flex: 1,
+                  border: "none",
+                  background: isActive
+                    ? "linear-gradient(135deg, #0d766e 0%, #059669 100%)"
+                    : "transparent",
+                  color: isActive ? "#ffffff" : "#64748b",
+                  fontWeight: isActive ? 800 : 600,
+                  fontSize: "0.74rem",
+                  padding: "7px 4px",
+                  borderRadius: "10px",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                  boxShadow: isActive ? "0 4px 10px rgba(13, 118, 110, 0.25)" : "none"
+                }}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Custom Date Picker Input */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            background: selectedTanggal ? "#f0fdf4" : "#f8fafc",
+            border: selectedTanggal ? "1.5px solid #10b981" : "1px solid #e2e8f0",
+            borderRadius: "10px",
+            padding: "5px 10px",
+            transition: "all 0.15s ease",
+          }}
+        >
+          <Calendar size={15} color={selectedTanggal ? "#059669" : "#64748b"} />
+          <span style={{ fontSize: "0.68rem", fontWeight: 700, color: selectedTanggal ? "#047857" : "#64748b" }}>
+            Pilih Tanggal:
+          </span>
+          <input
+            type="date"
+            value={selectedTanggal}
+            onChange={(e) => setSelectedTanggal(e.target.value)}
+            style={{
+              flex: 1,
+              border: "none",
+              background: "transparent",
+              fontSize: "0.74rem",
+              fontWeight: 700,
+              color: "#0f172a",
+              outline: "none",
+              cursor: "pointer",
+            }}
+          />
+          {selectedTanggal && (
             <button
-              key={p.key}
               type="button"
-              onClick={() => setPeriode(p.key)}
+              onClick={() => setSelectedTanggal("")}
+              title="Reset ke periode default"
               style={{
-                flex: 1,
                 border: "none",
-                background: isActive
-                  ? "linear-gradient(135deg, #0d766e 0%, #059669 100%)"
-                  : "transparent",
-                color: isActive ? "#ffffff" : "#64748b",
-                fontWeight: isActive ? 800 : 600,
-                fontSize: "0.74rem",
-                padding: "8px 4px",
-                borderRadius: "10px",
+                background: "#dcfce7",
+                color: "#166534",
+                borderRadius: "50%",
+                width: "18px",
+                height: "18px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
                 cursor: "pointer",
-                transition: "all 0.2s ease",
-                boxShadow: isActive ? "0 4px 10px rgba(13, 118, 110, 0.25)" : "none"
+                padding: 0,
               }}
             >
-              {p.label}
+              <X size={11} strokeWidth={3} />
             </button>
-          );
-        })}
+          )}
+        </div>
       </div>
 
       {/* 2. REKAP STATUS KEHADIRAN (4 PASTEL TOUCHABLE CARDS) */}
@@ -385,56 +479,80 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "
           </div>
 
           <div style={{ display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "4px" }}>
-            {data.rekapPerSesi.map((sesi, idx) => (
-              <div
-                key={idx}
-                style={{
-                  background: "#f8fafc",
-                  borderRadius: "12px",
-                  padding: "8px 10px",
-                  border: "1px solid #e2e8f0",
-                  minWidth: "115px",
-                  flexShrink: 0
-                }}
-              >
-                <div style={{ fontSize: "0.72rem", fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap" }}>
-                  {sesi.nama_sesi || sesi.nama_kegiatan || `Sesi ${idx + 1}`}
-                </div>
-                <div style={{ display: "flex", gap: "6px", marginTop: "4px", fontSize: "0.6rem" }}>
-                  <span style={{ color: "#15803d", fontWeight: 700 }}>H: {sesi.hadir || 0}</span>
-                  <span style={{ color: "#b91c1c", fontWeight: 700 }}>S/I: {(sesi.sakit || 0) + (sesi.izin || 0)}</span>
-                  <span style={{ color: "#0f766e", fontWeight: 700 }}>A: {sesi.alfa || 0}</span>
-                </div>
-              </div>
-            ))}
+            {data.rekapPerSesi.map((sesi, idx) => {
+              const sesiName = sesi.nama_sesi || sesi.nama_kegiatan || `Sesi ${idx + 1}`;
+              const isSelected = filterSesi === sesiName;
+              const jHadir = sesi.jml_hadir ?? sesi.hadir ?? 0;
+              const jSI = Number(sesi.jml_sakit ?? sesi.sakit ?? 0) + Number(sesi.jml_izin ?? sesi.izin ?? 0);
+              const jAlfa = sesi.jml_alfa ?? sesi.alfa ?? 0;
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setFilterSesi(isSelected ? "Semua" : sesiName)}
+                  style={{
+                    textAlign: "left",
+                    background: isSelected ? "#f0fdfa" : "#f8fafc",
+                    borderRadius: "12px",
+                    padding: "8px 10px",
+                    border: isSelected ? "1.5px solid #0d766e" : "1px solid #e2e8f0",
+                    minWidth: "115px",
+                    flexShrink: 0,
+                    cursor: "pointer"
+                  }}
+                >
+                  <div style={{ fontSize: "0.72rem", fontWeight: 800, color: isSelected ? "#0f766e" : "#0f172a", whiteSpace: "nowrap" }}>
+                    {sesiName}
+                  </div>
+                  <div style={{ display: "flex", gap: "6px", marginTop: "4px", fontSize: "0.6rem" }}>
+                    <span style={{ color: "#15803d", fontWeight: 700 }}>H: {jHadir}</span>
+                    <span style={{ color: "#b91c1c", fontWeight: 700 }}>S/I: {jSI}</span>
+                    <span style={{ color: "#0f766e", fontWeight: 700 }}>A: {jAlfa}</span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* 4. SEARCH & STATUS FILTER BAR */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      {/* 4. SEARCH & ADVANCED FILTERS (KELAS, SESI, STATUS) */}
+      <div
+        style={{
+          background: "#ffffff",
+          borderRadius: "16px",
+          padding: "12px 14px",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px"
+        }}
+      >
+        {/* Search input with Clear Icon */}
         <div
           style={{
             position: "relative",
-            background: "#ffffff",
+            background: "#f8fafc",
             borderRadius: "12px",
             border: "1px solid #e2e8f0",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.02)"
+            display: "flex",
+            alignItems: "center"
           }}
         >
           <Search
-            size={16}
+            size={15}
             color="#94a3b8"
-            style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }}
+            style={{ position: "absolute", left: "10px" }}
           />
           <input
             type="text"
-            placeholder="Cari santri, sesi shalat, kelas..."
+            placeholder="Cari santri, sesi, kelas..."
             value={searchTable}
             onChange={(e) => setSearchTable(e.target.value)}
             style={{
               width: "100%",
-              padding: "9px 12px 9px 36px",
+              padding: "8px 30px 8px 32px",
               border: "none",
               outline: "none",
               borderRadius: "12px",
@@ -444,10 +562,137 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "
               boxSizing: "border-box"
             }}
           />
+          {searchTable && (
+            <button
+              type="button"
+              onClick={() => setSearchTable("")}
+              style={{
+                position: "absolute",
+                right: "8px",
+                background: "none",
+                border: "none",
+                padding: "2px",
+                cursor: "pointer",
+                display: "flex",
+                color: "#94a3b8"
+              }}
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        {/* 2-Column Selects: Kelas & Sesi */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+          {/* Select Kelas */}
+          <div style={{ position: "relative" }}>
+            <label
+              style={{
+                display: "block",
+                fontSize: "0.62rem",
+                fontWeight: 700,
+                color: "#64748b",
+                marginBottom: "3px"
+              }}
+            >
+              Kelas
+            </label>
+            <div style={{ position: "relative" }}>
+              <select
+                value={filterKelas}
+                onChange={(e) => setFilterKelas(e.target.value)}
+                style={{
+                  width: "100%",
+                  appearance: "none",
+                  WebkitAppearance: "none",
+                  padding: "7px 24px 7px 10px",
+                  borderRadius: "10px",
+                  border: filterKelas !== "Semua" ? "1.5px solid #0d766e" : "1px solid #cbd5e1",
+                  background: filterKelas !== "Semua" ? "#f0fdfa" : "#f8fafc",
+                  color: filterKelas !== "Semua" ? "#0f766e" : "#0f172a",
+                  fontSize: "0.72rem",
+                  fontWeight: 700,
+                  outline: "none",
+                  cursor: "pointer"
+                }}
+              >
+                <option value="Semua">Semua Kelas</option>
+                {availableKelas.map((k) => (
+                  <option key={k} value={k}>
+                    {k}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={14}
+                color="#64748b"
+                style={{
+                  position: "absolute",
+                  right: "8px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  pointerEvents: "none"
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Select Sesi / Kegiatan */}
+          <div style={{ position: "relative" }}>
+            <label
+              style={{
+                display: "block",
+                fontSize: "0.62rem",
+                fontWeight: 700,
+                color: "#64748b",
+                marginBottom: "3px"
+              }}
+            >
+              {tipe === "berjamaah" ? "Sesi Shalat" : tipe === "mengaji" ? "Kegiatan" : "Sesi / Kegiatan"}
+            </label>
+            <div style={{ position: "relative" }}>
+              <select
+                value={filterSesi}
+                onChange={(e) => setFilterSesi(e.target.value)}
+                style={{
+                  width: "100%",
+                  appearance: "none",
+                  WebkitAppearance: "none",
+                  padding: "7px 24px 7px 10px",
+                  borderRadius: "10px",
+                  border: filterSesi !== "Semua" ? "1.5px solid #0d766e" : "1px solid #cbd5e1",
+                  background: filterSesi !== "Semua" ? "#f0fdfa" : "#f8fafc",
+                  color: filterSesi !== "Semua" ? "#0f766e" : "#0f172a",
+                  fontSize: "0.72rem",
+                  fontWeight: 700,
+                  outline: "none",
+                  cursor: "pointer"
+                }}
+              >
+                <option value="Semua">Semua Sesi</option>
+                {availableSesi.map((sItem) => (
+                  <option key={sItem} value={sItem}>
+                    {sItem}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={14}
+                color="#64748b"
+                style={{
+                  position: "absolute",
+                  right: "8px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  pointerEvents: "none"
+                }}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Status Filter Badges */}
-        <div style={{ display: "flex", gap: "6px", overflowX: "auto", paddingBottom: "2px" }}>
+        <div style={{ display: "flex", gap: "6px", overflowX: "auto", paddingBottom: "2px", alignItems: "center" }}>
           {["Semua", "Hadir", "Sakit", "Izin", "Alfa"].map((st) => {
             const isSel = statusFilter === st;
             return (
@@ -472,6 +717,54 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "
             );
           })}
         </div>
+
+        {/* Active Filters Reset Indicator */}
+        {(searchTable || filterKelas !== "Semua" || filterSesi !== "Semua" || statusFilter !== "Semua" || selectedTanggal) && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              background: "#f0fdfa",
+              border: "1px dashed #99f6e4",
+              borderRadius: "10px",
+              padding: "6px 10px",
+              marginTop: "2px"
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.68rem", color: "#0f766e", fontWeight: 700 }}>
+              <Filter size={12} />
+              <span>Ditemukan {filteredLogs.length} data tersaring</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTable("");
+                setFilterKelas("Semua");
+                setFilterSesi("Semua");
+                setStatusFilter("Semua");
+                setSelectedTanggal("");
+                setPeriode("hari_ini");
+              }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                background: "#ffffff",
+                border: "1px solid #ccfbf1",
+                borderRadius: "6px",
+                padding: "2px 8px",
+                fontSize: "0.64rem",
+                color: "#0f766e",
+                fontWeight: 700,
+                cursor: "pointer"
+              }}
+            >
+              <X size={10} />
+              <span>Reset</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 5. MOBILE LIST CARDS: LOG PRESENSI REALTIME */}
@@ -576,7 +869,7 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "
                       {item.nama_kegiatan || item.nama_sesi || "Shalat Berjamaah"} {item.nama_kelas ? `• ${item.nama_kelas}` : ""}
                     </div>
                     <div style={{ fontSize: "0.6rem", color: "#94a3b8", marginTop: "1px" }}>
-                      {item.jam_absen || item.waktu || formatDate(item.tanggal)} • {item.metode || "Fingerprint / AI"}
+                      {item.waktu_scan || item.jam_absen || item.waktu || formatDate(item.tanggal)} • {item.metode_presensi || item.metode || "Fingerprint / AI"}
                     </div>
                   </div>
                 </div>
