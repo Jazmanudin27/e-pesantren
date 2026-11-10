@@ -94,9 +94,29 @@ export default function PanelKantongDanBukuKas({
   const [unsettledMidtrans, setUnsettledMidtrans] = useState([]);
   const [bukuKas, setBukuKas] = useState([]);
 
+  // Tab Aktif Kantong: 'tunai' | 'bank' | 'midtrans' | 'buku_kas'
+  const [activeKantongTab, setActiveKantongTab] = useState("tunai");
+
   // Filter Buku Kas
   const [filterJenis, setFilterJenis] = useState("semua");
-  const [filterKantong, setFilterKantong] = useState("semua");
+  const [filterKantong, setFilterKantong] = useState("Kas Tunai");
+
+  const handleSelectKantongTab = (tab) => {
+    setActiveKantongTab(tab);
+    if (tab === "tunai") {
+      setFilterKantong("Kas Tunai");
+      setFilterJenis("semua");
+    } else if (tab === "bank") {
+      setFilterKantong("Rekening Bank");
+      setFilterJenis("semua");
+    } else if (tab === "midtrans") {
+      setFilterKantong("Midtrans");
+      setFilterJenis("semua");
+    } else {
+      setFilterKantong("semua");
+      setFilterJenis("semua");
+    }
+  };
 
   // Modal Form Buku Kas (Pengeluaran, Pemasukan Lain, Setor Tunai, Tarik Tunai)
   const [formModal, setFormModal] = useState({
@@ -472,15 +492,135 @@ export default function PanelKantongDanBukuKas({
         </div>
       </div>
 
-      {/* 2. TIGA KANTONG SALDO UTAMA */}
+      {/* 2. TAB SWITCHER KANTONG SALDO & BUKU KAS */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-          gap: "10px",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: "6px",
+          background: "#ffffff",
+          padding: "5px",
+          borderRadius: "16px",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 4px 12px rgba(15, 23, 42, 0.04)",
         }}
       >
+        {[
+          {
+            id: "tunai",
+            label: "Kas Tunai",
+            sub: formatRp(kantong.saldo_kas_tunai),
+            Icon: Wallet,
+            activeBg: "linear-gradient(135deg, #059669 0%, #047857 100%)",
+            activeColor: "#ffffff",
+            dotColor: "#10b981",
+          },
+          {
+            id: "bank",
+            label: "Rek. Bank",
+            sub: formatRp(kantong.saldo_rekening_bank),
+            Icon: Building2,
+            activeBg: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+            activeColor: "#ffffff",
+            dotColor: "#0ea5e9",
+          },
+          {
+            id: "midtrans",
+            label: "Midtrans",
+            sub: formatRp(kantong.saldo_mengendap_midtrans),
+            badge: kantong.jumlah_trx_mengendap_midtrans,
+            Icon: QrCode,
+            activeBg: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)",
+            activeColor: "#ffffff",
+            dotColor: "#8b5cf6",
+          },
+          {
+            id: "buku_kas",
+            label: "Buku Kas",
+            sub: `${bukuKas.length} Mutasi`,
+            Icon: FileText,
+            activeBg: "linear-gradient(135deg, #0f172a 0%, #334155 100%)",
+            activeColor: "#ffffff",
+            dotColor: "#475569",
+          },
+        ].map((tab) => {
+          const isActive = activeKantongTab === tab.id;
+          const TabIcon = tab.Icon;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => handleSelectKantongTab(tab.id)}
+              style={{
+                border: isActive ? "none" : "1px solid transparent",
+                background: isActive ? tab.activeBg : "#f8fafc",
+                color: isActive ? tab.activeColor : "#334155",
+                borderRadius: "12px",
+                padding: "9px 6px",
+                cursor: "pointer",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "3px",
+                position: "relative",
+                transition: "all 0.16s ease",
+                boxShadow: isActive ? "0 4px 12px rgba(15, 23, 42, 0.16)" : "none",
+                minWidth: 0,
+              }}
+            >
+              {tab.badge > 0 && (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: "4px",
+                    right: "4px",
+                    background: isActive ? "#fef3c7" : "#7c3aed",
+                    color: isActive ? "#6d28d9" : "#ffffff",
+                    fontSize: "0.56rem",
+                    fontWeight: 900,
+                    padding: "1px 5px",
+                    borderRadius: "999px",
+                  }}
+                >
+                  {tab.badge}
+                </span>
+              )}
+              <TabIcon size={16} color={isActive ? "#ffffff" : tab.dotColor} />
+              <span
+                style={{
+                  fontSize: "0.7rem",
+                  fontWeight: 800,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  maxWidth: "100%",
+                }}
+              >
+                {tab.label}
+              </span>
+              <span
+                style={{
+                  fontSize: "0.6rem",
+                  fontWeight: 700,
+                  opacity: isActive ? 0.92 : 0.75,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  maxWidth: "100%",
+                }}
+              >
+                {tab.sub}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 3. DETAIL KANTONG SESUAI TAB AKTIF */}
+      <div>
         {/* KANTONG 1: KAS TUNAI DI TANGAN */}
+        {activeKantongTab === "tunai" && (
         <div
           style={{
             background: "#ffffff",
@@ -622,8 +762,10 @@ export default function PanelKantongDanBukuKas({
             </div>
           )}
         </div>
+        )}
 
         {/* KANTONG 2: SALDO REKENING BANK PESANTREN */}
+        {activeKantongTab === "bank" && (
         <div
           style={{
             background: "#ffffff",
@@ -763,8 +905,10 @@ export default function PanelKantongDanBukuKas({
             </div>
           )}
         </div>
+        )}
 
         {/* KANTONG 3: SALDO MENGENDAP MIDTRANS (BELUM CAIR) */}
+        {activeKantongTab === "midtrans" && (
         <div
           style={{
             background: "#ffffff",
@@ -845,6 +989,55 @@ export default function PanelKantongDanBukuKas({
             </div>
           </div>
 
+          {unsettledMidtrans.length > 0 && (
+            <div
+              style={{
+                marginTop: "12px",
+                background: "#faf5ff",
+                border: "1px solid #e9d5ff",
+                borderRadius: "12px",
+                padding: "10px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "6px",
+                maxHeight: "220px",
+                overflowY: "auto",
+              }}
+            >
+              <div style={{ fontSize: "0.66rem", fontWeight: 800, color: "#6d28d9" }}>
+                Daftar Transaksi Midtrans Menunggu Pencairan ({unsettledMidtrans.length}):
+              </div>
+              {unsettledMidtrans.map((u) => (
+                <div
+                  key={u.id}
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #ede9fe",
+                    borderRadius: "9px",
+                    padding: "7px 9px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "8px",
+                    fontSize: "0.68rem",
+                  }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 800, color: "#0f172a" }}>
+                      {u.nama_santri} ({u.nis || "-"})
+                    </div>
+                    <div style={{ fontSize: "0.62rem", color: "#64748b" }}>
+                      {u.nomor_transaksi} • {formatDateId(u.tanggal_bayar)}
+                    </div>
+                  </div>
+                  <div style={{ fontWeight: 900, color: "#6d28d9", whiteSpace: "nowrap" }}>
+                    {formatRp(u.nominal_pokok || u.total_bayar)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {!readOnly && (
             <button
               type="button"
@@ -883,10 +1076,11 @@ export default function PanelKantongDanBukuKas({
             </button>
           )}
         </div>
+        )}
       </div>
 
-      {/* 3. BAR AKSI BUKU KAS & MUTASI (KHUSUS BENDAHARA / ADMIN) */}
-      {!readOnly && (
+      {/* 3. BAR AKSI BUKU KAS & MUTASI (KHUSUS TAB BUKU KAS) */}
+      {!readOnly && activeKantongTab === "buku_kas" && (
         <div
           style={{
             background: "#ffffff",
