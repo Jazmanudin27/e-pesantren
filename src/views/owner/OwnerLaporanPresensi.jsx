@@ -18,7 +18,7 @@ import {
   Sparkles
 } from "lucide-react";
 
-export default function OwnerLaporanPresensi({ initialStatus = "Semua" }) {
+export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "semua" }) {
   const [loading, setLoading] = useState(true);
   const [periode, setPeriode] = useState("hari_ini");
   const [statusFilter, setStatusFilter] = useState(initialStatus || "Semua");
@@ -47,7 +47,8 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua" }) {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`/api/owner/presensi?periode=${periode}`);
+      const url = `/api/owner/presensi?periode=${periode}${tipe && tipe !== "semua" ? `&tipe=${tipe}` : ""}`;
+      const res = await axios.get(url);
       if (res.data?.success && res.data.data) {
         setData(res.data.data);
       }
@@ -60,7 +61,7 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua" }) {
 
   useEffect(() => {
     fetchData();
-  }, [periode]);
+  }, [periode, tipe]);
 
   const s = data.summary || {};
   const totalPresensi = (s.hadir || 0) + (s.sakit || 0) + (s.izin || 0) + (s.alfa || 0);
@@ -161,7 +162,11 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua" }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
           <div>
             <div style={{ fontSize: "0.82rem", fontWeight: 900, color: "#0f172a" }}>
-              Tingkat Kehadiran Santri
+              {tipe === "berjamaah"
+                ? "Kehadiran Shalat Berjamaah"
+                : tipe === "mengaji"
+                ? "Kehadiran Kegiatan Mengaji"
+                : "Tingkat Kehadiran Santri"}
             </div>
             <div style={{ fontSize: "0.64rem", color: "#64748b", marginTop: "1px" }}>
               Total <strong>{totalPresensi} presensi</strong> terekam kamera &amp; fingerprint
@@ -370,7 +375,13 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua" }) {
         >
           <div style={{ fontSize: "0.76rem", fontWeight: 800, color: "#0f172a", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
             <Layers size={14} color="#0d766e" />
-            <span>Rekap Sesi Shalat &amp; Mengaji</span>
+            <span>
+              {tipe === "berjamaah"
+                ? "Rekap Sesi Shalat Berjamaah"
+                : tipe === "mengaji"
+                ? "Rekap Kegiatan Mengaji"
+                : "Rekap Sesi Shalat & Mengaji"}
+            </span>
           </div>
 
           <div style={{ display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "4px" }}>

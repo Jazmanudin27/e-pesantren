@@ -308,7 +308,18 @@ export const getOwnerPresensi = async (req, res) => {
     await syncActiveHaidToAbsensi().catch(() => {});
     const periode = req.query.periode || 'hari_ini';
     const tipe = req.query.tipe || 'semua';
-    const dateCond = getPeriodeDateCondition(periode, 'aj.tanggal');
+    const tanggal = req.query.tanggal;
+    const limitNum = Math.min(Math.max(Number(req.query.limit) || 200, 10), 1000);
+    
+    let dateCond;
+    if (tanggal) {
+      dateCond = {
+        sql: 'AND DATE(aj.tanggal) = ?',
+        params: [tanggal]
+      };
+    } else {
+      dateCond = getPeriodeDateCondition(periode, 'aj.tanggal');
+    }
 
     let tipeFilterSql = '';
     if (tipe === 'mengaji') {
@@ -391,8 +402,8 @@ export const getOwnerPresensi = async (req, res) => {
       LEFT JOIN kegiatan_sesi ks ON aj.sesi_id = ks.id
       WHERE 1=1 ${dateCond.sql} ${tipeFilterSql}
       ORDER BY aj.tanggal DESC, aj.waktu_scan DESC, aj.id DESC
-      LIMIT 100
-    `, dateCond.params).catch(() => [[]]);
+      LIMIT ?
+    `, [...dateCond.params, limitNum]).catch(() => [[]]);
 
     return sendSuccess(res, 'Data Laporan Presensi Owner Berhasil Dimuat', {
       periode,
