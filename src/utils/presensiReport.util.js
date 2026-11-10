@@ -246,11 +246,17 @@ export const getPresensiReportWithAutoAlfa = async ({
           sp.jenis_izin,
           sp.keperluan,
           sp.status,
-          DATE_FORMAT(COALESCE(sp.tgl_keluar_aktual, sp.tgl_keluar_rencana, sp.created_at), '%Y-%m-%d') as tgl_mulai,
+          DATE_FORMAT(
+            LEAST(
+              DATE(COALESCE(sp.tgl_keluar_rencana, sp.tgl_keluar_aktual, sp.created_at)),
+              DATE(COALESCE(sp.tgl_keluar_aktual, sp.tgl_keluar_rencana, sp.created_at))
+            ),
+            '%Y-%m-%d'
+          ) as tgl_mulai,
           DATE_FORMAT(COALESCE(sp.tgl_kembali_aktual, sp.tgl_kembali_rencana), '%Y-%m-%d') as tgl_selesai,
           sp.tgl_kembali_aktual
         FROM santri_perizinan sp
-        WHERE sp.status NOT IN ('Ditolak', 'Dibatalkan')
+        WHERE sp.status NOT IN ('Ditolak', 'Dibatalkan', 'Menunggu Persetujuan')
       `
       )
       .catch(() => [[]]),
@@ -273,11 +279,21 @@ export const getPresensiReportWithAutoAlfa = async ({
     if (s.nama_sesi) sesiMetaMap.set(s.nama_sesi.trim().toLowerCase(), s);
   });
 
-  // Kelompokkan log tercatat per sesi-tanggal: key = `${tanggal}__${namaKegiatanLower}`
+  // Kelompokkan log tercatat aktual per sesi-tanggal: key = `${tanggal}__${namaKegiatanLower}`
+  // Catatan: baris auto-sync ('Perizinan' / 'Sistem Haid') dihitung ulang live dari tabel perizinan/haid
+  // agar akurat per kelas, lintas rentang tanggal (mis. tgl 10 - 12), dan tidak mengotori sesi/kelas lain.
   const sessionMap = new Map();
   const recordedKeySet = new Set();
+  const actualRecordedLogs = [];
 
   for (const row of recordedRows || []) {
+    const metodeLow = String(row.metode_presensi || '').toLowerCase();
+    const isAutoSyncRow =
+      metodeLow.includes('perizinan') || metodeLow.includes('sistem haid');
+    if (isAutoSyncRow) continue;
+
+    actualRecordedLogs.push(row);
+
     const tgl = toDateStr(row.tanggal);
     const kegName = String(row.nama_kegiatan || 'Kegiatan Santri').trim();
     const kegLower = kegName.toLowerCase();
@@ -302,17 +318,12 @@ export const getPresensiReportWithAutoAlfa = async ({
     }
 
     const bucket = sessionMap.get(sessKey);
-    const metodeLow = String(row.metode_presensi || '').toLowerCase();
-    const isAutoSyncRow =
-      metodeLow.includes('perizinan') || metodeLow.includes('sistem haid');
+    bucket.actualRecordedCount += 1;
 
-    if (!isAutoSyncRow) {
-      bucket.actualRecordedCount += 1;
-      const kelasName =
-        String(row.nama_kelas || '').trim() || extractKelasFromKeterangan(row.keterangan);
-      if (kelasName) {
-        bucket.recordedKelasSet.add(kelasName.toLowerCase());
-      }
+    const kelasName =
+      String(row.nama_kelas || '').trim() || extractKelasFromKeterangan(row.keterangan);
+    if (kelasName) {
+      bucket.recordedKelasSet.add(kelasName.toLowerCase());
     }
 
     const st = String(row.status || '').toLowerCase();
@@ -324,7 +335,7 @@ export const getPresensiReportWithAutoAlfa = async ({
   }
 
   // Helper cek perizinan & haid pada tanggal D
-  const getIzinStatusOnDate = (santriId, dateStr) => {
+  const getIzinInfoOnDate = (santriId, dateStr) => {
     for (const iz of izinRows || []) {
       if (Number(iz.santri_id) !== Number(santriId)) continue;
       if (iz.tgl_mulai && dateStr < iz.tgl_mulai) continue;
@@ -335,7 +346,14 @@ export const getPresensiReportWithAutoAlfa = async ({
       if (!isActiveOpen && iz.tgl_selesai && dateStr > iz.tgl_selesai) continue;
 
       const j = `${iz.jenis_izin || ''} ${iz.keperluan || ''}`.toLowerCase();
-      return j.includes('sakit') || j.includes('berobat') ? 'Sakit' : 'Izin';
+      const statusType =
+        j.includes('sakit') || j.includes('berobat') || j.includes('klinik') || j.includes('dokter')
+          ? 'Sakit'
+          : 'Izin';
+      return {
+        status: statusType,
+        keterangan: `${iz.jenis_izin || statusType}${iz.tgl_mulai ? ` (${iz.tgl_mulai}${iz.tgl_selesai ? ` s/d ${iz.tgl_selesai}` : ''})` : ''}`,
+      };
     }
     return null;
   };
@@ -383,22 +401,22 @@ export const getPresensiReportWithAutoAlfa = async ({
 
       if (recordedKeySet.has(`${sessKey}__${santri.id}`)) continue;
 
-      const izinType = getIzinStatusOnDate(santri.id, sess.tanggal);
-      if (izinType) {
-        if (izinType === 'Sakit') sess.sakit += 1;
+      const izinInfo = getIzinInfoOnDate(santri.id, sess.tanggal);
+      if (izinInfo) {
+        if (izinInfo.status === 'Sakit') sess.sakit += 1;
         else sess.izin += 1;
 
         if (shouldExpand) {
           syntheticLogs.push({
-            id: `auto-${izinType.toLowerCase()}-${sess.tanggal}-${santri.id}-${sIdx}`,
+            id: `auto-${izinInfo.status.toLowerCase()}-${sess.tanggal}-${santri.id}-${sIdx}`,
             santri_id: santri.id,
             tanggal: sess.tanggal,
             waktu_scan: '-',
-            status: izinType,
+            status: izinInfo.status,
             metode_presensi: 'Perizinan',
             nama_kegiatan: sess.nama_kegiatan,
             tipe_presensi: sess.tipe_presensi,
-            keterangan: `${izinType} (Inputan Perizinan)`,
+            keterangan: izinInfo.keterangan,
             nama_santri: santri.nama_santri,
             nis: santri.nis,
             nama_kelas: santri.nama_kelas,
@@ -461,6 +479,8 @@ export const getPresensiReportWithAutoAlfa = async ({
 
   const rekapAggMap = new Map();
   for (const sess of sessionsSorted) {
+    if (sess.actualRecordedCount === 0) continue;
+
     hadir += sess.hadir;
     sakit += sess.sakit;
     izin += sess.izin;
@@ -496,9 +516,9 @@ export const getPresensiReportWithAutoAlfa = async ({
   const total = hadir + sakit + izin + haid + alfa;
   const persen = total > 0 ? Math.round((hadir / total) * 100) : 0;
 
-  // Gabungkan log tercatat di urutan atas, lalu log auto (Izin/Haid/Alfa)
+  // Gabungkan log tercatat aktual di urutan atas, lalu log auto (Izin/Sakit/Haid/Alfa)
   const combinedLogs = includeLogs
-    ? [...(recordedRows || []), ...syntheticLogs].slice(0, limitNum)
+    ? [...actualRecordedLogs, ...syntheticLogs].slice(0, limitNum)
     : [];
 
   return {
