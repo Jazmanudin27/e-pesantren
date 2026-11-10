@@ -17,6 +17,7 @@ import { ensureSekolahTablesAndMapping } from './src/controllers/sekolah.control
 import { ensureSiklusSppTable } from './src/controllers/keuangan.controller.js';
 import { ensureOwnerAccount } from './src/controllers/owner.controller.js';
 import { ensureDatabaseIndexes } from './src/config/ensureDatabaseIndexes.js';
+import { ensureKelasColumns } from './src/controllers/kelas.controller.js';
 
 dotenv.config();
 
@@ -78,6 +79,7 @@ app.listen(PORT, '0.0.0.0', async () => {
     await ensureSekolahTablesAndMapping();
     await ensureOwnerAccount();
     await ensureDatabaseIndexes();
+    await ensureKelasColumns();
   } catch (e) {
     console.warn('[E-PESANTREN] Init DB notice:', e.message);
   }

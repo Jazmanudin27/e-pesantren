@@ -11,24 +11,25 @@ import {
   Trash2, 
   Loader2, 
   GraduationCap, 
-  Clock, 
   X, 
   Sparkles, 
-  Save 
+  Save,
+  UserCheck
 } from 'lucide-react';
-import { showConfirm, toastSuccess } from '../../utils/alert.util';
+import { showConfirm, toastSuccess, showError } from '../../utils/alert.util';
 import SearchableSelect from '../../components/SearchableSelect';
 
 export default function KelasView() {
-  const [halaqahList, setHalaqahList] = useState([]);
+  const [kelasList, setKelasList] = useState([]);
+  const [asatidzList, setAsatidzList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeFilterTab, setActiveFilterTab] = useState('semua');
   const [search, setSearch] = useState('');
   const [filterGender, setFilterGender] = useState('Semua Gender');
-  const [filterProgram, setFilterProgram] = useState('Semua Program');
+  const [filterTingkat, setFilterTingkat] = useState('Semua Tingkat');
 
   // Modal Detail State
-  const [selectedHalaqah, setSelectedHalaqah] = useState(null);
+  const [selectedKelas, setSelectedKelas] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Modal Form (Add & Edit)
@@ -37,94 +38,82 @@ export default function KelasView() {
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     id: null,
-    nama_halaqah: '',
-    nama_asatidz: '',
+    nama_kelas: '',
+    kode_kelas: '',
+    mustahiq: '',
+    munawwib: '',
+    tingkat: 'Wustho',
     gender: 'L',
-    target_program: 'Tahfidz 30 Juz & Mutqin',
-    waktu_halaqah: 'Ba\'da Subuh & Ba\'da Maghrib',
-    total_santri: 12,
-    lokasi_halaqah: 'Masjid Utama',
-    tingkat: 'Wustho'
   });
 
-  const fetchHalaqah = async () => {
+  const fetchAsatidz = async () => {
+    try {
+      const res = await axios.get('/api/asatidz');
+      if (res.data?.success && Array.isArray(res.data.data)) {
+        setAsatidzList(res.data.data);
+      }
+    } catch (e) {
+      console.warn('Gagal memuat asatidz:', e);
+    }
+  };
+
+  const fetchKelas = async () => {
     try {
       setLoading(true);
-      let fetched = [];
-      try {
-        const resKelas = await axios.get('/api/kelas');
-        if (resKelas.data && resKelas.data.success && resKelas.data.data && resKelas.data.data.length > 0) {
-          fetched = resKelas.data.data.map(k => ({
-            id: k.id,
-            nama_halaqah: k.nama_kelas,
-            kode_kelas: k.kode_kelas,
-            tingkat: k.tingkat || (k.nama_kelas?.startsWith('1') ? 'Kelas 1' : k.nama_kelas?.startsWith('2') ? 'Kelas 2' : k.nama_kelas?.startsWith('3') ? 'Kelas 3' : 'Kelas 4'),
-            gender: k.gender || (k.nama_kelas?.includes('Girls') || k.nama_kelas?.includes('GIRL') ? 'P' : 'L'),
-            nama_asatidz: k.mustahiq || k.wali_kelas || (k.gender === 'P' ? 'Usth. Pembina Akhwat' : 'Ust. Pembina Ikhwan'),
-            mustahiq: k.mustahiq || '',
-            munawwib: k.munawwib || '',
-            target_program: `Kurikulum Pesantren ${k.tingkat || ''}`,
-            total_santri: k.total_santri || 0,
-            lokasi_halaqah: k.nama_kelas?.includes('Girls') ? 'Gedung Putri' : 'Gedung Putra'
-          }));
-        }
-      } catch {}
-
-      if (fetched.length > 0) {
-        setHalaqahList(fetched);
+      const resKelas = await axios.get('/api/kelas');
+      if (resKelas.data?.success && Array.isArray(resKelas.data.data)) {
+        setKelasList(resKelas.data.data);
       } else {
-        setHalaqahList([]);
+        setKelasList([]);
       }
     } catch (err) {
-      console.error('Gagal mengambil data halaqah/kelas:', err);
-      setHalaqahList([]);
+      console.error('Gagal mengambil data kelas:', err);
+      setKelasList([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchHalaqah();
+    fetchKelas();
+    fetchAsatidz();
   }, []);
 
-  const openDetail = (h) => {
-    setSelectedHalaqah(h);
+  const openDetail = (k) => {
+    setSelectedKelas(k);
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setSelectedHalaqah(null);
+    setSelectedKelas(null);
   };
 
   const openAddForm = () => {
     setFormMode('add');
+    const suffix = Date.now().toString().slice(-4);
     setFormData({
       id: null,
-      nama_halaqah: '',
-      nama_asatidz: '',
+      nama_kelas: '',
+      kode_kelas: `KLS-${suffix}`,
+      mustahiq: asatidzList[0]?.nama_asatidz || '',
+      munawwib: '',
+      tingkat: 'Wustho',
       gender: 'L',
-      target_program: 'Tahfidz 30 Juz & Mutqin',
-      waktu_halaqah: 'Ba\'da Subuh & Ba\'da Maghrib',
-      total_santri: 12,
-      lokasi_halaqah: 'Masjid Utama',
-      tingkat: 'Wustho'
     });
     setIsFormOpen(true);
   };
 
-  const openEditForm = (h) => {
+  const openEditForm = (k) => {
     setFormMode('edit');
     setFormData({
-      id: h.id,
-      nama_halaqah: h.nama_halaqah || '',
-      nama_asatidz: h.nama_asatidz || '',
-      gender: h.gender || 'L',
-      target_program: h.target_program || '',
-      waktu_halaqah: h.waktu_halaqah || '',
-      total_santri: h.total_santri || 12,
-      lokasi_halaqah: h.lokasi_halaqah || '',
-      tingkat: h.tingkat || 'Wustho'
+      id: k.id,
+      nama_kelas: k.nama_kelas || '',
+      kode_kelas: k.kode_kelas || `KLS-${k.id}`,
+      mustahiq: k.mustahiq || '',
+      munawwib: k.munawwib || '',
+      tingkat: k.tingkat || 'Wustho',
+      gender: k.gender || 'L',
     });
     setIsFormOpen(true);
   };
@@ -133,82 +122,98 @@ export default function KelasView() {
     setIsFormOpen(false);
   };
 
-  const handleSaveHalaqah = async (e) => {
+  const handleSaveKelas = async (e) => {
     e.preventDefault();
+    if (!formData.nama_kelas.trim()) return;
     try {
       setSubmitting(true);
       if (formMode === 'add') {
-        const res = await axios.post('/api/tahfidz/halaqah', formData);
-        if (res.data && res.data.success) {
-          fetchHalaqah();
+        const res = await axios.post('/api/kelas', formData);
+        if (res.data?.success) {
+          toastSuccess(`Kelas "${formData.nama_kelas}" berhasil ditambahkan`);
+          fetchKelas();
+          setIsFormOpen(false);
         } else {
-          setHalaqahList([...halaqahList, { ...formData, id: Date.now() }]);
+          showError('Gagal', res.data?.message || 'Gagal menambah kelas');
         }
       } else {
-        const res = await axios.put(`/api/tahfidz/halaqah/${formData.id}`, formData);
-        if (res.data && res.data.success) {
-          fetchHalaqah();
+        const res = await axios.put(`/api/kelas/${formData.id}`, formData);
+        if (res.data?.success) {
+          toastSuccess(`Kelas "${formData.nama_kelas}" berhasil diperbarui`);
+          fetchKelas();
+          setIsFormOpen(false);
         } else {
-          setHalaqahList(halaqahList.map(h => h.id === formData.id ? formData : h));
+          showError('Gagal', res.data?.message || 'Gagal memperbarui kelas');
         }
       }
-      setIsFormOpen(false);
     } catch (err) {
-      console.error('Gagal simpan halaqah:', err);
-      if (formMode === 'add') {
-        setHalaqahList([...halaqahList, { ...formData, id: Date.now() }]);
-      } else {
-        setHalaqahList(halaqahList.map(h => h.id === formData.id ? formData : h));
-      }
-      setIsFormOpen(false);
+      console.error('Gagal simpan kelas:', err);
+      showError('Gagal Menyimpan', err.response?.data?.message || err.message);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDeleteHalaqah = async (id, nama) => {
-    const confirmed = await showConfirm('Konfirmasi Hapus', `Yakin ingin menghapus kelompok halaqah "${nama}"?`);
+  const handleDeleteKelas = async (id, nama) => {
+    const confirmed = await showConfirm(
+      'Konfirmasi Hapus', 
+      `Apakah Anda yakin ingin menghapus kelas "${nama}" dari database?`,
+      'Ya, Hapus Kelas',
+      'Batal'
+    );
     if (!confirmed) return;
     try {
-      await axios.delete(`/api/tahfidz/halaqah/${id}`);
-      fetchHalaqah();
-      toastSuccess(`Halaqah "${nama}" berhasil dihapus`);
+      const res = await axios.delete(`/api/kelas/${id}`);
+      if (res.data?.success) {
+        toastSuccess(`Kelas "${nama}" berhasil dihapus`);
+        fetchKelas();
+      } else {
+        showError('Gagal', res.data?.message || 'Gagal menghapus kelas');
+      }
     } catch (err) {
-      console.error('Gagal hapus halaqah:', err);
-      setHalaqahList(halaqahList.filter(h => h.id !== id));
-      toastSuccess(`Halaqah "${nama}" berhasil dihapus`);
+      console.error('Gagal hapus kelas:', err);
+      showError('Gagal Menghapus', err.response?.data?.message || err.message);
     }
   };
 
-  const totalSantriInHalaqah = halaqahList.reduce((acc, h) => acc + (parseInt(h.total_santri) || 0), 0);
-  const countIkhwan = halaqahList.filter(h => h.gender === 'L').length;
-  const countAkhwat = halaqahList.filter(h => h.gender === 'P').length;
+  const totalSantriInKelas = kelasList.reduce((acc, k) => acc + (parseInt(k.total_santri) || 0), 0);
+  const countIkhwan = kelasList.filter(k => k.gender === 'L').length;
+  const countAkhwat = kelasList.filter(k => k.gender === 'P').length;
 
-  const filteredList = halaqahList.filter((h) => {
+  const filteredList = kelasList.filter((k) => {
     const q = search.toLowerCase();
     const matchSearch = (
-      h.nama_halaqah?.toLowerCase().includes(q) ||
-      h.nama_asatidz?.toLowerCase().includes(q) ||
-      h.target_program?.toLowerCase().includes(q) ||
-      h.tingkat?.toLowerCase().includes(q)
+      k.nama_kelas?.toLowerCase().includes(q) ||
+      k.mustahiq?.toLowerCase().includes(q) ||
+      k.munawwib?.toLowerCase().includes(q) ||
+      k.tingkat?.toLowerCase().includes(q)
     );
 
     const matchTab = 
       activeFilterTab === 'semua' ? true :
-      activeFilterTab === 'ikhwan' ? h.gender === 'L' :
-      activeFilterTab === 'akhwat' ? h.gender === 'P' :
-      activeFilterTab === 'tahfidz' ? h.target_program?.toLowerCase().includes('tahfidz') : true;
+      activeFilterTab === 'ikhwan' ? k.gender === 'L' :
+      activeFilterTab === 'akhwat' ? k.gender === 'P' : true;
 
     const matchGender = 
       filterGender === 'Semua Gender' ? true :
-      filterGender === 'Ikhwan' ? h.gender === 'L' :
-      filterGender === 'Akhwat' ? h.gender === 'P' : true;
+      filterGender === 'Ikhwan' ? k.gender === 'L' :
+      filterGender === 'Akhwat' ? k.gender === 'P' : true;
 
-    const matchProgram = 
-      filterProgram === 'Semua Program' ? true :
-      h.target_program?.toLowerCase().includes(filterProgram.toLowerCase());
+    const matchTingkat = 
+      filterTingkat === 'Semua Tingkat' ? true :
+      k.tingkat?.toLowerCase().includes(filterTingkat.toLowerCase());
 
-    return matchSearch && matchTab && matchGender && matchProgram;
+    return matchSearch && matchTab && matchGender && matchTingkat;
+  });
+
+  const asatidzOptions = asatidzList.map((a) => {
+    const gelar = a.gelar ? `, ${a.gelar}` : '';
+    const label = `${a.nama_asatidz}${gelar}`;
+    return {
+      value: a.nama_asatidz,
+      label: label,
+      sublabel: a.tugas_utama || a.kategori_asatidz || 'Asatidz',
+    };
   });
 
   return (
@@ -217,8 +222,8 @@ export default function KelasView() {
       <div className="top-stats-grid">
         <div className="stat-card-colored stat-card-blue">
           <div>
-            <div className="stat-colored-title">TOTAL KELOMPOK HALAQAH</div>
-            <div className="stat-colored-number">{halaqahList.length}</div>
+            <div className="stat-colored-title">TOTAL KELAS</div>
+            <div className="stat-colored-number">{kelasList.length}</div>
           </div>
           <div className="stat-colored-icon-box">
             <BookOpen size={22} />
@@ -227,7 +232,7 @@ export default function KelasView() {
 
         <div className="stat-card-colored stat-card-green">
           <div>
-            <div className="stat-colored-title">HALAQAH IKHWAN (PUTRA)</div>
+            <div className="stat-colored-title">KELAS IKHWAN (PUTRA)</div>
             <div className="stat-colored-number">{countIkhwan}</div>
           </div>
           <div className="stat-colored-icon-box">
@@ -237,7 +242,7 @@ export default function KelasView() {
 
         <div className="stat-card-colored stat-card-purple">
           <div>
-            <div className="stat-colored-title">HALAQAH AKHWAT (PUTRI)</div>
+            <div className="stat-colored-title">KELAS AKHWAT (PUTRI)</div>
             <div className="stat-colored-number">{countAkhwat}</div>
           </div>
           <div className="stat-colored-icon-box">
@@ -247,8 +252,8 @@ export default function KelasView() {
 
         <div className="stat-card-colored stat-card-amber">
           <div>
-            <div className="stat-colored-title">TOTAL SANTRI AKTIF MENGAJI</div>
-            <div className="stat-colored-number">{totalSantriInHalaqah}</div>
+            <div className="stat-colored-title">TOTAL SANTRI AKTIF</div>
+            <div className="stat-colored-number">{totalSantriInKelas}</div>
           </div>
           <div className="stat-colored-icon-box">
             <GraduationCap size={22} />
@@ -261,16 +266,16 @@ export default function KelasView() {
         <div className="page-title-left">
           <BookOpen size={22} className="page-title-icon" style={{ color: '#0284c7' }} />
           <div>
-            <h2>Data Master Kelas & Halaqah Al-Qur'an</h2>
-            <p>Kelola pembagian kelompok halaqah santri, asatidz pengampu setoran, jadwal halaqah, dan target mutqin</p>
+            <h2>Data Master Kelas</h2>
+            <p>Kelola kelas santri, mustahiq (asatidz pengampu), munawwib (badal/pengganti), dan tingkat diniyah</p>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="btn btn-outline" onClick={fetchHalaqah}>
+          <button className="btn btn-outline" onClick={fetchKelas}>
             <RotateCw size={13} /> Refresh
           </button>
           <button className="btn btn-primary" onClick={openAddForm}>
-            <Plus size={14} /> Tambah Halaqah Baru
+            <Plus size={14} /> Tambah Kelas Baru
           </button>
         </div>
       </div>
@@ -281,52 +286,64 @@ export default function KelasView() {
           className={`tab-btn ${activeFilterTab === 'semua' ? 'active' : ''}`}
           onClick={() => setActiveFilterTab('semua')}
         >
-          <BookOpen size={14} /> Semua Halaqah ({halaqahList.length})
+          <BookOpen size={14} /> Semua Kelas ({kelasList.length})
         </button>
         <button 
           className={`tab-btn ${activeFilterTab === 'ikhwan' ? 'active' : ''}`}
           onClick={() => setActiveFilterTab('ikhwan')}
         >
-          <Users size={14} /> Halaqah Ikhwan ({countIkhwan})
+          <Users size={14} /> Kelas Ikhwan ({countIkhwan})
         </button>
         <button 
           className={`tab-btn ${activeFilterTab === 'akhwat' ? 'active' : ''}`}
           onClick={() => setActiveFilterTab('akhwat')}
         >
-          <Sparkles size={14} /> Halaqah Akhwat ({countAkhwat})
-        </button>
-        <button 
-          className={`tab-btn ${activeFilterTab === 'tahfidz' ? 'active' : ''}`}
-          onClick={() => setActiveFilterTab('tahfidz')}
-        >
-          <GraduationCap size={14} /> Program 30 Juz Mutqin
+          <Sparkles size={14} /> Kelas Akhwat ({countAkhwat})
         </button>
       </div>
 
-      {/* 4. FILTER SEARCH BAR STRIP */}
-      <div className="filter-search-box">
-        <div className="filter-search-input">
-          <Search size={15} color="#94a3b8" />
+      {/* 4. SEARCH & DROPDOWN FILTER BAR */}
+      <div className="filter-search-row">
+        <div className="search-input-wrapper">
+          <Search size={14} className="search-icon" />
           <input 
             type="text" 
-            placeholder="Cari nama halaqah, nama ustadz/musyrif, target program..." 
+            className="search-input" 
+            placeholder="Cari nama kelas, mustahiq, munawwib, tingkat..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <SearchableSelect 
-          style={{ minWidth: '140px', flex: '1 1 130px', maxWidth: '180px' }}
+
+        <SearchableSelect
+          options={[
+            { value: 'Semua Gender', label: 'Semua Gender' },
+            { value: 'Ikhwan', label: 'Ikhwan (Putra)' },
+            { value: 'Akhwat', label: 'Akhwat (Putri)' },
+          ]}
           value={filterGender}
           onChange={(val) => setFilterGender(val || 'Semua Gender')}
-          placeholder="Semua Gender"
-          options={['Semua Gender', 'Ikhwan', 'Akhwat']}
+          placeholder="-- Filter Gender --"
+          searchPlaceholder="Cari gender..."
+          triggerStyle={{ width: '170px' }}
         />
-        <SearchableSelect 
-          style={{ minWidth: '150px', flex: '1 1 140px', maxWidth: '190px' }}
-          value={filterProgram}
-          onChange={(val) => setFilterProgram(val || 'Semua Program')}
-          placeholder="Semua Program"
-          options={['Semua Program', 'Tahfidz', 'Tahsin', 'Ziyadah']}
+
+        <SearchableSelect
+          options={[
+            { value: 'Semua Tingkat', label: 'Semua Tingkat' },
+            { value: 'Ula', label: 'Tingkat: Ula' },
+            { value: 'Wustho', label: 'Tingkat: Wustho' },
+            { value: 'Ulya', label: 'Tingkat: Ulya' },
+            { value: 'Kelas 1', label: 'Tingkat: Kelas 1' },
+            { value: 'Kelas 2', label: 'Tingkat: Kelas 2' },
+            { value: 'Kelas 3', label: 'Tingkat: Kelas 3' },
+            { value: 'Kelas 4', label: 'Tingkat: Kelas 4' },
+          ]}
+          value={filterTingkat}
+          onChange={(val) => setFilterTingkat(val || 'Semua Tingkat')}
+          placeholder="-- Filter Tingkat --"
+          searchPlaceholder="Cari tingkat..."
+          triggerStyle={{ width: '180px' }}
         />
       </div>
 
@@ -334,7 +351,7 @@ export default function KelasView() {
       <div className="table-container-card">
         {loading ? (
           <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
-            <Loader2 size={24} className="animate-spin" /> Memuat data halaqah & kelas...
+            <Loader2 size={24} className="animate-spin" /> Memuat data kelas...
           </div>
         ) : (
           <table className="data-table">
@@ -360,60 +377,60 @@ export default function KelasView() {
                   </td>
                 </tr>
               ) : (
-                filteredList.map((h, idx) => (
-                  <tr key={h.id || idx}>
+                filteredList.map((k, idx) => (
+                  <tr key={k.id || idx}>
                     <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
                       {idx + 1}
                     </td>
                     <td>
-                      <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.85rem' }}>{h.nama_halaqah}</div>
-                      <div style={{ fontSize: '0.68rem', color: '#64748b' }}>{h.kode_kelas || h.nama_halaqah}</div>
+                      <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.85rem' }}>{k.nama_kelas}</div>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b' }}>{k.kode_kelas || k.nama_kelas}</div>
                     </td>
                     <td className="td-center">
                       <span className="badge" style={{ background: '#f1f5f9', color: '#334155', fontWeight: 700, fontSize: '0.7rem' }}>
-                        {h.tingkat || 'Kelas'}
+                        {k.tingkat || '-'}
                       </span>
                     </td>
                     <td className="td-center">
-                      <span className={`badge ${h.gender === 'L' ? 'badge-info' : 'badge-purple'}`}>
-                        {h.gender === 'L' ? 'Boys (Putra)' : 'Girls (Putri)'}
+                      <span className={`badge ${k.gender === 'L' ? 'badge-info' : 'badge-purple'}`}>
+                        {k.gender === 'L' ? 'Boys (Putra)' : 'Girls (Putri)'}
                       </span>
                     </td>
                     <td>
                       <div style={{ fontWeight: 700, color: '#047857', fontSize: '0.78rem' }}>
-                        {h.mustahiq || '-'}
+                        {k.mustahiq || '-'}
                       </div>
                     </td>
                     <td>
                       <div style={{ fontWeight: 600, color: '#0284c7', fontSize: '0.74rem' }}>
-                        {h.munawwib || '-'}
+                        {k.munawwib || '-'}
                       </div>
                     </td>
                     <td className="td-center">
                       <span className="badge badge-success" style={{ fontWeight: 800 }}>
-                        {h.total_santri || 0} Santri
+                        {k.total_santri || 0} Santri
                       </span>
                     </td>
                     <td className="td-center">
                       <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
                         <button 
                           className="btn-action btn-action-view"
-                          onClick={() => openDetail(h)}
-                          title="Lihat Detail Halaqah"
+                          onClick={() => openDetail(k)}
+                          title="Lihat Detail Kelas"
                         >
                           <Eye size={13} />
                         </button>
                         <button 
                           className="btn-action btn-action-edit"
-                          onClick={() => openEditForm(h)}
-                          title="Edit Halaqah"
+                          onClick={() => openEditForm(k)}
+                          title="Edit Kelas"
                         >
                           <Edit3 size={13} />
                         </button>
                         <button 
                           className="btn-action btn-action-delete"
-                          onClick={() => handleDeleteHalaqah(h.id, h.nama_halaqah)}
-                          title="Hapus Halaqah"
+                          onClick={() => handleDeleteKelas(k.id, k.nama_kelas)}
+                          title="Hapus Kelas"
                         >
                           <Trash2 size={13} />
                         </button>
@@ -428,9 +445,9 @@ export default function KelasView() {
       </div>
 
       {/* ==================================================== */}
-      {/* MODAL DETAIL HALAQAH / KELAS                        */}
+      {/* MODAL DETAIL KELAS                                  */}
       {/* ==================================================== */}
-      {isModalOpen && selectedHalaqah && (
+      {isModalOpen && selectedKelas && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -443,18 +460,17 @@ export default function KelasView() {
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 9999,
-          padding: 0
+          padding: '20px'
         }}>
           <div style={{
             background: '#ffffff',
-            borderRadius: 0,
-            width: '100vw',
-            height: '100vh',
-            maxWidth: '100%',
-            maxHeight: '100vh',
-            overflowY: 'auto',
-            boxShadow: 'none',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '500px',
+            overflow: 'hidden',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
             display: 'flex',
+            flexDirection: 'column'
           }}>
             {/* Modal Header */}
             <div style={{
@@ -472,10 +488,10 @@ export default function KelasView() {
                 </div>
                 <div>
                   <h3 style={{ fontSize: '0.94rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
-                    {selectedHalaqah.nama_halaqah}
+                    {selectedKelas.nama_kelas}
                   </h3>
                   <p style={{ fontSize: '0.68rem', color: 'rgba(255, 255, 255, 0.85)', margin: 0 }}>
-                    Tingkat Diniyah: {selectedHalaqah.tingkat || 'Wustho'}
+                    Tingkat: {selectedKelas.tingkat || '-'}
                   </p>
                 </div>
               </div>
@@ -489,47 +505,39 @@ export default function KelasView() {
             </div>
 
             {/* Modal Body */}
-            <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px', background: '#f1f5f9' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: '#ffffff', padding: '14px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '12px', background: '#f8fafc' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', background: '#ffffff', padding: '14px 16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                 <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>ASATIDZ / MUSYRIF</div>
-                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#059669' }}>{selectedHalaqah.nama_asatidz}</div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>MUSTAHIQ</div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#059669' }}>{selectedKelas.mustahiq || '-'}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>PERUNTUKAN GENDER</div>
-                  <span className={`badge ${selectedHalaqah.gender === 'L' ? 'badge-info' : 'badge-purple'}`}>
-                    {selectedHalaqah.gender === 'L' ? 'Ikhwan (Putra)' : 'Akhwat (Putri)'}
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>MUNAWWIB (BADAL)</div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0284c7' }}>{selectedKelas.munawwib || '-'}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>TINGKAT</div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>{selectedKelas.tingkat || '-'}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>GENDER</div>
+                  <span className={`badge ${selectedKelas.gender === 'L' ? 'badge-info' : 'badge-purple'}`}>
+                    {selectedKelas.gender === 'L' ? 'Ikhwan (Putra)' : 'Akhwat (Putri)'}
                   </span>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>LOKASI HALAQAH</div>
-                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>{selectedHalaqah.lokasi_halaqah || 'Masjid Utama'}</div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>TOTAL SANTRI</div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#059669' }}>{selectedKelas.total_santri || 0} Santri</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>TOTAL SANTRI AKTIF</div>
-                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0284c7' }}>{selectedHalaqah.total_santri} Santri</div>
-                </div>
-              </div>
-
-              <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                <h4 style={{ fontSize: '0.76rem', fontWeight: 800, color: '#334155', marginBottom: '10px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Sparkles size={14} color="#0284c7" /> Target & Jadwal Rutin Setoran
-                </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem' }}>
-                    <span style={{ color: '#64748b' }}>Target Capaian:</span>
-                    <strong style={{ color: '#0f172a' }}>{selectedHalaqah.target_program}</strong>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem' }}>
-                    <span style={{ color: '#64748b' }}>Waktu Setoran:</span>
-                    <strong style={{ color: '#0f172a' }}>{selectedHalaqah.waktu_halaqah}</strong>
-                  </div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>KODE KELAS</div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#475569' }}>{selectedKelas.kode_kelas || '-'}</div>
                 </div>
               </div>
             </div>
 
             {/* Modal Footer */}
-            <div style={{ padding: '12px 18px', borderTop: '1px solid #cbd5e1', background: '#ffffff', display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ padding: '12px 18px', borderTop: '1px solid #e2e8f0', background: '#ffffff', display: 'flex', justifyContent: 'flex-end' }}>
               <button className="btn btn-outline btn-sm" onClick={closeModal}>
                 Tutup
               </button>
@@ -539,7 +547,7 @@ export default function KelasView() {
       )}
 
       {/* ==================================================== */}
-      {/* MODAL FORM TAMBAH / EDIT HALAQAH                    */}
+      {/* MODAL FORM TAMBAH / EDIT KELAS                      */}
       {/* ==================================================== */}
       {isFormOpen && (
         <div style={{
@@ -554,17 +562,16 @@ export default function KelasView() {
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 9999,
-          padding: 0
+          padding: '20px'
         }}>
           <div style={{
             background: '#ffffff',
-            borderRadius: 0,
-            width: '100vw',
-            height: '100vh',
-            maxWidth: '100%',
-            maxHeight: '100vh',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '520px',
+            maxHeight: '90vh',
             overflowY: 'auto',
-            boxShadow: 'none',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
             display: 'flex',
             flexDirection: 'column'
           }}>
@@ -580,7 +587,7 @@ export default function KelasView() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <BookOpen size={18} />
                 <h3 style={{ fontSize: '0.96rem', fontWeight: 800, margin: 0 }}>
-                  {formMode === 'add' ? 'Tambah Kelompok Halaqah Baru' : `Edit Halaqah: ${formData.nama_halaqah}`}
+                  {formMode === 'add' ? 'Tambah Kelas Baru' : `Edit Kelas: ${formData.nama_kelas}`}
                 </h3>
               </div>
               <button 
@@ -591,37 +598,54 @@ export default function KelasView() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveHalaqah}>
-              <div style={{ padding: '18px 20px', background: '#f1f5f9', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <form onSubmit={handleSaveKelas}>
+              <div style={{ padding: '18px 20px', background: '#f8fafc', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>NAMA HALAQAH / KELAS *</label>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
+                    NAMA KELAS *
+                  </label>
                   <input 
                     type="text" 
                     required 
+                    placeholder="Contoh: Kelas 1 Ula, Kelas 2 Wustho, dll"
                     className="filter-select" 
-                    style={{ width: '100%', padding: '6px 10px' }} 
-                    value={formData.nama_halaqah}
-                    onChange={(e) => setFormData({ ...formData, nama_halaqah: e.target.value })}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} 
+                    value={formData.nama_kelas}
+                    onChange={(e) => setFormData({ ...formData, nama_kelas: e.target.value })}
                   />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>ASATIDZ / MUSYRIF</label>
-                    <input 
-                      type="text" 
-                      className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }} 
-                      value={formData.nama_asatidz}
-                      onChange={(e) => setFormData({ ...formData, nama_asatidz: e.target.value })}
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
+                      TINGKAT *
+                    </label>
+                    <SearchableSelect 
+                      options={[
+                        { value: 'Ula', label: 'Ula' },
+                        { value: 'Wustho', label: 'Wustho' },
+                        { value: 'Ulya', label: 'Ulya' },
+                        { value: 'Kelas 1', label: 'Kelas 1' },
+                        { value: 'Kelas 2', label: 'Kelas 2' },
+                        { value: 'Kelas 3', label: 'Kelas 3' },
+                        { value: 'Kelas 4', label: 'Kelas 4' },
+                        { value: 'Reguler', label: 'Reguler' },
+                      ]}
+                      value={formData.tingkat}
+                      onChange={(val) => setFormData({ ...formData, tingkat: val })}
+                      placeholder="-- Pilih Tingkat --"
                     />
                   </div>
+
                   <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>GENDER</label>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
+                      GENDER SANTRI *
+                    </label>
                     <SearchableSelect 
                       options={[
                         { value: 'L', label: 'Ikhwan (Putra)' },
-                        { value: 'P', label: 'Akhwat (Putri)' }
+                        { value: 'P', label: 'Akhwat (Putri)' },
+                        { value: 'Semua', label: 'Semua (Campur)' },
                       ]}
                       value={formData.gender}
                       onChange={(val) => setFormData({ ...formData, gender: val })}
@@ -630,69 +654,51 @@ export default function KelasView() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>TARGET PROGRAM</label>
-                    <input 
-                      type="text" 
-                      className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }} 
-                      value={formData.target_program}
-                      onChange={(e) => setFormData({ ...formData, target_program: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>TINGKAT DINIYAH</label>
-                    <SearchableSelect 
-                      options={[
-                        { value: 'Ula', label: 'Ula' },
-                        { value: 'Wustho', label: 'Wustho' },
-                        { value: 'Ulya', label: 'Ulya' }
-                      ]}
-                      value={formData.tingkat}
-                      onChange={(val) => setFormData({ ...formData, tingkat: val })}
-                      placeholder="-- Pilih Tingkat --"
-                    />
-                  </div>
+                {/* Mustahiq (Ambil dari Asatidz) */}
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
+                    MUSTAHIQ (DARI ASATIDZ) *
+                  </label>
+                  <SearchableSelect 
+                    options={asatidzOptions}
+                    value={formData.mustahiq}
+                    onChange={(val) => setFormData({ ...formData, mustahiq: val })}
+                    placeholder="-- Pilih Asatidz Mustahiq --"
+                    searchPlaceholder="Cari nama asatidz..."
+                  />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>WAKTU HALAQAH</label>
-                    <input 
-                      type="text" 
-                      className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }} 
-                      value={formData.waktu_halaqah}
-                      onChange={(e) => setFormData({ ...formData, waktu_halaqah: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>LOKASI HALAQAH</label>
-                    <input 
-                      type="text" 
-                      className="filter-select" 
-                      style={{ width: '100%', padding: '6px 10px' }} 
-                      value={formData.lokasi_halaqah}
-                      onChange={(e) => setFormData({ ...formData, lokasi_halaqah: e.target.value })}
-                    />
-                  </div>
+                {/* Munawwib (Badal / Asatidz Pengganti) */}
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
+                    MUNAWWIB (BADAL / ASATIDZ PENGGANTI)
+                  </label>
+                  <SearchableSelect 
+                    options={[
+                      { value: '', label: '-- Tidak Ada / Kosong --' },
+                      ...asatidzOptions,
+                    ]}
+                    value={formData.munawwib}
+                    onChange={(val) => setFormData({ ...formData, munawwib: val })}
+                    placeholder="-- Pilih Asatidz Munawwib (Opsional) --"
+                    searchPlaceholder="Cari nama asatidz munawwib..."
+                  />
                 </div>
               </div>
 
-              <div style={{ padding: '12px 18px', borderTop: '1px solid #cbd5e1', background: '#ffffff', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              {/* Modal Footer */}
+              <div style={{ padding: '12px 18px', borderTop: '1px solid #e2e8f0', background: '#ffffff', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                 <button type="button" className="btn btn-outline btn-sm" onClick={closeForm}>
                   Batal
                 </button>
                 <button type="submit" className="btn btn-primary btn-sm" disabled={submitting}>
-                  {submitting ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} Simpan Halaqah
+                  <Save size={13} /> {submitting ? 'Menyimpan...' : 'Simpan Data Kelas'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-
     </div>
   );
 }

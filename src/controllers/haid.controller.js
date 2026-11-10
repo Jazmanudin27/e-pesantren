@@ -9,7 +9,6 @@ let isHaidTableChecked = false;
 export const ensureHaidTablesAndColumns = async () => {
   if (isHaidTableChecked) return;
   try {
-    // 1. Buat tabel santri_haid
     await pool.query(`
       CREATE TABLE IF NOT EXISTS santri_haid (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -30,7 +29,6 @@ export const ensureHaidTablesAndColumns = async () => {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
 
-    // 2. Tambah kolom is_haid dan tgl_haid_mulai pada tabel santri jika belum ada
     const [cols] = await pool.query(`
       SELECT COLUMN_NAME 
       FROM INFORMATION_SCHEMA.COLUMNS 
@@ -65,10 +63,6 @@ export const ensureHaidTablesAndColumns = async () => {
   }
 };
 
-/**
- * Otomatis nonaktifkan status haid santriwati
- * Dipanggil saat santriwati input/scan absensi berjamaah di mesin atau aplikasi
- */
 export const deactivateHaidForSantri = async (santriId, triggerSource = 'Auto Scan') => {
   try {
     await ensureHaidTablesAndColumns();

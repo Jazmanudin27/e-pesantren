@@ -3,7 +3,6 @@ import axios from "axios";
 import {
   GraduationCap,
   Users,
-  Clock,
   Plus,
   Edit3,
   Trash2,
@@ -11,11 +10,15 @@ import {
   Save,
   Loader2,
   BookOpen,
+  UserCheck,
+  RotateCw,
 } from "lucide-react";
-import { showConfirm, toastSuccess } from "../../utils/alert.util";
+import { showConfirm, toastSuccess, showError } from "../../utils/alert.util";
+import SearchableSelect from "../../components/SearchableSelect";
 
 export default function MobileKelas() {
-  const [halaqahList, setHalaqahList] = useState([]);
+  const [kelasList, setKelasList] = useState([]);
+  const [asatidzList, setAsatidzList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formMode, setFormMode] = useState("add");
@@ -23,157 +26,101 @@ export default function MobileKelas() {
 
   const initialForm = {
     id: null,
-    nama_halaqah: "",
-    kode_halaqah: "",
-    pengampu: "Ust. Ahmad Fauzi",
-    target_program: "Saba' / Sabqi (Juz 1-5)",
-    waktu_halaqah: "Ba'da Shubuh & Maghrib",
-    lokasi_halaqah: "Masjid Utama",
+    nama_kelas: "",
+    kode_kelas: "",
+    mustahiq: "",
+    munawwib: "",
+    tingkat: "Wustho",
     gender: "L",
-    total_santri: 12,
   };
 
   const [formData, setFormData] = useState(initialForm);
 
-  const defaultHalaqah = [
-    {
-      id: 1,
-      nama_halaqah: "Halaqah Imam Nafi' (Putra)",
-      pengampu: "Ust. Ahmad Fauzi",
-      target_program: "Saba' / Sabqi (Juz 15-20)",
-      waktu_halaqah: "Ba'da Shubuh & Maghrib",
-      lokasi_halaqah: "Masjid Utama",
-      total_santri: 12,
-      gender: "L",
-    },
-    {
-      id: 2,
-      nama_halaqah: "Halaqah Imam Ashim (Putra)",
-      pengampu: "Ust. Ridwan Kamil",
-      target_program: "Muroja'ah Mutqin (Juz 25-30)",
-      waktu_halaqah: "Ba'da Shubuh & Ashar",
-      lokasi_halaqah: "Aula Pengajian",
-      total_santri: 15,
-      gender: "L",
-    },
-    {
-      id: 3,
-      nama_halaqah: "Halaqah Fathimah (Putri)",
-      pengampu: "Usth. Siti Maryam",
-      target_program: "Ziyadah Juz 1-5 & Mutaba'ah",
-      waktu_halaqah: "Ba'da Shubuh & Isya",
-      lokasi_halaqah: "Musholla Putri",
-      total_santri: 12,
-      gender: "P",
-    },
-  ];
+  const fetchAsatidz = async () => {
+    try {
+      const res = await axios.get("/api/asatidz");
+      if (res.data?.success && Array.isArray(res.data.data)) {
+        setAsatidzList(res.data.data);
+      }
+    } catch (e) {
+      console.warn("Gagal memuat daftar asatidz:", e);
+    }
+  };
 
-  const fetchHalaqah = async () => {
+  const fetchKelas = async () => {
     try {
       setLoading(true);
-      const resKelas = await axios.get("/api/kelas").catch(() => null);
-      if (resKelas?.data?.data && Array.isArray(resKelas.data.data) && resKelas.data.data.length > 0) {
-        const formatted = resKelas.data.data.map((k) => ({
-          id: k.id,
-          nama_halaqah: k.nama_kelas,
-          kode_halaqah: k.kode_kelas || `KLS-${k.id}`,
-          pengampu: k.pengampu || k.wali_kelas || "Wali Kelas",
-          target_program: k.tingkat || "Reguler",
-          waktu_halaqah: "Jadwal Reguler",
-          lokasi_halaqah: "Gedung Kelas",
-          total_santri: k.total_santri || 0,
-          gender: k.gender || "Semua",
-        }));
-        setHalaqahList(formatted);
-        return;
-      }
-
-      const res = await axios.get("/api/tahfidz/halaqah");
-      if (
-        res.data &&
-        res.data.success &&
-        res.data.data &&
-        res.data.data.length
-      ) {
-        setHalaqahList(res.data.data);
+      const resKelas = await axios.get("/api/kelas");
+      if (resKelas?.data?.data && Array.isArray(resKelas.data.data)) {
+        setKelasList(resKelas.data.data);
       } else {
-        setHalaqahList(defaultHalaqah);
+        setKelasList([]);
       }
     } catch (err) {
-      setHalaqahList(defaultHalaqah);
+      console.warn("Gagal memuat data kelas:", err);
+      setKelasList([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchHalaqah();
+    fetchKelas();
+    fetchAsatidz();
   }, []);
 
   const handleOpenAdd = () => {
     setFormMode("add");
-    const suffix = Date.now().toString().slice(-3);
+    const suffix = Date.now().toString().slice(-4);
     setFormData({
       ...initialForm,
-      kode_halaqah: `HLQ-${suffix}`,
+      kode_kelas: `KLS-${suffix}`,
+      mustahiq: asatidzList[0]?.nama_asatidz || "",
     });
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (h) => {
+  const handleOpenEdit = (k) => {
     setFormMode("edit");
     setFormData({
-      id: h.id,
-      nama_halaqah: h.nama_halaqah || h.nama || "",
-      kode_halaqah: h.kode_halaqah || `HLQ-${h.id}`,
-      pengampu: h.nama_asatidz || h.pengampu || "Ust. Ahmad Fauzi",
-      target_program: h.target_program || h.target || "Ziyadah Juz",
-      waktu_halaqah: h.waktu_halaqah || h.waktu || "Ba'da Shubuh",
-      lokasi_halaqah: h.lokasi_halaqah || "Masjid Utama",
-      gender: h.gender || "L",
-      total_santri: h.total_santri || h.total || 10,
+      id: k.id,
+      nama_kelas: k.nama_kelas || "",
+      kode_kelas: k.kode_kelas || `KLS-${k.id}`,
+      mustahiq: k.mustahiq || "",
+      munawwib: k.munawwib || "",
+      tingkat: k.tingkat || "Wustho",
+      gender: k.gender || "L",
     });
     setIsModalOpen(true);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (!formData.nama_kelas.trim()) return;
     setSubmitting(true);
     try {
       if (formMode === "add") {
-        const res = await axios.post("/api/tahfidz/halaqah", formData);
-        if (res.data && res.data.success) {
-          fetchHalaqah();
+        const res = await axios.post("/api/kelas", formData);
+        if (res.data?.success) {
+          toastSuccess(`Kelas "${formData.nama_kelas}" berhasil ditambahkan`);
+          fetchKelas();
+          setIsModalOpen(false);
         } else {
-          setHalaqahList((prev) => [...prev, { ...formData, id: Date.now() }]);
+          showError("Gagal", res.data?.message || "Gagal menambah kelas");
         }
       } else {
-        const res = await axios.put(
-          `/api/tahfidz/halaqah/${formData.id}`,
-          formData,
-        );
-        if (res.data && res.data.success) {
-          fetchHalaqah();
+        const res = await axios.put(`/api/kelas/${formData.id}`, formData);
+        if (res.data?.success) {
+          toastSuccess(`Kelas "${formData.nama_kelas}" berhasil diperbarui`);
+          fetchKelas();
+          setIsModalOpen(false);
         } else {
-          setHalaqahList((prev) =>
-            prev.map((item) =>
-              item.id === formData.id ? { ...item, ...formData } : item,
-            ),
-          );
+          showError("Gagal", res.data?.message || "Gagal memperbarui kelas");
         }
       }
-      setIsModalOpen(false);
     } catch (err) {
-      if (formMode === "add") {
-        setHalaqahList((prev) => [...prev, { ...formData, id: Date.now() }]);
-      } else {
-        setHalaqahList((prev) =>
-          prev.map((item) =>
-            item.id === formData.id ? { ...item, ...formData } : item,
-          ),
-        );
-      }
-      setIsModalOpen(false);
+      console.error("Gagal simpan kelas:", err);
+      showError("Gagal", err.response?.data?.message || "Terjadi kesalahan saat menyimpan kelas");
     } finally {
       setSubmitting(false);
     }
@@ -182,27 +129,78 @@ export default function MobileKelas() {
   const handleDelete = async (id, nama) => {
     const confirmed = await showConfirm(
       "Konfirmasi Hapus",
-      `Yakin ingin menghapus halaqah/kelas "${nama}"?`,
+      `Yakin ingin menghapus kelas "${nama}"?`,
+      "Ya, Hapus",
+      "Batal"
     );
     if (!confirmed) return;
     try {
-      await axios.delete(`/api/tahfidz/halaqah/${id}`);
-      fetchHalaqah();
-      toastSuccess(`Halaqah "${nama}" dihapus`);
+      const res = await axios.delete(`/api/kelas/${id}`);
+      if (res.data?.success) {
+        toastSuccess(`Kelas "${nama}" berhasil dihapus`);
+        fetchKelas();
+      } else {
+        showError("Gagal", res.data?.message || "Gagal menghapus kelas");
+      }
     } catch (err) {
-      setHalaqahList((prev) => prev.filter((h) => h.id !== id));
-      toastSuccess(`Halaqah "${nama}" dihapus`);
+      showError("Gagal", err.response?.data?.message || "Gagal menghapus kelas");
     }
   };
 
+  const asatidzOptions = asatidzList.map((a) => {
+    const gelar = a.gelar ? `, ${a.gelar}` : "";
+    const label = `${a.nama_asatidz}${gelar}`;
+    return {
+      value: a.nama_asatidz,
+      label: label,
+      sublabel: a.tugas_utama || a.kategori_asatidz || "Asatidz",
+    };
+  });
+
   return (
-    <div style={{ padding: "16px" }}>
-      {/* List Halaqah Card */}
+    <div style={{ padding: "16px", paddingBottom: "90px" }}>
+      {/* Header Info */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "14px",
+        }}
+      >
+        <div>
+          <div style={{ fontWeight: 800, fontSize: "0.95rem", color: "#0f172a" }}>
+            Data Master Kelas
+          </div>
+          <div style={{ fontSize: "0.72rem", color: "#64748b" }}>
+            Total {kelasList.length} Kelas Terdaftar
+          </div>
+        </div>
+        <button
+          onClick={fetchKelas}
+          style={{
+            background: "#f1f5f9",
+            border: "1px solid #cbd5e1",
+            padding: "6px 10px",
+            borderRadius: "8px",
+            fontSize: "0.72rem",
+            fontWeight: 700,
+            color: "#475569",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "4px",
+          }}
+        >
+          <RotateCw size={12} /> Segarkan
+        </button>
+      </div>
+
       {loading ? (
         <div
           style={{
             textAlign: "center",
-            padding: "30px 0",
+            padding: "40px 0",
             color: "#64748b",
             fontSize: "0.84rem",
           }}
@@ -210,24 +208,43 @@ export default function MobileKelas() {
           <Loader2
             size={24}
             className="animate-spin"
-            style={{ margin: "0 auto 8px" }}
+            style={{ margin: "0 auto 8px", color: "#0284c7" }}
           />
-          Memuat data halaqah & kelas...
+          Memuat data kelas...
+        </div>
+      ) : kelasList.length === 0 ? (
+        <div
+          style={{
+            textAlign: "center",
+            padding: "40px 20px",
+            background: "#ffffff",
+            borderRadius: "16px",
+            border: "1.5px dashed #cbd5e1",
+            color: "#64748b",
+          }}
+        >
+          <GraduationCap size={36} color="#cbd5e1" style={{ margin: "0 auto 8px" }} />
+          <div style={{ fontWeight: 800, fontSize: "0.92rem", color: "#1e293b" }}>
+            Belum Ada Data Kelas
+          </div>
+          <div style={{ fontSize: "0.74rem", marginTop: "4px" }}>
+            Klik tombol tambah (+) di bawah untuk membuat kelas baru.
+          </div>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {halaqahList.map((h) => {
-            const nama = h.nama_halaqah || h.nama;
-            const pengampu = h.nama_asatidz || h.pengampu || "Ust. Ahmad Fauzi";
+          {kelasList.map((k) => {
+            const nama = k.nama_kelas;
+            const mustahiq = k.mustahiq || "-";
+            const munawwib = k.munawwib || "-";
+            const tingkat = k.tingkat || "-";
             const gender =
-              h.gender === "P" || h.gender === "Akhwat" ? "Akhwat" : "Ikhwan";
-            const target = h.target_program || h.target || "Ziyadah Juz";
-            const waktu = h.waktu_halaqah || h.waktu || "Ba'da Shubuh";
-            const total = h.total_santri || h.total || 10;
+              k.gender === "P" || k.gender === "Akhwat" ? "Akhwat" : "Ikhwan";
+            const total = k.total_santri || 0;
 
             return (
               <div
-                key={h.id}
+                key={k.id}
                 style={{
                   background: "#ffffff",
                   borderRadius: "16px",
@@ -245,13 +262,21 @@ export default function MobileKelas() {
                   }}
                 >
                   <span
-                    className={`badge ${gender === "Ikhwan" ? "badge-info" : "badge-purple"}`}
+                    style={{
+                      background: gender === "Ikhwan" ? "#e0f2fe" : "#fdf2f8",
+                      color: gender === "Ikhwan" ? "#0284c7" : "#db2777",
+                      border: `1px solid ${gender === "Ikhwan" ? "#bae6fd" : "#fbcfe8"}`,
+                      padding: "2px 8px",
+                      borderRadius: "999px",
+                      fontSize: "0.68rem",
+                      fontWeight: 800,
+                    }}
                   >
                     {gender}
                   </span>
                   <div style={{ display: "flex", gap: "6px" }}>
                     <button
-                      onClick={() => handleOpenEdit(h)}
+                      onClick={() => handleOpenEdit(k)}
                       style={{
                         background: "#cffaff",
                         color: "#0891b2",
@@ -269,7 +294,7 @@ export default function MobileKelas() {
                       <Edit3 size={13} /> Edit
                     </button>
                     <button
-                      onClick={() => handleDelete(h.id, nama)}
+                      onClick={() => handleDelete(k.id, nama)}
                       style={{
                         background: "#ffe4e6",
                         color: "#be123c",
@@ -299,17 +324,24 @@ export default function MobileKelas() {
                 >
                   {nama}
                 </div>
+
+                {/* Mustahiq (Pengampu) */}
                 <div
                   style={{
                     fontSize: "0.78rem",
                     color: "#059669",
                     fontWeight: 700,
                     marginBottom: "8px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
                   }}
                 >
-                  Pengampu: {pengampu}
+                  <UserCheck size={14} color="#059669" />
+                  <span>Mustahiq: <strong>{mustahiq}</strong></span>
                 </div>
 
+                {/* Rincian: Tingkat, Munawwib & Total Santri */}
                 <div
                   style={{
                     fontSize: "0.76rem",
@@ -320,16 +352,17 @@ export default function MobileKelas() {
                     display: "flex",
                     flexDirection: "column",
                     gap: "4px",
+                    border: "1px solid #f1f5f9",
                   }}
                 >
                   <div>
-                    🎯 <strong>Target:</strong> {target}
+                    🎓 <strong>Tingkat:</strong> {tingkat}
                   </div>
                   <div>
-                    ⏰ <strong>Jadwal:</strong> {waktu}
+                    🔄 <strong>Munawwib:</strong> {munawwib}
                   </div>
                   <div>
-                    👥 <strong>Kapasitas:</strong> {total} Santri Binaan
+                    👥 <strong>Total Santri:</strong> {total} Santri
                   </div>
                 </div>
               </div>
@@ -338,7 +371,7 @@ export default function MobileKelas() {
         </div>
       )}
 
-      {/* MODAL FORM TAMBAH / EDIT HALAQAH */}
+      {/* MODAL FORM TAMBAH / EDIT KELAS */}
       {isModalOpen && (
         <div
           style={{
@@ -349,23 +382,23 @@ export default function MobileKelas() {
             bottom: 0,
             background: "rgba(15, 23, 42, 0.75)",
             backdropFilter: "blur(4px)",
-            zIndex: 99999,
             display: "flex",
-            alignItems: "flex-end",
+            alignItems: "center",
             justifyContent: "center",
+            zIndex: 9999,
+            padding: "16px",
           }}
         >
           <div
             style={{
               background: "#ffffff",
-              borderTopLeftRadius: "24px",
-              borderTopRightRadius: "24px",
+              borderRadius: "18px",
               width: "100%",
-              maxWidth: "500px",
+              maxWidth: "420px",
               maxHeight: "90vh",
               overflowY: "auto",
               padding: "20px",
-              boxSizing: "border-box",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
             }}
           >
             <div
@@ -373,17 +406,13 @@ export default function MobileKelas() {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                borderBottom: "1px solid #f1f5f9",
-                paddingBottom: "12px",
-                marginBottom: "16px",
+                marginBottom: "14px",
               }}
             >
               <div
                 style={{ fontWeight: 800, fontSize: "1rem", color: "#0f172a" }}
               >
-                {formMode === "add"
-                  ? "➕ Tambah Kelas / Halaqah"
-                  : "✏️ Edit Kelas / Halaqah"}
+                {formMode === "add" ? "➕ Tambah Kelas" : `✏️ Edit Kelas: ${formData.nama_kelas}`}
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -404,6 +433,7 @@ export default function MobileKelas() {
               onSubmit={handleSave}
               style={{ display: "flex", flexDirection: "column", gap: "12px" }}
             >
+              {/* Nama Kelas */}
               <div>
                 <label
                   style={{
@@ -414,15 +444,15 @@ export default function MobileKelas() {
                     marginBottom: "4px",
                   }}
                 >
-                  NAMA HALAQAH / KELAS
+                  NAMA KELAS *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: Halaqah Imam Nafi' (Putra)"
-                  value={formData.nama_halaqah}
+                  placeholder="Contoh: Kelas 1 Ula, 1 Wustho, dll"
+                  value={formData.nama_kelas}
                   onChange={(e) =>
-                    setFormData({ ...formData, nama_halaqah: e.target.value })
+                    setFormData({ ...formData, nama_kelas: e.target.value })
                   }
                   style={{
                     width: "100%",
@@ -435,6 +465,7 @@ export default function MobileKelas() {
                 />
               </div>
 
+              {/* Tingkat & Gender */}
               <div
                 style={{
                   display: "grid",
@@ -452,25 +483,26 @@ export default function MobileKelas() {
                       marginBottom: "4px",
                     }}
                   >
-                    KODE HALAQAH
+                    TINGKAT *
                   </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.kode_halaqah}
-                    onChange={(e) =>
-                      setFormData({ ...formData, kode_halaqah: e.target.value })
-                    }
-                    style={{
-                      width: "100%",
-                      padding: "10px",
-                      borderRadius: "10px",
-                      border: "1px solid #cbd5e1",
-                      fontSize: "0.82rem",
-                      boxSizing: "border-box",
-                    }}
+                  <SearchableSelect
+                    options={[
+                      { value: "Ula", label: "Ula" },
+                      { value: "Wustho", label: "Wustho" },
+                      { value: "Ulya", label: "Ulya" },
+                      { value: "Kelas 1", label: "Kelas 1" },
+                      { value: "Kelas 2", label: "Kelas 2" },
+                      { value: "Kelas 3", label: "Kelas 3" },
+                      { value: "Kelas 4", label: "Kelas 4" },
+                      { value: "Reguler", label: "Reguler" },
+                    ]}
+                    value={formData.tingkat}
+                    onChange={(val) => setFormData({ ...formData, tingkat: val })}
+                    placeholder="-- Pilih Tingkat --"
+                    searchPlaceholder="Cari tingkat..."
                   />
                 </div>
+
                 <div>
                   <label
                     style={{
@@ -481,7 +513,7 @@ export default function MobileKelas() {
                       marginBottom: "4px",
                     }}
                   >
-                    GENDER SANTRI
+                    GENDER SANTRI *
                   </label>
                   <select
                     value={formData.gender}
@@ -495,14 +527,17 @@ export default function MobileKelas() {
                       border: "1px solid #cbd5e1",
                       fontSize: "0.82rem",
                       boxSizing: "border-box",
+                      background: "#ffffff",
                     }}
                   >
                     <option value="L">Ikhwan (Putra)</option>
                     <option value="P">Akhwat (Putri)</option>
+                    <option value="Semua">Semua (Campur)</option>
                   </select>
                 </div>
               </div>
 
+              {/* Mustahiq (Ambil dari Asatidz) */}
               <div>
                 <label
                   style={{
@@ -513,27 +548,18 @@ export default function MobileKelas() {
                     marginBottom: "4px",
                   }}
                 >
-                  USTADZ PENGAMPU
+                  MUSTAHIQ (DARI ASATIDZ) *
                 </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Nama Ustadz Pengampu"
-                  value={formData.pengampu}
-                  onChange={(e) =>
-                    setFormData({ ...formData, pengampu: e.target.value })
-                  }
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "10px",
-                    border: "1px solid #cbd5e1",
-                    fontSize: "0.82rem",
-                    boxSizing: "border-box",
-                  }}
+                <SearchableSelect
+                  options={asatidzOptions}
+                  value={formData.mustahiq}
+                  onChange={(val) => setFormData({ ...formData, mustahiq: val })}
+                  placeholder="-- Pilih Asatidz Mustahiq --"
+                  searchPlaceholder="Cari nama asatidz..."
                 />
               </div>
 
+              {/* Munawwib (Guru Badal / Pengganti dari Asatidz) */}
               <div>
                 <label
                   style={{
@@ -544,53 +570,17 @@ export default function MobileKelas() {
                     marginBottom: "4px",
                   }}
                 >
-                  TARGET PROGRAM HAFALAN
+                  MUNAWWIB (BADAL / ASATIDZ PENGGANTI)
                 </label>
-                <input
-                  type="text"
-                  placeholder="Saba' / Sabqi (Juz 1-5)"
-                  value={formData.target_program}
-                  onChange={(e) =>
-                    setFormData({ ...formData, target_program: e.target.value })
-                  }
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "10px",
-                    border: "1px solid #cbd5e1",
-                    fontSize: "0.82rem",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
-
-              <div>
-                <label
-                  style={{
-                    fontSize: "0.74rem",
-                    fontWeight: 700,
-                    color: "#334155",
-                    display: "block",
-                    marginBottom: "4px",
-                  }}
-                >
-                  JADWAL & WAKTU
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ba'da Shubuh & Maghrib"
-                  value={formData.waktu_halaqah}
-                  onChange={(e) =>
-                    setFormData({ ...formData, waktu_halaqah: e.target.value })
-                  }
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "10px",
-                    border: "1px solid #cbd5e1",
-                    fontSize: "0.82rem",
-                    boxSizing: "border-box",
-                  }}
+                <SearchableSelect
+                  options={[
+                    { value: "", label: "-- Tidak Ada / Kosong --" },
+                    ...asatidzOptions,
+                  ]}
+                  value={formData.munawwib}
+                  onChange={(val) => setFormData({ ...formData, munawwib: val })}
+                  placeholder="-- Pilih Asatidz Munawwib (Opsional) --"
+                  searchPlaceholder="Cari nama asatidz munawwib..."
                 />
               </div>
 
@@ -599,7 +589,7 @@ export default function MobileKelas() {
                 disabled={submitting}
                 style={{
                   background:
-                    "linear-gradient(135deg, #0891b2 0%, #0e7490 100%)",
+                    "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
                   color: "#ffffff",
                   border: "none",
                   padding: "12px",
@@ -622,7 +612,7 @@ export default function MobileKelas() {
         </div>
       )}
 
-      {/* Floating Action Button (FAB) (+) Warna Biru Gaya Live Chat */}
+      {/* Floating Action Button (FAB) (+) */}
       <button
         onClick={handleOpenAdd}
         title="Tambah Kelas Baru"
@@ -633,10 +623,10 @@ export default function MobileKelas() {
           width: "56px",
           height: "56px",
           borderRadius: "50%",
-          background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+          background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
           color: "#ffffff",
           border: "none",
-          boxShadow: "0 8px 24px rgba(37, 99, 235, 0.45)",
+          boxShadow: "0 8px 24px rgba(2, 132, 199, 0.45)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
