@@ -546,8 +546,8 @@ export default function PanelKantongDanBukuKas({
           value={activeTab}
           onChange={(e) => setActiveTab(e.target.value)}
           style={{
-            marginLeft: "auto",
-            maxWidth: "72%",
+            flex: 1,
+            maxWidth: "220px",
             padding: "8px 12px",
             borderRadius: "11px",
             border: "1.5px solid #059669",
@@ -557,21 +557,21 @@ export default function PanelKantongDanBukuKas({
             fontWeight: 800,
             cursor: "pointer",
             outline: "none",
-            textAlign: "right",
-            textAlignLast: "right",
+            textAlign: "left",
+            textAlignLast: "left",
           }}
         >
-          <option value="tunai">
-            Kas Tunai — {formatRp(kantong.saldo_kas_tunai)}
+          <option value="tunai" style={{ textAlign: "left" }}>
+            Kas Tunai
           </option>
-          <option value="bank">
-            Rek. Bank — {formatRp(kantong.saldo_rekening_bank)}
+          <option value="bank" style={{ textAlign: "left" }}>
+            Rek. Bank
           </option>
-          <option value="midtrans">
-            Midtrans — {formatRp(kantong.saldo_mengendap_midtrans)} ({kantong.jumlah_trx_mengendap_midtrans} Trx)
+          <option value="midtrans" style={{ textAlign: "left" }}>
+            Midtrans
           </option>
-          <option value="buku_kas">
-            Semuanya (Semua Riwayat Kas)
+          <option value="buku_kas" style={{ textAlign: "left" }}>
+            Semuanya
           </option>
         </select>
       </div>

@@ -78,6 +78,9 @@ const PengajarLaporanMengaji = lazySafe(
 );
 const MobileKitab = lazySafe(() => import("../views/mobile/MobileKitab"));
 const MobileProfil = lazySafe(() => import("../views/mobile/MobileProfil"));
+const MobileSettingsKeuangan = lazySafe(
+  () => import("../views/keuangan/MobileSettingsKeuangan"),
+);
 const MobileDaftarWajah = lazySafe(
   () => import("../views/mobile/MobileDaftarWajah"),
 );
@@ -732,6 +735,11 @@ export default function MobileLayout() {
       case "haid-santriwati":
         return <MobileHaid />;
       case "profil":
+      case "setting":
+      case "settings":
+        if (isBendahara) {
+          return <MobileSettingsKeuangan onLogout={handleLogout} />;
+        }
         return (
           <MobileProfil onChangeTab={handleSelectTab} onLogout={handleLogout} />
         );

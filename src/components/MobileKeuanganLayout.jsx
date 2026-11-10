@@ -22,7 +22,7 @@ import {
 import MobileHomeKeuangan from '../views/keuangan/MobileHomeKeuangan';
 import MobileKeuangan from '../views/mobile/MobileKeuangan';
 import MobileTabungan from '../views/mobile/MobileTabungan';
-import MobileProfil from '../views/mobile/MobileProfil';
+import MobileSettingsKeuangan from '../views/keuangan/MobileSettingsKeuangan';
 import MobileSantri from '../views/mobile/MobileSantri';
 import MobileLogin from '../views/mobile/MobileLogin';
 import LaporanInfakAdminView from '../views/keuangan/LaporanInfakAdminView';
@@ -136,7 +136,7 @@ export default function MobileKeuanganLayout() {
       case 'profil':
       case 'setting':
       case 'settings':
-        return <MobileProfil onChangeTab={handleSelectTab} onLogout={handleLogout} />;
+        return <MobileSettingsKeuangan onLogout={handleLogout} />;
       default:
         return <MobileHomeKeuangan onChangeTab={handleSelectTab} onLogout={handleLogout} />;
     }
