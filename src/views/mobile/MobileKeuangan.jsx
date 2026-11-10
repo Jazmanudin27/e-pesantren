@@ -29,7 +29,6 @@ import {
 } from 'lucide-react';
 import { toastSuccess, showError, showConfirm } from '../../utils/alert.util';
 import ModalGenerateTagihan from '../keuangan/components/ModalGenerateTagihan';
-import PanelKantongDanBukuKas from '../keuangan/components/PanelKantongDanBukuKas';
 
 export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }) {
   // Sub-tabs: 'kasir' | 'laporan'
@@ -2017,11 +2016,6 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
       ========================================================================= */}
       {activeTab === 'laporan' && (
         <div style={{ padding: '0 14px', marginTop: '-24px', position: 'relative', zIndex: 10 }}>
-          {/* 3 Kantong Saldo, Pencairan Midtrans, Setor Tunai, dan Buku Kas Pengeluaran/Pemasukan */}
-          <div style={{ marginBottom: '16px' }}>
-            <PanelKantongDanBukuKas onDataChanged={fetchRekapKeuangan} />
-          </div>
-
           {/* 3 Metric Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '14px' }}>
             <div style={{

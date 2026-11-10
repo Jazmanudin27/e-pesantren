@@ -18,7 +18,6 @@ import {
   RotateCcw,
 } from "lucide-react";
 import ModalKuitansi from "./components/ModalKuitansi";
-import PanelKantongDanBukuKas from "./components/PanelKantongDanBukuKas";
 import MobileLoadingState from "../../components/MobileLoadingState";
 import { toastError } from "../../utils/alert.util";
 
@@ -547,13 +546,8 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
               letterSpacing: "-0.5px",
             }}
           >
-            {formatRp(hasActiveFilter ? liveTotals.total : summary.saldo_siap_pakai || liveTotals.total)}
+            {formatRp(liveTotals.total)}
           </div>
-          {!hasActiveFilter && (
-            <div style={{ fontSize: "0.68rem", color: "#a7f3d0", marginTop: "2px", fontWeight: 600 }}>
-              Saldo Riil Siap Pakai (Kas Tunai + Bank) • Total Masuk Tagihan: {formatRp(liveTotals.total)}
-            </div>
-          )}
 
           {/* 3 Mini Metric Strip: 3 Kantong Dana */}
           <div
@@ -567,10 +561,9 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
             }}
           >
             <div
-              onClick={() => {
-                setActiveSubMode("rincian");
-                setFilterKantongDana(filterKantongDana === "Di Kas Tunai" ? "semua" : "Di Kas Tunai");
-              }}
+              onClick={() =>
+                setFilterKantongDana(filterKantongDana === "Di Kas Tunai" ? "semua" : "Di Kas Tunai")
+              }
               style={{
                 background: filterKantongDana === "Di Kas Tunai" ? "rgba(16, 185, 129, 0.35)" : "rgba(0, 0, 0, 0.16)",
                 border: filterKantongDana === "Di Kas Tunai" ? "1px solid #6ee7b7" : "1px solid transparent",
@@ -580,18 +573,17 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
               }}
             >
               <div style={{ fontSize: "0.58rem", color: "#a7f3d0", fontWeight: 700 }}>
-                1. Kas Tunai (Laci)
+                Cash / Tunai
               </div>
               <div style={{ fontSize: "0.73rem", fontWeight: 800, marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {formatRp(hasActiveFilter ? liveTotals.tunai : summary.saldo_kas_tunai || liveTotals.tunai)}
+                {formatRp(liveTotals.tunai)}
               </div>
             </div>
 
             <div
-              onClick={() => {
-                setActiveSubMode("rincian");
-                setFilterKantongDana(filterKantongDana === "Di Rekening Bank" ? "semua" : "Di Rekening Bank");
-              }}
+              onClick={() =>
+                setFilterKantongDana(filterKantongDana === "Di Rekening Bank" ? "semua" : "Di Rekening Bank")
+              }
               style={{
                 background: filterKantongDana === "Di Rekening Bank" ? "rgba(59, 130, 246, 0.35)" : "rgba(0, 0, 0, 0.16)",
                 border: filterKantongDana === "Di Rekening Bank" ? "1px solid #93c5fd" : "1px solid transparent",
@@ -601,20 +593,19 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
               }}
             >
               <div style={{ fontSize: "0.58rem", color: "#a7f3d0", fontWeight: 700 }}>
-                2. Rekening Bank
+                Rekening Bank
               </div>
               <div style={{ fontSize: "0.73rem", fontWeight: 800, marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {formatRp(hasActiveFilter ? liveTotals.bank : summary.saldo_rekening_bank || liveTotals.bank)}
+                {formatRp(liveTotals.bank)}
               </div>
             </div>
 
             <div
-              onClick={() => {
-                setActiveSubMode("rincian");
+              onClick={() =>
                 setFilterKantongDana(
                   filterKantongDana === "Mengendap di Midtrans" ? "semua" : "Mengendap di Midtrans",
-                );
-              }}
+                )
+              }
               style={{
                 background:
                   filterKantongDana === "Mengendap di Midtrans"
@@ -630,86 +621,18 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
               }}
             >
               <div style={{ fontSize: "0.58rem", color: "#fde68a", fontWeight: 700 }}>
-                3. Midtrans (Tertahan)
+                Midtrans (Tertahan)
               </div>
               <div style={{ fontSize: "0.73rem", fontWeight: 800, marginTop: "2px", color: "#fef3c7", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {formatRp(
-                  hasActiveFilter
-                    ? liveTotals.midtransMengendap
-                    : summary.saldo_mengendap_midtrans ?? liveTotals.midtransMengendap,
-                )}
+                {formatRp(liveTotals.midtransMengendap)}
               </div>
             </div>
           </div>
         </div>
-
-        {/* Segmented Mode Switcher: Rincian Kuitansi vs 3 Kantong Saldo & Buku Kas */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "6px",
-            background: "rgba(0, 0, 0, 0.22)",
-            padding: "4px",
-            borderRadius: "13px",
-            marginTop: "12px",
-            position: "relative",
-            zIndex: 1,
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setActiveSubMode("rincian")}
-            style={{
-              padding: "8px 10px",
-              borderRadius: "10px",
-              border: "none",
-              background: activeSubMode === "rincian" ? "#ffffff" : "transparent",
-              color: activeSubMode === "rincian" ? "#065f46" : "#d1fae5",
-              fontSize: "0.73rem",
-              fontWeight: 900,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "6px",
-            }}
-          >
-            <Receipt size={14} />
-            <span>Rincian Kuitansi ({filteredTrx.length})</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveSubMode("kantong")}
-            style={{
-              padding: "8px 10px",
-              borderRadius: "10px",
-              border: "none",
-              background: activeSubMode === "kantong" ? "#ffffff" : "transparent",
-              color: activeSubMode === "kantong" ? "#065f46" : "#d1fae5",
-              fontSize: "0.73rem",
-              fontWeight: 900,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "6px",
-            }}
-          >
-            <Wallet size={14} />
-            <span>3 Kantong &amp; Buku Kas</span>
-          </button>
-        </div>
       </div>
 
-      {activeSubMode === "kantong" ? (
-        <div style={{ padding: "14px" }}>
-          <PanelKantongDanBukuKas onDataChanged={fetchKasMasuk} />
-        </div>
-      ) : (
-        <>
-          {/* 2. SEARCH & FILTER PANEL */}
-          <div style={{ padding: "14px 14px 10px" }}>
+      {/* 2. SEARCH & FILTER PANEL */}
+      <div style={{ padding: "14px 14px 10px" }}>
         <div
           style={{
             background: "#ffffff",
@@ -1382,8 +1305,6 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
           </>
         )}
       </div>
-        </>
-      )}
 
       {/* 4. MODAL KUITANSI DIGITAL */}
       <ModalKuitansi

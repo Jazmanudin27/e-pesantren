@@ -54,6 +54,7 @@ import PerizinanView from '../views/admin/PerizinanView';
 import TataTertibView from '../views/admin/TataTertibView';
 import AbsensiFingerprintView from '../views/admin/AbsensiFingerprintView';
 import KeuanganAdminView from '../views/keuangan/KeuanganAdminView';
+import BukuKasView from '../views/keuangan/BukuKasView';
 import TabunganSantriAdminView from '../views/keuangan/TabunganSantriAdminView';
 import LaporanInfakAdminView from '../views/keuangan/LaporanInfakAdminView';
 import PesanKomunikasiAdminView from '../views/admin/PesanKomunikasiAdminView';
@@ -77,7 +78,7 @@ export default function AdminLayout() {
   const isMasterTab = (tab) => ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-materi', 'setting-shalat', 'setting-kegiatan', 'master-kegiatan'].includes(tab);
   const isSettingsTab = (tab) => ['master-device', 'manajemen-user', 'users', 'whatsapp-gateway', 'whatsapp', 'wa-broadcast'].includes(tab);
   const isLaporanTab = (tab) => ['laporan-presensi'].includes(tab);
-  const isKeuanganTab = (tab) => ['keuangan-admin', 'keuangan', 'keuangan-kasir', 'keuangan-rekap', 'keuangan-spp', 'tagihan', 'tabungan-santri', 'tabungan', 'laporan-infak', 'infak'].includes(tab);
+  const isKeuanganTab = (tab) => ['keuangan-admin', 'keuangan', 'keuangan-kasir', 'keuangan-rekap', 'keuangan-spp', 'tagihan', 'buku-kas', 'kantong-kas', 'kantong-saldo', 'tabungan-santri', 'tabungan', 'laporan-infak', 'infak'].includes(tab);
 
   // Get initial tab from URL hash
   const getInitialTab = () => {
@@ -493,6 +494,13 @@ export default function AdminLayout() {
           return null;
         }
         return <KeuanganAdminView initialMode="rekap" initialRekapTab="semua" />;
+      case 'buku-kas':
+      case 'kantong-kas':
+      case 'kantong-saldo':
+        if (!canAccessKeuangan(currentUser)) {
+          return null;
+        }
+        return <BukuKasView />;
       case 'tabungan-santri':
       case 'tabungan':
         if (!canAccessKeuangan(currentUser)) {
@@ -674,6 +682,16 @@ export default function AdminLayout() {
               <div className="nav-link-left">
                 <BarChart3 size={15} style={{ color: '#0284c7' }} />
                 <span>Rekap Kas &amp; Piutang</span>
+              </div>
+            </button>
+
+            <button 
+              className={`nav-link ${activeTab === 'buku-kas' || activeTab === 'kantong-kas' || activeTab === 'kantong-saldo' ? 'active' : ''}`}
+              onClick={() => handleTabClick('buku-kas')}
+            >
+              <div className="nav-link-left">
+                <Wallet size={15} style={{ color: '#f59e0b' }} />
+                <span>Buku Kas &amp; 3 Kantong</span>
               </div>
             </button>
 

@@ -27,6 +27,7 @@ import MobileSantri from '../views/mobile/MobileSantri';
 import MobileLogin from '../views/mobile/MobileLogin';
 import LaporanInfakAdminView from '../views/keuangan/LaporanInfakAdminView';
 import RincianKasMasukView from '../views/keuangan/RincianKasMasukView';
+import BukuKasView from '../views/keuangan/BukuKasView';
 import TunggakanSppView from '../views/keuangan/TunggakanSppView';
 import WhatsAppGatewayView from '../views/admin/WhatsAppGatewayView';
 
@@ -97,6 +98,10 @@ export default function MobileKeuanganLayout() {
       case 'kas-masuk':
       case 'rincian-kas-masuk':
         return <RincianKasMasukView onBackToHome={() => handleSelectTab('home')} onChangeTab={handleSelectTab} />;
+      case 'buku-kas':
+      case 'kantong-kas':
+      case 'kantong-saldo':
+        return <BukuKasView onBackToHome={() => handleSelectTab('home')} />;
       case 'keuangan-spp':
       case 'spp':
       case 'keuangan-kasir':
@@ -170,7 +175,19 @@ export default function MobileKeuanganLayout() {
             <span>Kasir</span>
           </button>
 
-          {/* 3. Laporan Rekap */}
+          {/* 3. Buku Kas & 3 Kantong */}
+          <button
+            className={`mobile-nav-item ${(activeTab === 'buku-kas' || activeTab === 'kantong-kas' || activeTab === 'kantong-saldo') ? 'active' : ''}`}
+            onClick={() => handleSelectTab('buku-kas')}
+            style={{ outline: 'none', border: 'none', boxShadow: 'none', WebkitTapHighlightColor: 'transparent' }}
+          >
+            <div className={`nav-icon-wrapper ${(activeTab === 'buku-kas' || activeTab === 'kantong-kas' || activeTab === 'kantong-saldo') ? 'active' : ''}`} style={{ outline: 'none', border: 'none', boxShadow: 'none' }}>
+              <Wallet size={20} />
+            </div>
+            <span>Buku Kas</span>
+          </button>
+
+          {/* 4. Laporan Rekap */}
           <button
             className={`mobile-nav-item ${(activeTab === 'keuangan-rekap' || activeTab === 'laporan' || activeTab === 'rekap') ? 'active' : ''}`}
             onClick={() => handleSelectTab('keuangan-rekap')}
@@ -182,7 +199,7 @@ export default function MobileKeuanganLayout() {
             <span>Laporan</span>
           </button>
 
-          {/* 4. Setting */}
+          {/* 5. Setting */}
           <button
             className={`mobile-nav-item ${(activeTab === 'profil' || activeTab === 'setting' || activeTab === 'settings') ? 'active' : ''}`}
             onClick={() => handleSelectTab('setting')}

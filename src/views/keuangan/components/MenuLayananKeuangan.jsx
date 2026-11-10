@@ -6,7 +6,8 @@ import {
   Heart,
   AlertTriangle,
   RotateCw,
-  Sparkles
+  Sparkles,
+  Landmark
 } from 'lucide-react';
 
 const squircleIconStyle = {
@@ -56,6 +57,13 @@ export default function MenuLayananKeuangan({
       gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
       shadow: '0 6px 16px -2px rgba(16, 185, 129, 0.38)',
       icon: <CreditCard size={22} strokeWidth={2.3} color="#ffffff" />
+    },
+    {
+      id: 'buku-kas',
+      name: 'Buku Kas',
+      gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+      shadow: '0 6px 16px -2px rgba(245, 158, 11, 0.38)',
+      icon: <Landmark size={22} strokeWidth={2.3} color="#ffffff" />
     },
     {
       id: 'keuangan-rekap',

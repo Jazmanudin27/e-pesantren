@@ -105,6 +105,7 @@ const TabInformasiKegiatan = lazySafe(
 );
 const PortalWaliSantri = lazySafe(() => import("../views/wali/PortalWaliSantri"));
 const MobileTabungan = lazySafe(() => import("../views/mobile/MobileTabungan"));
+const BukuKasView = lazySafe(() => import("../views/keuangan/BukuKasView"));
 const LaporanInfakAdminView = lazySafe(
   () => import("../views/keuangan/LaporanInfakAdminView"),
 );
@@ -711,6 +712,11 @@ export default function MobileLayout() {
         );
       case "tabungan":
         return <MobileTabungan onBackToHome={() => handleSelectTab("home")} />;
+      case "buku-kas":
+      case "kantong-kas":
+      case "kantong-saldo":
+        if (!canAccessKeuangan(session)) return renderAksesDibatasi();
+        return <BukuKasView onBackToHome={() => handleSelectTab("home")} />;
       case "laporan-infak":
       case "infak":
         return <LaporanInfakAdminView />;
@@ -748,7 +754,11 @@ export default function MobileLayout() {
   };
 
   const isFinancialTab =
-    mobileTab === "syahriah" || mobileTab.startsWith("keuangan");
+    mobileTab === "syahriah" ||
+    mobileTab === "buku-kas" ||
+    mobileTab === "kantong-kas" ||
+    mobileTab === "kantong-saldo" ||
+    mobileTab.startsWith("keuangan");
   const hasCustomHeader =
     isFinancialTab ||
     mobileTab === "informasi" ||
@@ -954,6 +964,30 @@ export default function MobileLayout() {
                         }}
                       >
                         <CreditCard size={16} color="#059669" /> Kasir Santri
+                      </button>
+                      <button
+                        onClick={() => handleSelectTab("buku-kas")}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          padding: "10px",
+                          background:
+                            mobileTab === "buku-kas"
+                              ? "#fef3c7"
+                              : "#f8fafc",
+                          border:
+                            mobileTab === "buku-kas"
+                              ? "1px solid #d97706"
+                              : "1px solid #e2e8f0",
+                          borderRadius: "10px",
+                          fontSize: "0.78rem",
+                          fontWeight: 700,
+                          color: "#1e293b",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <Wallet size={16} color="#d97706" /> Buku Kas &amp; Saldo
                       </button>
                       <button
                         onClick={() => handleSelectTab("keuangan-rekap")}

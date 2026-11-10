@@ -25,7 +25,6 @@ import {
 } from 'lucide-react';
 import { toastSuccess, showError, showConfirm } from '../../utils/alert.util';
 import SearchableSelect from '../../components/SearchableSelect';
-import PanelKantongDanBukuKas from './components/PanelKantongDanBukuKas';
 
 export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapTab = 'semua' }) {
   // Mode Utama: 'kasir' (Tampilan Input Pembayaran per Santri seperti Artanita) | 'rekap' (Tabel Rekap Semua Santri & Master Pos Biaya)
@@ -2011,9 +2010,6 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
           </div>
 
           <div className="tab-filter-bar">
-            <button className={`tab-btn ${rekapTab === 'buku_kas' ? 'active' : ''}`} onClick={() => setRekapTab('buku_kas')}>
-              3 Kantong Saldo &amp; Buku Kas
-            </button>
             <button className={`tab-btn ${rekapTab === 'semua' ? 'active' : ''}`} onClick={() => setRekapTab('semua')}>
               Daftar Semua Tagihan ({dataRekap.semuaTagihan?.length || 0})
             </button>
@@ -2028,12 +2024,6 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
             </button>
           </div>
 
-          {rekapTab === 'buku_kas' ? (
-            <div style={{ marginTop: '14px' }}>
-              <PanelKantongDanBukuKas onDataChanged={fetchRekap} />
-            </div>
-          ) : (
-            <>
           <div className="filter-search-box">
             <div className="filter-search-input">
               <Search size={15} color="#94a3b8" />
@@ -2253,8 +2243,6 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
               </table>
             )}
           </div>
-            </>
-          )}
         </div>
       )}
 
