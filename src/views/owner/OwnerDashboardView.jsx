@@ -39,6 +39,7 @@ import OwnerLaporanPerkembangan from "./OwnerLaporanPerkembangan";
 import OwnerLaporanPerizinan from "./OwnerLaporanPerizinan";
 import OwnerLaporanSantri from "./OwnerLaporanSantri";
 import OwnerSettingsView from "./OwnerSettingsView";
+import { useIdleResumeRefresh } from "../../utils/idleRecovery.util";
 
 const squircleIconStyle = {
   width: "50px",
@@ -211,6 +212,12 @@ export default function OwnerDashboardView({ onLogout }) {
     fetchFeed();
     fetchNotifikasi();
   }, []);
+
+  useIdleResumeRefresh(() => {
+    fetchSummary();
+    fetchFeed();
+    fetchNotifikasi();
+  }, 60000);
 
   useEffect(() => {
     try {

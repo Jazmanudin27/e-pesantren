@@ -8,10 +8,17 @@ import { syncActivePerizinanToAbsensi } from './absensi.controller.js';
 import { deactivateHaidForSantri, syncActiveHaidToAbsensi } from './haid.controller.js';
 import { getPresensiReportWithAutoAlfa } from '../utils/presensiReport.util.js';
 
+let pengajarTablesReady = false;
+let pengajarTablesPromise = null;
+
 /**
- * Pastikan tabel-tabel esensial untuk Pengajar tersedia
+ * Pastikan tabel-tabel esensial untuk Pengajar tersedia (sekali per proses server agar tidak memicu metadata lock)
  */
 export const ensurePengajarTables = async () => {
+  if (pengajarTablesReady) return;
+  if (pengajarTablesPromise) return pengajarTablesPromise;
+
+  pengajarTablesPromise = (async () => {
   try {
     // 1. Sesi Kegiatan Mengaji Default
     await pool.query(`
@@ -135,9 +142,15 @@ export const ensurePengajarTables = async () => {
     } catch (uErr) {
       console.warn('[AUTOGEN ASATIDZ CREDENTIALS]', uErr.message);
     }
+    pengajarTablesReady = true;
   } catch (err) {
     console.warn('[PENGAJAR DB INIT NOTICE]', err.message);
+  } finally {
+    pengajarTablesPromise = null;
   }
+  })();
+
+  return pengajarTablesPromise;
 };
 
 /**

@@ -157,7 +157,7 @@
               };
 
               if ('caches' in window) {
-                caches.open('nwf-mobile-v6').then(function(cache) {
+                caches.open('nwf-mobile-v7').then(function(cache) {
                   makeIconBlob(192, function(b) {
                     const res = new Response(b, { headers: { 'Content-Type': 'image/png' } });
                     cache.put('/pwa-icon-192.png', res.clone());
@@ -185,6 +185,19 @@
           }
           origConsoleError.apply(console, args);
         };
+        window.__safeChunkReload = function() {
+          try {
+            var now = Date.now();
+            var last = Number(sessionStorage.getItem('nwf_chunk_reload_at') || '0');
+            if (last && now - last < 15000) {
+              return false;
+            }
+            sessionStorage.setItem('nwf_chunk_reload_at', String(now));
+          } catch (err) {}
+          window.location.reload();
+          return true;
+        };
+
         window.addEventListener('unhandledrejection', function(e) {
           const reasonStr = String(e?.reason?.message || e?.reason || '');
           if (reasonStr.includes('faro') || reasonStr.includes('gopay.sh')) {
@@ -197,10 +210,32 @@
             reasonStr.includes('Strict MIME type')
           ) {
             e.preventDefault();
-            window.location.reload();
+            window.__safeChunkReload();
             return;
           }
         });
+
+        // Watchdog anti-stuck: jika #pre-splash belum hilang setelah 10 detik, tampilkan tombol muat ulang agar tidak muter selamanya
+        setTimeout(function() {
+          var preSplash = document.getElementById('pre-splash');
+          if (!preSplash) return;
+          var subtitle = preSplash.querySelector('p');
+          if (subtitle) {
+            subtitle.textContent = 'Memuat terlalu lama. Periksa koneksi lalu muat ulang.';
+          }
+          if (!document.getElementById('pre-splash-retry-btn')) {
+            var btn = document.createElement('button');
+            btn.id = 'pre-splash-retry-btn';
+            btn.type = 'button';
+            btn.textContent = 'Muat Ulang';
+            btn.style.cssText = 'margin-top:16px;padding:10px 20px;border:none;border-radius:10px;background:#10b981;color:#fff;font-weight:700;font-size:13px;cursor:pointer;';
+            btn.onclick = function() {
+              try { sessionStorage.removeItem('nwf_chunk_reload_at'); } catch (e) {}
+              window.location.reload();
+            };
+            preSplash.appendChild(btn);
+          }
+        }, 10000);
       })();
     </script>
     <script type="text/javascript" src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="SB-Mid-client-gtkZiSrCZjZHYwwZ" async defer></script>

@@ -19,7 +19,7 @@ export default function PengajarSettingsView({ onLogout }) {
         localStorage.getItem("desktop_session") ||
           sessionStorage.getItem("desktop_session") ||
           localStorage.getItem("mobile_session") ||
-          "{}"
+          "{}",
       );
     } catch (e) {
       return {};
@@ -34,10 +34,10 @@ export default function PengajarSettingsView({ onLogout }) {
     "Ustadz Pengajar";
 
   const [currentUsername, setCurrentUsername] = useState(
-    initialSession.username || ""
+    initialSession.username || "",
   );
   const [usernameBaru, setUsernameBaru] = useState(
-    initialSession.username || ""
+    initialSession.username || "",
   );
   const [passwordLama, setPasswordLama] = useState("");
   const [passwordBaru, setPasswordBaru] = useState("");
@@ -91,8 +91,7 @@ export default function PengajarSettingsView({ onLogout }) {
 
     try {
       setSaving(true);
-      const token =
-        localStorage.getItem("token") || initialSession.token || "";
+      const token = localStorage.getItem("token") || initialSession.token || "";
       const res = await axios.post(
         "/api/pengajar/account",
         {
@@ -102,7 +101,7 @@ export default function PengajarSettingsView({ onLogout }) {
         },
         {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }
+        },
       );
 
       if (res.data?.success) {
@@ -139,14 +138,14 @@ export default function PengajarSettingsView({ onLogout }) {
 
         toastSuccess(
           "Berhasil Disimpan",
-          res.data?.message || "Username & password akun diperbarui."
+          res.data?.message || "Username & password akun diperbarui.",
         );
       }
     } catch (err) {
       toastError(
         err.response?.data?.message ||
           err.response?.data?.error ||
-          "Gagal memperbarui akun."
+          "Gagal memperbarui akun.",
       );
     } finally {
       setSaving(false);
@@ -158,7 +157,7 @@ export default function PengajarSettingsView({ onLogout }) {
       "Konfirmasi Keluar",
       "Apakah Anda ingin keluar dari akun Pengajar?",
       "Ya, Keluar",
-      "Batal"
+      "Batal",
     );
     if (!confirmed) return;
 
@@ -177,7 +176,14 @@ export default function PengajarSettingsView({ onLogout }) {
   };
 
   return (
-    <div style={{ padding: "4px 14px 28px", display: "flex", flexDirection: "column", gap: "14px" }}>
+    <div
+      style={{
+        padding: "4px 14px 28px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "14px",
+      }}
+    >
       {/* Profile Summary Card */}
       <div
         style={{
@@ -277,7 +283,9 @@ export default function PengajarSettingsView({ onLogout }) {
             <KeyRound size={16} />
           </div>
           <div>
-            <div style={{ fontSize: "0.84rem", fontWeight: 800, color: "#0f172a" }}>
+            <div
+              style={{ fontSize: "0.84rem", fontWeight: 800, color: "#0f172a" }}
+            >
               Ubah Username &amp; Password
             </div>
             <div style={{ fontSize: "0.66rem", color: "#64748b" }}>
@@ -559,4 +567,3 @@ export default function PengajarSettingsView({ onLogout }) {
     </div>
   );
 }
-

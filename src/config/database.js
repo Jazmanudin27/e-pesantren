@@ -11,7 +11,12 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME || 'pesantren',
   waitForConnections: true,
   connectionLimit: 80,
+  maxIdle: 10,
+  idleTimeout: 60000,
   queueLimit: 0,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 10000,
+  connectTimeout: 10000,
 });
 
 export default pool;

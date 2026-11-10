@@ -29,6 +29,7 @@ import OwnerLaporanSantri from "../owner/OwnerLaporanSantri";
 import PengajarSettingsView from "./PengajarSettingsView";
 import MobileDaftarWajah from "../mobile/MobileDaftarWajah";
 import { stopAllActiveCameraStreams } from "../../utils/cameraCleanup.util";
+import { useIdleResumeRefresh } from "../../utils/idleRecovery.util";
 
 const squircleIconStyle = {
   width: "48px",
@@ -203,6 +204,10 @@ export default function PengajarDashboardView({ onLogout }) {
   useEffect(() => {
     fetchDashboard();
   }, []);
+
+  useIdleResumeRefresh(() => {
+    fetchDashboard();
+  }, 60000);
 
   // Persist activeTab ke sessionStorage/localStorage & URL hash agar saat reload tetap di menu aktif
   useEffect(() => {

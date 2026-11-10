@@ -72,7 +72,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start HTTP Server
-app.listen(PORT, '0.0.0.0', async () => {
+const server = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`[E-PESANTREN] Server aktif & rapi di http://0.0.0.0:${PORT}`);
   try {
     await ensureSantriCredentialsColumns();
@@ -93,4 +93,9 @@ app.listen(PORT, '0.0.0.0', async () => {
     console.warn('[E-PESANTREN] Init DB notice:', e.message);
   }
 });
+
+// Selaraskan Keep-Alive dengan Nginx reverse proxy agar idle socket tidak menggantung / 502
+server.keepAliveTimeout = 65000;
+server.headersTimeout = 66000;
+server.requestTimeout = 30000;
 

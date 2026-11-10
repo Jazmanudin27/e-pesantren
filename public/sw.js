@@ -1,5 +1,5 @@
 // NWF Mobile Service Worker for Fast PWA Standalone Installation & Push Notifications
-const CACHE_NAME = 'nwf-mobile-v6';
+const CACHE_NAME = 'nwf-mobile-v7';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -67,8 +67,16 @@ self.addEventListener('fetch', (event) => {
   // JANGAN intercept request cross-origin (seperti Midtrans snap.js, Google Fonts, CDN) agar tidak error Response undefined
   if (url.origin !== self.location.origin) return;
 
-  // JANGAN intercept endpoint API
-  if (url.pathname.startsWith('/api/')) return;
+  // JANGAN intercept endpoint API atau asset JS/CSS Vite agar chunk mismatch / wake-up network glitch tidak jadi 503 text/plain
+  if (
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/assets/') ||
+    url.pathname.startsWith('/src/') ||
+    url.pathname.startsWith('/@') ||
+    url.pathname.startsWith('/node_modules/')
+  ) {
+    return;
+  }
 
   if (url.pathname === '/pwa-icon-192.png' || url.pathname === '/pwa-icon-maskable-192.png') {
     event.respondWith(generatePaddedPwaIcon(192));
@@ -83,11 +91,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Untuk navigasi halaman (index.html), utamakan network no-store; jika gagal (idle wake / offline), tampilkan fallback HTML bersih dengan tombol muat ulang
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' }).catch(async () => {
+        const cached = await caches.match('/');
+        if (cached) return cached;
+        return new Response(
+          '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NWF Mobile</title></head><body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:sans-serif;background:#064e3b;color:#fff;text-align:center;padding:24px"><div><h2 style="margin:0 0 8px">Koneksi Sedang Terputus</h2><p style="opacity:.85;font-size:14px;margin:0 0 18px">Pastikan internet aktif lalu muat ulang aplikasi.</p><button onclick="location.reload()" style="padding:10px 20px;border:none;border-radius:10px;background:#10b981;color:#fff;font-weight:700;cursor:pointer">Muat Ulang</button></div></body></html>',
+          { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+        );
+      })
+    );
+    return;
+  }
+
   event.respondWith(
     fetch(event.request).catch(async () => {
       const cached = await caches.match(event.request);
       if (cached) return cached;
-      return new Response('Offline', { status: 503, statusText: 'Offline' });
+      return Response.error();
     })
   );
 });
