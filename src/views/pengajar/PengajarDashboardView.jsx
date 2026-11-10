@@ -1456,7 +1456,9 @@ export default function PengajarDashboardView({ onLogout }) {
               style={{
                 padding:
                   activeTab === "absen-mengaji" ||
-                  activeTab === "perkembangan"
+                  activeTab === "perkembangan" ||
+                  activeTab === "teguran" ||
+                  activeTab === "praktek"
                     ? 0
                     : "0 14px 20px",
                 flex: 1,
