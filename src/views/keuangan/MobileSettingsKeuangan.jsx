@@ -210,7 +210,7 @@ export default function MobileSettingsKeuangan({ onLogout }) {
   };
 
   return (
-    <div style={{ padding: "16px", paddingBottom: "28px" }}>
+    <div style={{ padding: "0 14px 28px" }}>
       {/* Header Profil Ringkas Bendahara */}
       <div
         style={{

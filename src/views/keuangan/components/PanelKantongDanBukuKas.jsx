@@ -105,9 +105,8 @@ export default function PanelKantongDanBukuKas({
   const [unsettledMidtrans, setUnsettledMidtrans] = useState([]);
   const [bukuKas, setBukuKas] = useState([]);
 
-  // Tab Aktif: 'tunai' | 'bank' | 'midtrans' | 'buku_kas'
+  // Tab Aktif: 'tunai' | 'bank' | 'midtrans'
   const [activeTab, setActiveTab] = useState("tunai");
-  const [filterJenis, setFilterJenis] = useState("semua");
 
   // Modal Form Buku Kas (Add & Edit)
   const [formModal, setFormModal] = useState({
@@ -354,7 +353,7 @@ export default function PanelKantongDanBukuKas({
     }
   };
 
-  // Filter mutasi sesuai tab aktif
+  // Filter mutasi sesuai kantong aktif
   const displayedMutasi = useMemo(() => {
     return (bukuKas || []).filter((item) => {
       if (activeTab === "tunai") {
@@ -375,12 +374,9 @@ export default function PanelKantongDanBukuKas({
           item.jenis_transaksi === "Pencairan Midtrans ke Bank"
         );
       }
-      if (filterJenis !== "semua" && item.jenis_transaksi !== filterJenis) {
-        return false;
-      }
-      return true;
+      return false;
     });
-  }, [bukuKas, activeTab, filterJenis]);
+  }, [bukuKas, activeTab]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -569,9 +565,6 @@ export default function PanelKantongDanBukuKas({
           </option>
           <option value="midtrans" style={{ textAlign: "left" }}>
             Midtrans
-          </option>
-          <option value="buku_kas" style={{ textAlign: "left" }}>
-            Semuanya
           </option>
         </select>
       </div>
@@ -859,7 +852,6 @@ export default function PanelKantongDanBukuKas({
             alignItems: "center",
             gap: "8px",
             marginBottom: "10px",
-            flexWrap: "wrap",
           }}
         >
           <div style={{ fontSize: "0.82rem", fontWeight: 900, color: "#0f172a" }}>
@@ -867,41 +859,8 @@ export default function PanelKantongDanBukuKas({
               ? "Riwayat Mutasi Kas Tunai"
               : activeTab === "bank"
                 ? "Riwayat Mutasi Rekening Bank"
-                : activeTab === "midtrans"
-                  ? "Riwayat Pencairan Midtrans"
-                  : "Semua Riwayat Buku Kas"}
+                : "Riwayat Pencairan Midtrans"}
           </div>
-
-          {activeTab === "buku_kas" && (
-            <div style={{ display: "flex", gap: "4px", overflowX: "auto" }}>
-              {[
-                { id: "semua", label: "Semua" },
-                { id: "Pengeluaran", label: "Pengeluaran" },
-                { id: "Pemasukan Lain", label: "Pemasukan" },
-                { id: "Setor Tunai ke Bank", label: "Setor Bank" },
-                { id: "Pencairan Midtrans ke Bank", label: "Cair Midtrans" },
-              ].map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setFilterJenis(f.id)}
-                  style={{
-                    border: filterJenis === f.id ? "1px solid #059669" : "1px solid #e2e8f0",
-                    background: filterJenis === f.id ? "#ecfdf5" : "#f8fafc",
-                    color: filterJenis === f.id ? "#047857" : "#64748b",
-                    borderRadius: "999px",
-                    padding: "4px 9px",
-                    fontSize: "0.65rem",
-                    fontWeight: 800,
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
         {loading && bukuKas.length === 0 ? (

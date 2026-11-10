@@ -720,50 +720,11 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
       paddingBottom: activeTab === 'kasir' && selectedSantri ? '100px' : '36px',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
     }}>
-      {/* Top Header Terpadu Emerald Green (Persis Header Ortu / Admin) */}
-      <div style={{
-        background: 'linear-gradient(180deg, #0b6b60 0%, #0d766e 70%, #095c53 100%)',
-        padding: '14px 16px 36px',
-        color: '#ffffff',
-        borderBottomLeftRadius: '28px',
-        borderBottomRightRadius: '28px',
-        position: 'relative',
-        boxShadow: '0 8px 20px rgba(11, 107, 96, 0.25)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {onBackToHome && (
-            <button
-              onClick={onBackToHome}
-              style={{
-                background: 'rgba(255, 255, 255, 0.2)',
-                border: '1px solid rgba(255, 255, 255, 0.25)',
-                color: '#ffffff',
-                width: '36px',
-                height: '36px',
-                borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer'
-              }}
-              title="Kembali"
-            >
-              <ArrowLeft size={18} />
-            </button>
-          )}
-          <div>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px', color: '#ffffff' }}>
-              {activeTab === 'laporan' ? 'Laporan Kas' : activeTab === 'tunggakan' ? 'Tunggakan Santri' : activeTab === 'transaksi' ? 'Histori Transaksi' : 'Kasir'}
-            </h2>
-          </div>
-        </div>
-      </div>
-
       {/* =========================================================================
           TAB 1: KASIR BAYAR MOBILE (POS MODERN)
       ========================================================================= */}
       {activeTab === 'kasir' && (
-        <div style={{ padding: '0 14px', marginTop: '-24px', position: 'relative', zIndex: 10 }}>
+        <div style={{ padding: '0 14px', position: 'relative', zIndex: 10 }}>
           {/* Card Santri Selector */}
           <div style={{
             background: '#ffffff',
@@ -2015,7 +1976,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
           TAB 2: LAPORAN KAS & REKAP KEUANGAN
       ========================================================================= */}
       {activeTab === 'laporan' && (
-        <div style={{ padding: '0 14px', marginTop: '-24px', position: 'relative', zIndex: 10 }}>
+        <div style={{ padding: '0 14px', position: 'relative', zIndex: 10 }}>
           {/* 3 Metric Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '14px' }}>
             <div style={{

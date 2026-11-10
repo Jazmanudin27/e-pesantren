@@ -380,16 +380,16 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
         minHeight: "100vh",
       }}
     >
-      {/* 1. HERO HEADER CURVED GRADIENT */}
+      {/* 1. HERO SUMMARY CARD */}
       <div
         style={{
           background:
             "linear-gradient(135deg, #047857 0%, #065f46 55%, #022c22 100%)",
-          padding: "18px 16px 26px",
+          padding: onBackToHome ? "16px" : "18px 16px 26px",
+          margin: onBackToHome ? "0 14px" : "0",
           color: "#ffffff",
           boxShadow: "0 10px 28px -6px rgba(4, 120, 87, 0.35)",
-          borderBottomLeftRadius: "26px",
-          borderBottomRightRadius: "26px",
+          borderRadius: onBackToHome ? "20px" : "0 0 26px 26px",
           position: "relative",
           overflow: "hidden",
         }}
@@ -407,38 +407,18 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
           }}
         />
 
-        {/* Top Bar */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: "14px",
-            position: "relative",
-            zIndex: 1,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            {onBackToHome && (
-              <button
-                type="button"
-                onClick={onBackToHome}
-                style={{
-                  background: "rgba(255, 255, 255, 0.16)",
-                  border: "1px solid rgba(255, 255, 255, 0.2)",
-                  color: "#ffffff",
-                  width: "36px",
-                  height: "36px",
-                  borderRadius: "11px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                }}
-              >
-                <ArrowLeft size={18} />
-              </button>
-            )}
+        {/* Top Bar (Desktop Only — Mobile uses Unified Owner Header) */}
+        {!onBackToHome && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "14px",
+              position: "relative",
+              zIndex: 1,
+            }}
+          >
             <div>
               <h2
                 style={{
@@ -461,28 +441,28 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
                 Penerimaan Pembayaran Lunas Terverifikasi
               </div>
             </div>
-          </div>
 
-          <button
-            type="button"
-            onClick={fetchKasMasuk}
-            style={{
-              background: "rgba(255, 255, 255, 0.16)",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
-              color: "#ffffff",
-              width: "36px",
-              height: "36px",
-              borderRadius: "11px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-            }}
-            title="Refresh Data"
-          >
-            <RotateCw size={16} className={loading ? "animate-spin" : ""} />
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={fetchKasMasuk}
+              style={{
+                background: "rgba(255, 255, 255, 0.16)",
+                border: "1px solid rgba(255, 255, 255, 0.2)",
+                color: "#ffffff",
+                width: "36px",
+                height: "36px",
+                borderRadius: "11px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+              }}
+              title="Refresh Data"
+            >
+              <RotateCw size={16} className={loading ? "animate-spin" : ""} />
+            </button>
+          </div>
+        )}
 
         {/* Hero Glass Summary Card */}
         <div

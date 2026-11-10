@@ -220,66 +220,17 @@ export default function MobileTabungan({ onBackToHome }) {
 
   return (
     <div style={{ paddingBottom: '90px', background: '#f8fafc', minHeight: '100vh' }}>
-      {/* Top Header Card */}
+      {/* Hero Summary Card */}
       <div
         style={{
           background: 'linear-gradient(135deg, #0d766e 0%, #064e3b 100%)',
-          padding: '20px 16px 28px',
+          padding: '16px',
+          margin: '0 14px',
           color: '#ffffff',
           boxShadow: '0 4px 20px rgba(13, 118, 110, 0.25)',
-          borderBottomLeftRadius: '24px',
-          borderBottomRightRadius: '24px',
+          borderRadius: '20px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {onBackToHome && (
-              <button
-                onClick={onBackToHome}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.16)',
-                  border: 'none',
-                  color: '#ffffff',
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer'
-                }}
-              >
-                <ArrowLeft size={18} />
-              </button>
-            )}
-            <div>
-              <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, letterSpacing: '-0.3px' }}>
-                Tabungan Santri
-              </h2>
-              <div style={{ fontSize: '0.72rem', color: '#a7f3d0', marginTop: '2px' }}>
-                Pengelolaan Saldo & Riwayat Transaksi Santri
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={fetchTabunganList}
-            style={{
-              background: 'rgba(255, 255, 255, 0.15)',
-              border: 'none',
-              color: '#ffffff',
-              width: '34px',
-              height: '34px',
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer'
-            }}
-            title="Refresh Data"
-          >
-            <RotateCcw size={16} />
-          </button>
-        </div>
 
         {/* Global Total Saldo Card */}
         <div
