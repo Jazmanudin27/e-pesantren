@@ -16,6 +16,7 @@ import {
   Building2,
   Fingerprint,
   Settings,
+  Smile,
 } from "lucide-react";
 import { showConfirm, toastSuccess } from "../../utils/alert.util";
 import PengajarAbsenMengaji from "./PengajarAbsenMengaji";
@@ -26,6 +27,7 @@ import PengajarPraktekView from "./PengajarPraktekView";
 import PengajarPerkembanganView from "./PengajarPerkembanganView";
 import OwnerLaporanSantri from "../owner/OwnerLaporanSantri";
 import PengajarSettingsView from "./PengajarSettingsView";
+import MobileDaftarWajah from "../mobile/MobileDaftarWajah";
 
 const squircleIconStyle = {
   width: "48px",
@@ -72,6 +74,7 @@ const PENGAJAR_TABS = new Set([
   "teguran",
   "praktek",
   "perkembangan",
+  "daftar-wajah",
   "santri",
   "settings",
   "profil",
@@ -1066,6 +1069,24 @@ export default function PengajarDashboardView({ onLogout }) {
                     </div>
                     <span style={menuLabelStyle}>Perkembangan</span>
                   </div>
+
+                  {/* 6. Daftar Wajah AI */}
+                  <div
+                    onClick={() => setActiveTab("daftar-wajah")}
+                    style={menuCardStyle}
+                  >
+                    <div
+                      style={{
+                        ...squircleIconStyle,
+                        background:
+                          "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
+                        boxShadow: "0 6px 16px -2px rgba(236, 72, 153, 0.38)",
+                      }}
+                    >
+                      <Smile size={23} strokeWidth={2.3} color="#ffffff" />
+                    </div>
+                    <span style={menuLabelStyle}>Daftar Wajah</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1147,6 +1168,8 @@ export default function PengajarDashboardView({ onLogout }) {
                   {activeTab === "praktek" && "Evaluasi Praktek Ibadah"}
                   {activeTab === "perkembangan" &&
                     "Laporan Perkembangan Santri"}
+                  {activeTab === "daftar-wajah" &&
+                    "Pendaftaran Wajah Santri AI"}
                   {activeTab === "santri" && "Data & Demografi Santri"}
                   {(activeTab === "settings" || activeTab === "profil") &&
                     "Pengaturan Akun Pengajar"}
@@ -1165,6 +1188,7 @@ export default function PengajarDashboardView({ onLogout }) {
                   activeTab === "perkembangan" ||
                   activeTab === "teguran" ||
                   activeTab === "praktek" ||
+                  activeTab === "daftar-wajah" ||
                   activeTab === "settings" ||
                   activeTab === "profil"
                     ? 0
@@ -1182,6 +1206,7 @@ export default function PengajarDashboardView({ onLogout }) {
               {activeTab === "teguran" && <PengajarTeguranView />}
               {activeTab === "praktek" && <PengajarPraktekView />}
               {activeTab === "perkembangan" && <PengajarPerkembanganView />}
+              {activeTab === "daftar-wajah" && <MobileDaftarWajah />}
               {activeTab === "santri" && <OwnerLaporanSantri />}
               {(activeTab === "settings" || activeTab === "profil") && (
                 <PengajarSettingsView onLogout={onLogout} />
