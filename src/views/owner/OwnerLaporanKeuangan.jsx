@@ -25,6 +25,7 @@ import LaporanPeriodeFilter, {
   createInitialPeriodeState,
   buildPeriodeQueryParams,
 } from "./components/LaporanPeriodeFilter";
+import PanelKantongDanBukuKas from "../keuangan/components/PanelKantongDanBukuKas";
 
 export default function OwnerLaporanKeuangan() {
   const [loading, setLoading] = useState(true);
@@ -66,8 +67,16 @@ export default function OwnerLaporanKeuangan() {
     setVisibleLimit(30);
   }, [periodeFilter, activeSubTab]);
 
-  const formatMetode = (m) => {
-    if (!m) return "Tunai";
+  const formatMetode = (m, ch) => {
+    const combined = `${ch || ""} ${m || ""}`.toLowerCase();
+    if (combined.includes("tunai") || combined.includes("cash") || combined.includes("kasir")) {
+      return "Cash / Tunai";
+    }
+    if (combined.includes("transfer") || /\btf\b/.test(combined)) {
+      return "Transfer Bank";
+    }
+    if (combined.includes("qris")) return "QRIS";
+    if (!m) return "Cash / Tunai";
     return String(m)
       .replace(/Virtual\s*Account/gi, "VA")
       .replace(/\s+/g, " ")
@@ -364,6 +373,29 @@ export default function OwnerLaporanKeuangan() {
       >
         <button
           type="button"
+          onClick={() => setActiveSubTab("buku_kas")}
+          style={{
+            flex: 1,
+            background: activeSubTab === "buku_kas" ? "#ecfdf5" : "transparent",
+            color: activeSubTab === "buku_kas" ? "#065f46" : "#64748b",
+            fontWeight: activeSubTab === "buku_kas" ? 800 : 600,
+            fontSize: "0.72rem",
+            padding: "8px 4px",
+            borderRadius: "10px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "5px",
+            border: activeSubTab === "buku_kas" ? "1px solid #a7f3d0" : "1px solid transparent"
+          }}
+        >
+          <Wallet size={14} />
+          <span>3 Kantong &amp; Kas</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => setActiveSubTab("transaksi")}
           style={{
             flex: 1,
@@ -433,48 +465,52 @@ export default function OwnerLaporanKeuangan() {
       </div>
 
       {/* 5. SEARCH INPUT */}
-      <div
-        style={{
-          position: "relative",
-          background: "#ffffff",
-          borderRadius: "12px",
-          border: "1px solid #e2e8f0",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.02)"
-        }}
-      >
-        <Search
-          size={16}
-          color="#94a3b8"
-          style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }}
-        />
-        <input
-          type="text"
-          placeholder={
-            activeSubTab === "transaksi"
-              ? "Cari nama santri, kuitansi, atau kelas..."
-              : activeSubTab === "tunggakan"
-              ? "Cari santri menunggak / wali..."
-              : "Cari nama donatur / program..."
-          }
-          value={searchTable}
-          onChange={(e) => setSearchTable(e.target.value)}
+      {activeSubTab !== "buku_kas" && (
+        <div
           style={{
-            width: "100%",
-            padding: "9px 12px 9px 36px",
-            border: "none",
-            outline: "none",
+            position: "relative",
+            background: "#ffffff",
             borderRadius: "12px",
-            fontSize: "0.75rem",
-            color: "#0f172a",
-            background: "transparent",
-            boxSizing: "border-box"
+            border: "1px solid #e2e8f0",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.02)"
           }}
-        />
-      </div>
+        >
+          <Search
+            size={16}
+            color="#94a3b8"
+            style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }}
+          />
+          <input
+            type="text"
+            placeholder={
+              activeSubTab === "transaksi"
+                ? "Cari nama santri, kuitansi, atau kelas..."
+                : activeSubTab === "tunggakan"
+                ? "Cari santri menunggak / wali..."
+                : "Cari nama donatur / program..."
+            }
+            value={searchTable}
+            onChange={(e) => setSearchTable(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "9px 12px 9px 36px",
+              border: "none",
+              outline: "none",
+              borderRadius: "12px",
+              fontSize: "0.75rem",
+              color: "#0f172a",
+              background: "transparent",
+              boxSizing: "border-box"
+            }}
+          />
+        </div>
+      )}
 
       {/* 6. MOBILE CARD LIST (NO BULKY HORIZONTAL TABLES!) */}
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        {loading ? (
+        {activeSubTab === "buku_kas" ? (
+          <PanelKantongDanBukuKas readOnly={true} compact={true} />
+        ) : loading ? (
           <div
             style={{
               background: "#ffffff",
@@ -563,7 +599,7 @@ export default function OwnerLaporanKeuangan() {
                         borderRadius: "6px"
                       }}
                     >
-                      {formatMetode(item.metode_pembayaran)}
+                      {formatMetode(item.metode_pembayaran, item.channel_pembayaran)}
                     </span>
                   </div>
                 </div>

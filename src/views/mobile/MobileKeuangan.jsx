@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { toastSuccess, showError, showConfirm } from '../../utils/alert.util';
 import ModalGenerateTagihan from '../keuangan/components/ModalGenerateTagihan';
+import PanelKantongDanBukuKas from '../keuangan/components/PanelKantongDanBukuKas';
 
 export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }) {
   // Sub-tabs: 'kasir' | 'laporan'
@@ -372,12 +373,13 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
     });
   };
 
-  // 1. Proses Pembayaran Langsung Kasir (Cash / Transfer Bank TF)
-  const handleProsesBayarLangsung = async (metodePilihan = 'Cash') => {
+  // 1. Proses Pembayaran Langsung Kasir (Cash langsung Sah; Transfer bisa Pending atau Sudah Masuk)
+  const handleProsesBayarLangsung = async (metodePilihan = 'Cash', statusBayar = 'Berhasil') => {
     setIsMetodeModalOpen(false);
     setProcessingPay(true);
     const isTf = metodePilihan === 'TF' || metodePilihan === 'Transfer';
-    const labelMetode = isTf ? 'Transfer (TF)' : 'Cash / Tunai';
+    const isPending = statusBayar === 'Pending';
+    const labelMetode = isTf ? 'Transfer Bank (TF)' : 'Cash / Tunai';
 
     try {
       const itemsPayload = selectedIds.map((id) => ({
@@ -409,27 +411,32 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
         santri_id: parseInt(selectedSantri.id),
         metode_pembayaran: isTf ? 'Transfer' : 'Tunai',
         channel_pembayaran: labelMetode,
+        status_pembayaran: isPending ? 'Pending' : 'Berhasil',
         items: itemsPayload
       });
 
       if (res.data?.success) {
-        toastSuccess('Pembayaran Berhasil!', `Kuitansi: ${res.data.data?.kuitansi_nomor || 'Lunas'}`);
-        // Tampilkan modal kuitansi digital modern
-        setKuitansiModal({
-          isOpen: true,
-          data: {
-            ...res.data.data,
-            nama_santri: selectedSantri.nama_santri,
-            nis: selectedSantri.nis,
-            no_wa_wali: selectedSantri.no_wa_wali,
-            asrama: selectedSantri.nama_asrama || '-',
-            total_bayar: totalBayar,
-            items: itemsPayload,
-            items_detail: itemsDetail,
-            metode_bayar: labelMetode,
-            tanggal: new Date()
-          }
-        });
+        const actualStatus = res.data?.data?.status_pembayaran || (isPending ? 'Pending' : 'Berhasil');
+        if (actualStatus === 'Pending') {
+          toastSuccess('Menunggu Transfer!', 'Tercatat sebagai Pending. Belum masuk kas sebelum dikonfirmasi.');
+        } else {
+          toastSuccess('Pembayaran Berhasil!', `Kuitansi: ${res.data.data?.kuitansi_nomor || 'Lunas'}`);
+          setKuitansiModal({
+            isOpen: true,
+            data: {
+              ...res.data.data,
+              nama_santri: selectedSantri.nama_santri,
+              nis: selectedSantri.nis,
+              no_wa_wali: selectedSantri.no_wa_wali,
+              asrama: selectedSantri.nama_asrama || '-',
+              total_bayar: totalBayar,
+              items: itemsPayload,
+              items_detail: itemsDetail,
+              metode_bayar: labelMetode,
+              tanggal: new Date()
+            }
+          });
+        }
 
         setSelectedPayMap({});
         fetchTagihanSantri(selectedSantri.id);
@@ -640,6 +647,44 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
     } finally {
       setProcessingPay(false);
     }
+  };
+
+  // Konfirmasi Transfer Pending sudah masuk ke rekening -> Lunas & Masuk Kas Sah
+  const handleKonfirmasiTransferPending = async (trx) => {
+    const confirmed = await showConfirm(
+      'Konfirmasi Transfer Masuk?',
+      `Pastikan dana sebesar Rp ${Number(trx.total_bayar || 0).toLocaleString('id-ID')} dari ${trx.nama_santri || 'santri'} sudah masuk rekening. Tagihan akan dilunasi dan tercatat ke Kas Masuk Sah.`,
+      'Ya, Sudah Masuk',
+      'Batal'
+    );
+    if (!confirmed) return;
+
+    try {
+      setProcessingPay(true);
+      const res = await axios.post('/api/keuangan/wali/verifikasi', {
+        transaksi_id: trx.id,
+        nomor_transaksi: trx.nomor_transaksi
+      });
+      if (res.data?.success) {
+        toastSuccess('Transfer Terverifikasi!', 'Pembayaran masuk Kas Masuk Sah & tagihan diperbarui.');
+        if (selectedSantri) fetchTagihanSantri(selectedSantri.id);
+        fetchRekapAndSantri();
+      } else {
+        showError('Gagal Verifikasi', res.data?.message || 'Gagal mengonfirmasi transfer.');
+      }
+    } catch (e) {
+      showError('Gagal Verifikasi', e.response?.data?.message || e.message);
+    } finally {
+      setProcessingPay(false);
+    }
+  };
+
+  const formatMetodeBadge = (trx) => {
+    const raw = `${trx?.channel_pembayaran || ''} ${trx?.metode_pembayaran || ''}`.toLowerCase();
+    if (raw.includes('tunai') || raw.includes('cash') || raw.includes('kasir')) return 'Cash / Tunai';
+    if (raw.includes('qris')) return 'QRIS';
+    if (raw.includes('transfer') || /\btf\b/.test(raw)) return 'Transfer Bank';
+    return trx?.channel_pembayaran || trx?.metode_pembayaran || 'Cash / Tunai';
   };
 
   // Batalkan transaksi pending agar tagihan bisa dibayar tunai / dibuat QRIS baru
@@ -1810,10 +1855,10 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                                 )}
 
                                 {isPending && (
-                                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
                                     <button
                                       type="button"
-                                      onClick={() => handleLanjutkanBayarMidtrans(trx)}
+                                      onClick={() => handleKonfirmasiTransferPending(trx)}
                                       disabled={processingPay}
                                       style={{
                                         padding: '6px 11px',
@@ -1829,34 +1874,36 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                                         gap: '4px',
                                         boxShadow: '0 2px 6px rgba(5, 150, 105, 0.25)'
                                       }}
-                                      title="Buka kembali popup pembayaran QRIS / Virtual Account"
+                                      title="Konfirmasi dana transfer sudah masuk rekening & masukkan ke Kas"
                                     >
-                                      <Zap size={12} />
-                                      <span>Lanjut Bayar</span>
+                                      <Check size={12} />
+                                      <span>Konfirmasi Masuk</span>
                                     </button>
 
-                                    <button
-                                      type="button"
-                                      onClick={() => handleCekStatusMidtrans(trx)}
-                                      disabled={checkingMidtransId === trx.id}
-                                      style={{
-                                        padding: '6px 9px',
-                                        borderRadius: '8px',
-                                        border: '1px solid #fed7aa',
-                                        background: '#fff7ed',
-                                        color: '#c2410c',
-                                        fontSize: '0.7rem',
-                                        fontWeight: 700,
-                                        cursor: checkingMidtransId === trx.id ? 'not-allowed' : 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '3px'
-                                      }}
-                                      title="Cek apakah pembayaran sudah masuk di Midtrans"
-                                    >
-                                      <RotateCw size={11} className={checkingMidtransId === trx.id ? 'spin' : ''} />
-                                      <span>{checkingMidtransId === trx.id ? 'Cek...' : 'Cek Status'}</span>
-                                    </button>
+                                    {trx.snap_token && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleLanjutkanBayarMidtrans(trx)}
+                                        disabled={processingPay}
+                                        style={{
+                                          padding: '6px 10px',
+                                          borderRadius: '8px',
+                                          border: '1px solid #a7f3d0',
+                                          background: '#ecfdf5',
+                                          color: '#047857',
+                                          fontSize: '0.7rem',
+                                          fontWeight: 800,
+                                          cursor: processingPay ? 'not-allowed' : 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '4px'
+                                        }}
+                                        title="Buka kembali popup pembayaran QRIS / Virtual Account"
+                                      >
+                                        <Zap size={12} />
+                                        <span>Midtrans</span>
+                                      </button>
+                                    )}
 
                                     <button
                                       type="button"
@@ -1970,6 +2017,11 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
       ========================================================================= */}
       {activeTab === 'laporan' && (
         <div style={{ padding: '0 14px', marginTop: '-24px', position: 'relative', zIndex: 10 }}>
+          {/* 3 Kantong Saldo, Pencairan Midtrans, Setor Tunai, dan Buku Kas Pengeluaran/Pemasukan */}
+          <div style={{ marginBottom: '16px' }}>
+            <PanelKantongDanBukuKas onDataChanged={fetchRekapKeuangan} />
+          </div>
+
           {/* 3 Metric Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '14px' }}>
             <div style={{
@@ -2524,21 +2576,155 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
         </div>
       )}
 
-      {/* TAB 5: Histori Pembayaran Selesai (Semua Selesai: Offline & Online, Bukan Pending) */}
+      {/* TAB 5: Histori Pembayaran (Sah / Lunas & Pending Transfer) */}
       {activeTab === 'transaksi' && (
         <div style={{ padding: '0 14px', marginTop: '-24px', position: 'relative', zIndex: 10 }}>
-          <div style={{ marginBottom: '14px' }}>
-            <div style={{ fontSize: '0.82rem', fontWeight: 900, color: '#0f172a', textTransform: 'uppercase' }}>
-              Histori Pembayaran Selesai
-            </div>
-            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
-              Semua transaksi kas masuk yang sah & lunas (Tunai Kasir & Midtrans Selesai)
-            </div>
+          <div style={{ display: 'flex', gap: '8px', background: '#ffffff', padding: '5px', borderRadius: '14px', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
+            <button
+              type="button"
+              onClick={() => setFilterTrxTab('Berhasil')}
+              style={{
+                flex: 1,
+                padding: '9px 10px',
+                borderRadius: '10px',
+                border: 'none',
+                background: filterTrxTab === 'Berhasil' ? '#059669' : 'transparent',
+                color: filterTrxTab === 'Berhasil' ? '#ffffff' : '#64748b',
+                fontWeight: 800,
+                fontSize: '0.74rem',
+                cursor: 'pointer'
+              }}
+            >
+              Sah / Masuk Kas ({(rekapData.transaksiTerakhir || []).length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterTrxTab('Pending')}
+              style={{
+                flex: 1,
+                padding: '9px 10px',
+                borderRadius: '10px',
+                border: 'none',
+                background: filterTrxTab === 'Pending' ? '#d97706' : 'transparent',
+                color: filterTrxTab === 'Pending' ? '#ffffff' : '#64748b',
+                fontWeight: 800,
+                fontSize: '0.74rem',
+                cursor: 'pointer'
+              }}
+            >
+              Pending Transfer ({(rekapData.transaksiPending || []).length})
+            </button>
           </div>
 
-          {/* List Transaksi Selesai */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {(!rekapData.transaksiTerakhir || rekapData.transaksiTerakhir.length === 0) ? (
+            {filterTrxTab === 'Pending' ? (
+              (!rekapData.transaksiPending || rekapData.transaksiPending.length === 0) ? (
+                <div style={{
+                  padding: '36px 16px',
+                  textAlign: 'center',
+                  background: '#ffffff',
+                  borderRadius: '16px',
+                  border: '1px dashed #cbd5e1',
+                  color: '#64748b',
+                  fontSize: '0.8rem'
+                }}>
+                  <Clock size={32} color="#94a3b8" style={{ margin: '0 auto 8px' }} />
+                  <div>Tidak ada transaksi transfer pending.</div>
+                </div>
+              ) : (
+                rekapData.transaksiPending.map((trx, idx) => (
+                  <div
+                    key={trx.id || idx}
+                    style={{
+                      background: '#ffffff',
+                      borderRadius: '16px',
+                      padding: '14px 16px',
+                      border: '1.5px dashed #fcd34d',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
+                          {trx.nama_santri || 'Santri'}
+                        </div>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '1px' }}>
+                          NIS: {trx.nis || '-'} • #{trx.nomor_transaksi}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#d97706' }}>
+                          Rp {Number(trx.total_bayar || 0).toLocaleString('id-ID')}
+                        </div>
+                        <span style={{
+                          display: 'inline-block',
+                          fontSize: '0.6rem',
+                          fontWeight: 800,
+                          padding: '2px 7px',
+                          borderRadius: '6px',
+                          background: '#fef3c7',
+                          color: '#b45309',
+                          marginTop: '2px'
+                        }}>
+                          MENUNGGU TRANSFER (BELUM MASUK KAS)
+                        </span>
+                      </div>
+                    </div>
+
+                    {trx.rincian_item && (
+                      <div style={{ fontSize: '0.7rem', color: '#475569', background: '#fffbeb', padding: '7px 9px', borderRadius: '8px' }}>
+                        {trx.rincian_item}
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '8px', paddingTop: '6px', borderTop: '1px dashed #f1f5f9' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleKonfirmasiTransferPending(trx)}
+                        disabled={processingPay}
+                        style={{
+                          flex: 1,
+                          padding: '8px 10px',
+                          borderRadius: '10px',
+                          border: 'none',
+                          background: '#059669',
+                          color: '#ffffff',
+                          fontSize: '0.73rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '5px'
+                        }}
+                      >
+                        <Check size={14} />
+                        <span>Konfirmasi Transfer Masuk</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleBatalkanPending(trx)}
+                        style={{
+                          padding: '8px 12px',
+                          borderRadius: '10px',
+                          border: '1px solid #fecaca',
+                          background: '#fff1f2',
+                          color: '#e11d48',
+                          fontSize: '0.73rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Batal
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )
+            ) : (!rekapData.transaksiTerakhir || rekapData.transaksiTerakhir.length === 0) ? (
               <div style={{
                 padding: '36px 16px',
                 textAlign: 'center',
@@ -2604,7 +2790,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                     color: '#64748b'
                   }}>
                     <span style={{ background: '#f8fafc', padding: '2px 8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontWeight: 600 }}>
-                      💳 {trx.metode_pembayaran || 'Tunai / Kasir'}
+                      {formatMetodeBadge(trx)}
                     </span>
                     <span>
                       {trx.tanggal_bayar ? new Date(trx.tanggal_bayar).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
@@ -3189,12 +3375,12 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
               </span>
             </div>
 
-            {/* 2 Pilihan Metode Pembayaran Kasir: Cash & TF */}
+            {/* Pilihan Metode Pembayaran Kasir: Cash, Transfer Pending, Transfer Sudah Masuk */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {/* 1. Cash / Tunai */}
               <button
                 type="button"
-                onClick={() => handleProsesBayarLangsung('Cash')}
+                onClick={() => handleProsesBayarLangsung('Cash', 'Berhasil')}
                 disabled={processingPay}
                 style={{
                   display: 'flex',
@@ -3215,20 +3401,54 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                   </div>
                   <div>
                     <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>
-                      Cash / Tunai
+                      Cash / Tunai (Langsung Sah)
                     </div>
                     <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
-                      Uang tunai diterima di loket • Kuitansi langsung terbit sah
+                      Uang tunai diterima di loket • Langsung masuk kas &amp; terbit kuitansi
                     </div>
                   </div>
                 </div>
                 <ChevronRight size={18} color="#059669" />
               </button>
 
-              {/* 2. Transfer Bank (TF) */}
+              {/* 2. Transfer Bank (Belum Transfer / Pending) */}
               <button
                 type="button"
-                onClick={() => handleProsesBayarLangsung('TF')}
+                onClick={() => handleProsesBayarLangsung('TF', 'Pending')}
+                disabled={processingPay}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 16px',
+                  borderRadius: '16px',
+                  border: '1.5px solid #f59e0b',
+                  background: '#fffbeb',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  boxShadow: '0 2px 6px rgba(245, 158, 11, 0.08)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Clock size={22} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>
+                      Transfer Bank (Menunggu Transfer)
+                    </div>
+                    <div style={{ fontSize: '0.68rem', color: '#92400e', marginTop: '2px' }}>
+                      Belum transfer / pending • TIDAK masuk kas sebelum dikonfirmasi
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={18} color="#d97706" />
+              </button>
+
+              {/* 3. Transfer Bank (Sudah Masuk Rekening / Sah) */}
+              <button
+                type="button"
+                onClick={() => handleProsesBayarLangsung('TF', 'Berhasil')}
                 disabled={processingPay}
                 style={{
                   display: 'flex',
@@ -3249,10 +3469,10 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                   </div>
                   <div>
                     <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>
-                      Transfer Bank (TF)
+                      Transfer Bank (Sudah Masuk Rekening)
                     </div>
                     <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
-                      Transfer rekening / mutasi bank • Kuitansi langsung terbit sah
+                      Bukti transfer / mutasi bank sudah valid • Langsung sah masuk kas
                     </div>
                   </div>
                 </div>

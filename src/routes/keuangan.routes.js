@@ -25,7 +25,11 @@ import {
   getSiklusSpp,
   updateSiklusSpp,
   bersihkanFakeDataKeuangan,
-  getSantriKasirSearch
+  getSantriKasirSearch,
+  getBukuKasAndKantong,
+  createBukuKasEntry,
+  cairkanSaldoMidtransKeBank,
+  deleteBukuKasEntry
 } from '../controllers/keuangan.controller.js';
 
 const router = express.Router();
@@ -80,6 +84,16 @@ router.post('/admin/bersihkan-fake-data', bersihkanFakeDataKeuangan);
 router.post('/admin/komponen', createKomponenAdmin);
 router.put('/admin/komponen/:id', updateKomponenAdmin);
 router.delete('/admin/komponen/:id', deleteKomponenAdmin);
+
+// Endpoint 3 Kantong Saldo, Pencairan Midtrans & Buku Kas Operasional
+router.get('/buku-kas', getBukuKasAndKantong);
+router.get('/admin/buku-kas', getBukuKasAndKantong);
+router.post('/buku-kas', createBukuKasEntry);
+router.post('/admin/buku-kas', createBukuKasEntry);
+router.post('/cairkan-midtrans', cairkanSaldoMidtransKeBank);
+router.post('/admin/cairkan-midtrans', cairkanSaldoMidtransKeBank);
+router.delete('/buku-kas/:id', deleteBukuKasEntry);
+router.delete('/admin/buku-kas/:id', deleteBukuKasEntry);
 
 export default router;
 

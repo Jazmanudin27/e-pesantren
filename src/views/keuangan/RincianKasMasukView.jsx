@@ -18,6 +18,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import ModalKuitansi from "./components/ModalKuitansi";
+import PanelKantongDanBukuKas from "./components/PanelKantongDanBukuKas";
 import MobileLoadingState from "../../components/MobileLoadingState";
 import { toastError } from "../../utils/alert.util";
 
@@ -28,10 +29,22 @@ const getInitials = (name = "") => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
-const getMethodMeta = (metode = "") => {
-  const low = String(metode || "").toLowerCase();
-  if (low.includes("qris")) {
+const getMethodMeta = (metode = "", channel = "") => {
+  const combined = `${channel || ""} ${metode || ""}`.toLowerCase();
+  if (combined.includes("tunai") || combined.includes("cash") || combined.includes("kasir")) {
     return {
+      kind: "cash",
+      label: "Cash / Tunai",
+      color: "#047857",
+      bg: "#ecfdf5",
+      border: "#a7f3d0",
+      accent: "#059669",
+      Icon: Wallet,
+    };
+  }
+  if (combined.includes("qris")) {
+    return {
+      kind: "digital",
       label: "QRIS",
       color: "#6d28d9",
       bg: "#f5f3ff",
@@ -40,9 +53,21 @@ const getMethodMeta = (metode = "") => {
       Icon: QrCode,
     };
   }
-  if (low.includes("va") || low.includes("virtual") || low.includes("transfer")) {
+  if (combined.includes("transfer") || /\btf\b/.test(combined)) {
     return {
-      label: String(metode).replace(/Virtual\s*Account/gi, "VA").trim() || "VA",
+      kind: "digital",
+      label: "Transfer Bank",
+      color: "#0369a1",
+      bg: "#f0f9ff",
+      border: "#bae6fd",
+      accent: "#0284c7",
+      Icon: CreditCard,
+    };
+  }
+  if (combined.includes("va") || combined.includes("virtual")) {
+    return {
+      kind: "digital",
+      label: "Virtual Account",
       color: "#0369a1",
       bg: "#f0f9ff",
       border: "#bae6fd",
@@ -51,7 +76,8 @@ const getMethodMeta = (metode = "") => {
     };
   }
   return {
-    label: String(metode || "Tunai / Kasir").trim(),
+    kind: "cash",
+    label: String(channel || metode || "Cash / Tunai").trim(),
     color: "#047857",
     bg: "#ecfdf5",
     border: "#a7f3d0",
@@ -85,10 +111,16 @@ const formatDateId = (val) => {
 };
 
 export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
+  const [activeSubMode, setActiveSubMode] = useState("penerimaan"); // 'penerimaan' | 'kantong_kas'
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState({
     total_kas_masuk_sah: 0,
     total_transaksi: 0,
+    saldo_kas_tunai: 0,
+    saldo_rekening_bank: 0,
+    saldo_mengendap_midtrans: 0,
+    jumlah_trx_mengendap_midtrans: 0,
+    saldo_siap_pakai: 0,
   });
   const [transaksiList, setTransaksiList] = useState([]);
   const [sekolahMaster, setSekolahMaster] = useState([]);
@@ -100,6 +132,7 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
   const [tanggalSampai, setTanggalSampai] = useState("");
   const [filterSekolah, setFilterSekolah] = useState("semua");
   const [filterKelas, setFilterKelas] = useState("semua");
+  const [filterKantongDana, setFilterKantongDana] = useState("semua");
   const [visibleLimit, setVisibleLimit] = useState(30);
 
   // Modal Kuitansi
@@ -141,7 +174,10 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
       if (res.data?.success && res.data.data) {
         const d = res.data.data;
         if (d.summary) {
-          setSummary({
+          setSummary((prev) => ({
+            ...prev,
+            ...d.summary,
+            ...(d.kantong || {}),
             total_kas_masuk_sah:
               d.summary.total_kas_masuk_sah ||
               d.summary.total_nominal_terbayar ||
@@ -149,7 +185,7 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
             total_transaksi:
               d.summary.total_transaksi ||
               (d.transaksi || d.transaksiTerakhir || []).length,
-          });
+          }));
         }
         setTransaksiList(d.transaksi || d.transaksiTerakhir || []);
       }
@@ -227,6 +263,11 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
         if (kl !== filterKelas.trim().toLowerCase()) return false;
       }
 
+      if (filterKantongDana !== "semua") {
+        const sd = String(trx.status_dana || "");
+        if (sd !== filterKantongDana) return false;
+      }
+
       if (search.trim()) {
         const q = search.toLowerCase().trim();
         const fields = [
@@ -243,13 +284,14 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
       }
       return true;
     });
-  }, [transaksiList, tanggalDari, tanggalSampai, filterSekolah, filterKelas, search]);
+  }, [transaksiList, tanggalDari, tanggalSampai, filterSekolah, filterKelas, filterKantongDana, search]);
 
   const hasActiveFilter = Boolean(
     tanggalDari ||
       tanggalSampai ||
       filterSekolah !== "semua" ||
       filterKelas !== "semua" ||
+      filterKantongDana !== "semua" ||
       search.trim(),
   );
 
@@ -258,30 +300,39 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
     setTanggalSampai("");
     setFilterSekolah("semua");
     setFilterKelas("semua");
+    setFilterKantongDana("semua");
     setSearch("");
   };
 
   // Ringkasan sesuai daftar terfilter
   const liveTotals = useMemo(() => {
     let tunaiSum = 0;
-    let digitalSum = 0;
+    let bankSum = 0;
+    let midtransMengendapSum = 0;
     let totalSum = 0;
     for (const trx of filteredTrx) {
-      const amt = Number(trx.total_bayar || 0);
+      const amt = Number(trx.nominal_pokok || trx.total_bayar || 0);
       totalSum += amt;
-      const m = String(trx.metode_pembayaran || "").toLowerCase();
-      if (m.includes("qris") || m.includes("va") || m.includes("virtual")) {
-        digitalSum += amt;
-      } else {
+      if (trx.status_dana === "Mengendap di Midtrans") {
+        midtransMengendapSum += amt;
+      } else if (trx.status_dana === "Di Rekening Bank") {
+        bankSum += amt;
+      } else if (trx.status_dana === "Di Kas Tunai") {
         tunaiSum += amt;
+      } else {
+        const meta = getMethodMeta(trx.metode_pembayaran, trx.channel_pembayaran, trx.status_dana);
+        if (meta.kind === "midtrans_pending") midtransMengendapSum += amt;
+        else if (meta.kind === "digital") bankSum += amt;
+        else tunaiSum += amt;
       }
     }
     return {
-      total: search.trim() ? totalSum : Number(summary.total_kas_masuk_sah || totalSum),
+      total: hasActiveFilter ? totalSum : Number(summary.total_kas_masuk_sah || totalSum),
       tunai: tunaiSum,
-      digital: digitalSum,
+      bank: bankSum,
+      midtransMengendap: midtransMengendapSum,
     };
-  }, [filteredTrx, search, summary.total_kas_masuk_sah]);
+  }, [filteredTrx, hasActiveFilter, summary.total_kas_masuk_sah]);
 
   const displayedTrx = useMemo(
     () => filteredTrx.slice(0, visibleLimit),
@@ -496,10 +547,15 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
               letterSpacing: "-0.5px",
             }}
           >
-            {formatRp(liveTotals.total)}
+            {formatRp(hasActiveFilter ? liveTotals.total : summary.saldo_siap_pakai || liveTotals.total)}
           </div>
+          {!hasActiveFilter && (
+            <div style={{ fontSize: "0.68rem", color: "#a7f3d0", marginTop: "2px", fontWeight: 600 }}>
+              Saldo Riil Siap Pakai (Kas Tunai + Bank) • Total Masuk Tagihan: {formatRp(liveTotals.total)}
+            </div>
+          )}
 
-          {/* 3 Mini Metric Strip */}
+          {/* 3 Mini Metric Strip: 3 Kantong Dana */}
           <div
             style={{
               display: "grid",
@@ -511,56 +567,149 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
             }}
           >
             <div
+              onClick={() => {
+                setActiveSubMode("rincian");
+                setFilterKantongDana(filterKantongDana === "Di Kas Tunai" ? "semua" : "Di Kas Tunai");
+              }}
               style={{
-                background: "rgba(0, 0, 0, 0.16)",
+                background: filterKantongDana === "Di Kas Tunai" ? "rgba(16, 185, 129, 0.35)" : "rgba(0, 0, 0, 0.16)",
+                border: filterKantongDana === "Di Kas Tunai" ? "1px solid #6ee7b7" : "1px solid transparent",
                 borderRadius: "10px",
                 padding: "7px 8px",
+                cursor: "pointer",
               }}
             >
-              <div style={{ fontSize: "0.6rem", color: "#a7f3d0", fontWeight: 700 }}>
-                Transaksi Sah
+              <div style={{ fontSize: "0.58rem", color: "#a7f3d0", fontWeight: 700 }}>
+                1. Kas Tunai (Laci)
               </div>
-              <div style={{ fontSize: "0.86rem", fontWeight: 900, marginTop: "2px", display: "flex", alignItems: "center", gap: "4px" }}>
-                <CheckCircle2 size={12} color="#34d399" />
-                {filteredTrx.length.toLocaleString("id-ID")}
+              <div style={{ fontSize: "0.73rem", fontWeight: 800, marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {formatRp(hasActiveFilter ? liveTotals.tunai : summary.saldo_kas_tunai || liveTotals.tunai)}
               </div>
             </div>
 
             <div
+              onClick={() => {
+                setActiveSubMode("rincian");
+                setFilterKantongDana(filterKantongDana === "Di Rekening Bank" ? "semua" : "Di Rekening Bank");
+              }}
               style={{
-                background: "rgba(0, 0, 0, 0.16)",
+                background: filterKantongDana === "Di Rekening Bank" ? "rgba(59, 130, 246, 0.35)" : "rgba(0, 0, 0, 0.16)",
+                border: filterKantongDana === "Di Rekening Bank" ? "1px solid #93c5fd" : "1px solid transparent",
                 borderRadius: "10px",
                 padding: "7px 8px",
+                cursor: "pointer",
               }}
             >
-              <div style={{ fontSize: "0.6rem", color: "#a7f3d0", fontWeight: 700 }}>
-                Tunai / Kasir
+              <div style={{ fontSize: "0.58rem", color: "#a7f3d0", fontWeight: 700 }}>
+                2. Rekening Bank
               </div>
-              <div style={{ fontSize: "0.74rem", fontWeight: 800, marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {formatRp(liveTotals.tunai)}
+              <div style={{ fontSize: "0.73rem", fontWeight: 800, marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {formatRp(hasActiveFilter ? liveTotals.bank : summary.saldo_rekening_bank || liveTotals.bank)}
               </div>
             </div>
 
             <div
+              onClick={() => {
+                setActiveSubMode("rincian");
+                setFilterKantongDana(
+                  filterKantongDana === "Mengendap di Midtrans" ? "semua" : "Mengendap di Midtrans",
+                );
+              }}
               style={{
-                background: "rgba(0, 0, 0, 0.16)",
+                background:
+                  filterKantongDana === "Mengendap di Midtrans"
+                    ? "rgba(245, 158, 11, 0.38)"
+                    : "rgba(0, 0, 0, 0.16)",
+                border:
+                  filterKantongDana === "Mengendap di Midtrans"
+                    ? "1px solid #fcd34d"
+                    : "1px solid transparent",
                 borderRadius: "10px",
                 padding: "7px 8px",
+                cursor: "pointer",
               }}
             >
-              <div style={{ fontSize: "0.6rem", color: "#a7f3d0", fontWeight: 700 }}>
-                QRIS / VA
+              <div style={{ fontSize: "0.58rem", color: "#fde68a", fontWeight: 700 }}>
+                3. Midtrans (Tertahan)
               </div>
-              <div style={{ fontSize: "0.74rem", fontWeight: 800, marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {formatRp(liveTotals.digital)}
+              <div style={{ fontSize: "0.73rem", fontWeight: 800, marginTop: "2px", color: "#fef3c7", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {formatRp(
+                  hasActiveFilter
+                    ? liveTotals.midtransMengendap
+                    : summary.saldo_mengendap_midtrans ?? liveTotals.midtransMengendap,
+                )}
               </div>
             </div>
           </div>
         </div>
+
+        {/* Segmented Mode Switcher: Rincian Kuitansi vs 3 Kantong Saldo & Buku Kas */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "6px",
+            background: "rgba(0, 0, 0, 0.22)",
+            padding: "4px",
+            borderRadius: "13px",
+            marginTop: "12px",
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setActiveSubMode("rincian")}
+            style={{
+              padding: "8px 10px",
+              borderRadius: "10px",
+              border: "none",
+              background: activeSubMode === "rincian" ? "#ffffff" : "transparent",
+              color: activeSubMode === "rincian" ? "#065f46" : "#d1fae5",
+              fontSize: "0.73rem",
+              fontWeight: 900,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "6px",
+            }}
+          >
+            <Receipt size={14} />
+            <span>Rincian Kuitansi ({filteredTrx.length})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSubMode("kantong")}
+            style={{
+              padding: "8px 10px",
+              borderRadius: "10px",
+              border: "none",
+              background: activeSubMode === "kantong" ? "#ffffff" : "transparent",
+              color: activeSubMode === "kantong" ? "#065f46" : "#d1fae5",
+              fontSize: "0.73rem",
+              fontWeight: 900,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "6px",
+            }}
+          >
+            <Wallet size={14} />
+            <span>3 Kantong &amp; Buku Kas</span>
+          </button>
+        </div>
       </div>
 
-      {/* 2. SEARCH & FILTER PANEL */}
-      <div style={{ padding: "14px 14px 10px" }}>
+      {activeSubMode === "kantong" ? (
+        <div style={{ padding: "14px" }}>
+          <PanelKantongDanBukuKas onDataChanged={fetchKasMasuk} />
+        </div>
+      ) : (
+        <>
+          {/* 2. SEARCH & FILTER PANEL */}
+          <div style={{ padding: "14px 14px 10px" }}>
         <div
           style={{
             background: "#ffffff",
@@ -833,6 +982,40 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
               </select>
             </div>
           </div>
+
+          {/* Filter Posisi Kantong Dana */}
+          <div style={{ display: "flex", gap: "6px", overflowX: "auto", paddingBottom: "2px" }}>
+            {[
+              { id: "semua", label: "Semua Kantong" },
+              { id: "Di Kas Tunai", label: "Di Kas Tunai" },
+              { id: "Di Rekening Bank", label: "Di Rekening Bank" },
+              { id: "Mengendap di Midtrans", label: "Mengendap di Midtrans" },
+            ].map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setFilterKantongDana(opt.id)}
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: "999px",
+                  border:
+                    filterKantongDana === opt.id
+                      ? "1px solid #059669"
+                      : "1px solid #e2e8f0",
+                  background:
+                    filterKantongDana === opt.id ? "#ecfdf5" : "#f8fafc",
+                  color:
+                    filterKantongDana === opt.id ? "#047857" : "#475569",
+                  fontSize: "0.68rem",
+                  fontWeight: 800,
+                  whiteSpace: "nowrap",
+                  cursor: "pointer",
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -893,8 +1076,14 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
           <>
             {displayedTrx.map((trx) => {
               const dateStr = formatDateId(trx.tanggal_bayar || trx.created_at);
-              const methodMeta = getMethodMeta(trx.metode_pembayaran);
+              const methodMeta = getMethodMeta(
+                trx.metode_pembayaran,
+                trx.channel_pembayaran,
+                trx.status_dana,
+              );
               const MethodIcon = methodMeta.Icon;
+              const nominalPokok = Number(trx.nominal_pokok || trx.total_bayar || 0);
+              const nominalFee = Number(trx.nominal_fee_gateway || 0);
 
               return (
                 <div
@@ -1008,26 +1197,56 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
                           color: "#047857",
                         }}
                       >
-                        +{formatRp(trx.total_bayar)}
+                        +{formatRp(nominalPokok)}
                       </div>
-                      <span
-                        style={{
-                          fontSize: "0.61rem",
-                          fontWeight: 800,
-                          color: methodMeta.color,
-                          background: methodMeta.bg,
-                          border: `1px solid ${methodMeta.border}`,
-                          padding: "2px 7px",
-                          borderRadius: "999px",
-                          marginTop: "4px",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "3px",
-                        }}
-                      >
-                        <MethodIcon size={10} />
-                        <span>{methodMeta.label}</span>
-                      </span>
+                      {nominalFee > 0 && (
+                        <div style={{ fontSize: "0.6rem", color: "#64748b", fontWeight: 700 }}>
+                          Fee Gateway: {formatRp(nominalFee)}
+                        </div>
+                      )}
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "3px", marginTop: "4px" }}>
+                        <span
+                          style={{
+                            fontSize: "0.61rem",
+                            fontWeight: 800,
+                            color: methodMeta.color,
+                            background: methodMeta.bg,
+                            border: `1px solid ${methodMeta.border}`,
+                            padding: "2px 7px",
+                            borderRadius: "999px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "3px",
+                          }}
+                        >
+                          <MethodIcon size={10} />
+                          <span>{methodMeta.label}</span>
+                        </span>
+                        {trx.status_dana && (
+                          <span
+                            style={{
+                              fontSize: "0.58rem",
+                              fontWeight: 800,
+                              padding: "1px 6px",
+                              borderRadius: "6px",
+                              background:
+                                trx.status_dana === "Mengendap di Midtrans"
+                                  ? "#fef3c7"
+                                  : trx.status_dana === "Di Rekening Bank"
+                                    ? "#dbeafe"
+                                    : "#d1fae5",
+                              color:
+                                trx.status_dana === "Mengendap di Midtrans"
+                                  ? "#b45309"
+                                  : trx.status_dana === "Di Rekening Bank"
+                                    ? "#1d4ed8"
+                                    : "#065f46",
+                            }}
+                          >
+                            {trx.status_dana}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -1163,6 +1382,8 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
           </>
         )}
       </div>
+        </>
+      )}
 
       {/* 4. MODAL KUITANSI DIGITAL */}
       <ModalKuitansi

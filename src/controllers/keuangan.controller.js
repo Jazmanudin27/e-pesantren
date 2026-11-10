@@ -40,15 +40,116 @@ export const ensureSiklusSppTable = async () => {
   }
 };
 
+const normalizeMetodePembayaran = (rawMetode = '', rawChannel = '') => {
+  const combined = `${rawChannel || ''} ${rawMetode || ''}`.toLowerCase();
+  if (combined.includes('qris')) return 'QRIS';
+  if (combined.includes('tunai') || combined.includes('cash') || combined.includes('kasir')) return 'Tunai';
+  if (combined.includes('transfer') || /\btf\b/.test(combined)) return 'Transfer';
+  if (combined.includes('virtual') || /\bva\b/.test(combined)) return 'Virtual Account';
+  return 'Tunai';
+};
+
+export const resolveStatusDanaForSuccess = (metode = '', channel = '', snapToken = null) => {
+  const mNorm = normalizeMetodePembayaran(metode, channel);
+  const chLower = String(channel || '').toLowerCase();
+  if (
+    snapToken ||
+    mNorm === 'QRIS' ||
+    mNorm === 'Virtual Account' ||
+    chLower.includes('midtrans') ||
+    chLower.includes('qris') ||
+    chLower.includes('snap')
+  ) {
+    return 'Mengendap di Midtrans';
+  }
+  if (mNorm === 'Transfer' || chLower.includes('transfer')) {
+    return 'Di Rekening Bank';
+  }
+  return 'Di Kas Tunai';
+};
+
 let isIndexesEnsured = false;
 export const ensureKeuanganIndexes = async () => {
   if (isIndexesEnsured) return;
   try {
+    // 1. Pastikan kolom metode_pembayaran, status_pembayaran & kolom kantong saldo tersedia
+    const alters = [
+      "ALTER TABLE keuangan_transaksi_pembayaran MODIFY COLUMN metode_pembayaran VARCHAR(50) NOT NULL DEFAULT 'Tunai'",
+      "ALTER TABLE keuangan_transaksi_pembayaran MODIFY COLUMN status_pembayaran VARCHAR(50) NOT NULL DEFAULT 'Pending'",
+      "ALTER TABLE keuangan_transaksi_pembayaran ADD COLUMN nominal_pokok DECIMAL(15,2) NULL DEFAULT NULL",
+      "ALTER TABLE keuangan_transaksi_pembayaran ADD COLUMN nominal_fee_gateway DECIMAL(15,2) NOT NULL DEFAULT 0.00",
+      "ALTER TABLE keuangan_transaksi_pembayaran ADD COLUMN status_dana VARCHAR(50) NULL DEFAULT NULL",
+      "ALTER TABLE keuangan_transaksi_pembayaran ADD COLUMN tanggal_cair_bank DATETIME NULL DEFAULT NULL",
+      "ALTER TABLE keuangan_transaksi_pembayaran ADD COLUMN buku_kas_pencairan_id INT NULL DEFAULT NULL"
+    ];
+    for (const sql of alters) {
+      try {
+        await pool.query(sql);
+      } catch (_) {}
+    }
+
+    // 2. Pastikan tabel keuangan_buku_kas (Pengeluaran, Pemasukan Lain, Setor Tunai, Tarik Tunai, Pencairan Midtrans) tersedia
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS \`keuangan_buku_kas\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`kode_mutasi\` VARCHAR(60) NOT NULL,
+        \`tanggal\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        \`jenis_transaksi\` VARCHAR(50) NOT NULL COMMENT 'Pengeluaran | Pemasukan Lain | Setor Tunai ke Bank | Tarik Tunai dari Bank | Pencairan Midtrans ke Bank',
+        \`kategori\` VARCHAR(100) DEFAULT 'Operasional',
+        \`kantong_sumber\` VARCHAR(50) DEFAULT NULL COMMENT 'Kas Tunai | Rekening Bank | Midtrans',
+        \`kantong_tujuan\` VARCHAR(50) DEFAULT NULL COMMENT 'Kas Tunai | Rekening Bank',
+        \`nominal\` DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+        \`biaya_admin\` DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+        \`keterangan\` VARCHAR(500) NOT NULL,
+        \`penanggung_jawab\` VARCHAR(120) DEFAULT 'Bendahara',
+        \`jumlah_trx_dicairkan\` INT DEFAULT 0,
+        \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX \`idx_buku_kas_tanggal\` (\`tanggal\`),
+        INDEX \`idx_buku_kas_jenis\` (\`jenis_transaksi\`)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // 3. Backfill otomatis nominal_pokok & status_dana pada transaksi lama yang belum memiliki nilai
+    try {
+      await pool.query(`
+        UPDATE keuangan_transaksi_pembayaran p
+        LEFT JOIN (
+          SELECT transaksi_id, SUM(nominal_alokasi) as sum_alokasi
+          FROM keuangan_transaksi_detail
+          GROUP BY transaksi_id
+        ) d ON p.id = d.transaksi_id
+        SET p.nominal_pokok = COALESCE(NULLIF(d.sum_alokasi, 0), p.total_bayar),
+            p.nominal_fee_gateway = GREATEST(0, p.total_bayar - COALESCE(NULLIF(d.sum_alokasi, 0), p.total_bayar))
+        WHERE p.nominal_pokok IS NULL
+      `);
+    } catch (_) {}
+
+    try {
+      await pool.query(`
+        UPDATE keuangan_transaksi_pembayaran
+        SET status_dana = CASE
+          WHEN status_pembayaran != 'Berhasil' THEN 'Menunggu Pembayaran'
+          WHEN snap_token IS NOT NULL
+               OR metode_pembayaran IN ('QRIS', 'Virtual Account')
+               OR LOWER(COALESCE(channel_pembayaran, '')) LIKE '%midtrans%'
+               OR LOWER(COALESCE(channel_pembayaran, '')) LIKE '%qris%'
+            THEN 'Mengendap di Midtrans'
+          WHEN metode_pembayaran = 'Transfer'
+               OR LOWER(COALESCE(channel_pembayaran, '')) LIKE '%transfer%'
+            THEN 'Di Rekening Bank'
+          ELSE 'Di Kas Tunai'
+        END
+        WHERE status_dana IS NULL OR status_dana = ''
+      `);
+    } catch (_) {}
+
     const indexes = [
       'CREATE INDEX idx_tagihan_santri_status ON keuangan_tagihan(santri_id, status)',
       'CREATE INDEX idx_tagihan_status ON keuangan_tagihan(status)',
       'CREATE INDEX idx_transaksi_status_tgl ON keuangan_transaksi_pembayaran(status_pembayaran, tanggal_bayar)',
       'CREATE INDEX idx_transaksi_santri ON keuangan_transaksi_pembayaran(santri_id)',
+      'CREATE INDEX idx_transaksi_status_dana ON keuangan_transaksi_pembayaran(status_pembayaran, status_dana)',
       'CREATE INDEX idx_trx_detail_transaksi ON keuangan_transaksi_detail(transaksi_id)',
       'CREATE INDEX idx_trx_detail_tagihan ON keuangan_transaksi_detail(tagihan_id)'
     ];
@@ -62,6 +163,177 @@ export const ensureKeuanganIndexes = async () => {
     isIndexesEnsured = true;
   } catch (err) {
     // ignore
+  }
+};
+
+/**
+ * Menghitung posisi 3 Kantong Saldo (Kas Tunai, Rekening Bank, Mengendap Midtrans)
+ * serta akumulasi Buku Kas (Pemasukan Lain, Pengeluaran, Setor Tunai, Tarik Tunai, Pencairan Midtrans)
+ */
+export const getRingkasanKantongKas = async () => {
+  await ensureKeuanganIndexes();
+  try {
+    const [
+      [trxRows],
+      [bukuRows]
+    ] = await Promise.all([
+      pool.query(`
+        SELECT
+          COALESCE(SUM(CASE
+            WHEN COALESCE(status_dana, '') = 'Di Kas Tunai'
+              OR (COALESCE(status_dana, '') = '' AND metode_pembayaran = 'Tunai')
+            THEN COALESCE(NULLIF(nominal_pokok, 0), total_bayar)
+            ELSE 0
+          END), 0) as masuk_tagihan_tunai,
+
+          COALESCE(SUM(CASE
+            WHEN COALESCE(status_dana, '') = 'Mengendap di Midtrans'
+            THEN COALESCE(NULLIF(nominal_pokok, 0), total_bayar)
+            ELSE 0
+          END), 0) as saldo_mengendap_midtrans,
+
+          COUNT(CASE WHEN COALESCE(status_dana, '') = 'Mengendap di Midtrans' THEN 1 END) as jumlah_trx_mengendap_midtrans,
+
+          COALESCE(SUM(CASE
+            WHEN COALESCE(status_dana, '') = 'Di Rekening Bank'
+              AND (snap_token IS NOT NULL OR metode_pembayaran IN ('QRIS', 'Virtual Account') OR LOWER(COALESCE(channel_pembayaran, '')) LIKE '%midtrans%')
+            THEN COALESCE(NULLIF(nominal_pokok, 0), total_bayar)
+            ELSE 0
+          END), 0) as total_midtrans_sudah_cair,
+
+          COALESCE(SUM(CASE
+            WHEN COALESCE(status_dana, '') = 'Di Rekening Bank'
+              AND NOT (snap_token IS NOT NULL OR metode_pembayaran IN ('QRIS', 'Virtual Account') OR LOWER(COALESCE(channel_pembayaran, '')) LIKE '%midtrans%')
+            THEN COALESCE(NULLIF(nominal_pokok, 0), total_bayar)
+            ELSE 0
+          END), 0) as masuk_tagihan_transfer,
+
+          COALESCE(SUM(COALESCE(NULLIF(nominal_pokok, 0), total_bayar)), 0) as total_tagihan_pokok_sah,
+          COALESCE(SUM(total_bayar), 0) as total_gross_pembayaran,
+          COALESCE(SUM(COALESCE(nominal_fee_gateway, 0)), 0) as total_fee_midtrans
+        FROM keuangan_transaksi_pembayaran
+        WHERE status_pembayaran = 'Berhasil'
+      `),
+      pool.query(`
+        SELECT
+          COALESCE(SUM(CASE WHEN jenis_transaksi = 'Pemasukan Lain' AND kantong_tujuan = 'Kas Tunai' THEN nominal ELSE 0 END), 0) as pemasukan_lain_tunai,
+          COALESCE(SUM(CASE WHEN jenis_transaksi = 'Pemasukan Lain' AND kantong_tujuan = 'Rekening Bank' THEN nominal ELSE 0 END), 0) as pemasukan_lain_bank,
+          COALESCE(SUM(CASE WHEN jenis_transaksi = 'Pengeluaran' AND kantong_sumber = 'Kas Tunai' THEN (nominal + COALESCE(biaya_admin, 0)) ELSE 0 END), 0) as pengeluaran_tunai,
+          COALESCE(SUM(CASE WHEN jenis_transaksi = 'Pengeluaran' AND kantong_sumber = 'Rekening Bank' THEN (nominal + COALESCE(biaya_admin, 0)) ELSE 0 END), 0) as pengeluaran_bank,
+          COALESCE(SUM(CASE WHEN jenis_transaksi = 'Setor Tunai ke Bank' THEN nominal ELSE 0 END), 0) as setor_tunai_ke_bank,
+          COALESCE(SUM(CASE WHEN jenis_transaksi = 'Setor Tunai ke Bank' THEN COALESCE(biaya_admin, 0) ELSE 0 END), 0) as biaya_admin_setor,
+          COALESCE(SUM(CASE WHEN jenis_transaksi = 'Tarik Tunai dari Bank' THEN nominal ELSE 0 END), 0) as tarik_tunai_dari_bank,
+          COALESCE(SUM(CASE WHEN jenis_transaksi = 'Tarik Tunai dari Bank' THEN COALESCE(biaya_admin, 0) ELSE 0 END), 0) as biaya_admin_tarik,
+          COALESCE(SUM(CASE WHEN jenis_transaksi = 'Pencairan Midtrans ke Bank' THEN nominal ELSE 0 END), 0) as mutasi_pencairan_midtrans,
+          COALESCE(SUM(CASE WHEN jenis_transaksi = 'Pencairan Midtrans ke Bank' THEN COALESCE(biaya_admin, 0) ELSE 0 END), 0) as biaya_admin_pencairan_midtrans,
+          COUNT(*) as total_catatan_buku_kas
+        FROM keuangan_buku_kas
+      `)
+    ]);
+
+    const t = trxRows?.[0] || {};
+    const b = bukuRows?.[0] || {};
+
+    const masukTagihanTunai = Number(t.masuk_tagihan_tunai || 0);
+    const masukTagihanTransfer = Number(t.masuk_tagihan_transfer || 0);
+    const saldoMengendapMidtrans = Number(t.saldo_mengendap_midtrans || 0);
+    const jumlahTrxMengendapMidtrans = Number(t.jumlah_trx_mengendap_midtrans || 0);
+    const totalMidtransSudahCair = Number(t.total_midtrans_sudah_cair || 0);
+    const totalTagihanPokokSah = Number(t.total_tagihan_pokok_sah || 0);
+    const totalGrossPembayaran = Number(t.total_gross_pembayaran || 0);
+    const totalFeeMidtrans = Number(t.total_fee_midtrans || 0);
+
+    const pemasukanLainTunai = Number(b.pemasukan_lain_tunai || 0);
+    const pemasukanLainBank = Number(b.pemasukan_lain_bank || 0);
+    const totalPemasukanLain = pemasukanLainTunai + pemasukanLainBank;
+
+    const pengeluaranTunai = Number(b.pengeluaran_tunai || 0);
+    const pengeluaranBank = Number(b.pengeluaran_bank || 0);
+    const biayaAdminSetor = Number(b.biaya_admin_setor || 0);
+    const biayaAdminTarik = Number(b.biaya_admin_tarik || 0);
+    const biayaAdminPencairanMidtrans = Number(b.biaya_admin_pencairan_midtrans || 0);
+    const totalPengeluaran =
+      pengeluaranTunai +
+      pengeluaranBank +
+      biayaAdminSetor +
+      biayaAdminTarik +
+      biayaAdminPencairanMidtrans;
+
+    const setorTunaiKeBank = Number(b.setor_tunai_ke_bank || 0);
+    const tarikTunaiDariBank = Number(b.tarik_tunai_dari_bank || 0);
+
+    // Posisi Riil 3 Kantong
+    const saldoKasTunai =
+      masukTagihanTunai +
+      pemasukanLainTunai -
+      setorTunaiKeBank +
+      tarikTunaiDariBank -
+      pengeluaranTunai -
+      biayaAdminSetor;
+
+    const saldoRekeningBank =
+      masukTagihanTransfer +
+      totalMidtransSudahCair +
+      pemasukanLainBank +
+      setorTunaiKeBank -
+      tarikTunaiDariBank -
+      pengeluaranBank -
+      biayaAdminTarik -
+      biayaAdminPencairanMidtrans;
+
+    const saldoSiapPakai = saldoKasTunai + saldoRekeningBank;
+    const totalPenerimaanSemua = totalTagihanPokokSah + totalPemasukanLain;
+
+    return {
+      saldo_kas_tunai: saldoKasTunai,
+      saldo_rekening_bank: saldoRekeningBank,
+      saldo_mengendap_midtrans: saldoMengendapMidtrans,
+      jumlah_trx_mengendap_midtrans: jumlahTrxMengendapMidtrans,
+      saldo_siap_pakai: saldoSiapPakai,
+      masuk_tagihan_tunai: masukTagihanTunai,
+      masuk_tagihan_transfer: masukTagihanTransfer,
+      total_midtrans_sudah_cair: totalMidtransSudahCair,
+      total_tagihan_pokok_sah: totalTagihanPokokSah,
+      total_gross_pembayaran: totalGrossPembayaran,
+      total_fee_midtrans: totalFeeMidtrans,
+      pemasukan_lain_tunai: pemasukanLainTunai,
+      pemasukan_lain_bank: pemasukanLainBank,
+      total_pemasukan_lain: totalPemasukanLain,
+      pengeluaran_tunai: pengeluaranTunai,
+      pengeluaran_bank: pengeluaranBank,
+      total_pengeluaran: totalPengeluaran,
+      setor_tunai_ke_bank: setorTunaiKeBank,
+      tarik_tunai_dari_bank: tarikTunaiDariBank,
+      biaya_admin_pencairan_midtrans: biayaAdminPencairanMidtrans,
+      total_penerimaan_semua: totalPenerimaanSemua,
+      total_catatan_buku_kas: Number(b.total_catatan_buku_kas || 0)
+    };
+  } catch (err) {
+    console.warn('[RINGKASAN KANTONG KAS NOTICE]', err.message);
+    return {
+      saldo_kas_tunai: 0,
+      saldo_rekening_bank: 0,
+      saldo_mengendap_midtrans: 0,
+      jumlah_trx_mengendap_midtrans: 0,
+      saldo_siap_pakai: 0,
+      masuk_tagihan_tunai: 0,
+      masuk_tagihan_transfer: 0,
+      total_midtrans_sudah_cair: 0,
+      total_tagihan_pokok_sah: 0,
+      total_gross_pembayaran: 0,
+      total_fee_midtrans: 0,
+      pemasukan_lain_tunai: 0,
+      pemasukan_lain_bank: 0,
+      total_pemasukan_lain: 0,
+      pengeluaran_tunai: 0,
+      pengeluaran_bank: 0,
+      total_pengeluaran: 0,
+      setor_tunai_ke_bank: 0,
+      tarik_tunai_dari_bank: 0,
+      biaya_admin_pencairan_midtrans: 0,
+      total_penerimaan_semua: 0,
+      total_catatan_buku_kas: 0
+    };
   }
 };
 
@@ -606,14 +878,16 @@ export const buatTransaksiPembayaran = async (req, res) => {
       qrisData = `00020101021226590014ID.LINKAJA.WWW01189360099900000100010208${nomorTransaksi}520458125303360540${finalTotalBayar}5802ID5925PP NURUL WAFA TASIKMALAYA6011TASIKMALAYA61054611162230119${nomorTransaksi}6304`;
     }
 
-    // Simpan Transaksi Induk (simpan snap_token untuk restore saat refresh)
+    // Simpan Transaksi Induk (simpan snap_token, nominal_pokok, nominal_fee_gateway & status_dana)
+    await ensureKeuanganIndexes();
+    const nominalFeeGateway = Math.max(0, finalTotalBayar - totalBayar);
     let trxResult = null;
     try {
       const [resWithSnap] = await connection.query(`
         INSERT INTO keuangan_transaksi_pembayaran 
-        (nomor_transaksi, santri_id, metode_pembayaran, channel_pembayaran, va_number, qris_data, snap_token, total_bayar, status_pembayaran, keterangan)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pending', ?)
-      `, [nomorTransaksi, santri_id, metode, channel, vaNumber, qrisData, snapToken, finalTotalBayar, `Pembayaran ${itemsValid.length} item tagihan (Fee Midtrans ditanggung pengirim)`]);
+        (nomor_transaksi, santri_id, metode_pembayaran, channel_pembayaran, va_number, qris_data, snap_token, total_bayar, nominal_pokok, nominal_fee_gateway, status_pembayaran, status_dana, keterangan)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', 'Menunggu Pembayaran', ?)
+      `, [nomorTransaksi, santri_id, metode, channel, vaNumber, qrisData, snapToken, finalTotalBayar, totalBayar, nominalFeeGateway, `Pembayaran ${itemsValid.length} item tagihan (Fee Midtrans ditanggung pengirim)`]);
       trxResult = resWithSnap;
     } catch (insertErr) {
       const [resFallback] = await connection.query(`
@@ -828,7 +1102,9 @@ export const konfirmasiPembayaranBerhasil = async (req, res) => {
     `, [trx.id]);
 
     // 3. Potong sisa tagihan secara akurat
+    let sumAlokasi = 0;
     for (const d of detailRows) {
+      sumAlokasi += parseFloat(d.nominal_alokasi || 0);
       const [tghRows] = await connection.query(`
         SELECT id, total_tagihan, sudah_dibayar, sisa_tagihan 
         FROM keuangan_tagihan WHERE id = ? FOR UPDATE
@@ -848,15 +1124,22 @@ export const konfirmasiPembayaranBerhasil = async (req, res) => {
       }
     }
 
-    // 4. Update status transaksi jadi Berhasil & terbitkan kuitansi
+    // 4. Update status transaksi jadi Berhasil, set status_dana & terbitkan kuitansi
+    const statusDanaBaru = resolveStatusDanaForSuccess(trx.metode_pembayaran, trx.channel_pembayaran, trx.snap_token);
+    const nomPokok = sumAlokasi > 0 ? sumAlokasi : parseFloat(trx.nominal_pokok || trx.total_bayar || 0);
+    const nomFee = Math.max(0, parseFloat(trx.total_bayar || 0) - nomPokok);
+
     await connection.query(`
       UPDATE keuangan_transaksi_pembayaran 
       SET status_pembayaran = 'Berhasil', 
+          status_dana = ?,
+          nominal_pokok = COALESCE(NULLIF(nominal_pokok, 0), ?),
+          nominal_fee_gateway = ?,
           tanggal_bayar = ?, 
           kuitansi_nomor = ?,
           updated_at = NOW()
       WHERE id = ?
-    `, [tanggalBayar, kuitansiNomor, trx.id]);
+    `, [statusDanaBaru, nomPokok, nomFee, tanggalBayar, kuitansiNomor, trx.id]);
 
     await connection.commit();
 
@@ -873,6 +1156,7 @@ export const konfirmasiPembayaranBerhasil = async (req, res) => {
       transaksi_id: trx.id,
       nomor_transaksi: trx.nomor_transaksi,
       status: 'Berhasil',
+      status_dana: statusDanaBaru,
       kuitansi_nomor: kuitansiNomor,
       tanggal_bayar: tanggalBayar,
       total_dibayar: trx.total_bayar
@@ -954,7 +1238,8 @@ export const getHomeKeuanganSummary = async (req, res) => {
       [kasMasukRows],
       [tabunganRows],
       [transaksiTerakhir],
-      siklusSpp
+      siklusSpp,
+      kantong
     ] = await Promise.all([
       pool.query(`
         SELECT 
@@ -966,7 +1251,7 @@ export const getHomeKeuanganSummary = async (req, res) => {
         FROM keuangan_tagihan
       `),
       pool.query(`
-        SELECT COALESCE(SUM(total_bayar), 0) as total_kas_masuk_sah
+        SELECT COALESCE(SUM(COALESCE(NULLIF(nominal_pokok, 0), total_bayar)), 0) as total_kas_masuk_sah
         FROM keuangan_transaksi_pembayaran
         WHERE status_pembayaran = 'Berhasil'
       `),
@@ -980,7 +1265,11 @@ export const getHomeKeuanganSummary = async (req, res) => {
           p.santri_id,
           p.nomor_transaksi,
           p.total_bayar,
+          COALESCE(NULLIF(p.nominal_pokok, 0), p.total_bayar) as nominal_pokok,
+          COALESCE(p.nominal_fee_gateway, 0) as nominal_fee_gateway,
           p.metode_pembayaran,
+          p.channel_pembayaran,
+          p.status_dana,
           p.tanggal_bayar,
           p.status_pembayaran,
           p.created_at,
@@ -998,7 +1287,8 @@ export const getHomeKeuanganSummary = async (req, res) => {
         ORDER BY p.tanggal_bayar DESC, p.id DESC
         LIMIT 25
       `),
-      getSiklusSppData()
+      getSiklusSppData(),
+      getRingkasanKantongKas()
     ]);
 
     const summary = summaryRows[0] || {};
@@ -1011,8 +1301,10 @@ export const getHomeKeuanganSummary = async (req, res) => {
         total_kas_masuk_sah: kasMasukRiil,
         total_saldo_tabungan: totalTabungan,
         tgl_terbit_spp: siklusSpp.tgl_terbit_spp || 5,
-        tgl_jatuh_tempo_spp: siklusSpp.tgl_jatuh_tempo_spp || 10
+        tgl_jatuh_tempo_spp: siklusSpp.tgl_jatuh_tempo_spp || 10,
+        ...kantong
       },
+      kantong,
       siklusSpp,
       transaksiTerakhir: transaksiTerakhir || []
     });
@@ -1086,11 +1378,14 @@ export const getKasMasukSahList = async (req, res) => {
 
     const [
       [totalRows],
-      [listTrx]
+      [listTrx],
+      kantong,
+      [bukuKasRows]
     ] = await Promise.all([
       pool.query(`
         SELECT 
-          COALESCE(SUM(p.total_bayar), 0) as total_kas_masuk_sah,
+          COALESCE(SUM(COALESCE(NULLIF(p.nominal_pokok, 0), p.total_bayar)), 0) as total_kas_masuk_sah,
+          COALESCE(SUM(p.total_bayar), 0) as total_gross_pembayaran,
           COUNT(*) as total_transaksi
         ${baseJoinSql}
         WHERE ${whereSql}
@@ -1098,6 +1393,7 @@ export const getKasMasukSahList = async (req, res) => {
       pool.query(`
         SELECT 
           p.*,
+          COALESCE(NULLIF(p.nominal_pokok, 0), p.total_bayar) as nominal_pokok_efektif,
           COALESCE(s.nama_santri, p.keterangan, 'Santri NWF') as nama_santri,
           COALESCE(s.nis, '-') as nis,
           s.nama_wali,
@@ -1117,12 +1413,29 @@ export const getKasMasukSahList = async (req, res) => {
         WHERE ${whereSql}
         ORDER BY p.tanggal_bayar DESC, p.id DESC
         LIMIT ?
-      `, [...whereParams, limitNum])
+      `, [...whereParams, limitNum]),
+      getRingkasanKantongKas(),
+      pool.query(`
+        SELECT * FROM keuangan_buku_kas
+        ORDER BY tanggal DESC, id DESC
+        LIMIT 300
+      `).catch(() => [[]])
     ]);
 
     return sendSuccess(res, 'Data kas masuk sah berhasil dimuat', {
-      summary: totalRows[0] || { total_kas_masuk_sah: 0, total_transaksi: 0 },
-      transaksi: listTrx || []
+      summary: {
+        ...(totalRows[0] || { total_kas_masuk_sah: 0, total_transaksi: 0 }),
+        ...kantong
+      },
+      kantong,
+      bukuKas: bukuKasRows || [],
+      transaksi: (listTrx || []).map((r) => ({
+        ...r,
+        nominal_pokok: Number(r.nominal_pokok_efektif || r.nominal_pokok || r.total_bayar || 0),
+        nominal_fee_gateway: Number(r.nominal_fee_gateway || 0),
+        status_dana: r.status_dana || resolveStatusDanaForSuccess(r.metode_pembayaran, r.channel_pembayaran, r.snap_token),
+        metode_pembayaran: normalizeMetodePembayaran(r.metode_pembayaran, r.channel_pembayaran)
+      }))
     });
   } catch (err) {
     return sendError(res, `Gagal memuat kas masuk sah: ${err.message}`, 500);
@@ -1261,7 +1574,9 @@ export const getRekapKeuanganAdmin = async (req, res) => {
       [tunggakanSantri],
       [komponenBiaya],
       [semuaTagihan],
-      siklusSpp
+      siklusSpp,
+      kantong,
+      [bukuKasRows]
     ] = await Promise.all([
       // 1. Ringkasan Global
       pool.query(`
@@ -1276,7 +1591,7 @@ export const getRekapKeuanganAdmin = async (req, res) => {
 
       // 1b. Kas Masuk Riil dari Transaksi Berhasil
       pool.query(`
-        SELECT COALESCE(SUM(total_bayar), 0) as total_kas_masuk_sah
+        SELECT COALESCE(SUM(COALESCE(NULLIF(nominal_pokok, 0), total_bayar)), 0) as total_kas_masuk_sah
         FROM keuangan_transaksi_pembayaran
         WHERE status_pembayaran = 'Berhasil'
       `),
@@ -1285,6 +1600,7 @@ export const getRekapKeuanganAdmin = async (req, res) => {
       pool.query(`
         SELECT 
           p.*,
+          COALESCE(NULLIF(p.nominal_pokok, 0), p.total_bayar) as nominal_pokok_efektif,
           COALESCE(s.nama_santri, p.keterangan, 'Santri NWF') as nama_santri,
           COALESCE(s.nis, '-') as nis,
           COALESCE(s.nama_sekolah, 'SMP') as nama_sekolah,
@@ -1312,27 +1628,41 @@ export const getRekapKeuanganAdmin = async (req, res) => {
           p.*,
           s.nama_santri,
           s.nis,
+          COALESCE(NULLIF(TRIM(s.nama_kelas), ''), '') as nama_kelas,
           a.nama_asrama,
-          k.nama_kamar
+          k.nama_kamar,
+          (
+            SELECT GROUP_CONCAT(CONCAT(t.judul_tagihan, ' (Rp ', FORMAT(d.nominal_alokasi, 0, 'id_ID'), ')') SEPARATOR ', ')
+            FROM keuangan_transaksi_detail d
+            JOIN keuangan_tagihan t ON d.tagihan_id = t.id
+            WHERE d.transaksi_id = p.id
+          ) as rincian_item
         FROM keuangan_transaksi_pembayaran p
         JOIN santri s ON p.santri_id = s.id
         LEFT JOIN asrama a ON s.asrama_id = a.id
         LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
         WHERE p.status_pembayaran = 'Pending'
         ORDER BY p.created_at DESC
-        LIMIT 50
+        LIMIT 200
       `),
 
       // 2c. Seluruh Histori Transaksi Gateway Midtrans
       pool.query(`
         SELECT 
           p.*,
+          COALESCE(NULLIF(p.nominal_pokok, 0), p.total_bayar) as nominal_pokok_efektif,
           s.nama_santri,
           s.nis,
           s.nama_wali,
           s.no_wa_wali,
           a.nama_asrama,
-          k.nama_kamar
+          k.nama_kamar,
+          (
+            SELECT GROUP_CONCAT(CONCAT(t.judul_tagihan, ' (Rp ', FORMAT(d.nominal_alokasi, 0, 'id_ID'), ')') SEPARATOR ', ')
+            FROM keuangan_transaksi_detail d
+            JOIN keuangan_tagihan t ON d.tagihan_id = t.id
+            WHERE d.transaksi_id = p.id
+          ) as rincian_item
         FROM keuangan_transaksi_pembayaran p
         JOIN santri s ON p.santri_id = s.id
         LEFT JOIN asrama a ON s.asrama_id = a.id
@@ -1403,7 +1733,17 @@ export const getRekapKeuanganAdmin = async (req, res) => {
       `),
 
       // Siklus SPP
-      getSiklusSppData()
+      getSiklusSppData(),
+
+      // 3 Kantong Saldo & Mutasi
+      getRingkasanKantongKas(),
+
+      // Buku Kas Operasional & Mutasi
+      pool.query(`
+        SELECT * FROM keuangan_buku_kas
+        ORDER BY tanggal DESC, id DESC
+        LIMIT 300
+      `).catch(() => [[]])
     ]);
 
     const summary = summaryRows[0] || {};
@@ -1414,12 +1754,28 @@ export const getRekapKeuanganAdmin = async (req, res) => {
         ...summary,
         total_kas_masuk_sah: kasMasukRiil,
         tgl_terbit_spp: siklusSpp.tgl_terbit_spp || 5,
-        tgl_jatuh_tempo_spp: siklusSpp.tgl_jatuh_tempo_spp || 10
+        tgl_jatuh_tempo_spp: siklusSpp.tgl_jatuh_tempo_spp || 10,
+        ...kantong
       },
+      kantong,
+      bukuKas: bukuKasRows || [],
       siklusSpp,
-      transaksiTerakhir: transaksiTerakhir || [],
+      transaksiTerakhir: (transaksiTerakhir || []).map((r) => ({
+        ...r,
+        nominal_pokok: Number(r.nominal_pokok_efektif || r.nominal_pokok || r.total_bayar || 0),
+        nominal_fee_gateway: Number(r.nominal_fee_gateway || 0),
+        status_dana: r.status_dana || resolveStatusDanaForSuccess(r.metode_pembayaran, r.channel_pembayaran, r.snap_token)
+      })),
       transaksiPending: transaksiPending || [],
-      transaksiMidtrans: transaksiMidtrans || [],
+      transaksiMidtrans: (transaksiMidtrans || []).map((r) => ({
+        ...r,
+        nominal_pokok: Number(r.nominal_pokok_efektif || r.nominal_pokok || r.total_bayar || 0),
+        nominal_fee_gateway: Number(r.nominal_fee_gateway || 0),
+        status_dana:
+          r.status_pembayaran !== 'Berhasil'
+            ? 'Menunggu Pembayaran'
+            : r.status_dana || 'Mengendap di Midtrans'
+      })),
       tunggakanSantri: tunggakanSantri || [],
       komponenBiaya: komponenBiaya || [],
       semuaTagihan: semuaTagihan || []
@@ -1479,17 +1835,20 @@ export const createTagihanAdmin = async (req, res) => {
 
     // Jika langsung ada pembayaran (Cicilan / Lunas), catat ke Log Transaksi & Kuitansi
     if (dibayar > 0) {
+      await ensureKeuanganIndexes();
       const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
       const rand4 = Math.floor(1000 + Math.random() * 9000);
       const nomorTrx = `TRX-${datePart}-${rand4}`;
       const kuitansiNo = `KWT/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${rand4}`;
-      const metode = metode_pembayaran || 'Tunai / Kasir';
+      const metodeRaw = metode_pembayaran || 'Tunai / Kasir';
+      const metodeNorm = normalizeMetodePembayaran(metodeRaw, metodeRaw);
+      const statusDana = resolveStatusDanaForSuccess(metodeNorm, metodeRaw, null);
 
       const [trxRes] = await connection.query(`
         INSERT INTO keuangan_transaksi_pembayaran
-        (nomor_transaksi, santri_id, metode_pembayaran, channel_pembayaran, total_bayar, status_pembayaran, tanggal_bayar, kuitansi_nomor, keterangan)
-        VALUES (?, ?, ?, ?, ?, 'Berhasil', NOW(), ?, ?)
-      `, [nomorTrx, santri_id, metode.includes('QRIS') ? 'QRIS' : 'Virtual Account', metode, dibayar, kuitansiNo, `Pembayaran ${finalStatus}: ${judul}`]);
+        (nomor_transaksi, santri_id, metode_pembayaran, channel_pembayaran, total_bayar, nominal_pokok, nominal_fee_gateway, status_pembayaran, status_dana, tanggal_bayar, kuitansi_nomor, keterangan)
+        VALUES (?, ?, ?, ?, ?, ?, 0, 'Berhasil', ?, NOW(), ?, ?)
+      `, [nomorTrx, santri_id, metodeNorm, metodeRaw, dibayar, dibayar, statusDana, kuitansiNo, `Pembayaran ${finalStatus}: ${judul}`]);
 
       await connection.query(`
         INSERT INTO keuangan_transaksi_detail (transaksi_id, tagihan_id, nominal_alokasi)
@@ -1585,22 +1944,27 @@ export const updateTagihanAdmin = async (req, res) => {
     const prevDibayar = parseFloat(existing.sudah_dibayar || 0);
     const selisihBayar = dibayar - prevDibayar;
     if (selisihBayar > 0) {
+      await ensureKeuanganIndexes();
       const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
       const rand4 = Math.floor(1000 + Math.random() * 9000);
       const nomorTrx = `TRX-${datePart}-${rand4}`;
       const kuitansiNo = `KWT/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${rand4}`;
-      const metode = metode_pembayaran || 'Tunai / Kasir';
+      const metodeRaw = metode_pembayaran || 'Tunai / Kasir';
+      const metodeNorm = normalizeMetodePembayaran(metodeRaw, metodeRaw);
+      const statusDana = resolveStatusDanaForSuccess(metodeNorm, metodeRaw, null);
 
       const [trxRes] = await connection.query(`
         INSERT INTO keuangan_transaksi_pembayaran
-        (nomor_transaksi, santri_id, metode_pembayaran, channel_pembayaran, total_bayar, status_pembayaran, tanggal_bayar, kuitansi_nomor, keterangan)
-        VALUES (?, ?, ?, ?, ?, 'Berhasil', NOW(), ?, ?)
+        (nomor_transaksi, santri_id, metode_pembayaran, channel_pembayaran, total_bayar, nominal_pokok, nominal_fee_gateway, status_pembayaran, status_dana, tanggal_bayar, kuitansi_nomor, keterangan)
+        VALUES (?, ?, ?, ?, ?, ?, 0, 'Berhasil', ?, NOW(), ?, ?)
       `, [
         nomorTrx,
         santri_id || existing.santri_id,
-        metode.includes('QRIS') ? 'QRIS' : 'Virtual Account',
-        metode,
+        metodeNorm,
+        metodeRaw,
         selisihBayar,
+        selisihBayar,
+        statusDana,
         kuitansiNo,
         `Pembayaran ${finalStatus}: ${autoJudul}`
       ]);
@@ -1920,17 +2284,32 @@ export const generateAutoTagihanAdmin = async (req, res) => {
 };
 
 /**
- * Admin Kasir: Proses Pembayaran Langsung (Pelunasan Sekaligus / Cicilan Multi-Item)
+ * Admin Kasir: Proses Pembayaran Langsung (Cash langsung Sah; Transfer default Pending sampai dikonfirmasi)
  */
 export const bayarTagihanLangsungAdmin = async (req, res) => {
   const connection = await pool.getConnection();
   try {
-    const { santri_id, items, metode_pembayaran, channel_pembayaran } = req.body;
+    const {
+      santri_id,
+      items,
+      metode_pembayaran,
+      channel_pembayaran,
+      status_pembayaran
+    } = req.body;
     if (!santri_id || !Array.isArray(items) || items.length === 0) {
       return sendError(res, 'Pilih minimal satu tagihan yang akan dibayar', 400);
     }
 
     await connection.beginTransaction();
+
+    const metode = normalizeMetodePembayaran(metode_pembayaran, channel_pembayaran);
+    const channel = channel_pembayaran || (metode === 'Tunai' ? 'Cash / Tunai' : metode === 'Transfer' ? 'Transfer Bank (TF)' : metode);
+
+    // Jika status eksplisit Pending, atau metode Transfer tanpa verifikasi eksplisit 'Berhasil', catat sebagai Pending (belum masuk kas)
+    const isPending =
+      String(status_pembayaran || '').toLowerCase() === 'pending' ||
+      (metode === 'Transfer' && String(status_pembayaran || '').toLowerCase() !== 'berhasil');
+    const finalTrxStatus = isPending ? 'Pending' : 'Berhasil';
 
     let totalBayar = 0;
     const validItems = [];
@@ -1949,16 +2328,19 @@ export const bayarTagihanLangsungAdmin = async (req, res) => {
       if (isNaN(nomBayar) || nomBayar <= 0) continue;
       if (nomBayar > sisaLama) nomBayar = sisaLama;
 
-      const sudahBaru = parseFloat(tgh.sudah_dibayar || 0) + nomBayar;
-      const sisaBaru = Math.max(0, parseFloat(tgh.total_tagihan || 0) - sudahBaru);
-      const statusBaru = sisaBaru <= 0 ? 'Lunas' : 'Cicilan';
+      // Hanya potong tagihan jika transaksi benar-benar SAH / Berhasil (Cash atau Transfer terkonfirmasi)
+      if (!isPending) {
+        const sudahBaru = parseFloat(tgh.sudah_dibayar || 0) + nomBayar;
+        const sisaBaru = Math.max(0, parseFloat(tgh.total_tagihan || 0) - sudahBaru);
+        const statusBaru = sisaBaru <= 0 ? 'Lunas' : 'Cicilan';
 
-      await connection.query(
-        `UPDATE keuangan_tagihan
-         SET sudah_dibayar = ?, sisa_tagihan = ?, status = ?
-         WHERE id = ?`,
-        [sudahBaru, sisaBaru, statusBaru, tgh.id]
-      );
+        await connection.query(
+          `UPDATE keuangan_tagihan
+           SET sudah_dibayar = ?, sisa_tagihan = ?, status = ?
+           WHERE id = ?`,
+          [sudahBaru, sisaBaru, statusBaru, tgh.id]
+        );
+      }
 
       totalBayar += nomBayar;
       validItems.push({
@@ -1973,25 +2355,32 @@ export const bayarTagihanLangsungAdmin = async (req, res) => {
       return sendError(res, 'Tidak ada nominal pembayaran valid untuk diproses', 400);
     }
 
+    await ensureKeuanganIndexes();
     const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const rand4 = Math.floor(1000 + Math.random() * 9000);
     const nomorTrx = `TRX-${datePart}-${rand4}`;
-    const kuitansiNo = `KWT/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${rand4}`;
-    const metode = metode_pembayaran === 'QRIS' ? 'QRIS' : 'Virtual Account';
-    const channel = channel_pembayaran || metode_pembayaran || 'Tunai / Kasir Pesantren';
+    const kuitansiNo = isPending
+      ? null
+      : `KWT/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${rand4}`;
+    const statusDana = isPending
+      ? 'Menunggu Pembayaran'
+      : resolveStatusDanaForSuccess(metode, channel, null);
 
     const [trxRes] = await connection.query(
       `INSERT INTO keuangan_transaksi_pembayaran
-       (nomor_transaksi, santri_id, metode_pembayaran, channel_pembayaran, total_bayar, status_pembayaran, tanggal_bayar, kuitansi_nomor, keterangan)
-       VALUES (?, ?, ?, ?, ?, 'Berhasil', NOW(), ?, ?)`,
+       (nomor_transaksi, santri_id, metode_pembayaran, channel_pembayaran, total_bayar, nominal_pokok, nominal_fee_gateway, status_pembayaran, status_dana, tanggal_bayar, kuitansi_nomor, keterangan)
+       VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ${isPending ? 'NULL' : 'NOW()'}, ?, ?)`,
       [
         nomorTrx,
         santri_id,
         metode,
         channel,
         totalBayar,
+        totalBayar,
+        finalTrxStatus,
+        statusDana,
         kuitansiNo,
-        `Pembayaran ${validItems.length} tagihan (${validItems.map(v => v.judul_tagihan).join(', ')})`
+        `${isPending ? 'Menunggu Transfer' : 'Pembayaran'} ${validItems.length} tagihan (${validItems.map(v => v.judul_tagihan).join(', ')})`
       ]
     );
 
@@ -2004,12 +2393,23 @@ export const bayarTagihanLangsungAdmin = async (req, res) => {
     }
 
     await connection.commit();
-    return sendSuccess(res, `Pembayaran sejumlah Rp ${totalBayar.toLocaleString('id-ID')} berhasil disimpan!`, {
-      transaksi_id: trxRes.insertId,
-      nomor_transaksi: nomorTrx,
-      kuitansi_nomor: kuitansiNo,
-      total_bayar: totalBayar
-    });
+    return sendSuccess(
+      res,
+      isPending
+        ? `Transfer Rp ${totalBayar.toLocaleString('id-ID')} dicatat sebagai Pending (belum masuk kas sebelum dikonfirmasi).`
+        : `Pembayaran sejumlah Rp ${totalBayar.toLocaleString('id-ID')} berhasil disimpan!`,
+      {
+        transaksi_id: trxRes.insertId,
+        nomor_transaksi: nomorTrx,
+        kuitansi_nomor: kuitansiNo,
+        status_pembayaran: finalTrxStatus,
+        status_dana: statusDana,
+        metode_pembayaran: metode,
+        channel_pembayaran: channel,
+        total_bayar: totalBayar,
+        nominal_pokok: totalBayar
+      }
+    );
   } catch (err) {
     await connection.rollback();
     return sendError(res, `Gagal memproses pembayaran: ${err.message}`, 500);
@@ -2103,6 +2503,7 @@ export const webhookBniHandler = async (req, res) => {
     await connection.query(`
       UPDATE keuangan_transaksi_pembayaran 
       SET status_pembayaran = 'Berhasil', 
+          status_dana = 'Di Rekening Bank',
           tanggal_bayar = ?, 
           kuitansi_nomor = ?,
           keterangan = CONCAT(COALESCE(keterangan, ''), ' [BNI Direct Webhook Auto-Settled]'),
@@ -2211,6 +2612,7 @@ export const webhookIpaymuHandler = async (req, res) => {
     await connection.query(`
       UPDATE keuangan_transaksi_pembayaran 
       SET status_pembayaran = 'Berhasil', 
+          status_dana = 'Di Rekening Bank',
           tanggal_bayar = ?, 
           kuitansi_nomor = ?,
           keterangan = CONCAT(COALESCE(keterangan, ''), ' [iPaymu Webhook Auto-Settled: Trx ID ', ?, ']'),
@@ -2342,10 +2744,11 @@ export const webhookMidtransHandler = async (req, res) => {
       }
     }
 
-    // Update status transaksi pembayaran jadi Berhasil
+    // Update status transaksi pembayaran jadi Berhasil (Dana masuk ke kantong Mengendap di Midtrans sampai dicairkan ke Bank)
     await connection.query(`
       UPDATE keuangan_transaksi_pembayaran 
       SET status_pembayaran = 'Berhasil', 
+          status_dana = 'Mengendap di Midtrans',
           tanggal_bayar = ?, 
           kuitansi_nomor = ?,
           keterangan = CONCAT(COALESCE(keterangan, ''), ' [Midtrans Auto-Settled: ', ?, ']'),
@@ -2433,6 +2836,7 @@ export const cekStatusMidtransAdmin = async (req, res) => {
       await connection.query(`
         UPDATE keuangan_transaksi_pembayaran 
         SET status_pembayaran = 'Berhasil', 
+            status_dana = 'Mengendap di Midtrans',
             tanggal_bayar = ?, 
             kuitansi_nomor = ?,
             keterangan = CONCAT(COALESCE(keterangan, ''), ' [Manual Check Settled: ', ?, ']'),
@@ -2582,6 +2986,447 @@ export const getSantriKasirSearch = async (req, res) => {
     return sendError(res, `Gagal mencari santri kasir: ${err.message}`, 500);
   }
 };
+
+/**
+ * GET /api/keuangan/buku-kas (dan /api/keuangan/admin/buku-kas)
+ * Mengambil posisi 3 Kantong Saldo, Daftar Transaksi Midtrans yang Mengendap (Unsettled),
+ * dan Riwayat Buku Kas (Pengeluaran, Pemasukan Lain, Setor Tunai, Tarik Tunai, Pencairan Midtrans)
+ */
+export const getBukuKasAndKantong = async (req, res) => {
+  try {
+    await ensureKeuanganIndexes();
+    const {
+      tanggal_dari = '',
+      tanggal_sampai = '',
+      jenis_transaksi = '',
+      kantong = '',
+      limit = 500
+    } = req.query;
+
+    const whereClauses = ['1=1'];
+    const whereParams = [];
+
+    const fromClean = String(tanggal_dari || '').trim();
+    const toClean = String(tanggal_sampai || '').trim();
+    if (fromClean && toClean) {
+      const [startDate, endDate] = fromClean <= toClean ? [fromClean, toClean] : [toClean, fromClean];
+      whereClauses.push(`DATE(tanggal) BETWEEN ? AND ?`);
+      whereParams.push(startDate, endDate);
+    } else if (fromClean) {
+      whereClauses.push(`DATE(tanggal) >= ?`);
+      whereParams.push(fromClean);
+    } else if (toClean) {
+      whereClauses.push(`DATE(tanggal) <= ?`);
+      whereParams.push(toClean);
+    }
+
+    const jenisClean = String(jenis_transaksi || '').trim();
+    if (jenisClean && jenisClean.toLowerCase() !== 'semua') {
+      whereClauses.push(`jenis_transaksi = ?`);
+      whereParams.push(jenisClean);
+    }
+
+    const kantongClean = String(kantong || '').trim();
+    if (kantongClean && kantongClean.toLowerCase() !== 'semua') {
+      whereClauses.push(`(kantong_sumber = ? OR kantong_tujuan = ?)`);
+      whereParams.push(kantongClean, kantongClean);
+    }
+
+    const limitNum = Math.min(Math.max(parseInt(limit, 10) || 500, 10), 2000);
+
+    const [
+      kantongSummary,
+      [unsettledMidtransRows],
+      [settledMidtransRows],
+      [bukuKasRows]
+    ] = await Promise.all([
+      getRingkasanKantongKas(),
+      pool.query(`
+        SELECT 
+          p.id,
+          p.nomor_transaksi,
+          p.kuitansi_nomor,
+          p.santri_id,
+          p.metode_pembayaran,
+          p.channel_pembayaran,
+          p.total_bayar,
+          COALESCE(NULLIF(p.nominal_pokok, 0), p.total_bayar) as nominal_pokok,
+          COALESCE(p.nominal_fee_gateway, 0) as nominal_fee_gateway,
+          p.status_pembayaran,
+          p.status_dana,
+          p.tanggal_bayar,
+          p.created_at,
+          COALESCE(s.nama_santri, p.keterangan, 'Santri NWF') as nama_santri,
+          COALESCE(s.nis, '-') as nis,
+          COALESCE(NULLIF(TRIM(s.nama_kelas), ''), '') as nama_kelas,
+          COALESCE(NULLIF(TRIM(sk.nama_sekolah), ''), NULLIF(TRIM(s.nama_sekolah), ''), '') as nama_sekolah,
+          (
+            SELECT GROUP_CONCAT(CONCAT(t.judul_tagihan, ' (Rp ', FORMAT(d.nominal_alokasi, 0, 'id_ID'), ')') SEPARATOR ', ')
+            FROM keuangan_transaksi_detail d
+            JOIN keuangan_tagihan t ON d.tagihan_id = t.id
+            WHERE d.transaksi_id = p.id
+          ) as rincian_item
+        FROM keuangan_transaksi_pembayaran p
+        LEFT JOIN santri s ON p.santri_id = s.id
+        LEFT JOIN sekolah sk ON s.sekolah_id = sk.id
+        WHERE p.status_pembayaran = 'Berhasil'
+          AND COALESCE(p.status_dana, '') = 'Mengendap di Midtrans'
+        ORDER BY p.tanggal_bayar ASC, p.id ASC
+        LIMIT 500
+      `),
+      pool.query(`
+        SELECT 
+          p.id,
+          p.nomor_transaksi,
+          p.kuitansi_nomor,
+          p.santri_id,
+          p.metode_pembayaran,
+          p.channel_pembayaran,
+          p.total_bayar,
+          COALESCE(NULLIF(p.nominal_pokok, 0), p.total_bayar) as nominal_pokok,
+          COALESCE(p.nominal_fee_gateway, 0) as nominal_fee_gateway,
+          p.status_dana,
+          p.tanggal_bayar,
+          p.tanggal_cair_bank,
+          COALESCE(s.nama_santri, p.keterangan, 'Santri NWF') as nama_santri,
+          COALESCE(s.nis, '-') as nis
+        FROM keuangan_transaksi_pembayaran p
+        LEFT JOIN santri s ON p.santri_id = s.id
+        WHERE p.status_pembayaran = 'Berhasil'
+          AND COALESCE(p.status_dana, '') = 'Di Rekening Bank'
+          AND (p.snap_token IS NOT NULL OR p.metode_pembayaran IN ('QRIS', 'Virtual Account') OR LOWER(COALESCE(p.channel_pembayaran, '')) LIKE '%midtrans%')
+        ORDER BY COALESCE(p.tanggal_cair_bank, p.tanggal_bayar) DESC, p.id DESC
+        LIMIT 100
+      `),
+      pool.query(`
+        SELECT *
+        FROM keuangan_buku_kas
+        WHERE ${whereClauses.join(' AND ')}
+        ORDER BY tanggal DESC, id DESC
+        LIMIT ?
+      `, [...whereParams, limitNum])
+    ]);
+
+    return sendSuccess(res, 'Data kantong saldo & buku kas berhasil dimuat', {
+      kantong: kantongSummary,
+      unsettledMidtrans: (unsettledMidtransRows || []).map((r) => ({
+        ...r,
+        nominal_pokok: Number(r.nominal_pokok || r.total_bayar || 0),
+        nominal_fee_gateway: Number(r.nominal_fee_gateway || 0),
+        total_bayar: Number(r.total_bayar || 0)
+      })),
+      settledMidtrans: (settledMidtransRows || []).map((r) => ({
+        ...r,
+        nominal_pokok: Number(r.nominal_pokok || r.total_bayar || 0),
+        nominal_fee_gateway: Number(r.nominal_fee_gateway || 0),
+        total_bayar: Number(r.total_bayar || 0)
+      })),
+      bukuKas: (bukuKasRows || []).map((b) => ({
+        ...b,
+        nominal: Number(b.nominal || 0),
+        biaya_admin: Number(b.biaya_admin || 0)
+      }))
+    });
+  } catch (err) {
+    return sendError(res, `Gagal memuat buku kas & kantong saldo: ${err.message}`, 500);
+  }
+};
+
+/**
+ * POST /api/keuangan/buku-kas (dan /api/keuangan/admin/buku-kas)
+ * Mencatat transaksi Buku Kas baru:
+ * - Pengeluaran (dari Kas Tunai atau Rekening Bank)
+ * - Pemasukan Lain (ke Kas Tunai atau Rekening Bank)
+ * - Setor Tunai ke Bank (dari Kas Tunai -> ke Rekening Bank)
+ * - Tarik Tunai dari Bank (dari Rekening Bank -> ke Kas Tunai)
+ */
+export const createBukuKasEntry = async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    if (req.user && !canAccessKeuangan(req.user)) {
+      return sendError(res, 'Akses Ditolak: Fitur keuangan khusus untuk Admin Keuangan / Bendahara.', 403);
+    }
+
+    await ensureKeuanganIndexes();
+
+    const {
+      jenis_transaksi = 'Pengeluaran',
+      kategori = 'Operasional',
+      kantong_sumber = '',
+      kantong_tujuan = '',
+      nominal = 0,
+      biaya_admin = 0,
+      keterangan = '',
+      tanggal = '',
+      penanggung_jawab = ''
+    } = req.body;
+
+    const nominalNum = Math.round(parseFloat(nominal) || 0);
+    const biayaAdminNum = Math.max(0, Math.round(parseFloat(biaya_admin) || 0));
+
+    if (nominalNum <= 0) {
+      return sendError(res, 'Nominal transaksi harus lebih dari Rp 0', 400);
+    }
+
+    if (!String(keterangan || '').trim()) {
+      return sendError(res, 'Keterangan / uraian transaksi wajib diisi', 400);
+    }
+
+    let finalSumber = null;
+    let finalTujuan = null;
+    let finalKategori = String(kategori || 'Operasional').trim();
+
+    if (jenis_transaksi === 'Pengeluaran') {
+      finalSumber = kantong_sumber === 'Rekening Bank' ? 'Rekening Bank' : 'Kas Tunai';
+      finalTujuan = null;
+    } else if (jenis_transaksi === 'Pemasukan Lain') {
+      finalSumber = null;
+      finalTujuan = kantong_tujuan === 'Rekening Bank' ? 'Rekening Bank' : 'Kas Tunai';
+      if (!kategori || kategori === 'Operasional') finalKategori = 'Pemasukan Lainnya';
+    } else if (jenis_transaksi === 'Setor Tunai ke Bank') {
+      finalSumber = 'Kas Tunai';
+      finalTujuan = 'Rekening Bank';
+      finalKategori = 'Setoran Bank';
+    } else if (jenis_transaksi === 'Tarik Tunai dari Bank') {
+      finalSumber = 'Rekening Bank';
+      finalTujuan = 'Kas Tunai';
+      finalKategori = 'Tarik Tunai Bank';
+    } else {
+      return sendError(res, `Jenis transaksi "${jenis_transaksi}" tidak valid`, 400);
+    }
+
+    const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const rand4 = Math.floor(1000 + Math.random() * 9000);
+    const prefix =
+      jenis_transaksi === 'Pengeluaran'
+        ? 'OUT'
+        : jenis_transaksi === 'Pemasukan Lain'
+          ? 'IN'
+          : jenis_transaksi === 'Setor Tunai ke Bank'
+            ? 'STR'
+            : 'TRK';
+    const kodeMutasi = `${prefix}-${datePart}-${rand4}`;
+
+    const tglVal = tanggal && String(tanggal).trim()
+      ? (String(tanggal).trim().length === 10 ? `${String(tanggal).trim()} ${new Date().toTimeString().slice(0, 8)}` : String(tanggal).trim())
+      : new Date();
+
+    const pjNama = String(penanggung_jawab || req.user?.nama || req.user?.username || 'Bendahara').trim();
+
+    await connection.beginTransaction();
+
+    const [insRes] = await connection.query(`
+      INSERT INTO keuangan_buku_kas
+      (kode_mutasi, tanggal, jenis_transaksi, kategori, kantong_sumber, kantong_tujuan, nominal, biaya_admin, keterangan, penanggung_jawab)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      kodeMutasi,
+      tglVal,
+      jenis_transaksi,
+      finalKategori,
+      finalSumber,
+      finalTujuan,
+      nominalNum,
+      biayaAdminNum,
+      String(keterangan).trim(),
+      pjNama
+    ]);
+
+    await connection.commit();
+
+    const kantongSummary = await getRingkasanKantongKas();
+
+    return sendSuccess(res, `${jenis_transaksi} sebesar Rp ${nominalNum.toLocaleString('id-ID')} berhasil dicatat ke Buku Kas!`, {
+      id: insRes.insertId,
+      kode_mutasi: kodeMutasi,
+      kantong: kantongSummary
+    });
+  } catch (err) {
+    await connection.rollback();
+    return sendError(res, `Gagal mencatat buku kas: ${err.message}`, 500);
+  } finally {
+    connection.release();
+  }
+};
+
+/**
+ * POST /api/keuangan/cairkan-midtrans (dan /api/keuangan/admin/cairkan-midtrans)
+ * Mencairkan (Settlement / Payout) saldo mengendap di Midtrans ke Rekening Bank Pesantren
+ */
+export const cairkanSaldoMidtransKeBank = async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    if (req.user && !canAccessKeuangan(req.user)) {
+      return sendError(res, 'Akses Ditolak: Fitur keuangan khusus untuk Admin Keuangan / Bendahara.', 403);
+    }
+
+    await ensureKeuanganIndexes();
+
+    const {
+      transaksi_ids = [],
+      cairkan_semua = false,
+      biaya_admin = 0,
+      keterangan = '',
+      tanggal = '',
+      penanggung_jawab = ''
+    } = req.body;
+
+    await connection.beginTransaction();
+
+    let targetRows = [];
+    if (cairkan_semua || !Array.isArray(transaksi_ids) || transaksi_ids.length === 0) {
+      const [rows] = await connection.query(`
+        SELECT id, nomor_transaksi, total_bayar, COALESCE(NULLIF(nominal_pokok, 0), total_bayar) as nominal_pokok_efektif
+        FROM keuangan_transaksi_pembayaran
+        WHERE status_pembayaran = 'Berhasil'
+          AND COALESCE(status_dana, '') = 'Mengendap di Midtrans'
+        FOR UPDATE
+      `);
+      targetRows = rows || [];
+    } else {
+      const cleanIds = transaksi_ids.map((id) => parseInt(id, 10)).filter((id) => !isNaN(id) && id > 0);
+      if (cleanIds.length === 0) {
+        await connection.rollback();
+        return sendError(res, 'Pilih minimal satu transaksi Midtrans yang akan dicairkan', 400);
+      }
+      const placeholders = cleanIds.map(() => '?').join(',');
+      const [rows] = await connection.query(`
+        SELECT id, nomor_transaksi, total_bayar, COALESCE(NULLIF(nominal_pokok, 0), total_bayar) as nominal_pokok_efektif
+        FROM keuangan_transaksi_pembayaran
+        WHERE id IN (${placeholders})
+          AND status_pembayaran = 'Berhasil'
+          AND COALESCE(status_dana, '') = 'Mengendap di Midtrans'
+        FOR UPDATE
+      `, cleanIds);
+      targetRows = rows || [];
+    }
+
+    if (!targetRows || targetRows.length === 0) {
+      await connection.rollback();
+      return sendError(res, 'Tidak ada saldo transaksi Midtrans yang sedang mengendap untuk dicairkan', 400);
+    }
+
+    const totalPokokCair = targetRows.reduce(
+      (sum, r) => sum + Math.round(parseFloat(r.nominal_pokok_efektif || r.total_bayar || 0)),
+      0
+    );
+    const biayaAdminNum = Math.max(0, Math.round(parseFloat(biaya_admin) || 0));
+    const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const rand4 = Math.floor(1000 + Math.random() * 9000);
+    const kodeMutasi = `MID-BANK-${datePart}-${rand4}`;
+
+    const tglVal = tanggal && String(tanggal).trim()
+      ? (String(tanggal).trim().length === 10 ? `${String(tanggal).trim()} ${new Date().toTimeString().slice(0, 8)}` : String(tanggal).trim())
+      : new Date();
+
+    const pjNama = String(penanggung_jawab || req.user?.nama || req.user?.username || 'Bendahara').trim();
+    const ketFinal = String(keterangan || '').trim() ||
+      `Pencairan (Settlement/Payout) ${targetRows.length} transaksi Midtrans ke Rekening Bank Pesantren`;
+
+    // 1. Catat ke keuangan_buku_kas
+    const [bukuRes] = await connection.query(`
+      INSERT INTO keuangan_buku_kas
+      (kode_mutasi, tanggal, jenis_transaksi, kategori, kantong_sumber, kantong_tujuan, nominal, biaya_admin, keterangan, penanggung_jawab, jumlah_trx_dicairkan)
+      VALUES (?, ?, 'Pencairan Midtrans ke Bank', 'Pencairan Midtrans', 'Midtrans', 'Rekening Bank', ?, ?, ?, ?, ?)
+    `, [
+      kodeMutasi,
+      tglVal,
+      totalPokokCair,
+      biayaAdminNum,
+      ketFinal,
+      pjNama,
+      targetRows.length
+    ]);
+
+    const bukuKasId = bukuRes.insertId;
+    const idsToUpdate = targetRows.map((r) => r.id);
+    const idPlaceholders = idsToUpdate.map(() => '?').join(',');
+
+    // 2. Pindahkan status_dana transaksi Midtrans menjadi 'Di Rekening Bank'
+    await connection.query(`
+      UPDATE keuangan_transaksi_pembayaran
+      SET status_dana = 'Di Rekening Bank',
+          tanggal_cair_bank = ?,
+          buku_kas_pencairan_id = ?,
+          updated_at = NOW()
+      WHERE id IN (${idPlaceholders})
+    `, [tglVal, bukuKasId, ...idsToUpdate]);
+
+    await connection.commit();
+
+    const kantongSummary = await getRingkasanKantongKas();
+
+    return sendSuccess(
+      res,
+      `Berhasil mencairkan ${targetRows.length} transaksi Midtrans senilai Rp ${totalPokokCair.toLocaleString('id-ID')} ke Rekening Bank Pesantren!`,
+      {
+        buku_kas_id: bukuKasId,
+        kode_mutasi: kodeMutasi,
+        jumlah_trx_dicairkan: targetRows.length,
+        total_dicairkan: totalPokokCair,
+        biaya_admin: biayaAdminNum,
+        kantong: kantongSummary
+      }
+    );
+  } catch (err) {
+    await connection.rollback();
+    return sendError(res, `Gagal mencairkan saldo Midtrans: ${err.message}`, 500);
+  } finally {
+    connection.release();
+  }
+};
+
+/**
+ * DELETE /api/keuangan/buku-kas/:id (dan /api/keuangan/admin/buku-kas/:id)
+ * Menghapus catatan Buku Kas (dan jika itu Pencairan Midtrans, otomatis mengembalikan transaksi ke Mengendap di Midtrans)
+ */
+export const deleteBukuKasEntry = async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    if (req.user && !canAccessKeuangan(req.user)) {
+      return sendError(res, 'Akses Ditolak: Fitur keuangan khusus untuk Admin Keuangan / Bendahara.', 403);
+    }
+
+    const { id } = req.params;
+    await connection.beginTransaction();
+
+    const [rows] = await connection.query('SELECT * FROM keuangan_buku_kas WHERE id = ? FOR UPDATE', [id]);
+    if (!rows || rows.length === 0) {
+      await connection.rollback();
+      return sendError(res, 'Catatan buku kas tidak ditemukan', 404);
+    }
+
+    const entry = rows[0];
+
+    // Jika yang dihapus adalah Pencairan Midtrans ke Bank, kembalikan status_dana transaksi terkait ke 'Mengendap di Midtrans'
+    if (entry.jenis_transaksi === 'Pencairan Midtrans ke Bank') {
+      await connection.query(`
+        UPDATE keuangan_transaksi_pembayaran
+        SET status_dana = 'Mengendap di Midtrans',
+            tanggal_cair_bank = NULL,
+            buku_kas_pencairan_id = NULL,
+            updated_at = NOW()
+        WHERE buku_kas_pencairan_id = ?
+      `, [entry.id]);
+    }
+
+    await connection.query('DELETE FROM keuangan_buku_kas WHERE id = ?', [entry.id]);
+    await connection.commit();
+
+    const kantongSummary = await getRingkasanKantongKas();
+
+    return sendSuccess(res, 'Catatan buku kas berhasil dihapus dan posisi saldo telah diperbarui.', {
+      deleted_id: entry.id,
+      kantong: kantongSummary
+    });
+  } catch (err) {
+    await connection.rollback();
+    return sendError(res, `Gagal menghapus catatan buku kas: ${err.message}`, 500);
+  } finally {
+    connection.release();
+  }
+};
+
 
 
 

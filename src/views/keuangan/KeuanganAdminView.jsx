@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { toastSuccess, showError, showConfirm } from '../../utils/alert.util';
 import SearchableSelect from '../../components/SearchableSelect';
+import PanelKantongDanBukuKas from './components/PanelKantongDanBukuKas';
 
 export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapTab = 'semua' }) {
   // Mode Utama: 'kasir' (Tampilan Input Pembayaran per Santri seperti Artanita) | 'rekap' (Tabel Rekap Semua Santri & Master Pos Biaya)
@@ -403,10 +404,13 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
       return;
     }
 
+    const isPendingTransfer = metodeBayarKasir === 'Transfer Bank (Pending)';
     const ok = await showConfirm(
-      'Konfirmasi Pembayaran Santri',
-      `Proses pembayaran ${selectedIds.length} item tagihan sejumlah ${formatRupiah(totalSelectedBayar)} via ${metodeBayarKasir}?`,
-      'Ya, Proses Pembayaran',
+      isPendingTransfer ? 'Catat Menunggu Transfer?' : 'Konfirmasi Pembayaran Santri',
+      isPendingTransfer
+        ? `Catat ${selectedIds.length} item tagihan sejumlah ${formatRupiah(totalSelectedBayar)} sebagai Pending Transfer? Tagihan belum lunas & belum masuk kas sebelum dikonfirmasi.`
+        : `Proses pembayaran ${selectedIds.length} item tagihan sejumlah ${formatRupiah(totalSelectedBayar)} via ${metodeBayarKasir}?`,
+      isPendingTransfer ? 'Ya, Catat Pending' : 'Ya, Proses Pembayaran',
       'Batal'
     );
     if (!ok) return;
@@ -418,21 +422,86 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
         nominal: parseFloat(selectedPayMap[id]) || 0
       }));
 
+      const metodePayload = metodeBayarKasir.includes('QRIS')
+        ? 'QRIS'
+        : metodeBayarKasir.includes('Transfer')
+        ? 'Transfer'
+        : 'Tunai';
+
       const res = await axios.post('/api/keuangan/admin/bayar-langsung', {
         santri_id: parseInt(selectedSantriId),
-        metode_pembayaran: metodeBayarKasir.includes('QRIS') ? 'QRIS' : 'Virtual Account',
+        metode_pembayaran: metodePayload,
         channel_pembayaran: metodeBayarKasir,
+        status_pembayaran: isPendingTransfer ? 'Pending' : 'Berhasil',
         items: itemsPayload
       });
 
       if (res.data?.success) {
-        toastSuccess('Pembayaran Berhasil!', `Kuitansi: ${res.data.data?.kuitansi_nomor || 'Tersimpan'}`);
+        if (res.data?.data?.status_pembayaran === 'Pending') {
+          toastSuccess('Transfer Pending Tercatat', 'Belum masuk kas sebelum dikonfirmasi masuk.');
+        } else {
+          toastSuccess('Pembayaran Berhasil!', `Kuitansi: ${res.data.data?.kuitansi_nomor || 'Tersimpan'}`);
+        }
         setSelectedPayMap({});
         await fetchSantriTagihan(selectedSantriId);
         await fetchRekap();
       }
     } catch (err) {
       showError('Gagal Memproses Pembayaran', err.response?.data?.message || err.message);
+    } finally {
+      setProcessingPay(false);
+    }
+  };
+
+  const handleKonfirmasiTransferPendingAdmin = async (trx) => {
+    const ok = await showConfirm(
+      'Konfirmasi Transfer Masuk?',
+      `Verifikasi transfer ${trx.nomor_transaksi} sebesar ${formatRupiah(trx.total_bayar)} atas nama ${trx.nama_santri}? Tagihan akan dilunasi dan tercatat di Kas Masuk Sah.`,
+      'Ya, Sudah Masuk',
+      'Batal'
+    );
+    if (!ok) return;
+
+    try {
+      setProcessingPay(true);
+      const res = await axios.post('/api/keuangan/wali/verifikasi', {
+        transaksi_id: trx.id,
+        nomor_transaksi: trx.nomor_transaksi
+      });
+      if (res.data?.success) {
+        toastSuccess('Transfer Dikonfirmasi!', 'Pembayaran sah masuk kas & kuitansi diterbitkan.');
+        if (selectedSantriId) await fetchSantriTagihan(selectedSantriId);
+        await fetchRekap();
+      }
+    } catch (err) {
+      showError('Gagal Konfirmasi', err.response?.data?.message || err.message);
+    } finally {
+      setProcessingPay(false);
+    }
+  };
+
+  const handleBatalkanPendingAdmin = async (trx) => {
+    const ok = await showConfirm(
+      'Batalkan Transfer Pending?',
+      `Batalkan ${trx.nomor_transaksi} atas nama ${trx.nama_santri}?`,
+      'Ya, Batalkan',
+      'Tidak'
+    );
+    if (!ok) return;
+
+    try {
+      setProcessingPay(true);
+      const res = await axios.post('/api/keuangan/wali/batal', {
+        transaksi_id: trx.id,
+        nomor_transaksi: trx.nomor_transaksi
+      });
+      if (res.data?.success) {
+        toastSuccess('Transaksi Dibatalkan', 'Transaksi pending berhasil dibatalkan.');
+        if (selectedSantriId) await fetchSantriTagihan(selectedSantriId);
+        await fetchRekap();
+      }
+    } catch (err) {
+      showError('Gagal Batalkan', err.response?.data?.message || err.message);
     } finally {
       setProcessingPay(false);
     }
@@ -1845,9 +1914,10 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
                     fontSize: '0.8rem'
                   }}
                 >
-                  <option value="Tunai / Kasir" style={{ color: '#0f172a' }}>💵 Tunai / Kasir Pesantren</option>
-                  <option value="Transfer Bank (VA)" style={{ color: '#0f172a' }}>🏦 Transfer Bank / VA</option>
-                  <option value="QRIS Pesantren" style={{ color: '#0f172a' }}>📱 QRIS Pesantren</option>
+                  <option value="Tunai / Kasir" style={{ color: '#0f172a' }}>Cash / Tunai (Langsung Sah)</option>
+                  <option value="Transfer Bank (Pending)" style={{ color: '#0f172a' }}>Transfer Bank (Belum Masuk / Pending)</option>
+                  <option value="Transfer Bank (Sah)" style={{ color: '#0f172a' }}>Transfer Bank (Sudah Masuk Rekening)</option>
+                  <option value="QRIS Pesantren" style={{ color: '#0f172a' }}>QRIS Pesantren (Langsung Sah)</option>
                 </select>
 
                 <button
@@ -1941,6 +2011,9 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
           </div>
 
           <div className="tab-filter-bar">
+            <button className={`tab-btn ${rekapTab === 'buku_kas' ? 'active' : ''}`} onClick={() => setRekapTab('buku_kas')}>
+              3 Kantong Saldo &amp; Buku Kas
+            </button>
             <button className={`tab-btn ${rekapTab === 'semua' ? 'active' : ''}`} onClick={() => setRekapTab('semua')}>
               Daftar Semua Tagihan ({dataRekap.semuaTagihan?.length || 0})
             </button>
@@ -1948,10 +2021,19 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
               Rekap Tunggakan per Santri ({dataRekap.tunggakanSantri?.length || 0})
             </button>
             <button className={`tab-btn ${rekapTab === 'transaksi' ? 'active' : ''}`} onClick={() => setRekapTab('transaksi')}>
-              Log Transaksi & Kuitansi ({dataRekap.transaksiTerakhir?.length || 0})
+              Log Transaksi &amp; Kuitansi ({dataRekap.transaksiTerakhir?.length || 0})
+            </button>
+            <button className={`tab-btn ${rekapTab === 'pending' ? 'active' : ''}`} onClick={() => setRekapTab('pending')}>
+              Pending Transfer ({dataRekap.transaksiPending?.length || 0})
             </button>
           </div>
 
+          {rekapTab === 'buku_kas' ? (
+            <div style={{ marginTop: '14px' }}>
+              <PanelKantongDanBukuKas onDataChanged={fetchRekap} />
+            </div>
+          ) : (
+            <>
           <div className="filter-search-box">
             <div className="filter-search-input">
               <Search size={15} color="#94a3b8" />
@@ -2108,7 +2190,71 @@ export default function KeuanganAdminView({ initialMode = 'kasir', initialRekapT
                 </tbody>
               </table>
             )}
+
+            {rekapTab === 'pending' && (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th className="td-center" style={{ width: '40px' }}>NO</th>
+                    <th>NOMOR TRANSAKSI</th>
+                    <th>NAMA SANTRI</th>
+                    <th className="td-center">METODE</th>
+                    <th style={{ textAlign: 'right' }}>NOMINAL</th>
+                    <th className="td-center">STATUS</th>
+                    <th className="td-center">AKSI VERIFIKASI</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(dataRekap.transaksiPending || []).map((trx, idx) => (
+                    <tr key={trx.id || idx}>
+                      <td className="td-center">{idx + 1}</td>
+                      <td><code>{trx.nomor_transaksi}</code></td>
+                      <td>
+                        <div style={{ fontWeight: 700 }}>{trx.nama_santri}</div>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                          NIS: {trx.nis} {trx.rincian_item ? `• ${trx.rincian_item}` : ''}
+                        </div>
+                      </td>
+                      <td className="td-center"><span className="badge badge-warning">{trx.channel_pembayaran || trx.metode_pembayaran || 'Transfer'}</span></td>
+                      <td style={{ textAlign: 'right', fontWeight: 800, color: '#d97706' }}>{formatRupiah(trx.total_bayar)}</td>
+                      <td className="td-center"><span className="badge badge-warning">Pending (Belum Masuk Kas)</span></td>
+                      <td className="td-center">
+                        <div style={{ display: 'inline-flex', gap: '6px' }}>
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            disabled={processingPay}
+                            onClick={() => handleKonfirmasiTransferPendingAdmin(trx)}
+                            style={{ padding: '5px 10px', fontSize: '0.72rem' }}
+                          >
+                            Konfirmasi Masuk
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            disabled={processingPay}
+                            onClick={() => handleBatalkanPendingAdmin(trx)}
+                            style={{ padding: '5px 10px', fontSize: '0.72rem', color: '#dc2626', borderColor: '#fecaca' }}
+                          >
+                            Batal
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {(!dataRekap.transaksiPending || dataRekap.transaksiPending.length === 0) && (
+                    <tr>
+                      <td colSpan={7} style={{ padding: '28px', textAlign: 'center', color: '#94a3b8' }}>
+                        Tidak ada transaksi transfer yang masih pending.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
           </div>
+            </>
+          )}
         </div>
       )}
 

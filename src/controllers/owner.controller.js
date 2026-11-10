@@ -4,6 +4,7 @@ import { sendSuccess, sendError } from '../utils/response.util.js';
 import { syncActiveHaidToAbsensi } from './haid.controller.js';
 import { syncActivePerizinanToAbsensi } from './absensi.controller.js';
 import { getPresensiReportWithAutoAlfa } from '../utils/presensiReport.util.js';
+import { getRingkasanKantongKas, resolveStatusDanaForSuccess } from './keuangan.controller.js';
 
 /**
  * Otomatis membuat akun default Owner jika belum ada di database
@@ -229,7 +230,7 @@ export const getOwnerKeuangan = async (req, res) => {
     // 1. Ringkasan Kas Periode
     const [[kasPeriode]] = await pool.query(`
       SELECT 
-        COALESCE(SUM(total_bayar), 0) as kas_periode,
+        COALESCE(SUM(COALESCE(NULLIF(nominal_pokok, 0), total_bayar)), 0) as kas_periode,
         COUNT(*) as total_transaksi
       FROM keuangan_transaksi_pembayaran
       WHERE status_pembayaran = 'Berhasil' ${dateCond.sql}
@@ -237,7 +238,7 @@ export const getOwnerKeuangan = async (req, res) => {
 
     // 2. Total Kas Sepanjang Waktu
     const [[kasAll]] = await pool.query(`
-      SELECT COALESCE(SUM(total_bayar), 0) as total_semua_kas
+      SELECT COALESCE(SUM(COALESCE(NULLIF(nominal_pokok, 0), total_bayar)), 0) as total_semua_kas
       FROM keuangan_transaksi_pembayaran
       WHERE status_pembayaran = 'Berhasil'
     `).catch(() => [[{ total_semua_kas: 0 }]]);
@@ -266,7 +267,12 @@ export const getOwnerKeuangan = async (req, res) => {
         tp.nomor_transaksi,
         tp.santri_id,
         tp.total_bayar,
+        COALESCE(NULLIF(tp.nominal_pokok, 0), tp.total_bayar) as nominal_pokok,
+        COALESCE(tp.nominal_fee_gateway, 0) as nominal_fee_gateway,
         tp.metode_pembayaran,
+        tp.channel_pembayaran,
+        tp.snap_token,
+        tp.status_dana,
         DATE_FORMAT(tp.tanggal_bayar, '%Y-%m-%d %H:%i') as tanggal_bayar,
         tp.kuitansi_nomor,
         tp.status_pembayaran,
@@ -280,6 +286,19 @@ export const getOwnerKeuangan = async (req, res) => {
       ORDER BY tp.tanggal_bayar DESC, tp.id DESC
       LIMIT ?
     `, [...tpDateCond.params, limitNum]).catch(() => [[]]);
+
+    // 4b. Ringkasan 3 Kantong Saldo & Buku Kas Operasional
+    const bkDateCond = getPeriodeDateCondition(keuQuery, 'tanggal');
+    const [kantong, [bukuKasRows]] = await Promise.all([
+      getRingkasanKantongKas(),
+      pool.query(`
+        SELECT *
+        FROM keuangan_buku_kas
+        WHERE 1=1 ${bkDateCond.sql}
+        ORDER BY tanggal DESC, id DESC
+        LIMIT 300
+      `, bkDateCond.params).catch(() => [[]])
+    ]);
 
     // 5. Rekap Santri Penunggak (Khusus tagihan yang sudah jatuh tempo / lewat batas akhir tgl 10)
     const [tunggakanRows] = await pool.query(`
@@ -331,9 +350,18 @@ export const getOwnerKeuangan = async (req, res) => {
       totalSemuaKas: Number(kasAll?.total_semua_kas || 0),
       totalPiutang: Number(piutangAll?.total_piutang || 0),
       totalSantriMenunggak: Number(piutangAll?.total_santri_menunggak || 0),
+      kantong,
+      bukuKas: (bukuKasRows || []).map((b) => ({
+        ...b,
+        nominal: Math.round(Number(b.nominal || 0)),
+        biaya_admin: Math.round(Number(b.biaya_admin || 0))
+      })),
       transaksiTerakhir: (transaksiRows || []).map((r) => ({
         ...r,
-        total_bayar: Math.round(Number(r.total_bayar || 0))
+        total_bayar: Math.round(Number(r.total_bayar || 0)),
+        nominal_pokok: Math.round(Number(r.nominal_pokok || r.total_bayar || 0)),
+        nominal_fee_gateway: Math.round(Number(r.nominal_fee_gateway || 0)),
+        status_dana: r.status_dana || resolveStatusDanaForSuccess(r.metode_pembayaran, r.channel_pembayaran, r.snap_token)
       })),
       tunggakanSantri: (tunggakanRows || []).map((r) => ({
         ...r,
