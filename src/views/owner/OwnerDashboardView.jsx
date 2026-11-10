@@ -71,9 +71,38 @@ const menuLabelStyle = {
   display: "block",
 };
 
+const OWNER_TABS = new Set([
+  "beranda",
+  "keuangan",
+  "presensi",
+  "mengaji",
+  "perkembangan",
+  "santri",
+  "perizinan",
+  "settings",
+  "profil",
+]);
+
+const getInitialOwnerTab = () => {
+  try {
+    const rawHash = (window.location.hash || "").replace(/^#/, "");
+    if (rawHash.includes("/")) {
+      const sub = rawHash.split("/")[1];
+      if (sub && OWNER_TABS.has(sub)) return sub;
+    } else if (rawHash && rawHash !== "owner" && OWNER_TABS.has(rawHash)) {
+      return rawHash;
+    }
+    const saved =
+      sessionStorage.getItem("owner_active_tab") ||
+      localStorage.getItem("owner_active_tab");
+    if (saved && OWNER_TABS.has(saved)) return saved;
+  } catch (e) {}
+  return "beranda";
+};
+
 export default function OwnerDashboardView({ onLogout }) {
   // Navigation: 'beranda' | 'keuangan' | 'presensi' | 'perizinan' | 'santri' | 'profil'
-  const [activeTab, setActiveTab] = useState("beranda");
+  const [activeTab, setActiveTab] = useState(getInitialOwnerTab);
   const [financeActiveTab, setFinanceActiveTab] = useState("kas"); // 'kas' | 'tagihan'
   const [presensiFilter, setPresensiFilter] = useState("Semua");
   const [loadingSummary, setLoadingSummary] = useState(true);
@@ -183,6 +212,34 @@ export default function OwnerDashboardView({ onLogout }) {
     fetchNotifikasi();
   }, []);
 
+  useEffect(() => {
+    try {
+      sessionStorage.setItem("owner_active_tab", activeTab);
+      localStorage.setItem("owner_active_tab", activeTab);
+      const curHash = window.location.hash || "";
+      if (!curHash.toLowerCase().includes("login")) {
+        const targetHash = activeTab === "beranda" ? "#owner" : `#owner/${activeTab}`;
+        if (curHash !== targetHash) {
+          window.history.replaceState(null, "", targetHash);
+        }
+      }
+    } catch (e) {}
+  }, [activeTab]);
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const rawHash = (window.location.hash || "").replace(/^#/, "");
+      if (rawHash.includes("/")) {
+        const sub = rawHash.split("/")[1];
+        if (sub && OWNER_TABS.has(sub)) setActiveTab(sub);
+      } else if (rawHash === "owner") {
+        setActiveTab("beranda");
+      }
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+
   const handleLogout = async () => {
     const confirmed = await showConfirm(
       "Konfirmasi Keluar",
@@ -194,6 +251,7 @@ export default function OwnerDashboardView({ onLogout }) {
       localStorage.removeItem("token");
       localStorage.removeItem("desktop_session");
       localStorage.removeItem("mobile_session");
+      localStorage.removeItem("owner_active_tab");
       sessionStorage.clear();
       if (onLogout) {
         onLogout();

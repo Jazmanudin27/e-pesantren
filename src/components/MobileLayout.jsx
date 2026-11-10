@@ -186,8 +186,12 @@ export default function MobileLayout() {
       if (r.includes("wali") || r.includes("santri")) {
         return "portal-wali";
       }
+      const savedTab =
+        sessionStorage.getItem("mobileTab") || localStorage.getItem("mobileTab");
+      if (savedTab && savedTab !== "home") {
+        return savedTab;
+      }
     } catch (e) {}
-    // Jika buka domain utama tanpa hash tertentu, selalu buka Beranda (home)
     return "home";
   };
 
@@ -216,10 +220,12 @@ export default function MobileLayout() {
         const sub = hash.split("/")[1];
         if (sub) {
           setMobileTab(sub);
+          sessionStorage.setItem("mobileTab", sub);
           localStorage.setItem("mobileTab", sub);
         }
       } else if (hash && hash !== "mobile") {
         setMobileTab(hash);
+        sessionStorage.setItem("mobileTab", hash);
         localStorage.setItem("mobileTab", hash);
       } else if (hash === "mobile" || (!hash && isMobileDomain)) {
         try {
@@ -230,6 +236,7 @@ export default function MobileLayout() {
           const u = String(sess.username || "").toLowerCase();
           if (r.includes("wali") || r.includes("santri")) {
             setMobileTab("portal-wali");
+            sessionStorage.setItem("mobileTab", "portal-wali");
             localStorage.setItem("mobileTab", "portal-wali");
             return;
           }
@@ -240,12 +247,20 @@ export default function MobileLayout() {
             u.includes("keuangan")
           ) {
             setMobileTab("home");
+            sessionStorage.setItem("mobileTab", "home");
             localStorage.setItem("mobileTab", "home");
             return;
           }
+          const savedTab =
+            sessionStorage.getItem("mobileTab") ||
+            localStorage.getItem("mobileTab");
+          if (savedTab && savedTab !== "home") {
+            setMobileTab(savedTab);
+            return;
+          }
         } catch (e) {}
-        // Root domain mobile selalu buka Beranda
         setMobileTab("home");
+        sessionStorage.setItem("mobileTab", "home");
         localStorage.setItem("mobileTab", "home");
       }
     };
@@ -270,6 +285,7 @@ export default function MobileLayout() {
 
   const handleSelectTab = (tab) => {
     setMobileTab(tab);
+    sessionStorage.setItem("mobileTab", tab);
     localStorage.setItem("mobileTab", tab);
     if (isMobileDomain) {
       window.location.hash = tab === "home" ? "" : tab;
@@ -281,6 +297,8 @@ export default function MobileLayout() {
 
   const handleLogout = () => {
     localStorage.removeItem("mobile_session");
+    localStorage.removeItem("mobileTab");
+    sessionStorage.removeItem("mobileTab");
     setSession(null);
   };
 
@@ -298,6 +316,7 @@ export default function MobileLayout() {
       uName.includes("bendahara") ||
       uName.includes("keuangan")
     ) {
+      sessionStorage.setItem("mobileTab", "home");
       localStorage.setItem("mobileTab", "home");
       setMobileTab("home");
       if (isMobileDomain) {
@@ -308,6 +327,7 @@ export default function MobileLayout() {
       setSession(userSession);
       return;
     }
+    sessionStorage.setItem("mobileTab", "home");
     localStorage.setItem("mobileTab", "home");
     setMobileTab("home");
     if (isMobileDomain) {

@@ -65,8 +65,40 @@ const menuLabelStyle = {
   letterSpacing: "-0.2px",
 };
 
+const PENGAJAR_TABS = new Set([
+  "beranda",
+  "absen-mengaji",
+  "laporan-mengaji",
+  "laporan-berjamaah",
+  "teguran",
+  "praktek",
+  "perkembangan",
+  "master-pengembangan",
+  "setting-pengembangan",
+  "santri",
+  "settings",
+  "profil",
+]);
+
+const getInitialPengajarTab = () => {
+  try {
+    const rawHash = (window.location.hash || "").replace(/^#/, "");
+    if (rawHash.includes("/")) {
+      const sub = rawHash.split("/")[1];
+      if (sub && PENGAJAR_TABS.has(sub)) return sub;
+    } else if (rawHash && rawHash !== "pengajar" && rawHash !== "ustadz" && PENGAJAR_TABS.has(rawHash)) {
+      return rawHash;
+    }
+    const saved =
+      sessionStorage.getItem("pengajar_active_tab") ||
+      localStorage.getItem("pengajar_active_tab");
+    if (saved && PENGAJAR_TABS.has(saved)) return saved;
+  } catch (e) {}
+  return "beranda";
+};
+
 export default function PengajarDashboardView({ onLogout }) {
-  const [activeTab, setActiveTab] = useState("beranda"); // 'beranda' | 'absen-mengaji' | 'laporan-berjamaah' | 'teguran' | 'praktek' | 'perkembangan' | 'santri' | 'settings'
+  const [activeTab, setActiveTab] = useState(getInitialPengajarTab); // 'beranda' | 'absen-mengaji' | 'laporan-berjamaah' | 'teguran' | 'praktek' | 'perkembangan' | 'santri' | 'settings'
   const [loading, setLoading] = useState(true);
   const [presensiFilter, setPresensiFilter] = useState("Semua");
   const [rekapTipe, setRekapTipe] = useState("mengaji"); // 'mengaji' | 'berjamaah'
@@ -159,6 +191,35 @@ export default function PengajarDashboardView({ onLogout }) {
     fetchDashboard();
   }, []);
 
+  // Persist activeTab ke sessionStorage/localStorage & URL hash agar saat reload tetap di menu aktif
+  useEffect(() => {
+    try {
+      sessionStorage.setItem("pengajar_active_tab", activeTab);
+      localStorage.setItem("pengajar_active_tab", activeTab);
+      const curHash = window.location.hash || "";
+      if (!curHash.toLowerCase().includes("login")) {
+        const targetHash = activeTab === "beranda" ? "#pengajar" : `#pengajar/${activeTab}`;
+        if (curHash !== targetHash) {
+          window.history.replaceState(null, "", targetHash);
+        }
+      }
+    } catch (e) {}
+  }, [activeTab]);
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const rawHash = (window.location.hash || "").replace(/^#/, "");
+      if (rawHash.includes("/")) {
+        const sub = rawHash.split("/")[1];
+        if (sub && PENGAJAR_TABS.has(sub)) setActiveTab(sub);
+      } else if (rawHash === "pengajar" || rawHash === "ustadz") {
+        setActiveTab("beranda");
+      }
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+
   const handleLogout = async () => {
     const confirmed = await showConfirm(
       "Konfirmasi Keluar",
@@ -170,6 +231,7 @@ export default function PengajarDashboardView({ onLogout }) {
       localStorage.removeItem("token");
       localStorage.removeItem("desktop_session");
       localStorage.removeItem("mobile_session");
+      localStorage.removeItem("pengajar_active_tab");
       sessionStorage.clear();
       if (onLogout) {
         onLogout();
