@@ -6,7 +6,6 @@ import {
   AlertCircle,
   Search,
   RotateCw,
-  Calendar,
   Layers,
   Users,
   Fingerprint,
@@ -20,11 +19,14 @@ import {
   X,
   Sparkles
 } from "lucide-react";
+import LaporanPeriodeFilter, {
+  createInitialPeriodeState,
+  buildPeriodeQueryParams,
+} from "./components/LaporanPeriodeFilter";
 
 export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "semua" }) {
   const [loading, setLoading] = useState(true);
-  const [periode, setPeriode] = useState("hari_ini");
-  const [selectedTanggal, setSelectedTanggal] = useState("");
+  const [periodeFilter, setPeriodeFilter] = useState(() => createInitialPeriodeState("hari"));
   const [statusFilter, setStatusFilter] = useState(initialStatus || "Semua");
   const [filterKelas, setFilterKelas] = useState("Semua");
   const [filterSesi, setFilterSesi] = useState("Semua");
@@ -53,7 +55,7 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "
   const fetchData = async () => {
     try {
       setLoading(true);
-      const url = `/api/owner/presensi?${selectedTanggal ? `tanggal=${selectedTanggal}` : `periode=${periode}`}${tipe && tipe !== "semua" ? `&tipe=${tipe}` : ""}`;
+      const url = `/api/owner/presensi?${buildPeriodeQueryParams(periodeFilter)}${tipe && tipe !== "semua" ? `&tipe=${tipe}` : ""}`;
       const res = await axios.get(url);
       if (res.data?.success && res.data.data) {
         setData(res.data.data);
@@ -67,7 +69,7 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "
 
   useEffect(() => {
     fetchData();
-  }, [periode, tipe, selectedTanggal]);
+  }, [periodeFilter, tipe]);
 
   const s = data.summary || {};
   const totalPresensi = (s.hadir || 0) + (s.sakit || 0) + (s.izin || 0) + (s.alfa || 0);
@@ -136,112 +138,8 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px", paddingBottom: "24px" }}>
       
-      {/* 1. PERIODE & TANGGAL FILTER */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "6px",
-          background: "#ffffff",
-          borderRadius: "16px",
-          padding: "6px 8px",
-          border: "1px solid #e2e8f0",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
-        }}
-      >
-        <div style={{ display: "flex", gap: "4px" }}>
-          {[
-            { key: "hari_ini", label: "Hari Ini" },
-            { key: "bulan_ini", label: "Bulan Ini" },
-            { key: "tahun_ini", label: "Tahun Ini" }
-          ].map((p) => {
-            const isActive = !selectedTanggal && periode === p.key;
-            return (
-              <button
-                key={p.key}
-                type="button"
-                onClick={() => {
-                  setSelectedTanggal("");
-                  setPeriode(p.key);
-                }}
-                style={{
-                  flex: 1,
-                  border: "none",
-                  background: isActive
-                    ? "linear-gradient(135deg, #0d766e 0%, #059669 100%)"
-                    : "transparent",
-                  color: isActive ? "#ffffff" : "#64748b",
-                  fontWeight: isActive ? 800 : 600,
-                  fontSize: "0.74rem",
-                  padding: "7px 4px",
-                  borderRadius: "10px",
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                  boxShadow: isActive ? "0 4px 10px rgba(13, 118, 110, 0.25)" : "none"
-                }}
-              >
-                {p.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Custom Date Picker Input */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            background: selectedTanggal ? "#f0fdf4" : "#f8fafc",
-            border: selectedTanggal ? "1.5px solid #10b981" : "1px solid #e2e8f0",
-            borderRadius: "10px",
-            padding: "5px 10px",
-            transition: "all 0.15s ease",
-          }}
-        >
-          <Calendar size={15} color={selectedTanggal ? "#059669" : "#64748b"} />
-          <span style={{ fontSize: "0.68rem", fontWeight: 700, color: selectedTanggal ? "#047857" : "#64748b" }}>
-            Pilih Tanggal:
-          </span>
-          <input
-            type="date"
-            value={selectedTanggal}
-            onChange={(e) => setSelectedTanggal(e.target.value)}
-            style={{
-              flex: 1,
-              border: "none",
-              background: "transparent",
-              fontSize: "0.74rem",
-              fontWeight: 700,
-              color: "#0f172a",
-              outline: "none",
-              cursor: "pointer",
-            }}
-          />
-          {selectedTanggal && (
-            <button
-              type="button"
-              onClick={() => setSelectedTanggal("")}
-              title="Reset ke periode default"
-              style={{
-                border: "none",
-                background: "#dcfce7",
-                color: "#166534",
-                borderRadius: "50%",
-                width: "18px",
-                height: "18px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                padding: 0,
-              }}
-            >
-              <X size={11} strokeWidth={3} />
-            </button>
-          )}
-        </div>
-      </div>
+      {/* 1. PERIODE & TANGGAL FILTER (HARI / BULAN / TAHUN) */}
+      <LaporanPeriodeFilter value={periodeFilter} onChange={setPeriodeFilter} />
 
       {/* 2. REKAP STATUS KEHADIRAN (4 PASTEL TOUCHABLE CARDS) */}
       <div
@@ -719,7 +617,7 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "
         </div>
 
         {/* Active Filters Reset Indicator */}
-        {(searchTable || filterKelas !== "Semua" || filterSesi !== "Semua" || statusFilter !== "Semua" || selectedTanggal) && (
+        {(searchTable || filterKelas !== "Semua" || filterSesi !== "Semua" || statusFilter !== "Semua") && (
           <div
             style={{
               display: "flex",
@@ -743,8 +641,7 @@ export default function OwnerLaporanPresensi({ initialStatus = "Semua", tipe = "
                 setFilterKelas("Semua");
                 setFilterSesi("Semua");
                 setStatusFilter("Semua");
-                setSelectedTanggal("");
-                setPeriode("hari_ini");
+                setPeriodeFilter(createInitialPeriodeState("hari"));
               }}
               style={{
                 display: "inline-flex",

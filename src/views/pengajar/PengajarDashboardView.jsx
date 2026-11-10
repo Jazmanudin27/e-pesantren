@@ -29,9 +29,9 @@ import MobileProfil from "../mobile/MobileProfil";
 import MobileMasterPengembangan from "../mobile/MobileMasterPengembangan";
 
 const squircleIconStyle = {
-  width: "50px",
-  height: "50px",
-  borderRadius: "16px",
+  width: "48px",
+  height: "48px",
+  borderRadius: "15px",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -47,16 +47,22 @@ const menuCardStyle = {
   cursor: "pointer",
   textAlign: "center",
   width: "100%",
+  minWidth: 0,
+  overflow: "hidden",
   userSelect: "none",
 };
 
 const menuLabelStyle = {
-  fontSize: "0.60rem",
+  fontSize: "0.56rem",
   fontWeight: 700,
   color: "#334155",
   lineHeight: 1.2,
-  maxWidth: "72px",
+  width: "100%",
   display: "block",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  letterSpacing: "-0.2px",
 };
 
 export default function PengajarDashboardView({ onLogout }) {
@@ -838,7 +844,7 @@ export default function PengajarDashboardView({ onLogout }) {
                   background: "#ffffff",
                   borderRadius: "18px",
                   border: "1px solid #e2e8f0",
-                  padding: "12px 12px 14px",
+                  padding: "12px 10px 14px",
                   boxShadow:
                     "0 10px 25px -4px rgba(13, 118, 110, 0.14), 0 2px 6px rgba(0, 0, 0, 0.04)",
                 }}
@@ -869,8 +875,8 @@ export default function PengajarDashboardView({ onLogout }) {
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "repeat(3, 1fr)",
-                    gap: "14px 4px",
+                    gridTemplateColumns: "repeat(4, 1fr)",
+                    gap: "12px 2px",
                     justifyItems: "center",
                   }}
                 >

@@ -6,17 +6,20 @@ import {
   AlertCircle,
   Search,
   RotateCw,
-  Calendar,
   Layers,
   Users,
   Check,
   ChevronRight,
   Clock
 } from "lucide-react";
+import LaporanPeriodeFilter, {
+  createInitialPeriodeState,
+  buildPeriodeQueryParams,
+} from "./components/LaporanPeriodeFilter";
 
 export default function OwnerLaporanMengaji() {
   const [loading, setLoading] = useState(true);
-  const [periode, setPeriode] = useState("hari_ini");
+  const [periodeFilter, setPeriodeFilter] = useState(() => createInitialPeriodeState("hari"));
   const [statusFilter, setStatusFilter] = useState("Semua");
   const [searchTable, setSearchTable] = useState("");
   const [visibleLimit, setVisibleLimit] = useState(30);
@@ -37,7 +40,7 @@ export default function OwnerLaporanMengaji() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`/api/owner/presensi?periode=${periode}&tipe=mengaji`);
+      const res = await axios.get(`/api/owner/presensi?${buildPeriodeQueryParams(periodeFilter)}&tipe=mengaji`);
       if (res.data?.success && res.data.data) {
         setData(res.data.data);
       }
@@ -50,11 +53,11 @@ export default function OwnerLaporanMengaji() {
 
   useEffect(() => {
     fetchData();
-  }, [periode]);
+  }, [periodeFilter]);
 
   useEffect(() => {
     setVisibleLimit(30);
-  }, [periode, statusFilter, searchTable]);
+  }, [periodeFilter, statusFilter, searchTable]);
 
   const s = data.summary || {};
   const totalPresensi = (s.hadir || 0) + (s.sakit || 0) + (s.izin || 0) + (s.alfa || 0);
@@ -99,50 +102,13 @@ export default function OwnerLaporanMengaji() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px", paddingBottom: "24px" }}>
       
-      {/* 1. PERIODE FILTER PILLS */}
-      <div
-        style={{
-          display: "flex",
-          background: "#ffffff",
-          borderRadius: "14px",
-          padding: "4px",
-          border: "1px solid #e2e8f0",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
-          gap: "4px"
-        }}
-      >
-        {[
-          { key: "hari_ini", label: "Hari Ini" },
-          { key: "bulan_ini", label: "Bulan Ini" },
-          { key: "tahun_ini", label: "Tahun Ini" }
-        ].map((p) => {
-          const isActive = periode === p.key;
-          return (
-            <button
-              key={p.key}
-              type="button"
-              onClick={() => setPeriode(p.key)}
-              style={{
-                flex: 1,
-                border: "none",
-                background: isActive
-                  ? "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)"
-                  : "transparent",
-                color: isActive ? "#ffffff" : "#64748b",
-                fontWeight: isActive ? 800 : 600,
-                fontSize: "0.74rem",
-                padding: "8px 4px",
-                borderRadius: "10px",
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-                boxShadow: isActive ? "0 4px 10px rgba(13, 148, 136, 0.25)" : "none"
-              }}
-            >
-              {p.label}
-            </button>
-          );
-        })}
-      </div>
+      {/* 1. PERIODE FILTER (HARI / BULAN / TAHUN) */}
+      <LaporanPeriodeFilter
+        value={periodeFilter}
+        onChange={setPeriodeFilter}
+        accentGradient="linear-gradient(135deg, #0d9488 0%, #0f766e 100%)"
+        accentColor="#0d9488"
+      />
 
       {/* 2. HERO CARD REKAP PRESENSI MENGAJI */}
       <div

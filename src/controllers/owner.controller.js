@@ -39,15 +39,64 @@ export const ensureOwnerAccount = async () => {
 };
 
 /**
- * Helper: Ambil rentang tanggal berdasarkan filter periode ('hari_ini', 'bulan_ini', 'tahun_ini')
+ * Helper: Ambil rentang tanggal berdasarkan filter periode atau parameter rentang tanggal/bulan/tahun
  */
-const getPeriodeDateCondition = (periode, dateColumn = 'tanggal') => {
+const getPeriodeDateCondition = (queryOrPeriode, dateColumn = 'tanggal') => {
   const now = new Date();
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, '0');
   const d = String(now.getDate()).padStart(2, '0');
   const todayStr = `${y}-${m}-${d}`;
 
+  const q = typeof queryOrPeriode === 'string'
+    ? { periode: queryOrPeriode }
+    : (queryOrPeriode || {});
+
+  // 1. Range Hari (tanggal_dari & tanggal_sampai)
+  if (q.tanggal_dari || q.tanggal_sampai) {
+    const start = q.tanggal_dari || q.tanggal_sampai;
+    const end = q.tanggal_sampai || q.tanggal_dari;
+    const [from, to] = start <= end ? [start, end] : [end, start];
+    return {
+      sql: `AND DATE(${dateColumn}) BETWEEN ? AND ?`,
+      params: [from, to]
+    };
+  }
+
+  // 2. Single Tanggal (legacy)
+  if (q.tanggal) {
+    return {
+      sql: `AND DATE(${dateColumn}) = ?`,
+      params: [q.tanggal]
+    };
+  }
+
+  // 3. Range Bulan (bulan_dari & bulan_sampai, format YYYY-MM)
+  if (q.bulan_dari || q.bulan_sampai) {
+    const startYm = q.bulan_dari || q.bulan_sampai;
+    const endYm = q.bulan_sampai || q.bulan_dari;
+    const [fromYm, toYm] = startYm <= endYm ? [startYm, endYm] : [endYm, startYm];
+
+    const startDate = `${fromYm}-01`;
+    const [toYearStr, toMonthStr] = toYm.split('-');
+    const lastDay = new Date(Number(toYearStr), Number(toMonthStr), 0).getDate();
+    const endDate = `${toYm}-${String(lastDay).padStart(2, '0')}`;
+    return {
+      sql: `AND DATE(${dateColumn}) BETWEEN ? AND ?`,
+      params: [startDate, endDate]
+    };
+  }
+
+  // 4. Filter Tahun tunggal (tahun, format YYYY)
+  if (q.tahun && /^\d{4}$/.test(String(q.tahun))) {
+    return {
+      sql: `AND YEAR(${dateColumn}) = ?`,
+      params: [Number(q.tahun)]
+    };
+  }
+
+  // 5. Fallback legacy periode ('hari_ini', 'tahun_ini', 'bulan_ini')
+  const periode = q.periode || 'bulan_ini';
   if (periode === 'hari_ini') {
     return {
       sql: `AND DATE(${dateColumn}) = ?`,
@@ -172,7 +221,8 @@ export const getOwnerSummary = async (req, res) => {
 export const getOwnerKeuangan = async (req, res) => {
   try {
     const periode = req.query.periode || 'bulan_ini';
-    const dateCond = getPeriodeDateCondition(periode, 'tanggal_bayar');
+    const keuQuery = { periode, ...req.query };
+    const dateCond = getPeriodeDateCondition(keuQuery, 'tanggal_bayar');
 
     // 1. Ringkasan Kas Periode
     const [[kasPeriode]] = await pool.query(`
@@ -207,7 +257,7 @@ export const getOwnerKeuangan = async (req, res) => {
     const limitNum = Math.min(Math.max(parseInt(req.query.limit, 10) || 1000, 10), 5000);
 
     // 4. Log Transaksi Pembayaran Kas Terakhir (Filtered by selected periode)
-    const tpDateCond = getPeriodeDateCondition(periode, 'tp.tanggal_bayar');
+    const tpDateCond = getPeriodeDateCondition(keuQuery, 'tp.tanggal_bayar');
     const [transaksiRows] = await pool.query(`
       SELECT 
         tp.id,
@@ -254,7 +304,7 @@ export const getOwnerKeuangan = async (req, res) => {
     `).catch(() => [[]]);
 
     // 6. Rekap Infak & Sedekah (Filtered by selected periode)
-    const itDateCond = getPeriodeDateCondition(periode, 'it.tanggal');
+    const itDateCond = getPeriodeDateCondition(keuQuery, 'it.tanggal');
     const [infakRows] = await pool.query(`
       SELECT 
         it.id,
@@ -308,18 +358,9 @@ export const getOwnerPresensi = async (req, res) => {
     await syncActiveHaidToAbsensi().catch(() => {});
     const periode = req.query.periode || 'hari_ini';
     const tipe = req.query.tipe || 'semua';
-    const tanggal = req.query.tanggal;
     const limitNum = Math.min(Math.max(Number(req.query.limit) || 200, 10), 1000);
-    
-    let dateCond;
-    if (tanggal) {
-      dateCond = {
-        sql: 'AND DATE(aj.tanggal) = ?',
-        params: [tanggal]
-      };
-    } else {
-      dateCond = getPeriodeDateCondition(periode, 'aj.tanggal');
-    }
+
+    const dateCond = getPeriodeDateCondition({ periode, ...req.query }, 'aj.tanggal');
 
     let tipeFilterSql = '';
     if (tipe === 'mengaji') {

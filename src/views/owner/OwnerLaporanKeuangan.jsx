@@ -21,10 +21,14 @@ import {
   Sparkles,
   Layers
 } from "lucide-react";
+import LaporanPeriodeFilter, {
+  createInitialPeriodeState,
+  buildPeriodeQueryParams,
+} from "./components/LaporanPeriodeFilter";
 
 export default function OwnerLaporanKeuangan() {
   const [loading, setLoading] = useState(true);
-  const [periode, setPeriode] = useState("bulan_ini");
+  const [periodeFilter, setPeriodeFilter] = useState(() => createInitialPeriodeState("bulan"));
   const [activeSubTab, setActiveSubTab] = useState("transaksi"); // 'transaksi' | 'tunggakan' | 'infak'
   const [searchTable, setSearchTable] = useState("");
   const [visibleLimit, setVisibleLimit] = useState(30);
@@ -43,7 +47,7 @@ export default function OwnerLaporanKeuangan() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`/api/owner/keuangan?periode=${periode}&limit=2000`);
+      const res = await axios.get(`/api/owner/keuangan?${buildPeriodeQueryParams(periodeFilter)}&limit=2000`);
       if (res.data?.success && res.data.data) {
         setData(res.data.data);
       }
@@ -56,11 +60,11 @@ export default function OwnerLaporanKeuangan() {
 
   useEffect(() => {
     fetchData();
-  }, [periode]);
+  }, [periodeFilter]);
 
   useEffect(() => {
     setVisibleLimit(30);
-  }, [periode, activeSubTab]);
+  }, [periodeFilter, activeSubTab]);
 
   const formatMetode = (m) => {
     if (!m) return "Tunai";
@@ -133,50 +137,8 @@ export default function OwnerLaporanKeuangan() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px", paddingBottom: "24px" }}>
       
-      {/* 1. PERIODE FILTER PILLS */}
-      <div
-        style={{
-          display: "flex",
-          background: "#ffffff",
-          borderRadius: "14px",
-          padding: "4px",
-          border: "1px solid #e2e8f0",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
-          gap: "4px"
-        }}
-      >
-        {[
-          { key: "hari_ini", label: "Hari Ini" },
-          { key: "bulan_ini", label: "Bulan Ini" },
-          { key: "tahun_ini", label: "Tahun Ini" }
-        ].map((p) => {
-          const isActive = periode === p.key;
-          return (
-            <button
-              key={p.key}
-              type="button"
-              onClick={() => setPeriode(p.key)}
-              style={{
-                flex: 1,
-                border: "none",
-                background: isActive
-                  ? "linear-gradient(135deg, #0d766e 0%, #059669 100%)"
-                  : "transparent",
-                color: isActive ? "#ffffff" : "#64748b",
-                fontWeight: isActive ? 800 : 600,
-                fontSize: "0.74rem",
-                padding: "8px 4px",
-                borderRadius: "10px",
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-                boxShadow: isActive ? "0 4px 10px rgba(13, 118, 110, 0.25)" : "none"
-              }}
-            >
-              {p.label}
-            </button>
-          );
-        })}
-      </div>
+      {/* 1. PERIODE FILTER (HARI / BULAN / TAHUN) */}
+      <LaporanPeriodeFilter value={periodeFilter} onChange={setPeriodeFilter} />
 
       {/* 2. HERO KAS MASUK CARD (MODERN LUXURY GREEN) */}
       <div
