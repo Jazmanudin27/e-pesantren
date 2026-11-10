@@ -187,8 +187,18 @@
         };
         window.addEventListener('unhandledrejection', function(e) {
           const reasonStr = String(e?.reason?.message || e?.reason || '');
-          if (reasonStr.includes('faro') || reasonStr.includes('gopay.sh') || reasonStr.includes('Failed to fetch')) {
+          if (reasonStr.includes('faro') || reasonStr.includes('gopay.sh')) {
             e.preventDefault();
+            return;
+          }
+          if (
+            reasonStr.includes('dynamically imported module') ||
+            reasonStr.includes('Expected a JavaScript-or-Wasm module script') ||
+            reasonStr.includes('Strict MIME type')
+          ) {
+            e.preventDefault();
+            window.location.reload();
+            return;
           }
         });
       })();

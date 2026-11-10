@@ -33,76 +33,88 @@ import {
 } from "lucide-react";
 import { canAccessKeuangan } from "../utils/authRole.util";
 
-// Code Splitting & Lazy Loading Semua View Komponen
-const MobileHome = lazy(() => import("../views/mobile/MobileHome"));
-const MobileSyahriah = lazy(() => import("../views/mobile/MobileSyahriah"));
-const KeuanganAdminView = lazy(
+// Safe Lazy Wrapper: Cegah Chunk Load Error saat ada rilis/build baru di server
+const lazySafe = (importer) =>
+  lazy(async () => {
+    try {
+      return await importer();
+    } catch (err) {
+      console.warn("[SPA] Dynamic import chunk gagal dimuat, memuat ulang halaman...", err);
+      window.location.reload();
+      return new Promise(() => {});
+    }
+  });
+
+// Code Splitting & Lazy Loading Semua View Komponen dengan Auto-Recovery
+const MobileHome = lazySafe(() => import("../views/mobile/MobileHome"));
+const MobileSyahriah = lazySafe(() => import("../views/mobile/MobileSyahriah"));
+const KeuanganAdminView = lazySafe(
   () => import("../views/keuangan/KeuanganAdminView"),
 );
-const MobileKeuangan = lazy(() => import("../views/mobile/MobileKeuangan"));
-const MobileIzin = lazy(() => import("../views/mobile/MobileIzin"));
-const MobileDashboard = lazy(() => import("../views/mobile/MobileDashboard"));
-const MobilePresensiBerjamaah = lazy(
+const MobileKeuangan = lazySafe(() => import("../views/mobile/MobileKeuangan"));
+const MobileIzin = lazySafe(() => import("../views/mobile/MobileIzin"));
+const MobileDashboard = lazySafe(() => import("../views/mobile/MobileDashboard"));
+const MobilePresensiBerjamaah = lazySafe(
   () => import("../views/mobile/MobilePresensiBerjamaah"),
 );
-const MobilePresensiMengaji = lazy(
+const MobilePresensiMengaji = lazySafe(
   () => import("../views/mobile/MobilePresensiMengaji"),
 );
-const MobileSantri = lazy(() => import("../views/mobile/MobileSantri"));
-const MobileAsrama = lazy(() => import("../views/mobile/MobileAsrama"));
-const MobileKelas = lazy(() => import("../views/mobile/MobileKelas"));
-const MobileAsatidz = lazy(() => import("../views/mobile/MobileAsatidz"));
-const MobileDevice = lazy(() => import("../views/mobile/MobileDevice"));
-const MobileTataTertib = lazy(() => import("../views/mobile/MobileTataTertib"));
-const MobileLaporanPresensi = lazy(
+const MobileSantri = lazySafe(() => import("../views/mobile/MobileSantri"));
+const MobileAsrama = lazySafe(() => import("../views/mobile/MobileAsrama"));
+const MobileKelas = lazySafe(() => import("../views/mobile/MobileKelas"));
+const MobileAsatidz = lazySafe(() => import("../views/mobile/MobileAsatidz"));
+const MobileDevice = lazySafe(() => import("../views/mobile/MobileDevice"));
+const MobileTataTertib = lazySafe(() => import("../views/mobile/MobileTataTertib"));
+const MobileLaporanPresensi = lazySafe(
   () => import("../views/mobile/MobileLaporanPresensi"),
 );
-const MobileKitab = lazy(() => import("../views/mobile/MobileKitab"));
-const MobileProfil = lazy(() => import("../views/mobile/MobileProfil"));
-const MobileDaftarWajah = lazy(
+const MobileKitab = lazySafe(() => import("../views/mobile/MobileKitab"));
+const MobileProfil = lazySafe(() => import("../views/mobile/MobileProfil"));
+const MobileDaftarWajah = lazySafe(
   () => import("../views/mobile/MobileDaftarWajah"),
 );
-const MobileLogin = lazy(() => import("../views/mobile/MobileLogin"));
-const MobileOnboarding = lazy(() => import("../views/mobile/MobileOnboarding"));
-const MobilePraktek = lazy(() => import("../views/mobile/MobilePraktek"));
-const MobilePengembangan = lazy(
+const MobileLogin = lazySafe(() => import("../views/mobile/MobileLogin"));
+const MobileOnboarding = lazySafe(() => import("../views/mobile/MobileOnboarding"));
+const MobilePraktek = lazySafe(() => import("../views/mobile/MobilePraktek"));
+const MobilePengembangan = lazySafe(
   () => import("../views/mobile/MobilePengembangan"),
 );
-const MobileMateriHafalan = lazy(
+const MobileMateriHafalan = lazySafe(
   () => import("../views/mobile/MobileMateriHafalan"),
 );
-const MobileKegiatan = lazy(() => import("../views/mobile/MobileKegiatan"));
-const SettingKegiatanView = lazy(
+const MobileKegiatan = lazySafe(() => import("../views/mobile/MobileKegiatan"));
+const SettingKegiatanView = lazySafe(
   () => import("../views/admin/SettingKegiatanView"),
 );
-const InformasiKegiatanAdminView = lazy(
+const InformasiKegiatanAdminView = lazySafe(
   () => import("../views/admin/InformasiKegiatanAdminView"),
 );
-const TabInformasiKegiatan = lazy(
+const TabInformasiKegiatan = lazySafe(
   () => import("../views/wali/TabInformasiKegiatan"),
 );
-const PortalWaliSantri = lazy(() => import("../views/wali/PortalWaliSantri"));
-const MobileTabungan = lazy(() => import("../views/mobile/MobileTabungan"));
-const LaporanInfakAdminView = lazy(
+const PortalWaliSantri = lazySafe(() => import("../views/wali/PortalWaliSantri"));
+const MobileTabungan = lazySafe(() => import("../views/mobile/MobileTabungan"));
+const LaporanInfakAdminView = lazySafe(
   () => import("../views/keuangan/LaporanInfakAdminView"),
 );
-const PesanKomunikasiAdminView = lazy(
+const PesanKomunikasiAdminView = lazySafe(
   () => import("../views/admin/PesanKomunikasiAdminView"),
 );
-const WhatsAppGatewayView = lazy(
+const WhatsAppGatewayView = lazySafe(
   () => import("../views/admin/WhatsAppGatewayView"),
 );
-const MobileHomeKeuangan = lazy(
+const MobileHomeKeuangan = lazySafe(
   () => import("../views/keuangan/MobileHomeKeuangan"),
 );
-const MobileKeuanganLayout = lazy(() => import("./MobileKeuanganLayout"));
-const MobileMediaPipeTest = lazy(
+const MobileKeuanganLayout = lazySafe(() => import("./MobileKeuanganLayout"));
+const MobileMediaPipeTest = lazySafe(
   () => import("../views/mobile/MobileMediaPipeTest"),
 );
-const OwnerDashboardView = lazy(
+const OwnerDashboardView = lazySafe(
   () => import("../views/owner/OwnerDashboardView"),
 );
-const MobileHaid = lazy(() => import("../views/mobile/MobileHaid"));
+const MobileHaid = lazySafe(() => import("../views/mobile/MobileHaid"));
 
 // Loading Fallback Komponen
 const MobileLoadingFallback = () => (

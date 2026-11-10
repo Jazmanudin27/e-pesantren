@@ -48,7 +48,16 @@ app.get(['/pwa-icon-192.png', '/pwa-icon-512.png', '/pwa-icon-maskable-512.png']
   res.sendFile(path.join(publicPath, 'nwf.png'));
 });
 
+// Jika ada request file static /assets/ yang tidak ada (misal chunk lama setelah rebuild), beri 404 murni (JANGAN beri index.html)
+app.use(['/assets', '/dist/assets'], (req, res) => {
+  res.status(404).type('text/plain').send('Asset chunk not found');
+});
+
+// SPA Fallback: Berikan index.html tanpa cache agar browser selalu mengambil referensi bundle terbaru
 app.get('*', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.sendFile(path.join(distPath, 'index.html'));
 });
 
