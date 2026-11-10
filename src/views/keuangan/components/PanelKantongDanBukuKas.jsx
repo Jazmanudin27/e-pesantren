@@ -507,157 +507,64 @@ export default function PanelKantongDanBukuKas({
             </div>
           </div>
         </div>
-
-        {/* 3 Quick Action Buttons inside Hero */}
-        {!readOnly && (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "7px",
-              marginTop: "12px",
-              paddingTop: "12px",
-              borderTop: "1px solid rgba(255, 255, 255, 0.16)",
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => openFormModal("Pengeluaran", "Kas Tunai")}
-              style={{
-                background: "#ffffff",
-                color: "#dc2626",
-                border: "none",
-                borderRadius: "10px",
-                padding: "8px 6px",
-                fontSize: "0.68rem",
-                fontWeight: 800,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "4px",
-              }}
-            >
-              <TrendingDown size={13} />
-              <span>Pengeluaran</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => openFormModal("Pemasukan Lain", "Kas Tunai")}
-              style={{
-                background: "rgba(255, 255, 255, 0.18)",
-                color: "#ffffff",
-                border: "1px solid rgba(255, 255, 255, 0.28)",
-                borderRadius: "10px",
-                padding: "8px 6px",
-                fontSize: "0.68rem",
-                fontWeight: 800,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "4px",
-              }}
-            >
-              <Plus size={13} />
-              <span>Pemasukan</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => openFormModal("Setor Tunai ke Bank", "Kas Tunai")}
-              style={{
-                background: "rgba(255, 255, 255, 0.18)",
-                color: "#ffffff",
-                border: "1px solid rgba(255, 255, 255, 0.28)",
-                borderRadius: "10px",
-                padding: "8px 6px",
-                fontSize: "0.68rem",
-                fontWeight: 800,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "4px",
-              }}
-            >
-              <ArrowRightLeft size={13} />
-              <span>Setor Bank</span>
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* 2. SIMPLE 4-TAB BAR */}
+      {/* 2. SELECT OPTION PILIH KANTONG / BUKU KAS */}
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gap: "5px",
-          background: "#e2e8f0",
-          padding: "4px",
-          borderRadius: "14px",
+          background: "#ffffff",
+          borderRadius: "16px",
+          padding: "12px 14px",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 2px 8px rgba(15, 23, 42, 0.03)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "10px",
         }}
       >
-        {[
-          { id: "tunai", label: "Kas Tunai", Icon: Wallet, color: "#059669" },
-          { id: "bank", label: "Rek. Bank", Icon: Building2, color: "#0284c7" },
-          {
-            id: "midtrans",
-            label: "Midtrans",
-            Icon: QrCode,
-            color: "#7c3aed",
-            badge: kantong.jumlah_trx_mengendap_midtrans,
-          },
-          { id: "buku_kas", label: "Semua Kas", Icon: FileText, color: "#0f172a" },
-        ].map((t) => {
-          const active = activeTab === t.id;
-          const Icon = t.Icon;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setActiveTab(t.id)}
-              style={{
-                border: "none",
-                background: active ? "#ffffff" : "transparent",
-                color: active ? t.color : "#475569",
-                borderRadius: "10px",
-                padding: "9px 4px",
-                fontSize: "0.7rem",
-                fontWeight: active ? 900 : 700,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "4px",
-                boxShadow: active ? "0 2px 6px rgba(15, 23, 42, 0.08)" : "none",
-                position: "relative",
-              }}
-            >
-              <Icon size={14} />
-              <span>{t.label}</span>
-              {t.badge > 0 && (
-                <span
-                  style={{
-                    background: "#7c3aed",
-                    color: "#ffffff",
-                    fontSize: "0.56rem",
-                    fontWeight: 900,
-                    padding: "1px 5px",
-                    borderRadius: "999px",
-                  }}
-                >
-                  {t.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
+        <label
+          style={{
+            fontSize: "0.74rem",
+            fontWeight: 800,
+            color: "#334155",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Pilih Kantong Kas:
+        </label>
+        <select
+          value={activeTab}
+          onChange={(e) => setActiveTab(e.target.value)}
+          style={{
+            flex: 1,
+            padding: "9px 12px",
+            borderRadius: "11px",
+            border: "1.5px solid #059669",
+            background: "#ecfdf5",
+            color: "#065f46",
+            fontSize: "0.78rem",
+            fontWeight: 800,
+            cursor: "pointer",
+            outline: "none",
+          }}
+        >
+          <option value="tunai">
+            Kas Tunai ({formatRp(kantong.saldo_kas_tunai)})
+          </option>
+          <option value="bank">
+            Rekening Bank ({formatRp(kantong.saldo_rekening_bank)})
+          </option>
+          <option value="midtrans">
+            Midtrans ({formatRp(kantong.saldo_mengendap_midtrans)} • {kantong.jumlah_trx_mengendap_midtrans} Trx)
+          </option>
+          <option value="buku_kas">
+            Semuanya (Semua Riwayat Buku Kas)
+          </option>
+        </select>
       </div>
 
-      {/* 3. KARTU RINGKAS SESUAI TAB AKTIF */}
+      {/* 3. KARTU RINGKAS SESUAI PILIHAN SELECT */}
       {activeTab === "tunai" && (
         <div
           style={{
@@ -722,55 +629,6 @@ export default function PanelKantongDanBukuKas({
               </div>
             </div>
           </div>
-
-          {!readOnly && (
-            <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
-              <button
-                type="button"
-                onClick={() => openFormModal("Setor Tunai ke Bank", "Kas Tunai")}
-                style={{
-                  flex: 1,
-                  background: "#ecfdf5",
-                  color: "#047857",
-                  border: "1px solid #a7f3d0",
-                  borderRadius: "11px",
-                  padding: "9px",
-                  fontSize: "0.72rem",
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "5px",
-                }}
-              >
-                <ArrowRightLeft size={14} />
-                <span>Setor ke Bank</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => openFormModal("Pengeluaran", "Kas Tunai")}
-                style={{
-                  flex: 1,
-                  background: "#fef2f2",
-                  color: "#dc2626",
-                  border: "1px solid #fecaca",
-                  borderRadius: "11px",
-                  padding: "9px",
-                  fontSize: "0.72rem",
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "5px",
-                }}
-              >
-                <TrendingDown size={14} />
-                <span>Pakai Kas Tunai</span>
-              </button>
-            </div>
-          )}
         </div>
       )}
 
@@ -838,55 +696,6 @@ export default function PanelKantongDanBukuKas({
               </div>
             </div>
           </div>
-
-          {!readOnly && (
-            <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
-              <button
-                type="button"
-                onClick={() => openFormModal("Tarik Tunai dari Bank", "Rekening Bank")}
-                style={{
-                  flex: 1,
-                  background: "#f0f9ff",
-                  color: "#0369a1",
-                  border: "1px solid #bae6fd",
-                  borderRadius: "11px",
-                  padding: "9px",
-                  fontSize: "0.72rem",
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "5px",
-                }}
-              >
-                <ArrowRightLeft size={14} />
-                <span>Tarik Tunai</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => openFormModal("Pengeluaran", "Rekening Bank")}
-                style={{
-                  flex: 1,
-                  background: "#fef2f2",
-                  color: "#dc2626",
-                  border: "1px solid #fecaca",
-                  borderRadius: "11px",
-                  padding: "9px",
-                  fontSize: "0.72rem",
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "5px",
-                }}
-              >
-                <TrendingDown size={14} />
-                <span>Pakai Saldo Bank</span>
-              </button>
-            </div>
-          )}
         </div>
       )}
 
@@ -990,40 +799,6 @@ export default function PanelKantongDanBukuKas({
                 </div>
               ))}
             </div>
-          )}
-
-          {!readOnly && (
-            <button
-              type="button"
-              onClick={openCairMidtransModal}
-              disabled={unsettledMidtrans.length === 0}
-              style={{
-                marginTop: "12px",
-                width: "100%",
-                background:
-                  unsettledMidtrans.length > 0
-                    ? "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)"
-                    : "#f1f5f9",
-                border: "none",
-                color: unsettledMidtrans.length > 0 ? "#ffffff" : "#94a3b8",
-                borderRadius: "11px",
-                padding: "10px",
-                fontSize: "0.75rem",
-                fontWeight: 800,
-                cursor: unsettledMidtrans.length > 0 ? "pointer" : "not-allowed",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "6px",
-              }}
-            >
-              <CheckCircle2 size={15} />
-              <span>
-                {unsettledMidtrans.length > 0
-                  ? `Cairkan ke Rekening Bank (${unsettledMidtrans.length} Trx)`
-                  : "Semua Dana Midtrans Sudah Cair"}
-              </span>
-            </button>
           )}
         </div>
       )}
@@ -1475,6 +1250,49 @@ export default function PanelKantongDanBukuKas({
                     );
                   })}
                 </div>
+
+                {/* Tombol ke Pencairan Midtrans dari dalam Modal Satu Pintu */}
+                {formModal.mode === "add" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormModal((p) => ({ ...p, isOpen: false }));
+                      openCairMidtransModal();
+                    }}
+                    style={{
+                      marginTop: "8px",
+                      width: "100%",
+                      padding: "10px 12px",
+                      borderRadius: "12px",
+                      border: "1.5px solid #c4b5fd",
+                      background: "#f5f3ff",
+                      color: "#6d28d9",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <QrCode size={16} />
+                      <span style={{ fontSize: "0.75rem", fontWeight: 800 }}>
+                        Cairkan Saldo Midtrans ke Bank
+                      </span>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: "0.68rem",
+                        fontWeight: 900,
+                        background: "#7c3aed",
+                        color: "#ffffff",
+                        padding: "2px 8px",
+                        borderRadius: "999px",
+                      }}
+                    >
+                      {unsettledMidtrans.length} Trx
+                    </span>
+                  </button>
+                )}
               </div>
             )}
 
@@ -1971,7 +1789,10 @@ export default function PanelKantongDanBukuKas({
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <button
                 type="button"
-                onClick={() => setCairModal((p) => ({ ...p, isOpen: false }))}
+                onClick={() => {
+                  setCairModal((p) => ({ ...p, isOpen: false }));
+                  openFormModal("Pengeluaran", "Kas Tunai");
+                }}
                 style={{
                   background: "rgba(255,255,255,0.2)",
                   border: "none",
@@ -2257,6 +2078,39 @@ export default function PanelKantongDanBukuKas({
             </div>
           </form>
         </div>
+      )}
+
+      {/* FLOATING ACTION BUTTON (+) SATU PINTU UNTUK SEMUA INPUT BUKU KAS */}
+      {!readOnly && (
+        <button
+          type="button"
+          onClick={() =>
+            openFormModal(
+              "Pengeluaran",
+              activeTab === "bank" ? "Rekening Bank" : "Kas Tunai",
+            )
+          }
+          title="Tambah Transaksi Buku Kas"
+          style={{
+            position: "fixed",
+            right: "20px",
+            bottom: "86px",
+            width: "56px",
+            height: "56px",
+            borderRadius: "50%",
+            background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
+            color: "#ffffff",
+            border: "2px solid rgba(255, 255, 255, 0.35)",
+            boxShadow: "0 10px 25px rgba(5, 150, 105, 0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            zIndex: 90,
+          }}
+        >
+          <Plus size={28} strokeWidth={2.5} />
+        </button>
       )}
     </div>
   );

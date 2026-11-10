@@ -1146,8 +1146,12 @@ export default function MobileTataTertib() {
                 <ArrowLeft size={18} />
               </button>
               <div>
-                <div style={{ fontSize: "0.65rem", opacity: 0.9, fontWeight: 700 }}>
-                  {formMode === "add" ? "FORM INPUT KEDISIPLINAN" : "EDIT CATATAN KEDISIPLINAN"}
+                <div
+                  style={{ fontSize: "0.65rem", opacity: 0.9, fontWeight: 700 }}
+                >
+                  {formMode === "add"
+                    ? "FORM INPUT KEDISIPLINAN"
+                    : "EDIT CATATAN KEDISIPLINAN"}
                 </div>
                 <h3
                   style={{
@@ -1217,441 +1221,446 @@ export default function MobileTataTertib() {
               >
                 1. Pilih Santri *
               </label>
-                <SearchableSelect
-                  options={santriOptions.map((s) => ({
-                    value: s.id,
-                    label: s.nama_santri,
-                    sublabel:
-                      [
-                        s.nis ? `NIS: ${s.nis}` : null,
-                        s.nama_kelas || null,
-                        s.nama_asrama || null,
-                      ]
-                        .filter(Boolean)
-                        .join(" • ") || null,
-                  }))}
-                  value={formData.santri_id}
-                  onChange={(val) =>
-                    setFormData({
-                      ...formData,
-                      santri_id: val ? Number(val) : "",
-                    })
-                  }
-                  placeholder="-- Cari & Pilih Nama Santri --"
-                  searchPlaceholder="Ketik nama santri atau NIS..."
-                  triggerStyle={{
-                    width: "100%",
-                    padding: "11px 12px",
-                    borderRadius: "12px",
-                    border: "1.5px solid #cbd5e1",
-                    fontSize: "0.84rem",
-                    background: "#f8fafc",
-                    color: "#0f172a",
-                    fontWeight: 700,
-                  }}
-                />
-                {selectedSantriObj && (
-                  <div
-                    style={{
-                      marginTop: "7px",
-                      padding: "8px 11px",
-                      borderRadius: "11px",
-                      background: "#f8fafc",
-                      border: "1px solid #e2e8f0",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "9px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "30px",
-                        height: "30px",
-                        borderRadius: "9px",
-                        background: "#ffe4e6",
-                        color: "#be123c",
-                        fontWeight: 800,
-                        fontSize: "0.72rem",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {getInitials(selectedSantriObj.nama_santri)}
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontSize: "0.78rem",
-                          fontWeight: 800,
-                          color: "#0f172a",
-                        }}
-                      >
-                        {selectedSantriObj.nama_santri}
-                      </div>
-                      <div style={{ fontSize: "0.68rem", color: "#64748b" }}>
-                        {[
-                          selectedSantriObj.nis
-                            ? `NIS ${selectedSantriObj.nis}`
-                            : null,
-                          selectedSantriObj.nama_kelas,
-                          selectedSantriObj.nama_asrama,
-                        ]
-                          .filter(Boolean)
-                          .join(" • ") || "Santri Aktif"}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* 2. TINGKAT KATEGORI (INTERACTIVE CARDS TANPA POIN) */}
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.75rem",
-                    fontWeight: 800,
-                    color: "#334155",
-                    marginBottom: "6px",
-                  }}
-                >
-                  2. Tingkat Pelanggaran
-                </label>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(3, 1fr)",
-                    gap: "8px",
-                  }}
-                >
-                  {Object.keys(SEVERITY_CONFIG).map((key) => {
-                    const cfg = SEVERITY_CONFIG[key];
-                    const Icon = cfg.Icon;
-                    const selected = formData.kategori === key;
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => handleSelectSeverity(key)}
-                        style={{
-                          padding: "11px 6px",
-                          borderRadius: "13px",
-                          border: selected
-                            ? `2px solid ${cfg.accent}`
-                            : "1.5px solid #e2e8f0",
-                          background: selected ? cfg.bg : "#ffffff",
-                          color: selected ? cfg.color : "#64748b",
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          gap: "5px",
-                          cursor: "pointer",
-                          transition: "all 0.15s ease",
-                        }}
-                      >
-                        <Icon size={18} />
-                        <span style={{ fontSize: "0.77rem", fontWeight: 800 }}>
-                          {cfg.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* 3. JENIS PELANGGARAN */}
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.75rem",
-                    fontWeight: 800,
-                    color: "#334155",
-                    marginBottom: "6px",
-                  }}
-                >
-                  3. Jenis Pelanggaran *
-                </label>
-                <textarea
-                  required
-                  rows={2}
-                  placeholder="Tulis detail pelanggaran santri..."
-                  value={formData.jenis_pelanggaran}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      jenis_pelanggaran: e.target.value,
-                    })
-                  }
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "12px",
-                    border: "1.5px solid #cbd5e1",
-                    fontSize: "0.83rem",
-                    boxSizing: "border-box",
-                    fontFamily: "inherit",
-                    outline: "none",
-                  }}
-                />
-              </div>
-
-              {/* 4. BENTUK TA'ZIR */}
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.75rem",
-                    fontWeight: 800,
-                    color: "#334155",
-                    marginBottom: "6px",
-                  }}
-                >
-                  4. Bentuk Ta'zir / Pembinaan *
-                </label>
-                <textarea
-                  required
-                  rows={2}
-                  placeholder="Contoh: Membaca Surat Yasin & Kebersihan Halaman"
-                  value={formData.bentuk_tazir}
-                  onChange={(e) =>
-                    setFormData({ ...formData, bentuk_tazir: e.target.value })
-                  }
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "12px",
-                    border: "1.5px solid #cbd5e1",
-                    fontSize: "0.83rem",
-                    boxSizing: "border-box",
-                    fontFamily: "inherit",
-                    outline: "none",
-                  }}
-                />
-              </div>
-
-              {/* 5. TANGGAL KEJADIAN */}
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.75rem",
-                    fontWeight: 800,
-                    color: "#334155",
-                    marginBottom: "6px",
-                  }}
-                >
-                  5. Tanggal Kejadian
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={formData.tanggal}
-                  onChange={(e) =>
-                    setFormData({ ...formData, tanggal: e.target.value })
-                  }
-                  style={{
-                    width: "100%",
-                    padding: "10px 11px",
-                    borderRadius: "12px",
-                    border: "1.5px solid #cbd5e1",
-                    fontSize: "0.82rem",
-                    fontWeight: 600,
-                    background: "#f8fafc",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
-
-              {/* 6. STATUS TA'ZIR SEGMENTED PILLS */}
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.75rem",
-                    fontWeight: 800,
-                    color: "#334155",
-                    marginBottom: "6px",
-                  }}
-                >
-                  Status Pembinaan Ta'zir
-                </label>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(3, 1fr)",
-                    gap: "6px",
-                  }}
-                >
-                  {STATUS_TAZIR_OPTIONS.map((opt) => {
-                    const active = formData.status_tazir === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() =>
-                          setFormData({ ...formData, status_tazir: opt.value })
-                        }
-                        style={{
-                          padding: "8px 4px",
-                          borderRadius: "11px",
-                          border: active
-                            ? `1.5px solid ${opt.border}`
-                            : "1px solid #e2e8f0",
-                          background: active ? opt.bg : "#ffffff",
-                          color: active ? opt.color : "#64748b",
-                          fontSize: "0.69rem",
-                          fontWeight: 800,
-                          cursor: "pointer",
-                          textAlign: "center",
-                        }}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* 7. TOGGLE WA NOTIFIKASI WALI */}
-              <button
-                type="button"
-                onClick={() =>
+              <SearchableSelect
+                options={santriOptions.map((s) => ({
+                  value: s.id,
+                  label: s.nama_santri,
+                  sublabel:
+                    [
+                      s.nis ? `NIS: ${s.nis}` : null,
+                      s.nama_kelas || null,
+                      s.nama_asrama || null,
+                    ]
+                      .filter(Boolean)
+                      .join(" • ") || null,
+                }))}
+                value={formData.santri_id}
+                onChange={(val) =>
                   setFormData({
                     ...formData,
-                    wa_notif_wali: formData.wa_notif_wali ? 0 : 1,
+                    santri_id: val ? Number(val) : "",
                   })
                 }
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "10px",
+                placeholder="-- Cari & Pilih Nama Santri --"
+                searchPlaceholder="Ketik nama santri atau NIS..."
+                triggerStyle={{
+                  width: "100%",
                   padding: "11px 12px",
-                  borderRadius: "13px",
-                  border: formData.wa_notif_wali
-                    ? "1.5px solid #86efac"
-                    : "1px solid #e2e8f0",
-                  background: formData.wa_notif_wali ? "#f0fdf4" : "#f8fafc",
-                  cursor: "pointer",
-                  textAlign: "left",
+                  borderRadius: "12px",
+                  border: "1.5px solid #cbd5e1",
+                  fontSize: "0.84rem",
+                  background: "#f8fafc",
+                  color: "#0f172a",
+                  fontWeight: 700,
                 }}
-              >
+              />
+              {selectedSantriObj && (
                 <div
-                  style={{ display: "flex", alignItems: "center", gap: "9px" }}
+                  style={{
+                    marginTop: "7px",
+                    padding: "8px 11px",
+                    borderRadius: "11px",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "9px",
+                  }}
                 >
                   <div
                     style={{
-                      width: "32px",
-                      height: "32px",
-                      borderRadius: "10px",
-                      background: formData.wa_notif_wali
-                        ? "#dcfce7"
-                        : "#e2e8f0",
-                      color: formData.wa_notif_wali ? "#15803d" : "#64748b",
+                      width: "30px",
+                      height: "30px",
+                      borderRadius: "9px",
+                      background: "#ffe4e6",
+                      color: "#be123c",
+                      fontWeight: 800,
+                      fontSize: "0.72rem",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       flexShrink: 0,
                     }}
                   >
-                    <MessageSquare size={16} />
+                    {getInitials(selectedSantriObj.nama_santri)}
                   </div>
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <div
                       style={{
-                        fontSize: "0.76rem",
+                        fontSize: "0.78rem",
                         fontWeight: 800,
                         color: "#0f172a",
                       }}
                     >
-                      Kirim Notifikasi WA ke Wali
+                      {selectedSantriObj.nama_santri}
                     </div>
-                    <div style={{ fontSize: "0.66rem", color: "#64748b" }}>
-                      {formData.wa_notif_wali
-                        ? "Aktif: orang tua langsung mendapat pemberitahuan"
-                        : "Nonaktif: hanya tercatat di sistem"}
+                    <div style={{ fontSize: "0.68rem", color: "#64748b" }}>
+                      {[
+                        selectedSantriObj.nis
+                          ? `NIS ${selectedSantriObj.nis}`
+                          : null,
+                        selectedSantriObj.nama_kelas,
+                        selectedSantriObj.nama_asrama,
+                      ]
+                        .filter(Boolean)
+                        .join(" • ") || "Santri Aktif"}
                     </div>
                   </div>
                 </div>
+              )}
+            </div>
+
+            {/* 2. TINGKAT KATEGORI (INTERACTIVE CARDS TANPA POIN) */}
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "0.75rem",
+                  fontWeight: 800,
+                  color: "#334155",
+                  marginBottom: "6px",
+                }}
+              >
+                2. Tingkat Pelanggaran
+              </label>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gap: "8px",
+                }}
+              >
+                {Object.keys(SEVERITY_CONFIG).map((key) => {
+                  const cfg = SEVERITY_CONFIG[key];
+                  const Icon = cfg.Icon;
+                  const selected = formData.kategori === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => handleSelectSeverity(key)}
+                      style={{
+                        padding: "11px 6px",
+                        borderRadius: "13px",
+                        border: selected
+                          ? `2px solid ${cfg.accent}`
+                          : "1.5px solid #e2e8f0",
+                        background: selected ? cfg.bg : "#ffffff",
+                        color: selected ? cfg.color : "#64748b",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "5px",
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      <Icon size={18} />
+                      <span style={{ fontSize: "0.77rem", fontWeight: 800 }}>
+                        {cfg.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 3. JENIS PELANGGARAN */}
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "0.75rem",
+                  fontWeight: 800,
+                  color: "#334155",
+                  marginBottom: "6px",
+                }}
+              >
+                3. Jenis Pelanggaran *
+              </label>
+              <textarea
+                required
+                rows={2}
+                placeholder="Tulis detail pelanggaran santri..."
+                value={formData.jenis_pelanggaran}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    jenis_pelanggaran: e.target.value,
+                  })
+                }
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: "12px",
+                  border: "1.5px solid #cbd5e1",
+                  fontSize: "0.83rem",
+                  boxSizing: "border-box",
+                  fontFamily: "inherit",
+                  outline: "none",
+                }}
+              />
+            </div>
+
+            {/* 4. BENTUK TA'ZIR */}
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "0.75rem",
+                  fontWeight: 800,
+                  color: "#334155",
+                  marginBottom: "6px",
+                }}
+              >
+                4. Bentuk Ta'zir / Pembinaan *
+              </label>
+              <textarea
+                required
+                rows={2}
+                placeholder="Contoh: Membaca Surat Yasin & Kebersihan Halaman"
+                value={formData.bentuk_tazir}
+                onChange={(e) =>
+                  setFormData({ ...formData, bentuk_tazir: e.target.value })
+                }
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: "12px",
+                  border: "1.5px solid #cbd5e1",
+                  fontSize: "0.83rem",
+                  boxSizing: "border-box",
+                  fontFamily: "inherit",
+                  outline: "none",
+                }}
+              />
+            </div>
+
+            {/* 5. TANGGAL KEJADIAN */}
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "0.75rem",
+                  fontWeight: 800,
+                  color: "#334155",
+                  marginBottom: "6px",
+                }}
+              >
+                5. Tanggal Kejadian
+              </label>
+              <input
+                type="date"
+                required
+                value={formData.tanggal}
+                onChange={(e) =>
+                  setFormData({ ...formData, tanggal: e.target.value })
+                }
+                style={{
+                  width: "100%",
+                  padding: "10px 11px",
+                  borderRadius: "12px",
+                  border: "1.5px solid #cbd5e1",
+                  fontSize: "0.82rem",
+                  fontWeight: 600,
+                  background: "#f8fafc",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            {/* 6. STATUS TA'ZIR SEGMENTED PILLS */}
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "0.75rem",
+                  fontWeight: 800,
+                  color: "#334155",
+                  marginBottom: "6px",
+                }}
+              >
+                Status Pembinaan Ta'zir
+              </label>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gap: "6px",
+                }}
+              >
+                {STATUS_TAZIR_OPTIONS.map((opt) => {
+                  const active = formData.status_tazir === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() =>
+                        setFormData({ ...formData, status_tazir: opt.value })
+                      }
+                      style={{
+                        padding: "8px 4px",
+                        borderRadius: "11px",
+                        border: active
+                          ? `1.5px solid ${opt.border}`
+                          : "1px solid #e2e8f0",
+                        background: active ? opt.bg : "#ffffff",
+                        color: active ? opt.color : "#64748b",
+                        fontSize: "0.69rem",
+                        fontWeight: 800,
+                        cursor: "pointer",
+                        textAlign: "center",
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 7. TOGGLE WA NOTIFIKASI WALI */}
+            <button
+              type="button"
+              onClick={() =>
+                setFormData({
+                  ...formData,
+                  wa_notif_wali: formData.wa_notif_wali ? 0 : 1,
+                })
+              }
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "10px",
+                padding: "11px 12px",
+                borderRadius: "13px",
+                border: formData.wa_notif_wali
+                  ? "1.5px solid #86efac"
+                  : "1px solid #e2e8f0",
+                background: formData.wa_notif_wali ? "#f0fdf4" : "#f8fafc",
+                cursor: "pointer",
+                textAlign: "left",
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "9px" }}
+              >
                 <div
                   style={{
-                    width: "40px",
-                    height: "22px",
-                    borderRadius: "999px",
-                    background: formData.wa_notif_wali ? "#10b981" : "#cbd5e1",
-                    position: "relative",
-                    flexShrink: 0,
-                    transition: "background 0.15s ease",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "18px",
-                      height: "18px",
-                      borderRadius: "50%",
-                      background: "#ffffff",
-                      position: "absolute",
-                      top: "2px",
-                      left: formData.wa_notif_wali ? "20px" : "2px",
-                      transition: "left 0.15s ease",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                    }}
-                  />
-                </div>
-              </button>
-
-              {/* ACTION BUTTONS */}
-              <div style={{ display: "flex", gap: "10px", marginTop: "4px", paddingBottom: "20px" }}>
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  style={{
-                    flex: 1,
-                    padding: "13px",
-                    borderRadius: "13px",
-                    border: "1px solid #cbd5e1",
-                    background: "#ffffff",
-                    color: "#475569",
-                    fontWeight: 700,
-                    fontSize: "0.84rem",
-                    cursor: "pointer",
-                  }}
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  style={{
-                    flex: 1.5,
-                    padding: "13px",
-                    borderRadius: "13px",
-                    border: "none",
-                    background:
-                      "linear-gradient(135deg, #be123c 0%, #9f1239 100%)",
-                    color: "#ffffff",
-                    fontWeight: 800,
-                    fontSize: "0.85rem",
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "10px",
+                    background: formData.wa_notif_wali ? "#dcfce7" : "#e2e8f0",
+                    color: formData.wa_notif_wali ? "#15803d" : "#64748b",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    gap: "7px",
-                    cursor: submitting ? "wait" : "pointer",
-                    boxShadow: "0 6px 16px rgba(190, 18, 60, 0.3)",
+                    flexShrink: 0,
                   }}
                 >
-                  {submitting ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <Save size={16} />
-                  )}
-                  <span>{submitting ? "Menyimpan..." : "Simpan Catatan"}</span>
-                </button>
+                  <MessageSquare size={16} />
+                </div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: "0.76rem",
+                      fontWeight: 800,
+                      color: "#0f172a",
+                    }}
+                  >
+                    Kirim Notifikasi WA ke Wali
+                  </div>
+                  <div style={{ fontSize: "0.66rem", color: "#64748b" }}>
+                    {formData.wa_notif_wali
+                      ? "Aktif: orang tua langsung mendapat pemberitahuan"
+                      : "Nonaktif: hanya tercatat di sistem"}
+                  </div>
+                </div>
               </div>
-            </form>
+              <div
+                style={{
+                  width: "40px",
+                  height: "22px",
+                  borderRadius: "999px",
+                  background: formData.wa_notif_wali ? "#10b981" : "#cbd5e1",
+                  position: "relative",
+                  flexShrink: 0,
+                  transition: "background 0.15s ease",
+                }}
+              >
+                <div
+                  style={{
+                    width: "18px",
+                    height: "18px",
+                    borderRadius: "50%",
+                    background: "#ffffff",
+                    position: "absolute",
+                    top: "2px",
+                    left: formData.wa_notif_wali ? "20px" : "2px",
+                    transition: "left 0.15s ease",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                  }}
+                />
+              </div>
+            </button>
+
+            {/* ACTION BUTTONS */}
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                marginTop: "4px",
+                paddingBottom: "20px",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                style={{
+                  flex: 1,
+                  padding: "13px",
+                  borderRadius: "13px",
+                  border: "1px solid #cbd5e1",
+                  background: "#ffffff",
+                  color: "#475569",
+                  fontWeight: 700,
+                  fontSize: "0.84rem",
+                  cursor: "pointer",
+                }}
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                style={{
+                  flex: 1.5,
+                  padding: "13px",
+                  borderRadius: "13px",
+                  border: "none",
+                  background:
+                    "linear-gradient(135deg, #be123c 0%, #9f1239 100%)",
+                  color: "#ffffff",
+                  fontWeight: 800,
+                  fontSize: "0.85rem",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "7px",
+                  cursor: submitting ? "wait" : "pointer",
+                  boxShadow: "0 6px 16px rgba(190, 18, 60, 0.3)",
+                }}
+              >
+                {submitting ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Save size={16} />
+                )}
+                <span>{submitting ? "Menyimpan..." : "Simpan Catatan"}</span>
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
