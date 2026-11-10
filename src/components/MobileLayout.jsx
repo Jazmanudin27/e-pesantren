@@ -69,6 +69,12 @@ const MobileTataTertib = lazySafe(() => import("../views/mobile/MobileTataTertib
 const MobileLaporanPresensi = lazySafe(
   () => import("../views/mobile/MobileLaporanPresensi"),
 );
+const PengajarLaporanBerjamaah = lazySafe(
+  () => import("../views/pengajar/PengajarLaporanBerjamaah"),
+);
+const PengajarLaporanMengaji = lazySafe(
+  () => import("../views/pengajar/PengajarLaporanMengaji"),
+);
 const MobileKitab = lazySafe(() => import("../views/mobile/MobileKitab"));
 const MobileProfil = lazySafe(() => import("../views/mobile/MobileProfil"));
 const MobileDaftarWajah = lazySafe(
@@ -352,6 +358,10 @@ export default function MobileLayout() {
         return "Presensi Shalat Berjamaah";
       case "mengaji":
         return "Presensi Kegiatan Mengaji";
+      case "laporan-berjamaah":
+        return "Laporan Presensi Berjamaah";
+      case "laporan-mengaji":
+        return "Laporan Presensi Mengaji";
       case "presensi":
         return "Presensi Barcode & Wajah";
       case "tahfidz":
@@ -451,6 +461,8 @@ export default function MobileLayout() {
     "master-device",
     "tata-tertib",
     "laporan-presensi",
+    "laporan-berjamaah",
+    "laporan-mengaji",
     "laporan-tahfidz",
     "syahriah",
     "praktek-ibadah",
@@ -586,6 +598,10 @@ export default function MobileLayout() {
         return <MobilePresensiBerjamaah />;
       case "mengaji":
         return <MobilePresensiMengaji />;
+      case "laporan-berjamaah":
+        return <PengajarLaporanBerjamaah />;
+      case "laporan-mengaji":
+        return <PengajarLaporanMengaji />;
       case "presensi":
         return <MobilePresensiBerjamaah />;
       case "praktek-ibadah":
@@ -1708,6 +1724,54 @@ export default function MobileLayout() {
                           }}
                         >
                           <FileText size={16} color="#0284c7" /> Laporan Tahfidz
+                        </button>
+                        <button
+                          onClick={() => handleSelectTab("laporan-berjamaah")}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            padding: "10px",
+                            background:
+                              mobileTab === "laporan-berjamaah"
+                                ? "#cffafe"
+                                : "#f8fafc",
+                            border:
+                              mobileTab === "laporan-berjamaah"
+                                ? "1px solid #0891b2"
+                                : "1px solid #e2e8f0",
+                            borderRadius: "10px",
+                            fontSize: "0.78rem",
+                            fontWeight: 700,
+                            color: "#1e293b",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <Fingerprint size={16} color="#0891b2" /> Lap. Berjamaah
+                        </button>
+                        <button
+                          onClick={() => handleSelectTab("laporan-mengaji")}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            padding: "10px",
+                            background:
+                              mobileTab === "laporan-mengaji"
+                                ? "#ccfbf1"
+                                : "#f8fafc",
+                            border:
+                              mobileTab === "laporan-mengaji"
+                                ? "1px solid #0f766e"
+                                : "1px solid #e2e8f0",
+                            borderRadius: "10px",
+                            fontSize: "0.78rem",
+                            fontWeight: 700,
+                            color: "#1e293b",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <BookOpen size={16} color="#0f766e" /> Lap. Mengaji
                         </button>
                       </div>
                     </div>

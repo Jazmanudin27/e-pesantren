@@ -1165,6 +1165,20 @@ export default function MobileHome({ onChangeTab, onLogout }) {
                 shadow: "0 6px 16px -2px rgba(5, 150, 105, 0.38)",
               },
               {
+                label: "Lap. Berjamaah",
+                tab: "laporan-berjamaah",
+                icon: Fingerprint,
+                bg: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+                shadow: "0 6px 16px -2px rgba(2, 132, 199, 0.38)",
+              },
+              {
+                label: "Lap. Mengaji",
+                tab: "laporan-mengaji",
+                icon: FileText,
+                bg: "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)",
+                shadow: "0 6px 16px -2px rgba(13, 148, 136, 0.38)",
+              },
+              {
                 label: "Perkembangan",
                 tab: "pengembangan",
                 icon: Award,
