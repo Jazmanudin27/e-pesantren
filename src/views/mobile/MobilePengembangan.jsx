@@ -1,29 +1,28 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import {
-  BookOpen,
   Camera,
+  UserCheck,
+  History,
+  Search,
+  RotateCcw,
+  RefreshCw,
+  AlertTriangle,
   Check,
   CheckCircle2,
   X,
-  AlertTriangle,
-  Search,
-  RefreshCw,
-  RotateCw,
-  UserCheck,
-  Building,
-  Calendar,
-  Award,
-  Plus,
-  Edit3,
-  Trash2,
   Save,
   Loader2,
   Sparkles,
-  Settings,
-  FileText,
-  User,
   ChevronDown,
+  Award,
+  BookOpen,
+  Edit3,
+  Trash2,
+  User,
+  Users,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import {
   showConfirm,
@@ -36,20 +35,40 @@ import MobileLoadingState from "../../components/MobileLoadingState";
 import {
   initFaceApiModels,
   detectFaceDescriptor,
-  extractDescriptorFromDataUrl,
   matchFaceDescriptor,
   normalizeDescriptor,
   isFaceModelReady,
 } from "../../utils/faceApi.util";
 
-export default function MobilePengembangan() {
-  // Gender Tab: 'L' (Ikhwan) | 'P' (Akhwat)
-  const [activeGender, setActiveGender] = useState("L");
-  const [activeSubTab, setActiveSubTab] = useState("rekap"); // 'rekap' | 'master'
+const getInitials = (name) => {
+  if (!name) return "S";
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
 
-  // Master Kategori (beserta permasalahan, penyebab, tindakan)
-  const [masterKategoriAll, setMasterKategoriAll] = useState([]);
-  const [santriList, setSantriList] = useState([]);
+const getAvatarTheme = (name = "") => {
+  const themes = [
+    { bg: "linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)", color: "#166534" },
+    { bg: "linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)", color: "#075985" },
+    { bg: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)", color: "#854d0e" },
+    { bg: "linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)", color: "#6b21a8" },
+    { bg: "linear-gradient(135deg, #ffe4e6 0%, #fecdd3 100%)", color: "#9f1239" },
+    { bg: "linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%)", color: "#115e59" },
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const idx = Math.abs(hash) % themes.length;
+  return themes[idx];
+};
+
+export default function MobilePengembangan() {
+  // 3 Tabs Utama: 'scan' (Scan Wajah AI) | 'manual' (Pilih Santri) | 'histori' (Riwayat)
+  const [activeTab, setActiveTab] = useState("manual");
+
+  // State Kelas & Data
   const [kelasList, setKelasList] = useState([]);
   const [selectedKelas, setSelectedKelas] = useState(() => {
     try {
@@ -60,15 +79,21 @@ export default function MobilePengembangan() {
       return "";
     }
   });
+  const [santriList, setSantriList] = useState([]);
   const [loadingKelasSantri, setLoadingKelasSantri] = useState(false);
-  const [selectedEvalKelas, setSelectedEvalKelas] = useState("");
+  const [masterKategoriAll, setMasterKategoriAll] = useState([]);
   const [rekapList, setRekapList] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Filter Rekap
-  const [search, setSearch] = useState("");
-  const [filterKategoriId, setFilterKategoriId] = useState("Semua");
-  const [filterStatus, setFilterStatus] = useState("Semua");
+  // Search & Filter
+  const [searchManual, setSearchManual] = useState("");
+  const [filterManualStatus, setFilterManualStatus] = useState("Semua");
+  const [searchHistori, setSearchHistori] = useState("");
+  const [filterHistoriKategori, setFilterHistoriKategori] = useState("Semua");
+  const [filterHistoriStatus, setFilterHistoriStatus] = useState("Semua");
+
+  // Sound
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
   // Session Penguji
   const session = (() => {
@@ -81,63 +106,25 @@ export default function MobilePengembangan() {
   const currentPenguji =
     session?.nama || session?.nama_lengkap || "Musyrif Pembina";
 
-  // Modal Evaluasi (setelah Scan Wajah / Pilih Santri)
-  const [isEvalModalOpen, setIsEvalModalOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [evalForm, setEvalForm] = useState({
-    santri_id: "",
-    santriObj: null,
-    gender: "L",
-    kategori_id: "",
-    tanggal: new Date().toISOString().slice(0, 10),
-    status_kelulusan: "Lulus", // 'Lulus' | 'Tidak Lulus'
-    permasalahan: [],
-    penyebab: [],
-    tindakan: [],
-    catatan_tambahan: "",
-  });
-
-  // Modal Master Kustomisasi (Tambah Kategori / Butir P-F-T)
-  const [selectedMasterKatId, setSelectedMasterKatId] = useState("");
-  const [isModalKatOpen, setIsModalKatOpen] = useState(false);
-  const [katForm, setKatForm] = useState({
-    id: null,
-    nama_kategori: "",
-    deskripsi: "",
-    gender: "L",
-  });
-  const [isModalItemOpen, setIsModalItemOpen] = useState(false);
-  const [itemForm, setItemForm] = useState({
-    id: null,
-    tipe: "permasalahan",
-    teks: "",
-    kode: "",
-  });
-
-  // Face Scanner State & Refs
-  const [isFaceScanOpen, setIsFaceScanOpen] = useState(false);
-  const [scannerTab, setScannerTab] = useState("face"); // 'face' | 'manual'
-  const [manualSearchQuery, setManualSearchQuery] = useState("");
-  const [manualGenderFilter, setManualGenderFilter] = useState("Semua");
+  // Camera & Face Scanner AI State
   const [faceFacingMode, setFaceFacingMode] = useState("environment");
-  const [faceStatusText, setFaceStatusText] = useState(
-    "Menghubungkan kamera...",
-  );
+  const [isFaceCameraActive, setIsFaceCameraActive] = useState(false);
+  const [faceStatusText, setFaceStatusText] = useState("Arahkan wajah santri ke kamera");
   const [faceCameraError, setFaceCameraError] = useState("");
   const [isFaceDetected, setIsFaceDetected] = useState(false);
   const [matchedSantriPreview, setMatchedSantriPreview] = useState(null);
-  const [manualSantriIdInScanner, setManualSantriIdInScanner] = useState("");
+  const [faceApiModelReady, setFaceApiModelReady] = useState(false);
 
+  // Refs
   const faceVideoRef = useRef(null);
   const faceCanvasRef = useRef(null);
   const faceStreamRef = useRef(null);
   const faceLoopIntervalRef = useRef(null);
   const isDetectingRef = useRef(false);
-  const santriListRef = useRef(santriList);
-  const masterKategoriRef = useRef(masterKategoriAll);
   const isMatchedCooldownRef = useRef(false);
   const matchedStreakRef = useRef({ id: null, count: 0 });
-  const [faceApiModelReady, setFaceApiModelReady] = useState(false);
+  const santriListRef = useRef(santriList);
+  const masterKategoriRef = useRef(masterKategoriAll);
 
   useEffect(() => {
     santriListRef.current = santriList;
@@ -147,6 +134,23 @@ export default function MobilePengembangan() {
     masterKategoriRef.current = masterKategoriAll;
   }, [masterKategoriAll]);
 
+  // Modal Evaluasi (Popup Formulir Nilai)
+  const [isEvalModalOpen, setIsEvalModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [evalForm, setEvalForm] = useState({
+    santri_id: "",
+    santriObj: null,
+    gender: "L",
+    kategori_id: "",
+    tanggal: new Date().toISOString().slice(0, 10),
+    status_kelulusan: "Lulus",
+    permasalahan: [],
+    penyebab: [],
+    tindakan: [],
+    catatan_tambahan: "",
+  });
+
+  // Simpan preferensi kelas terpilih
   useEffect(() => {
     if (selectedKelas) {
       try {
@@ -158,7 +162,7 @@ export default function MobilePengembangan() {
     }
   }, [selectedKelas]);
 
-  // Load santri khusus per kelas (Lazy load ringan & hemat memori)
+  // Load santri khusus per kelas
   const loadSantriByKelas = async (targetKelas) => {
     if (!targetKelas || targetKelas === "Semua") {
       setSantriList([]);
@@ -185,15 +189,15 @@ export default function MobilePengembangan() {
     };
   }, []);
 
-  // Inisialisasi AI hanya saat user membuka scanner wajah
+  // Inisialisasi AI model saat tab scan dibuka
   useEffect(() => {
-    if (!isFaceScanOpen) return;
+    if (activeTab !== "scan") return;
     if (!faceApiModelReady && !isFaceModelReady()) {
       initFaceApiModels()
         .then(() => setFaceApiModelReady(true))
         .catch(() => {});
     }
-  }, [isFaceScanOpen]);
+  }, [activeTab]);
 
   const fetchInitialData = async () => {
     setLoading(true);
@@ -203,7 +207,7 @@ export default function MobilePengembangan() {
           .get("/api/perkembangan-ikhwan/master?gender=Semua")
           .catch(() => ({ data: { data: [] } })),
         axios
-          .get("/api/perkembangan-ikhwan/rekap?limit=200")
+          .get("/api/perkembangan-ikhwan/rekap?limit=250")
           .catch(() => ({ data: { data: [] } })),
         axios.get("/api/kelas").catch(() => ({ data: { data: [] } })),
       ]);
@@ -217,12 +221,11 @@ export default function MobilePengembangan() {
       const rData = resRekap.data?.data || resRekap.data?.rekap || [];
       setRekapList(Array.isArray(rData) ? rData : []);
 
-      // Jika kelas sudah dipilih sebelumnya, muat santri kelas tersebut
       if (selectedKelas) {
         await loadSantriByKelas(selectedKelas);
       }
     } catch (err) {
-      console.error("Gagal memuat data pengembangan mobile:", err);
+      console.error("Gagal memuat data pengembangan:", err);
     } finally {
       setLoading(false);
     }
@@ -230,62 +233,14 @@ export default function MobilePengembangan() {
 
   const fetchRekapOnly = async () => {
     try {
-      const res = await axios.get("/api/perkembangan-ikhwan/rekap?limit=200");
+      const res = await axios.get("/api/perkembangan-ikhwan/rekap?limit=250");
       const rData = res.data?.data || res.data?.rekap || [];
       setRekapList(Array.isArray(rData) ? rData : []);
     } catch (e) {}
   };
 
-  // Filter kategori sesuai gender aktif
-  const kategoriByActiveGender = masterKategoriAll.filter(
-    (k) => !k.gender || k.gender === activeGender || k.gender === "Semua",
-  );
-
-  // Filter kategori sesuai gender santri pada modal evaluasi
-  const kategoriForEvalModal = masterKategoriAll.filter(
-    (k) => !k.gender || k.gender === evalForm.gender || k.gender === "Semua",
-  );
-
-  const activeEvalKategoriObj =
-    kategoriForEvalModal.find(
-      (k) => String(k.id) === String(evalForm.kategori_id),
-    ) ||
-    kategoriForEvalModal[0] ||
-    null;
-
-  // Daftar Kelas gabungan (dari API /api/kelas + fallback data santri)
-  const combinedKelasOptions = React.useMemo(() => {
-    const list = [...kelasList];
-    (santriList || []).forEach((s) => {
-      const kName = s.nama_kelas;
-      if (
-        kName &&
-        !list.some(
-          (k) => k.nama_kelas === kName || String(k.id) === String(s.kelas_id),
-        )
-      ) {
-        list.push({ id: s.kelas_id || kName, nama_kelas: kName });
-      }
-    });
-    return list;
-  }, [kelasList, santriList]);
-
-  // Daftar Nama Kelas Unik
-  const availableKelasOptions = React.useMemo(() => {
-    const setK = new Set();
-    (kelasList || []).forEach((k) => {
-      if (k.nama_kelas) setK.add(String(k.nama_kelas).trim());
-    });
-    return Array.from(setK);
-  }, [kelasList]);
-
-  useEffect(() => {
-    if (kategoriByActiveGender.length > 0 && !selectedMasterKatId) {
-      setSelectedMasterKatId(String(kategoriByActiveGender[0].id));
-    }
-  }, [activeGender, masterKategoriAll]);
-
   const playSuccessSound = () => {
+    if (!soundEnabled) return;
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const osc = ctx.createOscillator();
@@ -304,16 +259,19 @@ export default function MobilePengembangan() {
   };
 
   // =========================================================================
-  // FACE SCANNER AI FUNCTIONS
+  // FACE SCANNER AI FUNCTIONS (INLINE VIEWPORT)
   // =========================================================================
   const startFaceCamera = async (facing = faceFacingMode) => {
+    if (!selectedKelas) {
+      stopFaceCamera();
+      return;
+    }
     setFaceCameraError("");
     setFaceStatusText("Membuka kamera...");
     setMatchedSantriPreview(null);
     setIsFaceDetected(false);
     isMatchedCooldownRef.current = false;
 
-    // AKSES HARDWARE KAMERA HP SECARA LANGSUNG & CEPAT
     try {
       if (faceStreamRef.current) {
         faceStreamRef.current.getTracks().forEach((t) => t.stop());
@@ -331,6 +289,8 @@ export default function MobilePengembangan() {
       });
 
       faceStreamRef.current = stream;
+      setIsFaceCameraActive(true);
+
       if (faceVideoRef.current) {
         faceVideoRef.current.srcObject = stream;
         faceVideoRef.current.onloadedmetadata = () => {
@@ -341,10 +301,12 @@ export default function MobilePengembangan() {
         startFaceDetectionLoop();
       }
     } catch (err) {
+      console.warn("Kamera gagal diakses:", err);
+      setIsFaceCameraActive(false);
       setFaceCameraError(
-        "Kamera tidak dapat diakses atau izin ditolak. Anda dapat memilih santri secara manual di bawah.",
+        "Kamera tidak dapat diakses atau izin ditolak. Silakan gunakan tab 'Manual' untuk memilih santri.",
       );
-      setFaceStatusText("Kamera gagal diakses");
+      setFaceStatusText("Kamera tidak dapat diakses");
     }
   };
 
@@ -357,6 +319,7 @@ export default function MobilePengembangan() {
       faceStreamRef.current.getTracks().forEach((t) => t.stop());
       faceStreamRef.current = null;
     }
+    setIsFaceCameraActive(false);
     setIsFaceDetected(false);
   };
 
@@ -365,40 +328,6 @@ export default function MobilePengembangan() {
     setFaceFacingMode(nextMode);
     stopFaceCamera();
     setTimeout(() => startFaceCamera(nextMode), 200);
-  };
-
-  const handleSwitchScannerTab = (tab) => {
-    setScannerTab(tab);
-    if (tab === "manual") {
-      stopFaceCamera();
-    } else {
-      setTimeout(() => {
-        startFaceCamera(faceFacingMode);
-      }, 150);
-    }
-  };
-
-  const openFaceScanner = () => {
-    if (!selectedKelas) {
-      showError(
-        "Pilih Kelas Dahulu",
-        "Silakan pilih kelas santri terlebih dahulu sebelum memulai scan wajah pengembangan.",
-      );
-      return;
-    }
-    setScannerTab("face");
-    setManualSearchQuery("");
-    setManualGenderFilter("Semua");
-    setManualSantriIdInScanner("");
-    setIsFaceScanOpen(true);
-    setTimeout(() => {
-      startFaceCamera(faceFacingMode);
-    }, 250);
-  };
-
-  const closeFaceScanner = () => {
-    stopFaceCamera();
-    setIsFaceScanOpen(false);
   };
 
   const startFaceDetectionLoop = () => {
@@ -486,7 +415,6 @@ export default function MobilePengembangan() {
           );
         } catch (e) {}
 
-        // Kumpulkan semua profil wajah terdaftar dari Database (santriList) + localStorage
         const registeredList = [];
         const seenIds = new Set();
 
@@ -529,7 +457,6 @@ export default function MobilePengembangan() {
           }
 
           setIsFaceDetected(true);
-          // Ambang batas optimal 0.62 (toleran terhadap pencahayaan & sudut kemiringan)
           const matched = matchFaceDescriptor(
             faceRes.descriptor,
             registeredList,
@@ -539,7 +466,7 @@ export default function MobilePengembangan() {
           if (matched && matched.error === "no_profiles") {
             matchedStreakRef.current = { id: null, count: 0 };
             setFaceStatusText(
-              "⚠️ Belum Ada Biometrik Wajah di Sistem (0 Profil)",
+              "⚠️ Belum Ada Biometrik Wajah Santri di Kelas Ini",
             );
             return;
           }
@@ -558,7 +485,6 @@ export default function MobilePengembangan() {
               matchedStreakRef.current = { id: mId, count: 1 };
             }
 
-            // Jika skor sangat meyakinkan (< 0.55), langsung kenali tanpa tunggu 2 frame
             if (
               matchedStreakRef.current.count >= 2 ||
               (matched.distance && matched.distance < 0.55)
@@ -573,7 +499,7 @@ export default function MobilePengembangan() {
               matched &&
               typeof matched.bestDistance === "number" &&
               matched.bestDistance < 900
-                ? ` (Jarak: ${matched.bestDistance.toFixed(2)} | Target: < ${matched.threshold?.toFixed(2) || "0.62"})`
+                ? ` (Jarak: ${matched.bestDistance.toFixed(2)})`
                 : "";
             setFaceStatusText(`⛔ Belum Cocok${distInfo}`);
           }
@@ -590,7 +516,7 @@ export default function MobilePengembangan() {
   const handleSnapshotVerify = async () => {
     const video = faceVideoRef.current;
     if (!video || video.readyState < 2) return;
-    setFaceStatusText("📸 Mengambil foto & mencocokkan biometrik...");
+    setFaceStatusText("📸 Memeriksa biometrik...");
 
     try {
       const snapCanvas = document.createElement("canvas");
@@ -630,19 +556,8 @@ export default function MobilePengembangan() {
         }
       });
 
-      const allowedIds = new Set(
-        (santriListRef.current || []).map((s) => String(s.id)),
-      );
-      Object.values(registeredMap).forEach((p) => {
-        const pId = String(p.santri_id || p.id || "");
-        if (pId && allowedIds.has(pId) && !seenIds.has(pId) && p.descriptor) {
-          registeredList.push(p);
-          seenIds.add(pId);
-        }
-      });
-
       if (registeredList.length === 0) {
-        setFaceStatusText("⚠️ Belum Ada Biometrik Wajah di Sistem (0 Profil)");
+        setFaceStatusText("⚠️ Belum Ada Biometrik Wajah Santri di Kelas Ini");
         return;
       }
 
@@ -666,44 +581,55 @@ export default function MobilePengembangan() {
           fullSantri.nama_santri || fullSantri.nama || "Santri";
         handleFaceRecognized(fullSantri, displayName);
       } else {
-        const distInfo =
-          matched &&
-          typeof matched.bestDistance === "number" &&
-          matched.bestDistance < 900
-            ? ` (Jarak: ${matched.bestDistance.toFixed(2)} | Target: < 0.72)`
-            : "";
-        setFaceStatusText(`⛔ Belum Cocok${distInfo}`);
+        setFaceStatusText("⛔ Wajah belum cocok dengan daftar santri");
       }
     } catch (e) {
       setFaceStatusText("❌ Gagal memproses foto");
     }
   };
 
+  const handleFaceRecognized = (matchedSantri, displayName) => {
+    isMatchedCooldownRef.current = true;
+    setMatchedSantriPreview(matchedSantri);
+    setFaceStatusText(`✅ Santri Dikenali: ${displayName}`);
+    playSuccessSound();
+
+    setTimeout(() => {
+      stopFaceCamera();
+      openEvaluationForSantri(matchedSantri);
+      toastSuccess(`Santri Dikenali: ${displayName}`);
+    }, 600);
+  };
+
+  // Switch Tab Handler
+  const handleSwitchTab = (tabMode) => {
+    setActiveTab(tabMode);
+    if (tabMode === "scan") {
+      if (selectedKelas) {
+        setTimeout(() => startFaceCamera(faceFacingMode), 100);
+      }
+    } else {
+      stopFaceCamera();
+    }
+    if (tabMode === "histori") {
+      fetchRekapOnly();
+    }
+  };
+
+  // Buka Modal Evaluasi Santri
   const openEvaluationForSantri = (santriObj) => {
     const rawJk = String(
-      santriObj.jk || santriObj.jenis_kelamin || activeGender,
+      santriObj.jk || santriObj.jenis_kelamin || "L",
     ).toUpperCase();
     const detectedGender = rawJk.startsWith("P") ? "P" : "L";
-    setActiveGender(detectedGender);
-
-    const sKelas = santriObj.kelas_id
-      ? String(santriObj.kelas_id)
-      : santriObj.nama_kelas || "";
-    setSelectedEvalKelas(sKelas);
 
     const availableKats = (masterKategoriRef.current || []).filter(
       (k) => !k.gender || k.gender === detectedGender || k.gender === "Semua",
     );
-    const defaultKatId =
-      filterKategoriId !== "Semua" &&
-      availableKats.some((k) => String(k.id) === String(filterKategoriId))
-        ? String(filterKategoriId)
-        : availableKats[0]
-          ? String(availableKats[0].id)
-          : "";
+    const defaultKatId = availableKats[0] ? String(availableKats[0].id) : "";
 
     setEvalForm({
-      santri_id: santriObj.id || santriObj.santri_id,
+      santri_id: santriObj.id,
       santriObj: santriObj,
       gender: detectedGender,
       kategori_id: defaultKatId,
@@ -717,18 +643,11 @@ export default function MobilePengembangan() {
     setIsEvalModalOpen(true);
   };
 
-  const handleFaceRecognized = (matchedSantri, displayName) => {
-    isMatchedCooldownRef.current = true;
-    setMatchedSantriPreview(matchedSantri);
-    setFaceStatusText(`✅ Santri Dikenali: ${displayName}`);
-    playSuccessSound();
-
-    setTimeout(() => {
-      stopFaceCamera();
-      setIsFaceScanOpen(false);
-      openEvaluationForSantri(matchedSantri);
-      toastSuccess(`Santri Dikenali: ${displayName}`);
-    }, 650);
+  const handleCloseEvalModal = () => {
+    setIsEvalModalOpen(false);
+    if (activeTab === "scan" && selectedKelas) {
+      setTimeout(() => startFaceCamera(faceFacingMode), 200);
+    }
   };
 
   // Toggle Checklist Permasalahan / Penyebab / Tindakan
@@ -751,7 +670,7 @@ export default function MobilePengembangan() {
     if (!evalForm.santri_id) {
       showError(
         "Validasi Gagal",
-        "Silakan scan wajah atau pilih santri terlebih dahulu.",
+        "Pilih santri terlebih dahulu.",
       );
       return;
     }
@@ -766,7 +685,8 @@ export default function MobilePengembangan() {
         kategori_id: parseInt(evalForm.kategori_id),
         kelas_id:
           evalForm.santriObj?.kelas ||
-          evalForm.santriObj?.nama_asrama ||
+          evalForm.santriObj?.nama_kelas ||
+          selectedKelas ||
           "Semua",
         tanggal: evalForm.tanggal,
         asatidz_pencatat: currentPenguji,
@@ -796,11 +716,12 @@ export default function MobilePengembangan() {
         payload,
       );
       if (res.data?.success) {
-        toastSuccess(
-          "Evaluasi pengembangan santri berhasil disimpan ke database",
-        );
+        toastSuccess("Evaluasi pengembangan santri berhasil disimpan");
         setIsEvalModalOpen(false);
         fetchRekapOnly();
+        if (activeTab === "scan" && selectedKelas) {
+          setTimeout(() => startFaceCamera(faceFacingMode), 300);
+        }
       }
     } catch (err) {
       showError("Gagal Menyimpan", err.response?.data?.message || err.message);
@@ -822,15 +743,7 @@ export default function MobilePengembangan() {
       nama_kelas: row.nama_kelas,
       kelas_id: row.kelas_id,
     };
-    const sKelas = sObj.kelas_id
-      ? String(sObj.kelas_id)
-      : sObj.nama_kelas || row.nama_kelas || "";
-    setSelectedEvalKelas(sKelas);
-    const g = String(row.jk || activeGender)
-      .toUpperCase()
-      .startsWith("P")
-      ? "P"
-      : "L";
+    const g = String(row.jk || "L").toUpperCase().startsWith("P") ? "P" : "L";
     setEvalForm({
       santri_id: row.santri_id,
       santriObj: sObj,
@@ -867,123 +780,83 @@ export default function MobilePengembangan() {
     }
   };
 
-  // Master Kategori & Item CRUD
-  const handleSaveKategori = async (e) => {
-    e.preventDefault();
-    if (!katForm.nama_kategori.trim()) return;
-    try {
-      const payload = { ...katForm, gender: activeGender };
-      if (katForm.id) {
-        await axios.put(
-          `/api/perkembangan-ikhwan/kategori/${katForm.id}`,
-          payload,
-        );
-      } else {
-        await axios.post("/api/perkembangan-ikhwan/kategori", payload);
-      }
-      toastSuccess("Bidang pengembangan berhasil disimpan");
-      setIsModalKatOpen(false);
-      fetchInitialData();
-    } catch (err) {
-      showError("Gagal", err.response?.data?.message || err.message);
-    }
-  };
-
-  const handleSaveMasterItem = async (e) => {
-    e.preventDefault();
-    if (!itemForm.teks.trim() || !selectedMasterKatId) return;
-    try {
-      if (itemForm.id) {
-        await axios.put(`/api/perkembangan-ikhwan/item/${itemForm.id}`, {
-          teks: itemForm.teks,
-          kode: itemForm.kode,
-        });
-      } else {
-        await axios.post("/api/perkembangan-ikhwan/item", {
-          kategori_id: parseInt(selectedMasterKatId),
-          tipe: itemForm.tipe,
-          teks: itemForm.teks,
-          kode: itemForm.kode,
-        });
-      }
-      toastSuccess("Butir diagnostik berhasil disimpan");
-      setIsModalItemOpen(false);
-      fetchInitialData();
-    } catch (err) {
-      showError("Gagal", err.response?.data?.message || err.message);
-    }
-  };
-
-  const handleDeleteMasterItem = async (id) => {
-    const ok = await showConfirm(
-      "Hapus Butir?",
-      "Hapus butir diagnostik ini dari database?",
-      "Ya, Hapus",
-      "Batal",
-    );
-    if (!ok) return;
-    try {
-      await axios.delete(`/api/perkembangan-ikhwan/item/${id}`);
-      toastSuccess("Butir dihapus");
-      fetchInitialData();
-    } catch (err) {
-      showError("Gagal", err.message);
-    }
-  };
-
-  // Filtered Rekap
-  const filteredRekap = rekapList.filter((r) => {
-    const rGender = String(r.jk || "L")
-      .toUpperCase()
-      .startsWith("P")
-      ? "P"
-      : "L";
-    if (rGender !== activeGender) return false;
-    if (
-      filterKategoriId !== "Semua" &&
-      String(r.kategori_id) !== String(filterKategoriId)
-    )
-      return false;
-    if (filterStatus !== "Semua" && r.status_kelulusan !== filterStatus)
-      return false;
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      const matchNama = (r.nama_santri || "").toLowerCase().includes(q);
-      const matchNis = (r.nis || "").toLowerCase().includes(q);
-      const matchKat = (r.nama_kategori || "").toLowerCase().includes(q);
-      if (!matchNama && !matchNis && !matchKat) return false;
-    }
-    return true;
-  });
-
-  const totalGenderRekap = rekapList.filter((r) => {
-    const rGender = String(r.jk || "L")
-      .toUpperCase()
-      .startsWith("P")
-      ? "P"
-      : "L";
-    return rGender === activeGender;
-  });
-  const countLulus = totalGenderRekap.filter(
-    (r) => r.status_kelulusan === "Lulus",
-  ).length;
-  const countTidakLulus = totalGenderRekap.filter(
-    (r) => r.status_kelulusan === "Tidak Lulus",
-  ).length;
-
-  const selectedMasterKatObj =
-    kategoriByActiveGender.find(
-      (k) => String(k.id) === String(selectedMasterKatId),
+  // Filter Kategori untuk Modal Evaluasi (sesuai gender santri yang dinilai)
+  const kategoriForEvalModal = masterKategoriAll.filter(
+    (k) => !k.gender || k.gender === evalForm.gender || k.gender === "Semua",
+  );
+  const activeEvalKategoriObj =
+    kategoriForEvalModal.find(
+      (k) => String(k.id) === String(evalForm.kategori_id),
     ) ||
-    kategoriByActiveGender[0] ||
+    kategoriForEvalModal[0] ||
     null;
+
+  // Daftar Nama Kelas Unik
+  const availableKelasOptions = React.useMemo(() => {
+    const setK = new Set();
+    (kelasList || []).forEach((k) => {
+      if (k.nama_kelas) setK.add(String(k.nama_kelas).trim());
+    });
+    return Array.from(setK);
+  }, [kelasList]);
+
+  // Santri terfilter di tab Manual
+  const filteredSantriManual = React.useMemo(() => {
+    return santriList.filter((s) => {
+      const matchSearch =
+        (s.nama_santri || "").toLowerCase().includes(searchManual.toLowerCase()) ||
+        (s.nis || "").includes(searchManual);
+      if (!matchSearch) return false;
+
+      if (filterManualStatus !== "Semua") {
+        const lastEval = rekapList.find(
+          (r) => String(r.santri_id) === String(s.id),
+        );
+        if (filterManualStatus === "Sudah Evaluasi" && !lastEval) return false;
+        if (filterManualStatus === "Belum Evaluasi" && lastEval) return false;
+        if (filterManualStatus === "Lulus" && lastEval?.status_kelulusan !== "Lulus") return false;
+        if (filterManualStatus === "Pembinaan" && lastEval?.status_kelulusan !== "Tidak Lulus") return false;
+      }
+      return true;
+    });
+  }, [santriList, searchManual, filterManualStatus, rekapList]);
+
+  // Histori terfilter di tab Histori
+  const filteredHistori = React.useMemo(() => {
+    return rekapList.filter((r) => {
+      if (
+        filterHistoriKategori !== "Semua" &&
+        String(r.kategori_id) !== String(filterHistoriKategori)
+      ) {
+        return false;
+      }
+      if (
+        filterHistoriStatus !== "Semua" &&
+        r.status_kelulusan !== filterHistoriStatus
+      ) {
+        return false;
+      }
+      if (searchHistori.trim()) {
+        const q = searchHistori.toLowerCase();
+        const matchNama = (r.nama_santri || "").toLowerCase().includes(q);
+        const matchNis = (r.nis || "").toLowerCase().includes(q);
+        const matchKat = (r.nama_kategori || "").toLowerCase().includes(q);
+        if (!matchNama && !matchNis && !matchKat) return false;
+      }
+      return true;
+    });
+  }, [rekapList, filterHistoriKategori, filterHistoriStatus, searchHistori]);
+
+  // Statistik Global
+  const countLulus = rekapList.filter((r) => r.status_kelulusan === "Lulus").length;
+  const countTidakLulus = rekapList.filter((r) => r.status_kelulusan === "Tidak Lulus").length;
 
   if (loading) {
     return (
       <div style={{ padding: "14px", paddingBottom: "95px" }}>
         <MobileLoadingState
-          title="Memuat Bidang Pengembangan..."
-          subtitle="Mohon tunggu sebentar, sedang sinkronisasi data santri & kategori..."
+          title="Memuat Perkembangan..."
+          subtitle="Sinkronisasi data santri, kelas & bidang pengembangan..."
           iconColor="#0284c7"
           cardCount={3}
         />
@@ -994,198 +867,108 @@ export default function MobilePengembangan() {
   return (
     <div style={{ padding: "14px", paddingBottom: "95px" }}>
       {/* =========================================================================
-          1. PILIH GENDER: IKHWAN (PUTRA) vs AKHWAT (PUTRI)
+          1. HEADER CARD (SEPERTI PRESIENSI MENGAJI)
       ========================================================================= */}
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "8px",
-          background: "#e2e8f0",
-          padding: "5px",
-          borderRadius: "14px",
-          marginBottom: "12px",
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => {
-            setActiveGender("L");
-            setFilterKategoriId("Semua");
-          }}
-          style={{
-            padding: "10px",
-            borderRadius: "10px",
-            border: "none",
-            background: activeGender === "L" ? "#0284c7" : "transparent",
-            color: activeGender === "L" ? "#ffffff" : "#475569",
-            fontWeight: 800,
-            fontSize: "0.8rem",
-            cursor: "pointer",
-            boxShadow:
-              activeGender === "L" ? "0 4px 12px rgba(2,132,199,0.3)" : "none",
-            transition: "all 0.2s",
-          }}
-        >
-          Ikhwan
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setActiveGender("P");
-            setFilterKategoriId("Semua");
-          }}
-          style={{
-            padding: "10px",
-            borderRadius: "10px",
-            border: "none",
-            background: activeGender === "P" ? "#db2777" : "transparent",
-            color: activeGender === "P" ? "#ffffff" : "#475569",
-            fontWeight: 800,
-            fontSize: "0.8rem",
-            cursor: "pointer",
-            boxShadow:
-              activeGender === "P" ? "0 4px 12px rgba(219,39,119,0.3)" : "none",
-            transition: "all 0.2s",
-          }}
-        >
-          Akhwat
-        </button>
-      </div>
-
-      {/* =========================================================================
-          2. HEADER BANNER & TOMBOL SCAN WAJAH UTAMA
-      ========================================================================= */}
-      <div
-        style={{
-          background:
-            activeGender === "L"
-              ? "linear-gradient(135deg, #0369a1 0%, #0284c7 60%, #0ea5e9 100%)"
-              : "linear-gradient(135deg, #9d174d 0%, #db2777 60%, #ec4899 100%)",
+          background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
           borderRadius: "20px",
-          padding: "18px",
+          padding: "16px",
           color: "#ffffff",
-          marginBottom: "14px",
-          boxShadow:
-            activeGender === "L"
-              ? "0 10px 24px -6px rgba(2, 132, 199, 0.4)"
-              : "0 10px 24px -6px rgba(219, 39, 119, 0.4)",
+          marginBottom: "12px",
+          boxShadow: "0 8px 24px -4px rgba(2, 132, 199, 0.4)",
         }}
       >
-        {/* Statistik Ringkas */}
+        {/* Title & Stats Ringkas */}
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: "8px",
-            marginBottom: "14px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "12px",
           }}
         >
-          <div
-            style={{
-              background: "rgba(255,255,255,0.16)",
-              padding: "8px 10px",
-              borderRadius: "12px",
-              textAlign: "center",
-            }}
-          >
-            <div style={{ fontSize: "1.1rem", fontWeight: 800 }}>
-              {kategoriByActiveGender.length}
+          <div>
+            <div style={{ fontSize: "0.98rem", fontWeight: 800 }}>
+              Evaluasi Pengembangan
             </div>
-            <div style={{ fontSize: "0.66rem", opacity: 0.9 }}>Bidang Uji</div>
-          </div>
-          <div
-            style={{
-              background: "rgba(255,255,255,0.16)",
-              padding: "8px 10px",
-              borderRadius: "12px",
-              textAlign: "center",
-            }}
-          >
-            <div style={{ fontSize: "1.1rem", fontWeight: 800 }}>
-              {countLulus}
-            </div>
-            <div style={{ fontSize: "0.66rem", opacity: 0.9 }}>
-              Santri Lulus
+            <div style={{ fontSize: "0.68rem", color: "#e0f2fe", opacity: 0.9 }}>
+              Diagnostik Perkembangan & Pembinaan Santri
             </div>
           </div>
-          <div
-            style={{
-              background: "rgba(255,255,255,0.16)",
-              padding: "8px 10px",
-              borderRadius: "12px",
-              textAlign: "center",
-            }}
-          >
-            <div style={{ fontSize: "1.1rem", fontWeight: 800 }}>
-              {countTidakLulus}
-            </div>
-            <div style={{ fontSize: "0.66rem", opacity: 0.9 }}>Pembinaan</div>
+          <div style={{ display: "flex", gap: "6px" }}>
+            <span
+              style={{
+                fontSize: "0.68rem",
+                background: "rgba(255,255,255,0.2)",
+                padding: "3px 8px",
+                borderRadius: "8px",
+                fontWeight: 700,
+              }}
+            >
+              ✅ Lulus: {countLulus}
+            </span>
+            <span
+              style={{
+                fontSize: "0.68rem",
+                background: "rgba(239, 68, 68, 0.35)",
+                padding: "3px 8px",
+                borderRadius: "8px",
+                fontWeight: 700,
+              }}
+            >
+              ⚠️ Bina: {countTidakLulus}
+            </span>
           </div>
         </div>
 
-        {/* Dropdown Wajib: Pilih Kelas Santri (Sama seperti Presensi Mengaji) */}
-        <div style={{ position: "relative", marginBottom: "12px" }}>
-          <select
+        {/* Dropdown 1: Wajib Pilih Kelas Santri */}
+        <div style={{ position: "relative" }}>
+          <SearchableSelect
+            options={availableKelasOptions.map((kls) => ({
+              value: kls,
+              label: `🏫 Kelas: ${kls}`,
+            }))}
             value={selectedKelas}
-            onChange={(e) => {
-              const val = e.target.value;
-              setSelectedKelas(val);
-              loadSantriByKelas(val);
+            onChange={(val) => {
+              const target = val || "";
+              setSelectedKelas(target);
+              loadSantriByKelas(target);
+              if (activeTab === "scan") {
+                stopFaceCamera();
+                if (target) {
+                  setTimeout(() => startFaceCamera(faceFacingMode), 150);
+                }
+              }
             }}
-            style={{
-              width: "100%",
-              padding: "10px 32px 10px 12px",
-              borderRadius: "12px",
+            placeholder="-- 1. Wajib Pilih Kelas Santri --"
+            searchPlaceholder="Cari kelas santri..."
+            triggerStyle={{
+              padding: "9px 12px",
+              borderRadius: "11px",
               border: !selectedKelas
                 ? "2px solid #facc15"
-                : "1px solid rgba(255, 255, 255, 0.4)",
+                : "1px solid rgba(255, 255, 255, 0.35)",
               background: !selectedKelas
-                ? "rgba(234, 179, 8, 0.3)"
-                : "rgba(255, 255, 255, 0.2)",
+                ? "rgba(234, 179, 8, 0.28)"
+                : "rgba(255, 255, 255, 0.16)",
               backdropFilter: "blur(10px)",
               color: "#ffffff",
               fontSize: "0.82rem",
               fontWeight: 800,
-              outline: "none",
-              appearance: "none",
-              cursor: "pointer",
-            }}
-          >
-            <option value="" style={{ color: "#0f172a", fontWeight: 700 }}>
-              -- Wajib Pilih Kelas Santri Terlebih Dahulu --
-            </option>
-            {availableKelasOptions.map((kName) => (
-              <option
-                key={kName}
-                value={kName}
-                style={{ color: "#0f172a", fontWeight: 700 }}
-              >
-                🏫 Kelas: {kName}
-              </option>
-            ))}
-          </select>
-          <ChevronDown
-            size={16}
-            color="#ffffff"
-            style={{
-              position: "absolute",
-              right: "12px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              pointerEvents: "none",
             }}
           />
           {loadingKelasSantri && (
             <div
               style={{
                 position: "absolute",
-                right: "34px",
+                right: "32px",
                 top: "50%",
                 transform: "translateY(-50%)",
-                fontSize: "0.68rem",
+                fontSize: "0.66rem",
                 color: "#fef08a",
                 fontWeight: 700,
+                pointerEvents: "none",
               }}
             >
               Memuat santri...
@@ -1193,112 +976,694 @@ export default function MobilePengembangan() {
           )}
         </div>
 
+        {/* Info Santri Terpilih */}
         {selectedKelas && (
           <div
             style={{
-              fontSize: "0.68rem",
-              color: "#f0fdf4",
+              marginTop: "8px",
               background: "rgba(0, 0, 0, 0.18)",
-              padding: "4px 10px",
-              borderRadius: "8px",
+              borderRadius: "10px",
+              padding: "6px 10px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              fontSize: "0.68rem",
+              color: "#e0f2fe",
+            }}
+          >
+            <span>
+              🏫 Kelas: <strong>{selectedKelas}</strong>
+            </span>
+            <span style={{ fontWeight: 800, color: "#fef08a" }}>
+              👥 {santriList.length} Santri Terdaftar
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* =========================================================================
+          2. TAB NAVIGASI: SCAN, MANUAL, HISTORI (SEPERTI PRESIENSI MENGAJI)
+      ========================================================================= */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          background: "#ffffff",
+          borderRadius: "13px",
+          padding: "3.5px",
+          marginBottom: "12px",
+          gap: "4px",
+          border: "1px solid #e2e8f0",
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => handleSwitchTab("scan")}
+          style={{
+            padding: "8px 2px",
+            borderRadius: "9px",
+            border: "none",
+            background: activeTab === "scan" ? "#e0f2fe" : "transparent",
+            color: activeTab === "scan" ? "#0284c7" : "#64748b",
+            fontWeight: 800,
+            fontSize: "0.72rem",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "5px",
+          }}
+        >
+          <Camera size={14} /> Scan
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleSwitchTab("manual")}
+          style={{
+            padding: "8px 2px",
+            borderRadius: "9px",
+            border: "none",
+            background: activeTab === "manual" ? "#e0f2fe" : "transparent",
+            color: activeTab === "manual" ? "#0284c7" : "#64748b",
+            fontWeight: 800,
+            fontSize: "0.72rem",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "5px",
+          }}
+        >
+          <UserCheck size={14} /> Manual
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleSwitchTab("histori")}
+          style={{
+            padding: "8px 2px",
+            borderRadius: "9px",
+            border: "none",
+            background: activeTab === "histori" ? "#f3e8ff" : "transparent",
+            color: activeTab === "histori" ? "#7c3aed" : "#64748b",
+            fontWeight: 800,
+            fontSize: "0.72rem",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "5px",
+          }}
+        >
+          <History size={14} /> Histori ({rekapList.length})
+        </button>
+      </div>
+
+      {/* =========================================================================
+          TAB 1: SCAN WAJAH AI (KAMERA INLINE PERSIS MENGAJI)
+      ========================================================================= */}
+      {activeTab === "scan" && (
+        <div
+          style={{
+            background: "#ffffff",
+            borderRadius: "20px",
+            padding: "14px",
+            border: "1.5px solid #0284c7",
+            marginBottom: "14px",
+            boxShadow: "0 4px 14px rgba(2, 132, 199, 0.08)",
+          }}
+        >
+          <div
+            style={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
               marginBottom: "10px",
             }}
           >
-            <span>
-              🏫 Kelas Terpilih: <strong>{selectedKelas}</strong>
+            <span
+              style={{
+                fontSize: "0.75rem",
+                fontWeight: 800,
+                color: "#0f172a",
+              }}
+            >
+              Kamera Scan Wajah Santri
             </span>
-            <span>
-              👥 <strong>{santriList.length}</strong> Santri
-            </span>
+            <div style={{ display: "flex", gap: "6px" }}>
+              <button
+                type="button"
+                onClick={toggleFaceFacingMode}
+                disabled={!selectedKelas}
+                style={{
+                  padding: "4px 8px",
+                  borderRadius: "8px",
+                  border: "1px solid #cbd5e1",
+                  background: "#ffffff",
+                  color: "#0284c7",
+                  fontSize: "0.7rem",
+                  fontWeight: 700,
+                  cursor: selectedKelas ? "pointer" : "not-allowed",
+                  opacity: selectedKelas ? 1 : 0.6,
+                }}
+              >
+                <RotateCcw
+                  size={12}
+                  style={{ verticalAlign: "middle", marginRight: "3px" }}
+                />{" "}
+                Putar
+              </button>
+              <button
+                type="button"
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                style={{
+                  padding: "4px 8px",
+                  borderRadius: "8px",
+                  border: "1px solid #cbd5e1",
+                  background: soundEnabled ? "#f0fdf4" : "#fef2f2",
+                  color: soundEnabled ? "#16a34a" : "#dc2626",
+                  cursor: "pointer",
+                }}
+              >
+                {soundEnabled ? <Volume2 size={13} /> : <VolumeX size={13} />}
+              </button>
+            </div>
           </div>
-        )}
 
-        {/* Tombol Utama Scan Wajah + Input Manual */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1.5fr 1fr",
-            gap: "8px",
-          }}
-        >
-          <button
-            type="button"
-            onClick={openFaceScanner}
+          {/* Banner Status Siap Scan */}
+          {selectedKelas && (
+            <div
+              style={{
+                background: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                borderRadius: "10px",
+                padding: "6px 12px",
+                marginBottom: "10px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                color: "#166534",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                <span>🏫 Kelas: {selectedKelas}</span>
+                <span style={{ color: "#9ca3af" }}>•</span>
+                <span>👥 {santriList.length} Santri</span>
+              </div>
+              <span
+                style={{
+                  background: "#16a34a",
+                  color: "#ffffff",
+                  padding: "1.5px 7px",
+                  borderRadius: "999px",
+                  fontSize: "0.62rem",
+                }}
+              >
+                Siap Scan
+              </span>
+            </div>
+          )}
+
+          {/* Video Container with Locked Overlay jika Kelas Belum Dipilih */}
+          <div
             style={{
-              background: "#ffffff",
-              color: activeGender === "L" ? "#0369a1" : "#9d174d",
-              border: "none",
-              padding: "11px 14px",
-              borderRadius: "12px",
-              fontWeight: 800,
-              fontSize: "0.8rem",
+              width: "100%",
+              aspectRatio: "4/3",
+              minHeight: "260px",
+              borderRadius: "16px",
+              overflow: "hidden",
+              background: "#090d16",
+              position: "relative",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: "7px",
-              cursor: "pointer",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
             }}
           >
-            <Camera size={17} /> Mulai Scan Wajah
-          </button>
+            {!selectedKelas && (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: "rgba(15, 23, 42, 0.92)",
+                  backdropFilter: "blur(6px)",
+                  zIndex: 15,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "20px",
+                  textAlign: "center",
+                  color: "#ffffff",
+                }}
+              >
+                <div
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "50%",
+                    background: "rgba(245, 158, 11, 0.2)",
+                    border: "1.5px solid #f59e0b",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: "10px",
+                  }}
+                >
+                  <Award size={24} color="#fbbf24" />
+                </div>
+                <div
+                  style={{
+                    fontWeight: 800,
+                    fontSize: "0.92rem",
+                    marginBottom: "5px",
+                  }}
+                >
+                  Pilih Kelas Terlebih Dahulu!
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.72rem",
+                    color: "#cbd5e1",
+                    maxWidth: "260px",
+                    lineHeight: 1.35,
+                  }}
+                >
+                  Tentukan <strong>Kelas Santri</strong> di dropdown atas
+                  sebelum scan wajah dimulai.
+                </div>
+              </div>
+            )}
 
-          <button
-            type="button"
-            onClick={() => {
-              if (!selectedKelas) {
-                showError(
-                  "Pilih Kelas Dahulu",
-                  "Silakan pilih kelas santri terlebih dahulu.",
-                );
-                return;
-              }
-              const firstKat = kategoriByActiveGender[0]
-                ? String(kategoriByActiveGender[0].id)
-                : "";
-              setSelectedEvalKelas(selectedKelas);
-              setEvalForm({
-                santri_id: "",
-                santriObj: null,
-                gender: activeGender,
-                kategori_id: firstKat,
-                tanggal: new Date().toISOString().slice(0, 10),
-                status_kelulusan: "Lulus",
-                permasalahan: [],
-                penyebab: [],
-                tindakan: [],
-                catatan_tambahan: "",
-              });
-              setIsEvalModalOpen(true);
-            }}
-            style={{
-              background: "rgba(255,255,255,0.2)",
-              color: "#ffffff",
-              border: "1px solid rgba(255,255,255,0.35)",
-              padding: "11px 10px",
-              borderRadius: "12px",
-              fontWeight: 700,
-              fontSize: "0.76rem",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "5px",
-              cursor: "pointer",
-            }}
-          >
-            <Plus size={15} /> Pilih Manual
-          </button>
+            <video
+              ref={faceVideoRef}
+              playsInline
+              muted
+              autoPlay
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                transform: faceFacingMode === "user" ? "scaleX(-1)" : "none",
+                display: isFaceCameraActive ? "block" : "none",
+              }}
+            />
+            <canvas
+              ref={faceCanvasRef}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                pointerEvents: "none",
+              }}
+            />
+
+            {isFaceCameraActive && (
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: "10px",
+                  left: "10px",
+                  right: "10px",
+                  background: matchedSantriPreview
+                    ? "rgba(16, 185, 129, 0.92)"
+                    : isFaceDetected
+                      ? "rgba(2, 132, 199, 0.9)"
+                      : "rgba(15, 23, 42, 0.85)",
+                  color: "#fff",
+                  fontSize: "0.74rem",
+                  fontWeight: 700,
+                  padding: "7px 12px",
+                  borderRadius: "10px",
+                  textAlign: "center",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                {faceCameraError || faceStatusText}
+              </div>
+            )}
+          </div>
+
+          {/* Action Cek Manual Foto */}
+          {selectedKelas && (
+            <div
+              style={{
+                marginTop: "10px",
+                display: "flex",
+                gap: "8px",
+              }}
+            >
+              <button
+                type="button"
+                onClick={handleSnapshotVerify}
+                style={{
+                  flex: 1,
+                  background: "#0284c7",
+                  color: "#ffffff",
+                  border: "none",
+                  padding: "10px",
+                  borderRadius: "12px",
+                  fontWeight: 800,
+                  fontSize: "0.78rem",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                <Camera size={15} /> Verifikasi Sekarang
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSwitchTab("manual")}
+                style={{
+                  background: "#f1f5f9",
+                  color: "#334155",
+                  border: "1px solid #cbd5e1",
+                  padding: "10px 14px",
+                  borderRadius: "12px",
+                  fontWeight: 700,
+                  fontSize: "0.76rem",
+                  cursor: "pointer",
+                }}
+              >
+                Pilih Manual
+              </button>
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       {/* =========================================================================
-          DAFTAR RIWAYAT & REKAP EVALUASI PENGEMBANGAN
+          TAB 2: MANUAL (PILIH SANTRI SESUAI KELAS)
       ========================================================================= */}
-      <div>
-        <>
+      {activeTab === "manual" && (
+        <div>
+          {/* Notice jika Kelas belum dipilih */}
+          {!selectedKelas ? (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "24px 16px",
+                background: "#fefce8",
+                borderRadius: "16px",
+                border: "1.5px solid #fef08a",
+                color: "#854d0e",
+                marginBottom: "14px",
+              }}
+            >
+              <AlertTriangle
+                size={34}
+                color="#eab308"
+                style={{ marginBottom: "8px" }}
+              />
+              <div style={{ fontWeight: 800, fontSize: "0.92rem" }}>
+                Pilih Kelas Terlebih Dahulu
+              </div>
+              <div
+                style={{
+                  fontSize: "0.74rem",
+                  color: "#a16207",
+                  marginTop: "4px",
+                  lineHeight: 1.4,
+                }}
+              >
+                Tombol input manual dinonaktifkan. Silakan pilih kelas santri
+                pada dropdown di atas terlebih dahulu.
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Search Bar & Filter Santri */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: "8px",
+                  marginBottom: "10px",
+                }}
+              >
+                <div
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    background: "#ffffff",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "12px",
+                    padding: "9px 12px",
+                  }}
+                >
+                  <Search size={15} color="#94a3b8" />
+                  <input
+                    type="text"
+                    placeholder={`Cari nama/NIS di Kelas ${selectedKelas}...`}
+                    value={searchManual}
+                    onChange={(e) => setSearchManual(e.target.value)}
+                    style={{
+                      border: "none",
+                      outline: "none",
+                      width: "100%",
+                      fontSize: "0.78rem",
+                      color: "#0f172a",
+                    }}
+                  />
+                  {searchManual && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchManual("")}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#94a3b8",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                <select
+                  value={filterManualStatus}
+                  onChange={(e) => setFilterManualStatus(e.target.value)}
+                  style={{
+                    padding: "9px 10px",
+                    borderRadius: "12px",
+                    border: "1px solid #cbd5e1",
+                    background: "#ffffff",
+                    fontSize: "0.76rem",
+                    fontWeight: 700,
+                    color: "#334155",
+                    outline: "none",
+                  }}
+                >
+                  <option value="Semua">Semua</option>
+                  <option value="Belum Evaluasi">Belum Evaluasi</option>
+                  <option value="Lulus">Lulus</option>
+                  <option value="Pembinaan">Pembinaan</option>
+                </select>
+              </div>
+
+              {/* List Santri */}
+              {santriList.length === 0 && !loadingKelasSantri ? (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "30px 16px",
+                    background: "#ffffff",
+                    borderRadius: "16px",
+                    border: "1px dashed #cbd5e1",
+                    color: "#64748b",
+                    fontSize: "0.8rem",
+                  }}
+                >
+                  Tidak ada santri ditemukan di Kelas {selectedKelas}.
+                </div>
+              ) : filteredSantriManual.length === 0 ? (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "30px 16px",
+                    background: "#ffffff",
+                    borderRadius: "16px",
+                    border: "1px dashed #cbd5e1",
+                    color: "#64748b",
+                    fontSize: "0.8rem",
+                  }}
+                >
+                  Santri tidak cocok dengan pencarian / filter.
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {filteredSantriManual.map((santri) => {
+                    const theme = getAvatarTheme(santri.nama_santri);
+                    const lastEval = rekapList.find(
+                      (r) => String(r.santri_id) === String(santri.id),
+                    );
+                    const isLulus = lastEval?.status_kelulusan === "Lulus";
+
+                    return (
+                      <div
+                        key={santri.id}
+                        style={{
+                          background: "#ffffff",
+                          borderRadius: "14px",
+                          padding: "12px",
+                          border: "1px solid #e2e8f0",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "10px",
+                            flex: 1,
+                            minWidth: 0,
+                          }}
+                        >
+                          {/* Avatar Foto / Inisial */}
+                          {santri.foto || santri.foto_santri ? (
+                            <img
+                              src={santri.foto || santri.foto_santri}
+                              alt={santri.nama_santri}
+                              style={{
+                                width: "42px",
+                                height: "42px",
+                                borderRadius: "12px",
+                                objectFit: "cover",
+                                border: "1.5px solid #e2e8f0",
+                                flexShrink: 0,
+                              }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: "42px",
+                                height: "42px",
+                                borderRadius: "12px",
+                                background: theme.bg,
+                                color: theme.color,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontWeight: 800,
+                                fontSize: "0.85rem",
+                                flexShrink: 0,
+                              }}
+                            >
+                              {getInitials(santri.nama_santri)}
+                            </div>
+                          )}
+
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div
+                              style={{
+                                fontWeight: 800,
+                                fontSize: "0.84rem",
+                                color: "#0f172a",
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                              }}
+                            >
+                              {santri.nama_santri}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: "0.68rem",
+                                color: "#64748b",
+                                marginTop: "1px",
+                              }}
+                            >
+                              NIS: <strong>{santri.nis}</strong> •{" "}
+                              {santri.nama_asrama || "Asrama"}
+                            </div>
+
+                            {/* Status Terakhir */}
+                            {lastEval ? (
+                              <span
+                                style={{
+                                  display: "inline-block",
+                                  marginTop: "3px",
+                                  fontSize: "0.62rem",
+                                  fontWeight: 800,
+                                  padding: "1px 7px",
+                                  borderRadius: "6px",
+                                  background: isLulus ? "#dcfce7" : "#fee2e2",
+                                  color: isLulus ? "#15803d" : "#b91c1c",
+                                }}
+                              >
+                                {isLulus ? "✅ Lulus" : "⚠️ Pembinaan"} •{" "}
+                                {lastEval.nama_kategori || "Bidang"}
+                              </span>
+                            ) : (
+                              <span
+                                style={{
+                                  display: "inline-block",
+                                  marginTop: "3px",
+                                  fontSize: "0.62rem",
+                                  fontWeight: 700,
+                                  padding: "1px 6px",
+                                  borderRadius: "6px",
+                                  background: "#f1f5f9",
+                                  color: "#64748b",
+                                }}
+                              >
+                                Belum Dievaluasi
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Tombol Evaluasi */}
+                        <button
+                          type="button"
+                          onClick={() => openEvaluationForSantri(santri)}
+                          style={{
+                            background: "#0284c7",
+                            color: "#ffffff",
+                            border: "none",
+                            padding: "8px 12px",
+                            borderRadius: "10px",
+                            fontWeight: 800,
+                            fontSize: "0.72rem",
+                            cursor: "pointer",
+                            whiteSpace: "nowrap",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            boxShadow: "0 2px 6px rgba(2, 132, 199, 0.25)",
+                            marginLeft: "8px",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Edit3 size={13} /> Evaluasi
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 3: HISTORI (DAFTAR RIWAYAT EVALUASI LENGKAP)
+      ========================================================================= */}
+      {activeTab === "histori" && (
+        <div>
           {/* Filter Chips Bidang Pengembangan */}
           <div
             style={{
@@ -1311,15 +1676,15 @@ export default function MobilePengembangan() {
           >
             <button
               type="button"
-              onClick={() => setFilterKategoriId("Semua")}
+              onClick={() => setFilterHistoriKategori("Semua")}
               style={{
                 padding: "6px 12px",
                 borderRadius: "20px",
                 border:
-                  filterKategoriId === "Semua" ? "none" : "1px solid #cbd5e1",
+                  filterHistoriKategori === "Semua" ? "none" : "1px solid #cbd5e1",
                 background:
-                  filterKategoriId === "Semua" ? "#0f172a" : "#ffffff",
-                color: filterKategoriId === "Semua" ? "#ffffff" : "#475569",
+                  filterHistoriKategori === "Semua" ? "#0f172a" : "#ffffff",
+                color: filterHistoriKategori === "Semua" ? "#ffffff" : "#475569",
                 fontSize: "0.72rem",
                 fontWeight: 700,
                 whiteSpace: "nowrap",
@@ -1328,24 +1693,24 @@ export default function MobilePengembangan() {
             >
               Semua Bidang
             </button>
-            {kategoriByActiveGender.map((kat) => (
+            {masterKategoriAll.map((kat) => (
               <button
                 key={kat.id}
                 type="button"
-                onClick={() => setFilterKategoriId(String(kat.id))}
+                onClick={() => setFilterHistoriKategori(String(kat.id))}
                 style={{
                   padding: "6px 12px",
                   borderRadius: "20px",
                   border:
-                    String(filterKategoriId) === String(kat.id)
+                    String(filterHistoriKategori) === String(kat.id)
                       ? "none"
                       : "1px solid #cbd5e1",
                   background:
-                    String(filterKategoriId) === String(kat.id)
+                    String(filterHistoriKategori) === String(kat.id)
                       ? "#0284c7"
                       : "#ffffff",
                   color:
-                    String(filterKategoriId) === String(kat.id)
+                    String(filterHistoriKategori) === String(kat.id)
                       ? "#ffffff"
                       : "#475569",
                   fontSize: "0.72rem",
@@ -1377,8 +1742,8 @@ export default function MobilePengembangan() {
               <input
                 type="text"
                 placeholder="Cari santri, NIS, bidang..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchHistori}
+                onChange={(e) => setSearchHistori(e.target.value)}
                 style={{
                   border: "none",
                   outline: "none",
@@ -1390,8 +1755,8 @@ export default function MobilePengembangan() {
             </div>
 
             <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
+              value={filterHistoriStatus}
+              onChange={(e) => setFilterHistoriStatus(e.target.value)}
               style={{
                 padding: "8px 10px",
                 borderRadius: "10px",
@@ -1408,90 +1773,54 @@ export default function MobilePengembangan() {
             </select>
           </div>
 
-          {/* Daftar Card Evaluasi */}
-          {loading ? (
-            <div
-              style={{
-                padding: "40px 20px",
-                textAlign: "center",
-                color: "#64748b",
-                fontSize: "0.82rem",
-              }}
-            >
-              Memuat data pengembangan santri...
-            </div>
-          ) : filteredRekap.length === 0 ? (
+          {/* List Data Rekap */}
+          {filteredHistori.length === 0 ? (
             <div
               style={{
                 background: "#ffffff",
                 borderRadius: "16px",
-                padding: "32px 20px",
+                padding: "36px 16px",
                 textAlign: "center",
                 border: "1px dashed #cbd5e1",
               }}
             >
-              <Camera
-                size={36}
-                color="#0284c7"
-                style={{ marginBottom: "8px", opacity: 0.8 }}
+              <Award
+                size={40}
+                color="#cbd5e1"
+                style={{ margin: "0 auto 10px" }}
               />
               <div
                 style={{
                   fontWeight: 800,
-                  color: "#0f172a",
                   fontSize: "0.9rem",
-                  marginBottom: "4px",
+                  color: "#475569",
                 }}
               >
-                Belum Ada Data Evaluasi Pengembangan
+                Belum Ada Riwayat Evaluasi
               </div>
-              <p
+              <div
                 style={{
-                  fontSize: "0.75rem",
-                  color: "#64748b",
-                  margin: "0 0 14px",
+                  fontSize: "0.74rem",
+                  color: "#94a3b8",
+                  marginTop: "4px",
                 }}
               >
-                Klik tombol <strong>Mulai Scan Wajah</strong> di atas untuk
-                memindai wajah santri dan menginput hasil Lulus / Tidak Lulus.
-              </p>
-              <button
-                type="button"
-                onClick={openFaceScanner}
-                style={{
-                  background: "#0284c7",
-                  color: "#ffffff",
-                  border: "none",
-                  padding: "10px 18px",
-                  borderRadius: "10px",
-                  fontWeight: 800,
-                  fontSize: "0.78rem",
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                }}
-              >
-                <Camera size={15} /> Scan Wajah Sekarang
-              </button>
+                Gunakan tab "Scan" atau "Manual" untuk menginput evaluasi santri.
+              </div>
             </div>
           ) : (
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "10px" }}
-            >
-              {filteredRekap.map((row) => {
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {filteredHistori.map((row) => {
                 const isLulus = row.status_kelulusan === "Lulus";
                 return (
                   <div
                     key={row.id}
                     style={{
                       background: "#ffffff",
-                      borderRadius: "14px",
+                      borderRadius: "16px",
                       padding: "14px",
-                      border: isLulus
-                        ? "1px solid #e2e8f0"
-                        : "1.5px solid #fecaca",
-                      boxShadow: "0 2px 6px rgba(15,23,42,0.04)",
+                      border: "1px solid #e2e8f0",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
                     }}
                   >
                     <div
@@ -1684,373 +2013,11 @@ export default function MobilePengembangan() {
               })}
             </div>
           )}
-        </>
-      </div>
-
-      {/* =========================================================================
-          FLOATING CAMERA ACTION BUTTON (SCAN WAJAH CEPAT)
-      ========================================================================= */}
-      <button
-        type="button"
-        onClick={openFaceScanner}
-        title="Scan Wajah Pengembangan"
-        style={{
-          position: "fixed",
-          bottom: "84px",
-          right: "20px",
-          width: "56px",
-          height: "56px",
-          borderRadius: "50%",
-          background: "linear-gradient(135deg, #0284c7, #0369a1)",
-          color: "#ffffff",
-          border: "3px solid #ffffff",
-          boxShadow: "0 8px 22px rgba(2, 132, 199, 0.5)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          cursor: "pointer",
-          zIndex: 90,
-        }}
-      >
-        <Camera size={24} />
-      </button>
-
-      {/* =========================================================================
-          MODAL 1: SCAN WAJAH SANTRI (FULL SCREEN KAMERA AI)
-      ========================================================================= */}
-      {isFaceScanOpen && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "#000000",
-            zIndex: 99999,
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-          }}
-        >
-          {/* Top Bar Glass Translucent */}
-          <div
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              zIndex: 30,
-              background:
-                "linear-gradient(to bottom, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0))",
-              backdropFilter: "blur(8px)",
-              padding: "16px 18px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              color: "#ffffff",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <div
-                style={{
-                  width: "38px",
-                  height: "38px",
-                  borderRadius: "12px",
-                  background: "rgba(56, 189, 248, 0.2)",
-                  border: "1.5px solid rgba(56, 189, 248, 0.4)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#38bdf8",
-                }}
-              >
-                <Camera size={20} />
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontWeight: 800,
-                    fontSize: "0.94rem",
-                    color: "#ffffff",
-                    letterSpacing: "-0.01em",
-                  }}
-                >
-                  Scan Wajah Pengembangan
-                </div>
-                <div
-                  style={{
-                    fontSize: "0.7rem",
-                    color: "#38bdf8",
-                    fontWeight: 700,
-                  }}
-                >
-                  {selectedKelas
-                    ? `🏫 Kelas: ${selectedKelas} (${santriList.length} Santri)`
-                    : "⚠️ Belum Pilih Kelas"}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <button
-                type="button"
-                onClick={toggleFaceFacingMode}
-                title={
-                  faceFacingMode === "user" ? "Kamera Belakang" : "Kamera Depan"
-                }
-                style={{
-                  background: "rgba(255, 255, 255, 0.15)",
-                  backdropFilter: "blur(10px)",
-                  color: "#ffffff",
-                  border: "1px solid rgba(255, 255, 255, 0.25)",
-                  width: "36px",
-                  height: "36px",
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                }}
-              >
-                <RefreshCw size={17} />
-              </button>
-
-              <button
-                type="button"
-                onClick={closeFaceScanner}
-                style={{
-                  background: "rgba(239, 68, 68, 0.85)",
-                  border: "none",
-                  color: "#ffffff",
-                  width: "36px",
-                  height: "36px",
-                  borderRadius: "50%",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 4px 12px rgba(239, 68, 68, 0.4)",
-                }}
-              >
-                <X size={18} strokeWidth={2.5} />
-              </button>
-            </div>
-          </div>
-
-          {/* Viewport Kamera Imersif & Luas */}
-          <div
-            style={{
-              position: "relative",
-              flex: 1,
-              width: "100%",
-              minHeight: 0,
-              background: "#000000",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "hidden",
-            }}
-          >
-            <video
-              ref={faceVideoRef}
-              autoPlay
-              playsInline
-              muted
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                transform: faceFacingMode === "user" ? "scaleX(-1)" : "none",
-              }}
-            />
-            <canvas
-              ref={faceCanvasRef}
-              style={{
-                position: "absolute",
-                inset: 0,
-                width: "100%",
-                height: "100%",
-                pointerEvents: "none",
-              }}
-            />
-
-            {/* Notice jika Kelas belum dipilih (Overlay Pengunci Kamera) */}
-            {!selectedKelas && (
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  background: "rgba(15, 23, 42, 0.92)",
-                  backdropFilter: "blur(6px)",
-                  zIndex: 40,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: "20px",
-                  textAlign: "center",
-                  color: "#ffffff",
-                }}
-              >
-                <AlertTriangle
-                  size={38}
-                  color="#facc15"
-                  style={{ marginBottom: "8px" }}
-                />
-                <span
-                  style={{
-                    fontWeight: 800,
-                    fontSize: "0.96rem",
-                    marginBottom: "4px",
-                  }}
-                >
-                  Pilih Kelas Terlebih Dahulu
-                </span>
-                <span
-                  style={{
-                    fontSize: "0.74rem",
-                    color: "#94a3b8",
-                    maxWidth: "260px",
-                    marginBottom: "14px",
-                  }}
-                >
-                  Silakan tentukan kelas santri di bawah untuk memulai
-                  pencocokan biometrik wajah pengembangan.
-                </span>
-                <div
-                  style={{
-                    position: "relative",
-                    width: "100%",
-                    maxWidth: "240px",
-                  }}
-                >
-                  <select
-                    value={selectedKelas}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setSelectedKelas(val);
-                      loadSantriByKelas(val);
-                    }}
-                    style={{
-                      width: "100%",
-                      padding: "9px 32px 9px 12px",
-                      borderRadius: "10px",
-                      border: "none",
-                      background: "#ffffff",
-                      color: "#0f172a",
-                      fontSize: "0.82rem",
-                      fontWeight: 700,
-                      outline: "none",
-                      appearance: "none",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <option value="">-- Pilih Kelas Santri --</option>
-                    {availableKelasOptions.map((k) => (
-                      <option key={k} value={k}>
-                        🏫 Kelas: {k}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown
-                    size={15}
-                    color="#0f172a"
-                    style={{
-                      position: "absolute",
-                      right: "10px",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      pointerEvents: "none",
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Realtime Status Floating Pill & Action Buttons */}
-            <div
-              style={{
-                position: "absolute",
-                bottom: "20px",
-                left: "16px",
-                right: "16px",
-                zIndex: 10,
-                display: "flex",
-                flexDirection: "column",
-                gap: "8px",
-              }}
-            >
-              <div
-                style={{
-                  background: matchedSantriPreview
-                    ? "rgba(16, 185, 129, 0.95)"
-                    : isFaceDetected
-                      ? "rgba(2, 132, 199, 0.92)"
-                      : "rgba(15, 23, 42, 0.85)",
-                  backdropFilter: "blur(8px)",
-                  color: "#ffffff",
-                  padding: "10px 14px",
-                  borderRadius: "14px",
-                  fontSize: "0.82rem",
-                  fontWeight: 700,
-                  textAlign: "center",
-                  border: "1px solid rgba(255, 255, 255, 0.2)",
-                  boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
-                  transition: "all 0.25s ease",
-                }}
-              >
-                {faceCameraError || faceStatusText}
-              </div>
-
-              <div style={{ display: "flex", gap: "8px" }}>
-                <button
-                  type="button"
-                  onClick={handleSnapshotVerify}
-                  style={{
-                    flex: 1,
-                    background: "#0284c7",
-                    color: "#ffffff",
-                    border: "none",
-                    padding: "11px",
-                    borderRadius: "12px",
-                    fontWeight: 800,
-                    fontSize: "0.8rem",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "6px",
-                    cursor: "pointer",
-                    boxShadow: "0 4px 14px rgba(2,132,199,0.5)",
-                  }}
-                >
-                  <Camera size={16} /> Verifikasi Sekarang
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    closeFaceScanner();
-                    openEvaluationManual();
-                  }}
-                  style={{
-                    background: "rgba(255,255,255,0.2)",
-                    backdropFilter: "blur(6px)",
-                    color: "#ffffff",
-                    border: "1px solid rgba(255,255,255,0.4)",
-                    padding: "11px 14px",
-                    borderRadius: "12px",
-                    fontWeight: 700,
-                    fontSize: "0.8rem",
-                    cursor: "pointer",
-                  }}
-                >
-                  Pilih Manual
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
       )}
 
       {/* =========================================================================
-          MODAL 2: FORM INPUT BIDANG PENGEMBANGAN -> LULUS / TIDAK LULUS (STEP 2 & 3)
+          MODAL EVALUASI SANTRI (LULUS / TIDAK LULUS + CHECKLIST DIAGNOSTIK)
       ========================================================================= */}
       {isEvalModalOpen && (
         <div
@@ -2083,7 +2050,7 @@ export default function MobilePengembangan() {
             <div
               style={{
                 padding: "14px 18px",
-                background: evalForm.gender === "P" ? "#9d174d" : "#0369a1",
+                background: "#0369a1",
                 color: "#ffffff",
                 display: "flex",
                 justifyContent: "space-between",
@@ -2092,27 +2059,29 @@ export default function MobilePengembangan() {
             >
               <div>
                 <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 800 }}>
-                  Input Evaluasi Pengembangan (
-                  {evalForm.gender === "P" ? "Akhwat" : "Ikhwan"})
+                  Input Evaluasi Pengembangan
                 </h3>
                 <div style={{ fontSize: "0.7rem", opacity: 0.9 }}>
-                  Pilih Bidang ➔ Lulus / Tidak Lulus ➔ Checklist Diagnostik
+                  Pilih Bidang ➔ Lulus / Tidak Lulus ➔ Diagnostik
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => setIsEvalModalOpen(false)}
+                onClick={handleCloseEvalModal}
                 style={{
-                  background: "rgba(255,255,255,0.2)",
+                  background: "rgba(255, 255, 255, 0.2)",
                   border: "none",
-                  color: "#fff",
+                  color: "#ffffff",
+                  width: "32px",
+                  height: "32px",
                   borderRadius: "50%",
-                  width: "30px",
-                  height: "30px",
                   cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
-                <X size={16} />
+                <X size={17} />
               </button>
             </div>
 
@@ -2122,278 +2091,182 @@ export default function MobilePengembangan() {
               style={{
                 padding: "16px",
                 overflowY: "auto",
-                flex: 1,
                 display: "flex",
                 flexDirection: "column",
                 gap: "14px",
               }}
             >
-              {/* Identitas Santri Terdeteksi / Pilih Santri Berdasarkan Kelas */}
+              {/* Santri Card */}
               <div
                 style={{
-                  background: "#f0f9ff",
-                  border: "1.5px solid #bae6fd",
-                  borderRadius: "12px",
+                  background: "#f8fafc",
                   padding: "12px",
+                  borderRadius: "14px",
+                  border: "1px solid #e2e8f0",
                   display: "flex",
-                  flexDirection: "column",
+                  alignItems: "center",
                   gap: "10px",
                 }}
               >
                 <div
                   style={{
+                    width: "44px",
+                    height: "44px",
+                    borderRadius: "12px",
+                    background: "#0284c7",
+                    color: "#ffffff",
                     display: "flex",
-                    justifyContent: "space-between",
                     alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 800,
+                    fontSize: "0.9rem",
+                    flexShrink: 0,
                   }}
                 >
-                  <span
-                    style={{
-                      fontSize: "0.72rem",
-                      fontWeight: 800,
-                      color: "#0369a1",
-                    }}
-                  >
-                    1. DATA SANTRI YANG DIUJI
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsEvalModalOpen(false);
-                      openFaceScanner();
-                    }}
-                    style={{
-                      background: "#0284c7",
-                      color: "#ffffff",
-                      border: "none",
-                      borderRadius: "6px",
-                      padding: "4px 9px",
-                      fontSize: "0.68rem",
-                      fontWeight: 700,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "4px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <Camera size={12} /> Scan Wajah Ulang
-                  </button>
+                  {getInitials(evalForm.santriObj?.nama_santri)}
                 </div>
+                <div>
+                  <div
+                    style={{
+                      fontWeight: 800,
+                      fontSize: "0.9rem",
+                      color: "#0f172a",
+                    }}
+                  >
+                    {evalForm.santriObj?.nama_santri || "Santri"}
+                  </div>
+                  <div style={{ fontSize: "0.72rem", color: "#64748b" }}>
+                    NIS: <strong>{evalForm.santriObj?.nis || "-"}</strong> •{" "}
+                    Kelas: <strong>{selectedKelas || "-"}</strong>
+                  </div>
+                </div>
+              </div>
 
-                {/* Pilih Kelas Terlebih Dahulu */}
+              {/* STEP 1: PILIH BIDANG PENGEMBANGAN */}
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.75rem",
+                    fontWeight: 800,
+                    color: "#334155",
+                    marginBottom: "6px",
+                  }}
+                >
+                  1. Pilih Bidang Uji Pengembangan:
+                </label>
+                <select
+                  value={evalForm.kategori_id}
+                  onChange={(e) =>
+                    setEvalForm((prev) => ({
+                      ...prev,
+                      kategori_id: e.target.value,
+                      permasalahan: [],
+                      penyebab: [],
+                      tindakan: [],
+                    }))
+                  }
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: "10px",
+                    border: "1px solid #cbd5e1",
+                    background: "#ffffff",
+                    fontSize: "0.82rem",
+                    fontWeight: 700,
+                    color: "#0f172a",
+                    outline: "none",
+                  }}
+                >
+                  {kategoriForEvalModal.map((k) => (
+                    <option key={k.id} value={k.id}>
+                      📘 {k.nama_kategori}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Tanggal & Penguji */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "10px",
+                }}
+              >
                 <div>
                   <label
                     style={{
-                      fontSize: "0.7rem",
-                      fontWeight: 700,
-                      color: "#0369a1",
                       display: "block",
+                      fontSize: "0.72rem",
+                      fontWeight: 700,
+                      color: "#475569",
                       marginBottom: "4px",
                     }}
                   >
-                    Pilih Kelas Santri *
+                    Tanggal Uji:
                   </label>
-                  <SearchableSelect
-                    options={combinedKelasOptions.map((k) => ({
-                      value: String(k.id || k.nama_kelas),
-                      label: k.nama_kelas || `Kelas ${k.id}`,
-                      sublabel: k.tingkat ? `Tingkat: ${k.tingkat}` : "",
-                    }))}
-                    value={selectedEvalKelas || selectedKelas}
-                    onChange={(val) => {
-                      setSelectedEvalKelas(val);
-                      setSelectedKelas(val);
-                      loadSantriByKelas(val);
+                  <input
+                    type="date"
+                    value={evalForm.tanggal}
+                    onChange={(e) =>
                       setEvalForm((prev) => ({
                         ...prev,
-                        santri_id: "",
-                        santriObj: null,
-                      }));
-                    }}
-                    placeholder="-- Pilih Kelas Terlebih Dahulu --"
-                    searchPlaceholder="Cari kelas santri..."
-                    triggerStyle={{
-                      background: "#ffffff",
-                      border: "1.5px solid #93c5fd",
-                      borderRadius: "10px",
-                      padding: "9px 12px",
-                      fontSize: "0.82rem",
+                        tanggal: e.target.value,
+                      }))
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "8px 10px",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "0.78rem",
+                      fontWeight: 600,
                     }}
                   />
                 </div>
-
-                {/* Pilih Santri (Hanya muncul / aktif setelah kelas dipilih) */}
                 <div>
                   <label
                     style={{
-                      fontSize: "0.7rem",
-                      fontWeight: 700,
-                      color: "#0369a1",
                       display: "block",
+                      fontSize: "0.72rem",
+                      fontWeight: 700,
+                      color: "#475569",
                       marginBottom: "4px",
                     }}
                   >
-                    Pilih Santri di Kelas Terpilih *
+                    Ustadz Penguji:
                   </label>
-                  {selectedEvalKelas || selectedKelas ? (
-                    <SearchableSelect
-                      options={santriList
-                        .filter((s) => {
-                          const targetKls = selectedEvalKelas || selectedKelas;
-                          const matchKelas =
-                            !targetKls ||
-                            String(s.kelas_id) === String(targetKls) ||
-                            String(s.nama_kelas) === String(targetKls);
-                          if (!matchKelas) return false;
-                          if (evalForm.gender) {
-                            const isP = String(s.jk || s.jenis_kelamin || "L")
-                              .toUpperCase()
-                              .startsWith("P");
-                            if (evalForm.gender === "P" && !isP) return false;
-                            if (evalForm.gender === "L" && isP) return false;
-                          }
-                          return true;
-                        })
-                        .map((s) => ({
-                          value: s.id,
-                          label: s.nama_santri,
-                          sublabel: `NIS: ${s.nis || "-"} • ${
-                            String(s.jk || "L")
-                              .toUpperCase()
-                              .startsWith("P")
-                              ? "Akhwat"
-                              : "Ikhwan"
-                          } • ${s.nama_asrama || "Asrama"}`,
-                        }))}
-                      value={evalForm.santri_id}
-                      onChange={(val) => {
-                        const sObj = santriList.find(
-                          (s) => String(s.id) === String(val),
-                        );
-                        if (sObj) {
-                          const rawJk = String(sObj.jk || "L").toUpperCase();
-                          const g = rawJk.startsWith("P") ? "P" : "L";
-                          const avail = masterKategoriAll.filter(
-                            (k) =>
-                              !k.gender ||
-                              k.gender === g ||
-                              k.gender === "Semua",
-                          );
-                          setEvalForm((prev) => ({
-                            ...prev,
-                            santri_id: sObj.id,
-                            santriObj: sObj,
-                            gender: g,
-                            kategori_id: avail[0]
-                              ? String(avail[0].id)
-                              : prev.kategori_id,
-                          }));
-                        }
-                      }}
-                      placeholder="Pilih santri yang diuji..."
-                      searchPlaceholder="Ketik nama atau NIS santri..."
-                      triggerStyle={{
-                        background: "#ffffff",
-                        border: "1.5px solid #0284c7",
-                        borderRadius: "10px",
-                        padding: "9px 12px",
-                        fontSize: "0.82rem",
-                      }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        padding: "10px 12px",
-                        background: "#ffffff",
-                        borderRadius: "10px",
-                        border: "1.5px dashed #93c5fd",
-                        fontSize: "0.75rem",
-                        color: "#0284c7",
-                        fontWeight: 600,
-                        textAlign: "center",
-                      }}
-                    >
-                      👆 Pilih kelas terlebih dahulu untuk memilih nama santri
-                    </div>
-                  )}
+                  <input
+                    type="text"
+                    disabled
+                    value={currentPenguji}
+                    style={{
+                      width: "100%",
+                      padding: "8px 10px",
+                      borderRadius: "8px",
+                      border: "1px solid #e2e8f0",
+                      background: "#f1f5f9",
+                      fontSize: "0.78rem",
+                      fontWeight: 600,
+                      color: "#475569",
+                    }}
+                  />
                 </div>
               </div>
 
-              {/* Pilih Bidang Pengembangan */}
+              {/* STEP 2: STATUS KELULUSAN (LULUS vs TIDAK LULUS) */}
               <div>
                 <label
                   style={{
-                    fontSize: "0.74rem",
-                    fontWeight: 800,
-                    color: "#0f172a",
                     display: "block",
+                    fontSize: "0.75rem",
+                    fontWeight: 800,
+                    color: "#334155",
                     marginBottom: "6px",
                   }}
                 >
-                  2. PILIH BIDANG PENGEMBANGAN *
-                </label>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(2, 1fr)",
-                    gap: "7px",
-                  }}
-                >
-                  {kategoriForEvalModal.map((kat) => {
-                    const isSelected =
-                      String(evalForm.kategori_id) === String(kat.id);
-                    return (
-                      <button
-                        key={kat.id}
-                        type="button"
-                        onClick={() =>
-                          setEvalForm((prev) => ({
-                            ...prev,
-                            kategori_id: String(kat.id),
-                            permasalahan: [],
-                            penyebab: [],
-                            tindakan: [],
-                          }))
-                        }
-                        style={{
-                          padding: "9px 10px",
-                          borderRadius: "10px",
-                          border: isSelected
-                            ? "2px solid #0284c7"
-                            : "1px solid #cbd5e1",
-                          background: isSelected ? "#e0f2fe" : "#ffffff",
-                          color: isSelected ? "#0369a1" : "#334155",
-                          fontWeight: 800,
-                          fontSize: "0.74rem",
-                          textAlign: "left",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <span>{kat.nama_kategori}</span>
-                        {isSelected && (
-                          <CheckCircle2 size={14} color="#0284c7" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Pilih Status Kelulusan: LULUS vs TIDAK LULUS */}
-              <div>
-                <label
-                  style={{
-                    fontSize: "0.74rem",
-                    fontWeight: 800,
-                    color: "#0f172a",
-                    display: "block",
-                    marginBottom: "6px",
-                  }}
-                >
-                  3. HASIL EVALUASI KELULUSAN *
+                  2. Hasil Keputusan Kelulusan:
                 </label>
                 <div
                   style={{
@@ -2482,7 +2355,7 @@ export default function MobilePengembangan() {
                 </div>
               </div>
 
-              {/* STEP 4: CHECKLIST DIAGNOSTIK OTOMATIS MUNCUL SAAT TIDAK LULUS */}
+              {/* STEP 3: CHECKLIST DIAGNOSTIK SAAT TIDAK LULUS */}
               {evalForm.status_kelulusan === "Tidak Lulus" &&
                 activeEvalKategoriObj && (
                   <div
@@ -2599,11 +2472,11 @@ export default function MobilePengembangan() {
                         }}
                       >
                         {(activeEvalKategoriObj.penyebab || []).map(
-                          (c, idx) => {
-                            const checked = evalForm.penyebab.includes(c.teks);
+                          (p, idx) => {
+                            const checked = evalForm.penyebab.includes(p.teks);
                             return (
                               <label
-                                key={c.id}
+                                key={p.id}
                                 style={{
                                   display: "flex",
                                   alignItems: "flex-start",
@@ -2623,7 +2496,7 @@ export default function MobilePengembangan() {
                                   type="checkbox"
                                   checked={checked}
                                   onChange={() =>
-                                    handleToggleChecklist("penyebab", c.teks)
+                                    handleToggleChecklist("penyebab", p.teks)
                                   }
                                   style={{
                                     accentColor: "#ea580c",
@@ -2632,9 +2505,9 @@ export default function MobilePengembangan() {
                                 />
                                 <span>
                                   <strong>
-                                    {c.kode || String.fromCharCode(97 + idx)}.
+                                    {p.kode || String.fromCharCode(97 + idx)}.
                                   </strong>{" "}
-                                  {c.teks}
+                                  {p.teks}
                                 </span>
                               </label>
                             );
@@ -2643,7 +2516,7 @@ export default function MobilePengembangan() {
                       </div>
                     </div>
 
-                    {/* (C) Tindakan / Solusi */}
+                    {/* (C) Tindakan */}
                     <div>
                       <div
                         style={{
@@ -2653,7 +2526,7 @@ export default function MobilePengembangan() {
                           marginBottom: "5px",
                         }}
                       >
-                        (C.) Tindakan / Solusi Pembinaan:
+                        (C.) Rekomendasi Tindakan / Pembinaan:
                       </div>
                       <div
                         style={{
@@ -2663,20 +2536,20 @@ export default function MobilePengembangan() {
                         }}
                       >
                         {(activeEvalKategoriObj.tindakan || []).map(
-                          (t, idx) => {
-                            const checked = evalForm.tindakan.includes(t.teks);
+                          (p, idx) => {
+                            const checked = evalForm.tindakan.includes(p.teks);
                             return (
                               <label
-                                key={t.id}
+                                key={p.id}
                                 style={{
                                   display: "flex",
                                   alignItems: "flex-start",
                                   gap: "8px",
-                                  background: checked ? "#d1fae5" : "#ffffff",
+                                  background: checked ? "#dcfce7" : "#ffffff",
                                   padding: "7px 9px",
                                   borderRadius: "8px",
                                   border: checked
-                                    ? "1px solid #34d399"
+                                    ? "1px solid #4ade80"
                                     : "1px solid #e2e8f0",
                                   fontSize: "0.73rem",
                                   color: "#1e293b",
@@ -2687,18 +2560,18 @@ export default function MobilePengembangan() {
                                   type="checkbox"
                                   checked={checked}
                                   onChange={() =>
-                                    handleToggleChecklist("tindakan", t.teks)
+                                    handleToggleChecklist("tindakan", p.teks)
                                   }
                                   style={{
-                                    accentColor: "#059669",
+                                    accentColor: "#16a34a",
                                     marginTop: "2px",
                                   }}
                                 />
                                 <span>
                                   <strong>
-                                    {t.kode || String.fromCharCode(97 + idx)}.
+                                    {p.kode || String.fromCharCode(97 + idx)}.
                                   </strong>{" "}
-                                  {t.teks}
+                                  {p.teks}
                                 </span>
                               </label>
                             );
@@ -2713,18 +2586,17 @@ export default function MobilePengembangan() {
               <div>
                 <label
                   style={{
-                    fontSize: "0.74rem",
-                    fontWeight: 700,
-                    color: "#334155",
                     display: "block",
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    color: "#475569",
                     marginBottom: "4px",
                   }}
                 >
-                  Catatan Tambahan Asatidz (Opsional)
+                  Catatan Tambahan Penguji (Opsional):
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Tulis catatan perkembangan santri..."
                   value={evalForm.catatan_tambahan}
                   onChange={(e) =>
                     setEvalForm((prev) => ({
@@ -2732,22 +2604,31 @@ export default function MobilePengembangan() {
                       catatan_tambahan: e.target.value,
                     }))
                   }
+                  placeholder="Tuliskan catatan kemajuan santri di sini..."
                   style={{
                     width: "100%",
-                    padding: "9px 10px",
-                    borderRadius: "10px",
+                    padding: "8px 10px",
+                    borderRadius: "8px",
                     border: "1px solid #cbd5e1",
-                    fontSize: "0.76rem",
-                    boxSizing: "border-box",
+                    fontSize: "0.78rem",
+                    resize: "none",
+                    outline: "none",
                   }}
                 />
               </div>
 
-              {/* Tombol Simpan */}
-              <div style={{ display: "flex", gap: "8px", paddingTop: "6px" }}>
+              {/* Action Buttons */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  paddingTop: "6px",
+                  borderTop: "1px solid #e2e8f0",
+                }}
+              >
                 <button
                   type="button"
-                  onClick={() => setIsEvalModalOpen(false)}
+                  onClick={handleCloseEvalModal}
                   style={{
                     flex: 1,
                     padding: "11px",
