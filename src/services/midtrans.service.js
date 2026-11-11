@@ -20,14 +20,43 @@ export const getMidtransConfig = () => {
 };
 
 /**
+ * Hitung Biaya Admin Gateway Midtrans + PPN 11% yang dibebankan ke Orang Tua / Wali Santri
+ * - Virtual Account (Bank Transfer): Rp 4.000 + PPN 11% (Rp 440) = Rp 4.440
+ * - QRIS / E-Wallet: 0.7% + PPN 11% (0.777%) dibulatkan ke atas
+ */
+export function hitungBiayaAdminMidtransPlusPpn({
+  nominalPokok = 0,
+  metode = 'Virtual Account',
+  biayaVaFlat = 4440,
+  biayaQrisPersen = 0.78
+}) {
+  const pokok = Math.max(0, Math.round(Number(nominalPokok) || 0));
+  const mUpper = String(metode || '').toUpperCase();
+  if (mUpper.includes('QRIS') || mUpper.includes('GOPAY') || mUpper.includes('SHOPEEPAY')) {
+    const persen = Number(biayaQrisPersen) > 0 ? Number(biayaQrisPersen) : 0.78;
+    // Rumus gross-up / langsung: agar setelah dipotong MDR QRIS + PPN 11%, pokok tetap utuh
+    const feeQris = Math.ceil((pokok * (persen / 100)) / (1 - (persen / 100)));
+    return Math.max(500, feeQris);
+  }
+  // Default Virtual Account: Rp 4.000 + PPN 11% (Rp 440) = Rp 4.440
+  const flatVa = Number(biayaVaFlat) > 0 ? Math.round(Number(biayaVaFlat)) : 4440;
+  return flatVa;
+}
+
+/**
  * Buat Transaksi Snap / Payment Gateway Pop-up Midtrans
+ * Otomatis membebankan Biaya Admin + PPN 11% ke Orang Tua / Wali Santri
  */
 export async function createMidtransSnapToken({
   nomorTransaksi,
   totalBayar,
   santriNama = 'Santri',
   noWaWali = '081234567890',
-  items = []
+  items = [],
+  metode = 'Virtual Account',
+  biayaVaFlat = 4440,
+  biayaQrisPersen = 0.78,
+  bebankanFeeKeOrtu = true
 }) {
   const config = getMidtransConfig();
   const authHeader = Buffer.from(`${config.serverKey}:`).toString('base64');
@@ -54,9 +83,10 @@ export async function createMidtransSnapToken({
     });
 
     if (sum !== Math.round(totalBayar)) {
+      sum = Math.round(totalBayar);
       baseItemDetails = [{
         id: nomorTransaksi,
-        price: Math.round(totalBayar),
+        price: sum,
         quantity: 1,
         name: 'Pembayaran Tagihan Santri'
       }];
@@ -80,74 +110,35 @@ export async function createMidtransSnapToken({
     .replace(/[^0-9]/g, '')
     .slice(0, 15) || '081234567890';
 
-  // Percobaan 1: Fitur Resmi Midtrans Dynamic Fee (Otomatis beda-beda per channel: QRIS 0.7%, VA flat)
-  const dynamicPayload = {
-    transaction_details: {
-      order_id: nomorTransaksi,
-      gross_amount: Math.round(totalBayar)
-    },
-    customer_imposed_payment_fee: {
-      enable: true,
-      payment_fee_configs: [
-        { payment_type: 'gopay', customer_percentage: 100 },
-        { payment_type: 'qris', customer_percentage: 100 },
-        { payment_type: 'shopeepay', customer_percentage: 100 },
-        { payment_type: 'bca_va', customer_percentage: 100 },
-        { payment_type: 'bni_va', customer_percentage: 100 },
-        { payment_type: 'bri_va', customer_percentage: 100 },
-        { payment_type: 'echannel', customer_percentage: 100 },
-        { payment_type: 'permata_va', customer_percentage: 100 },
-        { payment_type: 'cimb_va', customer_percentage: 100 },
-        { payment_type: 'other_va', customer_percentage: 100 }
+  const biayaAdminPpn = bebankanFeeKeOrtu
+    ? hitungBiayaAdminMidtransPlusPpn({
+        nominalPokok: sum,
+        metode,
+        biayaVaFlat,
+        biayaQrisPersen
+      })
+    : 0;
+
+  const isQris = String(metode || '').toUpperCase().includes('QRIS');
+  const feeLabel = isQris
+    ? 'Biaya Layanan QRIS + PPN 11%'
+    : 'Biaya Admin VA + PPN 11%';
+
+  const finalItems = biayaAdminPpn > 0
+    ? [
+        ...baseItemDetails,
+        {
+          id: 'FEE-ADMIN-PPN',
+          price: biayaAdminPpn,
+          quantity: 1,
+          name: feeLabel
+        }
       ]
-    },
-    customer_details: {
-      first_name: cleanFirstName,
-      phone: cleanPhone,
-      email: 'wali@nurulwafa.sch.id'
-    },
-    item_details: baseItemDetails,
-    callbacks: {
-      finish: 'https://mnurulwafa.ruangtech.com/#tagihan'
-    }
-  };
+    : baseItemDetails;
 
-  try {
-    const res = await axios.post(config.snapUrl, dynamicPayload, {
-      headers: {
-        'Authorization': `Basic ${authHeader}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      timeout: 10000
-    });
+  const grossWithAdmin = sum + biayaAdminPpn;
 
-    if (res.data?.token) {
-      return {
-        success: true,
-        token: res.data?.token,
-        redirect_url: res.data?.redirect_url,
-        fee_mode: 'dynamic'
-      };
-    }
-  } catch (dynErr) {
-    console.warn('[MIDTRANS DYNAMIC FEE UNAVAILABLE IN THIS ACCOUNT, APPLYING FLAT ADMIN FEE ITEM]');
-  }
-
-  // Percobaan 2 (Fallback): Pasang Biaya Admin ke Item Details agar pasti muncul di Midtrans
-  const biayaAdminFlat = parseInt(process.env.MIDTRANS_BIAYA_ADMIN || '4000', 10);
-  const fallbackItems = [
-    ...baseItemDetails,
-    {
-      id: 'FEE-ADMIN',
-      price: biayaAdminFlat,
-      quantity: 1,
-      name: 'Biaya Admin Gateway'
-    }
-  ];
-  const grossWithAdmin = Math.round(totalBayar) + biayaAdminFlat;
-
-  const fallbackPayload = {
+  const snapPayload = {
     transaction_details: {
       order_id: nomorTransaksi,
       gross_amount: grossWithAdmin
@@ -157,14 +148,14 @@ export async function createMidtransSnapToken({
       phone: cleanPhone,
       email: 'wali@nurulwafa.sch.id'
     },
-    item_details: fallbackItems,
+    item_details: finalItems,
     callbacks: {
       finish: 'https://mnurulwafa.ruangtech.com/#tagihan'
     }
   };
 
   try {
-    const res = await axios.post(config.snapUrl, fallbackPayload, {
+    const res = await axios.post(config.snapUrl, snapPayload, {
       headers: {
         'Authorization': `Basic ${authHeader}`,
         'Content-Type': 'application/json',
@@ -177,8 +168,8 @@ export async function createMidtransSnapToken({
       success: true,
       token: res.data?.token,
       redirect_url: res.data?.redirect_url,
-      fee_mode: 'flat',
-      biaya_admin: biayaAdminFlat,
+      fee_mode: 'customer_borne_ppn',
+      biaya_admin: biayaAdminPpn,
       total_gross: grossWithAdmin
     };
   } catch (err) {

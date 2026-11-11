@@ -20,16 +20,32 @@ export const ensureSiklusSppTable = async () => {
         \`id\` INT PRIMARY KEY DEFAULT 1,
         \`tgl_terbit_spp\` INT NOT NULL DEFAULT 5,
         \`tgl_jatuh_tempo_spp\` INT NOT NULL DEFAULT 10,
+        \`auto_settlement_midtrans_hari\` INT NOT NULL DEFAULT 1,
+        \`biaya_admin_midtrans_va\` INT NOT NULL DEFAULT 4440,
+        \`biaya_admin_midtrans_qris_persen\` DECIMAL(5,2) NOT NULL DEFAULT 0.78,
+        \`bebankan_fee_midtrans_ortu\` TINYINT(1) NOT NULL DEFAULT 1,
         \`keterangan\` VARCHAR(255) DEFAULT 'Tagihan terbit per tgl 5, batas akhir tgl 10. Lewat tgl 10 otomatis berstatus tunggakan.',
         \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    const altersSiklus = [
+      'ALTER TABLE keuangan_siklus_spp ADD COLUMN auto_settlement_midtrans_hari INT NOT NULL DEFAULT 1',
+      'ALTER TABLE keuangan_siklus_spp ADD COLUMN biaya_admin_midtrans_va INT NOT NULL DEFAULT 4440',
+      'ALTER TABLE keuangan_siklus_spp ADD COLUMN biaya_admin_midtrans_qris_persen DECIMAL(5,2) NOT NULL DEFAULT 0.78',
+      'ALTER TABLE keuangan_siklus_spp ADD COLUMN bebankan_fee_midtrans_ortu TINYINT(1) NOT NULL DEFAULT 1'
+    ];
+    for (const sql of altersSiklus) {
+      try {
+        await pool.query(sql);
+      } catch (_) {}
+    }
+
     const [rows] = await pool.query('SELECT id FROM keuangan_siklus_spp WHERE id = 1');
     if (!rows || rows.length === 0) {
       await pool.query(`
-        INSERT INTO keuangan_siklus_spp (id, tgl_terbit_spp, tgl_jatuh_tempo_spp)
-        VALUES (1, 5, 10)
+        INSERT INTO keuangan_siklus_spp (id, tgl_terbit_spp, tgl_jatuh_tempo_spp, auto_settlement_midtrans_hari, biaya_admin_midtrans_va, biaya_admin_midtrans_qris_persen, bebankan_fee_midtrans_ortu)
+        VALUES (1, 5, 10, 1, 4440, 0.78, 1)
       `);
     }
     isSiklusSppTableInitialized = true;
@@ -167,11 +183,76 @@ export const ensureKeuanganIndexes = async () => {
 };
 
 /**
+ * Otomatis mencairkan (Auto-Settlement) transaksi Midtrans yang sudah melewati H+N hari
+ * sesuai pengaturan di keuangan_siklus_spp (auto_settlement_midtrans_hari)
+ */
+export const runAutoSettlementMidtransIfDue = async () => {
+  try {
+    await ensureSiklusSppTable();
+    const [cfgRows] = await pool.query(
+      'SELECT auto_settlement_midtrans_hari FROM keuangan_siklus_spp WHERE id = 1 LIMIT 1'
+    );
+    const hari = parseInt(cfgRows?.[0]?.auto_settlement_midtrans_hari ?? 1, 10);
+    if (isNaN(hari) || hari <= 0) return;
+
+    const [dueRows] = await pool.query(`
+      SELECT id, nomor_transaksi, total_bayar, COALESCE(NULLIF(nominal_pokok, 0), total_bayar) as nominal_pokok_efektif
+      FROM keuangan_transaksi_pembayaran
+      WHERE status_pembayaran = 'Berhasil'
+        AND COALESCE(status_dana, '') = 'Mengendap di Midtrans'
+        AND COALESCE(tanggal_bayar, created_at) IS NOT NULL
+        AND DATEDIFF(CURDATE(), DATE(COALESCE(tanggal_bayar, created_at))) >= ?
+    `, [hari]);
+
+    if (!dueRows || dueRows.length === 0) return;
+
+    const totalPokokCair = dueRows.reduce(
+      (sum, r) => sum + Math.round(parseFloat(r.nominal_pokok_efektif || r.total_bayar || 0)),
+      0
+    );
+    if (totalPokokCair <= 0) return;
+
+    const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const rand4 = Math.floor(1000 + Math.random() * 9000);
+    const kodeMutasi = `AUTO-MID-${datePart}-${rand4}`;
+    const ketAuto = `Auto-Settlement Midtrans (H+${hari} Hari) — ${dueRows.length} Transaksi Otomatis Masuk ke Rekening Bank`;
+
+    const [bukuRes] = await pool.query(`
+      INSERT INTO keuangan_buku_kas
+      (kode_mutasi, tanggal, jenis_transaksi, kategori, kantong_sumber, kantong_tujuan, nominal, biaya_admin, keterangan, penanggung_jawab, jumlah_trx_dicairkan)
+      VALUES (?, NOW(), 'Pencairan Midtrans ke Bank', 'Auto-Settlement Midtrans', 'Midtrans', 'Rekening Bank', ?, 0, ?, ?, ?)
+    `, [
+      kodeMutasi,
+      totalPokokCair,
+      ketAuto,
+      `Sistem Otomatis (H+${hari})`,
+      dueRows.length
+    ]);
+
+    const bukuKasId = bukuRes.insertId;
+    const idsToUpdate = dueRows.map((r) => r.id);
+    const idPlaceholders = idsToUpdate.map(() => '?').join(',');
+
+    await pool.query(`
+      UPDATE keuangan_transaksi_pembayaran
+      SET status_dana = 'Di Rekening Bank',
+          tanggal_cair_bank = NOW(),
+          buku_kas_pencairan_id = ?,
+          updated_at = NOW()
+      WHERE id IN (${idPlaceholders})
+    `, [bukuKasId, ...idsToUpdate]);
+  } catch (err) {
+    console.warn('[AUTO SETTLEMENT MIDTRANS NOTICE]', err.message);
+  }
+};
+
+/**
  * Menghitung posisi 3 Kantong Saldo (Kas Tunai, Rekening Bank, Mengendap Midtrans)
  * serta akumulasi Buku Kas (Pemasukan Lain, Pengeluaran, Setor Tunai, Tarik Tunai, Pencairan Midtrans)
  */
 export const getRingkasanKantongKas = async () => {
   await ensureKeuanganIndexes();
+  await runAutoSettlementMidtransIfDue();
   try {
     const [
       [trxRows],
@@ -344,9 +425,23 @@ export const getSiklusSppData = async () => {
   await ensureSiklusSppTable();
   try {
     const [rows] = await pool.query('SELECT * FROM keuangan_siklus_spp WHERE id = 1 LIMIT 1');
-    return rows[0] || { tgl_terbit_spp: 5, tgl_jatuh_tempo_spp: 10 };
+    return rows[0] || {
+      tgl_terbit_spp: 5,
+      tgl_jatuh_tempo_spp: 10,
+      auto_settlement_midtrans_hari: 1,
+      biaya_admin_midtrans_va: 4440,
+      biaya_admin_midtrans_qris_persen: 0.78,
+      bebankan_fee_midtrans_ortu: 1
+    };
   } catch (e) {
-    return { tgl_terbit_spp: 5, tgl_jatuh_tempo_spp: 10 };
+    return {
+      tgl_terbit_spp: 5,
+      tgl_jatuh_tempo_spp: 10,
+      auto_settlement_midtrans_hari: 1,
+      biaya_admin_midtrans_va: 4440,
+      biaya_admin_midtrans_qris_persen: 0.78,
+      bebankan_fee_midtrans_ortu: 1
+    };
   }
 };
 
@@ -364,17 +459,38 @@ export const getSiklusSpp = async (req, res) => {
 
 /**
  * POST /api/keuangan/siklus-spp
- * Menyimpan tanggal terbit dan batas akhir pembayaran (jatuh tempo) SPP
- * dan otomatis mengupdate tagihan yang belum lunas
+ * Menyimpan tanggal terbit, batas akhir pembayaran (jatuh tempo) SPP,
+ * serta pengaturan Auto-Settlement Midtrans (H+N hari) & Biaya Admin+PPN Orang Tua
  */
 export const updateSiklusSpp = async (req, res) => {
   const connection = await pool.getConnection();
   try {
     await ensureSiklusSppTable();
-    const { tgl_terbit_spp, tgl_jatuh_tempo_spp, apply_to_existing = true } = req.body;
-    
-    const terbit = Math.max(1, Math.min(28, parseInt(tgl_terbit_spp) || 5));
-    const tempo = Math.max(1, Math.min(28, parseInt(tgl_jatuh_tempo_spp) || 10));
+    const {
+      tgl_terbit_spp,
+      tgl_jatuh_tempo_spp,
+      auto_settlement_midtrans_hari,
+      biaya_admin_midtrans_va,
+      biaya_admin_midtrans_qris_persen,
+      bebankan_fee_midtrans_ortu,
+      apply_to_existing = true
+    } = req.body;
+
+    const existing = await getSiklusSppData();
+    const terbit = Math.max(1, Math.min(28, parseInt(tgl_terbit_spp ?? existing.tgl_terbit_spp) || 5));
+    const tempo = Math.max(1, Math.min(28, parseInt(tgl_jatuh_tempo_spp ?? existing.tgl_jatuh_tempo_spp) || 10));
+    const settlementHari = auto_settlement_midtrans_hari !== undefined
+      ? Math.max(0, Math.min(30, parseInt(auto_settlement_midtrans_hari, 10) || 0))
+      : Number(existing.auto_settlement_midtrans_hari ?? 1);
+    const feeVa = biaya_admin_midtrans_va !== undefined
+      ? Math.max(0, parseInt(biaya_admin_midtrans_va, 10) || 4440)
+      : Number(existing.biaya_admin_midtrans_va ?? 4440);
+    const feeQris = biaya_admin_midtrans_qris_persen !== undefined
+      ? Math.max(0, parseFloat(biaya_admin_midtrans_qris_persen) || 0.78)
+      : Number(existing.biaya_admin_midtrans_qris_persen ?? 0.78);
+    const bebankanOrtu = bebankan_fee_midtrans_ortu !== undefined
+      ? (bebankan_fee_midtrans_ortu ? 1 : 0)
+      : Number(existing.bebankan_fee_midtrans_ortu ?? 1);
 
     await connection.beginTransaction();
 
@@ -382,13 +498,17 @@ export const updateSiklusSpp = async (req, res) => {
       UPDATE keuangan_siklus_spp SET
         tgl_terbit_spp = ?,
         tgl_jatuh_tempo_spp = ?,
-        keterangan = CONCAT('Tagihan terbit per tgl ', ?, ', batas akhir tgl ', ?, '. Lewat tgl ', ?, ' berstatus tunggakan.'),
+        auto_settlement_midtrans_hari = ?,
+        biaya_admin_midtrans_va = ?,
+        biaya_admin_midtrans_qris_persen = ?,
+        bebankan_fee_midtrans_ortu = ?,
+        keterangan = CONCAT('Tagihan terbit per tgl ', ?, ', batas akhir tgl ', ?, '. Auto-Settlement Midtrans: H+', ?, ' hari.'),
         updated_at = NOW()
       WHERE id = 1
-    `, [terbit, tempo, terbit, tempo, tempo]);
+    `, [terbit, tempo, settlementHari, feeVa, feeQris, bebankanOrtu, terbit, tempo, settlementHari]);
 
     let affectedCount = 0;
-    if (apply_to_existing) {
+    if (apply_to_existing && (tgl_terbit_spp !== undefined || tgl_jatuh_tempo_spp !== undefined)) {
       const padTempo = String(tempo).padStart(2, '0');
       const [upRes] = await connection.query(`
         UPDATE keuangan_tagihan
@@ -401,14 +521,21 @@ export const updateSiklusSpp = async (req, res) => {
     }
 
     await connection.commit();
-    return sendSuccess(res, `Pengaturan siklus SPP berhasil disimpan: Terbit tgl ${terbit}, Jatuh Tempo tgl ${tempo}. (${affectedCount} tagihan berjalan otomatis disesuaikan).`, {
+    await runAutoSettlementMidtransIfDue();
+
+    const modeSettlementLabel = settlementHari === 0 ? 'Manual' : `Otomatis H+${settlementHari} Hari`;
+    return sendSuccess(res, `Pengaturan berhasil disimpan (Siklus SPP Tgl ${terbit}-${tempo}, Pencairan Midtrans: ${modeSettlementLabel}).`, {
       tgl_terbit_spp: terbit,
       tgl_jatuh_tempo_spp: tempo,
+      auto_settlement_midtrans_hari: settlementHari,
+      biaya_admin_midtrans_va: feeVa,
+      biaya_admin_midtrans_qris_persen: feeQris,
+      bebankan_fee_midtrans_ortu: bebankanOrtu,
       tagihan_updated: affectedCount
     });
   } catch (err) {
     await connection.rollback();
-    return sendError(res, `Gagal menyimpan siklus SPP: ${err.message}`, 500);
+    return sendError(res, `Gagal menyimpan pengaturan keuangan: ${err.message}`, 500);
   } finally {
     connection.release();
   }
@@ -831,15 +958,20 @@ export const buatTransaksiPembayaran = async (req, res) => {
     let snapToken = null;
     let paymentUrl = null;
     let finalTotalBayar = totalBayar;
+    const siklusCfg = await getSiklusSppData();
 
-    // 1. Buat Snap Token Midtrans (Otomatis dinamis per channel, dengan fallback flat fee)
+    // 1. Buat Snap Token Midtrans (Biaya Admin + PPN 11% dibebankan ke Orang Tua)
     try {
       const snapRes = await createMidtransSnapToken({
         nomorTransaksi,
         totalBayar,
         santriNama,
         noWaWali,
-        items: itemsValid
+        items: itemsValid,
+        metode,
+        biayaVaFlat: Number(siklusCfg.biaya_admin_midtrans_va || 4440),
+        biayaQrisPersen: Number(siklusCfg.biaya_admin_midtrans_qris_persen || 0.78),
+        bebankanFeeKeOrtu: Number(siklusCfg.bebankan_fee_midtrans_ortu ?? 1) === 1
       });
       if (snapRes && snapRes.success) {
         snapToken = snapRes.token;
@@ -915,6 +1047,8 @@ export const buatTransaksiPembayaran = async (req, res) => {
       nomor_transaksi: nomorTransaksi,
       metode_pembayaran: metode,
       channel_pembayaran: channel,
+      nominal_pokok: totalBayar,
+      biaya_admin: nominalFeeGateway,
       total_bayar: finalTotalBayar,
       formatted_total: `Rp ${finalTotalBayar.toLocaleString('id-ID')}`,
       va_number: vaNumber,
@@ -1027,24 +1161,40 @@ export const lanjutkanPembayaran = async (req, res) => {
       judul_tagihan: d.judul_tagihan
     }));
 
+    const siklusCfg = await getSiklusSppData();
+    const pokokTrx = parseFloat(trx.nominal_pokok || 0) > 0
+      ? parseFloat(trx.nominal_pokok)
+      : itemsValid.reduce((s, it) => s + (parseFloat(it.nominal_alokasi) || 0), 0) || parseFloat(trx.total_bayar);
+
     const snapRes = await createMidtransSnapToken({
       nomorTransaksi: newOrderId,
-      totalBayar: trx.total_bayar,
+      totalBayar: pokokTrx,
       santriNama: trx.nama_santri || 'Santri',
       noWaWali: trx.no_wa_wali || '081234567890',
-      items: itemsValid
+      items: itemsValid,
+      metode: trx.metode_pembayaran || 'Virtual Account',
+      biayaVaFlat: Number(siklusCfg.biaya_admin_midtrans_va || 4440),
+      biayaQrisPersen: Number(siklusCfg.biaya_admin_midtrans_qris_persen || 0.78),
+      bebankanFeeKeOrtu: Number(siklusCfg.bebankan_fee_midtrans_ortu ?? 1) === 1
     });
 
     if (snapRes && snapRes.success && snapRes.token) {
+      const grossBaru = snapRes.total_gross || trx.total_bayar;
+      const feeBaru = Math.max(0, grossBaru - pokokTrx);
       try {
-        await connection.query('UPDATE keuangan_transaksi_pembayaran SET nomor_transaksi = ?, snap_token = ? WHERE id = ?', [newOrderId, snapRes.token, trx.id]);
+        await connection.query(
+          'UPDATE keuangan_transaksi_pembayaran SET nomor_transaksi = ?, snap_token = ?, total_bayar = ?, nominal_pokok = ?, nominal_fee_gateway = ? WHERE id = ?',
+          [newOrderId, snapRes.token, grossBaru, pokokTrx, feeBaru, trx.id]
+        );
       } catch (upErr) {}
 
       return sendSuccess(res, 'Token transaksi berhasil dimuat', {
         snap_token: snapRes.token,
         payment_url: snapRes.redirect_url,
         nomor_transaksi: newOrderId,
-        total_bayar: trx.total_bayar
+        nominal_pokok: pokokTrx,
+        biaya_admin: feeBaru,
+        total_bayar: grossBaru
       });
     } else {
       return sendError(res, `Gagal memuat token Midtrans: ${snapRes?.error || 'Tidak dapat membuat snap token'}`, 400);
