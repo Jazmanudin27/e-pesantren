@@ -1185,7 +1185,6 @@ export default function MobileTataTertib() {
               <X size={17} />
             </button>
           </div>
-
           <form
             onSubmit={handleSave}
             style={{

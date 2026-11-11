@@ -67,6 +67,17 @@ export default function TabunganSantriAdminView() {
     }).format(Number(val) || 0);
   };
 
+  const formatRibuanInput = (rawVal) => {
+    const digits = String(rawVal || '').replace(/\D/g, '');
+    if (!digits) return '';
+    return Number(digits).toLocaleString('id-ID');
+  };
+
+  const parseRibuanInput = (val) => {
+    const digits = String(val || '').replace(/\D/g, '');
+    return digits ? Number(digits) : 0;
+  };
+
   const formatDateIndo = (dateStr) => {
     if (!dateStr) return '-';
     try {
@@ -139,7 +150,7 @@ export default function TabunganSantriAdminView() {
   // 4. Submit Transaction
   const handleSubmitTransaction = async (e) => {
     e.preventDefault();
-    const nom = parseFloat(formData.nominal);
+    const nom = parseRibuanInput(formData.nominal);
     if (!nom || nom <= 0) {
       toastError('Masukkan nominal yang valid');
       return;
@@ -616,34 +627,38 @@ export default function TabunganSantriAdminView() {
                   Nominal (Rp) *
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   required
-                  placeholder="Contoh: 100000"
+                  placeholder="Contoh: 100.000"
                   value={formData.nominal}
-                  onChange={(e) => setFormData({ ...formData, nominal: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, nominal: formatRibuanInput(e.target.value) })}
                   style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '1rem', fontWeight: 800, boxSizing: 'border-box' }}
                 />
               </div>
 
               {/* Quick Nominal */}
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                {[20000, 50000, 100000, 200000, 500000].map((chip) => (
+                {[10000, 20000, 50000, 100000, 250000, 500000].map((chip) => (
                   <button
                     key={chip}
                     type="button"
-                    onClick={() => setFormData({ ...formData, nominal: chip.toString() })}
+                    onClick={() => {
+                      const cur = parseRibuanInput(formData.nominal);
+                      setFormData({ ...formData, nominal: formatRibuanInput(cur + chip) });
+                    }}
                     style={{
-                      background: formData.nominal === chip.toString() ? '#0d766e' : '#f1f5f9',
-                      color: formData.nominal === chip.toString() ? '#ffffff' : '#334155',
-                      border: 'none',
+                      background: '#f1f5f9',
+                      color: '#0f766e',
+                      border: '1px solid #cbd5e1',
                       borderRadius: '6px',
-                      padding: '3px 8px',
-                      fontSize: '0.68rem',
-                      fontWeight: 700,
+                      padding: '4px 9px',
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
                       cursor: 'pointer',
                     }}
                   >
-                    {formatRupiah(chip)}
+                    +{chip / 1000} Rb
                   </button>
                 ))}
               </div>

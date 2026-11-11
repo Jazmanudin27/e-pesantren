@@ -81,10 +81,10 @@ const getOrCreateTabunganRow = async (santriId, connection = pool) => {
 export const getTabunganList = async (req, res) => {
   try {
     await ensureTabunganTables();
-    const { search = '', kelas_id, asrama_id, limit = 50, page = 1 } = req.query;
+    const { search = '', kelas_id, asrama_id, limit = 500, page = 1 } = req.query;
 
     const pageNum = Math.max(1, parseInt(page) || 1);
-    const limitNum = Math.max(1, parseInt(limit) || 50);
+    const limitNum = Math.max(1, parseInt(limit) || 500);
     const offset = (pageNum - 1) * limitNum;
 
     // Conditions
@@ -122,6 +122,8 @@ export const getTabunganList = async (req, res) => {
       SELECT 
         s.*,
         s.no_wa_wali as no_hp_wali,
+        COALESCE(s.nama_kelas, kl.nama_kelas) as nama_kelas,
+        sk.nama_sekolah,
         a.nama_asrama,
         k.nama_kamar,
         COALESCE(t.saldo, 0.00) as saldo,
@@ -131,6 +133,8 @@ export const getTabunganList = async (req, res) => {
         COALESCE(trx.jumlah_transaksi, 0) as jumlah_transaksi
       FROM santri s
       LEFT JOIN santri_tabungan t ON s.id = t.santri_id
+      LEFT JOIN kelas kl ON s.kelas_id = kl.id
+      LEFT JOIN sekolah sk ON s.sekolah_id = sk.id
       LEFT JOIN asrama a ON s.asrama_id = a.id
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
       LEFT JOIN (
@@ -143,7 +147,7 @@ export const getTabunganList = async (req, res) => {
         GROUP BY santri_id
       ) trx ON s.id = trx.santri_id
       ${whereClause}
-      ORDER BY s.nama_santri ASC
+      ORDER BY COALESCE(t.saldo, 0) DESC, s.nama_santri ASC
       LIMIT ? OFFSET ?
       `,
       [...params, limitNum, offset]
@@ -165,6 +169,31 @@ export const getTabunganList = async (req, res) => {
       FROM santri_tabungan_transaksi
     `);
 
+    const [recentTrxRows] = await pool.query(`
+      SELECT 
+        tr.id,
+        tr.santri_id,
+        tr.kode_transaksi,
+        tr.jenis_transaksi,
+        tr.nominal,
+        tr.saldo_sebelum,
+        tr.saldo_sesudah,
+        tr.keterangan,
+        tr.tanggal_transaksi,
+        tr.admin_nama,
+        tr.created_at,
+        s.nama_santri,
+        s.nis,
+        COALESCE(s.nama_kelas, kl.nama_kelas) as nama_kelas,
+        sk.nama_sekolah
+      FROM santri_tabungan_transaksi tr
+      LEFT JOIN santri s ON tr.santri_id = s.id
+      LEFT JOIN kelas kl ON s.kelas_id = kl.id
+      LEFT JOIN sekolah sk ON s.sekolah_id = sk.id
+      ORDER BY tr.tanggal_transaksi DESC, tr.id DESC
+      LIMIT 100
+    `);
+
     return sendSuccess(res, 'Berhasil memuat daftar tabungan santri', {
       summary: {
         total_saldo: parseFloat(globalStats[0]?.total_saldo || 0),
@@ -179,6 +208,12 @@ export const getTabunganList = async (req, res) => {
         total: totalRecords,
         totalPages: Math.ceil(totalRecords / limitNum)
       },
+      riwayat_terbaru: (recentTrxRows || []).map(t => ({
+        ...t,
+        nominal: parseFloat(t.nominal || 0),
+        saldo_sebelum: parseFloat(t.saldo_sebelum || 0),
+        saldo_sesudah: parseFloat(t.saldo_sesudah || 0)
+      })),
       data: santriRows.map(r => ({
         ...r,
         saldo: parseFloat(r.saldo || 0),

@@ -561,97 +561,7 @@ export default function LaporanBukuKasTable({
           gap: "10px",
         }}
       >
-        {/* Row 1: Judul & Tombol Export / Cetak */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "8px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <Filter size={15} color="#063954" />
-            <span
-              style={{
-                fontSize: "0.78rem",
-                fontWeight: 900,
-                color: "#0f172a",
-                textTransform: "uppercase",
-                letterSpacing: "0.02em",
-              }}
-            >
-              Filter Laporan Buku Kas
-            </span>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            {!Array.isArray(externalBukuKas) && (
-              <button
-                type="button"
-                onClick={fetchFullBukuKas}
-                style={{
-                  background: "#f1f5f9",
-                  border: "1px solid #cbd5e1",
-                  borderRadius: "8px",
-                  padding: "5px 8px",
-                  fontSize: "0.68rem",
-                  fontWeight: 800,
-                  color: "#334155",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  cursor: "pointer",
-                }}
-              >
-                <RotateCw size={12} />
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={handleExportExcel}
-              style={{
-                background: "#ecfdf5",
-                border: "1px solid #a7f3d0",
-                borderRadius: "8px",
-                padding: "5px 9px",
-                fontSize: "0.68rem",
-                fontWeight: 800,
-                color: "#047857",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                cursor: "pointer",
-              }}
-            >
-              <Download size={12} />
-              <span>Excel</span>
-            </button>
-            <button
-              type="button"
-              onClick={handlePrint}
-              style={{
-                background: "#063954",
-                border: "none",
-                borderRadius: "8px",
-                padding: "5px 10px",
-                fontSize: "0.68rem",
-                fontWeight: 800,
-                color: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                cursor: "pointer",
-              }}
-            >
-              <Printer size={12} />
-              <span>Cetak</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Row 2: Dari Tanggal & Sampai Tanggal */}
+        {/* Dari Tanggal & Sampai Tanggal */}
         <div
           style={{
             display: "grid",
@@ -1245,15 +1155,15 @@ export default function LaporanBukuKasTable({
               onClick={(e) => e.stopPropagation()}
               style={{
                 width: "100%",
-                maxWidth: "420px",
+                maxWidth: "360px",
                 background: "#ffffff",
-                borderRadius: "22px",
-                padding: "18px",
+                borderRadius: "18px",
+                padding: "14px",
                 boxShadow: "0 20px 40px rgba(15, 23, 42, 0.25)",
                 border: "1px solid #e2e8f0",
                 display: "flex",
                 flexDirection: "column",
-                gap: "12px",
+                gap: "9px",
               }}
             >
               {/* Modal Top Bar */}
@@ -1262,7 +1172,7 @@ export default function LaporanBukuKasTable({
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "flex-start",
-                  gap: "10px",
+                  gap: "8px",
                 }}
               >
                 <div>
@@ -1270,14 +1180,14 @@ export default function LaporanBukuKasTable({
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
-                      padding: "3px 9px",
+                      padding: "2px 8px",
                       borderRadius: "999px",
-                      fontSize: "0.65rem",
+                      fontSize: "0.58rem",
                       fontWeight: 800,
                       background: bg,
                       color,
                       border: `1px solid ${borderCol}`,
-                      marginBottom: "6px",
+                      marginBottom: "4px",
                     }}
                   >
                     {it.jenis_transaksi === "Pemasukan Lain"
@@ -1286,7 +1196,7 @@ export default function LaporanBukuKasTable({
                   </span>
                   <div
                     style={{
-                      fontSize: "0.98rem",
+                      fontSize: "0.84rem",
                       fontWeight: 900,
                       color: "#0f172a",
                       lineHeight: 1.25,
@@ -1296,12 +1206,12 @@ export default function LaporanBukuKasTable({
                   </div>
                   <div
                     style={{
-                      fontSize: "0.7rem",
+                      fontSize: "0.64rem",
                       color: "#64748b",
-                      marginTop: "3px",
+                      marginTop: "2px",
                       display: "flex",
                       alignItems: "center",
-                      gap: "5px",
+                      gap: "4px",
                       flexWrap: "wrap",
                     }}
                   >
@@ -1317,8 +1227,8 @@ export default function LaporanBukuKasTable({
                     background: "#f1f5f9",
                     border: "none",
                     borderRadius: "50%",
-                    width: "32px",
-                    height: "32px",
+                    width: "26px",
+                    height: "26px",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -1327,7 +1237,7 @@ export default function LaporanBukuKasTable({
                     flexShrink: 0,
                   }}
                 >
-                  <X size={16} />
+                  <X size={14} />
                 </button>
               </div>
 
@@ -1336,17 +1246,18 @@ export default function LaporanBukuKasTable({
                 style={{
                   background: bg,
                   border: `1px solid ${borderCol}`,
-                  borderRadius: "14px",
-                  padding: "12px 14px",
+                  borderRadius: "11px",
+                  padding: "9px 11px",
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
+                  gap: "8px",
                 }}
               >
                 <div>
                   <div
                     style={{
-                      fontSize: "0.66rem",
+                      fontSize: "0.58rem",
                       fontWeight: 800,
                       color,
                       textTransform: "uppercase",
@@ -1356,10 +1267,10 @@ export default function LaporanBukuKasTable({
                   </div>
                   <div
                     style={{
-                      fontSize: "0.7rem",
+                      fontSize: "0.62rem",
                       fontWeight: 700,
                       color: "#475569",
-                      marginTop: "2px",
+                      marginTop: "1px",
                     }}
                   >
                     Saldo Setelah Mutasi: <b>{formatRp(r.saldo)}</b>
@@ -1367,9 +1278,10 @@ export default function LaporanBukuKasTable({
                 </div>
                 <div
                   style={{
-                    fontSize: "1.15rem",
+                    fontSize: "0.94rem",
                     fontWeight: 900,
                     color,
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {isOut ? `- ${formatRp(r.pengeluaran)}` : `+ ${formatRp(r.penerimaan)}`}
@@ -1381,20 +1293,20 @@ export default function LaporanBukuKasTable({
                 style={{
                   background: "#f8fafc",
                   border: "1px solid #e2e8f0",
-                  borderRadius: "14px",
-                  padding: "12px 14px",
-                  maxHeight: "240px",
+                  borderRadius: "11px",
+                  padding: "9px 11px",
+                  maxHeight: "210px",
                   overflowY: "auto",
                 }}
               >
                 <div
                   style={{
-                    fontSize: "0.66rem",
+                    fontSize: "0.58rem",
                     fontWeight: 800,
                     color: "#64748b",
                     textTransform: "uppercase",
                     letterSpacing: "0.04em",
-                    marginBottom: "6px",
+                    marginBottom: "4px",
                   }}
                 >
                   {it.is_pembayaran_santri
@@ -1403,31 +1315,31 @@ export default function LaporanBukuKasTable({
                 </div>
 
                 {bulletItems.length > 1 ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
                     {bulletItems.map((bItem, bIdx) => (
                       <div
                         key={bIdx}
                         style={{
-                          fontSize: "0.76rem",
+                          fontSize: "0.68rem",
                           fontWeight: 700,
                           color: "#1e293b",
-                          padding: "6px 9px",
+                          padding: "5px 8px",
                           background: "#ffffff",
-                          borderRadius: "8px",
+                          borderRadius: "7px",
                           border: "1px solid #e2e8f0",
                           display: "flex",
                           alignItems: "center",
-                          gap: "7px",
+                          gap: "6px",
                         }}
                       >
                         <span
                           style={{
-                            width: "18px",
-                            height: "18px",
+                            width: "16px",
+                            height: "16px",
                             borderRadius: "50%",
                             background: bg,
                             color,
-                            fontSize: "0.64rem",
+                            fontSize: "0.58rem",
                             fontWeight: 900,
                             display: "inline-flex",
                             alignItems: "center",
@@ -1444,10 +1356,10 @@ export default function LaporanBukuKasTable({
                 ) : (
                   <div
                     style={{
-                      fontSize: "0.8rem",
+                      fontSize: "0.72rem",
                       fontWeight: 700,
                       color: "#0f172a",
-                      lineHeight: 1.45,
+                      lineHeight: 1.4,
                     }}
                   >
                     {detailBody}
@@ -1460,12 +1372,12 @@ export default function LaporanBukuKasTable({
                 onClick={() => setDetailModal({ isOpen: false, row: null })}
                 style={{
                   width: "100%",
-                  padding: "10px 14px",
-                  borderRadius: "12px",
+                  padding: "8px 12px",
+                  borderRadius: "9px",
                   border: "none",
                   background: "#0f172a",
                   color: "#ffffff",
-                  fontSize: "0.78rem",
+                  fontSize: "0.7rem",
                   fontWeight: 800,
                   cursor: "pointer",
                 }}
