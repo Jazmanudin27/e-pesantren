@@ -991,6 +991,7 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
               return (
                 <div
                   key={trx.id}
+                  onClick={() => setKuitansiModal({ isOpen: true, data: trx })}
                   style={{
                     background: "#ffffff",
                     borderRadius: "18px",
@@ -998,6 +999,7 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
                     border: "1px solid #e2e8f0",
                     borderLeft: `4px solid ${methodMeta.accent}`,
                     boxShadow: "0 4px 14px -4px rgba(15, 23, 42, 0.05)",
+                    cursor: "pointer",
                   }}
                 >
                   {/* Header Card */}
@@ -1153,38 +1155,6 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
                     </div>
                   </div>
 
-                  {/* Rincian Item yang Dibayar */}
-                  <div
-                    style={{
-                      marginTop: "10px",
-                      background: "#f8fafc",
-                      border: "1px solid #f1f5f9",
-                      borderRadius: "12px",
-                      padding: "8px 10px",
-                      fontSize: "0.74rem",
-                      color: "#334155",
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: "0.62rem",
-                        fontWeight: 800,
-                        color: "#64748b",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.04em",
-                        marginBottom: "2px",
-                      }}
-                    >
-                      Item Dibayar
-                    </div>
-                    <div style={{ fontWeight: 600, color: "#0f172a" }}>
-                      {trx.rincian_item ||
-                        trx.keterangan ||
-                        "Pembayaran Tagihan Santri"}
-                    </div>
-                  </div>
-
                   {/* Footer */}
                   <div
                     style={{
@@ -1211,9 +1181,10 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
                     <div style={{ display: "flex", gap: "6px" }}>
                       <button
                         type="button"
-                        onClick={() =>
-                          setKuitansiModal({ isOpen: true, data: trx })
-                        }
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setKuitansiModal({ isOpen: true, data: trx });
+                        }}
                         style={{
                           background: "#f8fafc",
                           border: "1px solid #cbd5e1",
@@ -1229,13 +1200,16 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
                         }}
                       >
                         <Receipt size={12} color="#059669" />
-                        <span>Kuitansi</span>
+                        <span>Rincian</span>
                       </button>
 
                       {trx.no_wa_wali && (
                         <button
                           type="button"
-                          onClick={() => handleSendWaKuitansi(trx)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSendWaKuitansi(trx);
+                          }}
                           style={{
                             background: "#ecfdf5",
                             border: "1px solid #a7f3d0",

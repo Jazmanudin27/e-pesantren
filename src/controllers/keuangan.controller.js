@@ -3124,7 +3124,13 @@ export const getBukuKasAndKantong = async (req, res) => {
           COALESCE(s.nama_santri, p.keterangan, 'Santri NWF') as nama_santri,
           COALESCE(s.nis, '-') as nis,
           (
-            SELECT GROUP_CONCAT(t.judul_tagihan SEPARATOR ', ')
+            SELECT GROUP_CONCAT(
+              CONCAT(
+                t.judul_tagihan,
+                IF(t.periode_bulan IS NOT NULL AND t.periode_bulan != '', CONCAT(' - ', t.periode_bulan), ''),
+                ' (Rp ', FORMAT(d.nominal_alokasi, 0, 'id_ID'), ')'
+              ) SEPARATOR ', '
+            )
             FROM keuangan_transaksi_detail d
             JOIN keuangan_tagihan t ON d.tagihan_id = t.id
             WHERE d.transaksi_id = p.id

@@ -184,6 +184,12 @@ export default function PanelKantongDanBukuKas({
   });
   const [submittingCair, setSubmittingCair] = useState(false);
 
+  // Modal Detail / Rincian Mutasi saat kartu diklik
+  const [detailModal, setDetailModal] = useState({
+    isOpen: false,
+    item: null,
+  });
+
   const fetchKantongAndBukuKas = useCallback(async () => {
     try {
       setLoading(true);
@@ -966,13 +972,15 @@ export default function PanelKantongDanBukuKas({
               return (
                 <div
                   key={item.id}
+                  onClick={() => setDetailModal({ isOpen: true, item })}
                   style={{
                     background: "#ffffff",
                     borderRadius: "18px",
-                    padding: "14px",
+                    padding: "13px 14px",
                     border: "1px solid #e2e8f0",
                     borderLeft: `4px solid ${accent}`,
                     boxShadow: "0 4px 14px -4px rgba(15, 23, 42, 0.05)",
+                    cursor: "pointer",
                   }}
                 >
                   {/* Header Row: Icon + Title/Date + Nominal & Badge */}
@@ -980,9 +988,8 @@ export default function PanelKantongDanBukuKas({
                     style={{
                       display: "flex",
                       justifyContent: "space-between",
-                      alignItems: "flex-start",
+                      alignItems: "center",
                       gap: "10px",
-                      marginBottom: "10px",
                     }}
                   >
                     <div
@@ -1094,159 +1101,389 @@ export default function PanelKantongDanBukuKas({
                       </span>
                     </div>
                   </div>
-
-                  {/* Detail / Uraian Box (Soft Tinted seperti Tata Tertib) */}
-                  <div
-                    style={{
-                      fontSize: "0.75rem",
-                      color: "#334155",
-                      background: bg,
-                      border: `1px solid ${borderCol}`,
-                      padding: "9px 11px",
-                      borderRadius: "12px",
-                      marginBottom:
-                        !readOnly && !item.is_pembayaran_santri ? "10px" : "0",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: "6px",
-                        marginBottom: "3px",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "0.64rem",
-                          fontWeight: 800,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.04em",
-                          color,
-                        }}
-                      >
-                        {item.is_pembayaran_santri
-                          ? "Rincian Pembayaran Tagihan"
-                          : "Uraian / Keterangan"}
-                      </span>
-                      {(item.kantong_sumber || item.kantong_tujuan) && (
-                        <span
-                          style={{
-                            fontSize: "0.63rem",
-                            fontWeight: 800,
-                            padding: "1px 7px",
-                            borderRadius: "999px",
-                            background: "#ffffff",
-                            color,
-                            border: `1px solid ${borderCol}`,
-                          }}
-                        >
-                          {item.kantong_sumber && item.kantong_tujuan && item.kantong_sumber !== item.kantong_tujuan
-                            ? `${item.kantong_sumber} → ${item.kantong_tujuan}`
-                            : item.kantong_sumber || item.kantong_tujuan}
-                        </span>
-                      )}
-                    </div>
-                    <div
-                      style={{
-                        fontWeight: 600,
-                        color: "#0f172a",
-                        lineHeight: 1.38,
-                      }}
-                    >
-                      {detailText}
-                    </div>
-                    {item.biaya_admin > 0 && (
-                      <div
-                        style={{
-                          fontSize: "0.66rem",
-                          color: "#dc2626",
-                          fontWeight: 700,
-                          marginTop: "4px",
-                        }}
-                      >
-                        Biaya Admin: {formatRp(item.biaya_admin)}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Action Footer untuk Catatan Buku Kas Manual */}
-                  {!readOnly && !item.is_pembayaran_santri && (
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "7px",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        borderTop: "1px solid #f1f5f9",
-                        paddingTop: "9px",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "0.68rem",
-                          fontWeight: 700,
-                          color: "#64748b",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                        }}
-                      >
-                        <CheckCircle2 size={13} color={color} />
-                        <span>Catatan Buku Kas</span>
-                      </span>
-
-                      <div
-                        style={{ display: "flex", gap: "6px", marginLeft: "auto" }}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => openEditFormModal(item)}
-                          style={{
-                            padding: "6px 11px",
-                            borderRadius: "10px",
-                            border: "1px solid #e2e8f0",
-                            background: "#ffffff",
-                            color: "#334155",
-                            fontSize: "0.72rem",
-                            fontWeight: 700,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "4px",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <Edit3 size={13} /> Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteBukuKas(item)}
-                          style={{
-                            padding: "6px 11px",
-                            borderRadius: "10px",
-                            border: "1px solid #fecdd3",
-                            background: "#fff1f2",
-                            color: "#be123c",
-                            fontSize: "0.72rem",
-                            fontWeight: 700,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "4px",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <Trash2 size={13} /> Hapus
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </div>
               );
             })}
           </div>
         )}
       </div>
+
+      {/* MODAL DETAIL / RINCIAN SAAT ITEM DIKLIK */}
+      {detailModal.isOpen && detailModal.item && (() => {
+        const it = detailModal.item;
+        const isOut = it.jenis_transaksi === "Pengeluaran";
+        const isIn =
+          it.jenis_transaksi === "Pemasukan Lain" ||
+          Boolean(it.is_pembayaran_santri);
+        const isCair = it.jenis_transaksi === "Pencairan Midtrans ke Bank";
+
+        const color = isOut
+          ? "#be123c"
+          : isIn
+            ? "#047857"
+            : isCair
+              ? "#6d28d9"
+              : "#0369a1";
+        const bg = isOut
+          ? "#fff1f2"
+          : isIn
+            ? "#ecfdf5"
+            : isCair
+              ? "#f5f3ff"
+              : "#f0f9ff";
+        const borderCol = isOut
+          ? "#fecdd3"
+          : isIn
+            ? "#bbf7d0"
+            : isCair
+              ? "#ddd6fe"
+              : "#bae6fd";
+
+        const rawKet = String(it.keterangan || "-");
+        const parts = rawKet.split(" — ");
+        const titleName = it.is_pembayaran_santri
+          ? parts[0] || "Pembayaran Santri"
+          : it.kategori || it.jenis_transaksi;
+        const detailBody = it.is_pembayaran_santri
+          ? parts.slice(1).join(" — ") || rawKet
+          : rawKet;
+        const bulletItems = it.is_pembayaran_santri
+          ? detailBody
+              .split(/,\s*(?=[A-Za-z])/)
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [];
+
+        return (
+          <div
+            onClick={() => setDetailModal({ isOpen: false, item: null })}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 10000,
+              background: "rgba(15, 23, 42, 0.65)",
+              backdropFilter: "blur(4px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "16px",
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: "100%",
+                maxWidth: "420px",
+                background: "#ffffff",
+                borderRadius: "22px",
+                padding: "18px",
+                boxShadow: "0 20px 40px rgba(15, 23, 42, 0.25)",
+                border: "1px solid #e2e8f0",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
+              {/* Modal Top Bar */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  gap: "10px",
+                }}
+              >
+                <div>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      padding: "3px 9px",
+                      borderRadius: "999px",
+                      fontSize: "0.65rem",
+                      fontWeight: 800,
+                      background: bg,
+                      color,
+                      border: `1px solid ${borderCol}`,
+                      marginBottom: "6px",
+                    }}
+                  >
+                    {it.jenis_transaksi === "Pemasukan Lain"
+                      ? "Pemasukan"
+                      : it.jenis_transaksi}
+                  </span>
+                  <div
+                    style={{
+                      fontSize: "0.98rem",
+                      fontWeight: 900,
+                      color: "#0f172a",
+                      lineHeight: 1.25,
+                    }}
+                  >
+                    {titleName}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "0.7rem",
+                      color: "#64748b",
+                      marginTop: "3px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <span>{formatDateId(it.tanggal)}</span>
+                    {it.kode_mutasi && <span>• #{it.kode_mutasi}</span>}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setDetailModal({ isOpen: false, item: null })}
+                  style={{
+                    background: "#f1f5f9",
+                    border: "none",
+                    borderRadius: "50%",
+                    width: "32px",
+                    height: "32px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#475569",
+                    cursor: "pointer",
+                    flexShrink: 0,
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Nominal Box */}
+              <div
+                style={{
+                  background: bg,
+                  border: `1px solid ${borderCol}`,
+                  borderRadius: "14px",
+                  padding: "12px 14px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: "0.66rem",
+                      fontWeight: 800,
+                      color,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Nominal Transaksi
+                  </div>
+                  {(it.kantong_sumber || it.kantong_tujuan) && (
+                    <div
+                      style={{
+                        fontSize: "0.7rem",
+                        fontWeight: 700,
+                        color: "#475569",
+                        marginTop: "2px",
+                      }}
+                    >
+                      Kantong:{" "}
+                      {it.kantong_sumber &&
+                      it.kantong_tujuan &&
+                      it.kantong_sumber !== it.kantong_tujuan
+                        ? `${it.kantong_sumber} → ${it.kantong_tujuan}`
+                        : it.kantong_sumber || it.kantong_tujuan}
+                    </div>
+                  )}
+                </div>
+                <div
+                  style={{
+                    fontSize: "1.18rem",
+                    fontWeight: 900,
+                    color,
+                  }}
+                >
+                  {isOut ? "- " : isIn ? "+ " : ""}
+                  {formatRp(it.nominal)}
+                </div>
+              </div>
+
+              {/* Rincian Box */}
+              <div
+                style={{
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "14px",
+                  padding: "12px 14px",
+                  maxHeight: "240px",
+                  overflowY: "auto",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "0.66rem",
+                    fontWeight: 800,
+                    color: "#64748b",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                    marginBottom: "6px",
+                  }}
+                >
+                  {it.is_pembayaran_santri
+                    ? `Rincian Pembayaran (${bulletItems.length || 1} Item)`
+                    : "Uraian / Keterangan"}
+                </div>
+
+                {bulletItems.length > 1 ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    {bulletItems.map((bItem, bIdx) => (
+                      <div
+                        key={bIdx}
+                        style={{
+                          fontSize: "0.76rem",
+                          fontWeight: 700,
+                          color: "#1e293b",
+                          padding: "6px 9px",
+                          background: "#ffffff",
+                          borderRadius: "8px",
+                          border: "1px solid #e2e8f0",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "7px",
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: "18px",
+                            height: "18px",
+                            borderRadius: "50%",
+                            background: bg,
+                            color,
+                            fontSize: "0.64rem",
+                            fontWeight: 900,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {bIdx + 1}
+                        </span>
+                        <span>{bItem}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      fontSize: "0.8rem",
+                      fontWeight: 700,
+                      color: "#0f172a",
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    {detailBody}
+                  </div>
+                )}
+
+                {it.biaya_admin > 0 && (
+                  <div
+                    style={{
+                      fontSize: "0.7rem",
+                      color: "#dc2626",
+                      fontWeight: 700,
+                      marginTop: "6px",
+                    }}
+                  >
+                    Biaya Admin: {formatRp(it.biaya_admin)}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer Actions */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: "8px",
+                  justifyContent: "flex-end",
+                  paddingTop: "4px",
+                }}
+              >
+                {!readOnly && !it.is_pembayaran_santri && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDetailModal({ isOpen: false, item: null });
+                        openEditFormModal(it);
+                      }}
+                      style={{
+                        padding: "9px 14px",
+                        borderRadius: "11px",
+                        border: "1px solid #cbd5e1",
+                        background: "#ffffff",
+                        color: "#334155",
+                        fontSize: "0.76rem",
+                        fontWeight: 800,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "5px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <Edit3 size={14} /> Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDetailModal({ isOpen: false, item: null });
+                        handleDeleteBukuKas(it);
+                      }}
+                      style={{
+                        padding: "9px 14px",
+                        borderRadius: "11px",
+                        border: "1px solid #fecdd3",
+                        background: "#fff1f2",
+                        color: "#be123c",
+                        fontSize: "0.76rem",
+                        fontWeight: 800,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "5px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <Trash2 size={14} /> Hapus
+                    </button>
+                  </>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setDetailModal({ isOpen: false, item: null })}
+                  style={{
+                    flex: it.is_pembayaran_santri ? 1 : "unset",
+                    padding: "9px 16px",
+                    borderRadius: "11px",
+                    border: "none",
+                    background: "#0f172a",
+                    color: "#ffffff",
+                    fontSize: "0.76rem",
+                    fontWeight: 800,
+                    cursor: "pointer",
+                  }}
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* MODAL 1: FULL SCREEN FORM INPUT & EDIT BUKU KAS */}
       {formModal.isOpen && (

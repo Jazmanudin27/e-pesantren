@@ -2213,23 +2213,36 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                   else if (isSMA) { badgeBg = '#fef3c7'; badgeColor = '#b45309'; }
                   else if (isSMK) { badgeBg = '#f3e8ff'; badgeColor = '#7e22ce'; }
 
+                  const openRincianTrx = () => setKuitansiModal({
+                    isOpen: true,
+                    data: {
+                      ...trx,
+                      kuitansi_nomor: trx.nomor_kuitansi || trx.nomor_transaksi || `KW-${trx.id}`,
+                      total_dibayar: trx.total_bayar,
+                      santri: { nama_santri: trx.nama_santri, nis: trx.nis, kelas: trx.nama_sekolah || trx.tingkat_sekolah },
+                      items_dibayar: [{ judul: trx.rincian_item || trx.keterangan || 'Pembayaran Kasir', nominal: trx.total_bayar }]
+                    }
+                  });
+
                   return (
                     <div
                       key={trx.id || idx}
+                      onClick={openRincianTrx}
                       style={{
                         background: '#ffffff',
                         borderRadius: '18px',
-                        padding: '14px',
+                        padding: '13px 14px',
                         border: '1px solid #e2e8f0',
                         borderLeft: '4px solid #10b981',
                         boxShadow: '0 4px 14px -4px rgba(15, 23, 42, 0.05)',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '9px'
+                        gap: '8px',
+                        cursor: 'pointer'
                       }}
                     >
                       {/* Info Santri & Nominal */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
                           <div style={{
                             width: '38px',
@@ -2253,7 +2266,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', marginTop: '2px' }}>
                               <span style={{ fontSize: '0.68rem', color: '#64748b' }}>
-                                NIS: {trx.nis || '-'}
+                                {trx.tanggal_bayar ? new Date(trx.tanggal_bayar).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Hari ini'}
                               </span>
                               <span style={{
                                 fontSize: '0.62rem',
@@ -2289,66 +2302,6 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                             <CheckCircle2 size={10} /> Sah / Lunas
                           </span>
                         </div>
-                      </div>
-
-                      {/* Rincian Tagihan (Soft Tinted Box) */}
-                      <div style={{
-                        background: '#ecfdf5',
-                        padding: '9px 11px',
-                        borderRadius: '12px',
-                        fontSize: '0.74rem',
-                        color: '#0f172a',
-                        lineHeight: 1.4,
-                        border: '1px solid #bbf7d0'
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
-                          <span style={{ fontWeight: 800, color: '#047857', fontSize: '0.64rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                            Item Dibayar
-                          </span>
-                          <span style={{ fontSize: '0.64rem', color: '#065f46', fontWeight: 700 }}>
-                            {trx.tanggal_bayar ? new Date(trx.tanggal_bayar).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Hari ini'}
-                          </span>
-                        </div>
-                        <div style={{ fontWeight: 600 }}>
-                          {trx.rincian_item || trx.keterangan || 'Pembayaran Tagihan Santri'}
-                        </div>
-                      </div>
-
-                      {/* Footer: Metode & Kuitansi */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid #f1f5f9' }}>
-                        <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <CreditCard size={13} color="#059669" />
-                          <span>{trx.metode_pembayaran || 'Kasir'} • #{trx.nomor_transaksi || `TRX-${trx.id}`}</span>
-                        </div>
-
-                        <button
-                          onClick={() => setKuitansiModal({
-                            isOpen: true,
-                            data: {
-                              ...trx,
-                              kuitansi_nomor: trx.nomor_kuitansi || trx.nomor_transaksi || `KW-${trx.id}`,
-                              total_dibayar: trx.total_bayar,
-                              santri: { nama_santri: trx.nama_santri, nis: trx.nis, kelas: trx.nama_sekolah || trx.tingkat_sekolah },
-                              items_dibayar: [{ judul: trx.rincian_item || trx.keterangan || 'Pembayaran Kasir', nominal: trx.total_bayar }]
-                            }
-                          })}
-                          style={{
-                            background: '#ffffff',
-                            border: '1px solid #cbd5e1',
-                            color: '#334155',
-                            padding: '6px 11px',
-                            borderRadius: '10px',
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}
-                        >
-                          <Receipt size={13} />
-                          <span>Lihat Kuitansi</span>
-                        </button>
                       </div>
                     </div>
                   );

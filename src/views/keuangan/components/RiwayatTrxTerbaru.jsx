@@ -79,7 +79,7 @@ export default function RiwayatTrxTerbaru({
                 }}
               >
                 {/* Header Row */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', marginBottom: '9px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
                     <div style={{
                       width: '38px',
@@ -131,51 +131,6 @@ export default function RiwayatTrxTerbaru({
                       {methodLabel}
                     </span>
                   </div>
-                </div>
-
-                {/* Soft Box Rincian */}
-                {(trx.rincian_item || trx.keterangan) && (
-                  <div style={{
-                    fontSize: '0.73rem',
-                    color: '#334155',
-                    background: bg,
-                    border: `1px solid ${borderCol}`,
-                    padding: '8px 10px',
-                    borderRadius: '11px',
-                    marginBottom: '8px',
-                    lineHeight: 1.35,
-                    fontWeight: 600
-                  }}>
-                    {trx.rincian_item || trx.keterangan}
-                  </div>
-                )}
-
-                {/* Footer */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  borderTop: '1px solid #f1f5f9',
-                  paddingTop: '8px'
-                }}>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <CheckCircle2 size={13} />
-                    Pembayaran Sah
-                  </span>
-                  <span style={{
-                    fontSize: '0.7rem',
-                    fontWeight: 800,
-                    color: '#334155',
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    padding: '4px 9px',
-                    borderRadius: '8px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}>
-                    <Receipt size={12} /> Kuitansi
-                  </span>
                 </div>
               </div>
             );
