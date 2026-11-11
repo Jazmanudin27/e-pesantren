@@ -3121,7 +3121,6 @@ export const getBukuKasAndKantong = async (req, res) => {
           p.status_dana,
           p.tanggal_bayar,
           p.keterangan as catatan_pembayaran,
-          p.diterima_oleh,
           COALESCE(s.nama_santri, p.keterangan, 'Santri NWF') as nama_santri,
           COALESCE(s.nis, '-') as nis,
           (
@@ -3183,7 +3182,7 @@ export const getBukuKasAndKantong = async (req, res) => {
         nominal: Number(r.nominal_pokok || r.total_bayar || 0),
         biaya_admin: 0,
         keterangan: `${r.nama_santri} — ${rincianText}`,
-        penanggung_jawab: r.diterima_oleh || 'Kasir',
+        penanggung_jawab: 'Kasir',
         is_pembayaran_santri: true,
         status_dana: r.status_dana,
         metode_pembayaran: r.metode_pembayaran
