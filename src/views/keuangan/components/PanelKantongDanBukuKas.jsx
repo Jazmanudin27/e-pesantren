@@ -835,16 +835,8 @@ export default function PanelKantongDanBukuKas({
         </select>
       </div>
 
-      {/* 3. RIWAYAT MUTASI KAS (LIMIT 50) */}
-      <div
-        style={{
-          background: "#ffffff",
-          borderRadius: "18px",
-          padding: "14px",
-          border: "1px solid #e2e8f0",
-          boxShadow: "0 4px 12px rgba(15, 23, 42, 0.03)",
-        }}
-      >
+      {/* 3. RIWAYAT MUTASI KAS (LIMIT 50 - MODERN CARD LIST VIEW) */}
+      <div>
         <div
           style={{
             display: "flex",
@@ -852,36 +844,80 @@ export default function PanelKantongDanBukuKas({
             alignItems: "center",
             gap: "8px",
             marginBottom: "10px",
+            padding: "0 2px",
           }}
         >
-          <div style={{ fontSize: "0.82rem", fontWeight: 900, color: "#0f172a" }}>
-            {activeTab === "tunai"
-              ? "Riwayat Mutasi Kas Tunai"
-              : activeTab === "bank"
-                ? "Riwayat Mutasi Rekening Bank"
-                : "Riwayat Pencairan Midtrans"}
+          <div
+            style={{
+              fontSize: "0.84rem",
+              fontWeight: 900,
+              color: "#0f172a",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            <div
+              style={{
+                width: "4px",
+                height: "15px",
+                background: "#0d766e",
+                borderRadius: "4px",
+              }}
+            />
+            <span>
+              {activeTab === "tunai"
+                ? "Riwayat Mutasi Kas Tunai"
+                : activeTab === "bank"
+                  ? "Riwayat Mutasi Rekening Bank"
+                  : "Riwayat Pencairan Midtrans"}
+            </span>
           </div>
+          <span
+            style={{
+              fontSize: "0.68rem",
+              fontWeight: 800,
+              color: "#047857",
+              background: "#ecfdf5",
+              border: "1px solid #a7f3d0",
+              padding: "2px 8px",
+              borderRadius: "999px",
+            }}
+          >
+            {displayedMutasi.length} Mutasi
+          </span>
         </div>
 
         {loading && bukuKas.length === 0 ? (
-          <div style={{ padding: "24px", textAlign: "center", fontSize: "0.75rem", color: "#64748b" }}>
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: "18px",
+              padding: "28px 16px",
+              textAlign: "center",
+              border: "1px solid #e2e8f0",
+              fontSize: "0.76rem",
+              color: "#64748b",
+            }}
+          >
             Memuat data buku kas...
           </div>
         ) : displayedMutasi.length === 0 ? (
           <div
             style={{
-              padding: "24px 14px",
+              padding: "28px 16px",
               textAlign: "center",
-              background: "#f8fafc",
-              borderRadius: "12px",
+              background: "#ffffff",
+              borderRadius: "18px",
+              border: "1px solid #e2e8f0",
               color: "#64748b",
-              fontSize: "0.74rem",
+              fontSize: "0.76rem",
             }}
           >
             Belum ada catatan mutasi pada kantong ini.
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             {displayedMutasi.map((item) => {
               const isOut = item.jenis_transaksi === "Pengeluaran";
               const isIn =
@@ -890,150 +926,321 @@ export default function PanelKantongDanBukuKas({
               const isCair = item.jenis_transaksi === "Pencairan Midtrans ke Bank";
 
               const color = isOut
-                ? "#dc2626"
+                ? "#be123c"
                 : isIn
-                  ? "#059669"
+                  ? "#047857"
+                  : isCair
+                    ? "#6d28d9"
+                    : "#0369a1";
+              const accent = isOut
+                ? "#e11d48"
+                : isIn
+                  ? "#10b981"
                   : isCair
                     ? "#7c3aed"
                     : "#0284c7";
               const bg = isOut
-                ? "#fef2f2"
+                ? "#fff1f2"
                 : isIn
                   ? "#ecfdf5"
                   : isCair
                     ? "#f5f3ff"
                     : "#f0f9ff";
+              const borderCol = isOut
+                ? "#fecdd3"
+                : isIn
+                  ? "#bbf7d0"
+                  : isCair
+                    ? "#ddd6fe"
+                    : "#bae6fd";
+
+              const rawKeterangan = String(item.keterangan || "-");
+              const parts = rawKeterangan.split(" — ");
+              const mainTitle = item.is_pembayaran_santri
+                ? parts[0] || "Pembayaran Santri"
+                : item.kategori || item.jenis_transaksi;
+              const detailText = item.is_pembayaran_santri
+                ? parts.slice(1).join(" — ") || rawKeterangan
+                : rawKeterangan;
 
               return (
                 <div
                   key={item.id}
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: "10px",
-                    padding: "10px 12px",
-                    borderRadius: "13px",
-                    border: "1px solid #f1f5f9",
-                    background: "#f8fafc",
+                    background: "#ffffff",
+                    borderRadius: "18px",
+                    padding: "14px",
+                    border: "1px solid #e2e8f0",
+                    borderLeft: `4px solid ${accent}`,
+                    boxShadow: "0 4px 14px -4px rgba(15, 23, 42, 0.05)",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
+                  {/* Header Row: Icon + Title/Date + Nominal & Badge */}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                      gap: "10px",
+                      marginBottom: "10px",
+                    }}
+                  >
                     <div
                       style={{
-                        width: "34px",
-                        height: "34px",
-                        borderRadius: "10px",
-                        background: bg,
-                        color,
                         display: "flex",
                         alignItems: "center",
-                        justifyContent: "center",
+                        gap: "10px",
+                        minWidth: 0,
+                        flex: 1,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "38px",
+                          height: "38px",
+                          borderRadius: "12px",
+                          background: bg,
+                          color,
+                          border: `1px solid ${borderCol}`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {isOut ? (
+                          <ArrowDownRight size={18} />
+                        ) : isIn ? (
+                          <ArrowUpRight size={18} />
+                        ) : (
+                          <ArrowRightLeft size={16} />
+                        )}
+                      </div>
+
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div
+                          style={{
+                            fontWeight: 800,
+                            fontSize: "0.88rem",
+                            color: "#0f172a",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {mainTitle}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.68rem",
+                            color: "#64748b",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            flexWrap: "wrap",
+                            marginTop: "2px",
+                          }}
+                        >
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "3px",
+                            }}
+                          >
+                            <Calendar size={11} />
+                            {formatDateId(item.tanggal)}
+                          </span>
+                          {item.kode_mutasi && <span>• #{item.kode_mutasi}</span>}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "flex-end",
+                        gap: "3px",
                         flexShrink: 0,
                       }}
                     >
-                      {isOut ? (
-                        <ArrowDownRight size={17} />
-                      ) : isIn ? (
-                        <ArrowUpRight size={17} />
-                      ) : (
-                        <ArrowRightLeft size={15} />
-                      )}
-                    </div>
-
-                    <div style={{ minWidth: 0, flex: 1 }}>
                       <div
                         style={{
-                          fontSize: "0.78rem",
-                          fontWeight: 800,
-                          color: "#0f172a",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
+                          fontSize: "0.92rem",
+                          fontWeight: 900,
+                          color,
                         }}
                       >
-                        {item.keterangan}
+                        {isOut ? "- " : isIn ? "+ " : ""}
+                        {formatRp(item.nominal)}
                       </div>
-                      <div
+                      <span
                         style={{
-                          fontSize: "0.65rem",
-                          color: "#64748b",
-                          marginTop: "2px",
-                          display: "flex",
+                          display: "inline-flex",
                           alignItems: "center",
-                          gap: "5px",
-                          flexWrap: "wrap",
+                          padding: "2px 8px",
+                          borderRadius: "999px",
+                          fontSize: "0.62rem",
+                          fontWeight: 800,
+                          background: bg,
+                          color,
+                          border: `1px solid ${borderCol}`,
                         }}
                       >
-                        <span style={{ color, fontWeight: 800 }}>{item.jenis_transaksi}</span>
-                        <span>•</span>
-                        <span>{formatDateId(item.tanggal)}</span>
-                        {(item.kantong_sumber || item.kantong_tujuan) && (
-                          <>
-                            <span>•</span>
-                            <span>{item.kantong_sumber || item.kantong_tujuan}</span>
-                          </>
-                        )}
-                      </div>
+                        {item.jenis_transaksi === "Pemasukan Lain"
+                          ? "Pemasukan"
+                          : item.jenis_transaksi}
+                      </span>
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: "0.82rem", fontWeight: 900, color }}>
-                        {isOut ? "-" : isIn ? "+" : ""}
-                        {formatRp(item.nominal)}
-                      </div>
-                      {item.biaya_admin > 0 && (
-                        <div style={{ fontSize: "0.58rem", color: "#dc2626" }}>
-                          Admin: {formatRp(item.biaya_admin)}
-                        </div>
+                  {/* Detail / Uraian Box (Soft Tinted seperti Tata Tertib) */}
+                  <div
+                    style={{
+                      fontSize: "0.75rem",
+                      color: "#334155",
+                      background: bg,
+                      border: `1px solid ${borderCol}`,
+                      padding: "9px 11px",
+                      borderRadius: "12px",
+                      marginBottom:
+                        !readOnly && !item.is_pembayaran_santri ? "10px" : "0",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: "6px",
+                        marginBottom: "3px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "0.64rem",
+                          fontWeight: 800,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.04em",
+                          color,
+                        }}
+                      >
+                        {item.is_pembayaran_santri
+                          ? "Rincian Pembayaran Tagihan"
+                          : "Uraian / Keterangan"}
+                      </span>
+                      {(item.kantong_sumber || item.kantong_tujuan) && (
+                        <span
+                          style={{
+                            fontSize: "0.63rem",
+                            fontWeight: 800,
+                            padding: "1px 7px",
+                            borderRadius: "999px",
+                            background: "#ffffff",
+                            color,
+                            border: `1px solid ${borderCol}`,
+                          }}
+                        >
+                          {item.kantong_sumber && item.kantong_tujuan && item.kantong_sumber !== item.kantong_tujuan
+                            ? `${item.kantong_sumber} → ${item.kantong_tujuan}`
+                            : item.kantong_sumber || item.kantong_tujuan}
+                        </span>
                       )}
                     </div>
+                    <div
+                      style={{
+                        fontWeight: 600,
+                        color: "#0f172a",
+                        lineHeight: 1.38,
+                      }}
+                    >
+                      {detailText}
+                    </div>
+                    {item.biaya_admin > 0 && (
+                      <div
+                        style={{
+                          fontSize: "0.66rem",
+                          color: "#dc2626",
+                          fontWeight: 700,
+                          marginTop: "4px",
+                        }}
+                      >
+                        Biaya Admin: {formatRp(item.biaya_admin)}
+                      </div>
+                    )}
+                  </div>
 
-                    {!readOnly && !item.is_pembayaran_santri && (
-                      <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                  {/* Action Footer untuk Catatan Buku Kas Manual */}
+                  {!readOnly && !item.is_pembayaran_santri && (
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "7px",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        borderTop: "1px solid #f1f5f9",
+                        paddingTop: "9px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "0.68rem",
+                          fontWeight: 700,
+                          color: "#64748b",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        <CheckCircle2 size={13} color={color} />
+                        <span>Catatan Buku Kas</span>
+                      </span>
+
+                      <div
+                        style={{ display: "flex", gap: "6px", marginLeft: "auto" }}
+                      >
                         <button
                           type="button"
                           onClick={() => openEditFormModal(item)}
                           style={{
+                            padding: "6px 11px",
+                            borderRadius: "10px",
+                            border: "1px solid #e2e8f0",
                             background: "#ffffff",
-                            border: "1px solid #e0f2fe",
-                            color: "#0284c7",
-                            width: "28px",
-                            height: "28px",
-                            borderRadius: "8px",
+                            color: "#334155",
+                            fontSize: "0.72rem",
+                            fontWeight: 700,
                             display: "flex",
                             alignItems: "center",
-                            justifyContent: "center",
+                            gap: "4px",
                             cursor: "pointer",
                           }}
-                          title="Edit Catatan"
                         >
-                          <Edit3 size={13} />
+                          <Edit3 size={13} /> Edit
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDeleteBukuKas(item)}
                           style={{
-                            background: "#ffffff",
-                            border: "1px solid #fee2e2",
-                            color: "#dc2626",
-                            width: "28px",
-                            height: "28px",
-                            borderRadius: "8px",
+                            padding: "6px 11px",
+                            borderRadius: "10px",
+                            border: "1px solid #fecdd3",
+                            background: "#fff1f2",
+                            color: "#be123c",
+                            fontSize: "0.72rem",
+                            fontWeight: 700,
                             display: "flex",
                             alignItems: "center",
-                            justifyContent: "center",
+                            gap: "4px",
                             cursor: "pointer",
                           }}
-                          title="Hapus"
                         >
-                          <Trash2 size={13} />
+                          <Trash2 size={13} /> Hapus
                         </button>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               );
             })}

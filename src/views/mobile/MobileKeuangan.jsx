@@ -2218,91 +2218,107 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                       key={trx.id || idx}
                       style={{
                         background: '#ffffff',
-                        borderRadius: '16px',
+                        borderRadius: '18px',
                         padding: '14px',
                         border: '1px solid #e2e8f0',
-                        boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                        borderLeft: '4px solid #10b981',
+                        boxShadow: '0 4px 14px -4px rgba(15, 23, 42, 0.05)',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '8px'
+                        gap: '9px'
                       }}
                     >
-                      {/* Top Bar Card */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>
-                          #{trx.nomor_transaksi || `TRX-${trx.id}`}
-                        </span>
-                        <span style={{
-                          fontSize: '0.66rem',
-                          fontWeight: 800,
-                          background: '#dcfce7',
-                          color: '#15803d',
-                          padding: '2px 7px',
-                          borderRadius: '6px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '3px'
-                        }}>
-                          <CheckCircle2 size={11} /> Sah / Lunas
-                        </span>
-                      </div>
-
                       {/* Info Santri & Nominal */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                          <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>
-                            {trx.nama_santri || 'Santri'}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+                          <div style={{
+                            width: '38px',
+                            height: '38px',
+                            borderRadius: '12px',
+                            background: '#ecfdf5',
+                            color: '#047857',
+                            border: '1px solid #bbf7d0',
+                            fontWeight: 800,
+                            fontSize: '0.82rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}>
+                            {(trx.nama_santri || 'S').slice(0, 2).toUpperCase()}
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                            <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                              NIS: {trx.nis || '-'}
-                            </span>
-                            <span style={{
-                              fontSize: '0.64rem',
-                              fontWeight: 800,
-                              background: badgeBg,
-                              color: badgeColor,
-                              padding: '1px 6px',
-                              borderRadius: '4px'
-                            }}>
-                              {sekolahLabel}
-                            </span>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {trx.nama_santri || 'Santri'}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', marginTop: '2px' }}>
+                              <span style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                                NIS: {trx.nis || '-'}
+                              </span>
+                              <span style={{
+                                fontSize: '0.62rem',
+                                fontWeight: 800,
+                                background: badgeBg,
+                                color: badgeColor,
+                                padding: '1px 6px',
+                                borderRadius: '6px'
+                              }}>
+                                {sekolahLabel}
+                              </span>
+                            </div>
                           </div>
                         </div>
 
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#047857' }}>
-                            Rp {Number(trx.total_bayar || 0).toLocaleString('id-ID')}
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <div style={{ fontSize: '0.94rem', fontWeight: 900, color: '#047857' }}>
+                            + Rp {Number(trx.total_bayar || 0).toLocaleString('id-ID')}
                           </div>
-                          <div style={{ fontSize: '0.66rem', color: '#64748b', marginTop: '1px' }}>
-                            {trx.tanggal_bayar ? new Date(trx.tanggal_bayar).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Hari ini'}
-                          </div>
+                          <span style={{
+                            fontSize: '0.62rem',
+                            fontWeight: 800,
+                            background: '#dcfce7',
+                            color: '#15803d',
+                            border: '1px solid #bbf7d0',
+                            padding: '2px 7px',
+                            borderRadius: '999px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            marginTop: '3px'
+                          }}>
+                            <CheckCircle2 size={10} /> Sah / Lunas
+                          </span>
                         </div>
                       </div>
 
-                      {/* Rincian Tagihan */}
+                      {/* Rincian Tagihan (Soft Tinted Box) */}
                       <div style={{
-                        background: '#f8fafc',
-                        padding: '8px 10px',
-                        borderRadius: '10px',
-                        fontSize: '0.72rem',
-                        color: '#334155',
+                        background: '#ecfdf5',
+                        padding: '9px 11px',
+                        borderRadius: '12px',
+                        fontSize: '0.74rem',
+                        color: '#0f172a',
                         lineHeight: 1.4,
-                        border: '1px solid #f1f5f9'
+                        border: '1px solid #bbf7d0'
                       }}>
-                        <div style={{ fontWeight: 700, color: '#64748b', marginBottom: '2px', fontSize: '0.66rem' }}>
-                          ITEM DIBAYAR:
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+                          <span style={{ fontWeight: 800, color: '#047857', fontSize: '0.64rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                            Item Dibayar
+                          </span>
+                          <span style={{ fontSize: '0.64rem', color: '#065f46', fontWeight: 700 }}>
+                            {trx.tanggal_bayar ? new Date(trx.tanggal_bayar).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Hari ini'}
+                          </span>
                         </div>
-                        <div>
+                        <div style={{ fontWeight: 600 }}>
                           {trx.rincian_item || trx.keterangan || 'Pembayaran Tagihan Santri'}
                         </div>
                       </div>
 
                       {/* Footer: Metode & Kuitansi */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px', borderTop: '1px solid #f1f5f9' }}>
-                        <div style={{ fontSize: '0.68rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <CreditCard size={12} color="#059669" />
-                          <span>{trx.metode_pembayaran || 'Kasir'} {trx.channel_pembayaran ? `(${trx.channel_pembayaran})` : ''}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid #f1f5f9' }}>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <CreditCard size={13} color="#059669" />
+                          <span>{trx.metode_pembayaran || 'Kasir'} • #{trx.nomor_transaksi || `TRX-${trx.id}`}</span>
                         </div>
 
                         <button
@@ -2317,20 +2333,20 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
                             }
                           })}
                           style={{
-                            background: '#ecfdf5',
-                            border: '1px solid #a7f3d0',
-                            color: '#047857',
-                            padding: '4px 10px',
-                            borderRadius: '8px',
+                            background: '#ffffff',
+                            border: '1px solid #cbd5e1',
+                            color: '#334155',
+                            padding: '6px 11px',
+                            borderRadius: '10px',
                             fontSize: '0.72rem',
-                            fontWeight: 800,
+                            fontWeight: 700,
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '4px'
                           }}
                         >
-                          <Receipt size={12} />
+                          <Receipt size={13} />
                           <span>Lihat Kuitansi</span>
                         </button>
                       </div>
