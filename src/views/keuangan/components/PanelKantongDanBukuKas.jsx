@@ -885,141 +885,63 @@ export default function PanelKantongDanBukuKas({
         </div>
       </div>
 
-      {/* 2. SELECT OPTION PILIH KANTONG / BUKU KAS & SWITCHER LAPORAN TABEL */}
+      {/* 2. SELECT OPTION PILIH KANTONG / BUKU KAS */}
       <div
         style={{
           background: "#ffffff",
           borderRadius: "16px",
-          padding: "10px 12px",
+          padding: "11px 14px",
           border: "1px solid #e2e8f0",
           boxShadow: "0 2px 8px rgba(15, 23, 42, 0.03)",
           display: "flex",
-          flexDirection: "column",
-          gap: "8px",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "10px",
         }}
       >
-        <div
+        <label
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "10px",
+            fontSize: "0.75rem",
+            fontWeight: 800,
+            color: "#334155",
+            whiteSpace: "nowrap",
           }}
         >
-          <label
-            style={{
-              fontSize: "0.75rem",
-              fontWeight: 800,
-              color: "#334155",
-              whiteSpace: "nowrap",
-            }}
-          >
-            Kantong Kas
-          </label>
-          <select
-            value={activeTab}
-            onChange={(e) => setActiveTab(e.target.value)}
-            style={{
-              flex: 1,
-              maxWidth: "220px",
-              padding: "7px 12px",
-              borderRadius: "11px",
-              border: "1.5px solid #059669",
-              background: "#ecfdf5",
-              color: "#065f46",
-              fontSize: "0.78rem",
-              fontWeight: 800,
-              cursor: "pointer",
-              outline: "none",
-              textAlign: "left",
-              textAlignLast: "left",
-            }}
-          >
-            <option value="tunai" style={{ textAlign: "left" }}>
-              Kas Tunai
-            </option>
-            <option value="bank" style={{ textAlign: "left" }}>
-              Rek. Bank
-            </option>
-            <option value="midtrans" style={{ textAlign: "left" }}>
-              Midtrans
-            </option>
-          </select>
-        </div>
-
-        {/* Switcher: Riwayat Mutasi (Kartu) vs Laporan Buku Kas (Tabel Saldo Awal / Penerimaan / Pengeluaran / Saldo) */}
-        <div
+          Kantong Kas
+        </label>
+        <select
+          value={activeTab}
+          onChange={(e) => setActiveTab(e.target.value)}
           style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "6px",
-            background: "#f1f5f9",
-            padding: "4px",
-            borderRadius: "10px",
+            flex: 1,
+            maxWidth: "220px",
+            padding: "8px 12px",
+            borderRadius: "11px",
+            border: "1.5px solid #059669",
+            background: "#ecfdf5",
+            color: "#065f46",
+            fontSize: "0.78rem",
+            fontWeight: 800,
+            cursor: "pointer",
+            outline: "none",
+            textAlign: "left",
+            textAlignLast: "left",
           }}
         >
-          <button
-            type="button"
-            onClick={() => setViewMode("mutasi")}
-            style={{
-              padding: "6px 8px",
-              borderRadius: "8px",
-              border: "none",
-              background: viewMode === "mutasi" ? "#ffffff" : "transparent",
-              color: viewMode === "mutasi" ? "#065f46" : "#64748b",
-              fontWeight: 800,
-              fontSize: "0.72rem",
-              cursor: "pointer",
-              boxShadow:
-                viewMode === "mutasi"
-                  ? "0 1px 4px rgba(15, 23, 42, 0.08)"
-                  : "none",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "5px",
-            }}
-          >
-            <Wallet size={13} />
-            <span>Riwayat Mutasi</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode("laporan")}
-            style={{
-              padding: "6px 8px",
-              borderRadius: "8px",
-              border: "none",
-              background: viewMode === "laporan" ? "#063954" : "transparent",
-              color: viewMode === "laporan" ? "#ffffff" : "#64748b",
-              fontWeight: 800,
-              fontSize: "0.72rem",
-              cursor: "pointer",
-              boxShadow:
-                viewMode === "laporan"
-                  ? "0 2px 6px rgba(6, 57, 84, 0.25)"
-                  : "none",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "5px",
-            }}
-          >
-            <FileText size={13} />
-            <span>Laporan Buku Kas</span>
-          </button>
-        </div>
+          <option value="tunai" style={{ textAlign: "left" }}>
+            Kas Tunai
+          </option>
+          <option value="bank" style={{ textAlign: "left" }}>
+            Rek. Bank
+          </option>
+          <option value="midtrans" style={{ textAlign: "left" }}>
+            Midtrans
+          </option>
+        </select>
       </div>
 
-      {viewMode === "laporan" ? (
-        <LaporanBukuKasTable
-          externalBukuKas={bukuKas}
-          defaultKantong={activeTab}
-          onSelectRow={(item) => setDetailModal({ isOpen: true, item })}
-        />
-      ) : (
-        /* 3. RIWAYAT MUTASI KAS (LIMIT 50 - MODERN CARD LIST VIEW) */
-        <div>
+      {/* 3. RIWAYAT MUTASI KAS (LIMIT 50 - MODERN CARD LIST VIEW) */}
+      <div>
         <div
           style={{
             display: "flex",
@@ -1283,8 +1205,7 @@ export default function PanelKantongDanBukuKas({
             })}
           </div>
         )}
-        </div>
-      )}
+      </div>
 
       {/* MODAL DETAIL / RINCIAN SAAT ITEM DIKLIK */}
       {detailModal.isOpen && detailModal.item && (() => {

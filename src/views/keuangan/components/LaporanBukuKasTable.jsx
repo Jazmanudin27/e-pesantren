@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
 import {
-  Calendar,
   Search,
   Printer,
   Download,
   RotateCw,
   Filter,
-  Wallet,
+  ArrowUpRight,
+  ArrowDownRight,
   X,
 } from "lucide-react";
 
@@ -154,12 +154,10 @@ export default function LaporanBukuKasTable({
   const [dariTanggal, setDariTanggal] = useState(firstDayOfMonthYmd);
   const [sampaiTanggal, setSampaiTanggal] = useState(todayYmd);
   const [kantongFilter, setKantongFilter] = useState(defaultKantong || "tunai");
-  const [kategoriFilter, setKategoriFilter] = useState("semua");
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [internalBukuKas, setInternalBukuKas] = useState([]);
 
-  // Sync defaultKantong if changed from parent
   useEffect(() => {
     if (defaultKantong) {
       setKantongFilter(defaultKantong);
@@ -257,20 +255,6 @@ export default function LaporanBukuKasTable({
     ? externalBukuKas
     : internalBukuKas;
 
-  // Daftar kategori unik berdasarkan kantong yang dipilih
-  const availableKategoriList = useMemo(() => {
-    const setKat = new Set();
-    (rawList || []).forEach((item) => {
-      const mut = getMutasiNominalForKantong(item, kantongFilter);
-      if (!mut) return;
-      const kat = String(
-        item.kategori || item.jenis_transaksi || "Lainnya",
-      ).trim();
-      if (kat) setKat.add(kat);
-    });
-    return Array.from(setKat);
-  }, [rawList, kantongFilter]);
-
   // Perhitungan Saldo Awal, Baris Mutasi (Kronologis Terlama -> Terbaru), dan Total
   const reportData = useMemo(() => {
     const startYmd =
@@ -282,7 +266,6 @@ export default function LaporanBukuKasTable({
         ? dariTanggal
         : sampaiTanggal;
 
-    // 1. Filter item yang masuk ke kantong & urutkan kronologis (tanggal ASC, id ASC)
     const validItems = [];
     (rawList || []).forEach((item) => {
       const mut = getMutasiNominalForKantong(item, kantongFilter);
@@ -292,15 +275,13 @@ export default function LaporanBukuKasTable({
       const kat = String(
         item.kategori || item.jenis_transaksi || "Lainnya",
       ).trim();
-      if (kategoriFilter !== "semua" && kat !== kategoriFilter) {
-        return;
-      }
 
       const ymd = toDateYmd(item.tanggal || item.created_at);
       validItems.push({
         raw: item,
         ymd,
-        timestamp: new Date(item.tanggal || item.created_at || 0).getTime() || 0,
+        timestamp:
+          new Date(item.tanggal || item.created_at || 0).getTime() || 0,
         noBukti: item.kode_mutasi || `KAS-${item.id}`,
         kategori: kat,
         keterangan:
@@ -323,19 +304,22 @@ export default function LaporanBukuKasTable({
       return String(a.raw.id).localeCompare(String(b.raw.id));
     });
 
-    // 2. Hitung SALDO AWAL (semua transaksi sebelum startYmd)
+    // Hitung SALDO AWAL (semua transaksi sebelum startYmd)
     let saldoAwal = 0;
     const rowsInPeriod = [];
 
     validItems.forEach((it) => {
       if (startYmd && it.ymd && it.ymd < startYmd) {
         saldoAwal += it.penerimaan - it.pengeluaran;
-      } else if ((!startYmd || it.ymd >= startYmd) && (!endYmd || it.ymd <= endYmd)) {
+      } else if (
+        (!startYmd || it.ymd >= startYmd) &&
+        (!endYmd || it.ymd <= endYmd)
+      ) {
         rowsInPeriod.push(it);
       }
     });
 
-    // 3. Hitung Saldo Berjalan (Running Balance) & terapkan pencarian teks
+    // Hitung Saldo Berjalan (Running Balance) & terapkan pencarian teks
     let runningSaldo = saldoAwal;
     let totalPenerimaan = 0;
     let totalPengeluaran = 0;
@@ -366,14 +350,7 @@ export default function LaporanBukuKasTable({
       totalPengeluaran,
       saldoAkhir: runningSaldo,
     };
-  }, [
-    rawList,
-    kantongFilter,
-    kategoriFilter,
-    dariTanggal,
-    sampaiTanggal,
-    searchQuery,
-  ]);
+  }, [rawList, kantongFilter, dariTanggal, sampaiTanggal, searchQuery]);
 
   const kantongLabelMap = {
     tunai: "Kas Tunai (Cash Bendahara)",
@@ -426,7 +403,6 @@ export default function LaporanBukuKasTable({
           <div class="meta">
             Kantong: <b>${kantongLabelMap[kantongFilter]}</b> &nbsp;|&nbsp;
             Periode: <b>${formatDateSlash(dariTanggal)} s/d ${formatDateSlash(sampaiTanggal)}</b>
-            ${kategoriFilter !== "semua" ? `&nbsp;|&nbsp; Kategori: <b>${kategoriFilter}</b>` : ""}
           </div>
           <table>
             <thead>
@@ -536,7 +512,7 @@ export default function LaporanBukuKasTable({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-      {/* PANEL FILTER: DARI - SAMPAI, KATEGORI KANTONG, KATEGORI TRANSAKSI */}
+      {/* 1. PANEL FILTER: DARI - SAMPAI & KATEGORI KANTONG */}
       <div
         style={{
           background: "#ffffff",
@@ -660,25 +636,23 @@ export default function LaporanBukuKasTable({
             >
               Dari Tanggal
             </label>
-            <div style={{ position: "relative" }}>
-              <input
-                type="date"
-                value={dariTanggal}
-                onChange={(e) => setDariTanggal(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "7px 8px",
-                  borderRadius: "9px",
-                  border: "1px solid #cbd5e1",
-                  fontSize: "0.74rem",
-                  fontWeight: 700,
-                  color: "#0f172a",
-                  background: "#f8fafc",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-              />
-            </div>
+            <input
+              type="date"
+              value={dariTanggal}
+              onChange={(e) => setDariTanggal(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "7px 8px",
+                borderRadius: "9px",
+                border: "1px solid #cbd5e1",
+                fontSize: "0.74rem",
+                fontWeight: 700,
+                color: "#0f172a",
+                background: "#f8fafc",
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
           </div>
 
           <div>
@@ -694,95 +668,13 @@ export default function LaporanBukuKasTable({
             >
               Sampai Tanggal
             </label>
-            <div style={{ position: "relative" }}>
-              <input
-                type="date"
-                value={sampaiTanggal}
-                onChange={(e) => setSampaiTanggal(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "7px 8px",
-                  borderRadius: "9px",
-                  border: "1px solid #cbd5e1",
-                  fontSize: "0.74rem",
-                  fontWeight: 700,
-                  color: "#0f172a",
-                  background: "#f8fafc",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Row 3: Filter Kategori Kantong & Kategori Transaksi */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "8px",
-          }}
-        >
-          <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: "0.65rem",
-                fontWeight: 800,
-                color: "#475569",
-                marginBottom: "4px",
-                textTransform: "uppercase",
-              }}
-            >
-              Kategori Kantong
-            </label>
-            <select
-              value={kantongFilter}
-              onChange={(e) => {
-                setKantongFilter(e.target.value);
-                setKategoriFilter("semua");
-              }}
+            <input
+              type="date"
+              value={sampaiTanggal}
+              onChange={(e) => setSampaiTanggal(e.target.value)}
               style={{
                 width: "100%",
-                padding: "7px 9px",
-                borderRadius: "9px",
-                border: "1.5px solid #063954",
-                fontSize: "0.74rem",
-                fontWeight: 800,
-                color: "#063954",
-                background: "#f0f9ff",
-                outline: "none",
-                cursor: "pointer",
-                boxSizing: "border-box",
-              }}
-            >
-              <option value="tunai">Kas Tunai (Cash)</option>
-              <option value="bank">Rekening Bank</option>
-              <option value="midtrans">Midtrans (QRIS/VA)</option>
-              <option value="semua">Semua (Kas + Bank)</option>
-            </select>
-          </div>
-
-          <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: "0.65rem",
-                fontWeight: 800,
-                color: "#475569",
-                marginBottom: "4px",
-                textTransform: "uppercase",
-              }}
-            >
-              Kategori Transaksi
-            </label>
-            <select
-              value={kategoriFilter}
-              onChange={(e) => setKategoriFilter(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "7px 9px",
+                padding: "7px 8px",
                 borderRadius: "9px",
                 border: "1px solid #cbd5e1",
                 fontSize: "0.74rem",
@@ -790,18 +682,48 @@ export default function LaporanBukuKasTable({
                 color: "#0f172a",
                 background: "#f8fafc",
                 outline: "none",
-                cursor: "pointer",
                 boxSizing: "border-box",
               }}
-            >
-              <option value="semua">Semua Kategori</option>
-              {availableKategoriList.map((kat) => (
-                <option key={kat} value={kat}>
-                  {kat}
-                </option>
-              ))}
-            </select>
+            />
           </div>
+        </div>
+
+        {/* Row 3: Filter Kategori Kantong */}
+        <div>
+          <label
+            style={{
+              display: "block",
+              fontSize: "0.65rem",
+              fontWeight: 800,
+              color: "#475569",
+              marginBottom: "4px",
+              textTransform: "uppercase",
+            }}
+          >
+            Kategori Kantong
+          </label>
+          <select
+            value={kantongFilter}
+            onChange={(e) => setKantongFilter(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "8px 10px",
+              borderRadius: "9px",
+              border: "1.5px solid #063954",
+              fontSize: "0.76rem",
+              fontWeight: 800,
+              color: "#063954",
+              background: "#f0f9ff",
+              outline: "none",
+              cursor: "pointer",
+              boxSizing: "border-box",
+            }}
+          >
+            <option value="tunai">Kas Tunai (Cash)</option>
+            <option value="bank">Rekening Bank</option>
+            <option value="midtrans">Midtrans (QRIS/VA)</option>
+            <option value="semua">Semua (Kas Tunai + Rek. Bank)</option>
+          </select>
         </div>
 
         {/* Row 4: Search Input */}
@@ -850,341 +772,376 @@ export default function LaporanBukuKasTable({
         </div>
       </div>
 
-      {/* TABEL LAPORAN BUKU KAS (PERSIS FORMAT AKUNTANSI GAMBAR) */}
+      {/* 2. BARIS HEADER SALDO AWAL */}
+      <div
+        style={{
+          background: "linear-gradient(135deg, #063954 0%, #084c6e 100%)",
+          color: "#ffffff",
+          borderRadius: "14px",
+          padding: "11px 14px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          boxShadow: "0 4px 12px rgba(6, 57, 84, 0.2)",
+        }}
+      >
+        <div>
+          <div
+            style={{
+              fontSize: "0.68rem",
+              fontWeight: 900,
+              letterSpacing: "0.05em",
+              color: "#bae6fd",
+              textTransform: "uppercase",
+            }}
+          >
+            SALDO AWAL
+          </div>
+          <div style={{ fontSize: "0.62rem", color: "#e0f2fe", marginTop: "1px" }}>
+            Sebelum {formatDateSlash(dariTanggal)}
+          </div>
+        </div>
+        <div style={{ fontSize: "1rem", fontWeight: 900, color: "#ffffff" }}>
+          Rp {formatAngkaTitik(reportData.saldoAwal)}
+        </div>
+      </div>
+
+      {/* 3. LISTVIEW MUTASI BUKU KAS (TANPA TABEL GESER HORIZONTAL) */}
+      {loading && rawList.length === 0 ? (
+        <div
+          style={{
+            background: "#ffffff",
+            borderRadius: "14px",
+            padding: "24px 14px",
+            textAlign: "center",
+            color: "#64748b",
+            fontSize: "0.76rem",
+            border: "1px solid #e2e8f0",
+          }}
+        >
+          Memuat data laporan buku kas...
+        </div>
+      ) : reportData.rows.length === 0 ? (
+        <div
+          style={{
+            background: "#ffffff",
+            borderRadius: "14px",
+            padding: "24px 14px",
+            textAlign: "center",
+            color: "#64748b",
+            fontSize: "0.76rem",
+            border: "1px dashed #cbd5e1",
+          }}
+        >
+          Tidak ada transaksi pada rentang tanggal &amp; kantong yang dipilih.
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {reportData.rows.map((row, idx) => {
+            const isMasuk = row.penerimaan > 0 && row.pengeluaran === 0;
+            return (
+              <div
+                key={`${row.raw.id}-${idx}`}
+                onClick={() => onSelectRow && onSelectRow(row.raw)}
+                style={{
+                  background: "#ffffff",
+                  borderRadius: "14px",
+                  padding: "11px 13px",
+                  border: "1px solid #e2e8f0",
+                  borderLeft: `4px solid ${isMasuk ? "#15803d" : "#dc2626"}`,
+                  boxShadow: "0 2px 6px rgba(15, 23, 42, 0.03)",
+                  cursor: onSelectRow ? "pointer" : "default",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "6px",
+                }}
+              >
+                {/* Baris Atas: No + Tanggal + No. Bukti */}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "6px",
+                    borderBottom: "1px dashed #f1f5f9",
+                    paddingBottom: "5px",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      minWidth: 0,
+                    }}
+                  >
+                    <span
+                      style={{
+                        background: "#063954",
+                        color: "#ffffff",
+                        fontSize: "0.62rem",
+                        fontWeight: 800,
+                        padding: "1px 6px",
+                        borderRadius: "5px",
+                        flexShrink: 0,
+                      }}
+                    >
+                      #{idx + 1}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "0.68rem",
+                        fontWeight: 800,
+                        color: "#334155",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {formatDateSlash(row.ymd)}
+                    </span>
+                  </div>
+
+                  <span
+                    style={{
+                      fontSize: "0.64rem",
+                      fontWeight: 700,
+                      color: "#475569",
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      padding: "1px 6px",
+                      borderRadius: "5px",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      maxWidth: "180px",
+                    }}
+                  >
+                    {row.noBukti}
+                  </span>
+                </div>
+
+                {/* Baris Tengah: Keterangan */}
+                <div
+                  style={{
+                    fontSize: "0.76rem",
+                    fontWeight: 700,
+                    color: "#0f172a",
+                    lineHeight: 1.35,
+                  }}
+                >
+                  {row.keterangan}
+                </div>
+
+                {/* Baris Bawah: Penerimaan / Pengeluaran & Saldo Berjalan */}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "8px",
+                    background: "#f8fafc",
+                    padding: "6px 9px",
+                    borderRadius: "9px",
+                    marginTop: "2px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    {row.penerimaan > 0 && (
+                      <div>
+                        <div
+                          style={{
+                            fontSize: "0.58rem",
+                            fontWeight: 800,
+                            color: "#15803d",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Penerimaan
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.78rem",
+                            fontWeight: 900,
+                            color: "#15803d",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "2px",
+                          }}
+                        >
+                          <ArrowUpRight size={13} />
+                          <span>+ {formatAngkaTitik(row.penerimaan)}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {row.pengeluaran > 0 && (
+                      <div>
+                        <div
+                          style={{
+                            fontSize: "0.58rem",
+                            fontWeight: 800,
+                            color: "#dc2626",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Pengeluaran
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.78rem",
+                            fontWeight: 900,
+                            color: "#dc2626",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "2px",
+                          }}
+                        >
+                          <ArrowDownRight size={13} />
+                          <span>- {formatAngkaTitik(row.pengeluaran)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ textAlign: "right" }}>
+                    <div
+                      style={{
+                        fontSize: "0.58rem",
+                        fontWeight: 800,
+                        color: "#64748b",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Saldo
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "0.8rem",
+                        fontWeight: 900,
+                        color: "#063954",
+                      }}
+                    >
+                      Rp {formatAngkaTitik(row.saldo)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* 4. FOOTER TOTAL MUTASI & SALDO AKHIR */}
       <div
         style={{
           background: "#ffffff",
-          borderRadius: "12px",
+          borderRadius: "14px",
+          padding: "12px 14px",
           border: "1.5px solid #063954",
-          overflow: "hidden",
-          boxShadow: "0 4px 14px rgba(15, 23, 42, 0.06)",
+          boxShadow: "0 4px 12px rgba(15, 23, 42, 0.06)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
         }}
       >
         <div
           style={{
-            overflowX: "auto",
-            WebkitOverflowScrolling: "touch",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "8px",
+            paddingBottom: "8px",
+            borderBottom: "1px dashed #cbd5e1",
           }}
         >
-          <table
+          <div
             style={{
-              width: "100%",
-              minWidth: "680px",
-              borderCollapse: "collapse",
-              fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-              fontSize: "0.74rem",
+              background: "#ecfdf5",
+              padding: "7px 10px",
+              borderRadius: "9px",
+              border: "1px solid #bbf7d0",
             }}
           >
-            <thead>
-              {/* HEADER BARIS 1: KOLOM UTAMA */}
-              <tr
-                style={{
-                  background: "#063954",
-                  color: "#ffffff",
-                }}
-              >
-                <th
-                  style={{
-                    border: "1px solid #334155",
-                    padding: "7px 6px",
-                    textAlign: "center",
-                    fontWeight: 800,
-                    width: "36px",
-                  }}
-                >
-                  No
-                </th>
-                <th
-                  style={{
-                    border: "1px solid #334155",
-                    padding: "7px 8px",
-                    textAlign: "center",
-                    fontWeight: 800,
-                    width: "84px",
-                  }}
-                >
-                  Tanggal
-                </th>
-                <th
-                  style={{
-                    border: "1px solid #334155",
-                    padding: "7px 8px",
-                    textAlign: "center",
-                    fontWeight: 800,
-                    width: "125px",
-                  }}
-                >
-                  No. Bukti
-                </th>
-                <th
-                  style={{
-                    border: "1px solid #334155",
-                    padding: "7px 10px",
-                    textAlign: "center",
-                    fontWeight: 800,
-                  }}
-                >
-                  Keterangan
-                </th>
-                <th
-                  style={{
-                    border: "1px solid #334155",
-                    padding: "7px 8px",
-                    textAlign: "center",
-                    fontWeight: 800,
-                    width: "96px",
-                  }}
-                >
-                  Penerimaan
-                </th>
-                <th
-                  style={{
-                    border: "1px solid #334155",
-                    padding: "7px 8px",
-                    textAlign: "center",
-                    fontWeight: 800,
-                    width: "96px",
-                  }}
-                >
-                  Pengeluaran
-                </th>
-                <th
-                  style={{
-                    border: "1px solid #334155",
-                    padding: "7px 8px",
-                    textAlign: "center",
-                    fontWeight: 800,
-                    width: "105px",
-                  }}
-                >
-                  Saldo
-                </th>
-              </tr>
+            <div
+              style={{
+                fontSize: "0.6rem",
+                fontWeight: 800,
+                color: "#047857",
+                textTransform: "uppercase",
+              }}
+            >
+              Total Penerimaan
+            </div>
+            <div
+              style={{
+                fontSize: "0.82rem",
+                fontWeight: 900,
+                color: "#15803d",
+                marginTop: "2px",
+              }}
+            >
+              + Rp {formatAngkaTitik(reportData.totalPenerimaan)}
+            </div>
+          </div>
 
-              {/* HEADER BARIS 2: SALDO AWAL */}
-              <tr
-                style={{
-                  background: "#08415c",
-                  color: "#ffffff",
-                }}
-              >
-                <td
-                  colSpan={6}
-                  style={{
-                    border: "1px solid #334155",
-                    padding: "6px 10px",
-                    textAlign: "center",
-                    fontWeight: 800,
-                    letterSpacing: "0.04em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  SALDO AWAL
-                </td>
-                <td
-                  style={{
-                    border: "1px solid #334155",
-                    padding: "6px 8px",
-                    textAlign: "right",
-                    fontWeight: 900,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {formatAngkaTitik(reportData.saldoAwal)}
-                </td>
-              </tr>
-            </thead>
+          <div
+            style={{
+              background: "#fff1f2",
+              padding: "7px 10px",
+              borderRadius: "9px",
+              border: "1px solid #fecdd3",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "0.6rem",
+                fontWeight: 800,
+                color: "#be123c",
+                textTransform: "uppercase",
+              }}
+            >
+              Total Pengeluaran
+            </div>
+            <div
+              style={{
+                fontSize: "0.82rem",
+                fontWeight: 900,
+                color: "#dc2626",
+                marginTop: "2px",
+              }}
+            >
+              - Rp {formatAngkaTitik(reportData.totalPengeluaran)}
+            </div>
+          </div>
+        </div>
 
-            <tbody>
-              {loading && rawList.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    style={{
-                      padding: "24px",
-                      textAlign: "center",
-                      color: "#64748b",
-                      border: "1px solid #94a3b8",
-                    }}
-                  >
-                    Memuat data laporan buku kas...
-                  </td>
-                </tr>
-              ) : reportData.rows.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    style={{
-                      padding: "24px 12px",
-                      textAlign: "center",
-                      color: "#64748b",
-                      border: "1px solid #94a3b8",
-                    }}
-                  >
-                    Tidak ada transaksi pada rentang tanggal &amp; kantong yang
-                    dipilih.
-                  </td>
-                </tr>
-              ) : (
-                reportData.rows.map((row, idx) => (
-                  <tr
-                    key={`${row.raw.id}-${idx}`}
-                    onClick={() => onSelectRow && onSelectRow(row.raw)}
-                    style={{
-                      background: idx % 2 === 0 ? "#ffffff" : "#f8fafc",
-                      cursor: onSelectRow ? "pointer" : "default",
-                    }}
-                  >
-                    <td
-                      style={{
-                        border: "1px solid #64748b",
-                        padding: "5px 6px",
-                        textAlign: "right",
-                        color: "#0f172a",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {idx + 1}
-                    </td>
-                    <td
-                      style={{
-                        border: "1px solid #64748b",
-                        padding: "5px 7px",
-                        textAlign: "center",
-                        color: "#0f172a",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {formatDateSlash(row.ymd)}
-                    </td>
-                    <td
-                      style={{
-                        border: "1px solid #64748b",
-                        padding: "5px 7px",
-                        textAlign: "left",
-                        color: "#0f172a",
-                        whiteSpace: "nowrap",
-                        fontSize: "0.7rem",
-                      }}
-                    >
-                      {row.noBukti}
-                    </td>
-                    <td
-                      style={{
-                        border: "1px solid #64748b",
-                        padding: "5px 8px",
-                        textAlign: "left",
-                        color: "#0f172a",
-                      }}
-                    >
-                      {row.keterangan}
-                    </td>
-                    <td
-                      style={{
-                        border: "1px solid #64748b",
-                        padding: "5px 8px",
-                        textAlign: "right",
-                        color: "#15803d",
-                        fontWeight: 700,
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {row.penerimaan > 0
-                        ? formatAngkaTitik(row.penerimaan)
-                        : ""}
-                    </td>
-                    <td
-                      style={{
-                        border: "1px solid #64748b",
-                        padding: "5px 8px",
-                        textAlign: "right",
-                        color: "#dc2626",
-                        fontWeight: 700,
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {row.pengeluaran > 0
-                        ? formatAngkaTitik(row.pengeluaran)
-                        : ""}
-                    </td>
-                    <td
-                      style={{
-                        border: "1px solid #64748b",
-                        padding: "5px 8px",
-                        textAlign: "right",
-                        color: "#0f172a",
-                        fontWeight: 700,
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {formatAngkaTitik(row.saldo)}
-                    </td>
-                  </tr>
-                ))
-              )}
-
-              {/* FOOTER BARIS TOTAL & SALDO AKHIR */}
-              <tr
-                style={{
-                  background: "#e2e8f0",
-                  color: "#0f172a",
-                  fontWeight: 900,
-                }}
-              >
-                <td
-                  colSpan={4}
-                  style={{
-                    border: "1px solid #475569",
-                    padding: "7px 10px",
-                    textAlign: "center",
-                    fontWeight: 900,
-                    letterSpacing: "0.03em",
-                  }}
-                >
-                  TOTAL MUTASI &amp; SALDO AKHIR
-                </td>
-                <td
-                  style={{
-                    border: "1px solid #475569",
-                    padding: "7px 8px",
-                    textAlign: "right",
-                    color: "#15803d",
-                    fontWeight: 900,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {formatAngkaTitik(reportData.totalPenerimaan)}
-                </td>
-                <td
-                  style={{
-                    border: "1px solid #475569",
-                    padding: "7px 8px",
-                    textAlign: "right",
-                    color: "#dc2626",
-                    fontWeight: 900,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {formatAngkaTitik(reportData.totalPengeluaran)}
-                </td>
-                <td
-                  style={{
-                    border: "1px solid #475569",
-                    padding: "7px 8px",
-                    textAlign: "right",
-                    color: "#063954",
-                    fontWeight: 900,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {formatAngkaTitik(reportData.saldoAkhir)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <span
+            style={{
+              fontSize: "0.74rem",
+              fontWeight: 900,
+              color: "#063954",
+              textTransform: "uppercase",
+              letterSpacing: "0.03em",
+            }}
+          >
+            SALDO AKHIR
+          </span>
+          <span
+            style={{
+              fontSize: "1.05rem",
+              fontWeight: 900,
+              color: "#063954",
+            }}
+          >
+            Rp {formatAngkaTitik(reportData.saldoAkhir)}
+          </span>
         </div>
       </div>
     </div>
   );
 }
-
