@@ -3463,6 +3463,24 @@ export const createBukuKasEntry = async (req, res) => {
       return sendError(res, `Jenis transaksi "${jenis_transaksi}" tidak valid`, 400);
     }
 
+    // Validasi Saldo Kantong: Tidak boleh mengeluarkan / menarik melebihi saldo yang tersedia (tidak boleh minus)
+    if (finalSumber === 'Kas Tunai' || finalSumber === 'Rekening Bank') {
+      const currentKantong = await getRingkasanKantongKas();
+      const saldoTersedia =
+        finalSumber === 'Rekening Bank'
+          ? Number(currentKantong.saldo_rekening_bank || 0)
+          : Number(currentKantong.saldo_kas_tunai || 0);
+      const totalDibutuhkan = nominalNum + biayaAdminNum;
+
+      if (totalDibutuhkan > saldoTersedia) {
+        return sendError(
+          res,
+          `Saldo ${finalSumber} tidak mencukupi! Saldo tersedia: Rp ${saldoTersedia.toLocaleString('id-ID')}, sedangkan nominal pengeluaran: Rp ${totalDibutuhkan.toLocaleString('id-ID')}. Saldo tidak boleh minus.`,
+          400
+        );
+      }
+    }
+
     const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const rand4 = Math.floor(1000 + Math.random() * 9000);
     const prefix =
@@ -3769,6 +3787,33 @@ export const updateBukuKasEntry = async (req, res) => {
       : existing.tanggal;
 
     const pjNama = String(penanggung_jawab || existing.penanggung_jawab || req.user?.nama || 'Bendahara').trim();
+
+    if (finalSumber === 'Kas Tunai' || finalSumber === 'Rekening Bank') {
+      const currentKantong = await getRingkasanKantongKas();
+      let saldoTersedia =
+        finalSumber === 'Rekening Bank'
+          ? Number(currentKantong.saldo_rekening_bank || 0)
+          : Number(currentKantong.saldo_kas_tunai || 0);
+
+      // Kembalikan dulu saldo dari transaksi lama sebelum dihitung ulang
+      const oldTotalOut = Number(existing.nominal || 0) + Number(existing.biaya_admin || 0);
+      if (existing.kantong_sumber === finalSumber) {
+        saldoTersedia += oldTotalOut;
+      }
+      if (existing.kantong_tujuan === finalSumber && existing.jenis_transaksi !== 'Pengeluaran') {
+        saldoTersedia -= Number(existing.nominal || 0);
+      }
+
+      const totalDibutuhkan = nominalNum + biayaAdminNum;
+      if (totalDibutuhkan > saldoTersedia) {
+        await connection.rollback();
+        return sendError(
+          res,
+          `Saldo ${finalSumber} tidak mencukupi! Saldo tersedia: Rp ${Math.max(0, saldoTersedia).toLocaleString('id-ID')}, sedangkan nominal pengeluaran: Rp ${totalDibutuhkan.toLocaleString('id-ID')}. Saldo tidak boleh minus.`,
+          400
+        );
+      }
+    }
 
     await connection.query(`
       UPDATE keuangan_buku_kas

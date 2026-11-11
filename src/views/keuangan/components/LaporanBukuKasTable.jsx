@@ -17,6 +17,11 @@ const formatAngkaTitik = (val) => {
   return num < 0 ? `-${absStr}` : absStr;
 };
 
+const formatRp = (val) => {
+  const n = Number(val) || 0;
+  return `${n < 0 ? "- " : ""}Rp ${formatAngkaTitik(Math.abs(n))}`;
+};
+
 const toDateYmd = (val) => {
   if (!val) return "";
   if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}/.test(val)) {
@@ -35,6 +40,17 @@ const formatDateSlash = (val) => {
   if (!ymd) return "-";
   const [yyyy, mm, dd] = ymd.split("-");
   return `${dd}/${mm}/${yyyy}`;
+};
+
+const formatDateId = (val) => {
+  if (!val) return "-";
+  const d = new Date(val);
+  if (Number.isNaN(d.getTime())) return String(val);
+  return d.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 };
 
 export const getMutasiNominalForKantong = (item, kantongMode) => {
@@ -157,6 +173,10 @@ export default function LaporanBukuKasTable({
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [internalBukuKas, setInternalBukuKas] = useState([]);
+  const [detailModal, setDetailModal] = useState({
+    isOpen: false,
+    row: null,
+  });
 
   useEffect(() => {
     if (defaultKantong) {
@@ -276,6 +296,12 @@ export default function LaporanBukuKasTable({
         item.kategori || item.jenis_transaksi || "Lainnya",
       ).trim();
 
+      const rawKet = String(item.keterangan || "-");
+      const parts = rawKet.split(" — ");
+      const shortTitle = item.is_pembayaran_santri
+        ? parts[0] || item.nama_santri || "Pembayaran Santri"
+        : item.kategori || item.jenis_transaksi || rawKet;
+
       const ymd = toDateYmd(item.tanggal || item.created_at);
       validItems.push({
         raw: item,
@@ -284,6 +310,7 @@ export default function LaporanBukuKasTable({
           new Date(item.tanggal || item.created_at || 0).getTime() || 0,
         noBukti: item.kode_mutasi || `KAS-${item.id}`,
         kategori: kat,
+        shortTitle,
         keterangan:
           item.keterangan &&
           !item.is_pembayaran_santri &&
@@ -331,6 +358,7 @@ export default function LaporanBukuKasTable({
       if (q) {
         const match =
           String(it.noBukti).toLowerCase().includes(q) ||
+          String(it.shortTitle).toLowerCase().includes(q) ||
           String(it.keterangan).toLowerCase().includes(q) ||
           String(it.kategori).toLowerCase().includes(q);
         if (!match) return;
@@ -508,6 +536,14 @@ export default function LaporanBukuKasTable({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const handleRowClick = (row) => {
+    if (onSelectRow) {
+      onSelectRow(row.raw);
+    } else {
+      setDetailModal({ isOpen: true, row });
+    }
   };
 
   return (
@@ -806,7 +842,7 @@ export default function LaporanBukuKasTable({
         </div>
       </div>
 
-      {/* 3. LISTVIEW MUTASI BUKU KAS (TANPA TABEL GESER HORIZONTAL) */}
+      {/* 3. LISTVIEW MUTASI BUKU KAS (RINGKAS, KLIK UNTUK MODAL RINCIAN) */}
       {loading && rawList.length === 0 ? (
         <div
           style={{
@@ -842,7 +878,7 @@ export default function LaporanBukuKasTable({
             return (
               <div
                 key={`${row.raw.id}-${idx}`}
-                onClick={() => onSelectRow && onSelectRow(row.raw)}
+                onClick={() => handleRowClick(row)}
                 style={{
                   background: "#ffffff",
                   borderRadius: "14px",
@@ -850,7 +886,7 @@ export default function LaporanBukuKasTable({
                   border: "1px solid #e2e8f0",
                   borderLeft: `4px solid ${isMasuk ? "#15803d" : "#dc2626"}`,
                   boxShadow: "0 2px 6px rgba(15, 23, 42, 0.03)",
-                  cursor: onSelectRow ? "pointer" : "default",
+                  cursor: "pointer",
                   display: "flex",
                   flexDirection: "column",
                   gap: "6px",
@@ -919,16 +955,18 @@ export default function LaporanBukuKasTable({
                   </span>
                 </div>
 
-                {/* Baris Tengah: Keterangan */}
+                {/* Baris Tengah: Nama Santri / Judul Singkat (Tanpa Rincian Panjang) */}
                 <div
                   style={{
-                    fontSize: "0.76rem",
-                    fontWeight: 700,
+                    fontSize: "0.82rem",
+                    fontWeight: 800,
                     color: "#0f172a",
-                    lineHeight: 1.35,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
                   }}
                 >
-                  {row.keterangan}
+                  {row.shortTitle}
                 </div>
 
                 {/* Baris Bawah: Penerimaan / Pengeluaran & Saldo Berjalan */}
@@ -941,7 +979,7 @@ export default function LaporanBukuKasTable({
                     background: "#f8fafc",
                     padding: "6px 9px",
                     borderRadius: "9px",
-                    marginTop: "2px",
+                    marginTop: "1px",
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -1142,6 +1180,302 @@ export default function LaporanBukuKasTable({
           </span>
         </div>
       </div>
+
+      {/* MODAL RINCIAN SAAT ITEM LISTVIEW DIKLIK */}
+      {detailModal.isOpen && detailModal.row && (() => {
+        const r = detailModal.row;
+        const it = r.raw;
+        const isOut = r.pengeluaran > 0 && r.penerimaan === 0;
+        const isIn = r.penerimaan > 0;
+        const isCair = it.jenis_transaksi === "Pencairan Midtrans ke Bank";
+
+        const color = isOut
+          ? "#be123c"
+          : isIn
+            ? "#047857"
+            : isCair
+              ? "#6d28d9"
+              : "#0369a1";
+        const bg = isOut
+          ? "#fff1f2"
+          : isIn
+            ? "#ecfdf5"
+            : isCair
+              ? "#f5f3ff"
+              : "#f0f9ff";
+        const borderCol = isOut
+          ? "#fecdd3"
+          : isIn
+            ? "#bbf7d0"
+            : isCair
+              ? "#ddd6fe"
+              : "#bae6fd";
+
+        const rawKet = String(it.keterangan || "-");
+        const parts = rawKet.split(" — ");
+        const titleName = it.is_pembayaran_santri
+          ? parts[0] || "Pembayaran Santri"
+          : it.kategori || it.jenis_transaksi;
+        const detailBody = it.is_pembayaran_santri
+          ? parts.slice(1).join(" — ") || rawKet
+          : rawKet;
+        const bulletItems = it.is_pembayaran_santri
+          ? detailBody
+              .split(/,\s*(?=[A-Za-z])/)
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [];
+
+        return (
+          <div
+            onClick={() => setDetailModal({ isOpen: false, row: null })}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 10000,
+              background: "rgba(15, 23, 42, 0.65)",
+              backdropFilter: "blur(4px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "16px",
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: "100%",
+                maxWidth: "420px",
+                background: "#ffffff",
+                borderRadius: "22px",
+                padding: "18px",
+                boxShadow: "0 20px 40px rgba(15, 23, 42, 0.25)",
+                border: "1px solid #e2e8f0",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
+              {/* Modal Top Bar */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  gap: "10px",
+                }}
+              >
+                <div>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      padding: "3px 9px",
+                      borderRadius: "999px",
+                      fontSize: "0.65rem",
+                      fontWeight: 800,
+                      background: bg,
+                      color,
+                      border: `1px solid ${borderCol}`,
+                      marginBottom: "6px",
+                    }}
+                  >
+                    {it.jenis_transaksi === "Pemasukan Lain"
+                      ? "Pemasukan"
+                      : it.jenis_transaksi}
+                  </span>
+                  <div
+                    style={{
+                      fontSize: "0.98rem",
+                      fontWeight: 900,
+                      color: "#0f172a",
+                      lineHeight: 1.25,
+                    }}
+                  >
+                    {titleName}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "0.7rem",
+                      color: "#64748b",
+                      marginTop: "3px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <span>{formatDateId(it.tanggal)}</span>
+                    {r.noBukti && <span>• #{r.noBukti}</span>}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setDetailModal({ isOpen: false, row: null })}
+                  style={{
+                    background: "#f1f5f9",
+                    border: "none",
+                    borderRadius: "50%",
+                    width: "32px",
+                    height: "32px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#475569",
+                    cursor: "pointer",
+                    flexShrink: 0,
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Nominal & Saldo Box */}
+              <div
+                style={{
+                  background: bg,
+                  border: `1px solid ${borderCol}`,
+                  borderRadius: "14px",
+                  padding: "12px 14px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: "0.66rem",
+                      fontWeight: 800,
+                      color,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Nominal Transaksi
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "0.7rem",
+                      fontWeight: 700,
+                      color: "#475569",
+                      marginTop: "2px",
+                    }}
+                  >
+                    Saldo Setelah Mutasi: <b>{formatRp(r.saldo)}</b>
+                  </div>
+                </div>
+                <div
+                  style={{
+                    fontSize: "1.15rem",
+                    fontWeight: 900,
+                    color,
+                  }}
+                >
+                  {isOut ? `- ${formatRp(r.pengeluaran)}` : `+ ${formatRp(r.penerimaan)}`}
+                </div>
+              </div>
+
+              {/* Rincian Box */}
+              <div
+                style={{
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "14px",
+                  padding: "12px 14px",
+                  maxHeight: "240px",
+                  overflowY: "auto",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "0.66rem",
+                    fontWeight: 800,
+                    color: "#64748b",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                    marginBottom: "6px",
+                  }}
+                >
+                  {it.is_pembayaran_santri
+                    ? `Rincian Pembayaran (${bulletItems.length || 1} Item)`
+                    : "Uraian / Keterangan"}
+                </div>
+
+                {bulletItems.length > 1 ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    {bulletItems.map((bItem, bIdx) => (
+                      <div
+                        key={bIdx}
+                        style={{
+                          fontSize: "0.76rem",
+                          fontWeight: 700,
+                          color: "#1e293b",
+                          padding: "6px 9px",
+                          background: "#ffffff",
+                          borderRadius: "8px",
+                          border: "1px solid #e2e8f0",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "7px",
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: "18px",
+                            height: "18px",
+                            borderRadius: "50%",
+                            background: bg,
+                            color,
+                            fontSize: "0.64rem",
+                            fontWeight: 900,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {bIdx + 1}
+                        </span>
+                        <span>{bItem}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      fontSize: "0.8rem",
+                      fontWeight: 700,
+                      color: "#0f172a",
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    {detailBody}
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setDetailModal({ isOpen: false, row: null })}
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  borderRadius: "12px",
+                  border: "none",
+                  background: "#0f172a",
+                  color: "#ffffff",
+                  fontSize: "0.78rem",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

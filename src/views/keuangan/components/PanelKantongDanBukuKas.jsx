@@ -475,11 +475,45 @@ export default function PanelKantongDanBukuKas({
     } else if (formModal.jenis_transaksi === "Pengeluaran") {
       finalJenis = "Pengeluaran";
       finalSumber = kantongPilihan;
-      finalTujuan = "Rekening Bank";
+      finalTujuan = null;
     } else {
       finalJenis = "Pemasukan Lain";
-      finalSumber = kantongPilihan;
+      finalSumber = null;
       finalTujuan = kantongPilihan;
+    }
+
+    // Validasi Frontend: Saldo tidak boleh minus saat Pengeluaran / Setor / Tarik
+    if (finalSumber === "Kas Tunai" || finalSumber === "Rekening Bank") {
+      let saldoTersedia =
+        finalSumber === "Rekening Bank"
+          ? Number(kantong.saldo_rekening_bank || 0)
+          : Number(kantong.saldo_kas_tunai || 0);
+
+      if (formModal.mode === "edit" && formModal.editId) {
+        const oldItem = (bukuKas || []).find(
+          (x) => String(x.id) === String(formModal.editId),
+        );
+        if (oldItem) {
+          if (oldItem.kantong_sumber === finalSumber) {
+            saldoTersedia +=
+              Number(oldItem.nominal || 0) + Number(oldItem.biaya_admin || 0);
+          }
+          if (
+            oldItem.kantong_tujuan === finalSumber &&
+            oldItem.jenis_transaksi !== "Pengeluaran"
+          ) {
+            saldoTersedia -= Number(oldItem.nominal || 0);
+          }
+        }
+      }
+
+      const totalDibutuhkan = nominalVal + biayaAdminVal;
+      if (totalDibutuhkan > saldoTersedia) {
+        toastError(
+          `Saldo ${finalSumber} tidak mencukupi! Tersedia: ${formatRp(Math.max(0, saldoTersedia))}, sedangkan pengeluaran: ${formatRp(totalDibutuhkan)}`,
+        );
+        return;
+      }
     }
 
     try {
@@ -675,12 +709,35 @@ export default function PanelKantongDanBukuKas({
             item.jenis_transaksi === "Pencairan Midtrans ke Bank"
           );
         }
+        if (activeTab === "semua") {
+          return (
+            item.kantong_sumber === "Kas Tunai" ||
+            item.kantong_tujuan === "Kas Tunai" ||
+            item.kantong_sumber === "Rekening Bank" ||
+            item.kantong_tujuan === "Rekening Bank"
+          );
+        }
         return false;
       })
       .slice(0, 50);
   }, [bukuKas, activeTab]);
 
   const heroInfo = useMemo(() => {
+    if (activeTab === "semua") {
+      return {
+        title: "Total Saldo Kas Tunai + Rekening Bank",
+        saldo: kantong.saldo_siap_pakai,
+        masukLabel: "Total Masuk (Kas + Bank)",
+        masukVal: formatRp(
+          Number(kantong.masuk_tagihan_tunai || 0) +
+            Number(kantong.masuk_tagihan_transfer || 0) +
+            Number(kantong.total_midtrans_sudah_cair || 0) +
+            Number(kantong.total_pemasukan_lain || 0),
+        ),
+        keluarLabel: "Total Pengeluaran",
+        keluarVal: formatRp(kantong.total_pengeluaran || 0),
+      };
+    }
     if (activeTab === "bank") {
       return {
         title: "Saldo Rekening Bank Pesantren",
@@ -937,6 +994,9 @@ export default function PanelKantongDanBukuKas({
           <option value="midtrans" style={{ textAlign: "left" }}>
             Midtrans
           </option>
+          <option value="semua" style={{ textAlign: "left" }}>
+            Semua (Kas + Bank)
+          </option>
         </select>
       </div>
 
@@ -975,7 +1035,9 @@ export default function PanelKantongDanBukuKas({
                 ? "Riwayat Mutasi Kas Tunai"
                 : activeTab === "bank"
                   ? "Riwayat Mutasi Rekening Bank"
-                  : "Riwayat Pencairan Midtrans"}
+                  : activeTab === "midtrans"
+                    ? "Riwayat Pencairan Midtrans"
+                    : "Riwayat Mutasi Semua (Kas + Bank)"}
             </span>
           </div>
           <span
@@ -1505,20 +1567,13 @@ export default function PanelKantongDanBukuKas({
 
               {/* Footer Actions */}
               {(() => {
-                const isRekeningOrMidtrans =
-                  activeTab === "bank" ||
+                const isOtomatisMidtrans =
                   activeTab === "midtrans" ||
                   isCair ||
-                  it.kantong_sumber === "Rekening Bank" ||
-                  it.kantong_tujuan === "Rekening Bank" ||
                   it.kantong_sumber === "Midtrans" ||
-                  it.kantong_tujuan === "Midtrans";
-                const isCashTunai =
-                  !readOnly &&
-                  !isRekeningOrMidtrans &&
-                  (activeTab === "tunai" ||
-                    it.kantong_sumber === "Kas Tunai" ||
-                    it.kantong_tujuan === "Kas Tunai");
+                  it.kantong_tujuan === "Midtrans" ||
+                  (it.is_pembayaran_santri && it.kantong_tujuan === "Rekening Bank");
+                const canEditOrBatal = !readOnly && !isOtomatisMidtrans;
 
                 return (
                   <div
@@ -1529,7 +1584,7 @@ export default function PanelKantongDanBukuKas({
                       paddingTop: "4px",
                     }}
                   >
-                    {isCashTunai && (
+                    {canEditOrBatal && (
                       <>
                         <button
                           type="button"
