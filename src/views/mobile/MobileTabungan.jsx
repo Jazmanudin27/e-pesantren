@@ -404,55 +404,6 @@ export default function MobileTabungan({ onBackToHome }) {
             </div>
           </div>
         </div>
-
-        {/* Direct Quick Action Buttons: Input Setor & Ambil Tabungan */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '12px' }}>
-          <button
-            type="button"
-            onClick={() => handleOpenTrxModal('setor', null, false)}
-            style={{
-              background: '#10b981',
-              border: '1px solid rgba(255, 255, 255, 0.25)',
-              color: '#ffffff',
-              borderRadius: '13px',
-              padding: '11px 12px',
-              fontSize: '0.8rem',
-              fontWeight: 800,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-            }}
-          >
-            <Plus size={17} strokeWidth={2.8} />
-            <span>Input Setor (Nabung)</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleOpenTrxModal('tarik', null, false)}
-            style={{
-              background: 'rgba(239, 68, 68, 0.92)',
-              border: '1px solid rgba(255, 255, 255, 0.25)',
-              color: '#ffffff',
-              borderRadius: '13px',
-              padding: '11px 12px',
-              fontSize: '0.8rem',
-              fontWeight: 800,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-            }}
-          >
-            <Minus size={17} strokeWidth={2.8} />
-            <span>Input Ambil Saldo</span>
-          </button>
-        </div>
       </div>
 
       {/* Mode Switcher: Saldo Santri vs Riwayat Mutasi */}
@@ -555,33 +506,6 @@ export default function MobileTabungan({ onBackToHome }) {
               <X size={16} />
             </button>
           )}
-        </div>
-
-        {/* Sekolah Filter Pills */}
-        <div style={{ display: 'flex', gap: '6px', marginTop: '8px', overflowX: 'auto', paddingBottom: '2px' }}>
-          {['Semua', 'SMP', 'SMA', 'SMK'].map((sek) => {
-            const active = selectedSekolah === sek;
-            return (
-              <button
-                key={sek}
-                type="button"
-                onClick={() => setSelectedSekolah(sek)}
-                style={{
-                  padding: '5px 12px',
-                  borderRadius: '999px',
-                  border: active ? '1px solid #0d766e' : '1px solid #e2e8f0',
-                  background: active ? '#0d766e' : '#ffffff',
-                  color: active ? '#ffffff' : '#475569',
-                  fontSize: '0.72rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {sek === 'Semua' ? 'Semua Sekolah' : sek}
-              </button>
-            );
-          })}
         </div>
       </div>
 
@@ -1565,29 +1489,6 @@ export default function MobileTabungan({ onBackToHome }) {
                       )}
                     </div>
 
-                    {/* Sekolah Filter inside Picker */}
-                    <div style={{ display: 'flex', gap: '5px', marginTop: '8px', marginBottom: '8px' }}>
-                      {['Semua', 'SMP', 'SMA', 'SMK'].map((sek) => (
-                        <button
-                          key={sek}
-                          type="button"
-                          onClick={() => setSantriPickerSekolah(sek)}
-                          style={{
-                            padding: '4px 10px',
-                            borderRadius: '999px',
-                            border: 'none',
-                            background: santriPickerSekolah === sek ? '#0d766e' : '#e2e8f0',
-                            color: santriPickerSekolah === sek ? '#ffffff' : '#475569',
-                            fontSize: '0.68rem',
-                            fontWeight: 800,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {sek}
-                        </button>
-                      ))}
-                    </div>
-
                     {/* Scrollable Santri Picker List */}
                     <div
                       style={{
@@ -1596,6 +1497,7 @@ export default function MobileTabungan({ onBackToHome }) {
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '5px',
+                        marginTop: '8px',
                       }}
                     >
                       {pickerSantriList.length === 0 ? (

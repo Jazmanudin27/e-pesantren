@@ -122,8 +122,6 @@ export const getTabunganList = async (req, res) => {
       SELECT 
         s.*,
         s.no_wa_wali as no_hp_wali,
-        COALESCE(s.nama_kelas, kl.nama_kelas) as nama_kelas,
-        sk.nama_sekolah,
         a.nama_asrama,
         k.nama_kamar,
         COALESCE(t.saldo, 0.00) as saldo,
@@ -133,8 +131,6 @@ export const getTabunganList = async (req, res) => {
         COALESCE(trx.jumlah_transaksi, 0) as jumlah_transaksi
       FROM santri s
       LEFT JOIN santri_tabungan t ON s.id = t.santri_id
-      LEFT JOIN kelas kl ON s.kelas_id = kl.id
-      LEFT JOIN sekolah sk ON s.sekolah_id = sk.id
       LEFT JOIN asrama a ON s.asrama_id = a.id
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
       LEFT JOIN (
@@ -184,12 +180,9 @@ export const getTabunganList = async (req, res) => {
         tr.created_at,
         s.nama_santri,
         s.nis,
-        COALESCE(s.nama_kelas, kl.nama_kelas) as nama_kelas,
-        sk.nama_sekolah
+        s.nama_kelas
       FROM santri_tabungan_transaksi tr
       LEFT JOIN santri s ON tr.santri_id = s.id
-      LEFT JOIN kelas kl ON s.kelas_id = kl.id
-      LEFT JOIN sekolah sk ON s.sekolah_id = sk.id
       ORDER BY tr.tanggal_transaksi DESC, tr.id DESC
       LIMIT 100
     `);

@@ -45,6 +45,10 @@ export default function MobileKeuanganLayout() {
   const [activeTab, setActiveTab] = useState(() => {
     const hash = window.location.hash.replace('#', '');
     if (hash && hash !== 'mobile' && hash !== 'home' && hash !== 'keuangan-spp') return hash;
+    try {
+      const saved = sessionStorage.getItem('keuanganMobileTab') || localStorage.getItem('keuanganMobileTab');
+      if (saved && saved !== 'mobile' && saved !== 'keuangan-spp') return saved;
+    } catch (e) {}
     return 'home';
   });
 
@@ -55,8 +59,16 @@ export default function MobileKeuanganLayout() {
       const hash = window.location.hash.replace('#', '');
       if (hash && hash !== 'mobile' && hash !== 'home') {
         setActiveTab(hash);
-      } else {
+        try {
+          sessionStorage.setItem('keuanganMobileTab', hash);
+          localStorage.setItem('keuanganMobileTab', hash);
+        } catch (e) {}
+      } else if (hash === 'home') {
         setActiveTab('home');
+        try {
+          sessionStorage.setItem('keuanganMobileTab', 'home');
+          localStorage.setItem('keuanganMobileTab', 'home');
+        } catch (e) {}
       }
     };
     window.addEventListener('hashchange', handleHash);
@@ -65,6 +77,10 @@ export default function MobileKeuanganLayout() {
 
   const handleSelectTab = (tab) => {
     setActiveTab(tab);
+    try {
+      sessionStorage.setItem('keuanganMobileTab', tab);
+      localStorage.setItem('keuanganMobileTab', tab);
+    } catch (e) {}
     window.location.hash = tab === 'home' ? '' : tab;
     setIsDrawerOpen(false);
     window.scrollTo(0, 0);

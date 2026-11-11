@@ -49,6 +49,17 @@ export const ensureInfakTables = async () => {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    const [existingProg] = await pool.query(`SELECT COUNT(*) AS cnt FROM pesantren_program_infak`);
+    if ((existingProg?.[0]?.cnt || 0) === 0) {
+      await pool.query(`
+        INSERT INTO pesantren_program_infak (kode_program, nama_program, kategori, deskripsi, target_dana, is_active) VALUES
+        ('INF-MASJID', 'Pembangunan & Perluasan Masjid', 'Wakaf & Pembangunan', 'Penyaluran infak dan wakaf pembangunan masjid pesantren', 100000000, 1),
+        ('INF-YATIM', 'Beasiswa Santri Yatim & Dhuafa', 'Beasiswa Pendidikan', 'Penyaluran bantuan pendidikan santri yatim dan kurang mampu', 50000000, 1),
+        ('INF-QURAN', 'Wakaf Al-Qur''an & Kitab Kuning', 'Wakaf Qur''an & Kitab', 'Pengadaan mushaf Al-Qur''an dan kitab pembelajaran santri', 25000000, 1),
+        ('INF-UMUM', 'Infak Operasional & Kemaslahatan Pondok', 'Infak Umum Pesantren', 'Penyaluran infak umum untuk kebutuhan operasional pesantren', 50000000, 1)
+      `);
+    }
+
     isInfakTablesReady = true;
   } catch (err) {
     console.warn('[INFAK DB INIT NOTICE]', err.message);
@@ -361,6 +372,104 @@ export const getLaporanInfakAdmin = async (req, res) => {
       summary: summaryRows?.[0] || { total_terkumpul: 0, total_transaksi_berhasil: 0, total_transaksi_pending: 0 },
       programs: programs || [],
       transaksi: transaksi || []
+    });
+  } catch (err) {
+    return sendError(res, err.message, 500);
+  }
+};
+
+/**
+ * POST /api/infak/input-admin
+ * Pencatatan langsung penerimaan Infak & Sedekah oleh Bagian Keuangan (Langsung Berhasil)
+ */
+export const catatInfakAdmin = async (req, res) => {
+  try {
+    await ensureInfakTables();
+    const {
+      santri_id = null,
+      nama_santri = null,
+      nama_donatur = '',
+      is_anonim = false,
+      program_id = null,
+      nama_program = '',
+      nominal,
+      metode_pembayaran = 'Tunai',
+      doa_pesan = '',
+      tanggal_transaksi = null
+    } = req.body;
+
+    const nom = parseFloat(nominal);
+    if (isNaN(nom) || nom <= 0) {
+      return sendError(res, 'Nominal infak harus lebih dari Rp 0', 400);
+    }
+
+    let resolvedProgramId = program_id ? Number(program_id) : null;
+    let resolvedProgramNama = String(nama_program || '').trim();
+
+    if (resolvedProgramId && !resolvedProgramNama) {
+      const [pRows] = await pool.query(
+        'SELECT nama_program FROM pesantren_program_infak WHERE id = ? LIMIT 1',
+        [resolvedProgramId]
+      );
+      if (pRows && pRows.length > 0) {
+        resolvedProgramNama = pRows[0].nama_program;
+      }
+    }
+
+    if (!resolvedProgramNama) {
+      resolvedProgramNama = 'Infak Umum Pesantren';
+    }
+
+    const cleanDonatur = is_anonim
+      ? 'Hamba Allah'
+      : String(nama_donatur || '').trim() || (nama_santri ? `Wali dari ${nama_santri}` : 'Hamba Allah');
+
+    const kodeTransaksi = `INF-KAS-${Date.now().toString().slice(-6)}`;
+    const tglSql = tanggal_transaksi ? `${tanggal_transaksi} 12:00:00` : new Date();
+
+    const [result] = await pool.query(
+      `INSERT INTO pesantren_infak_transaksi
+       (kode_transaksi, santri_id, nama_santri, nama_donatur, is_anonim, program_id, nama_program, nominal, metode_pembayaran, doa_pesan, status, tanggal_transaksi)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Berhasil', ?)`,
+      [
+        kodeTransaksi,
+        santri_id || null,
+        nama_santri || null,
+        cleanDonatur,
+        is_anonim ? 1 : 0,
+        resolvedProgramId,
+        resolvedProgramNama,
+        nom,
+        metode_pembayaran || 'Tunai',
+        doa_pesan || null,
+        tglSql
+      ]
+    );
+
+    if (santri_id) {
+      const fmtNom = new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        maximumFractionDigits: 0
+      }).format(nom);
+
+      createWaliNotification({
+        santri_id,
+        kategori: 'infak',
+        judul: `Jazakumullahu Khairan • Infak ${fmtNom}`,
+        pesan: `Alhamdulillah, penerimaan infak/sedekah sebesar ${fmtNom} yang disalurkan ke "${resolvedProgramNama}" (${metode_pembayaran}) telah tercatat di Bagian Keuangan.`,
+        target_tab: 'infak'
+      });
+    }
+
+    return sendSuccess(res, 'Penerimaan infak berhasil dicatat!', {
+      id: result.insertId,
+      kode_transaksi: kodeTransaksi,
+      nominal: nom,
+      nama_donatur: cleanDonatur,
+      nama_program: resolvedProgramNama,
+      metode_pembayaran,
+      status: 'Berhasil'
     });
   } catch (err) {
     return sendError(res, err.message, 500);

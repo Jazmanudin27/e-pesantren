@@ -9,7 +9,22 @@ import SplashScreen from './components/SplashScreen';
 import PWAInstallModal from './components/PWAInstallModal';
 
 export default function App() {
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(() => {
+    try {
+      if (
+        sessionStorage.getItem('nwf_splash_shown') === '1' ||
+        localStorage.getItem('nwf_splash_shown') === '1' ||
+        localStorage.getItem('mobile_session') ||
+        localStorage.getItem('desktop_session') ||
+        sessionStorage.getItem('desktop_session')
+      ) {
+        sessionStorage.setItem('nwf_splash_shown', '1');
+        localStorage.setItem('nwf_splash_shown', '1');
+        return false;
+      }
+    } catch (e) {}
+    return true;
+  });
 
   const getMode = () => {
     const hostname = window.location.hostname.toLowerCase();
@@ -121,7 +136,17 @@ export default function App() {
 
   return (
     <>
-      {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
+      {showSplash && (
+        <SplashScreen
+          onFinish={() => {
+            try {
+              sessionStorage.setItem('nwf_splash_shown', '1');
+              localStorage.setItem('nwf_splash_shown', '1');
+            } catch (e) {}
+            setShowSplash(false);
+          }}
+        />
+      )}
       <PWAInstallModal />
       {mode === 'owner' ? (
         <OwnerDashboardView 

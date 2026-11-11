@@ -35,15 +35,25 @@ import {
 import { canAccessKeuangan } from "../utils/authRole.util";
 import { stopAllActiveCameraStreams } from "../utils/cameraCleanup.util";
 
-// Safe Lazy Wrapper: Cegah Chunk Load Error saat ada rilis/build baru di server
+// Safe Lazy Wrapper: Cegah Chunk Load Error saat ada rilis/build baru atau saat jaringan baru bangun dari background (WA)
 const lazySafe = (importer) =>
   lazy(async () => {
-    try {
-      return await importer();
-    } catch (err) {
-      console.warn("[SPA] Dynamic import chunk gagal dimuat, memuat ulang halaman...", err);
-      window.location.reload();
-      return new Promise(() => {});
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        return await importer();
+      } catch (err) {
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, 600));
+        } else {
+          console.warn("[SPA] Dynamic import chunk gagal dimuat setelah retry, memuat ulang halaman...", err);
+          if (typeof window.__safeChunkReload === "function") {
+            window.__safeChunkReload();
+          } else {
+            window.location.reload();
+          }
+          return new Promise(() => {});
+        }
+      }
     }
   });
 
@@ -246,6 +256,13 @@ export default function MobileLayout() {
             localStorage.setItem("mobileTab", "portal-wali");
             return;
           }
+          const savedTab =
+            sessionStorage.getItem("mobileTab") ||
+            localStorage.getItem("mobileTab");
+          if (savedTab && savedTab !== "home") {
+            setMobileTab(savedTab);
+            return;
+          }
           if (
             r.includes("bendahara") ||
             r.includes("keuangan") ||
@@ -255,13 +272,6 @@ export default function MobileLayout() {
             setMobileTab("home");
             sessionStorage.setItem("mobileTab", "home");
             localStorage.setItem("mobileTab", "home");
-            return;
-          }
-          const savedTab =
-            sessionStorage.getItem("mobileTab") ||
-            localStorage.getItem("mobileTab");
-          if (savedTab && savedTab !== "home") {
-            setMobileTab(savedTab);
             return;
           }
         } catch (e) {}

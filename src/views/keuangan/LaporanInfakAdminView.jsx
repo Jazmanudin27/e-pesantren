@@ -57,7 +57,85 @@ export default function LaporanInfakAdminView({ onBackToHome }) {
   // Modal Detail Transaksi
   const [selectedTrx, setSelectedTrx] = useState(null);
 
+  // Modal Input Infak (Bagian Keuangan)
+  const [isInputInfakOpen, setIsInputInfakOpen] = useState(false);
+  const [submittingInfak, setSubmittingInfak] = useState(false);
+  const [infakForm, setInfakForm] = useState({
+    program_id: '',
+    nama_program: '',
+    nama_donatur: '',
+    is_anonim: false,
+    nominal: '',
+    metode_pembayaran: 'Tunai',
+    tanggal_transaksi: new Date().toISOString().slice(0, 10),
+    doa_pesan: ''
+  });
+
   const formatRp = (num) => `Rp ${(Number(num) || 0).toLocaleString('id-ID')}`;
+
+  const formatRibuanInput = (rawVal) => {
+    const digits = String(rawVal || '').replace(/\D/g, '');
+    if (!digits) return '';
+    return Number(digits).toLocaleString('id-ID');
+  };
+
+  const parseRibuanInput = (val) => {
+    const digits = String(val || '').replace(/\D/g, '');
+    return digits ? Number(digits) : 0;
+  };
+
+  const handleOpenInputInfak = (preselectedProg = null) => {
+    const defaultProg = preselectedProg || programs[0] || null;
+    setInfakForm({
+      program_id: defaultProg?.id ? String(defaultProg.id) : '',
+      nama_program: defaultProg?.nama_program || 'Infak Umum Pesantren',
+      nama_donatur: '',
+      is_anonim: false,
+      nominal: '',
+      metode_pembayaran: 'Tunai',
+      tanggal_transaksi: new Date().toISOString().slice(0, 10),
+      doa_pesan: ''
+    });
+    setIsInputInfakOpen(true);
+  };
+
+  const handleSubmitInputInfak = async (e) => {
+    e.preventDefault();
+    const nom = parseRibuanInput(infakForm.nominal);
+    if (!nom || nom <= 0) {
+      toastError('Masukkan nominal infak yang valid!');
+      return;
+    }
+
+    const selectedProgObj = programs.find((p) => String(p.id) === String(infakForm.program_id));
+    const finalNamaProgram = selectedProgObj?.nama_program || infakForm.nama_program || 'Infak Umum Pesantren';
+
+    try {
+      setSubmittingInfak(true);
+      const res = await axios.post('/api/infak/input-admin', {
+        program_id: selectedProgObj?.id || null,
+        nama_program: finalNamaProgram,
+        nama_donatur: infakForm.is_anonim ? 'Hamba Allah' : (infakForm.nama_donatur.trim() || 'Hamba Allah'),
+        is_anonim: infakForm.is_anonim,
+        nominal: nom,
+        metode_pembayaran: infakForm.metode_pembayaran,
+        tanggal_transaksi: infakForm.tanggal_transaksi,
+        doa_pesan: infakForm.doa_pesan
+      });
+
+      if (res.data?.success) {
+        toastSuccess(`Berhasil mencatat infak ${formatRp(nom)} ke "${finalNamaProgram}"`);
+        setIsInputInfakOpen(false);
+        fetchLaporan();
+      } else {
+        toastError(res.data?.message || 'Gagal mencatat infak');
+      }
+    } catch (err) {
+      toastError(err.response?.data?.message || err.message || 'Gagal mencatat infak');
+    } finally {
+      setSubmittingInfak(false);
+    }
+  };
 
   const fetchLaporan = async () => {
     try {
@@ -492,14 +570,59 @@ export default function LaporanInfakAdminView({ onBackToHome }) {
                         />
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '0.66rem', color: '#94a3b8' }}>
-                        <span>Target: {formatRp(p.target_dana)}</span>
-                        <span>Sisa: {formatRp(Math.max(0, (p.target_dana || 0) - (p.terkumpul || 0)))}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #f1f5f9' }}>
+                        <div style={{ fontSize: '0.66rem', color: '#94a3b8' }}>
+                          Target: {formatRp(p.target_dana)}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenInputInfak(p)}
+                          style={{
+                            background: '#ecfdf5',
+                            color: '#059669',
+                            border: '1px solid #a7f3d0',
+                            borderRadius: '9px',
+                            padding: '5px 10px',
+                            fontSize: '0.7rem',
+                            fontWeight: 800,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Plus size={13} strokeWidth={2.8} />
+                          <span>Input Infak</span>
+                        </button>
                       </div>
                     </div>
                   </div>
                 );
               })
+            )}
+
+            {filteredPrograms.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsModalProgramOpen(true)}
+                style={{
+                  background: '#ffffff',
+                  color: '#0f766e',
+                  border: '1.5px dashed #99f6e4',
+                  borderRadius: '14px',
+                  padding: '10px',
+                  fontSize: '0.76rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Plus size={15} />
+                <span>Tambah Program Penyaluran Infak Baru</span>
+              </button>
             )}
           </div>
         )}
@@ -1027,6 +1150,382 @@ export default function LaporanInfakAdminView({ onBackToHome }) {
                   }}
                 >
                   {submittingProgram ? 'Menyimpan...' : 'Simpan Program'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Action Button (+) untuk Input Infak Cepat */}
+      <button
+        type="button"
+        onClick={() => handleOpenInputInfak(null)}
+        title="Input Penerimaan Infak"
+        style={{
+          position: 'fixed',
+          bottom: '84px',
+          right: 'calc(50% - 210px)',
+          width: '52px',
+          height: '52px',
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, #0d766e 0%, #059669 100%)',
+          color: '#ffffff',
+          border: 'none',
+          boxShadow: '0 8px 22px rgba(13, 118, 110, 0.45)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          zIndex: 900,
+        }}
+      >
+        <Plus size={26} strokeWidth={2.8} />
+      </button>
+
+      {/* 6. MODAL INPUT PENERIMAAN INFAK & SEDEKAH (SIMPLE) */}
+      {isInputInfakOpen && (
+        <div
+          onClick={() => setIsInputInfakOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#ffffff',
+              borderRadius: '24px 24px 0 0',
+              width: '100%',
+              maxWidth: '480px',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 -10px 40px rgba(0,0,0,0.25)',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Header */}
+            <div
+              style={{
+                padding: '15px 18px',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: '#f8fafc',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    background: '#ecfdf5',
+                    color: '#059669',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Heart size={18} />
+                </div>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: '#0f172a' }}>
+                    Input Penerimaan Infak
+                  </h4>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                    Pilih penyaluran program &amp; nominal infak
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsInputInfakOpen(false)}
+                style={{
+                  background: '#e2e8f0',
+                  border: 'none',
+                  padding: '6px',
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  color: '#475569',
+                  display: 'flex',
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Form Body */}
+            <form
+              onSubmit={handleSubmitInputInfak}
+              style={{ padding: '16px 18px 22px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}
+            >
+              {/* 1. Disalurkan ke Program Infak Mana */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.73rem', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>
+                  Disalurkan ke Program Infak *
+                </label>
+                <select
+                  required
+                  value={infakForm.program_id}
+                  onChange={(e) => {
+                    const pid = e.target.value;
+                    const found = programs.find((p) => String(p.id) === String(pid));
+                    setInfakForm({
+                      ...infakForm,
+                      program_id: pid,
+                      nama_program: found?.nama_program || 'Infak Umum Pesantren',
+                    });
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '11px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '0.82rem',
+                    fontWeight: 800,
+                    color: '#0f172a',
+                    background: '#ffffff',
+                    outline: 'none',
+                  }}
+                >
+                  {programs.length === 0 ? (
+                    <option value="">Infak Umum Pesantren</option>
+                  ) : (
+                    programs.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nama_program} ({p.kategori || 'Infak'})
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+
+              {/* 2. Nama Donatur / Pemberi Infak */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.73rem', fontWeight: 800, color: '#334155' }}>
+                    Nama Donatur / Pemberi Infak
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.7rem', fontWeight: 700, color: '#059669', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={infakForm.is_anonim}
+                      onChange={(e) => setInfakForm({ ...infakForm, is_anonim: e.target.checked })}
+                    />
+                    <span>Hamba Allah (Anonim)</span>
+                  </label>
+                </div>
+                <input
+                  type="text"
+                  disabled={infakForm.is_anonim}
+                  placeholder={infakForm.is_anonim ? 'Hamba Allah (Anonim)' : 'Contoh: H. Ahmad / Wali Santri'}
+                  value={infakForm.is_anonim ? 'Hamba Allah' : infakForm.nama_donatur}
+                  onChange={(e) => setInfakForm({ ...infakForm, nama_donatur: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '11px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.82rem',
+                    color: '#0f172a',
+                    background: infakForm.is_anonim ? '#f1f5f9' : '#ffffff',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              {/* 3. Nominal Infak (Rp) dengan Titik Ribuan */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.73rem', fontWeight: 800, color: '#334155' }}>
+                    Nominal Infak (Rp) *
+                  </label>
+                  {infakForm.nominal && (
+                    <button
+                      type="button"
+                      onClick={() => setInfakForm({ ...infakForm, nominal: '' })}
+                      style={{ background: 'transparent', border: 'none', color: '#ef4444', fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer' }}
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    borderRadius: '11px',
+                    border: '1.5px solid #cbd5e1',
+                    background: '#ffffff',
+                    padding: '0 12px',
+                  }}
+                >
+                  <span style={{ fontSize: '0.92rem', fontWeight: 900, color: '#64748b', marginRight: '6px' }}>Rp</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    required
+                    placeholder="0"
+                    value={infakForm.nominal}
+                    onChange={(e) => setInfakForm({ ...infakForm, nominal: formatRibuanInput(e.target.value) })}
+                    style={{
+                      width: '100%',
+                      padding: '10px 0',
+                      border: 'none',
+                      fontSize: '1.05rem',
+                      fontWeight: 900,
+                      color: '#0f172a',
+                      outline: 'none',
+                      background: 'transparent',
+                    }}
+                  />
+                </div>
+
+                {/* Quick Chips */}
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
+                  {[10000, 20000, 50000, 100000, 250000, 500000].map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      onClick={() => {
+                        const cur = parseRibuanInput(infakForm.nominal);
+                        setInfakForm({ ...infakForm, nominal: formatRibuanInput(cur + chip) });
+                      }}
+                      style={{
+                        background: '#f1f5f9',
+                        color: '#0f766e',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '8px',
+                        padding: '4px 9px',
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      +{chip / 1000} Rb
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 4. Metode & Tanggal */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.73rem', fontWeight: 800, color: '#334155', marginBottom: '5px' }}>
+                    Metode Terima
+                  </label>
+                  <select
+                    value={infakForm.metode_pembayaran}
+                    onChange={(e) => setInfakForm({ ...infakForm, metode_pembayaran: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '9px 10px',
+                      borderRadius: '10px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      background: '#ffffff',
+                      outline: 'none',
+                    }}
+                  >
+                    <option value="Tunai">Tunai (Cash)</option>
+                    <option value="Transfer Bank">Transfer Bank</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.73rem', fontWeight: 800, color: '#334155', marginBottom: '5px' }}>
+                    Tanggal
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={infakForm.tanggal_transaksi}
+                    onChange={(e) => setInfakForm({ ...infakForm, tanggal_transaksi: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: '10px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* 5. Doa / Catatan Singkat */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.73rem', fontWeight: 800, color: '#334155', marginBottom: '5px' }}>
+                  Keterangan / Doa Hajat (Opsional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Infak pembangunan masjid / Semoga berkah"
+                  value={infakForm.doa_pesan}
+                  onChange={(e) => setInfakForm({ ...infakForm, doa_pesan: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '10px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.8rem',
+                    color: '#0f172a',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              {/* Submit Buttons */}
+              <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsInputInfakOpen(false)}
+                  style={{
+                    padding: '10px 16px',
+                    borderRadius: '11px',
+                    border: 'none',
+                    background: '#f1f5f9',
+                    color: '#475569',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingInfak}
+                  style={{
+                    flex: 1,
+                    padding: '10px 18px',
+                    borderRadius: '11px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                    color: '#ffffff',
+                    fontSize: '0.82rem',
+                    fontWeight: 900,
+                    cursor: submittingInfak ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {submittingInfak ? 'Menyimpan...' : 'Simpan Penerimaan Infak'}
                 </button>
               </div>
             </form>

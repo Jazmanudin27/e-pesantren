@@ -388,29 +388,29 @@ export default function ModalGenerateTagihan({
         {/* Header Modal */}
         <div style={{
           background: 'linear-gradient(135deg, #064e3b 0%, #0d766e 60%, #059669 100%)',
-          padding: '16px 18px',
+          padding: '13px 16px',
           color: '#ffffff',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
+              width: '32px',
+              height: '32px',
+              borderRadius: '9px',
               background: 'rgba(255, 255, 255, 0.2)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <FileText size={18} color="#a7f3d0" />
+              <FileText size={16} color="#a7f3d0" />
             </div>
             <div>
-              <div style={{ fontWeight: 800, fontSize: '0.98rem', lineHeight: 1.2 }}>
+              <div style={{ fontWeight: 800, fontSize: '0.86rem', lineHeight: 1.2 }}>
                 Kelola & Generate Tagihan Sekolah
               </div>
-              <div style={{ fontSize: '0.67rem', color: '#a7f3d0' }}>
+              <div style={{ fontSize: '0.62rem', color: '#a7f3d0' }}>
                 Bisa edit, tambah & hapus item rincian masuk langsung di database
               </div>
             </div>
@@ -422,8 +422,8 @@ export default function ModalGenerateTagihan({
               background: 'rgba(255, 255, 255, 0.2)',
               border: 'none',
               color: '#ffffff',
-              width: '32px',
-              height: '32px',
+              width: '28px',
+              height: '28px',
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
@@ -431,22 +431,22 @@ export default function ModalGenerateTagihan({
               cursor: 'pointer'
             }}
           >
-            <X size={16} />
+            <X size={15} />
           </button>
         </div>
 
         {/* Tab Switcher: Awal Masuk vs SPP Bulanan */}
-        <div style={{ padding: '12px 16px 0', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', background: '#e2e8f0', padding: '3px', borderRadius: '12px' }}>
+        <div style={{ padding: '10px 14px 0', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', background: '#e2e8f0', padding: '3px', borderRadius: '10px' }}>
             <button
               type="button"
               onClick={() => setActiveTab('awal_masuk')}
               style={{
-                padding: '9px',
-                borderRadius: '10px',
+                padding: '7px',
+                borderRadius: '8px',
                 border: 'none',
                 fontWeight: 800,
-                fontSize: '0.76rem',
+                fontSize: '0.7rem',
                 cursor: 'pointer',
                 background: activeTab === 'awal_masuk' ? '#ffffff' : 'transparent',
                 color: activeTab === 'awal_masuk' ? '#065f46' : '#64748b',
@@ -461,11 +461,11 @@ export default function ModalGenerateTagihan({
               type="button"
               onClick={() => setActiveTab('spp_rutin')}
               style={{
-                padding: '9px',
-                borderRadius: '10px',
+                padding: '7px',
+                borderRadius: '8px',
                 border: 'none',
                 fontWeight: 800,
-                fontSize: '0.76rem',
+                fontSize: '0.7rem',
                 cursor: 'pointer',
                 background: activeTab === 'spp_rutin' ? '#ffffff' : 'transparent',
                 color: activeTab === 'spp_rutin' ? '#0369a1' : '#64748b',
@@ -480,37 +480,37 @@ export default function ModalGenerateTagihan({
 
         {/* TAB 1: RINCIAN AWAL MASUK (INTERAKTIF: EDIT, TAMBAH, HAPUS DATABASE) */}
         {activeTab === 'awal_masuk' && (
-          <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '11px' }}>
             
             {/* Target Penerima Tagihan (Khusus Santri Terpilih vs Semua Santri) */}
             {targetSantri && (
               <div style={{
                 background: '#f8fafc',
                 border: '1.5px solid #cbd5e1',
-                borderRadius: '14px',
-                padding: '10px 12px'
+                borderRadius: '12px',
+                padding: '8px 10px'
               }}>
-                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
+                <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#0f172a', marginBottom: '5px' }}>
                   Target Penerima Tagihan:
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
                   <button
                     type="button"
                     onClick={() => setScopeSantri('single')}
                     style={{
-                      padding: '8px 10px',
-                      borderRadius: '10px',
+                      padding: '6px 8px',
+                      borderRadius: '8px',
                       border: scopeSantri === 'single' ? '2px solid #059669' : '1px solid #cbd5e1',
                       background: scopeSantri === 'single' ? '#ecfdf5' : '#ffffff',
                       color: scopeSantri === 'single' ? '#065f46' : '#64748b',
-                      fontSize: '0.72rem',
+                      fontSize: '0.66rem',
                       fontWeight: 800,
                       cursor: 'pointer',
                       textAlign: 'left'
                     }}
                   >
                     <div>👤 Khusus Santri Ini:</div>
-                    <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.63rem', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
                       {targetSantri.nama_santri}
                     </div>
                   </button>
@@ -519,19 +519,19 @@ export default function ModalGenerateTagihan({
                     type="button"
                     onClick={() => setScopeSantri('semua')}
                     style={{
-                      padding: '8px 10px',
-                      borderRadius: '10px',
+                      padding: '6px 8px',
+                      borderRadius: '8px',
                       border: scopeSantri === 'semua' ? '2px solid #059669' : '1px solid #cbd5e1',
                       background: scopeSantri === 'semua' ? '#ecfdf5' : '#ffffff',
                       color: scopeSantri === 'semua' ? '#065f46' : '#64748b',
-                      fontSize: '0.72rem',
+                      fontSize: '0.66rem',
                       fontWeight: 800,
                       cursor: 'pointer',
                       textAlign: 'left'
                     }}
                   >
                     <div>👥 Seluruh Santri:</div>
-                    <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0f172a', marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.63rem', fontWeight: 700, color: '#0f172a', marginTop: '2px' }}>
                       Jenjang {jenjangMasuk}
                     </div>
                   </button>
@@ -541,17 +541,17 @@ export default function ModalGenerateTagihan({
 
             {/* Pilihan Jenjang Sekolah */}
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#0f172a' }}>
                   1. Pilih Jenjang Sekolah:
                 </span>
                 {loadingItems && (
-                  <span style={{ fontSize: '0.67rem', color: '#059669', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    <RotateCw size={11} className="animate-spin" /> Memuat data...
+                  <span style={{ fontSize: '0.62rem', color: '#059669', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    <RotateCw size={10} className="animate-spin" /> Memuat data...
                   </span>
                 )}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px' }}>
                 {[
                   { id: 'SMP', label: 'SMP' },
                   { id: 'SMA', label: 'SMA' },
@@ -569,13 +569,13 @@ export default function ModalGenerateTagihan({
                         setAddingKategori(null);
                       }}
                       style={{
-                        padding: '8px 4px',
-                        borderRadius: '12px',
+                        padding: '6px 4px',
+                        borderRadius: '10px',
                         border: active ? '2px solid #059669' : '1px solid #cbd5e1',
                         background: active ? '#ecfdf5' : '#ffffff',
                         color: active ? '#065f46' : '#475569',
                         fontWeight: 800,
-                        fontSize: '0.78rem',
+                        fontSize: '0.7rem',
                         cursor: 'pointer',
                         textAlign: 'center',
                         boxShadow: active ? '0 3px 8px rgba(5, 150, 105, 0.2)' : 'none'
@@ -590,10 +590,10 @@ export default function ModalGenerateTagihan({
 
             {/* 2. Filter Kategori Biaya (Sekolah vs Pesantren) */}
             <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
+              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#0f172a', marginBottom: '5px' }}>
                 2. Filter Kategori Biaya:
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '5px' }}>
                 {[
                   { id: 'semua', label: 'Semua Kategori', sub: 'Sekolah & Ponpes', color: '#059669', bg: '#ecfdf5' },
                   { id: 'sekolah', label: 'Adm Sekolah', sub: 'Gedung, Kaos, dll', color: '#7e22ce', bg: '#faf5ff' },
@@ -610,8 +610,8 @@ export default function ModalGenerateTagihan({
                         setAddingKategori(null);
                       }}
                       style={{
-                        padding: '8px 4px',
-                        borderRadius: '12px',
+                        padding: '6px 4px',
+                        borderRadius: '10px',
                         border: active ? `2px solid ${k.color}` : '1px solid #cbd5e1',
                         background: active ? k.bg : '#ffffff',
                         color: active ? k.color : '#475569',
@@ -622,8 +622,8 @@ export default function ModalGenerateTagihan({
                         transition: 'all 0.15s ease'
                       }}
                     >
-                      <div style={{ fontSize: '0.74rem', fontWeight: 800 }}>{k.label}</div>
-                      <div style={{ fontSize: '0.58rem', fontWeight: 600, opacity: 0.8, marginTop: '2px' }}>{k.sub}</div>
+                      <div style={{ fontSize: '0.66rem', fontWeight: 800 }}>{k.label}</div>
+                      <div style={{ fontSize: '0.54rem', fontWeight: 600, opacity: 0.8, marginTop: '1px' }}>{k.sub}</div>
                     </button>
                   );
                 })}
@@ -631,11 +631,11 @@ export default function ModalGenerateTagihan({
             </div>
 
             {/* Tabel Rincian Interaktif dengan Kemampuan Tambah, Edit, Hapus */}
-            <div style={{ border: '1px solid #cbd5e1', borderRadius: '16px', overflow: 'hidden', background: '#ffffff', boxShadow: '0 4px 14px rgba(0,0,0,0.04)' }}>
+            <div style={{ border: '1px solid #cbd5e1', borderRadius: '14px', overflow: 'hidden', background: '#ffffff', boxShadow: '0 4px 14px rgba(0,0,0,0.04)' }}>
               
               {/* Top Banner Tabel */}
               <div style={{
-                padding: '10px 14px',
+                padding: '8px 12px',
                 background: '#f8fafc',
                 borderBottom: '1px solid #e2e8f0',
                 display: 'flex',
@@ -643,56 +643,56 @@ export default function ModalGenerateTagihan({
                 alignItems: 'center'
               }}>
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.78rem', color: '#0f172a' }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.7rem', color: '#0f172a' }}>
                     RINCIAN AWAL MASUK 2026/2027 ({currentTargetJenjang})
                   </div>
-                  <div style={{ fontSize: '0.64rem', color: '#64748b' }}>
+                  <div style={{ fontSize: '0.58rem', color: '#64748b' }}>
                     Data tersimpan langsung di tabel <code>sekolah_rincian_biaya</code>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowItemBreakdown(!showItemBreakdown)}
-                  style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px' }}
+                  style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '0.64rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
                 >
                   <span>{showItemBreakdown ? 'Tutup Rincian' : 'Buka Rincian'}</span>
-                  {showItemBreakdown ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  {showItemBreakdown ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                 </button>
               </div>
 
               {/* Kotak Subtotal Otomatis Sesuai Filter Kategori */}
-              <div style={{ padding: '10px 12px', display: 'grid', gridTemplateColumns: kategoriMasuk === 'semua' ? 'repeat(2, 1fr)' : '1fr', gap: '8px', background: '#f1f5f9' }}>
+              <div style={{ padding: '8px 10px', display: 'grid', gridTemplateColumns: kategoriMasuk === 'semua' ? 'repeat(2, 1fr)' : '1fr', gap: '6px', background: '#f1f5f9' }}>
                 {(kategoriMasuk === 'semua' || kategoriMasuk === 'sekolah') && (
-                  <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '10px', padding: '8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#7e22ce' }}>ADM SEKOLAH</div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#6b21a8' }}>{formatRp(totalAdmSekolah)}</div>
+                  <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '8px', padding: '6px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.56rem', fontWeight: 800, color: '#7e22ce' }}>ADM SEKOLAH</div>
+                    <div style={{ fontSize: '0.76rem', fontWeight: 900, color: '#6b21a8' }}>{formatRp(totalAdmSekolah)}</div>
                   </div>
                 )}
                 {(kategoriMasuk === 'semua' || kategoriMasuk === 'pesantren') && (
-                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#15803d' }}>ADM PESANTREN</div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#14532d' }}>{formatRp(totalAdmPesantren)}</div>
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '6px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.56rem', fontWeight: 800, color: '#15803d' }}>ADM PESANTREN</div>
+                    <div style={{ fontSize: '0.76rem', fontWeight: 900, color: '#14532d' }}>{formatRp(totalAdmPesantren)}</div>
                   </div>
                 )}
               </div>
 
               {/* List Detail Items dengan Tombol Edit, Tambah & Hapus */}
               {showItemBreakdown && (
-                <div style={{ maxHeight: '280px', overflowY: 'auto', padding: '8px 12px' }}>
+                <div style={{ maxHeight: '260px', overflowY: 'auto', padding: '8px 10px' }}>
                   
                   {/* SEKSI 1: ADM SEKOLAH */}
                   {(kategoriMasuk === 'semua' || kategoriMasuk === 'sekolah') && (
-                  <div style={{ marginBottom: '14px' }}>
+                  <div style={{ marginBottom: '12px' }}>
                     <div style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
                       background: '#faf5ff',
-                      padding: '6px 10px',
-                      borderRadius: '8px',
-                      marginBottom: '6px'
+                      padding: '5px 8px',
+                      borderRadius: '7px',
+                      marginBottom: '5px'
                     }}>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#7e22ce' }}>
+                      <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#7e22ce' }}>
                         1. Adm Sekolah ({admSekolahItems.length} Item)
                       </span>
                       <button
@@ -705,47 +705,47 @@ export default function ModalGenerateTagihan({
                           background: '#7e22ce',
                           color: '#ffffff',
                           border: 'none',
-                          padding: '3px 8px',
-                          borderRadius: '6px',
-                          fontSize: '0.64rem',
+                          padding: '3px 7px',
+                          borderRadius: '5px',
+                          fontSize: '0.6rem',
                           fontWeight: 700,
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '3px'
+                          gap: '2px'
                         }}
                       >
-                        <Plus size={11} /> {addingKategori === 'Adm Sekolah' ? 'Batal' : '+ Tambah Item'}
+                        <Plus size={10} /> {addingKategori === 'Adm Sekolah' ? 'Batal' : '+ Tambah Item'}
                       </button>
                     </div>
 
-                    {/* Form Tambah Item Adm Sekolah */}
+                    {/* Form Tambah Item Adm Sekolah (Biaya di bawah Nama Item) */}
                     {addingKategori === 'Adm Sekolah' && (
-                      <div style={{ background: '#f5f3ff', border: '1.5px dashed #c084fc', borderRadius: '8px', padding: '8px', marginBottom: '8px' }}>
-                        <div style={{ fontSize: '0.67rem', fontWeight: 700, color: '#7e22ce', marginBottom: '4px' }}>
+                      <div style={{ background: '#f5f3ff', border: '1.5px dashed #c084fc', borderRadius: '8px', padding: '8px', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#7e22ce' }}>
                           Tambah Item Baru di Adm Sekolah:
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr auto', gap: '6px' }}>
-                          <input
-                            type="text"
-                            placeholder="Nama Item (cth: Seragam)"
-                            value={addForm.uraian}
-                            onChange={(e) => setAddForm({ ...addForm, uraian: e.target.value })}
-                            style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
-                          />
+                        <input
+                          type="text"
+                          placeholder="Nama Item (cth: Seragam)"
+                          value={addForm.uraian}
+                          onChange={(e) => setAddForm({ ...addForm, uraian: e.target.value })}
+                          style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.68rem', boxSizing: 'border-box' }}
+                        />
+                        <div style={{ display: 'flex', gap: '6px' }}>
                           <input
                             type="text"
                             inputMode="numeric"
                             placeholder="Biaya (Rp)"
                             value={formatNumberInput(addForm.biaya)}
                             onChange={(e) => setAddForm({ ...addForm, biaya: e.target.value.replace(/\D/g, '') })}
-                            style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem', fontWeight: 700, textAlign: 'right' }}
+                            style={{ flex: 1, padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.68rem', fontWeight: 700, boxSizing: 'border-box' }}
                           />
                           <button
                             type="button"
                             disabled={savingAdd}
                             onClick={() => handleSaveAdd('Adm Sekolah')}
-                            style={{ background: '#7e22ce', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}
+                            style={{ background: '#7e22ce', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.66rem', fontWeight: 800, cursor: 'pointer', flexShrink: 0 }}
                           >
                             {savingAdd ? '...' : 'Simpan'}
                           </button>
@@ -764,50 +764,52 @@ export default function ModalGenerateTagihan({
                               display: 'flex',
                               justifyContent: 'space-between',
                               alignItems: 'center',
-                              padding: '5px 8px',
+                              padding: '4px 7px',
                               borderRadius: '6px',
                               background: isEditing ? '#fef3c7' : '#ffffff',
                               border: isEditing ? '1px solid #f59e0b' : '1px solid #f1f5f9',
-                              fontSize: '0.72rem'
+                              fontSize: '0.66rem'
                             }}
                           >
                             {isEditing ? (
-                              <div style={{ display: 'flex', gap: '6px', width: '100%', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', width: '100%' }}>
                                 <input
                                   type="text"
                                   value={editForm.uraian}
                                   onChange={(e) => setEditForm({ ...editForm, uraian: e.target.value })}
-                                  style={{ flex: 1.4, padding: '4px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                                  style={{ width: '100%', padding: '4px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.66rem', boxSizing: 'border-box' }}
                                 />
-                                <input
-                                  type="text"
-                                  inputMode="numeric"
-                                  value={formatNumberInput(editForm.biaya)}
-                                  onChange={(e) => setEditForm({ ...editForm, biaya: e.target.value.replace(/\D/g, '') })}
-                                  style={{ flex: 1, padding: '4px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem', fontWeight: 700, textAlign: 'right' }}
-                                />
-                                <button
-                                  type="button"
-                                  disabled={savingEdit}
-                                  onClick={() => handleSaveEdit(item)}
-                                  style={{ background: '#10b981', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
-                                >
-                                  <Check size={12} />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setEditingItemId(null)}
-                                  style={{ background: '#e2e8f0', color: '#475569', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
-                                >
-                                  <X size={12} />
-                                </button>
+                                <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={formatNumberInput(editForm.biaya)}
+                                    onChange={(e) => setEditForm({ ...editForm, biaya: e.target.value.replace(/\D/g, '') })}
+                                    style={{ flex: 1, padding: '4px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.66rem', fontWeight: 700, boxSizing: 'border-box' }}
+                                  />
+                                  <button
+                                    type="button"
+                                    disabled={savingEdit}
+                                    onClick={() => handleSaveEdit(item)}
+                                    style={{ background: '#10b981', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                                  >
+                                    <Check size={11} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingItemId(null)}
+                                    style={{ background: '#e2e8f0', color: '#475569', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                                  >
+                                    <X size={11} />
+                                  </button>
+                                </div>
                               </div>
                             ) : (
                               <>
                                 <span style={{ color: '#334155', fontWeight: 600 }}>• {item.uraian}</span>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                   <span style={{ fontWeight: 700, color: '#0f172a' }}>{formatRp(item.biaya)}</span>
-                                  <div style={{ display: 'flex', gap: '4px' }}>
+                                  <div style={{ display: 'flex', gap: '3px' }}>
                                     <button
                                       type="button"
                                       onClick={() => {
@@ -817,7 +819,7 @@ export default function ModalGenerateTagihan({
                                       style={{ background: 'none', border: 'none', color: '#0284c7', cursor: 'pointer', padding: '2px' }}
                                       title="Edit Item"
                                     >
-                                      <Edit2 size={13} />
+                                      <Edit2 size={12} />
                                     </button>
                                     <button
                                       type="button"
@@ -825,7 +827,7 @@ export default function ModalGenerateTagihan({
                                       style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px' }}
                                       title="Hapus Item"
                                     >
-                                      <Trash2 size={13} />
+                                      <Trash2 size={12} />
                                     </button>
                                   </div>
                                 </div>
@@ -840,17 +842,17 @@ export default function ModalGenerateTagihan({
 
                   {/* SEKSI 2: ADM PESANTREN */}
                   {(kategoriMasuk === 'semua' || kategoriMasuk === 'pesantren') && (
-                  <div style={{ marginBottom: '14px' }}>
+                  <div style={{ marginBottom: '12px' }}>
                     <div style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
                       background: '#f0fdf4',
-                      padding: '6px 10px',
-                      borderRadius: '8px',
-                      marginBottom: '6px'
+                      padding: '5px 8px',
+                      borderRadius: '7px',
+                      marginBottom: '5px'
                     }}>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#15803d' }}>
+                      <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#15803d' }}>
                         {kategoriMasuk === 'pesantren' ? '1.' : '2.'} Adm Pesantren ({admPesantrenItems.length} Item)
                       </span>
                       <button
@@ -863,47 +865,47 @@ export default function ModalGenerateTagihan({
                           background: '#15803d',
                           color: '#ffffff',
                           border: 'none',
-                          padding: '3px 8px',
-                          borderRadius: '6px',
-                          fontSize: '0.64rem',
+                          padding: '3px 7px',
+                          borderRadius: '5px',
+                          fontSize: '0.6rem',
                           fontWeight: 700,
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '3px'
+                          gap: '2px'
                         }}
                       >
-                        <Plus size={11} /> {addingKategori === 'Adm Pesantren' ? 'Batal' : '+ Tambah Item'}
+                        <Plus size={10} /> {addingKategori === 'Adm Pesantren' ? 'Batal' : '+ Tambah Item'}
                       </button>
                     </div>
 
-                    {/* Form Tambah Item Adm Pesantren */}
+                    {/* Form Tambah Item Adm Pesantren (Biaya di bawah Nama Item) */}
                     {addingKategori === 'Adm Pesantren' && (
-                      <div style={{ background: '#ecfdf5', border: '1.5px dashed #86efac', borderRadius: '8px', padding: '8px', marginBottom: '8px' }}>
-                        <div style={{ fontSize: '0.67rem', fontWeight: 700, color: '#15803d', marginBottom: '4px' }}>
+                      <div style={{ background: '#ecfdf5', border: '1.5px dashed #86efac', borderRadius: '8px', padding: '8px', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#15803d' }}>
                           Tambah Item Baru di Adm Pesantren:
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr auto', gap: '6px' }}>
-                          <input
-                            type="text"
-                            placeholder="Nama Item Pesantren"
-                            value={addForm.uraian}
-                            onChange={(e) => setAddForm({ ...addForm, uraian: e.target.value })}
-                            style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
-                          />
+                        <input
+                          type="text"
+                          placeholder="Nama Item Pesantren"
+                          value={addForm.uraian}
+                          onChange={(e) => setAddForm({ ...addForm, uraian: e.target.value })}
+                          style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.68rem', boxSizing: 'border-box' }}
+                        />
+                        <div style={{ display: 'flex', gap: '6px' }}>
                           <input
                             type="text"
                             inputMode="numeric"
                             placeholder="Biaya (Rp)"
                             value={formatNumberInput(addForm.biaya)}
                             onChange={(e) => setAddForm({ ...addForm, biaya: e.target.value.replace(/\D/g, '') })}
-                            style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.72rem', fontWeight: 700, textAlign: 'right' }}
+                            style={{ flex: 1, padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.68rem', fontWeight: 700, boxSizing: 'border-box' }}
                           />
                           <button
                             type="button"
                             disabled={savingAdd}
                             onClick={() => handleSaveAdd('Adm Pesantren')}
-                            style={{ background: '#15803d', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}
+                            style={{ background: '#15803d', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.66rem', fontWeight: 800, cursor: 'pointer', flexShrink: 0 }}
                           >
                             {savingAdd ? '...' : 'Simpan'}
                           </button>
@@ -922,50 +924,52 @@ export default function ModalGenerateTagihan({
                               display: 'flex',
                               justifyContent: 'space-between',
                               alignItems: 'center',
-                              padding: '5px 8px',
+                              padding: '4px 7px',
                               borderRadius: '6px',
                               background: isEditing ? '#fef3c7' : '#ffffff',
                               border: isEditing ? '1px solid #f59e0b' : '1px solid #f1f5f9',
-                              fontSize: '0.72rem'
+                              fontSize: '0.66rem'
                             }}
                           >
                             {isEditing ? (
-                              <div style={{ display: 'flex', gap: '6px', width: '100%', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', width: '100%' }}>
                                 <input
                                   type="text"
                                   value={editForm.uraian}
                                   onChange={(e) => setEditForm({ ...editForm, uraian: e.target.value })}
-                                  style={{ flex: 1.4, padding: '4px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem' }}
+                                  style={{ width: '100%', padding: '4px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.66rem', boxSizing: 'border-box' }}
                                 />
-                                <input
-                                  type="text"
-                                  inputMode="numeric"
-                                  value={formatNumberInput(editForm.biaya)}
-                                  onChange={(e) => setEditForm({ ...editForm, biaya: e.target.value.replace(/\D/g, '') })}
-                                  style={{ flex: 1, padding: '4px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.72rem', fontWeight: 700, textAlign: 'right' }}
-                                />
-                                <button
-                                  type="button"
-                                  disabled={savingEdit}
-                                  onClick={() => handleSaveEdit(item)}
-                                  style={{ background: '#10b981', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
-                                >
-                                  <Check size={12} />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setEditingItemId(null)}
-                                  style={{ background: '#e2e8f0', color: '#475569', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
-                                >
-                                  <X size={12} />
-                                </button>
+                                <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={formatNumberInput(editForm.biaya)}
+                                    onChange={(e) => setEditForm({ ...editForm, biaya: e.target.value.replace(/\D/g, '') })}
+                                    style={{ flex: 1, padding: '4px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.66rem', fontWeight: 700, boxSizing: 'border-box' }}
+                                  />
+                                  <button
+                                    type="button"
+                                    disabled={savingEdit}
+                                    onClick={() => handleSaveEdit(item)}
+                                    style={{ background: '#10b981', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                                  >
+                                    <Check size={11} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingItemId(null)}
+                                    style={{ background: '#e2e8f0', color: '#475569', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                                  >
+                                    <X size={11} />
+                                  </button>
+                                </div>
                               </div>
                             ) : (
                               <>
                                 <span style={{ color: '#334155', fontWeight: 600 }}>• {item.uraian}</span>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                   <span style={{ fontWeight: 700, color: '#0f172a' }}>{formatRp(item.biaya)}</span>
-                                  <div style={{ display: 'flex', gap: '4px' }}>
+                                  <div style={{ display: 'flex', gap: '3px' }}>
                                     <button
                                       type="button"
                                       onClick={() => {
@@ -975,7 +979,7 @@ export default function ModalGenerateTagihan({
                                       style={{ background: 'none', border: 'none', color: '#0284c7', cursor: 'pointer', padding: '2px' }}
                                       title="Edit Item"
                                     >
-                                      <Edit2 size={13} />
+                                      <Edit2 size={12} />
                                     </button>
                                     <button
                                       type="button"
@@ -983,7 +987,7 @@ export default function ModalGenerateTagihan({
                                       style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px' }}
                                       title="Hapus Item"
                                     >
-                                      <Trash2 size={13} />
+                                      <Trash2 size={12} />
                                     </button>
                                   </div>
                                 </div>
@@ -1001,23 +1005,23 @@ export default function ModalGenerateTagihan({
 
               {/* Bottom Grand Total Strip */}
               <div style={{
-                padding: '11px 14px',
+                padding: '9px 12px',
                 background: '#064e3b',
                 color: '#ffffff',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 fontWeight: 800,
-                fontSize: '0.86rem'
+                fontSize: '0.76rem'
               }}>
                 <span>
                   {kategoriMasuk === 'sekolah'
                     ? 'TOTAL ADM SEKOLAH:'
                     : kategoriMasuk === 'pesantren'
                     ? 'TOTAL ADM PESANTREN:'
-                    : 'TOTAL RINCIAN AWAL MASUK:'}
+                    : 'TOTAL RINCIAN:'}
                 </span>
-                <span style={{ color: '#a7f3d0', fontSize: '1rem' }}>{formatRp(grandTotalMasuk)}</span>
+                <span style={{ color: '#a7f3d0', fontSize: '0.88rem' }}>{formatRp(grandTotalMasuk)}</span>
               </div>
             </div>
 
@@ -1025,14 +1029,14 @@ export default function ModalGenerateTagihan({
             <div style={{
               background: '#f0fdf4',
               border: '1px solid #bbf7d0',
-              borderRadius: '12px',
-              padding: '10px 12px',
+              borderRadius: '10px',
+              padding: '8px 10px',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px'
+              gap: '7px'
             }}>
-              <ShieldCheck size={18} color="#059669" style={{ flexShrink: 0 }} />
-              <div style={{ fontSize: '0.68rem', color: '#065f46', lineHeight: 1.3 }}>
+              <ShieldCheck size={15} color="#059669" style={{ flexShrink: 0 }} />
+              <div style={{ fontSize: '0.62rem', color: '#065f46', lineHeight: 1.3 }}>
                 <strong>Aman Anti-Duplikat:</strong> Sistem memeriksa santri yang sudah memiliki tagihan. Tagihan yang sudah ada dilewati otomatis.
               </div>
             </div>
@@ -1044,8 +1048,8 @@ export default function ModalGenerateTagihan({
               disabled={loading}
               style={{
                 width: '100%',
-                padding: '13px',
-                borderRadius: '14px',
+                padding: '11px',
+                borderRadius: '12px',
                 border: 'none',
                 background:
                   kategoriMasuk === 'sekolah'
@@ -1055,16 +1059,16 @@ export default function ModalGenerateTagihan({
                     : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
                 color: '#ffffff',
                 fontWeight: 800,
-                fontSize: '0.86rem',
+                fontSize: '0.76rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px',
+                gap: '6px',
                 boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)'
               }}
             >
-              <RotateCw size={16} className={loading ? 'animate-spin' : ''} />
+              <RotateCw size={14} className={loading ? 'animate-spin' : ''} />
               <span>
                 {loading
                   ? 'Menyimpan Tagihan ke Database...'

@@ -102,7 +102,32 @@
       @keyframes preSplashSpin {
         to { transform: rotate(360deg); }
       }
+      html.skip-splash, html.skip-splash body {
+        background: #f8fafc !important;
+      }
+      html.skip-splash #pre-splash {
+        display: none !important;
+      }
     </style>
+    <script>
+      (function() {
+        try {
+          if (
+            sessionStorage.getItem('nwf_splash_shown') === '1' ||
+            localStorage.getItem('nwf_splash_shown') === '1' ||
+            localStorage.getItem('mobile_session') ||
+            localStorage.getItem('desktop_session') ||
+            sessionStorage.getItem('desktop_session')
+          ) {
+            document.documentElement.classList.add('skip-splash');
+            sessionStorage.setItem('nwf_splash_shown', '1');
+            localStorage.setItem('nwf_splash_shown', '1');
+          } else {
+            sessionStorage.setItem('nwf_splash_shown', '1');
+          }
+        } catch (e) {}
+      })();
+    </script>
     <!-- Midtrans Snap JS SDK (Sandbox) & Telemetry Suppressor + Early PWA Prompt Capture -->
     <script>
       (function() {

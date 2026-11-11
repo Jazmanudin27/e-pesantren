@@ -7,6 +7,7 @@ import {
   createInfakPayment,
   confirmInfakPayment,
   getLaporanInfakAdmin,
+  catatInfakAdmin,
   deleteTransaksiInfak
 } from '../controllers/infak.controller.js';
 
@@ -22,8 +23,9 @@ router.get('/santri/:santri_id', getInfakWaliData);
 router.post('/create-payment', createInfakPayment);
 router.post('/confirm-payment', confirmInfakPayment);
 
-// Laporan Admin
+// Laporan & Input Admin Keuangan
 router.get('/laporan', getLaporanInfakAdmin);
+router.post('/input-admin', catatInfakAdmin);
 router.delete('/transaksi/:id', deleteTransaksiInfak);
 
 export default router;
