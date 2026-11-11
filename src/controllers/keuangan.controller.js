@@ -3182,7 +3182,7 @@ export const getBukuKasAndKantong = async (req, res) => {
       whereParams.push(kantongClean, kantongClean);
     }
 
-    const limitNum = Math.min(Math.max(parseInt(limit, 10) || 500, 10), 2000);
+    const limitNum = Math.min(Math.max(parseInt(limit, 10) || 1000, 10), 5000);
 
     const [
       kantongSummary,
@@ -3284,13 +3284,28 @@ export const getBukuKasAndKantong = async (req, res) => {
             FROM keuangan_transaksi_detail d
             JOIN keuangan_tagihan t ON d.tagihan_id = t.id
             WHERE d.transaksi_id = p.id
-          ) as rincian_item
+          ) as rincian_item,
+          (
+            SELECT GROUP_CONCAT(
+              CONCAT(
+                d.id, '|',
+                d.tagihan_id, '|',
+                t.judul_tagihan,
+                IF(t.periode_bulan IS NOT NULL AND t.periode_bulan != '', CONCAT(' - ', t.periode_bulan), ''),
+                '|',
+                ROUND(d.nominal_alokasi)
+              ) SEPARATOR ';;'
+            )
+            FROM keuangan_transaksi_detail d
+            JOIN keuangan_tagihan t ON d.tagihan_id = t.id
+            WHERE d.transaksi_id = p.id
+          ) as detail_items_raw
         FROM keuangan_transaksi_pembayaran p
         LEFT JOIN santri s ON p.santri_id = s.id
         WHERE p.status_pembayaran = 'Berhasil'
         ORDER BY p.tanggal_bayar DESC, p.id DESC
-        LIMIT 500
-      `)
+        LIMIT ?
+      `, [limitNum])
     ]);
 
     const mappedManualBukuKas = (bukuKasRows || []).map((b) => ({
@@ -3325,10 +3340,24 @@ export const getBukuKasAndKantong = async (req, res) => {
           : 'Kas Masuk Tagihan (Tunai)';
 
       const rincianText = r.rincian_item || r.catatan_pembayaran || 'Pembayaran Tagihan';
+      const parsedDetailItems = String(r.detail_items_raw || '')
+        .split(';;')
+        .filter(Boolean)
+        .map((raw) => {
+          const [detailId, tagihanId, label, nom] = raw.split('|');
+          return {
+            detail_id: Number(detailId) || 0,
+            tagihan_id: Number(tagihanId) || 0,
+            label: label || 'Tagihan',
+            nominal: Number(nom) || 0
+          };
+        });
 
       return {
         id: `trx-${r.id}`,
         transaksi_pembayaran_id: r.id,
+        santri_id: r.santri_id,
+        nama_santri: r.nama_santri,
         kode_mutasi: r.kuitansi_nomor || r.nomor_transaksi || `TRX-${r.id}`,
         tanggal: r.tanggal_bayar,
         jenis_transaksi: jenisLabel,
@@ -3341,7 +3370,8 @@ export const getBukuKasAndKantong = async (req, res) => {
         penanggung_jawab: 'Kasir',
         is_pembayaran_santri: true,
         status_dana: r.status_dana,
-        metode_pembayaran: r.metode_pembayaran
+        metode_pembayaran: r.metode_pembayaran,
+        detail_items: parsedDetailItems
       };
     });
 
@@ -3776,6 +3806,237 @@ export const updateBukuKasEntry = async (req, res) => {
   } catch (err) {
     await connection.rollback();
     return sendError(res, `Gagal memperbarui buku kas: ${err.message}`, 500);
+  } finally {
+    connection.release();
+  }
+};
+
+/**
+ * DELETE /api/keuangan/transaksi-tunai/:id
+ * Membatalkan (rollback) pembayaran tagihan Cash/Tunai dari Buku Kas:
+ * - Mengembalikan sisa_tagihan & status di keuangan_tagihan menjadi Belum Dibayar / Cicilan
+ * - Menghapus transaksi dari keuangan_transaksi_pembayaran agar Saldo Kas Tunai kembali akurat
+ */
+export const batalTransaksiTunaiBukuKas = async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    if (req.user && !canAccessKeuangan(req.user)) {
+      return sendError(res, 'Akses Ditolak: Fitur khusus Bendahara / Admin Keuangan.', 403);
+    }
+
+    const trxId = parseInt(req.params.id, 10);
+    if (!trxId) {
+      return sendError(res, 'ID transaksi tidak valid', 400);
+    }
+
+    await connection.beginTransaction();
+
+    const [trxRows] = await connection.query(
+      'SELECT * FROM keuangan_transaksi_pembayaran WHERE id = ? FOR UPDATE',
+      [trxId]
+    );
+    if (!trxRows || trxRows.length === 0) {
+      await connection.rollback();
+      return sendError(res, 'Transaksi pembayaran tidak ditemukan', 404);
+    }
+
+    const trx = trxRows[0];
+
+    // Ambil seluruh item alokasi tagihan dan kembalikan tagihan ke posisi semula
+    const [detailRows] = await connection.query(
+      'SELECT * FROM keuangan_transaksi_detail WHERE transaksi_id = ?',
+      [trxId]
+    );
+
+    for (const d of detailRows || []) {
+      const [tghRows] = await connection.query(
+        'SELECT * FROM keuangan_tagihan WHERE id = ? FOR UPDATE',
+        [d.tagihan_id]
+      );
+      if (tghRows && tghRows.length > 0) {
+        const t = tghRows[0];
+        const alokasi = parseFloat(d.nominal_alokasi || 0);
+        const sudahBaru = Math.max(0, parseFloat(t.sudah_dibayar || 0) - alokasi);
+        const totalTgh = parseFloat(t.total_tagihan || 0);
+        const sisaBaru = Math.max(0, totalTgh - sudahBaru);
+        const statusBaru =
+          sudahBaru <= 0 ? 'Belum Dibayar' : sisaBaru <= 0 ? 'Lunas' : 'Cicilan';
+
+        await connection.query(
+          `UPDATE keuangan_tagihan
+           SET sudah_dibayar = ?, sisa_tagihan = ?, status = ?, updated_at = NOW()
+           WHERE id = ?`,
+          [sudahBaru, sisaBaru, statusBaru, t.id]
+        );
+      }
+    }
+
+    await connection.query('DELETE FROM keuangan_transaksi_detail WHERE transaksi_id = ?', [trxId]);
+    await connection.query('DELETE FROM keuangan_transaksi_pembayaran WHERE id = ?', [trxId]);
+
+    await connection.commit();
+    const kantongSummary = await getRingkasanKantongKas();
+
+    return sendSuccess(
+      res,
+      `Pembayaran tunai (${trx.kuitansi_nomor || trx.nomor_transaksi}) berhasil dibatalkan dan tagihan santri dikembalikan!`,
+      {
+        deleted_transaksi_id: trxId,
+        kantong: kantongSummary
+      }
+    );
+  } catch (err) {
+    await connection.rollback();
+    return sendError(res, `Gagal membatalkan pembayaran tunai: ${err.message}`, 500);
+  } finally {
+    connection.release();
+  }
+};
+
+/**
+ * PUT /api/keuangan/transaksi-tunai/:id
+ * Mengedit pembayaran tagihan Cash/Tunai dari Buku Kas:
+ * - Bisa mengubah tanggal pembayaran
+ * - Bisa memilih/menghapus item tagihan tertentu atau mengubah nominal alokasi per item
+ */
+export const updateTransaksiTunaiBukuKas = async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    if (req.user && !canAccessKeuangan(req.user)) {
+      return sendError(res, 'Akses Ditolak: Fitur khusus Bendahara / Admin Keuangan.', 403);
+    }
+
+    const trxId = parseInt(req.params.id, 10);
+    const { tanggal, items = [] } = req.body;
+
+    if (!trxId) {
+      return sendError(res, 'ID transaksi tidak valid', 400);
+    }
+    if (!Array.isArray(items) || items.length === 0) {
+      return sendError(res, 'Minimal harus ada 1 item tagihan yang aktif (atau gunakan tombol Batal untuk membatalkan seluruh transaksi)', 400);
+    }
+
+    await connection.beginTransaction();
+
+    const [trxRows] = await connection.query(
+      'SELECT * FROM keuangan_transaksi_pembayaran WHERE id = ? FOR UPDATE',
+      [trxId]
+    );
+    if (!trxRows || trxRows.length === 0) {
+      await connection.rollback();
+      return sendError(res, 'Transaksi pembayaran tidak ditemukan', 404);
+    }
+    const existingTrx = trxRows[0];
+
+    // 1. Rollback dulu seluruh detail lama pada keuangan_tagihan
+    const [oldDetails] = await connection.query(
+      'SELECT * FROM keuangan_transaksi_detail WHERE transaksi_id = ?',
+      [trxId]
+    );
+
+    for (const d of oldDetails || []) {
+      const [tghRows] = await connection.query(
+        'SELECT * FROM keuangan_tagihan WHERE id = ? FOR UPDATE',
+        [d.tagihan_id]
+      );
+      if (tghRows && tghRows.length > 0) {
+        const t = tghRows[0];
+        const alokasiLama = parseFloat(d.nominal_alokasi || 0);
+        const sudahReset = Math.max(0, parseFloat(t.sudah_dibayar || 0) - alokasiLama);
+        const sisaReset = Math.max(0, parseFloat(t.total_tagihan || 0) - sudahReset);
+        const statusReset =
+          sudahReset <= 0 ? 'Belum Dibayar' : sisaReset <= 0 ? 'Lunas' : 'Cicilan';
+
+        await connection.query(
+          `UPDATE keuangan_tagihan
+           SET sudah_dibayar = ?, sisa_tagihan = ?, status = ?, updated_at = NOW()
+           WHERE id = ?`,
+          [sudahReset, sisaReset, statusReset, t.id]
+        );
+      }
+    }
+
+    await connection.query('DELETE FROM keuangan_transaksi_detail WHERE transaksi_id = ?', [trxId]);
+
+    // 2. Terapkan daftar item baru yang dipertahankan / diedit
+    let totalBaru = 0;
+    const judulList = [];
+
+    for (const it of items) {
+      const tagihanId = parseInt(it.tagihan_id, 10);
+      const nomBaru = Math.round(parseFloat(it.nominal) || 0);
+      if (!tagihanId || nomBaru <= 0) continue;
+
+      const [tghRows] = await connection.query(
+        'SELECT * FROM keuangan_tagihan WHERE id = ? FOR UPDATE',
+        [tagihanId]
+      );
+      if (!tghRows || tghRows.length === 0) continue;
+
+      const t = tghRows[0];
+      const sisaTersedia = parseFloat(t.sisa_tagihan || 0);
+      const finalAlokasi = Math.min(nomBaru, sisaTersedia > 0 ? sisaTersedia : nomBaru);
+
+      const sudahBaru = parseFloat(t.sudah_dibayar || 0) + finalAlokasi;
+      const sisaBaru = Math.max(0, parseFloat(t.total_tagihan || 0) - sudahBaru);
+      const statusBaru = sisaBaru <= 0 ? 'Lunas' : 'Cicilan';
+
+      await connection.query(
+        `UPDATE keuangan_tagihan
+         SET sudah_dibayar = ?, sisa_tagihan = ?, status = ?, updated_at = NOW()
+         WHERE id = ?`,
+        [sudahBaru, sisaBaru, statusBaru, t.id]
+      );
+
+      await connection.query(
+        `INSERT INTO keuangan_transaksi_detail (transaksi_id, tagihan_id, nominal_alokasi)
+         VALUES (?, ?, ?)`,
+        [trxId, t.id, finalAlokasi]
+      );
+
+      totalBaru += finalAlokasi;
+      judulList.push(t.judul_tagihan);
+    }
+
+    if (totalBaru <= 0) {
+      await connection.rollback();
+      return sendError(res, 'Total nominal pembayaran baru harus lebih dari Rp 0', 400);
+    }
+
+    const tglVal = tanggal && String(tanggal).trim()
+      ? (String(tanggal).trim().length === 10
+          ? `${String(tanggal).trim()} ${new Date().toTimeString().slice(0, 8)}`
+          : String(tanggal).trim())
+      : existingTrx.tanggal_bayar;
+
+    await connection.query(
+      `UPDATE keuangan_transaksi_pembayaran
+       SET tanggal_bayar = ?,
+           total_bayar = ?,
+           nominal_pokok = ?,
+           keterangan = ?,
+           updated_at = NOW()
+       WHERE id = ?`,
+      [
+        tglVal,
+        totalBaru,
+        totalBaru,
+        `Pembayaran ${judulList.length} tagihan (${judulList.join(', ')})`,
+        trxId
+      ]
+    );
+
+    await connection.commit();
+    const kantongSummary = await getRingkasanKantongKas();
+
+    return sendSuccess(res, `Pembayaran tunai berhasil diperbarui menjadi Rp ${totalBaru.toLocaleString('id-ID')}!`, {
+      transaksi_id: trxId,
+      total_bayar: totalBaru,
+      kantong: kantongSummary
+    });
+  } catch (err) {
+    await connection.rollback();
+    return sendError(res, `Gagal memperbarui pembayaran tunai: ${err.message}`, 500);
   } finally {
     connection.release();
   }

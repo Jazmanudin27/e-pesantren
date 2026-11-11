@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { toastSuccess, showError, showConfirm } from '../../utils/alert.util';
 import ModalGenerateTagihan from '../keuangan/components/ModalGenerateTagihan';
+import LaporanBukuKasTable from '../keuangan/components/LaporanBukuKasTable';
 
 export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }) {
   // Sub-tabs: 'kasir' | 'laporan'
@@ -79,6 +80,7 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
   const [checkingMidtransId, setCheckingMidtransId] = useState(null);
   const [laporanSearch, setLaporanSearch] = useState('');
   const [laporanFilterSekolah, setLaporanFilterSekolah] = useState('semua');
+  const [laporanViewTab, setLaporanViewTab] = useState('buku_kas'); // 'buku_kas' | 'rekap_spp'
   const [kasirFilterSekolah, setKasirFilterSekolah] = useState('semua');
   const [kasirFilterKelas, setKasirFilterKelas] = useState('semua');
   const [santriDisplayLimit, setSantriDisplayLimit] = useState(50);
@@ -1977,6 +1979,66 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
       ========================================================================= */}
       {activeTab === 'laporan' && (
         <div style={{ padding: '0 14px', position: 'relative', zIndex: 10 }}>
+          {/* Switcher Mode Laporan: Laporan Buku Kas (Tabel Mutasi) vs Rekap Tagihan SPP */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '6px',
+            background: '#ffffff',
+            padding: '5px',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)',
+            marginBottom: '12px'
+          }}>
+            <button
+              type="button"
+              onClick={() => setLaporanViewTab('buku_kas')}
+              style={{
+                padding: '8px 10px',
+                borderRadius: '10px',
+                border: 'none',
+                background: laporanViewTab === 'buku_kas' ? '#063954' : 'transparent',
+                color: laporanViewTab === 'buku_kas' ? '#ffffff' : '#64748b',
+                fontWeight: 800,
+                fontSize: '0.74rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              <FileText size={14} />
+              <span>Laporan Buku Kas</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setLaporanViewTab('rekap_spp')}
+              style={{
+                padding: '8px 10px',
+                borderRadius: '10px',
+                border: 'none',
+                background: laporanViewTab === 'rekap_spp' ? '#059669' : 'transparent',
+                color: laporanViewTab === 'rekap_spp' ? '#ffffff' : '#64748b',
+                fontWeight: 800,
+                fontSize: '0.74rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              <BarChart3 size={14} />
+              <span>Rekap SPP &amp; Kas Masuk</span>
+            </button>
+          </div>
+
+          {laporanViewTab === 'buku_kas' ? (
+            <LaporanBukuKasTable defaultKantong="tunai" />
+          ) : (
+            <>
           {/* 3 Metric Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '14px' }}>
             <div style={{
@@ -2309,6 +2371,8 @@ export default function MobileKeuangan({ initialSubTab = 'kasir', onBackToHome }
               })()}
             </div>
           </div>
+          </>
+          )}
         </div>
       )}
 

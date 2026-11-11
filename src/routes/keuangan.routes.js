@@ -30,7 +30,9 @@ import {
   createBukuKasEntry,
   updateBukuKasEntry,
   cairkanSaldoMidtransKeBank,
-  deleteBukuKasEntry
+  deleteBukuKasEntry,
+  batalTransaksiTunaiBukuKas,
+  updateTransaksiTunaiBukuKas
 } from '../controllers/keuangan.controller.js';
 
 const router = express.Router();
@@ -97,6 +99,10 @@ router.post('/cairkan-midtrans', cairkanSaldoMidtransKeBank);
 router.post('/admin/cairkan-midtrans', cairkanSaldoMidtransKeBank);
 router.delete('/buku-kas/:id', deleteBukuKasEntry);
 router.delete('/admin/buku-kas/:id', deleteBukuKasEntry);
+router.put('/transaksi-tunai/:id', updateTransaksiTunaiBukuKas);
+router.put('/admin/transaksi-tunai/:id', updateTransaksiTunaiBukuKas);
+router.delete('/transaksi-tunai/:id', batalTransaksiTunaiBukuKas);
+router.delete('/admin/transaksi-tunai/:id', batalTransaksiTunaiBukuKas);
 
 export default router;
 

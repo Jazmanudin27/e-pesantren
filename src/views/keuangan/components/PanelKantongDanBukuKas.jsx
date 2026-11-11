@@ -24,6 +24,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { toastSuccess, toastError, showConfirm } from "../../../utils/alert.util";
+import LaporanBukuKasTable from "./LaporanBukuKasTable";
 
 const DEFAULT_KATEGORI_PENGELUARAN = [
   "Konsumsi & Dapur Pesantren",
@@ -124,6 +125,8 @@ export default function PanelKantongDanBukuKas({
 
   // Tab Aktif: 'tunai' | 'bank' | 'midtrans'
   const [activeTab, setActiveTab] = useState("tunai");
+  // Mode Tampilan: 'mutasi' (Kartu) | 'laporan' (Tabel Laporan Buku Kas)
+  const [viewMode, setViewMode] = useState("mutasi");
 
   // Daftar Kategori Dinamis (Bisa Ditambah, Diedit, Dihapus)
   const [kategoriPengeluaranList, setKategoriPengeluaranList] = useState(() =>
@@ -184,6 +187,17 @@ export default function PanelKantongDanBukuKas({
   });
   const [submittingCair, setSubmittingCair] = useState(false);
 
+  // Modal Edit Pembayaran Tagihan (Tunai / Cash)
+  const [editTrxTunaiModal, setEditTrxTunaiModal] = useState({
+    isOpen: false,
+    transaksi_pembayaran_id: null,
+    nama_santri: "",
+    kode_mutasi: "",
+    tanggal: new Date().toISOString().slice(0, 10),
+    items: [], // [{ tagihan_id, label, nominal, checked: true }]
+  });
+  const [submittingEditTunai, setSubmittingEditTunai] = useState(false);
+
   // Modal Detail / Rincian Mutasi saat kartu diklik
   const [detailModal, setDetailModal] = useState({
     isOpen: false,
@@ -194,8 +208,8 @@ export default function PanelKantongDanBukuKas({
     try {
       setLoading(true);
       const [res, resKasMasuk] = await Promise.all([
-        axios.get("/api/keuangan/admin/buku-kas?limit=500"),
-        axios.get("/api/keuangan/admin/kas-masuk-sah?limit=500").catch(() => null),
+        axios.get("/api/keuangan/admin/buku-kas?limit=5000"),
+        axios.get("/api/keuangan/admin/kas-masuk-sah?limit=5000").catch(() => null),
       ]);
       if (res.data?.success && res.data.data) {
         const d = res.data.data;
@@ -534,23 +548,108 @@ export default function PanelKantongDanBukuKas({
 
   const handleDeleteBukuKas = async (item) => {
     const confirmed = await showConfirm(
-      "Hapus Catatan?",
-      item.jenis_transaksi === "Pencairan Midtrans ke Bank"
-        ? `Hapus pencairan ini? Transaksi (${formatRp(item.nominal)}) akan dikembalikan ke Mengendap di Midtrans.`
-        : `Hapus "${item.keterangan}" (${formatRp(item.nominal)})?`,
-      "Ya, Hapus",
+      "Batalkan Catatan Kas?",
+      `Batalkan "${item.keterangan}" (${formatRp(item.nominal)}) dari Kas Tunai?`,
+      "Ya, Batalkan",
     );
     if (!confirmed) return;
 
     try {
       const res = await axios.delete(`/api/keuangan/admin/buku-kas/${item.id}`);
       if (res.data?.success) {
-        toastSuccess("Catatan dihapus");
+        toastSuccess("Catatan kas berhasil dibatalkan");
         await fetchKantongAndBukuKas();
         if (onDataChanged) onDataChanged();
       }
     } catch (err) {
-      toastError(err.response?.data?.message || "Gagal menghapus catatan");
+      toastError(err.response?.data?.message || "Gagal membatalkan catatan");
+    }
+  };
+
+  const handleBatalTrxTunai = async (item) => {
+    const trxId = item.transaksi_pembayaran_id;
+    if (!trxId) return;
+
+    const confirmed = await showConfirm(
+      "Batalkan Pembayaran Tunai?",
+      `Batalkan pembayaran tunai "${item.nama_santri || item.keterangan}" senilai ${formatRp(item.nominal)}? Status tagihan santri akan kembali menjadi Belum Dibayar dan Saldo Kas Tunai disesuaikan.`,
+      "Ya, Batalkan",
+    );
+    if (!confirmed) return;
+
+    try {
+      const res = await axios.delete(`/api/keuangan/admin/transaksi-tunai/${trxId}`);
+      if (res.data?.success) {
+        toastSuccess(res.data.message || "Pembayaran tunai berhasil dibatalkan");
+        await fetchKantongAndBukuKas();
+        if (onDataChanged) onDataChanged();
+      }
+    } catch (err) {
+      toastError(err.response?.data?.message || "Gagal membatalkan pembayaran tunai");
+    }
+  };
+
+  const openEditTrxTunaiModal = (item) => {
+    const tglStr = item.tanggal
+      ? new Date(item.tanggal).toISOString().slice(0, 10)
+      : new Date().toISOString().slice(0, 10);
+    const rawParts = String(item.keterangan || "").split(" — ");
+    const santriName = item.nama_santri || rawParts[0] || "Santri";
+
+    const listItems = Array.isArray(item.detail_items) && item.detail_items.length > 0
+      ? item.detail_items.map((d) => ({
+          tagihan_id: d.tagihan_id,
+          label: d.label,
+          nominal: String(Math.round(Number(d.nominal || 0))),
+          checked: true,
+        }))
+      : [];
+
+    setEditTrxTunaiModal({
+      isOpen: true,
+      transaksi_pembayaran_id: item.transaksi_pembayaran_id,
+      nama_santri: santriName,
+      kode_mutasi: item.kode_mutasi || "",
+      tanggal: tglStr,
+      items: listItems,
+    });
+  };
+
+  const handleSaveEditTrxTunai = async (e) => {
+    if (e) e.preventDefault();
+    const activeItems = (editTrxTunaiModal.items || [])
+      .filter((it) => it.checked && parseNumberInput(it.nominal) > 0)
+      .map((it) => ({
+        tagihan_id: it.tagihan_id,
+        nominal: parseNumberInput(it.nominal),
+      }));
+
+    if (activeItems.length === 0) {
+      toastError(
+        "Pilih minimal 1 item tagihan (atau gunakan tombol Batal jika ingin membatalkan seluruh pembayaran)",
+      );
+      return;
+    }
+
+    try {
+      setSubmittingEditTunai(true);
+      const res = await axios.put(
+        `/api/keuangan/admin/transaksi-tunai/${editTrxTunaiModal.transaksi_pembayaran_id}`,
+        {
+          tanggal: editTrxTunaiModal.tanggal,
+          items: activeItems,
+        },
+      );
+      if (res.data?.success) {
+        toastSuccess(res.data.message || "Pembayaran tunai berhasil diperbarui");
+        setEditTrxTunaiModal((p) => ({ ...p, isOpen: false }));
+        await fetchKantongAndBukuKas();
+        if (onDataChanged) onDataChanged();
+      }
+    } catch (err) {
+      toastError(err.response?.data?.message || "Gagal memperbarui pembayaran tunai");
+    } finally {
+      setSubmittingEditTunai(false);
     }
   };
 
@@ -786,63 +885,141 @@ export default function PanelKantongDanBukuKas({
         </div>
       </div>
 
-      {/* 2. SELECT OPTION PILIH KANTONG / BUKU KAS */}
+      {/* 2. SELECT OPTION PILIH KANTONG / BUKU KAS & SWITCHER LAPORAN TABEL */}
       <div
         style={{
           background: "#ffffff",
           borderRadius: "16px",
-          padding: "11px 14px",
+          padding: "10px 12px",
           border: "1px solid #e2e8f0",
           boxShadow: "0 2px 8px rgba(15, 23, 42, 0.03)",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "10px",
+          flexDirection: "column",
+          gap: "8px",
         }}
       >
-        <label
+        <div
           style={{
-            fontSize: "0.75rem",
-            fontWeight: 800,
-            color: "#334155",
-            whiteSpace: "nowrap",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "10px",
           }}
         >
-          Kantong Kas
-        </label>
-        <select
-          value={activeTab}
-          onChange={(e) => setActiveTab(e.target.value)}
+          <label
+            style={{
+              fontSize: "0.75rem",
+              fontWeight: 800,
+              color: "#334155",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Kantong Kas
+          </label>
+          <select
+            value={activeTab}
+            onChange={(e) => setActiveTab(e.target.value)}
+            style={{
+              flex: 1,
+              maxWidth: "220px",
+              padding: "7px 12px",
+              borderRadius: "11px",
+              border: "1.5px solid #059669",
+              background: "#ecfdf5",
+              color: "#065f46",
+              fontSize: "0.78rem",
+              fontWeight: 800,
+              cursor: "pointer",
+              outline: "none",
+              textAlign: "left",
+              textAlignLast: "left",
+            }}
+          >
+            <option value="tunai" style={{ textAlign: "left" }}>
+              Kas Tunai
+            </option>
+            <option value="bank" style={{ textAlign: "left" }}>
+              Rek. Bank
+            </option>
+            <option value="midtrans" style={{ textAlign: "left" }}>
+              Midtrans
+            </option>
+          </select>
+        </div>
+
+        {/* Switcher: Riwayat Mutasi (Kartu) vs Laporan Buku Kas (Tabel Saldo Awal / Penerimaan / Pengeluaran / Saldo) */}
+        <div
           style={{
-            flex: 1,
-            maxWidth: "220px",
-            padding: "8px 12px",
-            borderRadius: "11px",
-            border: "1.5px solid #059669",
-            background: "#ecfdf5",
-            color: "#065f46",
-            fontSize: "0.78rem",
-            fontWeight: 800,
-            cursor: "pointer",
-            outline: "none",
-            textAlign: "left",
-            textAlignLast: "left",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "6px",
+            background: "#f1f5f9",
+            padding: "4px",
+            borderRadius: "10px",
           }}
         >
-          <option value="tunai" style={{ textAlign: "left" }}>
-            Kas Tunai
-          </option>
-          <option value="bank" style={{ textAlign: "left" }}>
-            Rek. Bank
-          </option>
-          <option value="midtrans" style={{ textAlign: "left" }}>
-            Midtrans
-          </option>
-        </select>
+          <button
+            type="button"
+            onClick={() => setViewMode("mutasi")}
+            style={{
+              padding: "6px 8px",
+              borderRadius: "8px",
+              border: "none",
+              background: viewMode === "mutasi" ? "#ffffff" : "transparent",
+              color: viewMode === "mutasi" ? "#065f46" : "#64748b",
+              fontWeight: 800,
+              fontSize: "0.72rem",
+              cursor: "pointer",
+              boxShadow:
+                viewMode === "mutasi"
+                  ? "0 1px 4px rgba(15, 23, 42, 0.08)"
+                  : "none",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "5px",
+            }}
+          >
+            <Wallet size={13} />
+            <span>Riwayat Mutasi</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("laporan")}
+            style={{
+              padding: "6px 8px",
+              borderRadius: "8px",
+              border: "none",
+              background: viewMode === "laporan" ? "#063954" : "transparent",
+              color: viewMode === "laporan" ? "#ffffff" : "#64748b",
+              fontWeight: 800,
+              fontSize: "0.72rem",
+              cursor: "pointer",
+              boxShadow:
+                viewMode === "laporan"
+                  ? "0 2px 6px rgba(6, 57, 84, 0.25)"
+                  : "none",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "5px",
+            }}
+          >
+            <FileText size={13} />
+            <span>Laporan Buku Kas</span>
+          </button>
+        </div>
       </div>
 
-      {/* 3. RIWAYAT MUTASI KAS (LIMIT 50 - MODERN CARD LIST VIEW) */}
-      <div>
+      {viewMode === "laporan" ? (
+        <LaporanBukuKasTable
+          externalBukuKas={bukuKas}
+          defaultKantong={activeTab}
+          onSelectRow={(item) => setDetailModal({ isOpen: true, item })}
+        />
+      ) : (
+        /* 3. RIWAYAT MUTASI KAS (LIMIT 50 - MODERN CARD LIST VIEW) */
+        <div>
         <div
           style={{
             display: "flex",
@@ -1106,7 +1283,8 @@ export default function PanelKantongDanBukuKas({
             })}
           </div>
         )}
-      </div>
+        </div>
+      )}
 
       {/* MODAL DETAIL / RINCIAN SAAT ITEM DIKLIK */}
       {detailModal.isOpen && detailModal.item && (() => {
@@ -1410,12 +1588,16 @@ export default function PanelKantongDanBukuKas({
                   activeTab === "bank" ||
                   activeTab === "midtrans" ||
                   isCair ||
-                  Boolean(it.is_pembayaran_santri) ||
                   it.kantong_sumber === "Rekening Bank" ||
                   it.kantong_tujuan === "Rekening Bank" ||
                   it.kantong_sumber === "Midtrans" ||
                   it.kantong_tujuan === "Midtrans";
-                const canEditOrDelete = !readOnly && !isRekeningOrMidtrans;
+                const isCashTunai =
+                  !readOnly &&
+                  !isRekeningOrMidtrans &&
+                  (activeTab === "tunai" ||
+                    it.kantong_sumber === "Kas Tunai" ||
+                    it.kantong_tujuan === "Kas Tunai");
 
                 return (
                   <div
@@ -1426,16 +1608,21 @@ export default function PanelKantongDanBukuKas({
                       paddingTop: "4px",
                     }}
                   >
-                    {canEditOrDelete && (
+                    {isCashTunai && (
                       <>
                         <button
                           type="button"
                           onClick={() => {
                             setDetailModal({ isOpen: false, item: null });
-                            openEditFormModal(it);
+                            if (it.is_pembayaran_santri) {
+                              openEditTrxTunaiModal(it);
+                            } else {
+                              openEditFormModal(it);
+                            }
                           }}
                           style={{
-                            padding: "9px 14px",
+                            flex: 1,
+                            padding: "10px 12px",
                             borderRadius: "11px",
                             border: "1px solid #cbd5e1",
                             background: "#ffffff",
@@ -1444,6 +1631,7 @@ export default function PanelKantongDanBukuKas({
                             fontWeight: 800,
                             display: "flex",
                             alignItems: "center",
+                            justifyContent: "center",
                             gap: "5px",
                             cursor: "pointer",
                           }}
@@ -1454,10 +1642,15 @@ export default function PanelKantongDanBukuKas({
                           type="button"
                           onClick={() => {
                             setDetailModal({ isOpen: false, item: null });
-                            handleDeleteBukuKas(it);
+                            if (it.is_pembayaran_santri) {
+                              handleBatalTrxTunai(it);
+                            } else {
+                              handleDeleteBukuKas(it);
+                            }
                           }}
                           style={{
-                            padding: "9px 14px",
+                            flex: 1,
+                            padding: "10px 12px",
                             borderRadius: "11px",
                             border: "1px solid #fecdd3",
                             background: "#fff1f2",
@@ -1466,11 +1659,12 @@ export default function PanelKantongDanBukuKas({
                             fontWeight: 800,
                             display: "flex",
                             alignItems: "center",
+                            justifyContent: "center",
                             gap: "5px",
                             cursor: "pointer",
                           }}
                         >
-                          <Trash2 size={14} /> Hapus
+                          <Trash2 size={14} /> Batal
                         </button>
                       </>
                     )}
@@ -1479,8 +1673,8 @@ export default function PanelKantongDanBukuKas({
                       type="button"
                       onClick={() => setDetailModal({ isOpen: false, item: null })}
                       style={{
-                        flex: canEditOrDelete ? "unset" : 1,
-                        padding: "9px 16px",
+                        flex: 1,
+                        padding: "10px 16px",
                         borderRadius: "11px",
                         border: "none",
                         background: "#0f172a",
@@ -2605,6 +2799,326 @@ export default function PanelKantongDanBukuKas({
                 }}
               >
                 {submittingCair ? "Memproses..." : "Konfirmasi Cair ke Bank"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL 3: EDIT PEMBAYARAN TAGIHAN (TUNAI / CASH) */}
+      {editTrxTunaiModal.isOpen && (
+        <div
+          onClick={() => setEditTrxTunaiModal((p) => ({ ...p, isOpen: false }))}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 10000,
+            background: "rgba(15, 23, 42, 0.65)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+          }}
+        >
+          <form
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={handleSaveEditTrxTunai}
+            style={{
+              width: "100%",
+              maxWidth: "430px",
+              background: "#ffffff",
+              borderRadius: "20px",
+              padding: "16px",
+              boxShadow: "0 20px 40px rgba(15, 23, 42, 0.25)",
+              border: "1px solid #e2e8f0",
+              display: "flex",
+              flexDirection: "column",
+              gap: "10px",
+            }}
+          >
+            {/* Header */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: "0.65rem",
+                    fontWeight: 800,
+                    color: "#059669",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Edit Pembayaran Tagihan (Cash)
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.94rem",
+                    fontWeight: 900,
+                    color: "#0f172a",
+                  }}
+                >
+                  {editTrxTunaiModal.nama_santri}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setEditTrxTunaiModal((p) => ({ ...p, isOpen: false }))
+                }
+                style={{
+                  background: "#f1f5f9",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: "30px",
+                  height: "30px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  color: "#475569",
+                }}
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            {/* Tanggal Transaksi */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                borderRadius: "10px",
+                padding: "8px 10px",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "0.72rem",
+                  fontWeight: 800,
+                  color: "#334155",
+                }}
+              >
+                Tanggal Bayar
+              </span>
+              <input
+                type="date"
+                value={editTrxTunaiModal.tanggal}
+                onChange={(e) =>
+                  setEditTrxTunaiModal((p) => ({
+                    ...p,
+                    tanggal: e.target.value,
+                  }))
+                }
+                style={{
+                  padding: "5px 8px",
+                  borderRadius: "7px",
+                  border: "1px solid #cbd5e1",
+                  fontSize: "0.75rem",
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  background: "#ffffff",
+                }}
+              />
+            </div>
+
+            {/* Rincian Item Tagihan (Bisa Uncheck atau Edit Nominal) */}
+            <div
+              style={{
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                borderRadius: "12px",
+                padding: "10px",
+                maxHeight: "240px",
+                overflowY: "auto",
+                display: "flex",
+                flexDirection: "column",
+                gap: "6px",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "0.66rem",
+                  fontWeight: 800,
+                  color: "#64748b",
+                  textTransform: "uppercase",
+                }}
+              >
+                Pilih / Sesuaikan Item Tagihan
+              </div>
+
+              {(editTrxTunaiModal.items || []).map((it, idx) => (
+                <div
+                  key={it.tagihan_id || idx}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "8px",
+                    padding: "7px 9px",
+                    borderRadius: "9px",
+                    background: it.checked ? "#ecfdf5" : "#ffffff",
+                    border: it.checked
+                      ? "1px solid #6ee7b7"
+                      : "1px solid #e2e8f0",
+                  }}
+                >
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "7px",
+                      flex: 1,
+                      minWidth: 0,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={it.checked}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setEditTrxTunaiModal((p) => ({
+                          ...p,
+                          items: p.items.map((row, rIdx) =>
+                            rIdx === idx ? { ...row, checked } : row,
+                          ),
+                        }));
+                      }}
+                      style={{
+                        width: "16px",
+                        height: "16px",
+                        accentColor: "#059669",
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontSize: "0.73rem",
+                        fontWeight: 700,
+                        color: it.checked ? "#065f46" : "#94a3b8",
+                        textDecoration: it.checked ? "none" : "line-through",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {it.label}
+                    </span>
+                  </label>
+
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    disabled={!it.checked}
+                    value={formatNumberInput(it.nominal)}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "");
+                      setEditTrxTunaiModal((p) => ({
+                        ...p,
+                        items: p.items.map((row, rIdx) =>
+                          rIdx === idx ? { ...row, nominal: val } : row,
+                        ),
+                      }));
+                    }}
+                    style={{
+                      width: "96px",
+                      padding: "5px 7px",
+                      borderRadius: "7px",
+                      border: "1px solid #cbd5e1",
+                      background: it.checked ? "#ffffff" : "#f1f5f9",
+                      fontSize: "0.75rem",
+                      fontWeight: 800,
+                      textAlign: "right",
+                      color: "#0f172a",
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Total Baru */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                background: "#ecfdf5",
+                border: "1px solid #a7f3d0",
+                borderRadius: "10px",
+                padding: "9px 12px",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "0.72rem",
+                  fontWeight: 800,
+                  color: "#065f46",
+                }}
+              >
+                Total Tunai Baru:
+              </span>
+              <span
+                style={{
+                  fontSize: "0.95rem",
+                  fontWeight: 900,
+                  color: "#047857",
+                }}
+              >
+                {formatRp(
+                  (editTrxTunaiModal.items || [])
+                    .filter((i) => i.checked)
+                    .reduce((s, i) => s + parseNumberInput(i.nominal), 0),
+                )}
+              </span>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: "flex", gap: "8px", marginTop: "2px" }}>
+              <button
+                type="button"
+                onClick={() =>
+                  setEditTrxTunaiModal((p) => ({ ...p, isOpen: false }))
+                }
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  borderRadius: "10px",
+                  border: "1px solid #cbd5e1",
+                  background: "#f8fafc",
+                  color: "#475569",
+                  fontSize: "0.76rem",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                Tutup
+              </button>
+              <button
+                type="submit"
+                disabled={submittingEditTunai}
+                style={{
+                  flex: 2,
+                  padding: "10px",
+                  borderRadius: "10px",
+                  border: "none",
+                  background:
+                    "linear-gradient(135deg, #059669 0%, #047857 100%)",
+                  color: "#ffffff",
+                  fontSize: "0.78rem",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                {submittingEditTunai ? "Menyimpan..." : "Simpan Perubahan"}
               </button>
             </div>
           </form>
