@@ -47,13 +47,6 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
         const d = res.data.data;
         setSummary(d.summary || {});
         setSantriList(d.santri || []);
-        if (d.siklusSpp) {
-          setSiklusForm({
-            tgl_terbit_spp: d.siklusSpp.tgl_terbit_spp || 5,
-            tgl_jatuh_tempo_spp: d.siklusSpp.tgl_jatuh_tempo_spp || 10,
-            apply_to_existing: true
-          });
-        }
       }
     } catch (err) {
       console.warn('Gagal memuat tunggakan SPP:', err);

@@ -1405,81 +1405,96 @@ export default function PanelKantongDanBukuKas({
               </div>
 
               {/* Footer Actions */}
-              <div
-                style={{
-                  display: "flex",
-                  gap: "8px",
-                  justifyContent: "flex-end",
-                  paddingTop: "4px",
-                }}
-              >
-                {!readOnly && !it.is_pembayaran_santri && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDetailModal({ isOpen: false, item: null });
-                        openEditFormModal(it);
-                      }}
-                      style={{
-                        padding: "9px 14px",
-                        borderRadius: "11px",
-                        border: "1px solid #cbd5e1",
-                        background: "#ffffff",
-                        color: "#334155",
-                        fontSize: "0.76rem",
-                        fontWeight: 800,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "5px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <Edit3 size={14} /> Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDetailModal({ isOpen: false, item: null });
-                        handleDeleteBukuKas(it);
-                      }}
-                      style={{
-                        padding: "9px 14px",
-                        borderRadius: "11px",
-                        border: "1px solid #fecdd3",
-                        background: "#fff1f2",
-                        color: "#be123c",
-                        fontSize: "0.76rem",
-                        fontWeight: 800,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "5px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <Trash2 size={14} /> Hapus
-                    </button>
-                  </>
-                )}
+              {(() => {
+                const isRekeningOrMidtrans =
+                  activeTab === "bank" ||
+                  activeTab === "midtrans" ||
+                  isCair ||
+                  Boolean(it.is_pembayaran_santri) ||
+                  it.kantong_sumber === "Rekening Bank" ||
+                  it.kantong_tujuan === "Rekening Bank" ||
+                  it.kantong_sumber === "Midtrans" ||
+                  it.kantong_tujuan === "Midtrans";
+                const canEditOrDelete = !readOnly && !isRekeningOrMidtrans;
 
-                <button
-                  type="button"
-                  onClick={() => setDetailModal({ isOpen: false, item: null })}
-                  style={{
-                    flex: it.is_pembayaran_santri ? 1 : "unset",
-                    padding: "9px 16px",
-                    borderRadius: "11px",
-                    border: "none",
-                    background: "#0f172a",
-                    color: "#ffffff",
-                    fontSize: "0.76rem",
-                    fontWeight: 800,
-                    cursor: "pointer",
-                  }}
-                >
-                  Tutup
-                </button>
-              </div>
+                return (
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "8px",
+                      justifyContent: "flex-end",
+                      paddingTop: "4px",
+                    }}
+                  >
+                    {canEditOrDelete && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDetailModal({ isOpen: false, item: null });
+                            openEditFormModal(it);
+                          }}
+                          style={{
+                            padding: "9px 14px",
+                            borderRadius: "11px",
+                            border: "1px solid #cbd5e1",
+                            background: "#ffffff",
+                            color: "#334155",
+                            fontSize: "0.76rem",
+                            fontWeight: 800,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <Edit3 size={14} /> Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDetailModal({ isOpen: false, item: null });
+                            handleDeleteBukuKas(it);
+                          }}
+                          style={{
+                            padding: "9px 14px",
+                            borderRadius: "11px",
+                            border: "1px solid #fecdd3",
+                            background: "#fff1f2",
+                            color: "#be123c",
+                            fontSize: "0.76rem",
+                            fontWeight: 800,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <Trash2 size={14} /> Hapus
+                        </button>
+                      </>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => setDetailModal({ isOpen: false, item: null })}
+                      style={{
+                        flex: canEditOrDelete ? "unset" : 1,
+                        padding: "9px 16px",
+                        borderRadius: "11px",
+                        border: "none",
+                        background: "#0f172a",
+                        color: "#ffffff",
+                        fontSize: "0.76rem",
+                        fontWeight: 800,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Tutup
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         );
@@ -1574,32 +1589,32 @@ export default function PanelKantongDanBukuKas({
             style={{
               flex: 1,
               overflowY: "auto",
-              padding: "16px",
-              maxWidth: "640px",
+              padding: "10px 12px",
+              maxWidth: "560px",
               width: "100%",
               margin: "0 auto",
               boxSizing: "border-box",
               display: "flex",
               flexDirection: "column",
-              gap: "12px",
+              gap: "8px",
             }}
           >
             {/* 1. TANGGAL DI PALING ATAS */}
             <div
               style={{
                 background: "#ffffff",
-                borderRadius: "14px",
-                padding: "11px 14px",
+                borderRadius: "12px",
+                padding: "8px 12px",
                 border: "1px solid #e2e8f0",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                gap: "12px",
+                gap: "10px",
               }}
             >
               <label
                 style={{
-                  fontSize: "0.75rem",
+                  fontSize: "0.72rem",
                   fontWeight: 800,
                   color: "#334155",
                   display: "flex",
@@ -1608,7 +1623,7 @@ export default function PanelKantongDanBukuKas({
                   flexShrink: 0,
                 }}
               >
-                <Calendar size={15} color="#059669" />
+                <Calendar size={14} color="#059669" />
                 <span>Tanggal Transaksi</span>
               </label>
               <input
@@ -1616,10 +1631,10 @@ export default function PanelKantongDanBukuKas({
                 value={formModal.tanggal}
                 onChange={(e) => setFormModal((p) => ({ ...p, tanggal: e.target.value }))}
                 style={{
-                  padding: "8px 12px",
-                  borderRadius: "10px",
-                  border: "1.5px solid #cbd5e1",
-                  fontSize: "0.8rem",
+                  padding: "5px 10px",
+                  borderRadius: "8px",
+                  border: "1px solid #cbd5e1",
+                  fontSize: "0.75rem",
                   fontWeight: 800,
                   color: "#0f172a",
                   background: "#f8fafc",
@@ -1628,219 +1643,177 @@ export default function PanelKantongDanBukuKas({
               />
             </div>
 
-            {/* 2. PILIH KANTONG KAS DULU */}
+            {/* 2. PILIH KANTONG KAS & JENIS TRANSAKSI (KOMPAK) */}
             <div
               style={{
                 background: "#ffffff",
-                borderRadius: "16px",
-                padding: "13px",
+                borderRadius: "12px",
+                padding: "10px 12px",
                 border: "1px solid #e2e8f0",
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px",
               }}
             >
-              <label
-                style={{
-                  fontSize: "0.7rem",
-                  fontWeight: 800,
-                  color: "#64748b",
-                  display: "block",
-                  marginBottom: "8px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.03em",
-                }}
-              >
-                1. Pilih Kantong Kas
-              </label>
+              <div>
+                <label
+                  style={{
+                    fontSize: "0.65rem",
+                    fontWeight: 800,
+                    color: "#64748b",
+                    display: "block",
+                    marginBottom: "5px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.03em",
+                  }}
+                >
+                  1. Pilih Kantong Kas
+                </label>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                {[
-                  {
-                    id: "Kas Tunai",
-                    label: "Kas Tunai",
-                    sub: formatRp(kantong.saldo_kas_tunai),
-                    Icon: Wallet,
-                    color: "#059669",
-                    bg: "#ecfdf5",
-                  },
-                  {
-                    id: "Rekening Bank",
-                    label: "Rek. Bank",
-                    sub: formatRp(kantong.saldo_rekening_bank),
-                    Icon: Building2,
-                    color: "#0284c7",
-                    bg: "#f0f9ff",
-                  },
-                ].map((k) => {
-                  const selected = formModal.kantong_aktif === k.id;
-                  const Icon = k.Icon;
-                  return (
-                    <button
-                      key={k.id}
-                      type="button"
-                      onClick={() =>
-                        setFormModal((p) => ({
-                          ...p,
-                          kantong_aktif: k.id,
-                          kantong_sumber: k.id,
-                          kantong_tujuan: k.id,
-                        }))
-                      }
-                      style={{
-                        padding: "11px 12px",
-                        borderRadius: "13px",
-                        border: selected ? `2px solid ${k.color}` : "1px solid #e2e8f0",
-                        background: selected ? k.bg : "#f8fafc",
-                        cursor: "pointer",
-                        textAlign: "left",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "3px",
-                      }}
-                    >
-                      <div
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+                  {[
+                    {
+                      id: "Kas Tunai",
+                      label: "Kas Tunai",
+                      sub: formatRp(kantong.saldo_kas_tunai),
+                      Icon: Wallet,
+                      color: "#059669",
+                      bg: "#ecfdf5",
+                    },
+                    {
+                      id: "Rekening Bank",
+                      label: "Rek. Bank",
+                      sub: formatRp(kantong.saldo_rekening_bank),
+                      Icon: Building2,
+                      color: "#0284c7",
+                      bg: "#f0f9ff",
+                    },
+                  ].map((k) => {
+                    const selected = formModal.kantong_aktif === k.id;
+                    const Icon = k.Icon;
+                    return (
+                      <button
+                        key={k.id}
+                        type="button"
+                        onClick={() =>
+                          setFormModal((p) => ({
+                            ...p,
+                            kantong_aktif: k.id,
+                            kantong_sumber: k.id,
+                            kantong_tujuan: k.id,
+                          }))
+                        }
                         style={{
+                          padding: "7px 10px",
+                          borderRadius: "9px",
+                          border: selected ? `1.5px solid ${k.color}` : "1px solid #e2e8f0",
+                          background: selected ? k.bg : "#f8fafc",
+                          cursor: "pointer",
+                          textAlign: "left",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "space-between",
+                          gap: "6px",
                         }}
                       >
-                        <span
-                          style={{
-                            fontSize: "0.78rem",
-                            fontWeight: 900,
-                            color: selected ? k.color : "#334155",
-                          }}
-                        >
-                          {k.label}
-                        </span>
-                        <Icon size={15} color={selected ? k.color : "#94a3b8"} />
-                      </div>
-                      <div style={{ fontSize: "0.68rem", fontWeight: 700, color: "#64748b" }}>
-                        {k.sub}
-                      </div>
-                    </button>
-                  );
-                })}
+                        <div style={{ minWidth: 0 }}>
+                          <div
+                            style={{
+                              fontSize: "0.73rem",
+                              fontWeight: 800,
+                              color: selected ? k.color : "#334155",
+                              lineHeight: 1.15,
+                            }}
+                          >
+                            {k.label}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "0.63rem",
+                              fontWeight: 700,
+                              color: "#64748b",
+                              marginTop: "1px",
+                            }}
+                          >
+                            {k.sub}
+                          </div>
+                        </div>
+                        <Icon size={14} color={selected ? k.color : "#94a3b8"} />
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {formModal.mode === "add" && unsettledMidtrans.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormModal((p) => ({ ...p, isOpen: false }));
-                    openCairMidtransModal();
-                  }}
+              <div>
+                <label
                   style={{
-                    marginTop: "8px",
-                    width: "100%",
-                    padding: "9px 12px",
-                    borderRadius: "11px",
-                    border: "1.5px solid #c4b5fd",
-                    background: "#f5f3ff",
-                    color: "#6d28d9",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    cursor: "pointer",
+                    fontSize: "0.65rem",
+                    fontWeight: 800,
+                    color: "#64748b",
+                    display: "block",
+                    marginBottom: "5px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.03em",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
-                    <QrCode size={15} />
-                    <span style={{ fontSize: "0.73rem", fontWeight: 800 }}>
-                      Cairkan Saldo Midtrans ke Bank
-                    </span>
-                  </div>
-                  <span
-                    style={{
-                      fontSize: "0.66rem",
-                      fontWeight: 900,
-                      background: "#7c3aed",
-                      color: "#ffffff",
-                      padding: "2px 8px",
-                      borderRadius: "999px",
-                    }}
-                  >
-                    {unsettledMidtrans.length} Trx
-                  </span>
-                </button>
-              )}
-            </div>
+                  2. Pilih Jenis Transaksi ({formModal.kantong_aktif})
+                </label>
 
-            {/* 3. PILIH PENGELUARAN ATAU PEMASUKAN */}
-            <div
-              style={{
-                background: "#ffffff",
-                borderRadius: "16px",
-                padding: "13px",
-                border: "1px solid #e2e8f0",
-              }}
-            >
-              <label
-                style={{
-                  fontSize: "0.7rem",
-                  fontWeight: 800,
-                  color: "#64748b",
-                  display: "block",
-                  marginBottom: "8px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.03em",
-                }}
-              >
-                2. Pilih Jenis Transaksi ({formModal.kantong_aktif})
-              </label>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                {[
-                  {
-                    id: "Pengeluaran",
-                    label: "Pengeluaran",
-                    Icon: TrendingDown,
-                    color: "#dc2626",
-                    bg: "#fef2f2",
-                  },
-                  {
-                    id: "Pemasukan Lain",
-                    label: "Pemasukan",
-                    Icon: TrendingUp,
-                    color: "#059669",
-                    bg: "#ecfdf5",
-                  },
-                ].map((j) => {
-                  const active = formModal.jenis_transaksi === j.id;
-                  const Icon = j.Icon;
-                  return (
-                    <button
-                      key={j.id}
-                      type="button"
-                      onClick={() => {
-                        const nextList =
-                          j.id === "Pengeluaran"
-                            ? kategoriPengeluaranList
-                            : kategoriPemasukanList;
-                        setKategoriEditor({ mode: null, value: "", originalValue: "" });
-                        setFormModal((p) => ({
-                          ...p,
-                          jenis_transaksi: j.id,
-                          kategori: nextList[0] || "",
-                        }));
-                      }}
-                      style={{
-                        padding: "11px 12px",
-                        borderRadius: "12px",
-                        border: active ? `2px solid ${j.color}` : "1px solid #e2e8f0",
-                        background: active ? j.bg : "#f8fafc",
-                        color: active ? j.color : "#475569",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "7px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <Icon size={16} />
-                      <span style={{ fontSize: "0.78rem", fontWeight: 900 }}>{j.label}</span>
-                    </button>
-                  );
-                })}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+                  {[
+                    {
+                      id: "Pengeluaran",
+                      label: "Pengeluaran",
+                      Icon: TrendingDown,
+                      color: "#dc2626",
+                      bg: "#fef2f2",
+                    },
+                    {
+                      id: "Pemasukan Lain",
+                      label: "Pemasukan",
+                      Icon: TrendingUp,
+                      color: "#059669",
+                      bg: "#ecfdf5",
+                    },
+                  ].map((j) => {
+                    const active = formModal.jenis_transaksi === j.id;
+                    const Icon = j.Icon;
+                    return (
+                      <button
+                        key={j.id}
+                        type="button"
+                        onClick={() => {
+                          const nextList =
+                            j.id === "Pengeluaran"
+                              ? kategoriPengeluaranList
+                              : kategoriPemasukanList;
+                          setKategoriEditor({ mode: null, value: "", originalValue: "" });
+                          setFormModal((p) => ({
+                            ...p,
+                            jenis_transaksi: j.id,
+                            kategori: nextList[0] || "",
+                          }));
+                        }}
+                        style={{
+                          padding: "7px 10px",
+                          borderRadius: "9px",
+                          border: active ? `1.5px solid ${j.color}` : "1px solid #e2e8f0",
+                          background: active ? j.bg : "#f8fafc",
+                          color: active ? j.color : "#475569",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "5px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <Icon size={14} />
+                        <span style={{ fontSize: "0.73rem", fontWeight: 800 }}>{j.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
@@ -1848,18 +1821,18 @@ export default function PanelKantongDanBukuKas({
             <div
               style={{
                 background: "#ffffff",
-                borderRadius: "16px",
-                padding: "14px",
+                borderRadius: "12px",
+                padding: "10px 12px",
                 border: "1px solid #e2e8f0",
               }}
             >
               <label
                 style={{
-                  fontSize: "0.7rem",
+                  fontSize: "0.65rem",
                   fontWeight: 800,
                   color: "#64748b",
                   display: "block",
-                  marginBottom: "8px",
+                  marginBottom: "5px",
                   textTransform: "uppercase",
                   letterSpacing: "0.03em",
                 }}
@@ -1872,16 +1845,16 @@ export default function PanelKantongDanBukuKas({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  gap: "10px",
+                  gap: "8px",
                   background: "#f8fafc",
-                  border: "2px solid #cbd5e1",
-                  borderRadius: "13px",
-                  padding: "10px 14px",
+                  border: "1.5px solid #cbd5e1",
+                  borderRadius: "10px",
+                  padding: "7px 12px",
                 }}
               >
                 <span
                   style={{
-                    fontSize: "1.15rem",
+                    fontSize: "0.95rem",
                     fontWeight: 900,
                     flexShrink: 0,
                     color:
@@ -1906,7 +1879,7 @@ export default function PanelKantongDanBukuKas({
                     border: "none",
                     background: "transparent",
                     outline: "none",
-                    fontSize: "1.45rem",
+                    fontSize: "1.18rem",
                     fontWeight: 900,
                     color: "#0f172a",
                     textAlign: "right",
@@ -1921,8 +1894,8 @@ export default function PanelKantongDanBukuKas({
                       background: "#e2e8f0",
                       border: "none",
                       borderRadius: "50%",
-                      width: "24px",
-                      height: "24px",
+                      width: "20px",
+                      height: "20px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -1931,7 +1904,7 @@ export default function PanelKantongDanBukuKas({
                       flexShrink: 0,
                     }}
                   >
-                    <X size={13} />
+                    <X size={12} />
                   </button>
                 )}
               </div>
@@ -1939,9 +1912,9 @@ export default function PanelKantongDanBukuKas({
               <div
                 style={{
                   display: "flex",
-                  gap: "6px",
+                  gap: "5px",
                   flexWrap: "wrap",
-                  marginTop: "9px",
+                  marginTop: "6px",
                 }}
               >
                 {[
@@ -1962,8 +1935,8 @@ export default function PanelKantongDanBukuKas({
                       background: "#f1f5f9",
                       border: "1px solid #cbd5e1",
                       borderRadius: "999px",
-                      padding: "5px 11px",
-                      fontSize: "0.69rem",
+                      padding: "3px 9px",
+                      fontSize: "0.65rem",
                       fontWeight: 800,
                       color: "#334155",
                       cursor: "pointer",
@@ -1979,8 +1952,8 @@ export default function PanelKantongDanBukuKas({
             <div
               style={{
                 background: "#ffffff",
-                borderRadius: "16px",
-                padding: "14px",
+                borderRadius: "12px",
+                padding: "10px 12px",
                 border: "1px solid #e2e8f0",
               }}
             >
@@ -1989,14 +1962,14 @@ export default function PanelKantongDanBukuKas({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  gap: "8px",
-                  marginBottom: "9px",
+                  gap: "6px",
+                  marginBottom: "6px",
                   flexWrap: "wrap",
                 }}
               >
                 <label
                   style={{
-                    fontSize: "0.7rem",
+                    fontSize: "0.65rem",
                     fontWeight: 800,
                     color: "#64748b",
                     textTransform: "uppercase",
@@ -2006,7 +1979,7 @@ export default function PanelKantongDanBukuKas({
                   Pilih Kategori
                 </label>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                   <button
                     type="button"
                     onClick={() =>
@@ -2020,9 +1993,9 @@ export default function PanelKantongDanBukuKas({
                       background: "#ecfdf5",
                       border: "1px solid #a7f3d0",
                       color: "#059669",
-                      borderRadius: "8px",
-                      padding: "4px 8px",
-                      fontSize: "0.66rem",
+                      borderRadius: "7px",
+                      padding: "3px 7px",
+                      fontSize: "0.63rem",
                       fontWeight: 800,
                       display: "flex",
                       alignItems: "center",
@@ -2030,7 +2003,7 @@ export default function PanelKantongDanBukuKas({
                       cursor: "pointer",
                     }}
                   >
-                    <Plus size={12} />
+                    <Plus size={11} />
                     <span>Tambah</span>
                   </button>
 
@@ -2047,9 +2020,9 @@ export default function PanelKantongDanBukuKas({
                       background: "#f0f9ff",
                       border: "1px solid #bae6fd",
                       color: "#0284c7",
-                      borderRadius: "8px",
-                      padding: "4px 8px",
-                      fontSize: "0.66rem",
+                      borderRadius: "7px",
+                      padding: "3px 7px",
+                      fontSize: "0.63rem",
                       fontWeight: 800,
                       display: "flex",
                       alignItems: "center",
@@ -2057,7 +2030,7 @@ export default function PanelKantongDanBukuKas({
                       cursor: "pointer",
                     }}
                   >
-                    <Edit3 size={11} />
+                    <Edit3 size={10} />
                     <span>Edit</span>
                   </button>
 
@@ -2068,9 +2041,9 @@ export default function PanelKantongDanBukuKas({
                       background: "#fef2f2",
                       border: "1px solid #fecaca",
                       color: "#dc2626",
-                      borderRadius: "8px",
-                      padding: "4px 8px",
-                      fontSize: "0.66rem",
+                      borderRadius: "7px",
+                      padding: "3px 7px",
+                      fontSize: "0.63rem",
                       fontWeight: 800,
                       display: "flex",
                       alignItems: "center",
@@ -2078,7 +2051,7 @@ export default function PanelKantongDanBukuKas({
                       cursor: "pointer",
                     }}
                   >
-                    <Trash2 size={11} />
+                    <Trash2 size={10} />
                     <span>Hapus</span>
                   </button>
                 </div>
@@ -2088,11 +2061,11 @@ export default function PanelKantongDanBukuKas({
                 <div
                   style={{
                     display: "flex",
-                    gap: "6px",
-                    marginBottom: "10px",
+                    gap: "5px",
+                    marginBottom: "8px",
                     background: "#f8fafc",
-                    padding: "8px",
-                    borderRadius: "10px",
+                    padding: "6px",
+                    borderRadius: "9px",
                     border: "1px solid #cbd5e1",
                   }}
                 >
@@ -2109,10 +2082,10 @@ export default function PanelKantongDanBukuKas({
                     }
                     style={{
                       flex: 1,
-                      padding: "7px 10px",
-                      borderRadius: "8px",
+                      padding: "6px 9px",
+                      borderRadius: "7px",
                       border: "1px solid #cbd5e1",
-                      fontSize: "0.76rem",
+                      fontSize: "0.73rem",
                       fontWeight: 700,
                       outline: "none",
                       background: "#ffffff",
@@ -2125,9 +2098,9 @@ export default function PanelKantongDanBukuKas({
                       background: "#059669",
                       color: "#ffffff",
                       border: "none",
-                      borderRadius: "8px",
-                      padding: "0 12px",
-                      fontSize: "0.72rem",
+                      borderRadius: "7px",
+                      padding: "0 10px",
+                      fontSize: "0.7rem",
                       fontWeight: 800,
                       cursor: "pointer",
                     }}
@@ -2143,9 +2116,9 @@ export default function PanelKantongDanBukuKas({
                       background: "#e2e8f0",
                       color: "#475569",
                       border: "none",
-                      borderRadius: "8px",
-                      padding: "0 10px",
-                      fontSize: "0.72rem",
+                      borderRadius: "7px",
+                      padding: "0 8px",
+                      fontSize: "0.7rem",
                       fontWeight: 800,
                       cursor: "pointer",
                     }}
@@ -2155,55 +2128,61 @@ export default function PanelKantongDanBukuKas({
                 </div>
               )}
 
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
+              <select
+                value={formModal.kategori}
+                onChange={(e) =>
+                  setFormModal((p) => ({ ...p, kategori: e.target.value }))
+                }
+                style={{
+                  width: "100%",
+                  padding: "8px 10px",
+                  borderRadius: "9px",
+                  border:
+                    formModal.jenis_transaksi === "Pengeluaran"
+                      ? "1.5px solid #fca5a5"
+                      : "1.5px solid #6ee7b7",
+                  background:
+                    formModal.jenis_transaksi === "Pengeluaran"
+                      ? "#fef2f2"
+                      : "#ecfdf5",
+                  color:
+                    formModal.jenis_transaksi === "Pengeluaran"
+                      ? "#b91c1c"
+                      : "#065f46",
+                  fontSize: "0.78rem",
+                  fontWeight: 800,
+                  outline: "none",
+                  cursor: "pointer",
+                  boxSizing: "border-box",
+                }}
+              >
                 {(formModal.jenis_transaksi === "Pengeluaran"
                   ? kategoriPengeluaranList
                   : kategoriPemasukanList
-                ).map((kat) => {
-                  const active = formModal.kategori === kat;
-                  const activeColor =
-                    formModal.jenis_transaksi === "Pengeluaran" ? "#dc2626" : "#059669";
-                  const activeBg =
-                    formModal.jenis_transaksi === "Pengeluaran" ? "#fef2f2" : "#ecfdf5";
-                  return (
-                    <button
-                      key={kat}
-                      type="button"
-                      onClick={() => setFormModal((p) => ({ ...p, kategori: kat }))}
-                      style={{
-                        padding: "8px 12px",
-                        borderRadius: "10px",
-                        border: active ? `1.5px solid ${activeColor}` : "1px solid #e2e8f0",
-                        background: active ? activeBg : "#f8fafc",
-                        color: active ? activeColor : "#475569",
-                        fontSize: "0.73rem",
-                        fontWeight: active ? 800 : 700,
-                        cursor: "pointer",
-                      }}
-                    >
-                      {kat}
-                    </button>
-                  );
-                })}
-              </div>
+                ).map((kat) => (
+                  <option key={kat} value={kat}>
+                    {kat}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* 6. URAIAN / KETERANGAN TRANSAKSI */}
             <div
               style={{
                 background: "#ffffff",
-                borderRadius: "16px",
-                padding: "14px",
+                borderRadius: "12px",
+                padding: "10px 12px",
                 border: "1px solid #e2e8f0",
               }}
             >
               <label
                 style={{
-                  fontSize: "0.72rem",
+                  fontSize: "0.68rem",
                   fontWeight: 800,
                   color: "#334155",
                   display: "block",
-                  marginBottom: "6px",
+                  marginBottom: "4px",
                 }}
               >
                 Uraian / Keterangan Transaksi *
@@ -2215,10 +2194,10 @@ export default function PanelKantongDanBukuKas({
                 onChange={(e) => setFormModal((p) => ({ ...p, keterangan: e.target.value }))}
                 style={{
                   width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: "12px",
-                  border: "1.5px solid #cbd5e1",
-                  fontSize: "0.82rem",
+                  padding: "8px 10px",
+                  borderRadius: "9px",
+                  border: "1px solid #cbd5e1",
+                  fontSize: "0.76rem",
                   fontFamily: "inherit",
                   boxSizing: "border-box",
                   background: "#f8fafc",
@@ -2230,9 +2209,9 @@ export default function PanelKantongDanBukuKas({
             <div
               style={{
                 display: "flex",
-                gap: "10px",
-                paddingTop: "6px",
-                paddingBottom: "20px",
+                gap: "8px",
+                paddingTop: "2px",
+                paddingBottom: "14px",
               }}
             >
               <button
@@ -2240,12 +2219,12 @@ export default function PanelKantongDanBukuKas({
                 onClick={() => setFormModal((p) => ({ ...p, isOpen: false }))}
                 style={{
                   flex: 1,
-                  padding: "13px",
-                  borderRadius: "13px",
+                  padding: "10px",
+                  borderRadius: "10px",
                   border: "1px solid #cbd5e1",
                   background: "#ffffff",
                   fontWeight: 800,
-                  fontSize: "0.82rem",
+                  fontSize: "0.76rem",
                   color: "#475569",
                   cursor: "pointer",
                 }}
@@ -2257,8 +2236,8 @@ export default function PanelKantongDanBukuKas({
                 disabled={submittingForm}
                 style={{
                   flex: 2,
-                  padding: "13px",
-                  borderRadius: "13px",
+                  padding: "10px",
+                  borderRadius: "10px",
                   border: "none",
                   background:
                     formModal.jenis_transaksi === "Pengeluaran"
@@ -2268,16 +2247,16 @@ export default function PanelKantongDanBukuKas({
                         : "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
                   color: "#ffffff",
                   fontWeight: 900,
-                  fontSize: "0.85rem",
+                  fontSize: "0.78rem",
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: "7px",
-                  boxShadow: "0 8px 20px rgba(15, 23, 42, 0.18)",
+                  gap: "6px",
+                  boxShadow: "0 6px 16px rgba(15, 23, 42, 0.14)",
                 }}
               >
-                <Save size={16} />
+                <Save size={15} />
                 <span>
                   {submittingForm
                     ? "Menyimpan..."

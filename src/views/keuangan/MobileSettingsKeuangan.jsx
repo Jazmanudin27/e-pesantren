@@ -49,6 +49,7 @@ export default function MobileSettingsKeuangan({ onLogout }) {
 
   // 1. State Siklus & Jatuh Tempo SPP + Auto-Settlement Midtrans
   const [isSiklusModalOpen, setIsSiklusModalOpen] = useState(false);
+  const [isMidtransModalOpen, setIsMidtransModalOpen] = useState(false);
   const [siklusForm, setSiklusForm] = useState({
     tgl_terbit_spp: 5,
     tgl_jatuh_tempo_spp: 10,
@@ -98,10 +99,11 @@ export default function MobileSettingsKeuangan({ onLogout }) {
       const res = await axios.post("/api/keuangan/siklus-spp", siklusForm);
       if (res.data?.success) {
         toastSuccess(
-          "Siklus Disimpan",
-          res.data.message || "Pengaturan siklus SPP berhasil disimpan.",
+          "Pengaturan Disimpan",
+          res.data.message || "Pengaturan keuangan berhasil disimpan.",
         );
         setIsSiklusModalOpen(false);
+        setIsMidtransModalOpen(false);
       }
     } catch (err) {
       toastError(
@@ -400,20 +402,45 @@ export default function MobileSettingsKeuangan({ onLogout }) {
           <ChevronRight size={17} color="#94a3b8" />
         </button>
 
-        {/* Pengaturan Auto-Settlement Midtrans (Berapa Hari) & Biaya Admin+PPN Orang Tua */}
-        <div style={{ paddingTop: "12px" }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: "8px",
-            }}
-          >
+        {/* Tombol Buka Modal Pencairan Otomatis Midtrans ke Bank */}
+        <button
+          type="button"
+          onClick={() => setIsMidtransModalOpen(true)}
+          style={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "12px 0 4px",
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div
+              style={{
+                width: "40px",
+                height: "40px",
+                borderRadius: "11px",
+                background: "#f5f3ff",
+                color: "#7c3aed",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "1px solid #ddd6fe",
+                flexShrink: 0,
+                fontSize: "0.95rem",
+                fontWeight: 900,
+              }}
+            >
+              🏦
+            </div>
             <div>
               <div
                 style={{
-                  fontSize: "0.84rem",
+                  fontSize: "0.86rem",
                   fontWeight: 800,
                   color: "#1e293b",
                 }}
@@ -422,320 +449,24 @@ export default function MobileSettingsKeuangan({ onLogout }) {
               </div>
               <div
                 style={{
-                  fontSize: "0.7rem",
+                  fontSize: "0.72rem",
                   color: "#64748b",
+                  marginTop: "2px",
                   fontWeight: 600,
-                  marginTop: "1px",
                 }}
               >
-                Atur berapa hari saldo Midtrans otomatis pindah ke Rek. Bank
+                {Number(siklusForm.auto_settlement_midtrans_hari) > 0
+                  ? `Otomatis Cair H+${siklusForm.auto_settlement_midtrans_hari} Hari`
+                  : "Pencairan Manual"}{" "}
+                •{" "}
+                {Number(siklusForm.bebankan_fee_midtrans_ortu ?? 1) === 1
+                  ? "Fee + PPN 11% ke Orang Tua"
+                  : "Fee Ditanggung Pesantren"}
               </div>
             </div>
-            <span
-              style={{
-                fontSize: "0.68rem",
-                fontWeight: 800,
-                padding: "3px 8px",
-                borderRadius: "8px",
-                background:
-                  Number(siklusForm.auto_settlement_midtrans_hari) > 0
-                    ? "#ede9fe"
-                    : "#f1f5f9",
-                color:
-                  Number(siklusForm.auto_settlement_midtrans_hari) > 0
-                    ? "#6d28d9"
-                    : "#64748b",
-              }}
-            >
-              {Number(siklusForm.auto_settlement_midtrans_hari) > 0
-                ? `H+${siklusForm.auto_settlement_midtrans_hari} Hari`
-                : "Manual"}
-            </span>
           </div>
-
-          {/* Pilihan Cepat Hari Settlement */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(5, 1fr)",
-              gap: "6px",
-              marginBottom: "10px",
-            }}
-          >
-            {[
-              { label: "H+1", val: 1 },
-              { label: "H+2", val: 2 },
-              { label: "H+3", val: 3 },
-              { label: "H+7", val: 7 },
-              { label: "Manual", val: 0 },
-            ].map((opt) => {
-              const active =
-                Number(siklusForm.auto_settlement_midtrans_hari) === opt.val;
-              return (
-                <button
-                  key={opt.val}
-                  type="button"
-                  onClick={() =>
-                    setSiklusForm((prev) => ({
-                      ...prev,
-                      auto_settlement_midtrans_hari: opt.val,
-                    }))
-                  }
-                  style={{
-                    padding: "8px 4px",
-                    borderRadius: "10px",
-                    border: active
-                      ? "1.5px solid #7c3aed"
-                      : "1px solid #cbd5e1",
-                    background: active ? "#f5f3ff" : "#f8fafc",
-                    color: active ? "#6d28d9" : "#475569",
-                    fontSize: "0.74rem",
-                    fontWeight: 800,
-                    cursor: "pointer",
-                  }}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Input Custom Hari */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              borderRadius: "11px",
-              padding: "8px 12px",
-              marginBottom: "10px",
-            }}
-          >
-            <span
-              style={{
-                fontSize: "0.74rem",
-                fontWeight: 700,
-                color: "#334155",
-              }}
-            >
-              Atau ketik jumlah hari (0 = Manual):
-            </span>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <input
-                type="number"
-                min="0"
-                max="30"
-                value={siklusForm.auto_settlement_midtrans_hari ?? 1}
-                onChange={(e) =>
-                  setSiklusForm((prev) => ({
-                    ...prev,
-                    auto_settlement_midtrans_hari: Math.max(
-                      0,
-                      Math.min(30, parseInt(e.target.value, 10) || 0),
-                    ),
-                  }))
-                }
-                style={{
-                  width: "56px",
-                  padding: "5px 8px",
-                  borderRadius: "8px",
-                  border: "1px solid #cbd5e1",
-                  fontSize: "0.82rem",
-                  fontWeight: 800,
-                  textAlign: "center",
-                  color: "#0f172a",
-                  background: "#ffffff",
-                }}
-              />
-              <span
-                style={{
-                  fontSize: "0.74rem",
-                  fontWeight: 700,
-                  color: "#64748b",
-                }}
-              >
-                Hari
-              </span>
-            </div>
-          </div>
-
-          {/* Info Biaya Admin + PPN 11% Dibebankan ke Orang Tua */}
-          <div
-            style={{
-              background: "#ecfdf5",
-              border: "1px solid #a7f3d0",
-              borderRadius: "12px",
-              padding: "10px 12px",
-              marginBottom: "10px",
-            }}
-          >
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                cursor: "pointer",
-                marginBottom: "6px",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "0.76rem",
-                  fontWeight: 800,
-                  color: "#065f46",
-                }}
-              >
-                Bebankan Biaya Admin + PPN 11% ke Orang Tua
-              </span>
-              <input
-                type="checkbox"
-                checked={Number(siklusForm.bebankan_fee_midtrans_ortu ?? 1) === 1}
-                onChange={(e) =>
-                  setSiklusForm((prev) => ({
-                    ...prev,
-                    bebankan_fee_midtrans_ortu: e.target.checked ? 1 : 0,
-                  }))
-                }
-                style={{
-                  width: "17px",
-                  height: "17px",
-                  accentColor: "#059669",
-                  cursor: "pointer",
-                }}
-              />
-            </label>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "8px",
-                marginTop: "6px",
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontSize: "0.66rem",
-                    fontWeight: 700,
-                    color: "#047857",
-                    marginBottom: "3px",
-                  }}
-                >
-                  Fee VA + PPN 11% (Rp)
-                </div>
-                <input
-                  type="number"
-                  min="0"
-                  value={siklusForm.biaya_admin_midtrans_va ?? 4440}
-                  onChange={(e) =>
-                    setSiklusForm((prev) => ({
-                      ...prev,
-                      biaya_admin_midtrans_va: Math.max(
-                        0,
-                        parseInt(e.target.value, 10) || 0,
-                      ),
-                    }))
-                  }
-                  style={{
-                    width: "100%",
-                    padding: "6px 8px",
-                    borderRadius: "8px",
-                    border: "1px solid #6ee7b7",
-                    background: "#ffffff",
-                    fontSize: "0.78rem",
-                    fontWeight: 800,
-                    color: "#065f46",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontSize: "0.66rem",
-                    fontWeight: 700,
-                    color: "#047857",
-                    marginBottom: "3px",
-                  }}
-                >
-                  Fee QRIS + PPN 11% (%)
-                </div>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={siklusForm.biaya_admin_midtrans_qris_persen ?? 0.78}
-                  onChange={(e) =>
-                    setSiklusForm((prev) => ({
-                      ...prev,
-                      biaya_admin_midtrans_qris_persen: Math.max(
-                        0,
-                        parseFloat(e.target.value) || 0,
-                      ),
-                    }))
-                  }
-                  style={{
-                    width: "100%",
-                    padding: "6px 8px",
-                    borderRadius: "8px",
-                    border: "1px solid #6ee7b7",
-                    background: "#ffffff",
-                    fontSize: "0.78rem",
-                    fontWeight: 800,
-                    color: "#065f46",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
-            </div>
-            <div
-              style={{
-                fontSize: "0.66rem",
-                color: "#047857",
-                marginTop: "6px",
-                lineHeight: 1.35,
-                fontWeight: 600,
-              }}
-            >
-              ✓ Dana pokok tagihan diterima 100% utuh oleh Pesantren tanpa potongan.
-            </div>
-          </div>
-
-          <button
-            type="button"
-            disabled={savingSiklus}
-            onClick={handleSaveSiklus}
-            style={{
-              width: "100%",
-              border: "none",
-              borderRadius: "11px",
-              padding: "10px",
-              background: savingSiklus
-                ? "#94a3b8"
-                : "linear-gradient(135deg, #059669 0%, #047857 100%)",
-              color: "#ffffff",
-              fontSize: "0.8rem",
-              fontWeight: 800,
-              cursor: savingSiklus ? "not-allowed" : "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "6px",
-              boxShadow: savingSiklus
-                ? "none"
-                : "0 4px 12px rgba(5, 150, 105, 0.2)",
-            }}
-          >
-            <Save size={15} />
-            <span>
-              {savingSiklus
-                ? "Menyimpan..."
-                : "Simpan Pengaturan Midtrans & Siklus"}
-            </span>
-          </button>
-        </div>
+          <ChevronRight size={17} color="#94a3b8" />
+        </button>
       </div>
 
       {/* 2. Ubah Password Akun */}
@@ -1025,6 +756,414 @@ export default function MobileSettingsKeuangan({ onLogout }) {
         savingSiklus={savingSiklus}
         onSaveSiklus={handleSaveSiklus}
       />
+
+      {/* Modal Pencairan Otomatis Midtrans ke Bank & Biaya Admin */}
+      {isMidtransModalOpen && (
+        <div
+          onClick={() => setIsMidtransModalOpen(false)}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(15, 23, 42, 0.65)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "center",
+            zIndex: 99999,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "#ffffff",
+              width: "100%",
+              maxWidth: "480px",
+              borderTopLeftRadius: "24px",
+              borderTopRightRadius: "24px",
+              padding: "22px 20px 26px",
+              boxShadow: "0 -10px 30px rgba(0,0,0,0.15)",
+            }}
+          >
+            {/* Header Modal Midtrans */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "16px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "10px",
+                    background: "#f5f3ff",
+                    color: "#7c3aed",
+                    border: "1px solid #ddd6fe",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "1rem",
+                  }}
+                >
+                  🏦
+                </div>
+                <div>
+                  <h3
+                    style={{
+                      fontSize: "0.98rem",
+                      fontWeight: 800,
+                      color: "#0f172a",
+                      margin: 0,
+                    }}
+                  >
+                    Pencairan Otomatis Midtrans ke Bank
+                  </h3>
+                  <div style={{ fontSize: "0.72rem", color: "#64748b" }}>
+                    Atur jadwal auto-settlement &amp; biaya admin orang tua
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMidtransModalOpen(false)}
+                style={{
+                  background: "#f1f5f9",
+                  border: "none",
+                  width: "30px",
+                  height: "30px",
+                  borderRadius: "50%",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form
+              onSubmit={handleSaveSiklus}
+              style={{ display: "flex", flexDirection: "column", gap: "14px" }}
+            >
+              {/* 1. Pilih Jadwal Hari Auto-Settlement */}
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.76rem",
+                    fontWeight: 800,
+                    color: "#334155",
+                    marginBottom: "6px",
+                  }}
+                >
+                  Jadwal Pencairan Otomatis ke Rekening Bank
+                </label>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(5, 1fr)",
+                    gap: "6px",
+                    marginBottom: "8px",
+                  }}
+                >
+                  {[
+                    { label: "H+1", val: 1 },
+                    { label: "H+2", val: 2 },
+                    { label: "H+3", val: 3 },
+                    { label: "H+7", val: 7 },
+                    { label: "Manual", val: 0 },
+                  ].map((opt) => {
+                    const active =
+                      Number(siklusForm.auto_settlement_midtrans_hari) ===
+                      opt.val;
+                    return (
+                      <button
+                        key={opt.val}
+                        type="button"
+                        onClick={() =>
+                          setSiklusForm((prev) => ({
+                            ...prev,
+                            auto_settlement_midtrans_hari: opt.val,
+                          }))
+                        }
+                        style={{
+                          padding: "9px 4px",
+                          borderRadius: "10px",
+                          border: active
+                            ? "1.5px solid #7c3aed"
+                            : "1px solid #cbd5e1",
+                          background: active ? "#f5f3ff" : "#f8fafc",
+                          color: active ? "#6d28d9" : "#475569",
+                          fontSize: "0.75rem",
+                          fontWeight: 800,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "11px",
+                    padding: "8px 12px",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "0.74rem",
+                      fontWeight: 700,
+                      color: "#334155",
+                    }}
+                  >
+                    Atau ketik jumlah hari (0 = Manual):
+                  </span>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <input
+                      type="number"
+                      min="0"
+                      max="30"
+                      value={siklusForm.auto_settlement_midtrans_hari ?? 1}
+                      onChange={(e) =>
+                        setSiklusForm((prev) => ({
+                          ...prev,
+                          auto_settlement_midtrans_hari: Math.max(
+                            0,
+                            Math.min(30, parseInt(e.target.value, 10) || 0),
+                          ),
+                        }))
+                      }
+                      style={{
+                        width: "60px",
+                        padding: "6px 8px",
+                        borderRadius: "8px",
+                        border: "1px solid #8b5cf6",
+                        fontSize: "0.85rem",
+                        fontWeight: 800,
+                        textAlign: "center",
+                        color: "#6d28d9",
+                        background: "#ffffff",
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontSize: "0.74rem",
+                        fontWeight: 700,
+                        color: "#64748b",
+                      }}
+                    >
+                      Hari
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Biaya Admin + PPN 11% Dibebankan ke Orang Tua */}
+              <div
+                style={{
+                  background: "#ecfdf5",
+                  border: "1px solid #a7f3d0",
+                  borderRadius: "12px",
+                  padding: "12px",
+                }}
+              >
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    cursor: "pointer",
+                    marginBottom: "8px",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "0.78rem",
+                      fontWeight: 800,
+                      color: "#065f46",
+                    }}
+                  >
+                    Bebankan Biaya Admin + PPN 11% ke Orang Tua
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={
+                      Number(siklusForm.bebankan_fee_midtrans_ortu ?? 1) === 1
+                    }
+                    onChange={(e) =>
+                      setSiklusForm((prev) => ({
+                        ...prev,
+                        bebankan_fee_midtrans_ortu: e.target.checked ? 1 : 0,
+                      }))
+                    }
+                    style={{
+                      width: "18px",
+                      height: "18px",
+                      accentColor: "#059669",
+                      cursor: "pointer",
+                    }}
+                  />
+                </label>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "8px",
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        fontSize: "0.68rem",
+                        fontWeight: 700,
+                        color: "#047857",
+                        marginBottom: "3px",
+                      }}
+                    >
+                      Fee Virtual Account + PPN (Rp)
+                    </div>
+                    <input
+                      type="number"
+                      min="0"
+                      value={siklusForm.biaya_admin_midtrans_va ?? 4440}
+                      onChange={(e) =>
+                        setSiklusForm((prev) => ({
+                          ...prev,
+                          biaya_admin_midtrans_va: Math.max(
+                            0,
+                            parseInt(e.target.value, 10) || 0,
+                          ),
+                        }))
+                      }
+                      style={{
+                        width: "100%",
+                        padding: "7px 8px",
+                        borderRadius: "8px",
+                        border: "1px solid #6ee7b7",
+                        background: "#ffffff",
+                        fontSize: "0.8rem",
+                        fontWeight: 800,
+                        color: "#065f46",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <div
+                      style={{
+                        fontSize: "0.68rem",
+                        fontWeight: 700,
+                        color: "#047857",
+                        marginBottom: "3px",
+                      }}
+                    >
+                      Potongan QRIS Midtrans (%)
+                    </div>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={siklusForm.biaya_admin_midtrans_qris_persen ?? 0.78}
+                      onChange={(e) =>
+                        setSiklusForm((prev) => ({
+                          ...prev,
+                          biaya_admin_midtrans_qris_persen: Math.max(
+                            0,
+                            parseFloat(e.target.value) || 0,
+                          ),
+                        }))
+                      }
+                      style={{
+                        width: "100%",
+                        padding: "7px 8px",
+                        borderRadius: "8px",
+                        border: "1px solid #6ee7b7",
+                        background: "#ffffff",
+                        fontSize: "0.8rem",
+                        fontWeight: 800,
+                        color: "#065f46",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.68rem",
+                    color: "#047857",
+                    marginTop: "8px",
+                    lineHeight: 1.35,
+                    fontWeight: 600,
+                  }}
+                >
+                  ✓ Dana pokok tagihan diterima 100% utuh oleh Pesantren tanpa potongan.
+                </div>
+              </div>
+
+              {/* Tombol Batal & Simpan */}
+              <div style={{ display: "flex", gap: "10px", marginTop: "4px" }}>
+                <button
+                  type="button"
+                  onClick={() => setIsMidtransModalOpen(false)}
+                  style={{
+                    flex: 1,
+                    padding: "12px",
+                    borderRadius: "12px",
+                    border: "1px solid #cbd5e1",
+                    background: "#f8fafc",
+                    color: "#475569",
+                    fontWeight: 700,
+                    fontSize: "0.82rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingSiklus}
+                  style={{
+                    flex: 2,
+                    padding: "12px",
+                    borderRadius: "12px",
+                    border: "none",
+                    background:
+                      "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                    color: "#ffffff",
+                    fontWeight: 800,
+                    fontSize: "0.85rem",
+                    cursor: "pointer",
+                    boxShadow: "0 4px 12px rgba(16, 185, 129, 0.3)",
+                  }}
+                >
+                  {savingSiklus ? "Menyimpan..." : "Simpan Pengaturan"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

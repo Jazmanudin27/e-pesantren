@@ -136,37 +136,6 @@ export default function ModalSiklusSpp({
             </span>
           </label>
 
-          {/* Auto-Settlement Midtrans (H+N Hari) */}
-          <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px', marginTop: '2px' }}>
-            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-              Pencairan Otomatis (Auto-Settlement) Midtrans ke Bank
-            </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.82rem', color: '#64748b' }}>Otomatis cair setelah</span>
-              <input
-                type="number"
-                min="0"
-                max="30"
-                value={siklusForm.auto_settlement_midtrans_hari ?? 1}
-                onChange={(e) => setSiklusForm({ ...siklusForm, auto_settlement_midtrans_hari: Math.max(0, Math.min(30, parseInt(e.target.value, 10) || 0)) })}
-                style={{
-                  width: '68px',
-                  padding: '7px 10px',
-                  borderRadius: '8px',
-                  border: '1px solid #8b5cf6',
-                  fontSize: '0.88rem',
-                  fontWeight: 800,
-                  color: '#6d28d9',
-                  textAlign: 'center'
-                }}
-              />
-              <span style={{ fontSize: '0.82rem', color: '#64748b' }}>hari (0 = Manual)</span>
-            </div>
-            <span style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 700, marginTop: '4px', display: 'block' }}>
-              ✓ Biaya Admin + PPN 11% otomatis dibebankan ke Orang Tua / Wali Santri.
-            </span>
-          </div>
-
           <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
             <button
               type="button"
