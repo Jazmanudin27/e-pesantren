@@ -3227,10 +3227,10 @@ export default function PanelKantongDanBukuKas({
           title="Tambah Transaksi Buku Kas"
           style={{
             position: "fixed",
-            right: "20px",
+            right: "max(18px, calc(50% - 210px))",
             bottom: "86px",
-            width: "56px",
-            height: "56px",
+            width: "54px",
+            height: "54px",
             borderRadius: "50%",
             background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
             color: "#ffffff",

@@ -106,13 +106,51 @@ export default function MobileTabungan({ onBackToHome }) {
         params: { limit: 1000 }
       });
       if (res.data?.success) {
-        setSummary(res.data.data.summary || {});
-        setSantriList(res.data.data.data || []);
-        setRecentTrxList(res.data.data.riwayat_terbaru || []);
+        const listData = res.data.data?.data || [];
+        setSummary(res.data.data?.summary || {});
+        setRecentTrxList(res.data.data?.riwayat_terbaru || []);
+        if (listData.length > 0) {
+          setSantriList(listData);
+        } else {
+          // Fallback jika endpoint belum direstart dan mengembalikan 0 baris
+          const fbRes = await axios
+            .get('/api/keuangan/admin/kasir-santri-search?limit=1000')
+            .catch(() => axios.get('/api/santri'));
+          const fbRows = fbRes?.data?.data?.santri || fbRes?.data?.data || [];
+          if (Array.isArray(fbRows) && fbRows.length > 0) {
+            setSantriList(
+              fbRows.map((s) => ({
+                ...s,
+                saldo: Number(s.saldo || 0),
+                total_masuk: Number(s.total_masuk || 0),
+                total_keluar: Number(s.total_keluar || 0)
+              }))
+            );
+          } else {
+            setSantriList([]);
+          }
+        }
       }
     } catch (err) {
       console.error('Gagal mengambil daftar tabungan:', err);
-      toastError('Gagal memuat data tabungan');
+      try {
+        const fbRes = await axios
+          .get('/api/keuangan/admin/kasir-santri-search?limit=1000')
+          .catch(() => axios.get('/api/santri'));
+        const fbRows = fbRes?.data?.data?.santri || fbRes?.data?.data || [];
+        if (Array.isArray(fbRows) && fbRows.length > 0) {
+          setSantriList(
+            fbRows.map((s) => ({
+              ...s,
+              saldo: Number(s.saldo || 0),
+              total_masuk: Number(s.total_masuk || 0),
+              total_keluar: Number(s.total_keluar || 0)
+            }))
+          );
+        }
+      } catch (_) {
+        toastError('Gagal memuat data tabungan');
+      }
     } finally {
       setLoading(false);
     }
@@ -836,20 +874,20 @@ export default function MobileTabungan({ onBackToHome }) {
         title="Input Tabungan Santri"
         style={{
           position: 'fixed',
-          bottom: '84px',
-          right: 'calc(50% - 210px)',
-          width: '52px',
-          height: '52px',
+          bottom: '86px',
+          right: 'max(18px, calc(50% - 210px))',
+          width: '54px',
+          height: '54px',
           borderRadius: '50%',
           background: 'linear-gradient(135deg, #0d766e 0%, #059669 100%)',
           color: '#ffffff',
-          border: 'none',
+          border: '2px solid rgba(255, 255, 255, 0.35)',
           boxShadow: '0 8px 22px rgba(13, 118, 110, 0.45)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
-          zIndex: 900,
+          zIndex: 999,
         }}
       >
         <Plus size={26} strokeWidth={2.8} />
