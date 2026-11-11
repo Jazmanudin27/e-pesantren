@@ -591,7 +591,6 @@ export default function LaporanInfakAdminView({ onBackToHome }) {
                             cursor: 'pointer'
                           }}
                         >
-                          <Plus size={13} strokeWidth={2.8} />
                           <span>Input Infak</span>
                         </button>
                       </div>
