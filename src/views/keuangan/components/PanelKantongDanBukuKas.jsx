@@ -187,12 +187,79 @@ export default function PanelKantongDanBukuKas({
   const fetchKantongAndBukuKas = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await axios.get("/api/keuangan/admin/buku-kas?limit=500");
+      const [res, resKasMasuk] = await Promise.all([
+        axios.get("/api/keuangan/admin/buku-kas?limit=500"),
+        axios.get("/api/keuangan/admin/kas-masuk-sah?limit=500").catch(() => null),
+      ]);
       if (res.data?.success && res.data.data) {
         const d = res.data.data;
         if (d.kantong) setKantong(d.kantong);
         setUnsettledMidtrans(d.unsettledMidtrans || []);
-        setBukuKas(d.bukuKas || []);
+
+        const baseBukuKas = Array.isArray(d.bukuKas) ? d.bukuKas : [];
+        const existingIds = new Set(baseBukuKas.map((b) => String(b.id)));
+
+        const rawTrx =
+          resKasMasuk?.data?.data?.transaksi ||
+          resKasMasuk?.data?.data?.transaksiTerakhir ||
+          [];
+
+        const mappedTrx = (Array.isArray(rawTrx) ? rawTrx : [])
+          .filter((r) => !existingIds.has(`trx-${r.id}`))
+          .map((r) => {
+            const chLower = String(r.channel_pembayaran || "").toLowerCase();
+            const isMidtrans =
+              Boolean(r.snap_token) ||
+              ["QRIS", "Virtual Account"].includes(r.metode_pembayaran) ||
+              chLower.includes("midtrans") ||
+              chLower.includes("qris") ||
+              r.status_dana === "Mengendap di Midtrans";
+            const isTransferBank =
+              !isMidtrans &&
+              (r.status_dana === "Di Rekening Bank" ||
+                r.metode_pembayaran === "Transfer" ||
+                chLower.includes("transfer"));
+
+            const kantongTujuan = isMidtrans
+              ? "Midtrans"
+              : isTransferBank
+                ? "Rekening Bank"
+                : "Kas Tunai";
+
+            const jenisLabel = isMidtrans
+              ? r.status_dana === "Di Rekening Bank"
+                ? "Pembayaran Midtrans (Sudah Cair)"
+                : "Pembayaran Midtrans (Mengendap)"
+              : isTransferBank
+                ? "Kas Masuk Tagihan (Transfer)"
+                : "Kas Masuk Tagihan (Tunai)";
+
+            const rincianText =
+              r.rincian_item || r.keterangan || "Pembayaran Tagihan";
+
+            return {
+              id: `trx-${r.id}`,
+              transaksi_pembayaran_id: r.id,
+              kode_mutasi: r.nomor_kuitansi || r.kuitansi_nomor || r.nomor_transaksi || `TRX-${r.id}`,
+              tanggal: r.tanggal_bayar || r.created_at,
+              jenis_transaksi: jenisLabel,
+              kategori: "Pembayaran Santri",
+              kantong_sumber: isMidtrans ? "Midtrans" : null,
+              kantong_tujuan: kantongTujuan,
+              nominal: Number(r.nominal_pokok || r.total_bayar || 0),
+              biaya_admin: 0,
+              keterangan: `${r.nama_santri || "Santri"} — ${rincianText}`,
+              penanggung_jawab: r.diterima_oleh || "Kasir",
+              is_pembayaran_santri: true,
+              status_dana: r.status_dana,
+            };
+          });
+
+        const merged = [...baseBukuKas, ...mappedTrx].sort(
+          (a, b) =>
+            new Date(b.tanggal || 0).getTime() - new Date(a.tanggal || 0).getTime(),
+        );
+        setBukuKas(merged);
       }
     } catch (err) {
       console.warn("Gagal memuat data kantong & buku kas:", err);
@@ -817,7 +884,9 @@ export default function PanelKantongDanBukuKas({
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {displayedMutasi.map((item) => {
               const isOut = item.jenis_transaksi === "Pengeluaran";
-              const isIn = item.jenis_transaksi === "Pemasukan Lain";
+              const isIn =
+                item.jenis_transaksi === "Pemasukan Lain" ||
+                Boolean(item.is_pembayaran_santri);
               const isCair = item.jenis_transaksi === "Pencairan Midtrans ke Bank";
 
               const color = isOut
@@ -899,10 +968,10 @@ export default function PanelKantongDanBukuKas({
                         <span style={{ color, fontWeight: 800 }}>{item.jenis_transaksi}</span>
                         <span>•</span>
                         <span>{formatDateId(item.tanggal)}</span>
-                        {item.kantong_sumber && (
+                        {(item.kantong_sumber || item.kantong_tujuan) && (
                           <>
                             <span>•</span>
-                            <span>{item.kantong_sumber}</span>
+                            <span>{item.kantong_sumber || item.kantong_tujuan}</span>
                           </>
                         )}
                       </div>
@@ -922,7 +991,7 @@ export default function PanelKantongDanBukuKas({
                       )}
                     </div>
 
-                    {!readOnly && (
+                    {!readOnly && !item.is_pembayaran_santri && (
                       <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
                         <button
                           type="button"

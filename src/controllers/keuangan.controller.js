@@ -3038,7 +3038,8 @@ export const getBukuKasAndKantong = async (req, res) => {
       kantongSummary,
       [unsettledMidtransRows],
       [settledMidtransRows],
-      [bukuKasRows]
+      [bukuKasRows],
+      [pembayaranKantongRows]
     ] = await Promise.all([
       getRingkasanKantongKas(),
       pool.query(`
@@ -3104,8 +3105,94 @@ export const getBukuKasAndKantong = async (req, res) => {
         WHERE ${whereClauses.join(' AND ')}
         ORDER BY tanggal DESC, id DESC
         LIMIT ?
-      `, [...whereParams, limitNum])
+      `, [...whereParams, limitNum]),
+      pool.query(`
+        SELECT 
+          p.id,
+          p.nomor_transaksi,
+          p.kuitansi_nomor,
+          p.santri_id,
+          p.metode_pembayaran,
+          p.channel_pembayaran,
+          p.snap_token,
+          p.total_bayar,
+          COALESCE(NULLIF(p.nominal_pokok, 0), p.total_bayar) as nominal_pokok,
+          COALESCE(p.nominal_fee_gateway, 0) as nominal_fee_gateway,
+          p.status_dana,
+          p.tanggal_bayar,
+          p.keterangan as catatan_pembayaran,
+          p.diterima_oleh,
+          COALESCE(s.nama_santri, p.keterangan, 'Santri NWF') as nama_santri,
+          COALESCE(s.nis, '-') as nis,
+          (
+            SELECT GROUP_CONCAT(t.judul_tagihan SEPARATOR ', ')
+            FROM keuangan_transaksi_detail d
+            JOIN keuangan_tagihan t ON d.tagihan_id = t.id
+            WHERE d.transaksi_id = p.id
+          ) as rincian_item
+        FROM keuangan_transaksi_pembayaran p
+        LEFT JOIN santri s ON p.santri_id = s.id
+        WHERE p.status_pembayaran = 'Berhasil'
+        ORDER BY p.tanggal_bayar DESC, p.id DESC
+        LIMIT 500
+      `)
     ]);
+
+    const mappedManualBukuKas = (bukuKasRows || []).map((b) => ({
+      ...b,
+      nominal: Number(b.nominal || 0),
+      biaya_admin: Number(b.biaya_admin || 0),
+      is_pembayaran_santri: false
+    }));
+
+    const mappedPembayaranKantong = (pembayaranKantongRows || []).map((r) => {
+      const isMidtrans =
+        Boolean(r.snap_token) ||
+        ['QRIS', 'Virtual Account'].includes(r.metode_pembayaran) ||
+        String(r.channel_pembayaran || '').toLowerCase().includes('midtrans') ||
+        r.status_dana === 'Mengendap di Midtrans';
+      const isTransferBank =
+        !isMidtrans &&
+        (r.status_dana === 'Di Rekening Bank' || r.metode_pembayaran === 'Transfer');
+
+      const kantongTujuan = isMidtrans
+        ? 'Midtrans'
+        : isTransferBank
+          ? 'Rekening Bank'
+          : 'Kas Tunai';
+
+      const jenisLabel = isMidtrans
+        ? r.status_dana === 'Di Rekening Bank'
+          ? 'Pembayaran Midtrans (Sudah Cair)'
+          : 'Pembayaran Midtrans (Mengendap)'
+        : isTransferBank
+          ? 'Kas Masuk Tagihan (Transfer)'
+          : 'Kas Masuk Tagihan (Tunai)';
+
+      const rincianText = r.rincian_item || r.catatan_pembayaran || 'Pembayaran Tagihan';
+
+      return {
+        id: `trx-${r.id}`,
+        transaksi_pembayaran_id: r.id,
+        kode_mutasi: r.kuitansi_nomor || r.nomor_transaksi || `TRX-${r.id}`,
+        tanggal: r.tanggal_bayar,
+        jenis_transaksi: jenisLabel,
+        kategori: 'Pembayaran Santri',
+        kantong_sumber: isMidtrans ? 'Midtrans' : null,
+        kantong_tujuan: kantongTujuan,
+        nominal: Number(r.nominal_pokok || r.total_bayar || 0),
+        biaya_admin: 0,
+        keterangan: `${r.nama_santri} — ${rincianText}`,
+        penanggung_jawab: r.diterima_oleh || 'Kasir',
+        is_pembayaran_santri: true,
+        status_dana: r.status_dana,
+        metode_pembayaran: r.metode_pembayaran
+      };
+    });
+
+    const combinedBukuKas = [...mappedManualBukuKas, ...mappedPembayaranKantong].sort(
+      (a, b) => new Date(b.tanggal || 0).getTime() - new Date(a.tanggal || 0).getTime()
+    );
 
     return sendSuccess(res, 'Data kantong saldo & buku kas berhasil dimuat', {
       kantong: kantongSummary,
@@ -3121,11 +3208,7 @@ export const getBukuKasAndKantong = async (req, res) => {
         nominal_fee_gateway: Number(r.nominal_fee_gateway || 0),
         total_bayar: Number(r.total_bayar || 0)
       })),
-      bukuKas: (bukuKasRows || []).map((b) => ({
-        ...b,
-        nominal: Number(b.nominal || 0),
-        biaya_admin: Number(b.biaya_admin || 0)
-      }))
+      bukuKas: combinedBukuKas
     });
   } catch (err) {
     return sendError(res, `Gagal memuat buku kas & kantong saldo: ${err.message}`, 500);
