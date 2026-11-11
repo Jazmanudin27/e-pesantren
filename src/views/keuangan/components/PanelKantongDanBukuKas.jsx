@@ -106,6 +106,9 @@ export default function PanelKantongDanBukuKas({
     saldo_mengendap_midtrans: 0,
     jumlah_trx_mengendap_midtrans: 0,
     saldo_siap_pakai: 0,
+    dana_operasional_pesantren: 0,
+    dana_titipan_tabungan: 0,
+    dana_infak_donasi: 0,
     masuk_tagihan_tunai: 0,
     masuk_tagihan_transfer: 0,
     total_midtrans_sudah_cair: 0,
@@ -940,6 +943,93 @@ export default function PanelKantongDanBukuKas({
             </div>
           </div>
         </div>
+
+        {/* 3. Pemisah Dana: Kas Operasional vs Titipan Tabungan vs Dana Infak */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr 1fr",
+            gap: "6px",
+            marginTop: "10px",
+            paddingTop: "10px",
+            borderTop: "1px solid rgba(255, 255, 255, 0.16)",
+          }}
+        >
+          <div
+            style={{
+              background: "rgba(255, 255, 255, 0.1)",
+              borderRadius: "10px",
+              padding: "6px 8px",
+            }}
+          >
+            <div style={{ fontSize: "0.56rem", color: "#a7f3d0", fontWeight: 700 }}>
+              Kas Operasional
+            </div>
+            <div
+              style={{
+                fontSize: "0.7rem",
+                fontWeight: 900,
+                color: "#ffffff",
+                marginTop: "1px",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {formatRp(kantong.dana_operasional_pesantren || 0)}
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: "rgba(255, 255, 255, 0.1)",
+              borderRadius: "10px",
+              padding: "6px 8px",
+            }}
+          >
+            <div style={{ fontSize: "0.56rem", color: "#fde68a", fontWeight: 700 }}>
+              Titipan Tabungan
+            </div>
+            <div
+              style={{
+                fontSize: "0.7rem",
+                fontWeight: 900,
+                color: "#fef3c7",
+                marginTop: "1px",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {formatRp(kantong.dana_titipan_tabungan || 0)}
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: "rgba(255, 255, 255, 0.1)",
+              borderRadius: "10px",
+              padding: "6px 8px",
+            }}
+          >
+            <div style={{ fontSize: "0.56rem", color: "#bae6fd", fontWeight: 700 }}>
+              Donasi &amp; Infak
+            </div>
+            <div
+              style={{
+                fontSize: "0.7rem",
+                fontWeight: 900,
+                color: "#e0f2fe",
+                marginTop: "1px",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {formatRp(kantong.dana_infak_donasi || 0)}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* 2. SELECT OPTION PILIH KANTONG / BUKU KAS */}
@@ -1086,7 +1176,10 @@ export default function PanelKantongDanBukuKas({
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             {displayedMutasi.map((item) => {
-              const isOut = item.jenis_transaksi === "Pengeluaran";
+              const isOut =
+                item.jenis_transaksi === "Pengeluaran" ||
+                item.jenis_transaksi === "Tarik Tabungan Santri" ||
+                Boolean(item.is_tarik_tabungan);
               const isIn =
                 item.jenis_transaksi === "Pemasukan Lain" ||
                 Boolean(item.is_pembayaran_santri);
@@ -1123,10 +1216,14 @@ export default function PanelKantongDanBukuKas({
 
               const rawKeterangan = String(item.keterangan || "-");
               const parts = rawKeterangan.split(" — ");
-              const mainTitle = item.is_pembayaran_santri
-                ? parts[0] || "Pembayaran Santri"
+              const hasStructuredTitle =
+                item.is_pembayaran_santri ||
+                item.is_tabungan_santri ||
+                item.is_infak_donasi;
+              const mainTitle = hasStructuredTitle
+                ? parts[0] || item.kategori || "Transaksi Santri"
                 : item.kategori || item.jenis_transaksi;
-              const detailText = item.is_pembayaran_santri
+              const detailText = hasStructuredTitle
                 ? parts.slice(1).join(" — ") || rawKeterangan
                 : rawKeterangan;
 
@@ -1272,7 +1369,10 @@ export default function PanelKantongDanBukuKas({
       {/* MODAL DETAIL / RINCIAN SAAT ITEM DIKLIK */}
       {detailModal.isOpen && detailModal.item && (() => {
         const it = detailModal.item;
-        const isOut = it.jenis_transaksi === "Pengeluaran";
+        const isOut =
+          it.jenis_transaksi === "Pengeluaran" ||
+          it.jenis_transaksi === "Tarik Tabungan Santri" ||
+          Boolean(it.is_tarik_tabungan);
         const isIn =
           it.jenis_transaksi === "Pemasukan Lain" ||
           Boolean(it.is_pembayaran_santri);
@@ -1302,18 +1402,23 @@ export default function PanelKantongDanBukuKas({
 
         const rawKet = String(it.keterangan || "-");
         const parts = rawKet.split(" — ");
-        const titleName = it.is_pembayaran_santri
-          ? parts[0] || "Pembayaran Santri"
+        const hasStructuredTitle =
+          it.is_pembayaran_santri ||
+          it.is_tabungan_santri ||
+          it.is_infak_donasi;
+        const titleName = hasStructuredTitle
+          ? parts[0] || it.kategori || "Transaksi Santri"
           : it.kategori || it.jenis_transaksi;
-        const detailBody = it.is_pembayaran_santri
+        const detailBody = hasStructuredTitle
           ? parts.slice(1).join(" — ") || rawKet
           : rawKet;
-        const bulletItems = it.is_pembayaran_santri
-          ? detailBody
-              .split(/,\s*(?=[A-Za-z])/)
-              .map((s) => s.trim())
-              .filter(Boolean)
-          : [];
+        const bulletItems =
+          it.is_pembayaran_santri && !it.is_tabungan_santri && !it.is_infak_donasi
+            ? detailBody
+                .split(/,\s*(?=[A-Za-z])/)
+                .map((s) => s.trim())
+                .filter(Boolean)
+            : [];
 
         return (
           <div
@@ -1569,13 +1674,19 @@ export default function PanelKantongDanBukuKas({
 
               {/* Footer Actions */}
               {(() => {
+                const isTabunganOrInfak = Boolean(
+                  it.is_tabungan_santri || it.is_infak_donasi,
+                );
                 const isOtomatisMidtrans =
                   activeTab === "midtrans" ||
                   isCair ||
                   it.kantong_sumber === "Midtrans" ||
                   it.kantong_tujuan === "Midtrans" ||
-                  (it.is_pembayaran_santri && it.kantong_tujuan === "Rekening Bank");
-                const canEditOrBatal = !readOnly && !isOtomatisMidtrans;
+                  (it.is_pembayaran_santri &&
+                    !isTabunganOrInfak &&
+                    it.kantong_tujuan === "Rekening Bank");
+                const canEditOrBatal =
+                  !readOnly && !isOtomatisMidtrans && !isTabunganOrInfak;
 
                 return (
                   <div

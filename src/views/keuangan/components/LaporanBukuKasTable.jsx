@@ -81,7 +81,10 @@ export const getMutasiNominalForKantong = (item, kantongMode) => {
     ) {
       return { penerimaan: 0, pengeluaran: nominal + biayaAdmin };
     }
-    if (jenis === "Pengeluaran" && sumber === "Kas Tunai") {
+    if (
+      (jenis === "Pengeluaran" || jenis === "Tarik Tabungan Santri" || item.is_tarik_tabungan) &&
+      sumber === "Kas Tunai"
+    ) {
       return { penerimaan: 0, pengeluaran: nominal + biayaAdmin };
     }
     return null;
@@ -110,7 +113,10 @@ export const getMutasiNominalForKantong = (item, kantongMode) => {
     ) {
       return { penerimaan: 0, pengeluaran: nominal + biayaAdmin };
     }
-    if (jenis === "Pengeluaran" && sumber === "Rekening Bank") {
+    if (
+      (jenis === "Pengeluaran" || jenis === "Tarik Tabungan Santri" || item.is_tarik_tabungan) &&
+      sumber === "Rekening Bank"
+    ) {
       return { penerimaan: 0, pengeluaran: nominal + biayaAdmin };
     }
     return null;
@@ -140,7 +146,7 @@ export const getMutasiNominalForKantong = (item, kantongMode) => {
     return { penerimaan: nominal, pengeluaran: 0 };
   }
   if (
-    jenis === "Pengeluaran" &&
+    (jenis === "Pengeluaran" || jenis === "Tarik Tabungan Santri" || item.is_tarik_tabungan) &&
     (sumber === "Kas Tunai" || sumber === "Rekening Bank")
   ) {
     return { penerimaan: 0, pengeluaran: nominal + biayaAdmin };

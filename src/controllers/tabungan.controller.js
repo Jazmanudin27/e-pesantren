@@ -32,6 +32,10 @@ export const ensureTabunganTables = async () => {
         \`nominal\` DECIMAL(15, 2) NOT NULL,
         \`saldo_sebelum\` DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
         \`saldo_sesudah\` DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
+        \`metode_pembayaran\` VARCHAR(50) DEFAULT 'Tunai',
+        \`status_dana\` VARCHAR(50) DEFAULT 'Di Kas Tunai',
+        \`tanggal_cair_bank\` DATETIME DEFAULT NULL,
+        \`buku_kas_pencairan_id\` INT DEFAULT NULL,
         \`keterangan\` VARCHAR(255) NOT NULL,
         \`tanggal_transaksi\` DATE NOT NULL,
         \`admin_id\` INT DEFAULT NULL,
@@ -42,6 +46,37 @@ export const ensureTabunganTables = async () => {
         INDEX \`idx_trx_jenis\` (\`jenis_transaksi\`)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+
+    const tabAlters = [
+      "ALTER TABLE `santri_tabungan_transaksi` ADD COLUMN `metode_pembayaran` VARCHAR(50) DEFAULT 'Tunai' AFTER `saldo_sesudah`",
+      "ALTER TABLE `santri_tabungan_transaksi` ADD COLUMN `status_dana` VARCHAR(50) DEFAULT 'Di Kas Tunai' AFTER `metode_pembayaran`",
+      "ALTER TABLE `santri_tabungan_transaksi` ADD COLUMN `tanggal_cair_bank` DATETIME DEFAULT NULL AFTER `status_dana`",
+      "ALTER TABLE `santri_tabungan_transaksi` ADD COLUMN `buku_kas_pencairan_id` INT DEFAULT NULL AFTER `tanggal_cair_bank`"
+    ];
+    for (const sql of tabAlters) {
+      try {
+        await pool.query(sql);
+      } catch (_) {}
+    }
+
+    try {
+      await pool.query(`
+        UPDATE santri_tabungan_transaksi
+        SET metode_pembayaran = CASE
+              WHEN kode_transaksi LIKE 'TOPUP-%' OR LOWER(COALESCE(keterangan, '')) LIKE '%midtrans%' THEN 'Midtrans'
+              WHEN LOWER(COALESCE(keterangan, '')) LIKE '%transfer%' THEN 'Transfer Bank'
+              ELSE COALESCE(NULLIF(metode_pembayaran, ''), 'Tunai')
+            END,
+            status_dana = CASE
+              WHEN kode_transaksi LIKE 'TOPUP-%' OR LOWER(COALESCE(keterangan, '')) LIKE '%midtrans%'
+                THEN IF(status_dana = 'Di Rekening Bank', 'Di Rekening Bank', 'Mengendap di Midtrans')
+              WHEN LOWER(COALESCE(keterangan, '')) LIKE '%transfer%' OR metode_pembayaran = 'Transfer Bank'
+                THEN 'Di Rekening Bank'
+              ELSE COALESCE(NULLIF(status_dana, ''), 'Di Kas Tunai')
+            END
+        WHERE status_dana IS NULL OR status_dana = '' OR (kode_transaksi LIKE 'TOPUP-%' AND status_dana = 'Di Kas Tunai')
+      `);
+    } catch (_) {}
 
     isTabunganTablesInitialized = true;
     console.log('[TABUNGAN DB] Tabel santri_tabungan & riwayat transaksi siap.');
@@ -333,6 +368,7 @@ export const tambahSaldoSantri = async (req, res) => {
     const {
       santri_id,
       nominal,
+      metode_pembayaran = 'Tunai',
       keterangan = 'Penambahan Saldo',
       tanggal_transaksi,
       admin_nama = 'Admin'
@@ -349,6 +385,21 @@ export const tambahSaldoSantri = async (req, res) => {
 
     const tgl = tanggal_transaksi || new Date().toISOString().slice(0, 10);
     const cleanKet = String(keterangan || 'Penambahan Saldo').trim();
+    const isMidtrans =
+      String(metode_pembayaran || '').toLowerCase().includes('midtrans') ||
+      String(metode_pembayaran || '').toLowerCase().includes('qris') ||
+      cleanKet.toLowerCase().includes('midtrans');
+    const isTransfer =
+      !isMidtrans &&
+      (String(metode_pembayaran || '').toLowerCase().includes('transfer') ||
+        String(metode_pembayaran || '').toLowerCase().includes('bank') ||
+        cleanKet.toLowerCase().includes('transfer'));
+    const cleanMetode = isMidtrans ? 'Midtrans' : isTransfer ? 'Transfer Bank' : 'Tunai';
+    const statusDana = isMidtrans
+      ? 'Mengendap di Midtrans'
+      : isTransfer
+        ? 'Di Rekening Bank'
+        : 'Di Kas Tunai';
 
     await connection.beginTransaction();
 
@@ -376,10 +427,10 @@ export const tambahSaldoSantri = async (req, res) => {
     const [trxResult] = await connection.query(
       `
       INSERT INTO santri_tabungan_transaksi 
-      (tabungan_id, santri_id, kode_transaksi, jenis_transaksi, nominal, saldo_sebelum, saldo_sesudah, keterangan, tanggal_transaksi, admin_nama)
-      VALUES (?, ?, ?, 'masuk', ?, ?, ?, ?, ?, ?)
+      (tabungan_id, santri_id, kode_transaksi, jenis_transaksi, nominal, saldo_sebelum, saldo_sesudah, metode_pembayaran, status_dana, keterangan, tanggal_transaksi, admin_nama)
+      VALUES (?, ?, ?, 'masuk', ?, ?, ?, ?, ?, ?, ?, ?)
       `,
-      [tabungan.id, santri_id, kodeTransaksi, nom, saldoSebelum, saldoSesudah, cleanKet, tgl, admin_nama]
+      [tabungan.id, santri_id, kodeTransaksi, nom, saldoSebelum, saldoSesudah, cleanMetode, statusDana, cleanKet, tgl, admin_nama]
     );
 
     // Update Saldo Tabungan
@@ -430,6 +481,7 @@ export const tarikSaldoSantri = async (req, res) => {
     const {
       santri_id,
       nominal,
+      metode_pembayaran = 'Tunai',
       keterangan = 'Pengambilan Tabungan',
       tanggal_transaksi,
       admin_nama = 'Admin'
@@ -446,6 +498,11 @@ export const tarikSaldoSantri = async (req, res) => {
 
     const tgl = tanggal_transaksi || new Date().toISOString().slice(0, 10);
     const cleanKet = String(keterangan || 'Pengambilan Tabungan').trim();
+    const isTransfer =
+      String(metode_pembayaran || '').toLowerCase().includes('transfer') ||
+      String(metode_pembayaran || '').toLowerCase().includes('bank');
+    const cleanMetode = isTransfer ? 'Transfer Bank' : 'Tunai';
+    const statusDana = isTransfer ? 'Di Rekening Bank' : 'Di Kas Tunai';
 
     await connection.beginTransaction();
 
@@ -481,10 +538,10 @@ export const tarikSaldoSantri = async (req, res) => {
     const [trxResult] = await connection.query(
       `
       INSERT INTO santri_tabungan_transaksi 
-      (tabungan_id, santri_id, kode_transaksi, jenis_transaksi, nominal, saldo_sebelum, saldo_sesudah, keterangan, tanggal_transaksi, admin_nama)
-      VALUES (?, ?, ?, 'keluar', ?, ?, ?, ?, ?, ?)
+      (tabungan_id, santri_id, kode_transaksi, jenis_transaksi, nominal, saldo_sebelum, saldo_sesudah, metode_pembayaran, status_dana, keterangan, tanggal_transaksi, admin_nama)
+      VALUES (?, ?, ?, 'keluar', ?, ?, ?, ?, ?, ?, ?, ?)
       `,
-      [tabungan.id, santri_id, kodeTransaksi, nom, saldoSebelum, saldoSesudah, cleanKet, tgl, admin_nama]
+      [tabungan.id, santri_id, kodeTransaksi, nom, saldoSebelum, saldoSesudah, cleanMetode, statusDana, cleanKet, tgl, admin_nama]
     );
 
     // Update Saldo Tabungan

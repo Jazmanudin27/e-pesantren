@@ -40,6 +40,9 @@ export const ensureInfakTables = async () => {
         nomor_va VARCHAR(60) DEFAULT NULL,
         doa_pesan TEXT DEFAULT NULL,
         status VARCHAR(40) DEFAULT 'Berhasil',
+        status_dana VARCHAR(50) DEFAULT NULL,
+        tanggal_cair_bank DATETIME DEFAULT NULL,
+        buku_kas_pencairan_id INT DEFAULT NULL,
         snap_token VARCHAR(255) DEFAULT NULL,
         payment_url VARCHAR(500) DEFAULT NULL,
         tanggal_transaksi DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -48,6 +51,37 @@ export const ensureInfakTables = async () => {
         INDEX idx_infak_status (status)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+
+    const infakAlters = [
+      "ALTER TABLE `pesantren_infak_transaksi` ADD COLUMN `status_dana` VARCHAR(50) DEFAULT NULL AFTER `status`",
+      "ALTER TABLE `pesantren_infak_transaksi` ADD COLUMN `tanggal_cair_bank` DATETIME DEFAULT NULL AFTER `status_dana`",
+      "ALTER TABLE `pesantren_infak_transaksi` ADD COLUMN `buku_kas_pencairan_id` INT DEFAULT NULL AFTER `tanggal_cair_bank`"
+    ];
+    for (const sql of infakAlters) {
+      try {
+        await pool.query(sql);
+      } catch (_) {}
+    }
+
+    try {
+      await pool.query(`
+        UPDATE pesantren_infak_transaksi
+        SET status_dana = CASE
+          WHEN status != 'Berhasil' THEN 'Menunggu Pembayaran'
+          WHEN snap_token IS NOT NULL
+               OR metode_pembayaran IN ('QRIS', 'Virtual Account')
+               OR LOWER(COALESCE(metode_pembayaran, '')) LIKE '%midtrans%'
+               OR LOWER(COALESCE(metode_pembayaran, '')) LIKE '%qris%'
+               OR kode_transaksi LIKE 'INFAK-%'
+            THEN 'Mengendap di Midtrans'
+          WHEN LOWER(COALESCE(metode_pembayaran, '')) LIKE '%transfer%'
+               OR LOWER(COALESCE(metode_pembayaran, '')) LIKE '%bank%'
+            THEN 'Di Rekening Bank'
+          ELSE 'Di Kas Tunai'
+        END
+        WHERE status_dana IS NULL OR status_dana = ''
+      `);
+    } catch (_) {}
 
     const [existingProg] = await pool.query(`SELECT COUNT(*) AS cnt FROM pesantren_program_infak`);
     if ((existingProg?.[0]?.cnt || 0) === 0) {
@@ -279,7 +313,11 @@ export const confirmInfakPayment = async (req, res) => {
 
     const trx = rows[0];
     await pool.query(
-      `UPDATE pesantren_infak_transaksi SET status = 'Berhasil', tanggal_transaksi = NOW() WHERE id = ?`,
+      `UPDATE pesantren_infak_transaksi
+       SET status = 'Berhasil',
+           status_dana = 'Mengendap di Midtrans',
+           tanggal_transaksi = NOW()
+       WHERE id = ?`,
       [trx.id]
     );
 
@@ -426,11 +464,15 @@ export const catatInfakAdmin = async (req, res) => {
 
     const kodeTransaksi = `INF-KAS-${Date.now().toString().slice(-6)}`;
     const tglSql = tanggal_transaksi ? `${tanggal_transaksi} 12:00:00` : new Date();
+    const isTransfer =
+      String(metode_pembayaran || '').toLowerCase().includes('transfer') ||
+      String(metode_pembayaran || '').toLowerCase().includes('bank');
+    const statusDana = isTransfer ? 'Di Rekening Bank' : 'Di Kas Tunai';
 
     const [result] = await pool.query(
       `INSERT INTO pesantren_infak_transaksi
-       (kode_transaksi, santri_id, nama_santri, nama_donatur, is_anonim, program_id, nama_program, nominal, metode_pembayaran, doa_pesan, status, tanggal_transaksi)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Berhasil', ?)`,
+       (kode_transaksi, santri_id, nama_santri, nama_donatur, is_anonim, program_id, nama_program, nominal, metode_pembayaran, doa_pesan, status, status_dana, tanggal_transaksi)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Berhasil', ?, ?)`,
       [
         kodeTransaksi,
         santri_id || null,
@@ -442,6 +484,7 @@ export const catatInfakAdmin = async (req, res) => {
         nom,
         metode_pembayaran || 'Tunai',
         doa_pesan || null,
+        statusDana,
         tglSql
       ]
     );

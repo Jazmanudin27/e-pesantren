@@ -233,6 +233,7 @@ export default function MobileTabungan({ onBackToHome }) {
     setSantriPickerSekolah('Semua');
     setFormData({
       nominal: '',
+      metode_pembayaran: 'Tunai',
       tanggal: new Date().toISOString().slice(0, 10),
       keterangan: (type || 'setor') === 'setor' ? 'Setor Tabungan Tunai' : 'Pengambilan Uang Saku'
     });
@@ -294,6 +295,7 @@ export default function MobileTabungan({ onBackToHome }) {
       const res = await axios.post(endpoint, {
         santri_id: trxTargetSantri.id,
         nominal: nom,
+        metode_pembayaran: formData.metode_pembayaran || 'Tunai',
         keterangan: formData.keterangan,
         tanggal_transaksi: formData.tanggal,
         admin_nama: getAdminNama()
@@ -1630,28 +1632,55 @@ export default function MobileTabungan({ onBackToHome }) {
                 ))}
               </div>
 
-              {/* STEP 3: TANGGAL TRANSAKSI */}
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>
-                  Tanggal Transaksi *
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={formData.tanggal}
-                  onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: '10px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.82rem',
-                    fontWeight: 700,
-                    color: '#0f172a',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
+              {/* STEP 3: KANTONG KAS & TANGGAL TRANSAKSI */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>
+                    {trxModalType === 'setor' ? 'Masuk ke Kantong *' : 'Ambil dari Kantong *'}
+                  </label>
+                  <select
+                    value={formData.metode_pembayaran || 'Tunai'}
+                    onChange={(e) => setFormData({ ...formData, metode_pembayaran: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '10px 10px',
+                      borderRadius: '10px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      background: '#ffffff',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <option value="Tunai">Kas Tunai</option>
+                    <option value="Transfer Bank">Rekening Bank</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>
+                    Tanggal Transaksi *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={formData.tanggal}
+                    onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '9px 10px',
+                      borderRadius: '10px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
               </div>
 
               {/* STEP 4: KETERANGAN TRANSAKSI */}

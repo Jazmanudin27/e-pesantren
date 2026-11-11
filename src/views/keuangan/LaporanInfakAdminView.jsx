@@ -1157,32 +1157,6 @@ export default function LaporanInfakAdminView({ onBackToHome }) {
         </div>
       )}
 
-      {/* Floating Action Button (+) untuk Input Infak Cepat */}
-      <button
-        type="button"
-        onClick={() => handleOpenInputInfak(null)}
-        title="Input Penerimaan Infak"
-        style={{
-          position: 'fixed',
-          bottom: '84px',
-          right: 'calc(50% - 210px)',
-          width: '52px',
-          height: '52px',
-          borderRadius: '50%',
-          background: 'linear-gradient(135deg, #0d766e 0%, #059669 100%)',
-          color: '#ffffff',
-          border: 'none',
-          boxShadow: '0 8px 22px rgba(13, 118, 110, 0.45)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          zIndex: 900,
-        }}
-      >
-        <Plus size={26} strokeWidth={2.8} />
-      </button>
-
       {/* 6. MODAL INPUT PENERIMAAN INFAK & SEDEKAH (SIMPLE) */}
       {isInputInfakOpen && (
         <div

@@ -6,6 +6,8 @@ import { createIpaymuTransaction } from '../services/ipaymu.service.js';
 import { chargeMidtransDirect, createMidtransSnapToken, checkMidtransTransactionStatus } from '../services/midtrans.service.js';
 import { createWaliNotification } from './notifikasi.controller.js';
 import { ensureSekolahTablesAndMapping, RINCIAN_AWAL_MASUK_MASTER } from './sekolah.controller.js';
+import { ensureTabunganTables } from './tabungan.controller.js';
+import { ensureInfakTables } from './infak.controller.js';
 
 let isSiklusSppTableInitialized = false;
 
@@ -189,33 +191,55 @@ export const ensureKeuanganIndexes = async () => {
 export const runAutoSettlementMidtransIfDue = async () => {
   try {
     await ensureSiklusSppTable();
+    await ensureTabunganTables();
+    await ensureInfakTables();
     const [cfgRows] = await pool.query(
       'SELECT auto_settlement_midtrans_hari FROM keuangan_siklus_spp WHERE id = 1 LIMIT 1'
     );
     const hari = parseInt(cfgRows?.[0]?.auto_settlement_midtrans_hari ?? 1, 10);
     if (isNaN(hari) || hari <= 0) return;
 
-    const [dueRows] = await pool.query(`
-      SELECT id, nomor_transaksi, total_bayar, COALESCE(NULLIF(nominal_pokok, 0), total_bayar) as nominal_pokok_efektif
-      FROM keuangan_transaksi_pembayaran
-      WHERE status_pembayaran = 'Berhasil'
-        AND COALESCE(status_dana, '') = 'Mengendap di Midtrans'
-        AND COALESCE(tanggal_bayar, created_at) IS NOT NULL
-        AND DATEDIFF(CURDATE(), DATE(COALESCE(tanggal_bayar, created_at))) >= ?
-    `, [hari]);
+    const [[dueRows], [dueTabRows], [dueInfRows]] = await Promise.all([
+      pool.query(`
+        SELECT id, nomor_transaksi, total_bayar, COALESCE(NULLIF(nominal_pokok, 0), total_bayar) as nominal_pokok_efektif
+        FROM keuangan_transaksi_pembayaran
+        WHERE status_pembayaran = 'Berhasil'
+          AND COALESCE(status_dana, '') = 'Mengendap di Midtrans'
+          AND COALESCE(tanggal_bayar, created_at) IS NOT NULL
+          AND DATEDIFF(CURDATE(), DATE(COALESCE(tanggal_bayar, created_at))) >= ?
+      `, [hari]),
+      pool.query(`
+        SELECT id, kode_transaksi, nominal as nominal_pokok_efektif
+        FROM santri_tabungan_transaksi
+        WHERE jenis_transaksi = 'masuk'
+          AND COALESCE(status_dana, '') = 'Mengendap di Midtrans'
+          AND COALESCE(tanggal_transaksi, created_at) IS NOT NULL
+          AND DATEDIFF(CURDATE(), DATE(COALESCE(tanggal_transaksi, created_at))) >= ?
+      `, [hari]),
+      pool.query(`
+        SELECT id, kode_transaksi, nominal as nominal_pokok_efektif
+        FROM pesantren_infak_transaksi
+        WHERE status = 'Berhasil'
+          AND COALESCE(status_dana, '') = 'Mengendap di Midtrans'
+          AND tanggal_transaksi IS NOT NULL
+          AND DATEDIFF(CURDATE(), DATE(tanggal_transaksi)) >= ?
+      `, [hari])
+    ]);
 
-    if (!dueRows || dueRows.length === 0) return;
+    const totalCount = (dueRows?.length || 0) + (dueTabRows?.length || 0) + (dueInfRows?.length || 0);
+    if (totalCount === 0) return;
 
-    const totalPokokCair = dueRows.reduce(
+    const sumArr = (arr) => (arr || []).reduce(
       (sum, r) => sum + Math.round(parseFloat(r.nominal_pokok_efektif || r.total_bayar || 0)),
       0
     );
+    const totalPokokCair = sumArr(dueRows) + sumArr(dueTabRows) + sumArr(dueInfRows);
     if (totalPokokCair <= 0) return;
 
     const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const rand4 = Math.floor(1000 + Math.random() * 9000);
     const kodeMutasi = `AUTO-MID-${datePart}-${rand4}`;
-    const ketAuto = `Auto-Settlement Midtrans (H+${hari} Hari) — ${dueRows.length} Transaksi Otomatis Masuk ke Rekening Bank`;
+    const ketAuto = `Auto-Settlement Midtrans (H+${hari} Hari) — ${totalCount} Transaksi Otomatis Masuk ke Rekening Bank`;
 
     const [bukuRes] = await pool.query(`
       INSERT INTO keuangan_buku_kas
@@ -226,21 +250,47 @@ export const runAutoSettlementMidtransIfDue = async () => {
       totalPokokCair,
       ketAuto,
       `Sistem Otomatis (H+${hari})`,
-      dueRows.length
+      totalCount
     ]);
 
     const bukuKasId = bukuRes.insertId;
-    const idsToUpdate = dueRows.map((r) => r.id);
-    const idPlaceholders = idsToUpdate.map(() => '?').join(',');
 
-    await pool.query(`
-      UPDATE keuangan_transaksi_pembayaran
-      SET status_dana = 'Di Rekening Bank',
-          tanggal_cair_bank = NOW(),
-          buku_kas_pencairan_id = ?,
-          updated_at = NOW()
-      WHERE id IN (${idPlaceholders})
-    `, [bukuKasId, ...idsToUpdate]);
+    if (dueRows && dueRows.length > 0) {
+      const idsToUpdate = dueRows.map((r) => r.id);
+      const idPlaceholders = idsToUpdate.map(() => '?').join(',');
+      await pool.query(`
+        UPDATE keuangan_transaksi_pembayaran
+        SET status_dana = 'Di Rekening Bank',
+            tanggal_cair_bank = NOW(),
+            buku_kas_pencairan_id = ?,
+            updated_at = NOW()
+        WHERE id IN (${idPlaceholders})
+      `, [bukuKasId, ...idsToUpdate]);
+    }
+
+    if (dueTabRows && dueTabRows.length > 0) {
+      const idsTab = dueTabRows.map((r) => r.id);
+      const phTab = idsTab.map(() => '?').join(',');
+      await pool.query(`
+        UPDATE santri_tabungan_transaksi
+        SET status_dana = 'Di Rekening Bank',
+            tanggal_cair_bank = NOW(),
+            buku_kas_pencairan_id = ?
+        WHERE id IN (${phTab})
+      `, [bukuKasId, ...idsTab]);
+    }
+
+    if (dueInfRows && dueInfRows.length > 0) {
+      const idsInf = dueInfRows.map((r) => r.id);
+      const phInf = idsInf.map(() => '?').join(',');
+      await pool.query(`
+        UPDATE pesantren_infak_transaksi
+        SET status_dana = 'Di Rekening Bank',
+            tanggal_cair_bank = NOW(),
+            buku_kas_pencairan_id = ?
+        WHERE id IN (${phInf})
+      `, [bukuKasId, ...idsInf]);
+    }
   } catch (err) {
     console.warn('[AUTO SETTLEMENT MIDTRANS NOTICE]', err.message);
   }
@@ -252,11 +302,15 @@ export const runAutoSettlementMidtransIfDue = async () => {
  */
 export const getRingkasanKantongKas = async () => {
   await ensureKeuanganIndexes();
+  await ensureTabunganTables();
+  await ensureInfakTables();
   await runAutoSettlementMidtransIfDue();
   try {
     const [
       [trxRows],
-      [bukuRows]
+      [bukuRows],
+      [tabRows],
+      [infRows]
     ] = await Promise.all([
       pool.query(`
         SELECT
@@ -309,17 +363,105 @@ export const getRingkasanKantongKas = async () => {
           COALESCE(SUM(CASE WHEN jenis_transaksi = 'Pencairan Midtrans ke Bank' THEN COALESCE(biaya_admin, 0) ELSE 0 END), 0) as biaya_admin_pencairan_midtrans,
           COUNT(*) as total_catatan_buku_kas
         FROM keuangan_buku_kas
+      `),
+      pool.query(`
+        SELECT
+          COALESCE(SUM(CASE
+            WHEN jenis_transaksi = 'masuk'
+              AND (COALESCE(status_dana, '') = 'Di Kas Tunai' OR (COALESCE(status_dana, '') = '' AND COALESCE(metode_pembayaran, 'Tunai') = 'Tunai'))
+            THEN nominal ELSE 0 END), 0) as masuk_tabungan_tunai,
+
+          COALESCE(SUM(CASE
+            WHEN jenis_transaksi = 'masuk'
+              AND COALESCE(status_dana, '') = 'Di Rekening Bank'
+              AND NOT (kode_transaksi LIKE 'TOPUP-%' OR LOWER(COALESCE(metode_pembayaran, '')) LIKE '%midtrans%')
+            THEN nominal ELSE 0 END), 0) as masuk_tabungan_transfer,
+
+          COALESCE(SUM(CASE
+            WHEN jenis_transaksi = 'masuk'
+              AND COALESCE(status_dana, '') = 'Mengendap di Midtrans'
+            THEN nominal ELSE 0 END), 0) as tabungan_mengendap_midtrans,
+
+          COUNT(CASE WHEN jenis_transaksi = 'masuk' AND COALESCE(status_dana, '') = 'Mengendap di Midtrans' THEN 1 END) as jumlah_tabungan_mengendap_midtrans,
+
+          COALESCE(SUM(CASE
+            WHEN jenis_transaksi = 'masuk'
+              AND COALESCE(status_dana, '') = 'Di Rekening Bank'
+              AND (kode_transaksi LIKE 'TOPUP-%' OR LOWER(COALESCE(metode_pembayaran, '')) LIKE '%midtrans%')
+            THEN nominal ELSE 0 END), 0) as tabungan_midtrans_sudah_cair,
+
+          COALESCE(SUM(CASE
+            WHEN jenis_transaksi = 'keluar'
+              AND COALESCE(status_dana, 'Di Kas Tunai') != 'Di Rekening Bank'
+            THEN nominal ELSE 0 END), 0) as keluar_tabungan_tunai,
+
+          COALESCE(SUM(CASE
+            WHEN jenis_transaksi = 'keluar'
+              AND COALESCE(status_dana, '') = 'Di Rekening Bank'
+            THEN nominal ELSE 0 END), 0) as keluar_tabungan_bank,
+
+          COALESCE(SUM(CASE WHEN jenis_transaksi = 'masuk' THEN nominal ELSE 0 END), 0) as total_masuk_tabungan,
+          COALESCE(SUM(CASE WHEN jenis_transaksi = 'keluar' THEN nominal ELSE 0 END), 0) as total_keluar_tabungan
+        FROM santri_tabungan_transaksi
+      `),
+      pool.query(`
+        SELECT
+          COALESCE(SUM(CASE
+            WHEN COALESCE(status_dana, '') = 'Di Kas Tunai'
+              OR (COALESCE(status_dana, '') = '' AND COALESCE(metode_pembayaran, '') = 'Tunai')
+            THEN nominal ELSE 0 END), 0) as masuk_infak_tunai,
+
+          COALESCE(SUM(CASE
+            WHEN COALESCE(status_dana, '') = 'Di Rekening Bank'
+              AND NOT (snap_token IS NOT NULL OR metode_pembayaran IN ('QRIS', 'Virtual Account') OR kode_transaksi LIKE 'INFAK-%')
+            THEN nominal ELSE 0 END), 0) as masuk_infak_transfer,
+
+          COALESCE(SUM(CASE
+            WHEN COALESCE(status_dana, '') = 'Mengendap di Midtrans'
+            THEN nominal ELSE 0 END), 0) as infak_mengendap_midtrans,
+
+          COUNT(CASE WHEN COALESCE(status_dana, '') = 'Mengendap di Midtrans' THEN 1 END) as jumlah_infak_mengendap_midtrans,
+
+          COALESCE(SUM(CASE
+            WHEN COALESCE(status_dana, '') = 'Di Rekening Bank'
+              AND (snap_token IS NOT NULL OR metode_pembayaran IN ('QRIS', 'Virtual Account') OR kode_transaksi LIKE 'INFAK-%')
+            THEN nominal ELSE 0 END), 0) as infak_midtrans_sudah_cair,
+
+          COALESCE(SUM(nominal), 0) as total_infak_berhasil
+        FROM pesantren_infak_transaksi
+        WHERE status = 'Berhasil'
       `)
     ]);
 
     const t = trxRows?.[0] || {};
     const b = bukuRows?.[0] || {};
+    const tb = tabRows?.[0] || {};
+    const inf = infRows?.[0] || {};
 
-    const masukTagihanTunai = Number(t.masuk_tagihan_tunai || 0);
-    const masukTagihanTransfer = Number(t.masuk_tagihan_transfer || 0);
-    const saldoMengendapMidtrans = Number(t.saldo_mengendap_midtrans || 0);
-    const jumlahTrxMengendapMidtrans = Number(t.jumlah_trx_mengendap_midtrans || 0);
-    const totalMidtransSudahCair = Number(t.total_midtrans_sudah_cair || 0);
+    const masukTabunganTunai = Number(tb.masuk_tabungan_tunai || 0);
+    const masukTabunganTransfer = Number(tb.masuk_tabungan_transfer || 0);
+    const tabunganMengendapMidtrans = Number(tb.tabungan_mengendap_midtrans || 0);
+    const jumlahTabunganMengendapMidtrans = Number(tb.jumlah_tabungan_mengendap_midtrans || 0);
+    const tabunganMidtransSudahCair = Number(tb.tabungan_midtrans_sudah_cair || 0);
+    const keluarTabunganTunai = Number(tb.keluar_tabungan_tunai || 0);
+    const keluarTabunganBank = Number(tb.keluar_tabungan_bank || 0);
+    const danaTitipanTabungan = Math.max(0, Number(tb.total_masuk_tabungan || 0) - Number(tb.total_keluar_tabungan || 0));
+
+    const masukInfakTunai = Number(inf.masuk_infak_tunai || 0);
+    const masukInfakTransfer = Number(inf.masuk_infak_transfer || 0);
+    const infakMengendapMidtrans = Number(inf.infak_mengendap_midtrans || 0);
+    const jumlahInfakMengendapMidtrans = Number(inf.jumlah_infak_mengendap_midtrans || 0);
+    const infakMidtransSudahCair = Number(inf.infak_midtrans_sudah_cair || 0);
+    const danaInfakDonasi = Number(inf.total_infak_berhasil || 0);
+
+    const masukTagihanTunai = Number(t.masuk_tagihan_tunai || 0) + masukTabunganTunai + masukInfakTunai;
+    const masukTagihanTransfer = Number(t.masuk_tagihan_transfer || 0) + masukTabunganTransfer + masukInfakTransfer;
+    const saldoMengendapMidtrans =
+      Number(t.saldo_mengendap_midtrans || 0) + tabunganMengendapMidtrans + infakMengendapMidtrans;
+    const jumlahTrxMengendapMidtrans =
+      Number(t.jumlah_trx_mengendap_midtrans || 0) + jumlahTabunganMengendapMidtrans + jumlahInfakMengendapMidtrans;
+    const totalMidtransSudahCair =
+      Number(t.total_midtrans_sudah_cair || 0) + tabunganMidtransSudahCair + infakMidtransSudahCair;
     const totalTagihanPokokSah = Number(t.total_tagihan_pokok_sah || 0);
     const totalGrossPembayaran = Number(t.total_gross_pembayaran || 0);
     const totalFeeMidtrans = Number(t.total_fee_midtrans || 0);
@@ -328,8 +470,8 @@ export const getRingkasanKantongKas = async () => {
     const pemasukanLainBank = Number(b.pemasukan_lain_bank || 0);
     const totalPemasukanLain = pemasukanLainTunai + pemasukanLainBank;
 
-    const pengeluaranTunai = Number(b.pengeluaran_tunai || 0);
-    const pengeluaranBank = Number(b.pengeluaran_bank || 0);
+    const pengeluaranTunai = Number(b.pengeluaran_tunai || 0) + keluarTabunganTunai;
+    const pengeluaranBank = Number(b.pengeluaran_bank || 0) + keluarTabunganBank;
     const biayaAdminSetor = Number(b.biaya_admin_setor || 0);
     const biayaAdminTarik = Number(b.biaya_admin_tarik || 0);
     const biayaAdminPencairanMidtrans = Number(b.biaya_admin_pencairan_midtrans || 0);
@@ -343,7 +485,7 @@ export const getRingkasanKantongKas = async () => {
     const setorTunaiKeBank = Number(b.setor_tunai_ke_bank || 0);
     const tarikTunaiDariBank = Number(b.tarik_tunai_dari_bank || 0);
 
-    // Posisi Riil 3 Kantong
+    // Posisi Riil 3 Kantong (Gabungan Tagihan + Tabungan + Infak + Buku Kas)
     const saldoKasTunai =
       masukTagihanTunai +
       pemasukanLainTunai -
@@ -363,7 +505,14 @@ export const getRingkasanKantongKas = async () => {
       biayaAdminPencairanMidtrans;
 
     const saldoSiapPakai = saldoKasTunai + saldoRekeningBank;
-    const totalPenerimaanSemua = totalTagihanPokokSah + totalPemasukanLain;
+    const totalSemuaDanaTermasukMidtrans = saldoSiapPakai + saldoMengendapMidtrans;
+    const danaOperasionalPesantren =
+      totalSemuaDanaTermasukMidtrans - danaTitipanTabungan - danaInfakDonasi;
+    const totalPenerimaanSemua =
+      totalTagihanPokokSah +
+      Number(tb.total_masuk_tabungan || 0) +
+      danaInfakDonasi +
+      totalPemasukanLain;
 
     return {
       saldo_kas_tunai: saldoKasTunai,
@@ -371,8 +520,17 @@ export const getRingkasanKantongKas = async () => {
       saldo_mengendap_midtrans: saldoMengendapMidtrans,
       jumlah_trx_mengendap_midtrans: jumlahTrxMengendapMidtrans,
       saldo_siap_pakai: saldoSiapPakai,
+      dana_operasional_pesantren: danaOperasionalPesantren,
+      dana_titipan_tabungan: danaTitipanTabungan,
+      dana_infak_donasi: danaInfakDonasi,
       masuk_tagihan_tunai: masukTagihanTunai,
       masuk_tagihan_transfer: masukTagihanTransfer,
+      masuk_tabungan_tunai: masukTabunganTunai,
+      masuk_tabungan_transfer: masukTabunganTransfer,
+      keluar_tabungan_tunai: keluarTabunganTunai,
+      keluar_tabungan_bank: keluarTabunganBank,
+      masuk_infak_tunai: masukInfakTunai,
+      masuk_infak_transfer: masukInfakTransfer,
       total_midtrans_sudah_cair: totalMidtransSudahCair,
       total_tagihan_pokok_sah: totalTagihanPokokSah,
       total_gross_pembayaran: totalGrossPembayaran,
@@ -2812,6 +2970,7 @@ export const webhookMidtransHandler = async (req, res) => {
   try {
     // 1. Handle Top Up Saldo Tabungan via Midtrans
     if (orderId.startsWith('TOPUP-') || orderId.startsWith('TB-')) {
+      await ensureTabunganTables();
       const parts = orderId.split('-');
       const targetSantriId = parseInt(parts[1]);
       const grossAmount = parseFloat(payload.gross_amount || 0);
@@ -2832,8 +2991,8 @@ export const webhookMidtransHandler = async (req, res) => {
 
         await connection.query(
           `INSERT INTO santri_tabungan_transaksi 
-           (tabungan_id, santri_id, kode_transaksi, jenis_transaksi, nominal, saldo_sebelum, saldo_sesudah, keterangan, tanggal_transaksi, admin_nama)
-           VALUES (?, ?, ?, 'masuk', ?, ?, ?, ?, CURDATE(), ?)`,
+           (tabungan_id, santri_id, kode_transaksi, jenis_transaksi, nominal, saldo_sebelum, saldo_sesudah, metode_pembayaran, status_dana, keterangan, tanggal_transaksi, admin_nama)
+           VALUES (?, ?, ?, 'masuk', ?, ?, ?, 'Midtrans', 'Mengendap di Midtrans', ?, CURDATE(), ?)`,
           [tRows[0].id, targetSantriId, orderId, grossAmount, saldoSebelum, saldoSesudah, 'Isi Saldo Tabungan via Midtrans Online', 'Midtrans Webhook']
         );
         await connection.query('UPDATE santri_tabungan SET saldo = ? WHERE id = ?', [saldoSesudah, tRows[0].id]);
@@ -2841,6 +3000,33 @@ export const webhookMidtransHandler = async (req, res) => {
         console.log(`[MIDTRANS TOPUP SETTLED] Santri ID ${targetSantriId} bertambah saldo Rp ${grossAmount}`);
         return res.status(200).json({ status: 'OK', message: 'Top up successfully processed' });
       }
+    }
+
+    // 1b. Handle Donasi / Infak via Midtrans
+    if (orderId.startsWith('INFAK-')) {
+      await ensureInfakTables();
+      await connection.beginTransaction();
+      const [infRows] = await connection.query(
+        'SELECT * FROM pesantren_infak_transaksi WHERE kode_transaksi = ? LIMIT 1 FOR UPDATE',
+        [orderId]
+      );
+      if (infRows && infRows.length > 0) {
+        const infTrx = infRows[0];
+        if (infTrx.status !== 'Berhasil') {
+          await connection.query(
+            `UPDATE pesantren_infak_transaksi
+             SET status = 'Berhasil',
+                 status_dana = 'Mengendap di Midtrans',
+                 tanggal_transaksi = NOW()
+             WHERE id = ?`,
+            [infTrx.id]
+          );
+        }
+        await connection.commit();
+        console.log(`[MIDTRANS INFAK SETTLED] Order ${orderId} sukses tercatat!`);
+        return res.status(200).json({ status: 'OK', message: 'Infak payment settled' });
+      }
+      await connection.rollback();
     }
 
     // 2. Handle Pembayaran Tagihan Rutin Santri
@@ -3184,12 +3370,17 @@ export const getBukuKasAndKantong = async (req, res) => {
 
     const limitNum = Math.min(Math.max(parseInt(limit, 10) || 1000, 10), 5000);
 
+    await ensureTabunganTables();
+    await ensureInfakTables();
+
     const [
       kantongSummary,
       [unsettledMidtransRows],
       [settledMidtransRows],
       [bukuKasRows],
-      [pembayaranKantongRows]
+      [pembayaranKantongRows],
+      [tabunganKantongRows],
+      [infakKantongRows]
     ] = await Promise.all([
       getRingkasanKantongKas(),
       pool.query(`
@@ -3210,7 +3401,7 @@ export const getBukuKasAndKantong = async (req, res) => {
           COALESCE(s.nama_santri, p.keterangan, 'Santri NWF') as nama_santri,
           COALESCE(s.nis, '-') as nis,
           COALESCE(NULLIF(TRIM(s.nama_kelas), ''), '') as nama_kelas,
-          COALESCE(NULLIF(TRIM(sk.nama_sekolah), ''), NULLIF(TRIM(s.nama_sekolah), ''), '') as nama_sekolah,
+          COALESCE(NULLIF(TRIM(s.nama_sekolah), ''), '') as nama_sekolah,
           (
             SELECT GROUP_CONCAT(CONCAT(t.judul_tagihan, ' (Rp ', FORMAT(d.nominal_alokasi, 0, 'id_ID'), ')') SEPARATOR ', ')
             FROM keuangan_transaksi_detail d
@@ -3219,7 +3410,6 @@ export const getBukuKasAndKantong = async (req, res) => {
           ) as rincian_item
         FROM keuangan_transaksi_pembayaran p
         LEFT JOIN santri s ON p.santri_id = s.id
-        LEFT JOIN sekolah sk ON s.sekolah_id = sk.id
         WHERE p.status_pembayaran = 'Berhasil'
           AND COALESCE(p.status_dana, '') = 'Mengendap di Midtrans'
         ORDER BY p.tanggal_bayar ASC, p.id ASC
@@ -3305,6 +3495,52 @@ export const getBukuKasAndKantong = async (req, res) => {
         WHERE p.status_pembayaran = 'Berhasil'
         ORDER BY p.tanggal_bayar DESC, p.id DESC
         LIMIT ?
+      `, [limitNum]),
+      pool.query(`
+        SELECT
+          tr.id,
+          tr.santri_id,
+          tr.kode_transaksi,
+          tr.jenis_transaksi,
+          tr.nominal,
+          tr.metode_pembayaran,
+          tr.status_dana,
+          tr.tanggal_cair_bank,
+          tr.keterangan,
+          tr.tanggal_transaksi,
+          tr.admin_nama,
+          tr.created_at,
+          COALESCE(s.nama_santri, 'Santri NWF') as nama_santri,
+          COALESCE(s.nis, '-') as nis,
+          COALESCE(NULLIF(TRIM(s.nama_kelas), ''), '') as nama_kelas,
+          COALESCE(NULLIF(TRIM(s.nama_sekolah), ''), '') as nama_sekolah
+        FROM santri_tabungan_transaksi tr
+        LEFT JOIN santri s ON tr.santri_id = s.id
+        ORDER BY tr.tanggal_transaksi DESC, tr.id DESC
+        LIMIT ?
+      `, [limitNum]),
+      pool.query(`
+        SELECT
+          inf.id,
+          inf.kode_transaksi,
+          inf.santri_id,
+          inf.nama_santri,
+          inf.nama_donatur,
+          inf.is_anonim,
+          inf.program_id,
+          inf.nama_program,
+          inf.nominal,
+          inf.metode_pembayaran,
+          inf.doa_pesan,
+          inf.status,
+          inf.status_dana,
+          inf.tanggal_cair_bank,
+          inf.snap_token,
+          inf.tanggal_transaksi
+        FROM pesantren_infak_transaksi inf
+        WHERE inf.status = 'Berhasil'
+        ORDER BY inf.tanggal_transaksi DESC, inf.id DESC
+        LIMIT ?
       `, [limitNum])
     ]);
 
@@ -3375,18 +3611,196 @@ export const getBukuKasAndKantong = async (req, res) => {
       };
     });
 
-    const combinedBukuKas = [...mappedManualBukuKas, ...mappedPembayaranKantong].sort(
+    const mappedTabunganKantong = (tabunganKantongRows || []).map((r) => {
+      const isMasuk = r.jenis_transaksi === 'masuk';
+      const isMidtrans =
+        isMasuk &&
+        (String(r.kode_transaksi || '').startsWith('TOPUP-') ||
+          String(r.metode_pembayaran || '').toLowerCase().includes('midtrans') ||
+          r.status_dana === 'Mengendap di Midtrans');
+      const isTransfer =
+        !isMidtrans &&
+        (r.status_dana === 'Di Rekening Bank' ||
+          String(r.metode_pembayaran || '').toLowerCase().includes('transfer') ||
+          String(r.metode_pembayaran || '').toLowerCase().includes('bank'));
+
+      if (isMasuk) {
+        const kantongTujuan = isMidtrans
+          ? 'Midtrans'
+          : isTransfer
+            ? 'Rekening Bank'
+            : 'Kas Tunai';
+        const jenisLabel = isMidtrans
+          ? r.status_dana === 'Di Rekening Bank'
+            ? 'Tabungan Midtrans (Sudah Cair)'
+            : 'Tabungan Midtrans (Mengendap)'
+          : isTransfer
+            ? 'Setor Tabungan (Transfer)'
+            : 'Setor Tabungan (Tunai)';
+        return {
+          id: `tab-in-${r.id}`,
+          tabungan_transaksi_id: r.id,
+          santri_id: r.santri_id,
+          nama_santri: r.nama_santri,
+          kode_mutasi: r.kode_transaksi || `TB-IN-${r.id}`,
+          tanggal: r.created_at || r.tanggal_transaksi,
+          jenis_transaksi: jenisLabel,
+          kategori: 'Tabungan Santri (Titipan)',
+          kantong_sumber: isMidtrans ? 'Midtrans' : null,
+          kantong_tujuan: kantongTujuan,
+          nominal: Number(r.nominal || 0),
+          biaya_admin: 0,
+          keterangan: `${r.nama_santri} — Tabungan Masuk: ${r.keterangan || 'Setor Tabungan'}`,
+          penanggung_jawab: r.admin_nama || 'Bendahara',
+          is_pembayaran_santri: true,
+          is_tabungan_santri: true,
+          status_dana: r.status_dana,
+          metode_pembayaran: r.metode_pembayaran || 'Tunai'
+        };
+      }
+
+      const kantongSumber = isTransfer ? 'Rekening Bank' : 'Kas Tunai';
+      return {
+        id: `tab-out-${r.id}`,
+        tabungan_transaksi_id: r.id,
+        santri_id: r.santri_id,
+        nama_santri: r.nama_santri,
+        kode_mutasi: r.kode_transaksi || `TB-OUT-${r.id}`,
+        tanggal: r.created_at || r.tanggal_transaksi,
+        jenis_transaksi: 'Tarik Tabungan Santri',
+        kategori: 'Penarikan Tabungan Santri',
+        kantong_sumber: kantongSumber,
+        kantong_tujuan: null,
+        nominal: Number(r.nominal || 0),
+        biaya_admin: 0,
+        keterangan: `${r.nama_santri} — Ambil Tabungan: ${r.keterangan || 'Penarikan Tabungan'}`,
+        penanggung_jawab: r.admin_nama || 'Bendahara',
+        is_pembayaran_santri: false,
+        is_tabungan_santri: true,
+        is_tarik_tabungan: true,
+        status_dana: r.status_dana,
+        metode_pembayaran: r.metode_pembayaran || 'Tunai'
+      };
+    });
+
+    const mappedInfakKantong = (infakKantongRows || []).map((r) => {
+      const isMidtrans =
+        Boolean(r.snap_token) ||
+        ['QRIS', 'Virtual Account'].includes(r.metode_pembayaran) ||
+        String(r.kode_transaksi || '').startsWith('INFAK-') ||
+        r.status_dana === 'Mengendap di Midtrans';
+      const isTransfer =
+        !isMidtrans &&
+        (r.status_dana === 'Di Rekening Bank' ||
+          String(r.metode_pembayaran || '').toLowerCase().includes('transfer') ||
+          String(r.metode_pembayaran || '').toLowerCase().includes('bank'));
+
+      const kantongTujuan = isMidtrans
+        ? 'Midtrans'
+        : isTransfer
+          ? 'Rekening Bank'
+          : 'Kas Tunai';
+      const jenisLabel = isMidtrans
+        ? r.status_dana === 'Di Rekening Bank'
+          ? 'Infak Midtrans (Sudah Cair)'
+          : 'Infak Midtrans (Mengendap)'
+        : isTransfer
+          ? 'Kas Masuk Infak (Transfer)'
+          : 'Kas Masuk Infak (Tunai)';
+      const donaturLabel = r.is_anonim ? 'Hamba Allah (Anonim)' : r.nama_donatur || 'Donatur';
+
+      return {
+        id: `inf-${r.id}`,
+        infak_transaksi_id: r.id,
+        santri_id: r.santri_id,
+        nama_santri: donaturLabel,
+        kode_mutasi: r.kode_transaksi || `INF-${r.id}`,
+        tanggal: r.tanggal_transaksi,
+        jenis_transaksi: jenisLabel,
+        kategori: 'Donasi & Infak',
+        kantong_sumber: isMidtrans ? 'Midtrans' : null,
+        kantong_tujuan: kantongTujuan,
+        nominal: Number(r.nominal || 0),
+        biaya_admin: 0,
+        keterangan: `${donaturLabel} — Infak: ${r.nama_program || 'Infak Pesantren'}${r.doa_pesan ? ` (${r.doa_pesan})` : ''}`,
+        penanggung_jawab: 'Bendahara',
+        is_pembayaran_santri: true,
+        is_infak_donasi: true,
+        status_dana: r.status_dana,
+        metode_pembayaran: r.metode_pembayaran || 'Tunai'
+      };
+    });
+
+    // Gabungkan juga transaksi Tabungan & Infak yang masih Mengendap di Midtrans ke daftar antrean pencairan
+    const unsettledTabunganMidtrans = (tabunganKantongRows || [])
+      .filter((r) => r.jenis_transaksi === 'masuk' && r.status_dana === 'Mengendap di Midtrans')
+      .map((r) => ({
+        id: `tab-${r.id}`,
+        nomor_transaksi: r.kode_transaksi,
+        kuitansi_nomor: r.kode_transaksi,
+        santri_id: r.santri_id,
+        metode_pembayaran: r.metode_pembayaran || 'Midtrans',
+        channel_pembayaran: 'Midtrans Top-Up Tabungan',
+        total_bayar: Number(r.nominal || 0),
+        nominal_pokok: Number(r.nominal || 0),
+        nominal_fee_gateway: 0,
+        status_pembayaran: 'Berhasil',
+        status_dana: r.status_dana,
+        tanggal_bayar: r.created_at || r.tanggal_transaksi,
+        created_at: r.created_at || r.tanggal_transaksi,
+        nama_santri: r.nama_santri,
+        nis: r.nis || '-',
+        nama_kelas: r.nama_kelas || '',
+        nama_sekolah: r.nama_sekolah || '',
+        rincian_item: `Top-Up Tabungan (${r.keterangan || 'Simpanan Santri'})`
+      }));
+
+    const unsettledInfakMidtrans = (infakKantongRows || [])
+      .filter((r) => r.status_dana === 'Mengendap di Midtrans')
+      .map((r) => ({
+        id: `inf-${r.id}`,
+        nomor_transaksi: r.kode_transaksi,
+        kuitansi_nomor: r.kode_transaksi,
+        santri_id: r.santri_id,
+        metode_pembayaran: r.metode_pembayaran || 'QRIS',
+        channel_pembayaran: 'Midtrans Infak',
+        total_bayar: Number(r.nominal || 0),
+        nominal_pokok: Number(r.nominal || 0),
+        nominal_fee_gateway: 0,
+        status_pembayaran: 'Berhasil',
+        status_dana: r.status_dana,
+        tanggal_bayar: r.tanggal_transaksi,
+        created_at: r.tanggal_transaksi,
+        nama_santri: r.is_anonim ? 'Hamba Allah (Anonim)' : r.nama_donatur || 'Donatur',
+        nis: '-',
+        nama_kelas: '',
+        nama_sekolah: '',
+        rincian_item: `Infak: ${r.nama_program || 'Infak Pesantren'}`
+      }));
+
+    const combinedBukuKas = [
+      ...mappedManualBukuKas,
+      ...mappedPembayaranKantong,
+      ...mappedTabunganKantong,
+      ...mappedInfakKantong
+    ].sort(
       (a, b) => new Date(b.tanggal || 0).getTime() - new Date(a.tanggal || 0).getTime()
     );
 
-    return sendSuccess(res, 'Data kantong saldo & buku kas berhasil dimuat', {
-      kantong: kantongSummary,
-      unsettledMidtrans: (unsettledMidtransRows || []).map((r) => ({
+    const allUnsettledMidtrans = [
+      ...(unsettledMidtransRows || []).map((r) => ({
         ...r,
         nominal_pokok: Number(r.nominal_pokok || r.total_bayar || 0),
         nominal_fee_gateway: Number(r.nominal_fee_gateway || 0),
         total_bayar: Number(r.total_bayar || 0)
       })),
+      ...unsettledTabunganMidtrans,
+      ...unsettledInfakMidtrans
+    ];
+
+    return sendSuccess(res, 'Data kantong saldo & buku kas berhasil dimuat', {
+      kantong: kantongSummary,
+      unsettledMidtrans: allUnsettledMidtrans,
       settledMidtrans: (settledMidtransRows || []).map((r) => ({
         ...r,
         nominal_pokok: Number(r.nominal_pokok || r.total_bayar || 0),
@@ -3547,6 +3961,8 @@ export const cairkanSaldoMidtransKeBank = async (req, res) => {
     }
 
     await ensureKeuanganIndexes();
+    await ensureTabunganTables();
+    await ensureInfakTables();
 
     const {
       transaksi_ids = [],
@@ -3560,42 +3976,111 @@ export const cairkanSaldoMidtransKeBank = async (req, res) => {
     await connection.beginTransaction();
 
     let targetRows = [];
+    let targetTabRows = [];
+    let targetInfRows = [];
+
     if (cairkan_semua || !Array.isArray(transaksi_ids) || transaksi_ids.length === 0) {
-      const [rows] = await connection.query(`
-        SELECT id, nomor_transaksi, total_bayar, COALESCE(NULLIF(nominal_pokok, 0), total_bayar) as nominal_pokok_efektif
-        FROM keuangan_transaksi_pembayaran
-        WHERE status_pembayaran = 'Berhasil'
-          AND COALESCE(status_dana, '') = 'Mengendap di Midtrans'
-        FOR UPDATE
-      `);
+      const [[rows], [tabRows], [infRows]] = await Promise.all([
+        connection.query(`
+          SELECT id, nomor_transaksi, total_bayar, COALESCE(NULLIF(nominal_pokok, 0), total_bayar) as nominal_pokok_efektif
+          FROM keuangan_transaksi_pembayaran
+          WHERE status_pembayaran = 'Berhasil'
+            AND COALESCE(status_dana, '') = 'Mengendap di Midtrans'
+          FOR UPDATE
+        `),
+        connection.query(`
+          SELECT id, kode_transaksi, nominal as nominal_pokok_efektif
+          FROM santri_tabungan_transaksi
+          WHERE jenis_transaksi = 'masuk'
+            AND COALESCE(status_dana, '') = 'Mengendap di Midtrans'
+          FOR UPDATE
+        `),
+        connection.query(`
+          SELECT id, kode_transaksi, nominal as nominal_pokok_efektif
+          FROM pesantren_infak_transaksi
+          WHERE status = 'Berhasil'
+            AND COALESCE(status_dana, '') = 'Mengendap di Midtrans'
+          FOR UPDATE
+        `)
+      ]);
       targetRows = rows || [];
+      targetTabRows = tabRows || [];
+      targetInfRows = infRows || [];
     } else {
-      const cleanIds = transaksi_ids.map((id) => parseInt(id, 10)).filter((id) => !isNaN(id) && id > 0);
-      if (cleanIds.length === 0) {
+      const cleanTrxIds = [];
+      const cleanTabIds = [];
+      const cleanInfIds = [];
+
+      for (const rawId of transaksi_ids) {
+        const s = String(rawId || '');
+        if (s.startsWith('tab-')) {
+          const n = parseInt(s.replace('tab-', ''), 10);
+          if (!isNaN(n) && n > 0) cleanTabIds.push(n);
+        } else if (s.startsWith('inf-')) {
+          const n = parseInt(s.replace('inf-', ''), 10);
+          if (!isNaN(n) && n > 0) cleanInfIds.push(n);
+        } else {
+          const n = parseInt(s, 10);
+          if (!isNaN(n) && n > 0) cleanTrxIds.push(n);
+        }
+      }
+
+      if (cleanTrxIds.length === 0 && cleanTabIds.length === 0 && cleanInfIds.length === 0) {
         await connection.rollback();
         return sendError(res, 'Pilih minimal satu transaksi Midtrans yang akan dicairkan', 400);
       }
-      const placeholders = cleanIds.map(() => '?').join(',');
-      const [rows] = await connection.query(`
-        SELECT id, nomor_transaksi, total_bayar, COALESCE(NULLIF(nominal_pokok, 0), total_bayar) as nominal_pokok_efektif
-        FROM keuangan_transaksi_pembayaran
-        WHERE id IN (${placeholders})
-          AND status_pembayaran = 'Berhasil'
-          AND COALESCE(status_dana, '') = 'Mengendap di Midtrans'
-        FOR UPDATE
-      `, cleanIds);
-      targetRows = rows || [];
+
+      if (cleanTrxIds.length > 0) {
+        const placeholders = cleanTrxIds.map(() => '?').join(',');
+        const [rows] = await connection.query(`
+          SELECT id, nomor_transaksi, total_bayar, COALESCE(NULLIF(nominal_pokok, 0), total_bayar) as nominal_pokok_efektif
+          FROM keuangan_transaksi_pembayaran
+          WHERE id IN (${placeholders})
+            AND status_pembayaran = 'Berhasil'
+            AND COALESCE(status_dana, '') = 'Mengendap di Midtrans'
+          FOR UPDATE
+        `, cleanTrxIds);
+        targetRows = rows || [];
+      }
+
+      if (cleanTabIds.length > 0) {
+        const phTab = cleanTabIds.map(() => '?').join(',');
+        const [rows] = await connection.query(`
+          SELECT id, kode_transaksi, nominal as nominal_pokok_efektif
+          FROM santri_tabungan_transaksi
+          WHERE id IN (${phTab})
+            AND jenis_transaksi = 'masuk'
+            AND COALESCE(status_dana, '') = 'Mengendap di Midtrans'
+          FOR UPDATE
+        `, cleanTabIds);
+        targetTabRows = rows || [];
+      }
+
+      if (cleanInfIds.length > 0) {
+        const phInf = cleanInfIds.map(() => '?').join(',');
+        const [rows] = await connection.query(`
+          SELECT id, kode_transaksi, nominal as nominal_pokok_efektif
+          FROM pesantren_infak_transaksi
+          WHERE id IN (${phInf})
+            AND status = 'Berhasil'
+            AND COALESCE(status_dana, '') = 'Mengendap di Midtrans'
+          FOR UPDATE
+        `, cleanInfIds);
+        targetInfRows = rows || [];
+      }
     }
 
-    if (!targetRows || targetRows.length === 0) {
+    const totalTrxCount = targetRows.length + targetTabRows.length + targetInfRows.length;
+    if (totalTrxCount === 0) {
       await connection.rollback();
       return sendError(res, 'Tidak ada saldo transaksi Midtrans yang sedang mengendap untuk dicairkan', 400);
     }
 
-    const totalPokokCair = targetRows.reduce(
+    const sumArr = (arr) => (arr || []).reduce(
       (sum, r) => sum + Math.round(parseFloat(r.nominal_pokok_efektif || r.total_bayar || 0)),
       0
     );
+    const totalPokokCair = sumArr(targetRows) + sumArr(targetTabRows) + sumArr(targetInfRows);
     const biayaAdminNum = Math.max(0, Math.round(parseFloat(biaya_admin) || 0));
     const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const rand4 = Math.floor(1000 + Math.random() * 9000);
@@ -3607,7 +4092,7 @@ export const cairkanSaldoMidtransKeBank = async (req, res) => {
 
     const pjNama = String(penanggung_jawab || req.user?.nama || req.user?.username || 'Bendahara').trim();
     const ketFinal = String(keterangan || '').trim() ||
-      `Pencairan (Settlement/Payout) ${targetRows.length} transaksi Midtrans ke Rekening Bank Pesantren`;
+      `Pencairan (Settlement/Payout) ${totalTrxCount} transaksi Midtrans ke Rekening Bank Pesantren`;
 
     // 1. Catat ke keuangan_buku_kas
     const [bukuRes] = await connection.query(`
@@ -3621,22 +4106,48 @@ export const cairkanSaldoMidtransKeBank = async (req, res) => {
       biayaAdminNum,
       ketFinal,
       pjNama,
-      targetRows.length
+      totalTrxCount
     ]);
 
     const bukuKasId = bukuRes.insertId;
-    const idsToUpdate = targetRows.map((r) => r.id);
-    const idPlaceholders = idsToUpdate.map(() => '?').join(',');
 
     // 2. Pindahkan status_dana transaksi Midtrans menjadi 'Di Rekening Bank'
-    await connection.query(`
-      UPDATE keuangan_transaksi_pembayaran
-      SET status_dana = 'Di Rekening Bank',
-          tanggal_cair_bank = ?,
-          buku_kas_pencairan_id = ?,
-          updated_at = NOW()
-      WHERE id IN (${idPlaceholders})
-    `, [tglVal, bukuKasId, ...idsToUpdate]);
+    if (targetRows.length > 0) {
+      const idsToUpdate = targetRows.map((r) => r.id);
+      const idPlaceholders = idsToUpdate.map(() => '?').join(',');
+      await connection.query(`
+        UPDATE keuangan_transaksi_pembayaran
+        SET status_dana = 'Di Rekening Bank',
+            tanggal_cair_bank = ?,
+            buku_kas_pencairan_id = ?,
+            updated_at = NOW()
+        WHERE id IN (${idPlaceholders})
+      `, [tglVal, bukuKasId, ...idsToUpdate]);
+    }
+
+    if (targetTabRows.length > 0) {
+      const idsTab = targetTabRows.map((r) => r.id);
+      const phTab = idsTab.map(() => '?').join(',');
+      await connection.query(`
+        UPDATE santri_tabungan_transaksi
+        SET status_dana = 'Di Rekening Bank',
+            tanggal_cair_bank = ?,
+            buku_kas_pencairan_id = ?
+        WHERE id IN (${phTab})
+      `, [tglVal, bukuKasId, ...idsTab]);
+    }
+
+    if (targetInfRows.length > 0) {
+      const idsInf = targetInfRows.map((r) => r.id);
+      const phInf = idsInf.map(() => '?').join(',');
+      await connection.query(`
+        UPDATE pesantren_infak_transaksi
+        SET status_dana = 'Di Rekening Bank',
+            tanggal_cair_bank = ?,
+            buku_kas_pencairan_id = ?
+        WHERE id IN (${phInf})
+      `, [tglVal, bukuKasId, ...idsInf]);
+    }
 
     await connection.commit();
 
@@ -3644,11 +4155,11 @@ export const cairkanSaldoMidtransKeBank = async (req, res) => {
 
     return sendSuccess(
       res,
-      `Berhasil mencairkan ${targetRows.length} transaksi Midtrans senilai Rp ${totalPokokCair.toLocaleString('id-ID')} ke Rekening Bank Pesantren!`,
+      `Berhasil mencairkan ${totalTrxCount} transaksi Midtrans senilai Rp ${totalPokokCair.toLocaleString('id-ID')} ke Rekening Bank Pesantren!`,
       {
         buku_kas_id: bukuKasId,
         kode_mutasi: kodeMutasi,
-        jumlah_trx_dicairkan: targetRows.length,
+        jumlah_trx_dicairkan: totalTrxCount,
         total_dicairkan: totalPokokCair,
         biaya_admin: biayaAdminNum,
         kantong: kantongSummary
@@ -3694,6 +4205,26 @@ export const deleteBukuKasEntry = async (req, res) => {
             updated_at = NOW()
         WHERE buku_kas_pencairan_id = ?
       `, [entry.id]);
+
+      try {
+        await connection.query(`
+          UPDATE santri_tabungan_transaksi
+          SET status_dana = 'Mengendap di Midtrans',
+              tanggal_cair_bank = NULL,
+              buku_kas_pencairan_id = NULL
+          WHERE buku_kas_pencairan_id = ?
+        `, [entry.id]);
+      } catch (_) {}
+
+      try {
+        await connection.query(`
+          UPDATE pesantren_infak_transaksi
+          SET status_dana = 'Mengendap di Midtrans',
+              tanggal_cair_bank = NULL,
+              buku_kas_pencairan_id = NULL
+          WHERE buku_kas_pencairan_id = ?
+        `, [entry.id]);
+      } catch (_) {}
     }
 
     await connection.query('DELETE FROM keuangan_buku_kas WHERE id = ?', [entry.id]);
