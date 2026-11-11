@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { toastSuccess, toastError, showConfirm } from "../../../utils/alert.util";
 
-const KATEGORI_PENGELUARAN = [
+const DEFAULT_KATEGORI_PENGELUARAN = [
   "Konsumsi & Dapur Pesantren",
   "Listrik, Air & Internet",
   "Honor / Bisyoroh Pengajar & Staf",
@@ -33,14 +33,31 @@ const KATEGORI_PENGELUARAN = [
   "Pemeliharaan & Kebersihan Asrama",
   "Kesehatan Santri (Poskestren)",
   "Kegiatan & Acara Santri",
+  "Setor Tunai ke Bank",
   "Operasional Lainnya",
 ];
 
-const KATEGORI_PEMASUKAN_LAIN = [
+const DEFAULT_KATEGORI_PEMASUKAN = [
   "Donasi / Hibah Operasional",
   "Unit Usaha / Koperasi Pesantren",
+  "Tarik Tunai dari Bank",
   "Pemasukan Administrasi Lainnya",
 ];
+
+const STORAGE_KEY_KAT_KELUAR = "epesantren_buku_kas_kat_keluar_v1";
+const STORAGE_KEY_KAT_MASUK = "epesantren_buku_kas_kat_masuk_v1";
+
+const loadSavedCategories = (key, defaults) => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return defaults;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+  } catch (_e) {
+    // ignore storage errors
+  }
+  return defaults;
+};
 
 const formatAngkaTitik = (val) => {
   const num = Math.round(Math.abs(Number(val) || 0));
@@ -108,13 +125,45 @@ export default function PanelKantongDanBukuKas({
   // Tab Aktif: 'tunai' | 'bank' | 'midtrans'
   const [activeTab, setActiveTab] = useState("tunai");
 
+  // Daftar Kategori Dinamis (Bisa Ditambah, Diedit, Dihapus)
+  const [kategoriPengeluaranList, setKategoriPengeluaranList] = useState(() =>
+    loadSavedCategories(STORAGE_KEY_KAT_KELUAR, DEFAULT_KATEGORI_PENGELUARAN),
+  );
+  const [kategoriPemasukanList, setKategoriPemasukanList] = useState(() =>
+    loadSavedCategories(STORAGE_KEY_KAT_MASUK, DEFAULT_KATEGORI_PEMASUKAN),
+  );
+  const [kategoriEditor, setKategoriEditor] = useState({
+    mode: null, // null | 'add' | 'edit'
+    value: "",
+    originalValue: "",
+  });
+
+  const saveKategoriList = (isPengeluaran, nextList) => {
+    if (isPengeluaran) {
+      setKategoriPengeluaranList(nextList);
+      try {
+        localStorage.setItem(STORAGE_KEY_KAT_KELUAR, JSON.stringify(nextList));
+      } catch (_e) {
+        // ignore
+      }
+    } else {
+      setKategoriPemasukanList(nextList);
+      try {
+        localStorage.setItem(STORAGE_KEY_KAT_MASUK, JSON.stringify(nextList));
+      } catch (_e) {
+        // ignore
+      }
+    }
+  };
+
   // Modal Form Buku Kas (Add & Edit)
   const [formModal, setFormModal] = useState({
     isOpen: false,
     mode: "add",
     editId: null,
+    kantong_aktif: "Kas Tunai",
     jenis_transaksi: "Pengeluaran",
-    kategori: KATEGORI_PENGELUARAN[0],
+    kategori: DEFAULT_KATEGORI_PENGELUARAN[0],
     kantong_sumber: "Kas Tunai",
     kantong_tujuan: "Rekening Bank",
     nominal: "",
@@ -156,34 +205,22 @@ export default function PanelKantongDanBukuKas({
     fetchKantongAndBukuKas();
   }, [fetchKantongAndBukuKas]);
 
-  const openFormModal = (jenis, defaultSumber = "Kas Tunai") => {
+  const openFormModal = (jenis = "Pengeluaran", defaultKantong = "Kas Tunai") => {
+    const isKeluar = jenis !== "Pemasukan Lain";
+    const listKat = isKeluar ? kategoriPengeluaranList : kategoriPemasukanList;
+    setKategoriEditor({ mode: null, value: "", originalValue: "" });
     setFormModal({
       isOpen: true,
       mode: "add",
       editId: null,
-      jenis_transaksi: jenis,
-      kategori:
-        jenis === "Pengeluaran"
-          ? KATEGORI_PENGELUARAN[0]
-          : jenis === "Pemasukan Lain"
-            ? KATEGORI_PEMASUKAN_LAIN[0]
-            : jenis === "Setor Tunai ke Bank"
-              ? "Setoran Bank"
-              : "Tarik Tunai Bank",
-      kantong_sumber:
-        jenis === "Tarik Tunai dari Bank" ? "Rekening Bank" : defaultSumber,
-      kantong_tujuan:
-        jenis === "Tarik Tunai dari Bank" || jenis === "Pemasukan Lain"
-          ? "Kas Tunai"
-          : "Rekening Bank",
+      kantong_aktif: defaultKantong,
+      jenis_transaksi: isKeluar ? "Pengeluaran" : "Pemasukan Lain",
+      kategori: listKat[0] || (isKeluar ? "Operasional Lainnya" : "Pemasukan Lainnya"),
+      kantong_sumber: defaultKantong,
+      kantong_tujuan: defaultKantong,
       nominal: "",
       biaya_admin: "",
-      keterangan:
-        jenis === "Setor Tunai ke Bank"
-          ? "Setor kas tunai ke Rekening Bank Pesantren"
-          : jenis === "Tarik Tunai dari Bank"
-            ? "Tarik tunai dari Rekening Bank ke Kas Tunai"
-            : "",
+      keterangan: "",
       tanggal: new Date().toISOString().slice(0, 10),
       penanggung_jawab: "Bendahara",
     });
@@ -193,14 +230,35 @@ export default function PanelKantongDanBukuKas({
     const tglStr = item.tanggal
       ? new Date(item.tanggal).toISOString().slice(0, 10)
       : new Date().toISOString().slice(0, 10);
+    const rawJenis = item.jenis_transaksi || "Pengeluaran";
+    const isPemasukan = rawJenis === "Pemasukan Lain";
+    const kantongAktif = isPemasukan
+      ? item.kantong_tujuan || item.kantong_sumber || "Kas Tunai"
+      : item.kantong_sumber || "Kas Tunai";
+    const katItem =
+      item.kategori ||
+      (rawJenis === "Setor Tunai ke Bank"
+        ? "Setor Tunai ke Bank"
+        : rawJenis === "Tarik Tunai dari Bank"
+          ? "Tarik Tunai dari Bank"
+          : kategoriPengeluaranList[0] || "Operasional Lainnya");
+
+    if (isPemasukan && katItem && !kategoriPemasukanList.includes(katItem)) {
+      saveKategoriList(false, [...kategoriPemasukanList, katItem]);
+    } else if (!isPemasukan && katItem && !kategoriPengeluaranList.includes(katItem)) {
+      saveKategoriList(true, [...kategoriPengeluaranList, katItem]);
+    }
+
+    setKategoriEditor({ mode: null, value: "", originalValue: "" });
     setFormModal({
       isOpen: true,
       mode: "edit",
       editId: item.id,
-      jenis_transaksi: item.jenis_transaksi || "Pengeluaran",
-      kategori: item.kategori || KATEGORI_PENGELUARAN[0],
-      kantong_sumber: item.kantong_sumber || "Kas Tunai",
-      kantong_tujuan: item.kantong_tujuan || "Rekening Bank",
+      kantong_aktif: kantongAktif,
+      jenis_transaksi: isPemasukan ? "Pemasukan Lain" : "Pengeluaran",
+      kategori: katItem,
+      kantong_sumber: item.kantong_sumber || kantongAktif,
+      kantong_tujuan: item.kantong_tujuan || kantongAktif,
       nominal: String(Math.round(Number(item.nominal) || 0)),
       biaya_admin: item.biaya_admin ? String(Math.round(Number(item.biaya_admin) || 0)) : "",
       keterangan: item.keterangan || "",
@@ -253,6 +311,52 @@ export default function PanelKantongDanBukuKas({
       .reduce((sum, u) => sum + Number(u.nominal_pokok || u.total_bayar || 0), 0);
   }, [unsettledMidtrans, cairModal.selectedIds]);
 
+  const handleSaveKategoriEditor = () => {
+    const trimmed = String(kategoriEditor.value || "").trim();
+    if (!trimmed) {
+      toastError("Nama kategori tidak boleh kosong");
+      return;
+    }
+    const isPengeluaran = formModal.jenis_transaksi === "Pengeluaran";
+    const currentList = isPengeluaran ? kategoriPengeluaranList : kategoriPemasukanList;
+
+    if (kategoriEditor.mode === "add") {
+      if (currentList.includes(trimmed)) {
+        setFormModal((p) => ({ ...p, kategori: trimmed }));
+        setKategoriEditor({ mode: null, value: "", originalValue: "" });
+        return;
+      }
+      const nextList = [...currentList, trimmed];
+      saveKategoriList(isPengeluaran, nextList);
+      setFormModal((p) => ({ ...p, kategori: trimmed }));
+      setKategoriEditor({ mode: null, value: "", originalValue: "" });
+      toastSuccess("Kategori ditambahkan");
+    } else if (kategoriEditor.mode === "edit") {
+      const nextList = currentList.map((k) =>
+        k === kategoriEditor.originalValue ? trimmed : k,
+      );
+      saveKategoriList(isPengeluaran, nextList);
+      setFormModal((p) => ({ ...p, kategori: trimmed }));
+      setKategoriEditor({ mode: null, value: "", originalValue: "" });
+      toastSuccess("Kategori diperbarui");
+    }
+  };
+
+  const handleDeleteSelectedKategori = () => {
+    const isPengeluaran = formModal.jenis_transaksi === "Pengeluaran";
+    const currentList = isPengeluaran ? kategoriPengeluaranList : kategoriPemasukanList;
+    if (currentList.length <= 1) {
+      toastError("Minimal harus ada 1 kategori");
+      return;
+    }
+    const target = formModal.kategori;
+    const nextList = currentList.filter((k) => k !== target);
+    saveKategoriList(isPengeluaran, nextList);
+    setFormModal((p) => ({ ...p, kategori: nextList[0] || "" }));
+    setKategoriEditor({ mode: null, value: "", originalValue: "" });
+    toastSuccess(`Kategori "${target}" dihapus`);
+  };
+
   const handleSubmitFormBukuKas = async (e) => {
     e?.preventDefault();
     const nominalVal = parseNumberInput(formModal.nominal);
@@ -267,18 +371,42 @@ export default function PanelKantongDanBukuKas({
       return;
     }
 
+    const katLower = String(formModal.kategori || "").toLowerCase();
+    const kantongPilihan = formModal.kantong_aktif || "Kas Tunai";
+    let finalJenis = formModal.jenis_transaksi;
+    let finalSumber = kantongPilihan;
+    let finalTujuan = kantongPilihan;
+
+    if (katLower === "setor tunai ke bank" || katLower === "setoran bank") {
+      finalJenis = "Setor Tunai ke Bank";
+      finalSumber = "Kas Tunai";
+      finalTujuan = "Rekening Bank";
+    } else if (katLower === "tarik tunai dari bank" || katLower === "tarik tunai bank") {
+      finalJenis = "Tarik Tunai dari Bank";
+      finalSumber = "Rekening Bank";
+      finalTujuan = "Kas Tunai";
+    } else if (formModal.jenis_transaksi === "Pengeluaran") {
+      finalJenis = "Pengeluaran";
+      finalSumber = kantongPilihan;
+      finalTujuan = "Rekening Bank";
+    } else {
+      finalJenis = "Pemasukan Lain";
+      finalSumber = kantongPilihan;
+      finalTujuan = kantongPilihan;
+    }
+
     try {
       setSubmittingForm(true);
       const payload = {
-        jenis_transaksi: formModal.jenis_transaksi,
+        jenis_transaksi: finalJenis,
         kategori: formModal.kategori,
-        kantong_sumber: formModal.kantong_sumber,
-        kantong_tujuan: formModal.kantong_tujuan,
+        kantong_sumber: finalSumber,
+        kantong_tujuan: finalTujuan,
         nominal: nominalVal,
         biaya_admin: biayaAdminVal,
         keterangan: formModal.keterangan,
         tanggal: formModal.tanggal,
-        penanggung_jawab: formModal.penanggung_jawab,
+        penanggung_jawab: "Bendahara",
       };
 
       const res =
@@ -901,7 +1029,8 @@ export default function PanelKantongDanBukuKas({
                   {formModal.mode === "edit" ? "EDIT CATATAN BUKU KAS" : "INPUT TRANSAKSI BARU"}
                 </div>
                 <div style={{ fontWeight: 900, fontSize: "0.98rem", lineHeight: 1.2 }}>
-                  {formModal.jenis_transaksi}
+                  {formModal.jenis_transaksi === "Pemasukan Lain" ? "Pemasukan" : "Pengeluaran"} •{" "}
+                  {formModal.kantong_aktif}
                 </div>
               </div>
             </div>
@@ -939,179 +1068,281 @@ export default function PanelKantongDanBukuKas({
               boxSizing: "border-box",
               display: "flex",
               flexDirection: "column",
-              gap: "14px",
+              gap: "12px",
             }}
           >
-            {/* 1. PILIH JENIS TRANSAKSI (4 TAB CARDS) */}
-            {formModal.jenis_transaksi !== "Pencairan Midtrans ke Bank" && (
-              <div
-                style={{
-                  background: "#ffffff",
-                  borderRadius: "16px",
-                  padding: "12px",
-                  border: "1px solid #e2e8f0",
-                  boxShadow: "0 2px 8px rgba(15, 23, 42, 0.03)",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "0.7rem",
-                    fontWeight: 800,
-                    color: "#64748b",
-                    marginBottom: "8px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.03em",
-                  }}
-                >
-                  Jenis Transaksi Buku Kas
-                </div>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(2, 1fr)",
-                    gap: "7px",
-                  }}
-                >
-                  {[
-                    {
-                      id: "Pengeluaran",
-                      label: "Pengeluaran Kas",
-                      Icon: TrendingDown,
-                      color: "#dc2626",
-                      bg: "#fef2f2",
-                      border: "#fca5a5",
-                    },
-                    {
-                      id: "Pemasukan Lain",
-                      label: "Pemasukan Lain",
-                      Icon: TrendingUp,
-                      color: "#059669",
-                      bg: "#ecfdf5",
-                      border: "#6ee7b7",
-                    },
-                    {
-                      id: "Setor Tunai ke Bank",
-                      label: "Setor Tunai ke Bank",
-                      Icon: ArrowRightLeft,
-                      color: "#0284c7",
-                      bg: "#f0f9ff",
-                      border: "#7dd3fc",
-                    },
-                    {
-                      id: "Tarik Tunai dari Bank",
-                      label: "Tarik Tunai Bank",
-                      Icon: Building2,
-                      color: "#0369a1",
-                      bg: "#f0f9ff",
-                      border: "#7dd3fc",
-                    },
-                  ].map((j) => {
-                    const active = formModal.jenis_transaksi === j.id;
-                    const Icon = j.Icon;
-                    return (
-                      <button
-                        key={j.id}
-                        type="button"
-                        onClick={() =>
-                          setFormModal((p) => ({
-                            ...p,
-                            jenis_transaksi: j.id,
-                            kategori:
-                              j.id === "Pengeluaran"
-                                ? KATEGORI_PENGELUARAN[0]
-                                : j.id === "Pemasukan Lain"
-                                  ? KATEGORI_PEMASUKAN_LAIN[0]
-                                  : j.id === "Setor Tunai ke Bank"
-                                    ? "Setoran Bank"
-                                    : "Tarik Tunai Bank",
-                            kantong_sumber:
-                              j.id === "Tarik Tunai dari Bank"
-                                ? "Rekening Bank"
-                                : p.kantong_sumber || "Kas Tunai",
-                            kantong_tujuan:
-                              j.id === "Tarik Tunai dari Bank" || j.id === "Pemasukan Lain"
-                                ? "Kas Tunai"
-                                : "Rekening Bank",
-                          }))
-                        }
-                        style={{
-                          padding: "10px 11px",
-                          borderRadius: "12px",
-                          border: active ? `2px solid ${j.color}` : "1px solid #e2e8f0",
-                          background: active ? j.bg : "#f8fafc",
-                          color: active ? j.color : "#475569",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          cursor: "pointer",
-                          textAlign: "left",
-                        }}
-                      >
-                        <Icon size={16} />
-                        <span style={{ fontSize: "0.74rem", fontWeight: 800 }}>{j.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Tombol ke Pencairan Midtrans dari dalam Modal Satu Pintu */}
-                {formModal.mode === "add" && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFormModal((p) => ({ ...p, isOpen: false }));
-                      openCairMidtransModal();
-                    }}
-                    style={{
-                      marginTop: "8px",
-                      width: "100%",
-                      padding: "10px 12px",
-                      borderRadius: "12px",
-                      border: "1.5px solid #c4b5fd",
-                      background: "#f5f3ff",
-                      color: "#6d28d9",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <QrCode size={16} />
-                      <span style={{ fontSize: "0.75rem", fontWeight: 800 }}>
-                        Cairkan Saldo Midtrans ke Bank
-                      </span>
-                    </div>
-                    <span
-                      style={{
-                        fontSize: "0.68rem",
-                        fontWeight: 900,
-                        background: "#7c3aed",
-                        color: "#ffffff",
-                        padding: "2px 8px",
-                        borderRadius: "999px",
-                      }}
-                    >
-                      {unsettledMidtrans.length} Trx
-                    </span>
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* 2. HERO CARD INPUT NOMINAL + QUICK CHIPS */}
+            {/* 1. TANGGAL DI PALING ATAS */}
             <div
               style={{
                 background: "#ffffff",
-                borderRadius: "18px",
-                padding: "16px",
+                borderRadius: "14px",
+                padding: "11px 14px",
                 border: "1px solid #e2e8f0",
-                boxShadow: "0 4px 12px rgba(15, 23, 42, 0.04)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "12px",
               }}
             >
               <label
                 style={{
-                  fontSize: "0.72rem",
+                  fontSize: "0.75rem",
+                  fontWeight: 800,
+                  color: "#334155",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  flexShrink: 0,
+                }}
+              >
+                <Calendar size={15} color="#059669" />
+                <span>Tanggal Transaksi</span>
+              </label>
+              <input
+                type="date"
+                value={formModal.tanggal}
+                onChange={(e) => setFormModal((p) => ({ ...p, tanggal: e.target.value }))}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: "10px",
+                  border: "1.5px solid #cbd5e1",
+                  fontSize: "0.8rem",
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  background: "#f8fafc",
+                  outline: "none",
+                }}
+              />
+            </div>
+
+            {/* 2. PILIH KANTONG KAS DULU */}
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: "16px",
+                padding: "13px",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <label
+                style={{
+                  fontSize: "0.7rem",
+                  fontWeight: 800,
+                  color: "#64748b",
+                  display: "block",
+                  marginBottom: "8px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.03em",
+                }}
+              >
+                1. Pilih Kantong Kas
+              </label>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                {[
+                  {
+                    id: "Kas Tunai",
+                    label: "Kas Tunai",
+                    sub: formatRp(kantong.saldo_kas_tunai),
+                    Icon: Wallet,
+                    color: "#059669",
+                    bg: "#ecfdf5",
+                  },
+                  {
+                    id: "Rekening Bank",
+                    label: "Rek. Bank",
+                    sub: formatRp(kantong.saldo_rekening_bank),
+                    Icon: Building2,
+                    color: "#0284c7",
+                    bg: "#f0f9ff",
+                  },
+                ].map((k) => {
+                  const selected = formModal.kantong_aktif === k.id;
+                  const Icon = k.Icon;
+                  return (
+                    <button
+                      key={k.id}
+                      type="button"
+                      onClick={() =>
+                        setFormModal((p) => ({
+                          ...p,
+                          kantong_aktif: k.id,
+                          kantong_sumber: k.id,
+                          kantong_tujuan: k.id,
+                        }))
+                      }
+                      style={{
+                        padding: "11px 12px",
+                        borderRadius: "13px",
+                        border: selected ? `2px solid ${k.color}` : "1px solid #e2e8f0",
+                        background: selected ? k.bg : "#f8fafc",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "3px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "0.78rem",
+                            fontWeight: 900,
+                            color: selected ? k.color : "#334155",
+                          }}
+                        >
+                          {k.label}
+                        </span>
+                        <Icon size={15} color={selected ? k.color : "#94a3b8"} />
+                      </div>
+                      <div style={{ fontSize: "0.68rem", fontWeight: 700, color: "#64748b" }}>
+                        {k.sub}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {formModal.mode === "add" && unsettledMidtrans.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormModal((p) => ({ ...p, isOpen: false }));
+                    openCairMidtransModal();
+                  }}
+                  style={{
+                    marginTop: "8px",
+                    width: "100%",
+                    padding: "9px 12px",
+                    borderRadius: "11px",
+                    border: "1.5px solid #c4b5fd",
+                    background: "#f5f3ff",
+                    color: "#6d28d9",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    cursor: "pointer",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+                    <QrCode size={15} />
+                    <span style={{ fontSize: "0.73rem", fontWeight: 800 }}>
+                      Cairkan Saldo Midtrans ke Bank
+                    </span>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: "0.66rem",
+                      fontWeight: 900,
+                      background: "#7c3aed",
+                      color: "#ffffff",
+                      padding: "2px 8px",
+                      borderRadius: "999px",
+                    }}
+                  >
+                    {unsettledMidtrans.length} Trx
+                  </span>
+                </button>
+              )}
+            </div>
+
+            {/* 3. PILIH PENGELUARAN ATAU PEMASUKAN */}
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: "16px",
+                padding: "13px",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <label
+                style={{
+                  fontSize: "0.7rem",
+                  fontWeight: 800,
+                  color: "#64748b",
+                  display: "block",
+                  marginBottom: "8px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.03em",
+                }}
+              >
+                2. Pilih Jenis Transaksi ({formModal.kantong_aktif})
+              </label>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                {[
+                  {
+                    id: "Pengeluaran",
+                    label: "Pengeluaran",
+                    Icon: TrendingDown,
+                    color: "#dc2626",
+                    bg: "#fef2f2",
+                  },
+                  {
+                    id: "Pemasukan Lain",
+                    label: "Pemasukan",
+                    Icon: TrendingUp,
+                    color: "#059669",
+                    bg: "#ecfdf5",
+                  },
+                ].map((j) => {
+                  const active = formModal.jenis_transaksi === j.id;
+                  const Icon = j.Icon;
+                  return (
+                    <button
+                      key={j.id}
+                      type="button"
+                      onClick={() => {
+                        const nextList =
+                          j.id === "Pengeluaran"
+                            ? kategoriPengeluaranList
+                            : kategoriPemasukanList;
+                        setKategoriEditor({ mode: null, value: "", originalValue: "" });
+                        setFormModal((p) => ({
+                          ...p,
+                          jenis_transaksi: j.id,
+                          kategori: nextList[0] || "",
+                        }));
+                      }}
+                      style={{
+                        padding: "11px 12px",
+                        borderRadius: "12px",
+                        border: active ? `2px solid ${j.color}` : "1px solid #e2e8f0",
+                        background: active ? j.bg : "#f8fafc",
+                        color: active ? j.color : "#475569",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "7px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <Icon size={16} />
+                      <span style={{ fontSize: "0.78rem", fontWeight: 900 }}>{j.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 4. NOMINAL TRANSAKSI (RP) */}
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: "16px",
+                padding: "14px",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <label
+                style={{
+                  fontSize: "0.7rem",
                   fontWeight: 800,
                   color: "#64748b",
                   display: "block",
@@ -1131,21 +1362,17 @@ export default function PanelKantongDanBukuKas({
                   gap: "10px",
                   background: "#f8fafc",
                   border: "2px solid #cbd5e1",
-                  borderRadius: "14px",
-                  padding: "12px 14px",
+                  borderRadius: "13px",
+                  padding: "10px 14px",
                 }}
               >
                 <span
                   style={{
-                    fontSize: "1.2rem",
+                    fontSize: "1.15rem",
                     fontWeight: 900,
                     flexShrink: 0,
                     color:
-                      formModal.jenis_transaksi === "Pengeluaran"
-                        ? "#dc2626"
-                        : formModal.jenis_transaksi === "Pemasukan Lain"
-                          ? "#059669"
-                          : "#0284c7",
+                      formModal.jenis_transaksi === "Pengeluaran" ? "#dc2626" : "#059669",
                   }}
                 >
                   Rp
@@ -1166,7 +1393,7 @@ export default function PanelKantongDanBukuKas({
                     border: "none",
                     background: "transparent",
                     outline: "none",
-                    fontSize: "1.5rem",
+                    fontSize: "1.45rem",
                     fontWeight: 900,
                     color: "#0f172a",
                     textAlign: "right",
@@ -1196,13 +1423,12 @@ export default function PanelKantongDanBukuKas({
                 )}
               </div>
 
-              {/* Quick Nominal Add Buttons */}
               <div
                 style={{
                   display: "flex",
                   gap: "6px",
                   flexWrap: "wrap",
-                  marginTop: "10px",
+                  marginTop: "9px",
                 }}
               >
                 {[
@@ -1224,7 +1450,7 @@ export default function PanelKantongDanBukuKas({
                       border: "1px solid #cbd5e1",
                       borderRadius: "999px",
                       padding: "5px 11px",
-                      fontSize: "0.7rem",
+                      fontSize: "0.69rem",
                       fontWeight: 800,
                       color: "#334155",
                       cursor: "pointer",
@@ -1236,274 +1462,255 @@ export default function PanelKantongDanBukuKas({
               </div>
             </div>
 
-            {/* 3. PILIH KANTONG SALDO (DENGAN INFO SALDO AKTUAL) */}
-            {(formModal.jenis_transaksi === "Pengeluaran" ||
-              formModal.jenis_transaksi === "Pemasukan Lain") && (
-              <div
-                style={{
-                  background: "#ffffff",
-                  borderRadius: "16px",
-                  padding: "14px",
-                  border: "1px solid #e2e8f0",
-                }}
-              >
-                <label
-                  style={{
-                    fontSize: "0.72rem",
-                    fontWeight: 800,
-                    color: "#64748b",
-                    display: "block",
-                    marginBottom: "8px",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {formModal.jenis_transaksi === "Pengeluaran"
-                    ? "Diambil dari Kantong Mana?"
-                    : "Masuk ke Kantong Mana?"}
-                </label>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                  {[
-                    {
-                      id: "Kas Tunai",
-                      label: "Kas Tunai",
-                      sub: formatRp(kantong.saldo_kas_tunai),
-                      Icon: Wallet,
-                      color: "#059669",
-                      bg: "#ecfdf5",
-                    },
-                    {
-                      id: "Rekening Bank",
-                      label: "Rekening Bank",
-                      sub: formatRp(kantong.saldo_rekening_bank),
-                      Icon: Building2,
-                      color: "#0284c7",
-                      bg: "#f0f9ff",
-                    },
-                  ].map((k) => {
-                    const selected =
-                      formModal.jenis_transaksi === "Pengeluaran"
-                        ? formModal.kantong_sumber === k.id
-                        : formModal.kantong_tujuan === k.id;
-                    const Icon = k.Icon;
-                    return (
-                      <button
-                        key={k.id}
-                        type="button"
-                        onClick={() =>
-                          setFormModal((p) =>
-                            p.jenis_transaksi === "Pengeluaran"
-                              ? { ...p, kantong_sumber: k.id }
-                              : { ...p, kantong_tujuan: k.id },
-                          )
-                        }
-                        style={{
-                          padding: "12px",
-                          borderRadius: "14px",
-                          border: selected ? `2px solid ${k.color}` : "1px solid #e2e8f0",
-                          background: selected ? k.bg : "#f8fafc",
-                          cursor: "pointer",
-                          textAlign: "left",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "4px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontSize: "0.78rem",
-                              fontWeight: 900,
-                              color: selected ? k.color : "#334155",
-                            }}
-                          >
-                            {k.label}
-                          </span>
-                          <Icon size={16} color={selected ? k.color : "#94a3b8"} />
-                        </div>
-                        <div style={{ fontSize: "0.7rem", fontWeight: 700, color: "#64748b" }}>
-                          Saldo: {k.sub}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* 4. KATEGORI (INTERACTIVE CHIPS) */}
-            {(formModal.jenis_transaksi === "Pengeluaran" ||
-              formModal.jenis_transaksi === "Pemasukan Lain") && (
-              <div
-                style={{
-                  background: "#ffffff",
-                  borderRadius: "16px",
-                  padding: "14px",
-                  border: "1px solid #e2e8f0",
-                }}
-              >
-                <label
-                  style={{
-                    fontSize: "0.72rem",
-                    fontWeight: 800,
-                    color: "#64748b",
-                    display: "block",
-                    marginBottom: "8px",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Pilih Kategori
-                </label>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
-                  {(formModal.jenis_transaksi === "Pengeluaran"
-                    ? KATEGORI_PENGELUARAN
-                    : KATEGORI_PEMASUKAN_LAIN
-                  ).map((kat) => {
-                    const active = formModal.kategori === kat;
-                    const activeColor =
-                      formModal.jenis_transaksi === "Pengeluaran" ? "#dc2626" : "#059669";
-                    const activeBg =
-                      formModal.jenis_transaksi === "Pengeluaran" ? "#fef2f2" : "#ecfdf5";
-                    return (
-                      <button
-                        key={kat}
-                        type="button"
-                        onClick={() => setFormModal((p) => ({ ...p, kategori: kat }))}
-                        style={{
-                          padding: "8px 12px",
-                          borderRadius: "10px",
-                          border: active ? `1.5px solid ${activeColor}` : "1px solid #e2e8f0",
-                          background: active ? activeBg : "#f8fafc",
-                          color: active ? activeColor : "#475569",
-                          fontSize: "0.73rem",
-                          fontWeight: active ? 800 : 700,
-                          cursor: "pointer",
-                        }}
-                      >
-                        {kat}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* 5. RINCIAN KETERANGAN, TANGGAL & PENANGGUNG JAWAB */}
+            {/* 5. PILIH KATEGORI (BISA TAMBAH, KURANG/HAPUS, EDIT) */}
             <div
               style={{
                 background: "#ffffff",
                 borderRadius: "16px",
                 padding: "14px",
                 border: "1px solid #e2e8f0",
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
               }}
             >
-              <div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "8px",
+                  marginBottom: "9px",
+                  flexWrap: "wrap",
+                }}
+              >
                 <label
                   style={{
-                    fontSize: "0.72rem",
+                    fontSize: "0.7rem",
                     fontWeight: 800,
-                    color: "#334155",
-                    display: "block",
-                    marginBottom: "6px",
+                    color: "#64748b",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.03em",
                   }}
                 >
-                  Uraian / Keterangan Transaksi *
+                  Pilih Kategori
                 </label>
-                <textarea
-                  rows={2}
-                  placeholder="Contoh: Beli beras dapur 5 karung / Setor uang tunai SPP ke Bank"
-                  value={formModal.keterangan}
-                  onChange={(e) => setFormModal((p) => ({ ...p, keterangan: e.target.value }))}
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "12px",
-                    border: "1.5px solid #cbd5e1",
-                    fontSize: "0.82rem",
-                    fontFamily: "inherit",
-                    boxSizing: "border-box",
-                    background: "#f8fafc",
-                  }}
-                />
-              </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                <div>
-                  <label
-                    style={{
-                      fontSize: "0.72rem",
-                      fontWeight: 800,
-                      color: "#334155",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    <Calendar size={13} />
-                    <span>Tanggal</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={formModal.tanggal}
-                    onChange={(e) => setFormModal((p) => ({ ...p, tanggal: e.target.value }))}
-                    style={{
-                      width: "100%",
-                      padding: "10px",
-                      borderRadius: "11px",
-                      border: "1.5px solid #cbd5e1",
-                      fontSize: "0.78rem",
-                      fontWeight: 700,
-                      background: "#f8fafc",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label
-                    style={{
-                      fontSize: "0.72rem",
-                      fontWeight: 800,
-                      color: "#334155",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    <User size={13} />
-                    <span>Petugas / PJ</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Bendahara"
-                    value={formModal.penanggung_jawab}
-                    onChange={(e) =>
-                      setFormModal((p) => ({ ...p, penanggung_jawab: e.target.value }))
+                <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setKategoriEditor({
+                        mode: "add",
+                        value: "",
+                        originalValue: "",
+                      })
                     }
                     style={{
-                      width: "100%",
-                      padding: "10px",
-                      borderRadius: "11px",
-                      border: "1.5px solid #cbd5e1",
-                      fontSize: "0.78rem",
-                      fontWeight: 700,
-                      background: "#f8fafc",
-                      boxSizing: "border-box",
+                      background: "#ecfdf5",
+                      border: "1px solid #a7f3d0",
+                      color: "#059669",
+                      borderRadius: "8px",
+                      padding: "4px 8px",
+                      fontSize: "0.66rem",
+                      fontWeight: 800,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "3px",
+                      cursor: "pointer",
                     }}
-                  />
+                  >
+                    <Plus size={12} />
+                    <span>Tambah</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setKategoriEditor({
+                        mode: "edit",
+                        value: formModal.kategori,
+                        originalValue: formModal.kategori,
+                      })
+                    }
+                    style={{
+                      background: "#f0f9ff",
+                      border: "1px solid #bae6fd",
+                      color: "#0284c7",
+                      borderRadius: "8px",
+                      padding: "4px 8px",
+                      fontSize: "0.66rem",
+                      fontWeight: 800,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "3px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Edit3 size={11} />
+                    <span>Edit</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleDeleteSelectedKategori}
+                    style={{
+                      background: "#fef2f2",
+                      border: "1px solid #fecaca",
+                      color: "#dc2626",
+                      borderRadius: "8px",
+                      padding: "4px 8px",
+                      fontSize: "0.66rem",
+                      fontWeight: 800,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "3px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Trash2 size={11} />
+                    <span>Hapus</span>
+                  </button>
                 </div>
               </div>
+
+              {kategoriEditor.mode && (
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "6px",
+                    marginBottom: "10px",
+                    background: "#f8fafc",
+                    padding: "8px",
+                    borderRadius: "10px",
+                    border: "1px solid #cbd5e1",
+                  }}
+                >
+                  <input
+                    type="text"
+                    placeholder={
+                      kategoriEditor.mode === "add"
+                        ? "Nama kategori baru..."
+                        : "Ubah nama kategori..."
+                    }
+                    value={kategoriEditor.value}
+                    onChange={(e) =>
+                      setKategoriEditor((p) => ({ ...p, value: e.target.value }))
+                    }
+                    style={{
+                      flex: 1,
+                      padding: "7px 10px",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "0.76rem",
+                      fontWeight: 700,
+                      outline: "none",
+                      background: "#ffffff",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveKategoriEditor}
+                    style={{
+                      background: "#059669",
+                      color: "#ffffff",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "0 12px",
+                      fontSize: "0.72rem",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Simpan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setKategoriEditor({ mode: null, value: "", originalValue: "" })
+                    }
+                    style={{
+                      background: "#e2e8f0",
+                      color: "#475569",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "0 10px",
+                      fontSize: "0.72rem",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Batal
+                  </button>
+                </div>
+              )}
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
+                {(formModal.jenis_transaksi === "Pengeluaran"
+                  ? kategoriPengeluaranList
+                  : kategoriPemasukanList
+                ).map((kat) => {
+                  const active = formModal.kategori === kat;
+                  const activeColor =
+                    formModal.jenis_transaksi === "Pengeluaran" ? "#dc2626" : "#059669";
+                  const activeBg =
+                    formModal.jenis_transaksi === "Pengeluaran" ? "#fef2f2" : "#ecfdf5";
+                  return (
+                    <button
+                      key={kat}
+                      type="button"
+                      onClick={() => setFormModal((p) => ({ ...p, kategori: kat }))}
+                      style={{
+                        padding: "8px 12px",
+                        borderRadius: "10px",
+                        border: active ? `1.5px solid ${activeColor}` : "1px solid #e2e8f0",
+                        background: active ? activeBg : "#f8fafc",
+                        color: active ? activeColor : "#475569",
+                        fontSize: "0.73rem",
+                        fontWeight: active ? 800 : 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {kat}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 6. URAIAN / KETERANGAN TRANSAKSI */}
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: "16px",
+                padding: "14px",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <label
+                style={{
+                  fontSize: "0.72rem",
+                  fontWeight: 800,
+                  color: "#334155",
+                  display: "block",
+                  marginBottom: "6px",
+                }}
+              >
+                Uraian / Keterangan Transaksi *
+              </label>
+              <textarea
+                rows={2}
+                placeholder="Contoh: Beli beras dapur 5 karung / Donasi warga"
+                value={formModal.keterangan}
+                onChange={(e) => setFormModal((p) => ({ ...p, keterangan: e.target.value }))}
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: "12px",
+                  border: "1.5px solid #cbd5e1",
+                  fontSize: "0.82rem",
+                  fontFamily: "inherit",
+                  boxSizing: "border-box",
+                  background: "#f8fafc",
+                }}
+              />
             </div>
 
             {/* Sticky Bottom Submit Bar */}
