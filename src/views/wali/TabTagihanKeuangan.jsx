@@ -42,6 +42,10 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
   const [kuitansiData, setKuitansiData] = useState(null);
   const [loadingKuitansi, setLoadingKuitansi] = useState(false);
 
+  const cleanJudul = (str = '') => {
+    return String(str || '').replace(/\s*\([^)]*\)/g, '').trim();
+  };
+
   const fetchKeuangan = async () => {
     try {
       setLoading(true);
@@ -81,7 +85,7 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
           [tagihan.id]: {
             selected: true,
             nominal: sisa,
-            judul: tagihan.judul_tagihan,
+            judul: cleanJudul(tagihan.judul_tagihan),
             kategori: tagihan.kategori,
             sisa_tagihan: sisa
           }
@@ -823,7 +827,7 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
                         />
                         <div>
                           <div style={{ fontSize: '0.78rem', fontWeight: 700, color: isLunas ? '#94a3b8' : '#0f172a' }}>
-                            {item.judul_tagihan}
+                            {cleanJudul(item.judul_tagihan)}
                           </div>
                           <div style={{ fontSize: '0.66rem', color: '#64748b' }}>
                             Total Biaya: {formatRp(item.total_tagihan)}
