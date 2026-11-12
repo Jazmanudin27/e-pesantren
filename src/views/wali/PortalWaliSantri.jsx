@@ -93,7 +93,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
 
   // Navigation Tab State
   const [currentTab, setCurrentTab] = useState("beranda");
-  const [financeActiveTab, setFinanceActiveTab] = useState("tabungan");
+  const [financeActiveTab, setFinanceActiveTab] = useState("tagihan");
   const [absensiStatusFilter, setAbsensiStatusFilter] = useState("Semua");
   const [absensiSubTab, setAbsensiSubTab] = useState("berjamaah");
   const [profileSection, setProfileSection] = useState("semua");
@@ -631,11 +631,20 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   };
 
   useEffect(() => {
+    // 1. Data utama profil & presensi santri (kritis langsung dimuat pertama)
     fetchWaliData();
+    // 2. Data ringkasan keuangan
     fetchKeuanganOverview();
-    fetchLatestFeed();
-    fetchSantriTabungan();
+    // 3. Notifikasi (ringan)
     fetchNotifikasiWali(selectedSantriId, false);
+
+    // 4. Data sekunder (pengumuman feed & tabungan) dimuat bertahap via microtask/idle agar rendering awal cepat
+    const tFeed = setTimeout(() => {
+      fetchLatestFeed();
+      fetchSantriTabungan();
+    }, 200);
+
+    return () => clearTimeout(tFeed);
   }, [selectedSantriId]);
 
   // Smart Delta Polling Ringan (setiap 20 detik saat tab aktif) + Listener Klik Notifikasi Service Worker

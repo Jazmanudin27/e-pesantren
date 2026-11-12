@@ -3,15 +3,29 @@ import { sendSuccess, sendError } from '../utils/response.util.js';
 import { ensureAbsensiTablesAndColumns, syncActivePerizinanToAbsensi } from './absensi.controller.js';
 import bcrypt from 'bcryptjs';
 
+// Background sync perizinan secara asynchronous tanpa menahan response HTTP
+const triggerBackgroundSyncPerizinan = (() => {
+  let lastSyncTime = 0;
+  return () => {
+    const now = Date.now();
+    // Throttle sync perizinan minimal tiap 5 menit
+    if (now - lastSyncTime < 5 * 60 * 1000) return;
+    lastSyncTime = now;
+    setTimeout(async () => {
+      try {
+        await syncActivePerizinanToAbsensi();
+      } catch (e) {}
+    }, 100);
+  };
+})();
+
 /**
  * Mengambil seluruh data monitoring santri untuk Orang Tua / Wali Santri
  */
 export const getWaliSantriData = async (req, res) => {
   try {
-    try {
-      await ensureAbsensiTablesAndColumns();
-      await syncActivePerizinanToAbsensi();
-    } catch (eInit) {}
+    // Jalankan sync perizinan di background (non-blocking)
+    triggerBackgroundSyncPerizinan();
 
     let santriId = null;
 
@@ -26,78 +40,76 @@ export const getWaliSantriData = async (req, res) => {
       }
     }
 
-    let rawSearch = req.query.nisn || req.query.nis || req.query.nama || req.query.username || (req.user && (req.user.nama_santri || req.user.username || req.user.nama));
-
-    // Bersihkan format pembungkus jika ada "(Wali ...)" atau "Orang Tua Santri"
-    let cleanSearch = '';
-    if (rawSearch) {
-      cleanSearch = String(rawSearch).trim();
-      if (cleanSearch.includes('(Wali ')) {
-        const m = cleanSearch.match(/\(Wali\s+([^)]+)\)/i);
-        if (m && m[1]) cleanSearch = m[1].trim();
-      }
-      if (cleanSearch.toLowerCase().startsWith('wali santri ')) cleanSearch = cleanSearch.substring(12).trim();
-      if (cleanSearch.toLowerCase().startsWith('wali ')) cleanSearch = cleanSearch.substring(5).trim();
-      if (cleanSearch.toLowerCase().startsWith('orang tua santri')) cleanSearch = cleanSearch.replace(/^orang tua santri/i, '').replace(/^[^\w]+/, '').trim();
-      if (cleanSearch === '-') cleanSearch = '';
-    }
-
-    // Prioritas 1: Cari tepat berdasarkan cleanSearch (NISN / NIS / username / nama_santri) dari akun login
-    if (!santriId && cleanSearch) {
-      try {
-        const [bySearch] = await pool.query(
-          `SELECT id FROM santri 
-           WHERE LOWER(TRIM(COALESCE(nisn, ''))) = LOWER(TRIM(?)) 
-              OR LOWER(TRIM(COALESCE(nis, ''))) = LOWER(TRIM(?)) 
-              OR LOWER(TRIM(COALESCE(username, ''))) = LOWER(TRIM(?))
-              OR LOWER(TRIM(nama_santri)) = LOWER(TRIM(?))
-              OR LOWER(TRIM(nama_santri)) LIKE LOWER(?)
-           ORDER BY (LOWER(TRIM(nama_santri)) = LOWER(TRIM(?))) DESC, id ASC
-           LIMIT 1`,
-          [cleanSearch, cleanSearch, cleanSearch, cleanSearch, `%${cleanSearch}%`, cleanSearch]
-        );
-        if (bySearch && bySearch.length > 0) {
-          santriId = bySearch[0].id;
-        }
-      } catch (eSearch) {
-        const [bySearchFallback] = await pool.query(
-          `SELECT id FROM santri 
-           WHERE LOWER(TRIM(COALESCE(nis, ''))) = LOWER(TRIM(?)) 
-              OR LOWER(TRIM(nama_santri)) LIKE LOWER(?)
-           LIMIT 1`,
-          [cleanSearch, `%${cleanSearch}%`]
-        ).catch(() => [[]]);
-        if (bySearchFallback && bySearchFallback.length > 0) {
-          santriId = bySearchFallback[0].id;
-        }
-      }
-    }
-
-    // Prioritas 2: Jika belum dapat dari cleanSearch, gunakan santri_id dari token login
-    if (!santriId && req.user && req.user.santri_id) {
-      santriId = req.user.santri_id;
-    }
-
-    // Prioritas 2.5: Cek jika di tabel users ada relasi santri_id
-    if (!santriId && req.user && req.user.id) {
-      try {
-        const [uRow] = await pool.query('SELECT santri_id FROM users WHERE id = ? LIMIT 1', [req.user.id]);
-        if (uRow && uRow.length > 0 && uRow[0].santri_id) {
-          santriId = uRow[0].santri_id;
-        }
-      } catch (e) {}
-    }
-
-    // Prioritas 2.8: Jika query santri_id eksplisit diberikan
-    if (!santriId && req.query.santri_id) {
-      santriId = req.query.santri_id;
-    }
-
-    // Prioritas 3: Fallback jika belum ada
+    // Jika santriId belum dapat, baru lakukan pencarian via keyword / session login
     if (!santriId) {
-      const [first] = await pool.query('SELECT id FROM santri ORDER BY id ASC LIMIT 1');
-      if (first && first.length > 0) {
-        santriId = first[0].id;
+      let rawSearch = req.query.nisn || req.query.nis || req.query.nama || req.query.username || (req.user && (req.user.nama_santri || req.user.username || req.user.nama));
+
+      // Bersihkan format pembungkus jika ada "(Wali ...)" atau "Orang Tua Santri"
+      let cleanSearch = '';
+      if (rawSearch) {
+        cleanSearch = String(rawSearch).trim();
+        if (cleanSearch.includes('(Wali ')) {
+          const m = cleanSearch.match(/\(Wali\s+([^)]+)\)/i);
+          if (m && m[1]) cleanSearch = m[1].trim();
+        }
+        if (cleanSearch.toLowerCase().startsWith('wali santri ')) cleanSearch = cleanSearch.substring(12).trim();
+        if (cleanSearch.toLowerCase().startsWith('wali ')) cleanSearch = cleanSearch.substring(5).trim();
+        if (cleanSearch.toLowerCase().startsWith('orang tua santri')) cleanSearch = cleanSearch.replace(/^orang tua santri/i, '').replace(/^[^\w]+/, '').trim();
+        if (cleanSearch === '-') cleanSearch = '';
+      }
+
+      // Prioritas 1: Cari tepat berdasarkan cleanSearch (NISN / NIS / username / nama_santri) dari akun login
+      if (cleanSearch) {
+        try {
+          const [bySearch] = await pool.query(
+            `SELECT id FROM santri 
+             WHERE LOWER(TRIM(COALESCE(nisn, ''))) = LOWER(TRIM(?)) 
+                OR LOWER(TRIM(COALESCE(nis, ''))) = LOWER(TRIM(?)) 
+                OR LOWER(TRIM(COALESCE(username, ''))) = LOWER(TRIM(?))
+                OR LOWER(TRIM(nama_santri)) = LOWER(TRIM(?))
+                OR LOWER(TRIM(nama_santri)) LIKE LOWER(?)
+             ORDER BY (LOWER(TRIM(nama_santri)) = LOWER(TRIM(?))) DESC, id ASC
+             LIMIT 1`,
+            [cleanSearch, cleanSearch, cleanSearch, cleanSearch, `%${cleanSearch}%`, cleanSearch]
+          );
+          if (bySearch && bySearch.length > 0) {
+            santriId = bySearch[0].id;
+          }
+        } catch (eSearch) {
+          const [bySearchFallback] = await pool.query(
+            `SELECT id FROM santri 
+             WHERE LOWER(TRIM(COALESCE(nis, ''))) = LOWER(TRIM(?)) 
+                OR LOWER(TRIM(nama_santri)) LIKE LOWER(?)
+             LIMIT 1`,
+            [cleanSearch, `%${cleanSearch}%`]
+          ).catch(() => [[]]);
+          if (bySearchFallback && bySearchFallback.length > 0) {
+            santriId = bySearchFallback[0].id;
+          }
+        }
+      }
+
+      // Prioritas 2: Jika belum dapat dari cleanSearch, gunakan santri_id dari token login
+      if (!santriId && req.user && req.user.santri_id) {
+        santriId = req.user.santri_id;
+      }
+
+      // Prioritas 2.5: Cek jika di tabel users ada relasi santri_id
+      if (!santriId && req.user && req.user.id) {
+        try {
+          const [uRow] = await pool.query('SELECT santri_id FROM users WHERE id = ? LIMIT 1', [req.user.id]);
+          if (uRow && uRow.length > 0 && uRow[0].santri_id) {
+            santriId = uRow[0].santri_id;
+          }
+        } catch (e) {}
+      }
+
+      // Prioritas 3: Fallback jika belum ada
+      if (!santriId) {
+        const [first] = await pool.query('SELECT id FROM santri ORDER BY id ASC LIMIT 1');
+        if (first && first.length > 0) {
+          santriId = first[0].id;
+        }
       }
     }
 
@@ -240,10 +252,13 @@ export const getWaliSantriData = async (req, res) => {
           ks.jam_target
         FROM absensi_jamaah_mengaji a
         LEFT JOIN kegiatan_sesi ks ON a.sesi_id = ks.id
-        LEFT JOIN absensi_deleted_logs adl ON (adl.santri_id = a.santri_id AND adl.tanggal = a.tanggal)
-        WHERE a.santri_id = ? AND adl.id IS NULL
+        WHERE a.santri_id = ?
+          AND NOT EXISTS (
+            SELECT 1 FROM absensi_deleted_logs adl 
+            WHERE adl.santri_id = a.santri_id AND adl.tanggal = a.tanggal
+          )
         ORDER BY a.tanggal DESC, a.waktu_scan DESC, a.id DESC
-        LIMIT 500
+        LIMIT 100
       `;
 
       const [absRows] = await pool.query(absSql, [santriId]);
@@ -260,7 +275,7 @@ export const getWaliSantriData = async (req, res) => {
           FROM absensi_jamaah_mengaji a
           WHERE a.santri_id = ?
           ORDER BY a.tanggal DESC, a.id DESC
-          LIMIT 500
+          LIMIT 100
         `, [santriId]);
         presensiJamaah = fallbackRows || [];
       } catch (e2) {

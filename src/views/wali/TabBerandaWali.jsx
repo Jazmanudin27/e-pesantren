@@ -63,7 +63,7 @@ const TabBerandaWali = ({
   presensiList = [],
   tabunganData = {},
   keuanganSummary = {},
-  financeActiveTab = 'tabungan',
+  financeActiveTab = 'tagihan',
   setFinanceActiveTab,
   latestFeed = [],
   transaksiPending = null,
@@ -635,7 +635,7 @@ const TabBerandaWali = ({
             {financeActiveTab === 'tabungan' ? '💰' : '💳'}
           </div>
 
-          {/* Tab Switcher: Tabungan & Tagihan (Frosted Glass Pill) */}
+          {/* Tab Switcher: Tagihan & Tabungan (Frosted Glass Pill) */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
@@ -649,30 +649,6 @@ const TabBerandaWali = ({
             position: 'relative',
             zIndex: 2
           }}>
-            <button
-              type="button"
-              onClick={() => setFinanceActiveTab('tabungan')}
-              style={{
-                border: 'none',
-                background: financeActiveTab === 'tabungan' ? '#ffffff' : 'transparent',
-                color: financeActiveTab === 'tabungan' ? '#047857' : 'rgba(255, 255, 255, 0.85)',
-                fontWeight: 800,
-                fontSize: '11.5px',
-                padding: '4px 8px',
-                borderRadius: '9px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '5px',
-                boxShadow: financeActiveTab === 'tabungan' ? '0 2px 6px rgba(0,0,0,0.18)' : 'none',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <Wallet size={13} strokeWidth={2.4} color={financeActiveTab === 'tabungan' ? '#047857' : 'rgba(255, 255, 255, 0.85)'} />
-              <span>Tabungan</span>
-            </button>
-
             <button
               type="button"
               onClick={() => setFinanceActiveTab('tagihan')}
@@ -704,6 +680,30 @@ const TabBerandaWali = ({
                   boxShadow: '0 0 6px rgba(239, 68, 68, 0.8)'
                 }} />
               )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setFinanceActiveTab('tabungan')}
+              style={{
+                border: 'none',
+                background: financeActiveTab === 'tabungan' ? '#ffffff' : 'transparent',
+                color: financeActiveTab === 'tabungan' ? '#047857' : 'rgba(255, 255, 255, 0.85)',
+                fontWeight: 800,
+                fontSize: '11.5px',
+                padding: '4px 8px',
+                borderRadius: '9px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '5px',
+                boxShadow: financeActiveTab === 'tabungan' ? '0 2px 6px rgba(0,0,0,0.18)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <Wallet size={13} strokeWidth={2.4} color={financeActiveTab === 'tabungan' ? '#047857' : 'rgba(255, 255, 255, 0.85)'} />
+              <span>Tabungan</span>
             </button>
           </div>
 
