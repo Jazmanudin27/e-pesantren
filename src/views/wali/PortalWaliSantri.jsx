@@ -151,7 +151,10 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
 
   // Antrean eksekusi modal tagihan jatuh tempo setelah pengumuman
   useEffect(() => {
-    if (!isPengumumanModalOpen && shouldShowJatuhTempoAfterPengumuman && tagihanJatuhTempo.length > 0) {
+    // Jika modal pengumuman masih aktif, JANGAN PERNAH buka modal tagihan
+    if (isPengumumanModalOpen) return;
+
+    if (shouldShowJatuhTempoAfterPengumuman && tagihanJatuhTempo.length > 0) {
       const today = new Date();
       const todayKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
       const storageKey = `jatuh_tempo_notif_${selectedSantriId || "default"}`;
@@ -284,13 +287,24 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
           .sort((a, b) => new Date(a.jatuh_tempo) - new Date(b.jatuh_tempo));
         setTagihanJatuhTempo(overdue);
 
-        // Tampilkan modal tagihan: jika ada pengumuman baru/aktif, simpan antrean agar pengumuman tampil duluan
+        // Tampilkan modal tagihan: modal pengumuman diprioritaskan tampil terlebih dahulu
         if (overdue.length > 0) {
           const todayKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
           const storageKey = `jatuh_tempo_notif_${targetId || "default"}`;
           if (sessionStorage.getItem(storageKey) !== todayKey) {
-            // Tandai untuk ditampilkan setelah modal pengumuman ditutup orang tua
-            setShouldShowJatuhTempoAfterPengumuman(true);
+            // Jika modal pengumuman sedang terbuka atau baru akan terbuka, simpan antrean
+            if (isPengumumanModalOpen) {
+              setShouldShowJatuhTempoAfterPengumuman(true);
+            } else {
+              // Cek apakah ada pengumuman aktif yang belum pernah dilihat sesi ini
+              const pengumumanShown = sessionStorage.getItem("nwf_wali_pengumuman_shown_session") === "true";
+              if (pengumumanShown) {
+                setIsJatuhTempoModalOpen(true);
+                sessionStorage.setItem(storageKey, todayKey);
+              } else {
+                setShouldShowJatuhTempoAfterPengumuman(true);
+              }
+            }
           }
         }
       }
@@ -718,15 +732,16 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   };
 
   useEffect(() => {
-    // 1. Data utama profil & presensi santri (kritis langsung dimuat pertama)
+    // 1. Data utama profil & presensi santri
     fetchWaliData();
-    // 2. Data pengumuman feed dimuat segera agar modal pengumuman tampil duluan jika ada
-    fetchLatestFeed();
-    // 3. Notifikasi (ringan)
+    // 2. Data notifikasi (ringan)
     fetchNotifikasiWali(selectedSantriId, false);
-    // 4. Data keuangan (dashboard tagihan) dan tabungan dimuat setelahnya
-    fetchKeuanganOverview();
-    fetchSantriTabungan();
+    // 3. Ambil pengumuman resmi TERLEBIH DAHULU agar status modal pengumuman ditentukan sebelum tagihan
+    fetchLatestFeed().finally(() => {
+      // 4. Setelah pengumuman selesai dicek, baru ambil overview keuangan & tagihan
+      fetchKeuanganOverview();
+      fetchSantriTabungan();
+    });
   }, [selectedSantriId]);
 
   // Smart Delta Polling Ringan (setiap 20 detik saat tab aktif) + Listener Klik Notifikasi Service Worker
