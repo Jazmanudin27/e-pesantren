@@ -31,8 +31,6 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
   });
   const [santriList, setSantriList] = useState([]);
   const [search, setSearch] = useState('');
-  const [filterSekolah, setFilterSekolah] = useState('semua');
-  const [filterBulanCount, setFilterBulanCount] = useState('semua');
 
   // Modal Rincian Detail Santri
   const [selectedSantriDetail, setSelectedSantriDetail] = useState(null);
@@ -121,19 +119,6 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
   // Filter Santri Menunggak
   const filteredSantri = React.useMemo(() => {
     return (santriList || []).filter((s) => {
-      // Filter Sekolah
-      if (filterSekolah !== 'semua') {
-        const sk = String(s.nama_sekolah || s.sekolah_jenjang || s.tingkat_sekolah || '').toUpperCase();
-        if (!sk.includes(filterSekolah.toUpperCase())) return false;
-      }
-      // Filter Jumlah Bulan
-      if (filterBulanCount === '1') {
-        if (s.jumlah_bulan_nunggak !== 1) return false;
-      } else if (filterBulanCount === '2+') {
-        if (s.jumlah_bulan_nunggak < 2) return false;
-      } else if (filterBulanCount === '3+') {
-        if (s.jumlah_bulan_nunggak < 3) return false;
-      }
       // Search Query
       if (search.trim()) {
         const q = search.toLowerCase().trim();
@@ -146,7 +131,7 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
       }
       return true;
     });
-  }, [santriList, filterSekolah, filterBulanCount, search]);
+  }, [santriList, search]);
 
   return (
     <div style={{ paddingBottom: '90px', background: '#f8fafc', minHeight: '100vh' }}>
@@ -211,24 +196,6 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
           <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#fee2e2', marginTop: '4px', letterSpacing: '-0.5px' }}>
             {formatRp(summary.total_nominal_tunggakan)}
           </div>
-
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginTop: '12px',
-              paddingTop: '10px',
-              borderTop: '1px solid rgba(255, 255, 255, 0.15)',
-            }}
-          >
-            <div style={{ fontSize: '0.74rem', color: '#fee2e2', fontWeight: 800 }}>
-              {filteredSantri.length} Santri Belum Bayar
-            </div>
-            <div style={{ fontSize: '0.68rem', color: '#fef08a', fontWeight: 700, background: 'rgba(0,0,0,0.18)', padding: '2px 8px', borderRadius: '6px' }}>
-              Batas Akhir: Tgl {summary.tgl_jatuh_tempo_spp || 10} Tiap Bulan
-            </div>
-          </div>
         </div>
       </div>
 
@@ -244,13 +211,13 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
             padding: '0 12px',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
             border: '1px solid #e2e8f0',
-            marginBottom: '10px'
+            marginBottom: '4px'
           }}
         >
           <Search size={18} color="#94a3b8" />
           <input
             type="text"
-            placeholder="Cari nama santri, NIS, wali, asrama..."
+            placeholder="Cari nama santri, NIS, asrama..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
@@ -272,70 +239,6 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
               <X size={16} />
             </button>
           )}
-        </div>
-
-        {/* Filter Pills: Sekolah */}
-        <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '6px' }}>
-          {[
-            { id: 'semua', label: 'Semua Sekolah' },
-            { id: 'SMP', label: 'SMP' },
-            { id: 'SMA', label: 'SMA' },
-            { id: 'SMK', label: 'SMK' }
-          ].map((f) => {
-            const active = filterSekolah === f.id;
-            return (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setFilterSekolah(f.id)}
-                style={{
-                  padding: '5px 12px',
-                  borderRadius: '8px',
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  border: active ? '1px solid #059669' : '1px solid #cbd5e1',
-                  background: active ? '#ecfdf5' : '#ffffff',
-                  color: active ? '#059669' : '#64748b',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {f.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Filter Pills: Jumlah Bulan Nunggak */}
-        <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
-          {[
-            { id: 'semua', label: 'Semua Bulan' },
-            { id: '1', label: '1 Bulan' },
-            { id: '2+', label: '≥ 2 Bulan' },
-            { id: '3+', label: '≥ 3 Bulan' }
-          ].map((f) => {
-            const active = filterBulanCount === f.id;
-            return (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setFilterBulanCount(f.id)}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '8px',
-                  fontSize: '0.68rem',
-                  fontWeight: 700,
-                  border: active ? '1px solid #dc2626' : '1px solid #e2e8f0',
-                  background: active ? '#fef2f2' : '#ffffff',
-                  color: active ? '#dc2626' : '#64748b',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {f.label}
-              </button>
-            );
-          })}
         </div>
       </div>
 
@@ -377,67 +280,87 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
                 key={s.santri_id}
                 style={{
                   background: '#ffffff',
-                  borderRadius: '18px',
-                  padding: '14px',
-                  border: '1px solid #fee2e2',
-                  boxShadow: '0 2px 8px rgba(220, 38, 38, 0.05)'
+                  borderRadius: '20px',
+                  padding: '16px',
+                  border: '1.5px solid #fee2e2',
+                  boxShadow: '0 4px 16px rgba(220, 38, 38, 0.06)',
+                  position: 'relative',
+                  overflow: 'hidden'
                 }}
               >
+                {/* Decorative Subtle Accent Border Bar on Top */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: '4px',
+                  background: 'linear-gradient(90deg, #ef4444 0%, #f97316 100%)'
+                }} />
+
                 {/* Header Card: Avatar + Nama Santri + Total Tunggakan */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '11px', flex: 1, minWidth: 0 }}>
                     <div style={{
-                      width: '42px',
-                      height: '42px',
-                      borderRadius: '12px',
-                      background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                      width: '44px',
+                      height: '44px',
+                      borderRadius: '14px',
+                      background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
                       color: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontWeight: 900,
-                      fontSize: '0.9rem',
+                      fontSize: '0.92rem',
                       flexShrink: 0,
-                      boxShadow: '0 3px 8px rgba(220, 38, 38, 0.25)'
+                      boxShadow: '0 4px 10px rgba(220, 38, 38, 0.28)'
                     }}>
                       {(s.nama_santri || 'S').slice(0, 2).toUpperCase()}
                     </div>
 
-                    <div>
-                      <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#0f172a', lineHeight: 1.25 }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{
+                        fontWeight: 900,
+                        fontSize: '0.94rem',
+                        color: '#0f172a',
+                        lineHeight: 1.3,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
                         {s.nama_santri}
                       </div>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
-                        <span style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '6px', fontWeight: 700, color: '#334155' }}>
+                      <div style={{ fontSize: '0.68rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                        <span style={{ background: '#f1f5f9', padding: '2px 7px', borderRadius: '6px', fontWeight: 700, color: '#334155' }}>
                           NIS: {s.nis}
                         </span>
-                        <span style={{ background: '#fef2f2', padding: '2px 6px', borderRadius: '6px', fontWeight: 800, color: '#dc2626', border: '1px solid #fee2e2' }}>
+                        <span style={{ background: '#fef2f2', padding: '2px 7px', borderRadius: '6px', fontWeight: 800, color: '#dc2626', border: '1px solid #fee2e2' }}>
                           {s.nama_kelas || s.tingkat_sekolah}
                         </span>
-                        <span style={{ background: '#ecfdf5', padding: '2px 6px', borderRadius: '6px', fontWeight: 700, color: '#059669' }}>
+                        <span style={{ background: '#ecfdf5', padding: '2px 7px', borderRadius: '6px', fontWeight: 800, color: '#059669' }}>
                           {s.sekolah_jenjang || (s.nama_sekolah && s.nama_sekolah.includes('SMP') ? 'SMP' : s.nama_sekolah && s.nama_sekolah.includes('SMA') ? 'SMA' : 'SMK')}
                         </span>
                       </div>
-                      <div style={{ fontSize: '0.67rem', color: '#94a3b8', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                        <Building size={11} />
+                      <div style={{ fontSize: '0.67rem', color: '#64748b', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Building size={11} color="#94a3b8" />
                         <span>{s.nama_asrama} (Kamar {s.nama_kamar || '-'})</span>
                       </div>
                     </div>
                   </div>
 
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: 900, fontSize: '0.98rem', color: '#dc2626' }}>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontWeight: 900, fontSize: '1.02rem', color: '#b91c1c', letterSpacing: '-0.3px' }}>
                       {formatRp(s.total_nominal_tunggakan)}
                     </div>
                     <span style={{
-                      fontSize: '0.62rem',
+                      fontSize: '0.63rem',
                       fontWeight: 800,
                       color: '#b91c1c',
                       background: '#fef2f2',
                       border: '1px solid #fecaca',
-                      padding: '2px 7px',
-                      borderRadius: '6px',
-                      marginTop: '3px',
+                      padding: '2px 8px',
+                      borderRadius: '8px',
+                      marginTop: '4px',
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '3px'
@@ -461,11 +384,11 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     cursor: 'pointer',
-                    boxShadow: '0 2px 6px rgba(225, 29, 72, 0.04)',
+                    boxShadow: '0 2px 8px rgba(225, 29, 72, 0.05)',
                     transition: 'all 0.2s ease'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                     <div style={{
                       width: '32px',
                       height: '32px',
@@ -474,16 +397,16 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      boxShadow: '0 2px 5px rgba(225, 29, 72, 0.1)',
+                      boxShadow: '0 2px 5px rgba(225, 29, 72, 0.12)',
                       flexShrink: 0
                     }}>
-                      <Calendar size={16} color="#e11d48" />
+                      <Calendar size={15} color="#e11d48" />
                     </div>
-                    <div>
+                    <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#9f1239', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span>{s.jumlah_bulan_nunggak} Bulan Tertunggak</span>
                       </div>
-                      <div style={{ fontSize: '0.67rem', color: '#be123c', marginTop: '2px', fontWeight: 600 }}>
+                      <div style={{ fontSize: '0.68rem', color: '#be123c', marginTop: '2px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {s.rincian_spp.length > 0
                           ? `${s.rincian_spp[0].bulan}${s.rincian_spp.length > 1 ? ` s/d ${s.rincian_spp[s.rincian_spp.length - 1].bulan}` : ''}`
                           : 'Klik untuk rincian lengkap'}
@@ -496,83 +419,78 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
                     alignItems: 'center',
                     gap: '4px',
                     background: '#ffffff',
-                    padding: '5px 10px',
+                    padding: '5px 11px',
                     borderRadius: '8px',
                     border: '1px solid #fecdd3',
                     fontSize: '0.7rem',
                     fontWeight: 800,
                     color: '#e11d48',
-                    flexShrink: 0
+                    flexShrink: 0,
+                    boxShadow: '0 1px 3px rgba(225, 29, 72, 0.08)'
                   }}>
-                    <Eye size={13} />
+                    <Eye size={12} />
                     <span>Rincian</span>
-                    <ChevronRight size={13} />
+                    <ChevronRight size={12} />
                   </div>
                 </div>
 
-                {/* Footer Info: Wali & Action Buttons */}
+                {/* Footer Action Buttons */}
                 <div style={{
                   display: 'flex',
-                  justifyContent: 'space-between',
+                  justifyContent: 'flex-end',
                   alignItems: 'center',
                   marginTop: '12px',
                   paddingTop: '10px',
-                  borderTop: '1px solid #f1f5f9'
+                  borderTop: '1px solid #f8fafc',
+                  gap: '8px'
                 }}>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
-                    Wali: <span style={{ fontWeight: 700, color: '#334155' }}>{s.nama_wali}</span>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    {/* Tombol Bayar di Kasir */}
+                  {/* Tombol Kirim Tagihan WA */}
+                  {s.no_wa_wali && (
                     <button
                       type="button"
-                      onClick={() => handleBayarDiKasir(s)}
+                      onClick={() => handleSendWaReminder(s)}
                       style={{
-                        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-                        border: 'none',
-                        color: '#ffffff',
-                        padding: '7px 12px',
-                        borderRadius: '10px',
-                        fontSize: '0.72rem',
+                        background: '#f0fdf4',
+                        border: '1px solid #86efac',
+                        color: '#166534',
+                        padding: '8px 12px',
+                        borderRadius: '11px',
+                        fontSize: '0.74rem',
                         fontWeight: 800,
                         display: 'flex',
                         alignItems: 'center',
                         gap: '5px',
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 6px rgba(5, 150, 105, 0.25)'
+                        cursor: 'pointer'
                       }}
+                      title="Kirim Tagihan via WhatsApp"
                     >
-                      <CreditCard size={12} />
-                      <span>Bayar di Kasir</span>
+                      <Share2 size={13} color="#16a34a" />
+                      <span>Tagih WA</span>
                     </button>
+                  )}
 
-                    {/* Tombol Kirim Tagihan WA */}
-                    {s.no_wa_wali && (
-                      <button
-                        type="button"
-                        onClick={() => handleSendWaReminder(s)}
-                        style={{
-                          background: '#25d366',
-                          border: 'none',
-                          color: '#ffffff',
-                          padding: '7px 10px',
-                          borderRadius: '10px',
-                          fontSize: '0.72rem',
-                          fontWeight: 800,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          cursor: 'pointer',
-                          boxShadow: '0 2px 6px rgba(37, 211, 102, 0.25)'
-                        }}
-                        title="Kirim Tagihan via WhatsApp"
-                      >
-                        <Share2 size={12} />
-                        <span>Tagih WA</span>
-                      </button>
-                    )}
-                  </div>
+                  {/* Tombol Bayar di Kasir */}
+                  <button
+                    type="button"
+                    onClick={() => handleBayarDiKasir(s)}
+                    style={{
+                      background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                      border: 'none',
+                      color: '#ffffff',
+                      padding: '8px 14px',
+                      borderRadius: '11px',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      cursor: 'pointer',
+                      boxShadow: '0 3px 8px rgba(5, 150, 105, 0.28)'
+                    }}
+                  >
+                    <CreditCard size={13} />
+                    <span>Bayar di Kasir</span>
+                  </button>
                 </div>
               </div>
             );

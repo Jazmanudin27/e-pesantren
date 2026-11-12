@@ -1638,6 +1638,7 @@ export default function MobileTabungan({ onBackToHome }) {
                       color: '#0f172a',
                       outline: 'none',
                       background: 'transparent',
+                      textAlign: 'right',
                     }}
                   />
                 </div>

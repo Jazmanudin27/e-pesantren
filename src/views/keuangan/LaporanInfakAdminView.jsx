@@ -50,7 +50,7 @@ export default function LaporanInfakAdminView({ onBackToHome }) {
     nama_program: "",
     kategori: "Infak Pesantren",
     deskripsi: "",
-    target_dana: "50000000",
+    target_dana: "50.000.000",
   });
   const [submittingProgram, setSubmittingProgram] = useState(false);
 
@@ -184,7 +184,7 @@ export default function LaporanInfakAdminView({ onBackToHome }) {
       setSubmittingProgram(true);
       const res = await axios.post("/api/infak/program", {
         ...programForm,
-        target_dana: parseFloat(programForm.target_dana) || 0,
+        target_dana: parseRibuanInput(programForm.target_dana) || 0,
       });
       if (res.data?.success) {
         toastSuccess("Program infak baru berhasil ditambahkan.");
@@ -194,7 +194,7 @@ export default function LaporanInfakAdminView({ onBackToHome }) {
           nama_program: "",
           kategori: "Infak Pesantren",
           deskripsi: "",
-          target_dana: "50000000",
+          target_dana: "50.000.000",
         });
         fetchLaporan();
       } else {
@@ -1594,13 +1594,14 @@ export default function LaporanInfakAdminView({ onBackToHome }) {
                   Target Dana (Rp)
                 </label>
                 <input
-                  type="number"
-                  placeholder="50000000"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="50.000.000"
                   value={programForm.target_dana}
                   onChange={(e) =>
                     setProgramForm({
                       ...programForm,
-                      target_dana: e.target.value,
+                      target_dana: formatRibuanInput(e.target.value),
                     })
                   }
                   style={{
@@ -1613,6 +1614,7 @@ export default function LaporanInfakAdminView({ onBackToHome }) {
                     boxSizing: "border-box",
                     fontWeight: 800,
                     fontFamily: "monospace",
+                    textAlign: "right",
                   }}
                 />
               </div>
@@ -1998,6 +2000,7 @@ export default function LaporanInfakAdminView({ onBackToHome }) {
                       color: "#0f172a",
                       outline: "none",
                       background: "transparent",
+                      textAlign: "right",
                     }}
                   />
                 </div>

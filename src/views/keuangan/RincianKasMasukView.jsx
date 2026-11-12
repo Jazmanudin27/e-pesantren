@@ -995,19 +995,19 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
                   style={{
                     background: "#ffffff",
                     borderRadius: "18px",
-                    padding: "14px",
+                    padding: "13px 14px",
                     border: "1px solid #e2e8f0",
                     borderLeft: `4px solid ${methodMeta.accent}`,
                     boxShadow: "0 4px 14px -4px rgba(15, 23, 42, 0.05)",
                     cursor: "pointer",
                   }}
                 >
-                  {/* Header Card */}
+                  {/* Header Row: Icon + Title/Date + Nominal & Badge (Persis Buku Kas) */}
                   <div
                     style={{
                       display: "flex",
                       justifyContent: "space-between",
-                      alignItems: "flex-start",
+                      alignItems: "center",
                       gap: "10px",
                     }}
                   >
@@ -1017,12 +1017,13 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
                         alignItems: "center",
                         gap: "10px",
                         minWidth: 0,
+                        flex: 1,
                       }}
                     >
                       <div
                         style={{
-                          width: "40px",
-                          height: "40px",
+                          width: "38px",
+                          height: "38px",
                           borderRadius: "12px",
                           background: methodMeta.bg,
                           color: methodMeta.color,
@@ -1031,20 +1032,19 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
                           alignItems: "center",
                           justifyContent: "center",
                           fontWeight: 900,
-                          fontSize: "0.84rem",
+                          fontSize: "0.82rem",
                           flexShrink: 0,
                         }}
                       >
                         {getInitials(trx.nama_santri)}
                       </div>
 
-                      <div style={{ minWidth: 0 }}>
+                      <div style={{ minWidth: 0, flex: 1 }}>
                         <div
                           style={{
                             fontWeight: 800,
                             fontSize: "0.88rem",
                             color: "#0f172a",
-                            lineHeight: 1.25,
                             whiteSpace: "nowrap",
                             overflow: "hidden",
                             textOverflow: "ellipsis",
@@ -1054,181 +1054,79 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
                         </div>
                         <div
                           style={{
-                            fontSize: "0.67rem",
+                            fontSize: "0.68rem",
                             color: "#64748b",
-                            marginTop: "3px",
                             display: "flex",
                             alignItems: "center",
                             gap: "5px",
                             flexWrap: "wrap",
+                            marginTop: "2px",
                           }}
                         >
-                          <span>NIS {trx.nis || "-"}</span>
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "3px",
+                            }}
+                          >
+                            <Calendar size={11} />
+                            {dateStr}
+                          </span>
+                          <span>• #{trx.nomor_transaksi || `TRX-${trx.id}`}</span>
                           {trx.nama_kelas && (
                             <span
                               style={{
                                 background: "#f1f5f9",
                                 color: "#334155",
-                                padding: "1px 6px",
-                                borderRadius: "6px",
+                                padding: "1px 5px",
+                                borderRadius: "5px",
                                 fontWeight: 700,
+                                fontSize: "0.62rem",
                               }}
                             >
                               {trx.nama_kelas}
                             </span>
                           )}
-                          {trx.nama_sekolah && trx.nama_sekolah !== "-" && (
-                            <span
-                              style={{
-                                background: "#ecfdf5",
-                                color: "#047857",
-                                padding: "1px 6px",
-                                borderRadius: "6px",
-                                fontWeight: 700,
-                              }}
-                            >
-                              {trx.nama_sekolah}
-                            </span>
-                          )}
                         </div>
                       </div>
                     </div>
 
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "flex-end",
+                        gap: "3px",
+                        flexShrink: 0,
+                      }}
+                    >
                       <div
                         style={{
+                          fontSize: "0.92rem",
                           fontWeight: 900,
-                          fontSize: "0.94rem",
                           color: "#047857",
                         }}
                       >
-                        +{formatRp(nominalPokok)}
+                        + {formatRp(nominalPokok)}
                       </div>
-                      {nominalFee > 0 && (
-                        <div style={{ fontSize: "0.6rem", color: "#64748b", fontWeight: 700 }}>
-                          Fee Gateway: {formatRp(nominalFee)}
-                        </div>
-                      )}
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "3px", marginTop: "4px" }}>
-                        <span
-                          style={{
-                            fontSize: "0.61rem",
-                            fontWeight: 800,
-                            color: methodMeta.color,
-                            background: methodMeta.bg,
-                            border: `1px solid ${methodMeta.border}`,
-                            padding: "2px 7px",
-                            borderRadius: "999px",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "3px",
-                          }}
-                        >
-                          <MethodIcon size={10} />
-                          <span>{methodMeta.label}</span>
-                        </span>
-                        {trx.status_dana && (
-                          <span
-                            style={{
-                              fontSize: "0.58rem",
-                              fontWeight: 800,
-                              padding: "1px 6px",
-                              borderRadius: "6px",
-                              background:
-                                trx.status_dana === "Mengendap di Midtrans"
-                                  ? "#fef3c7"
-                                  : trx.status_dana === "Di Rekening Bank"
-                                    ? "#dbeafe"
-                                    : "#d1fae5",
-                              color:
-                                trx.status_dana === "Mengendap di Midtrans"
-                                  ? "#b45309"
-                                  : trx.status_dana === "Di Rekening Bank"
-                                    ? "#1d4ed8"
-                                    : "#065f46",
-                            }}
-                          >
-                            {trx.status_dana}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Footer */}
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginTop: "10px",
-                      paddingTop: "9px",
-                      borderTop: "1px solid #f1f5f9",
-                      fontSize: "0.68rem",
-                      color: "#64748b",
-                    }}
-                  >
-                    <div>
-                      <span style={{ fontWeight: 800, color: "#0f172a" }}>
-                        {trx.nomor_kuitansi ||
-                          trx.nomor_transaksi ||
-                          `KW-${trx.id}`}
-                      </span>
-                      <span style={{ margin: "0 5px" }}>•</span>
-                      <span>{dateStr}</span>
-                    </div>
-
-                    <div style={{ display: "flex", gap: "6px" }}>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setKuitansiModal({ isOpen: true, data: trx });
-                        }}
+                      <span
                         style={{
-                          background: "#f8fafc",
-                          border: "1px solid #cbd5e1",
-                          borderRadius: "9px",
-                          padding: "5px 9px",
-                          fontSize: "0.69rem",
-                          fontWeight: 800,
-                          color: "#334155",
-                          display: "flex",
+                          display: "inline-flex",
                           alignItems: "center",
-                          gap: "4px",
-                          cursor: "pointer",
+                          gap: "3px",
+                          padding: "2px 8px",
+                          borderRadius: "999px",
+                          fontSize: "0.62rem",
+                          fontWeight: 800,
+                          background: methodMeta.bg,
+                          color: methodMeta.color,
+                          border: `1px solid ${methodMeta.border}`,
                         }}
                       >
-                        <Receipt size={12} color="#059669" />
-                        <span>Rincian</span>
-                      </button>
-
-                      {trx.no_wa_wali && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSendWaKuitansi(trx);
-                          }}
-                          style={{
-                            background: "#ecfdf5",
-                            border: "1px solid #a7f3d0",
-                            borderRadius: "9px",
-                            padding: "5px 9px",
-                            fontSize: "0.69rem",
-                            fontWeight: 800,
-                            color: "#059669",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "4px",
-                            cursor: "pointer",
-                          }}
-                          title="Kirim ke WhatsApp Wali"
-                        >
-                          <Share2 size={12} />
-                          <span>WA</span>
-                        </button>
-                      )}
+                        <MethodIcon size={10} />
+                        <span>{methodMeta.label}</span>
+                      </span>
                     </div>
                   </div>
                 </div>
