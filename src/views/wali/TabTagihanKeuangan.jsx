@@ -719,6 +719,26 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
                 const isLunas = sisa <= 0 || t.status === 'Lunas';
                 const isSelected = !!selectedItems[t.id]?.selected;
 
+                // Cek apakah SPP sudah lewat jatuh tempo
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                let isLewatTempo = false;
+                if (!isLunas && t.jatuh_tempo) {
+                  const jt = new Date(t.jatuh_tempo);
+                  if (!isNaN(jt.getTime())) {
+                    jt.setHours(0, 0, 0, 0);
+                    isLewatTempo = jt < today;
+                  }
+                }
+
+                // Warna background & border jika lewat jatuh tempo
+                let itemBg = isSelected ? '#f0fdf4' : (isLunas ? '#f8fafc' : '#ffffff');
+                let itemBorder = isSelected ? '1.5px solid #059669' : '1px solid #e2e8f0';
+                if (!isLunas && isLewatTempo) {
+                  itemBg = isSelected ? '#fef2f2' : '#fff5f5';
+                  itemBorder = isSelected ? '1.5px solid #dc2626' : '1px solid #fca5a5';
+                }
+
                 return (
                   <div
                     key={t.id}
@@ -729,8 +749,8 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
                       justifyContent: 'space-between',
                       padding: '10px 12px',
                       borderRadius: '11px',
-                      border: isSelected ? '1.5px solid #059669' : '1px solid #e2e8f0',
-                      background: isSelected ? '#f0fdf4' : (isLunas ? '#f8fafc' : '#ffffff'),
+                      border: itemBorder,
+                      background: itemBg,
                       cursor: isLunas ? 'default' : 'pointer',
                       transition: 'all 0.15s ease'
                     }}
@@ -741,20 +761,49 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
                         disabled={isLunas}
                         checked={isSelected || isLunas}
                         onChange={() => {}}
-                        style={{ width: '16px', height: '16px', accentColor: '#059669', cursor: isLunas ? 'default' : 'pointer' }}
+                        style={{ width: '16px', height: '16px', accentColor: isLewatTempo ? '#dc2626' : '#059669', cursor: isLunas ? 'default' : 'pointer' }}
                       />
                       <div>
-                        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: isLunas ? '#94a3b8' : '#0f172a' }}>
-                          {t.judul_tagihan}
+                        <div style={{
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          color: isLunas ? '#94a3b8' : (isLewatTempo ? '#b91c1c' : '#0f172a'),
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '5px'
+                        }}>
+                          <span>{t.judul_tagihan}</span>
+                          {isLewatTempo && (
+                            <span style={{
+                              fontSize: '0.58rem',
+                              fontWeight: 800,
+                              color: '#dc2626',
+                              background: '#fee2e2',
+                              padding: '1px 5px',
+                              borderRadius: '4px',
+                              letterSpacing: '0.2px'
+                            }}>
+                              JATUH TEMPO
+                            </span>
+                          )}
                         </div>
-                        <div style={{ fontSize: '0.66rem', color: '#64748b' }}>
+                        <div style={{
+                          fontSize: '0.66rem',
+                          color: isLewatTempo ? '#dc2626' : '#64748b',
+                          fontWeight: isLewatTempo ? 700 : 500
+                        }}>
                           Jatuh Tempo: {t.jatuh_tempo ? new Date(t.jatuh_tempo).toLocaleDateString('id-ID') : '-'}
+                          {isLewatTempo && ' (Lewat)'}
                         </div>
                       </div>
                     </div>
 
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '0.82rem', fontWeight: 800, color: isLunas ? '#059669' : '#0f172a' }}>
+                      <div style={{
+                        fontSize: '0.82rem',
+                        fontWeight: 800,
+                        color: isLunas ? '#059669' : (isLewatTempo ? '#b91c1c' : '#0f172a')
+                      }}>
                         {formatRp(t.total_tagihan)}
                       </div>
                       <span style={{
@@ -762,10 +811,11 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
                         fontWeight: 800,
                         padding: '1px 5px',
                         borderRadius: '999px',
-                        background: isLunas ? '#dcfce7' : '#fee2e2',
-                        color: isLunas ? '#166534' : '#991b1b'
+                        background: isLunas ? '#dcfce7' : (isLewatTempo ? '#fee2e2' : '#fef3c7'),
+                        color: isLunas ? '#166534' : (isLewatTempo ? '#b91c1c' : '#b45309'),
+                        border: isLewatTempo ? '1px solid #fca5a5' : 'none'
                       }}>
-                        {isLunas ? 'LUNAS' : 'BELUM BAYAR'}
+                        {isLunas ? 'LUNAS' : (isLewatTempo ? 'TERTUNGGAK' : 'BELUM BAYAR')}
                       </span>
                     </div>
                   </div>

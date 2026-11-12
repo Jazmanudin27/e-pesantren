@@ -127,14 +127,14 @@ export default function TabPesanWali({
       background: '#f1f5f9',
       fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif"
     }}>
-      {/* 1. TOP HEADER (DISAMAKAN DENGAN TAB LAIN PORTAL WALI) */}
+      {/* 1. TOP HEADER (DISAMAKAN DENGAN TAB LAIN PORTAL WALI - COMPACT) */}
       <div style={{
         background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-        padding: '16px 16px 18px',
+        padding: '12px 14px 14px',
         color: '#ffffff',
-        borderBottomLeftRadius: '24px',
-        borderBottomRightRadius: '24px',
-        boxShadow: '0 8px 20px rgba(5, 150, 105, 0.25)',
+        borderBottomLeftRadius: '18px',
+        borderBottomRightRadius: '18px',
+        boxShadow: '0 4px 14px rgba(5, 150, 105, 0.2)',
         zIndex: 20
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -146,8 +146,8 @@ export default function TabPesanWali({
                   background: 'rgba(255, 255, 255, 0.2)',
                   border: 'none',
                   color: '#ffffff',
-                  width: '32px',
-                  height: '32px',
+                  width: '28px',
+                  height: '28px',
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
@@ -155,16 +155,16 @@ export default function TabPesanWali({
                   cursor: 'pointer'
                 }}
               >
-                <ArrowLeft size={18} />
+                <ArrowLeft size={16} />
               </button>
             )}
 
             <div>
-              <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <h2 style={{ fontSize: '0.98rem', fontWeight: 800, margin: 0, letterSpacing: '-0.2px', display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <span>Pesan &amp; Tanya Admin</span>
-                <ShieldCheck size={16} color="#a7f3d0" />
+                <ShieldCheck size={14} color="#a7f3d0" />
               </h2>
-              <div style={{ fontSize: '0.65rem', color: '#d1fae5', marginTop: '1px', fontWeight: 600 }}>
+              <div style={{ fontSize: '0.62rem', color: '#d1fae5', marginTop: '1px', fontWeight: 600 }}>
                 Kanal Komunikasi Resmi Pondok Pesantren
               </div>
             </div>
@@ -174,8 +174,8 @@ export default function TabPesanWali({
             onClick={() => fetchMessages()}
             disabled={loading}
             style={{
-              width: '34px',
-              height: '34px',
+              width: '28px',
+              height: '28px',
               borderRadius: '50%',
               background: 'rgba(255, 255, 255, 0.2)',
               border: 'none',
@@ -187,24 +187,24 @@ export default function TabPesanWali({
             }}
             title="Segarkan Chat"
           >
-            <RotateCw size={17} className={loading ? 'animate-spin' : ''} />
+            <RotateCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
 
-      {/* 2. QUICK TOPIC BAR */}
+      {/* 2. QUICK TOPIC BAR - COMPACT */}
       <div style={{
         background: '#ffffff',
-        padding: '8px 12px',
+        padding: '6px 10px',
         borderBottom: '1px solid #e2e8f0',
         display: 'flex',
         alignItems: 'center',
-        gap: '6px',
+        gap: '4px',
         overflowX: 'auto',
         whiteSpace: 'nowrap',
         scrollbarWidth: 'none'
       }}>
-        <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#64748b', marginRight: '4px' }}>
+        <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#64748b', marginRight: '2px' }}>
           Topik:
         </span>
         {TOPIK_LIST.map((t) => (
@@ -212,12 +212,12 @@ export default function TabPesanWali({
             key={t}
             onClick={() => setSelectedTopik(t)}
             style={{
-              padding: '4px 10px',
+              padding: '3px 8px',
               borderRadius: '999px',
               border: selectedTopik === t ? '1px solid #059669' : '1px solid #e2e8f0',
               background: selectedTopik === t ? '#ecfdf5' : '#f8fafc',
               color: selectedTopik === t ? '#065f46' : '#64748b',
-              fontSize: '0.68rem',
+              fontSize: '0.62rem',
               fontWeight: selectedTopik === t ? 800 : 600,
               cursor: 'pointer',
               transition: 'all 0.15s ease'
@@ -232,22 +232,36 @@ export default function TabPesanWali({
       <div style={{
         flex: 1,
         overflowY: 'auto',
-        padding: '14px 12px',
+        padding: '10px 10px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '12px'
+        gap: '8px'
       }}>
-        {/* Intro Greeting Card */}
+        {/* Intro Greeting Card - Compact */}
         <div style={{
           background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
           border: '1px solid #bbf7d0',
-          borderRadius: '14px',
-          padding: '12px',
+          borderRadius: '12px',
+          padding: '9px 11px',
           textAlign: 'center',
-          boxShadow: '0 2px 6px rgba(16, 185, 129, 0.08)',
-          marginBottom: '6px'
+          boxShadow: '0 1px 4px rgba(16, 185, 129, 0.08)',
+          marginBottom: '4px'
         }}>
           <div style={{
+            fontSize: '0.72rem',
+            fontWeight: 800,
+            color: '#065f46',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '5px'
+          }}>
+            <Sparkles size={13} color="#059669" /> Layanan Konsultasi &amp; Tanya Jawab Orang Tua
+          </div>
+          <div style={{ fontSize: '0.64rem', color: '#166534', marginTop: '2px', lineHeight: 1.35 }}>
+            Sampaikan pertanyaan, izin khusus, kendala santri, atau saran kepada Asatidz &amp; Pengurus.
+          </div>
+        </div>
             width: '32px',
             height: '32px',
             borderRadius: '50%',
@@ -367,8 +381,8 @@ export default function TabPesanWali({
 
                     {/* Body Text */}
                     <div style={{
-                      fontSize: '0.8rem',
-                      lineHeight: 1.45,
+                      fontSize: '0.74rem',
+                      lineHeight: 1.4,
                       whiteSpace: 'pre-wrap',
                       wordBreak: 'break-word'
                     }}>
@@ -380,13 +394,13 @@ export default function TabPesanWali({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'flex-end',
-                      gap: '4px',
-                      marginTop: '4px',
-                      fontSize: '0.58rem',
+                      gap: '3px',
+                      marginTop: '3px',
+                      fontSize: '0.54rem',
                       color: isMe ? 'rgba(255, 255, 255, 0.75)' : '#94a3b8'
                     }}>
                       <span>{formatTime(msg.created_at)}</span>
-                      {isMe && <CheckCheck size={12} color="#a7f3d0" />}
+                      {isMe && <CheckCheck size={11} color="#a7f3d0" />}
                     </div>
                   </div>
                 </div>
@@ -397,17 +411,17 @@ export default function TabPesanWali({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* 4. CHAT INPUT BAR */}
+      {/* 4. CHAT INPUT BAR - COMPACT */}
       <form
         onSubmit={handleSend}
         style={{
           background: '#ffffff',
           borderTop: '1px solid #e2e8f0',
-          padding: '10px 12px',
+          padding: '8px 10px',
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
-          boxShadow: '0 -2px 10px rgba(0,0,0,0.04)'
+          gap: '6px',
+          boxShadow: '0 -2px 8px rgba(0,0,0,0.03)'
         }}
       >
         <input
@@ -419,10 +433,10 @@ export default function TabPesanWali({
           style={{
             flex: 1,
             background: '#f8fafc',
-            border: '1.5px solid #cbd5e1',
-            borderRadius: '24px',
-            padding: '10px 16px',
-            fontSize: '0.82rem',
+            border: '1.2px solid #cbd5e1',
+            borderRadius: '20px',
+            padding: '7px 12px',
+            fontSize: '0.74rem',
             color: '#0f172a',
             outline: 'none',
             fontFamily: 'inherit'
@@ -433,8 +447,8 @@ export default function TabPesanWali({
           type="submit"
           disabled={!inputText.trim() || sending}
           style={{
-            width: '42px',
-            height: '42px',
+            width: '34px',
+            height: '34px',
             borderRadius: '50%',
             background: inputText.trim() && !sending
               ? 'linear-gradient(135deg, #059669 0%, #047857 100%)'

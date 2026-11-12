@@ -18,27 +18,27 @@ const TabBukuTabunganWali = ({
   onBack
 }) => {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: '90px' }}>
-      {/* Top Header Bar Terpadu Emerald Green */}
+    <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: '85px' }}>
+      {/* Top Header Bar Terpadu Emerald Green - Compact */}
       <div style={{
         background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-        padding: '16px 16px 20px',
+        padding: '12px 14px 14px',
         color: '#ffffff',
-        borderBottomLeftRadius: '24px',
-        borderBottomRightRadius: '24px',
-        boxShadow: '0 8px 20px rgba(5, 150, 105, 0.25)',
-        marginBottom: '16px'
+        borderBottomLeftRadius: '18px',
+        borderBottomRightRadius: '18px',
+        boxShadow: '0 4px 14px rgba(5, 150, 105, 0.2)',
+        marginBottom: '12px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button 
               onClick={onBack}
-              style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
             >
-              <ArrowLeft size={18} />
+              <ArrowLeft size={16} />
             </button>
             <div>
-              <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
+              <h2 style={{ fontSize: '0.98rem', fontWeight: 800, margin: 0, letterSpacing: '-0.2px' }}>
                 Buku Tabungan Santri
               </h2>
             </div>
@@ -47,8 +47,8 @@ const TabBukuTabunganWali = ({
           <button 
             onClick={() => fetchSantriTabungan && fetchSantriTabungan(selectedSantriId)}
             style={{
-              width: '34px',
-              height: '34px',
+              width: '28px',
+              height: '28px',
               borderRadius: '50%',
               background: 'rgba(255,255,255,0.2)',
               border: 'none',
@@ -60,21 +60,21 @@ const TabBukuTabunganWali = ({
             }}
             title="Segarkan Saldo"
           >
-            <RotateCw size={17} className={loadingTabungan ? 'animate-spin' : ''} />
+            <RotateCw size={14} className={loadingTabungan ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
 
-      <div style={{ padding: '0 16px' }}>
-        {/* HERO STAT CARD TABUNGAN (LUXURY FINTECH GRADIENT) */}
+      <div style={{ padding: '0 12px' }}>
+        {/* HERO STAT CARD TABUNGAN (COMPACT LUXURY FINTECH GRADIENT) */}
         <div style={{
           background: 'linear-gradient(135deg, #059669 0%, #0d9488 45%, #064e3b 100%)',
-          borderRadius: '22px',
-          padding: '18px 18px 16px',
+          borderRadius: '16px',
+          padding: '12px 14px 10px',
           color: '#ffffff',
           border: '1px solid rgba(167, 243, 208, 0.45)',
-          boxShadow: '0 12px 28px -4px rgba(5, 150, 105, 0.42), 0 4px 10px rgba(0, 0, 0, 0.06)',
-          marginBottom: '16px',
+          boxShadow: '0 8px 18px -4px rgba(5, 150, 105, 0.35)',
+          marginBottom: '10px',
           position: 'relative',
           overflow: 'hidden',
           transition: 'all 0.25s ease'
@@ -82,22 +82,22 @@ const TabBukuTabunganWali = ({
           {/* Ambient Glow */}
           <div style={{
             position: 'absolute',
-            top: '-30px',
-            right: '-30px',
-            width: '120px',
-            height: '120px',
+            top: '-25px',
+            right: '-25px',
+            width: '90px',
+            height: '90px',
             borderRadius: '50%',
             background: 'rgba(110, 231, 183, 0.25)',
-            filter: 'blur(30px)',
+            filter: 'blur(20px)',
             pointerEvents: 'none'
           }} />
 
           {/* Watermark */}
           <div style={{
             position: 'absolute',
-            right: '-8px',
-            bottom: '-12px',
-            fontSize: '5.5rem',
+            right: '-4px',
+            bottom: '-8px',
+            fontSize: '4rem',
             opacity: 0.1,
             userSelect: 'none',
             pointerEvents: 'none'
@@ -105,38 +105,38 @@ const TabBukuTabunganWali = ({
             💰
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px', position: 'relative', zIndex: 2 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', position: 'relative', zIndex: 2 }}>
             <div>
               <div style={{
-                fontSize: '0.66rem',
+                fontSize: '0.58rem',
                 fontWeight: 800,
                 color: '#a7f3d0',
                 textTransform: 'uppercase',
-                letterSpacing: '0.5px'
+                letterSpacing: '0.4px'
               }}>
                 SALDO TABUNGAN SANTRI
               </div>
-              <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#ffffff', marginTop: '2px', letterSpacing: '-0.3px', textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+              <div style={{ fontSize: '1.28rem', fontWeight: 900, color: '#ffffff', marginTop: '1px', letterSpacing: '-0.3px', textShadow: '0 2px 6px rgba(0,0,0,0.18)' }}>
                 {formatRp(tabunganData?.saldo_saat_ini || 0)}
               </div>
-              <div style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.88)', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.66rem', color: 'rgba(255,255,255,0.85)', marginTop: '1px' }}>
                 Uang saku santri terkelola aman & amanah
               </div>
             </div>
 
             <div style={{
-              width: '46px',
-              height: '46px',
-              borderRadius: '16px',
+              width: '36px',
+              height: '36px',
+              borderRadius: '12px',
               background: 'rgba(255, 255, 255, 0.2)',
-              border: '1.5px solid rgba(255, 255, 255, 0.35)',
+              border: '1px solid rgba(255, 255, 255, 0.35)',
               backdropFilter: 'blur(6px)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#ffffff',
-              fontSize: '1.5rem',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+              fontSize: '1.2rem',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
             }}>
               💰
             </div>
@@ -146,43 +146,43 @@ const TabBukuTabunganWali = ({
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: '8px',
+            gap: '6px',
             position: 'relative',
             zIndex: 2
           }}>
             <div style={{
               background: '#ffffff',
-              padding: '9px 12px',
-              borderRadius: '12px',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.14)',
+              padding: '6px 10px',
+              borderRadius: '10px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
               border: '1px solid rgba(255, 255, 255, 0.9)'
             }}>
-              <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase' }}>
-                <ArrowDownLeft size={12} color="#059669" strokeWidth={2.5} /> Total Uang Masuk
+              <div style={{ fontSize: '0.55rem', fontWeight: 800, color: '#64748b', display: 'flex', alignItems: 'center', gap: '3px', textTransform: 'uppercase' }}>
+                <ArrowDownLeft size={10} color="#059669" strokeWidth={2.5} /> Total Masuk
               </div>
-              <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#059669', marginTop: '3px' }}>
+              <div style={{ fontSize: '0.84rem', fontWeight: 900, color: '#059669', marginTop: '2px' }}>
                 +{formatRp(tabunganData?.total_masuk || 0)}
               </div>
             </div>
 
             <div style={{
               background: '#ffffff',
-              padding: '9px 12px',
-              borderRadius: '12px',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.14)',
+              padding: '6px 10px',
+              borderRadius: '10px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
               border: '1px solid rgba(255, 255, 255, 0.9)'
             }}>
-              <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase' }}>
-                <ArrowUpRight size={12} color="#e11d48" strokeWidth={2.5} /> Total Pengambilan
+              <div style={{ fontSize: '0.55rem', fontWeight: 800, color: '#64748b', display: 'flex', alignItems: 'center', gap: '3px', textTransform: 'uppercase' }}>
+                <ArrowUpRight size={10} color="#e11d48" strokeWidth={2.5} /> Total Ambil
               </div>
-              <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#e11d48', marginTop: '3px' }}>
+              <div style={{ fontSize: '0.84rem', fontWeight: 900, color: '#e11d48', marginTop: '2px' }}>
                 -{formatRp(tabunganData?.total_keluar || 0)}
               </div>
             </div>
           </div>
         </div>
 
-        {/* ACTION BUTTON: ISI SALDO TABUNGAN (TOP UP) */}
+        {/* ACTION BUTTON: ISI SALDO TABUNGAN (TOP UP) - COMPACT */}
         <button
           type="button"
           onClick={onOpenTopUp}
@@ -191,38 +191,38 @@ const TabBukuTabunganWali = ({
             background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
             color: '#ffffff',
             border: 'none',
-            padding: '12px 16px',
-            borderRadius: '16px',
+            padding: '9px 14px',
+            borderRadius: '12px',
             fontWeight: 800,
-            fontSize: '0.86rem',
+            fontSize: '0.78rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '8px',
-            boxShadow: '0 4px 14px rgba(5, 150, 105, 0.35)',
+            gap: '6px',
+            boxShadow: '0 3px 10px rgba(5, 150, 105, 0.28)',
             cursor: 'pointer',
-            marginBottom: '14px',
+            marginBottom: '10px',
             transition: 'transform 0.15s ease'
           }}
         >
-          <Plus size={18} strokeWidth={2.8} />
+          <Plus size={15} strokeWidth={2.8} />
           <span>Isi Saldo Tabungan (Top Up)</span>
         </button>
 
-        {/* Petunjuk Pengiriman Uang Saku */}
+        {/* Petunjuk Pengiriman Uang Saku - Compact */}
         <div style={{
           background: '#f0fdf4',
-          borderRadius: '14px',
+          borderRadius: '12px',
           border: '1px solid #bbf7d0',
-          padding: '12px 14px',
-          marginBottom: '16px',
+          padding: '8px 10px',
+          marginBottom: '12px',
           display: 'flex',
-          gap: '10px',
+          gap: '8px',
           alignItems: 'flex-start'
         }}>
-          <CheckCircle2 size={18} color="#16a34a" style={{ flexShrink: 0, marginTop: '2px' }} />
-          <div style={{ fontSize: '0.72rem', color: '#166534', lineHeight: 1.4 }}>
-            <strong>Informasi Tabungan Santri:</strong> Uang saku yang disetor dikelola oleh bendahara / wali asrama pondok. Santri dapat mengambil uang saku harian/mingguan untuk kebutuhan jajan, kitab, dan keperluan pesantren.
+          <CheckCircle2 size={14} color="#16a34a" style={{ flexShrink: 0, marginTop: '1px' }} />
+          <div style={{ fontSize: '0.66rem', color: '#166534', lineHeight: 1.35 }}>
+            <strong>Info Tabungan:</strong> Uang saku dikelola bendahara / asrama pondok. Santri dapat mengambil saku harian/mingguan untuk kebutuhan jajan, kitab, dan keperluan pondok.
           </div>
         </div>
 
@@ -232,34 +232,34 @@ const TabBukuTabunganWali = ({
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginBottom: '10px'
+            marginBottom: '8px'
           }}>
-            <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a' }}>
+            <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0f172a' }}>
               Riwayat Mutasi Tabungan ({tabunganData?.riwayat_transaksi?.length || 0})
             </span>
-            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>
+            <span style={{ fontSize: '0.62rem', color: '#64748b' }}>
               Real-time
             </span>
           </div>
 
           {loadingTabungan ? (
-            <div style={{ textAlign: 'center', padding: '30px', color: '#64748b', fontSize: '0.8rem' }}>
+            <div style={{ textAlign: 'center', padding: '20px', color: '#64748b', fontSize: '0.72rem' }}>
               Memuat riwayat mutasi...
             </div>
           ) : !tabunganData?.riwayat_transaksi || tabunganData.riwayat_transaksi.length === 0 ? (
             <div style={{
               background: '#ffffff',
-              borderRadius: '16px',
-              padding: '24px',
+              borderRadius: '12px',
+              padding: '18px 14px',
               textAlign: 'center',
               border: '1px dashed #cbd5e1',
               color: '#94a3b8',
-              fontSize: '0.78rem'
+              fontSize: '0.72rem'
             }}>
               Belum ada transaksi tabungan yang tercatat untuk santri ini.
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {tabunganData.riwayat_transaksi.map((t) => {
                 const isMasuk = t.jenis_transaksi === 'masuk';
                 return (
@@ -267,20 +267,20 @@ const TabBukuTabunganWali = ({
                     key={t.id}
                     style={{
                       background: '#ffffff',
-                      borderRadius: '14px',
-                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      padding: '9px 11px',
                       border: '1px solid #e2e8f0',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
                       <div style={{
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '10px',
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '8px',
                         background: isMasuk ? '#ecfdf5' : '#fef2f2',
                         color: isMasuk ? '#059669' : '#dc2626',
                         display: 'flex',
@@ -288,11 +288,11 @@ const TabBukuTabunganWali = ({
                         justifyContent: 'center',
                         flexShrink: 0
                       }}>
-                        {isMasuk ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
+                        {isMasuk ? <ArrowDownLeft size={14} /> : <ArrowUpRight size={14} />}
                       </div>
                       <div style={{ minWidth: 0 }}>
                         <div style={{
-                          fontSize: '0.82rem',
+                          fontSize: '0.74rem',
                           fontWeight: 800,
                           color: '#0f172a',
                           whiteSpace: 'nowrap',
@@ -301,7 +301,7 @@ const TabBukuTabunganWali = ({
                         }}>
                           {t.keterangan || (isMasuk ? 'Penambahan Saldo' : 'Pengambilan')}
                         </div>
-                        <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '1px' }}>
+                        <div style={{ fontSize: '0.62rem', color: '#64748b', marginTop: '1px' }}>
                           {t.tanggal_transaksi} • Saldo: {formatRp(t.saldo_sebelum)} &rarr;{' '}
                           <span style={{ fontWeight: 700, color: '#0f766e' }}>{formatRp(t.saldo_sesudah)}</span>
                         </div>
@@ -310,13 +310,13 @@ const TabBukuTabunganWali = ({
 
                     <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '8px' }}>
                       <div style={{
-                        fontSize: '0.92rem',
+                        fontSize: '0.82rem',
                         fontWeight: 900,
                         color: isMasuk ? '#059669' : '#dc2626'
                       }}>
                         {isMasuk ? '+' : '-'}{formatRp(t.nominal)}
                       </div>
-                      <div style={{ fontSize: '0.62rem', color: '#94a3b8', marginTop: '1px' }}>
+                      <div style={{ fontSize: '0.56rem', color: '#94a3b8', marginTop: '1px' }}>
                         {t.kode_transaksi}
                       </div>
                     </div>
