@@ -194,7 +194,7 @@ export default function ModalTagihanJatuhTempo({
               border: "1px solid rgba(255,255,255,0.18)",
               backdropFilter: "blur(8px)",
               borderRadius: "14px",
-              padding: "10px 14px",
+              padding: "10px",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
@@ -208,7 +208,6 @@ export default function ModalTagihanJatuhTempo({
                 style={{
                   fontSize: "0.58rem",
                   fontWeight: 800,
-                  paddingBottom: "4px",
                   color: "#fca5a5",
                   textTransform: "uppercase",
                   letterSpacing: "0.05em",
