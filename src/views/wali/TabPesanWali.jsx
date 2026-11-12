@@ -262,25 +262,6 @@ export default function TabPesanWali({
             Sampaikan pertanyaan, izin khusus, kendala santri, atau saran kepada Asatidz &amp; Pengurus.
           </div>
         </div>
-            width: '32px',
-            height: '32px',
-            borderRadius: '50%',
-            background: '#059669',
-            color: '#fff',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '4px'
-          }}>
-            <MessageSquare size={16} />
-          </div>
-          <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#065f46' }}>
-            Layanan Komunikasi Wali Santri & Pesantren
-          </div>
-          <div style={{ fontSize: '0.68rem', color: '#047857', marginTop: '2px', lineHeight: 1.35 }}>
-            Sampaikan pertanyaan, izin, konfirmasi biaya, atau kendala seputar santri <b>{santriName}</b>. Admin pesantren akan membalas pesan Anda di sini.
-          </div>
-        </div>
 
         {loading && messages.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '30px 0', color: '#94a3b8', fontSize: '0.78rem' }}>
