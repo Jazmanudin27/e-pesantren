@@ -11,8 +11,10 @@ import {
   ChevronRight,
   UserCheck,
   KeyRound,
+  Sparkles,
 } from "lucide-react";
 import ModalSiklusSpp from "./components/ModalSiklusSpp";
+import ModalGenerateTagihan from "./components/ModalGenerateTagihan";
 import { toastSuccess, toastError, showConfirm } from "../../utils/alert.util";
 
 export default function MobileSettingsKeuangan({ onLogout }) {
@@ -48,6 +50,7 @@ export default function MobileSettingsKeuangan({ onLogout }) {
       .toUpperCase() || "BK";
 
   // 1. State Siklus & Jatuh Tempo SPP + Auto-Settlement Midtrans
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [isSiklusModalOpen, setIsSiklusModalOpen] = useState(false);
   const [isMidtransModalOpen, setIsMidtransModalOpen] = useState(false);
   const [siklusForm, setSiklusForm] = useState({
@@ -342,6 +345,65 @@ export default function MobileSettingsKeuangan({ onLogout }) {
             Bendahara
           </span>
         </div>
+
+        {/* Tombol Kelola & Generate Tagihan Sekolah */}
+        <button
+          type="button"
+          onClick={() => setIsGenerateModalOpen(true)}
+          style={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "10px 0 12px",
+            border: "none",
+            borderBottom: "1px solid #f1f5f9",
+            background: "transparent",
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div
+              style={{
+                width: "40px",
+                height: "40px",
+                borderRadius: "11px",
+                background: "#f5f3ff",
+                color: "#7c3aed",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "1px solid #ddd6fe",
+                flexShrink: 0,
+              }}
+            >
+              <Sparkles size={19} />
+            </div>
+            <div>
+              <div
+                style={{
+                  fontSize: "0.86rem",
+                  fontWeight: 800,
+                  color: "#1e293b",
+                }}
+              >
+                Kelola &amp; Generate Tagihan
+              </div>
+              <div
+                style={{
+                  fontSize: "0.72rem",
+                  color: "#64748b",
+                  marginTop: "2px",
+                  fontWeight: 600,
+                }}
+              >
+                Rincian Biaya Masuk &amp; SPP Bulanan Sekolah
+              </div>
+            </div>
+          </div>
+          <ChevronRight size={17} color="#94a3b8" />
+        </button>
 
         <button
           type="button"
@@ -1163,6 +1225,14 @@ export default function MobileSettingsKeuangan({ onLogout }) {
             </form>
           </div>
         </div>
+      )}
+      {/* Modal Generate Tagihan */}
+      {isGenerateModalOpen && (
+        <ModalGenerateTagihan
+          isOpen={isGenerateModalOpen}
+          onClose={() => setIsGenerateModalOpen(false)}
+          onSuccess={() => setIsGenerateModalOpen(false)}
+        />
       )}
     </div>
   );
