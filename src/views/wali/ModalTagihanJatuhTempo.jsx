@@ -51,7 +51,7 @@ export default function ModalTagihanJatuhTempo({
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 99998,
+        zIndex: 99990,
         background: "rgba(15, 23, 42, 0.72)",
         backdropFilter: "blur(6px)",
         display: "flex",

@@ -149,6 +149,18 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   const [topUpNominal, setTopUpNominal] = useState("50.000");
   const [topUpKeterangan, setTopUpKeterangan] = useState("");
 
+  // Antrean eksekusi modal tagihan jatuh tempo setelah pengumuman
+  useEffect(() => {
+    if (!isPengumumanModalOpen && shouldShowJatuhTempoAfterPengumuman && tagihanJatuhTempo.length > 0) {
+      const today = new Date();
+      const todayKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+      const storageKey = `jatuh_tempo_notif_${selectedSantriId || "default"}`;
+      setIsJatuhTempoModalOpen(true);
+      sessionStorage.setItem(storageKey, todayKey);
+      setShouldShowJatuhTempoAfterPengumuman(false);
+    }
+  }, [isPengumumanModalOpen, shouldShowJatuhTempoAfterPengumuman, tagihanJatuhTempo, selectedSantriId]);
+
   // Pastikan browser selalu mulai dari posisi paling atas saat reload / mount
   useEffect(() => {
     if ("scrollRestoration" in window.history) {
@@ -708,18 +720,13 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   useEffect(() => {
     // 1. Data utama profil & presensi santri (kritis langsung dimuat pertama)
     fetchWaliData();
-    // 2. Data ringkasan keuangan
-    fetchKeuanganOverview();
+    // 2. Data pengumuman feed dimuat segera agar modal pengumuman tampil duluan jika ada
+    fetchLatestFeed();
     // 3. Notifikasi (ringan)
     fetchNotifikasiWali(selectedSantriId, false);
-
-    // 4. Data sekunder (pengumuman feed & tabungan) dimuat bertahap via microtask/idle agar rendering awal cepat
-    const tFeed = setTimeout(() => {
-      fetchLatestFeed();
-      fetchSantriTabungan();
-    }, 200);
-
-    return () => clearTimeout(tFeed);
+    // 4. Data keuangan (dashboard tagihan) dan tabungan dimuat setelahnya
+    fetchKeuanganOverview();
+    fetchSantriTabungan();
   }, [selectedSantriId]);
 
   // Smart Delta Polling Ringan (setiap 20 detik saat tab aktif) + Listener Klik Notifikasi Service Worker

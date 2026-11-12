@@ -103,7 +103,7 @@ export default function ModalPengumumanWali({
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 99998,
+        zIndex: 99999,
         background: 'rgba(15, 23, 42, 0.74)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
