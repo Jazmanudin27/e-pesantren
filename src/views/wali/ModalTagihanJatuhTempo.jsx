@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, X, CreditCard, Calendar, Clock } from 'lucide-react';
+import { AlertTriangle, X, CreditCard, Calendar, Clock, BellRing, Sparkles } from 'lucide-react';
 
 /**
  * Modal Notifikasi Tagihan Lewat Jatuh Tempo (Portal Wali Santri)
@@ -37,7 +37,7 @@ export default function ModalTagihanJatuhTempo({
       inset: 0,
       zIndex: 99998,
       background: 'rgba(15, 23, 42, 0.72)',
-      backdropFilter: 'blur(5px)',
+      backdropFilter: 'blur(6px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -45,88 +45,129 @@ export default function ModalTagihanJatuhTempo({
     }}>
       <div style={{
         background: '#ffffff',
-        borderRadius: '24px',
+        borderRadius: '26px',
         width: '100%',
         maxWidth: '380px',
         maxHeight: '88vh',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)',
-        animation: 'slideUp 0.25s ease-out'
+        boxShadow: '0 25px 60px -12px rgba(220, 38, 38, 0.45)',
+        animation: 'slideUp 0.25s ease-out',
+        border: '1.5px solid rgba(254, 202, 202, 0.7)'
       }}>
-        {/* Header Merah Peringatan */}
+        {/* Header Premium Rose-Crimson Gradient */}
         <div style={{
-          background: 'linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%)',
-          padding: '18px 18px 16px',
+          background: 'linear-gradient(135deg, #b91c1c 0%, #991b1b 50%, #450a0a 100%)',
+          padding: '20px 20px 18px',
           color: '#ffffff',
           position: 'relative',
           overflow: 'hidden'
         }}>
-          <div style={{ position: 'absolute', right: '-10px', top: '-14px', fontSize: '6rem', opacity: 0.12, pointerEvents: 'none' }}>
-            ⏰
-          </div>
+          {/* Ambient Glow Circles */}
+          <div style={{
+            position: 'absolute',
+            right: '-20px',
+            top: '-20px',
+            width: '130px',
+            height: '130px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(254, 202, 202, 0.25) 0%, rgba(220, 38, 38, 0) 70%)',
+            pointerEvents: 'none'
+          }} />
 
+          {/* Close Button */}
           <button
             type="button"
             onClick={onClose}
             style={{
               position: 'absolute',
-              top: '12px',
-              right: '12px',
+              top: '14px',
+              right: '14px',
               background: 'rgba(255,255,255,0.18)',
-              border: 'none',
+              border: '1px solid rgba(255,255,255,0.25)',
               color: '#ffffff',
-              width: '30px',
-              height: '30px',
+              width: '32px',
+              height: '32px',
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              zIndex: 3
             }}
           >
             <X size={16} />
           </button>
 
-          <div style={{
-            width: '46px',
-            height: '46px',
-            borderRadius: '15px',
-            background: 'rgba(255,255,255,0.2)',
-            border: '1.5px solid rgba(255,255,255,0.35)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '10px'
-          }}>
-            <AlertTriangle size={24} strokeWidth={2.4} />
+          {/* Icon Badge & Status Pill */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', position: 'relative', zIndex: 2 }}>
+            <div style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '14px',
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%)',
+              border: '1.5px solid rgba(255,255,255,0.45)',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+            }}>
+              <BellRing size={22} color="#ffffff" strokeWidth={2.4} />
+            </div>
+
+            <span style={{
+              background: 'rgba(254, 242, 242, 0.22)',
+              border: '1px solid rgba(254, 202, 202, 0.4)',
+              color: '#fee2e2',
+              fontSize: '0.62rem',
+              fontWeight: 800,
+              padding: '3px 10px',
+              borderRadius: '999px',
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              marginRight: '36px'
+            }}>
+              Pemberitahuan SPP
+            </span>
           </div>
 
-          <div style={{ fontSize: '1.05rem', fontWeight: 900, letterSpacing: '-0.3px' }}>
-            Tagihan Lewat Jatuh Tempo
-          </div>
-          <div style={{ fontSize: '0.74rem', color: '#fecaca', marginTop: '3px', lineHeight: 1.4 }}>
-            Ananda <strong style={{ color: '#ffffff' }}>{santriNama}</strong> memiliki {tagihanList.length} tagihan yang telah melewati batas pembayaran.
+          <div style={{ position: 'relative', zIndex: 2 }}>
+            <div style={{ fontSize: '1.12rem', fontWeight: 900, letterSpacing: '-0.3px', lineHeight: 1.25 }}>
+              Tagihan Lewat Jatuh Tempo
+            </div>
+            <div style={{ fontSize: '0.72rem', color: '#fecaca', marginTop: '4px', lineHeight: 1.4 }}>
+              Tagihan SPP Ananda <strong style={{ color: '#ffffff', textDecoration: 'underline' }}>{santriNama}</strong> telah melewati tanggal batas pembayaran.
+            </div>
           </div>
 
-          {/* Total Tunggakan */}
+          {/* Total Tunggakan Glass Banner */}
           <div style={{
-            marginTop: '12px',
-            background: 'rgba(0,0,0,0.25)',
-            border: '1px solid rgba(255,255,255,0.15)',
+            marginTop: '14px',
+            background: 'linear-gradient(135deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.2) 100%)',
+            border: '1px solid rgba(255,255,255,0.18)',
+            backdropFilter: 'blur(8px)',
             borderRadius: '14px',
-            padding: '10px 12px',
+            padding: '10px 14px',
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center'
+            alignItems: 'center',
+            position: 'relative',
+            zIndex: 2,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
           }}>
-            <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#fecaca', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Total Tunggakan
-            </span>
-            <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#ffffff' }}>
+            <div>
+              <div style={{ fontSize: '0.58rem', fontWeight: 800, color: '#fca5a5', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Total SPP Tertunggak
+              </div>
+              <div style={{ fontSize: '0.66rem', color: '#fecaca', marginTop: '1px' }}>
+                {tagihanList.length} Bulan Belum Dibayar
+              </div>
+            </div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ffffff', letterSpacing: '-0.3px', textShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>
               {formatRp(totalTunggakan)}
-            </span>
+            </div>
           </div>
         </div>
 
