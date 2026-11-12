@@ -380,103 +380,34 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
         minHeight: "100vh",
       }}
     >
-      {/* 1. HERO SUMMARY CARD */}
-      <div
-        style={{
-          background:
-            "linear-gradient(135deg, #047857 0%, #065f46 55%, #022c22 100%)",
-          padding: onBackToHome ? "16px" : "18px 16px 26px",
-          margin: onBackToHome ? "0 14px" : "0",
-          color: "#ffffff",
-          boxShadow: "0 10px 28px -6px rgba(4, 120, 87, 0.35)",
-          borderRadius: onBackToHome ? "20px" : "0 0 26px 26px",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            right: "-28px",
-            top: "-28px",
-            width: "120px",
-            height: "120px",
-            borderRadius: "50%",
-            background: "rgba(52, 211, 153, 0.14)",
-            pointerEvents: "none",
-          }}
-        />
-
-        {/* Top Bar (Desktop Only — Mobile uses Unified Owner Header) */}
-        {!onBackToHome && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: "14px",
-              position: "relative",
-              zIndex: 1,
-            }}
-          >
-            <div>
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: "1.18rem",
-                  fontWeight: 900,
-                  letterSpacing: "-0.3px",
-                }}
-              >
-                Rincian Kas Masuk Sah
-              </h2>
-              <div
-                style={{
-                  fontSize: "0.7rem",
-                  color: "#a7f3d0",
-                  marginTop: "2px",
-                  fontWeight: 600,
-                }}
-              >
-                Penerimaan Pembayaran Lunas Terverifikasi
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={fetchKasMasuk}
-              style={{
-                background: "rgba(255, 255, 255, 0.16)",
-                border: "1px solid rgba(255, 255, 255, 0.2)",
-                color: "#ffffff",
-                width: "36px",
-                height: "36px",
-                borderRadius: "11px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-              }}
-              title="Refresh Data"
-            >
-              <RotateCw size={16} className={loading ? "animate-spin" : ""} />
-            </button>
-          </div>
-        )}
-
-        {/* Hero Glass Summary Card */}
+      {/* 1. HERO SUMMARY CARD (PERSIS BUKU KAS: 1 CARD UTAMA TANPA NESTED CARD) */}
+      <div style={{ padding: onBackToHome ? "0 14px" : "14px 14px 4px" }}>
         <div
           style={{
             background:
-              "linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.06) 100%)",
-            backdropFilter: "blur(10px)",
-            border: "1px solid rgba(255, 255, 255, 0.22)",
-            borderRadius: "18px",
-            padding: "14px 16px",
+              "linear-gradient(135deg, #065f46 0%, #047857 55%, #0d9488 100%)",
+            borderRadius: "22px",
+            padding: "18px",
+            color: "#ffffff",
+            boxShadow: "0 12px 26px -8px rgba(4, 120, 87, 0.38)",
             position: "relative",
-            zIndex: 1,
+            overflow: "hidden",
           }}
         >
+          <div
+            style={{
+              position: "absolute",
+              right: "-25px",
+              top: "-25px",
+              width: "110px",
+              height: "110px",
+              borderRadius: "50%",
+              background: "rgba(255, 255, 255, 0.1)",
+              pointerEvents: "none",
+            }}
+          />
+
+          {/* Header Row: Title & Total Badge */}
           <div
             style={{
               display: "flex",
@@ -485,97 +416,215 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
               gap: "8px",
             }}
           >
+            <div style={{ fontSize: "0.7rem", color: "#a7f3d0", fontWeight: 700 }}>
+              {hasActiveFilter ? "Total Kas Masuk (Terfilter)" : "Total Kas Masuk Sah"}
+            </div>
             <div
               style={{
-                fontSize: "0.68rem",
-                color: "#a7f3d0",
+                fontSize: "0.62rem",
+                color: "#ecfdf5",
+                background: "rgba(255, 255, 255, 0.16)",
+                padding: "2px 8px",
+                borderRadius: "999px",
                 fontWeight: 800,
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
+                whiteSpace: "nowrap",
               }}
             >
-              {hasActiveFilter ? "Total Kas (Terfilter)" : "Total Kas Masuk Diterima"}
+              Semua Penerimaan
             </div>
-            {onChangeTab && (
-              <button
-                type="button"
-                onClick={() => onChangeTab("keuangan-kasir")}
-                style={{
-                  background: "#ffffff",
-                  border: "none",
-                  color: "#047857",
-                  padding: "5px 10px",
-                  borderRadius: "9px",
-                  fontSize: "0.68rem",
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                }}
-              >
-                + Kasir
-              </button>
-            )}
           </div>
 
+          {/* Saldo Nominal Besar */}
           <div
             style={{
-              fontSize: "1.6rem",
+              fontSize: "1.75rem",
               fontWeight: 900,
-              color: "#ffffff",
-              marginTop: "4px",
-              letterSpacing: "-0.5px",
+              letterSpacing: "-0.6px",
+              marginTop: "2px",
             }}
           >
             {formatRp(liveTotals.total)}
           </div>
 
-          {/* 3 Mini Metric Strip: 3 Kantong Dana */}
+          {/* 2 Mini Summary Pills: Masuk Tunai vs Masuk Non-Tunai/Bank */}
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "8px",
+              marginTop: "14px",
+            }}
+          >
+            <div
+              style={{
+                background: "rgba(255, 255, 255, 0.14)",
+                borderRadius: "12px",
+                padding: "8px 10px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <div
+                style={{
+                  width: "28px",
+                  height: "28px",
+                  borderRadius: "8px",
+                  background: "rgba(255, 255, 255, 0.2)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <Wallet size={15} color="#a7f3d0" />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: "0.6rem", color: "#d1fae5" }}>
+                  Total Masuk Tunai
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.78rem",
+                    fontWeight: 900,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {formatRp(liveTotals.tunai)}
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: "rgba(255, 255, 255, 0.14)",
+                borderRadius: "12px",
+                padding: "8px 10px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <div
+                style={{
+                  width: "28px",
+                  height: "28px",
+                  borderRadius: "8px",
+                  background: "rgba(255, 255, 255, 0.2)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <CreditCard size={15} color="#bae6fd" />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: "0.6rem", color: "#bae6fd" }}>
+                  Masuk Bank &amp; Midtrans
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.78rem",
+                    fontWeight: 900,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {formatRp(liveTotals.bank + liveTotals.midtransMengendap)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 3 Pemisah Kantong: Kas Tunai vs Rekening Bank vs Midtrans */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr 1fr",
               gap: "6px",
-              marginTop: "12px",
+              marginTop: "10px",
               paddingTop: "10px",
               borderTop: "1px solid rgba(255, 255, 255, 0.16)",
             }}
           >
             <div
               onClick={() =>
-                setFilterKantongDana(filterKantongDana === "Di Kas Tunai" ? "semua" : "Di Kas Tunai")
+                setFilterKantongDana(
+                  filterKantongDana === "Di Kas Tunai" ? "semua" : "Di Kas Tunai",
+                )
               }
               style={{
-                background: filterKantongDana === "Di Kas Tunai" ? "rgba(16, 185, 129, 0.35)" : "rgba(0, 0, 0, 0.16)",
-                border: filterKantongDana === "Di Kas Tunai" ? "1px solid #6ee7b7" : "1px solid transparent",
+                background:
+                  filterKantongDana === "Di Kas Tunai"
+                    ? "rgba(16, 185, 129, 0.35)"
+                    : "rgba(255, 255, 255, 0.1)",
+                border:
+                  filterKantongDana === "Di Kas Tunai"
+                    ? "1px solid #6ee7b7"
+                    : "1px solid transparent",
                 borderRadius: "10px",
-                padding: "7px 8px",
+                padding: "6px 8px",
                 cursor: "pointer",
               }}
             >
-              <div style={{ fontSize: "0.58rem", color: "#a7f3d0", fontWeight: 700 }}>
-                Cash / Tunai
+              <div style={{ fontSize: "0.56rem", color: "#a7f3d0", fontWeight: 700 }}>
+                Kas Tunai
               </div>
-              <div style={{ fontSize: "0.73rem", fontWeight: 800, marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <div
+                style={{
+                  fontSize: "0.7rem",
+                  fontWeight: 900,
+                  color: "#ffffff",
+                  marginTop: "1px",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
                 {formatRp(liveTotals.tunai)}
               </div>
             </div>
 
             <div
               onClick={() =>
-                setFilterKantongDana(filterKantongDana === "Di Rekening Bank" ? "semua" : "Di Rekening Bank")
+                setFilterKantongDana(
+                  filterKantongDana === "Di Rekening Bank"
+                    ? "semua"
+                    : "Di Rekening Bank",
+                )
               }
               style={{
-                background: filterKantongDana === "Di Rekening Bank" ? "rgba(59, 130, 246, 0.35)" : "rgba(0, 0, 0, 0.16)",
-                border: filterKantongDana === "Di Rekening Bank" ? "1px solid #93c5fd" : "1px solid transparent",
+                background:
+                  filterKantongDana === "Di Rekening Bank"
+                    ? "rgba(59, 130, 246, 0.35)"
+                    : "rgba(255, 255, 255, 0.1)",
+                border:
+                  filterKantongDana === "Di Rekening Bank"
+                    ? "1px solid #93c5fd"
+                    : "1px solid transparent",
                 borderRadius: "10px",
-                padding: "7px 8px",
+                padding: "6px 8px",
                 cursor: "pointer",
               }}
             >
-              <div style={{ fontSize: "0.58rem", color: "#a7f3d0", fontWeight: 700 }}>
+              <div style={{ fontSize: "0.56rem", color: "#bae6fd", fontWeight: 700 }}>
                 Rekening Bank
               </div>
-              <div style={{ fontSize: "0.73rem", fontWeight: 800, marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <div
+                style={{
+                  fontSize: "0.7rem",
+                  fontWeight: 900,
+                  color: "#ffffff",
+                  marginTop: "1px",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
                 {formatRp(liveTotals.bank)}
               </div>
             </div>
@@ -583,27 +632,39 @@ export default function RincianKasMasukView({ onBackToHome, onChangeTab }) {
             <div
               onClick={() =>
                 setFilterKantongDana(
-                  filterKantongDana === "Mengendap di Midtrans" ? "semua" : "Mengendap di Midtrans",
+                  filterKantongDana === "Mengendap di Midtrans"
+                    ? "semua"
+                    : "Mengendap di Midtrans",
                 )
               }
               style={{
                 background:
                   filterKantongDana === "Mengendap di Midtrans"
                     ? "rgba(245, 158, 11, 0.38)"
-                    : "rgba(0, 0, 0, 0.16)",
+                    : "rgba(255, 255, 255, 0.1)",
                 border:
                   filterKantongDana === "Mengendap di Midtrans"
                     ? "1px solid #fcd34d"
                     : "1px solid transparent",
                 borderRadius: "10px",
-                padding: "7px 8px",
+                padding: "6px 8px",
                 cursor: "pointer",
               }}
             >
-              <div style={{ fontSize: "0.58rem", color: "#fde68a", fontWeight: 700 }}>
-                Midtrans (Tertahan)
+              <div style={{ fontSize: "0.56rem", color: "#fde68a", fontWeight: 700 }}>
+                Midtrans
               </div>
-              <div style={{ fontSize: "0.73rem", fontWeight: 800, marginTop: "2px", color: "#fef3c7", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <div
+                style={{
+                  fontSize: "0.7rem",
+                  fontWeight: 900,
+                  color: "#fef3c7",
+                  marginTop: "1px",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
                 {formatRp(liveTotals.midtransMengendap)}
               </div>
             </div>
