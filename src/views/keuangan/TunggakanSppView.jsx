@@ -135,66 +135,120 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
 
   return (
     <div style={{ paddingBottom: '90px', background: '#f8fafc', minHeight: '100vh' }}>
-      {/* 1. HERO SUMMARY CARD */}
-      <div
-        style={{
-          background: 'linear-gradient(135deg, #0d766e 0%, #064e3b 100%)',
-          padding: onBackToHome ? '16px' : '20px 16px 28px',
-          margin: onBackToHome ? '0 14px' : '0',
-          color: '#ffffff',
-          boxShadow: '0 4px 20px rgba(13, 118, 110, 0.25)',
-          borderRadius: onBackToHome ? '20px' : '0 0 24px 24px',
-        }}
-      >
-        {!onBackToHome && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-            <div>
-              <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>Tunggakan SPP</span>
-              </h2>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <button
-                type="button"
-                onClick={fetchTunggakan}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.15)',
-                  border: 'none',
-                  color: '#ffffff',
-                  width: '34px',
-                  height: '34px',
-                  borderRadius: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer'
-                }}
-                title="Refresh Data"
-              >
-                <RotateCw size={16} className={loading ? 'animate-spin' : ''} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Global Total Saldo Glassmorphism Card */}
+      {/* 1. HERO SUMMARY CARD (PERSIS BUKU KAS: 1 CARD UTAMA TANPA NESTED CARD) */}
+      <div style={{ padding: onBackToHome ? '0 14px' : '14px 14px 4px' }}>
         <div
           style={{
-            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            borderRadius: '16px',
-            padding: '14px 16px',
-            marginTop: '8px',
+            background:
+              'linear-gradient(135deg, #991b1b 0%, #b91c1c 55%, #7f1d1d 100%)',
+            borderRadius: '22px',
+            padding: '18px',
+            color: '#ffffff',
+            boxShadow: '0 12px 26px -8px rgba(185, 28, 28, 0.38)',
+            position: 'relative',
+            overflow: 'hidden',
           }}
         >
-          <div style={{ fontSize: '0.72rem', color: '#fecaca', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <AlertTriangle size={13} color="#f87171" />
-            <span>Total Piutang Tunggakan SPP</span>
+          <div
+            style={{
+              position: 'absolute',
+              right: '-25px',
+              top: '-25px',
+              width: '110px',
+              height: '110px',
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.1)',
+              pointerEvents: 'none',
+            }}
+          />
+
+          {/* Header Row: Title & Action Button */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <div style={{ fontSize: '0.7rem', color: '#fecaca', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <AlertTriangle size={13} color="#fca5a5" />
+              <span>Total Piutang Tunggakan SPP</span>
+            </div>
+            <button
+              type="button"
+              onClick={fetchTunggakan}
+              style={{
+                background: 'rgba(255, 255, 255, 0.16)',
+                border: 'none',
+                color: '#ffffff',
+                width: '30px',
+                height: '30px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+              title="Refresh Data"
+            >
+              <RotateCw size={14} className={loading ? 'animate-spin' : ''} />
+            </button>
           </div>
-          <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#fee2e2', marginTop: '4px', letterSpacing: '-0.5px' }}>
+
+          {/* Saldo Nominal Besar */}
+          <div
+            style={{
+              fontSize: '1.75rem',
+              fontWeight: 900,
+              letterSpacing: '-0.6px',
+              marginTop: '4px',
+              color: '#ffffff',
+            }}
+          >
             {formatRp(summary.total_nominal_tunggakan)}
+          </div>
+
+          {/* Mini Strip Info Santri Menunggak */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '8px',
+              marginTop: '14px',
+              paddingTop: '10px',
+              borderTop: '1px solid rgba(255, 255, 255, 0.16)',
+            }}
+          >
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: '10px',
+                padding: '7px 9px',
+              }}
+            >
+              <div style={{ fontSize: '0.58rem', color: '#fecaca', fontWeight: 700 }}>
+                SANTRI TERDATA
+              </div>
+              <div style={{ fontSize: '0.8rem', fontWeight: 900, color: '#ffffff', marginTop: '1px' }}>
+                {filteredSantri.length} Santri
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: '10px',
+                padding: '7px 9px',
+              }}
+            >
+              <div style={{ fontSize: '0.58rem', color: '#fef08a', fontWeight: 700 }}>
+                JATUH TEMPO
+              </div>
+              <div style={{ fontSize: '0.8rem', fontWeight: 900, color: '#fef9c3', marginTop: '1px' }}>
+                Tgl {summary.tgl_jatuh_tempo_spp || 10} / Bulan
+              </div>
+            </div>
           </div>
         </div>
       </div>

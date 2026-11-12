@@ -266,53 +266,58 @@ export default function LaporanInfakAdminView({ onBackToHome }) {
         minHeight: "100vh",
       }}
     >
-      {/* 1. HERO SUMMARY CARD */}
-      <div
-        style={{
-          background: "linear-gradient(135deg, #0d766e 0%, #064e3b 100%)",
-          padding: onBackToHome ? "16px" : "20px 16px 28px",
-          margin: onBackToHome ? "0 14px" : "0",
-          color: "#ffffff",
-          boxShadow: "0 4px 20px rgba(13, 118, 110, 0.25)",
-          borderRadius: onBackToHome ? "20px" : "0 0 24px 24px",
-        }}
-      >
-        {!onBackToHome && (
+      {/* 1. HERO SUMMARY CARD (PERSIS BUKU KAS: 1 CARD UTAMA TANPA NESTED CARD) */}
+      <div style={{ padding: "0 14px" }}>
+        <div
+          style={{
+            background:
+              "linear-gradient(135deg, #065f46 0%, #047857 55%, #0d9488 100%)",
+            borderRadius: "22px",
+            padding: "18px",
+            color: "#ffffff",
+            boxShadow: "0 12px 26px -8px rgba(4, 120, 87, 0.38)",
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              right: "-25px",
+              top: "-25px",
+              width: "110px",
+              height: "110px",
+              borderRadius: "50%",
+              background: "rgba(255, 255, 255, 0.1)",
+              pointerEvents: "none",
+            }}
+          />
+
+          {/* Header Row */}
           <div
             style={{
               display: "flex",
-              alignItems: "center",
               justifyContent: "space-between",
-              marginBottom: "14px",
+              alignItems: "center",
+              gap: "8px",
             }}
           >
-            <div>
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: "1.25rem",
-                  fontWeight: 900,
-                  letterSpacing: "-0.3px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                }}
-              >
-                <span>Infak &amp; Sedekah</span>
-              </h2>
+            <div
+              style={{ fontSize: "0.7rem", color: "#a7f3d0", fontWeight: 700 }}
+            >
+              Total Donasi Infak &amp; Sedekah Masuk
             </div>
-
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <button
                 type="button"
                 onClick={fetchLaporan}
                 style={{
-                  background: "rgba(255, 255, 255, 0.15)",
+                  background: "rgba(255, 255, 255, 0.16)",
                   border: "none",
                   color: "#ffffff",
-                  width: "34px",
-                  height: "34px",
-                  borderRadius: "10px",
+                  width: "30px",
+                  height: "30px",
+                  borderRadius: "8px",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -320,107 +325,116 @@ export default function LaporanInfakAdminView({ onBackToHome }) {
                 }}
                 title="Refresh Data"
               >
-                <RotateCw size={16} className={loading ? "animate-spin" : ""} />
+                <RotateCw size={14} className={loading ? "animate-spin" : ""} />
               </button>
             </div>
           </div>
-        )}
 
-        {/* Global Total Saldo Glassmorphism Card (Persis Tabungan) */}
-        <div
-          style={{
-            background:
-              "linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%)",
-            backdropFilter: "blur(10px)",
-            border: "1px solid rgba(255, 255, 255, 0.2)",
-            borderRadius: "16px",
-            padding: "14px 16px",
-            marginTop: "8px",
-          }}
-        >
+          {/* Saldo Nominal Besar */}
           <div
             style={{
-              fontSize: "0.72rem",
-              color: "#a7f3d0",
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.04em",
-            }}
-          >
-            Total Donasi Infak &amp; Sedekah Masuk
-          </div>
-          <div
-            style={{
-              fontSize: "1.65rem",
+              fontSize: "1.75rem",
               fontWeight: 900,
-              color: "#ffffff",
-              marginTop: "4px",
-              letterSpacing: "-0.5px",
+              letterSpacing: "-0.6px",
+              marginTop: "2px",
             }}
           >
             {formatRp(summary.total_terkumpul)}
           </div>
 
+          {/* 2 Mini Summary Pills: Donasi Berhasil vs Donasi Pending */}
           <div
             style={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
               gap: "8px",
-              marginTop: "12px",
+              marginTop: "14px",
               paddingTop: "10px",
-              borderTop: "1px solid rgba(255, 255, 255, 0.15)",
+              borderTop: "1px solid rgba(255, 255, 255, 0.16)",
             }}
           >
-            <div>
+            <div
+              style={{
+                background: "rgba(255, 255, 255, 0.14)",
+                borderRadius: "12px",
+                padding: "8px 10px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
               <div
                 style={{
-                  fontSize: "0.62rem",
-                  color: "#a7f3d0",
-                  fontWeight: 700,
-                }}
-              >
-                DONASI DITERIMA
-              </div>
-              <div
-                style={{
-                  fontSize: "0.9rem",
-                  fontWeight: 800,
-                  color: "#ecfdf5",
-                  marginTop: "2px",
+                  width: "28px",
+                  height: "28px",
+                  borderRadius: "8px",
+                  background: "rgba(255, 255, 255, 0.2)",
                   display: "flex",
                   alignItems: "center",
-                  gap: "4px",
+                  justifyContent: "center",
+                  flexShrink: 0,
                 }}
               >
-                <CheckCircle2 size={13} color="#34d399" />
-                <span>
-                  {summary.total_transaksi_berhasil || 0} Terverifikasi
-                </span>
+                <CheckCircle2 size={15} color="#a7f3d0" />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: "0.6rem", color: "#d1fae5" }}>
+                  Donasi Terverifikasi
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.78rem",
+                    fontWeight: 900,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {summary.total_transaksi_berhasil || 0} Donatur
+                </div>
               </div>
             </div>
-            <div>
+
+            <div
+              style={{
+                background: "rgba(255, 255, 255, 0.14)",
+                borderRadius: "12px",
+                padding: "8px 10px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
               <div
                 style={{
-                  fontSize: "0.62rem",
-                  color: "#fef08a",
-                  fontWeight: 700,
-                }}
-              >
-                MENUNGGU PEMBAYARAN
-              </div>
-              <div
-                style={{
-                  fontSize: "0.9rem",
-                  fontWeight: 800,
-                  color: "#fef9c3",
-                  marginTop: "2px",
+                  width: "28px",
+                  height: "28px",
+                  borderRadius: "8px",
+                  background: "rgba(254, 240, 138, 0.22)",
                   display: "flex",
                   alignItems: "center",
-                  gap: "4px",
+                  justifyContent: "center",
+                  flexShrink: 0,
                 }}
               >
-                <Clock size={13} color="#facc15" />
-                <span>{summary.total_transaksi_pending || 0} Sesi Pending</span>
+                <Clock size={15} color="#fef08a" />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: "0.6rem", color: "#fef08a" }}>
+                  Sesi Pending
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.78rem",
+                    fontWeight: 900,
+                    color: "#fef9c3",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {summary.total_transaksi_pending || 0} Sesi
+                </div>
               </div>
             </div>
           </div>
@@ -518,7 +532,10 @@ export default function LaporanInfakAdminView({ onBackToHome }) {
                 fontSize: "0.58rem",
                 padding: "1px 5px",
                 borderRadius: "6px",
-                background: activeTab === "program" ? "#ecfdf5" : "rgba(100, 116, 139, 0.12)",
+                background:
+                  activeTab === "program"
+                    ? "#ecfdf5"
+                    : "rgba(100, 116, 139, 0.12)",
                 color: activeTab === "program" ? "#059669" : "#64748b",
                 fontWeight: 800,
               }}
@@ -560,7 +577,10 @@ export default function LaporanInfakAdminView({ onBackToHome }) {
                 fontSize: "0.58rem",
                 padding: "1px 5px",
                 borderRadius: "6px",
-                background: activeTab === "transaksi" ? "#ecfdf5" : "rgba(100, 116, 139, 0.12)",
+                background:
+                  activeTab === "transaksi"
+                    ? "#ecfdf5"
+                    : "rgba(100, 116, 139, 0.12)",
                 color: activeTab === "transaksi" ? "#059669" : "#64748b",
                 fontWeight: 800,
               }}
@@ -794,7 +814,8 @@ export default function LaporanInfakAdminView({ onBackToHome }) {
                           type="button"
                           onClick={() => handleOpenInputInfak(p)}
                           style={{
-                            background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
+                            background:
+                              "linear-gradient(135deg, #059669 0%, #047857 100%)",
                             color: "#ffffff",
                             border: "none",
                             borderRadius: "8px",

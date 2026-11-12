@@ -392,54 +392,164 @@ export default function MobileTabungan({ onBackToHome }) {
 
   return (
     <div style={{ paddingBottom: '90px', background: '#f8fafc', minHeight: '100vh' }}>
-      {/* Hero Summary Card */}
-      <div
-        style={{
-          background: 'linear-gradient(135deg, #0d766e 0%, #064e3b 100%)',
-          padding: '16px',
-          margin: '0 14px',
-          color: '#ffffff',
-          boxShadow: '0 4px 20px rgba(13, 118, 110, 0.25)',
-          borderRadius: '20px',
-        }}
-      >
-        {/* Global Total Saldo Card */}
+      {/* Hero Summary Card (Persis Buku Kas: 1 Card Utama Tanpa Nested Card) */}
+      <div style={{ padding: '0 14px' }}>
         <div
           style={{
-            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            borderRadius: '16px',
-            padding: '14px 16px',
+            background:
+              'linear-gradient(135deg, #065f46 0%, #047857 55%, #0d9488 100%)',
+            borderRadius: '22px',
+            padding: '18px',
+            color: '#ffffff',
+            boxShadow: '0 12px 26px -8px rgba(4, 120, 87, 0.38)',
+            position: 'relative',
+            overflow: 'hidden',
           }}
         >
-          <div style={{ fontSize: '0.72rem', color: '#bae6fd', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Total Dana Tabungan Santri
+          <div
+            style={{
+              position: 'absolute',
+              right: '-25px',
+              top: '-25px',
+              width: '110px',
+              height: '110px',
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.1)',
+              pointerEvents: 'none',
+            }}
+          />
+
+          {/* Header Row */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <div style={{ fontSize: '0.7rem', color: '#a7f3d0', fontWeight: 700 }}>
+              Total Dana Tabungan Santri
+            </div>
+            <div
+              style={{
+                fontSize: '0.62rem',
+                color: '#ecfdf5',
+                background: 'rgba(255, 255, 255, 0.16)',
+                padding: '2px 8px',
+                borderRadius: '999px',
+                fontWeight: 800,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Saldo Titipan
+            </div>
           </div>
-          <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#ffffff', marginTop: '4px', letterSpacing: '-0.5px' }}>
+
+          {/* Saldo Nominal Besar */}
+          <div
+            style={{
+              fontSize: '1.75rem',
+              fontWeight: 900,
+              letterSpacing: '-0.6px',
+              marginTop: '2px',
+            }}
+          >
             {formatRupiah(summary.total_saldo)}
           </div>
 
+          {/* 2 Mini Summary Pills: Total Masuk vs Total Pengambilan */}
           <div
             style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
               gap: '8px',
-              marginTop: '12px',
+              marginTop: '14px',
               paddingTop: '10px',
-              borderTop: '1px solid rgba(255, 255, 255, 0.15)',
+              borderTop: '1px solid rgba(255, 255, 255, 0.16)',
             }}
           >
-            <div>
-              <div style={{ fontSize: '0.62rem', color: '#a7f3d0', fontWeight: 700 }}>TOTAL UANG MASUK</div>
-              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#ecfdf5', marginTop: '2px' }}>
-                +{formatRupiah(summary.total_masuk)}
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.14)',
+                borderRadius: '12px',
+                padding: '8px 10px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <div
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <ArrowDownRight size={15} color="#a7f3d0" />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '0.6rem', color: '#d1fae5' }}>
+                  Total Uang Masuk
+                </div>
+                <div
+                  style={{
+                    fontSize: '0.78rem',
+                    fontWeight: 900,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  +{formatRupiah(summary.total_masuk)}
+                </div>
               </div>
             </div>
-            <div>
-              <div style={{ fontSize: '0.62rem', color: '#fecaca', fontWeight: 700 }}>TOTAL PENGAMBILAN</div>
-              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#fee2e2', marginTop: '2px' }}>
-                -{formatRupiah(summary.total_keluar)}
+
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.14)',
+                borderRadius: '12px',
+                padding: '8px 10px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <div
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '8px',
+                  background: 'rgba(254, 202, 202, 0.22)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <ArrowUpRight size={15} color="#fecaca" />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '0.6rem', color: '#fecaca' }}>
+                  Total Pengambilan
+                </div>
+                <div
+                  style={{
+                    fontSize: '0.78rem',
+                    fontWeight: 900,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  -{formatRupiah(summary.total_keluar)}
+                </div>
               </div>
             </div>
           </div>
