@@ -57,6 +57,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   const [isPengumumanModalOpen, setIsPengumumanModalOpen] = useState(false);
   const [tagihanJatuhTempo, setTagihanJatuhTempo] = useState([]);
   const [isJatuhTempoModalOpen, setIsJatuhTempoModalOpen] = useState(false);
+  const [shouldShowJatuhTempoAfterPengumuman, setShouldShowJatuhTempoAfterPengumuman] = useState(false);
   const [notifikasiList, setNotifikasiList] = useState([]);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
   const [activeTopBannerNotif, setActiveTopBannerNotif] = useState(null);
@@ -271,16 +272,13 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
           .sort((a, b) => new Date(a.jatuh_tempo) - new Date(b.jatuh_tempo));
         setTagihanJatuhTempo(overdue);
 
-        // Tampilkan modal tagihan jika tidak ada pengumuman yang sedang muncul
+        // Tampilkan modal tagihan: jika ada pengumuman baru/aktif, simpan antrean agar pengumuman tampil duluan
         if (overdue.length > 0) {
           const todayKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
           const storageKey = `jatuh_tempo_notif_${targetId || "default"}`;
           if (sessionStorage.getItem(storageKey) !== todayKey) {
-            // Jika modal pengumuman aktif, biarkan onClose pengumuman yang memicunya
-            if (!isPengumumanModalOpen) {
-              setIsJatuhTempoModalOpen(true);
-              sessionStorage.setItem(storageKey, todayKey);
-            }
+            // Tandai untuk ditampilkan setelah modal pengumuman ditutup orang tua
+            setShouldShowJatuhTempoAfterPengumuman(true);
           }
         }
       }
@@ -446,6 +444,25 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
             setIsPengumumanModalOpen(true);
           } else {
             sessionStorage.setItem("nwf_wali_pengumuman_shown_session", "true");
+            // Jika tidak ada pengumuman yang harus muncul dan ada antrean tagihan jatuh tempo
+            if (shouldShowJatuhTempoAfterPengumuman) {
+              const today = new Date();
+              const todayKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+              const storageKey = `jatuh_tempo_notif_${selectedSantriId || 'default'}`;
+              setIsJatuhTempoModalOpen(true);
+              sessionStorage.setItem(storageKey, todayKey);
+              setShouldShowJatuhTempoAfterPengumuman(false);
+            }
+          }
+        } else {
+          // Jika tidak ada pengumuman sama sekali di pesantren
+          if (shouldShowJatuhTempoAfterPengumuman) {
+            const today = new Date();
+            const todayKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+            const storageKey = `jatuh_tempo_notif_${selectedSantriId || 'default'}`;
+            setIsJatuhTempoModalOpen(true);
+            sessionStorage.setItem(storageKey, todayKey);
+            setShouldShowJatuhTempoAfterPengumuman(false);
           }
         }
       }
@@ -1301,6 +1318,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                 setTimeout(() => {
                   setIsJatuhTempoModalOpen(true);
                   sessionStorage.setItem(storageKey, todayKey);
+                  setShouldShowJatuhTempoAfterPengumuman(false);
                 }, 350);
               }
             }
