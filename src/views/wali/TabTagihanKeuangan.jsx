@@ -776,7 +776,7 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
             </div>
           </div>
 
-          {/* SECTION 2: BIAYA AWAL MASUK PESANTREN (BERTARAF / CICILAN) */}
+          {/* SECTION 2: BIAYA AWAL MASUK PESANTREN */}
           <div style={{
             background: '#ffffff',
             borderRadius: '16px',
@@ -789,7 +789,7 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
                 Biaya Awal Masuk Pesantren
               </span>
               <div style={{ fontSize: '0.67rem', color: '#64748b' }}>
-                Dapat dicicil per komponen (misal: bayar kaos rayon / seragam terlebih dahulu)
+                Dapat dicicil per komponen
               </div>
             </div>
 
@@ -833,7 +833,7 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
 
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: '0.82rem', fontWeight: 800, color: isLunas ? '#059669' : '#dc2626' }}>
-                          {isLunas ? 'Lunas' : `Sisa ${formatRp(sisa)}`}
+                          {isLunas ? 'Lunas' : formatRp(sisa)}
                         </div>
                         <span style={{
                           fontSize: '0.6rem',
