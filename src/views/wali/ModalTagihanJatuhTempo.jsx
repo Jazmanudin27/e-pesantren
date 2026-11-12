@@ -80,7 +80,7 @@ export default function ModalTagihanJatuhTempo({
           style={{
             background:
               "linear-gradient(135deg, #b91c1c 0%, #991b1b 50%, #450a0a 100%)",
-            padding: "20px 20px 18px",
+            padding: "20px 20px 22px",
             color: "#ffffff",
             position: "relative",
             overflow: "hidden",
@@ -125,15 +125,16 @@ export default function ModalTagihanJatuhTempo({
             <X size={16} />
           </button>
 
-          {/* Icon Badge & Status Pill */}
+          {/* Row Icon Lonceng & Judul Tagihan SPP */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: "12px",
+              gap: "12px",
+              marginBottom: "14px",
               position: "relative",
               zIndex: 2,
+              paddingRight: "36px",
             }}
           >
             <div
@@ -149,52 +150,47 @@ export default function ModalTagihanJatuhTempo({
                 alignItems: "center",
                 justifyContent: "center",
                 boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+                flexShrink: 0,
               }}
             >
               <BellRing size={22} color="#ffffff" strokeWidth={2.4} />
             </div>
 
-            <span
-              style={{
-                background: "rgba(254, 242, 242, 0.22)",
-                border: "1px solid rgba(254, 202, 202, 0.4)",
-                color: "#fee2e2",
-                fontSize: "0.62rem",
-                fontWeight: 800,
-                padding: "3px 10px",
-                borderRadius: "999px",
-                letterSpacing: "0.04em",
-                textTransform: "uppercase",
-                marginRight: "36px",
-              }}
-            >
-              Pemberitahuan SPP
-            </span>
-          </div>
-
-          <div style={{ position: "relative", zIndex: 2 }}>
-            <div
-              style={{
-                fontSize: "1.12rem",
-                fontWeight: 900,
-                letterSpacing: "-0.3px",
-                lineHeight: 1.25,
-              }}
-            >
-              Tagihan Lewat Jatuh Tempo
+            <div style={{ minWidth: 0 }}>
+              <div
+                style={{
+                  fontSize: "1.12rem",
+                  fontWeight: 900,
+                  letterSpacing: "-0.3px",
+                  lineHeight: 1.25,
+                  color: "#ffffff",
+                }}
+              >
+                Tagihan SPP
+              </div>
+              <div
+                style={{
+                  fontSize: "0.68rem",
+                  color: "#fecaca",
+                  marginTop: "2px",
+                  lineHeight: 1.3,
+                }}
+              >
+                Lewat Batas Jatuh Tempo
+              </div>
             </div>
           </div>
 
           {/* Total Tunggakan Glass Banner */}
           <div
             style={{
-              marginTop: "14px",
+              marginTop: "10px",
               background:
                 "linear-gradient(135deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.2) 100%)",
               border: "1px solid rgba(255,255,255,0.18)",
               backdropFilter: "blur(8px)",
               borderRadius: "14px",
-              padding: "10px",
+              padding: "12px 14px",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
