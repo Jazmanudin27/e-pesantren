@@ -208,6 +208,7 @@ export default function ModalTagihanJatuhTempo({
                 style={{
                   fontSize: "0.58rem",
                   fontWeight: 800,
+                  paddingBottom: "4px",
                   color: "#fca5a5",
                   textTransform: "uppercase",
                   letterSpacing: "0.05em",
