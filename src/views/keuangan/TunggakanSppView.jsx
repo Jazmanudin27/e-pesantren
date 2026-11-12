@@ -31,6 +31,7 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
   });
   const [santriList, setSantriList] = useState([]);
   const [search, setSearch] = useState('');
+  const [filterJenjang, setFilterJenjang] = useState('Semua');
 
   // Modal Rincian Detail Santri
   const [selectedSantriDetail, setSelectedSantriDetail] = useState(null);
@@ -119,6 +120,12 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
   // Filter Santri Menunggak
   const filteredSantri = React.useMemo(() => {
     return (santriList || []).filter((s) => {
+      // Filter Jenjang Sekolah
+      if (filterJenjang !== 'Semua') {
+        const sk = String(s.nama_sekolah || s.sekolah_jenjang || s.tingkat_sekolah || '').toUpperCase();
+        if (!sk.includes(filterJenjang.toUpperCase())) return false;
+      }
+
       // Search Query
       if (search.trim()) {
         const q = search.toLowerCase().trim();
@@ -131,7 +138,7 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
       }
       return true;
     });
-  }, [santriList, search]);
+  }, [santriList, filterJenjang, search]);
 
   return (
     <div style={{ paddingBottom: '90px', background: '#f8fafc', minHeight: '100vh' }}>
@@ -255,44 +262,68 @@ export default function TunggakanSppView({ onBackToHome, onChangeTab }) {
 
       {/* 2. SEARCH & FILTER SECTION */}
       <div style={{ padding: '14px 14px 8px' }}>
-        {/* Search Bar */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            background: '#ffffff',
-            borderRadius: '14px',
-            padding: '0 12px',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-            border: '1px solid #e2e8f0',
-            marginBottom: '4px'
-          }}
-        >
-          <Search size={18} color="#94a3b8" />
-          <input
-            type="text"
-            placeholder="Cari nama santri, NIS, asrama..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+        {/* Search Bar & Select Jenjang Sekolah */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: '8px', marginBottom: '4px' }}>
+          <div
             style={{
-              width: '100%',
-              padding: '12px 10px',
-              border: 'none',
-              outline: 'none',
-              fontSize: '0.82rem',
-              color: '#1e293b',
-              background: 'transparent'
+              display: 'flex',
+              alignItems: 'center',
+              background: '#ffffff',
+              borderRadius: '14px',
+              padding: '0 12px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+              border: '1px solid #e2e8f0',
             }}
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => setSearch('')}
-              style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
-            >
-              <X size={16} />
-            </button>
-          )}
+          >
+            <Search size={16} color="#94a3b8" />
+            <input
+              type="text"
+              placeholder="Cari nama santri, NIS, asrama..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '11px 8px',
+                border: 'none',
+                outline: 'none',
+                fontSize: '0.8rem',
+                color: '#1e293b',
+                background: 'transparent'
+              }}
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
+              >
+                <X size={15} />
+              </button>
+            )}
+          </div>
+
+          {/* Select Option Filter Jenjang */}
+          <select
+            value={filterJenjang}
+            onChange={(e) => setFilterJenjang(e.target.value)}
+            style={{
+              padding: '10px 10px',
+              borderRadius: '14px',
+              border: '1px solid #cbd5e1',
+              background: '#ffffff',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              color: '#0f172a',
+              outline: 'none',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="Semua">Semua Jenjang</option>
+            <option value="SMP">SMP</option>
+            <option value="SMA">SMA</option>
+            <option value="SMK">SMK</option>
+          </select>
         </div>
       </div>
 

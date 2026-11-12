@@ -366,44 +366,44 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
             💳
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px', position: 'relative', zIndex: 2 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', position: 'relative', zIndex: 2 }}>
             <div>
               <div style={{
-                fontSize: '0.66rem',
+                fontSize: '0.62rem',
                 fontWeight: 800,
                 color: '#bae6fd',
                 textTransform: 'uppercase',
-                letterSpacing: '0.5px'
+                letterSpacing: '0.4px'
               }}>
                 TOTAL SELURUH TAGIHAN
               </div>
-              <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#ffffff', marginTop: '2px', letterSpacing: '-0.3px', textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+              <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#ffffff', marginTop: '2px', letterSpacing: '-0.3px', textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
                 {summary.formattedTotalBelumBayar || 'Rp 0'}
               </div>
-              <div style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.88)', marginTop: '2px' }}>
-                SPP bulanan, uang masuk & administrasi santri
+              <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.85)', marginTop: '2px' }}>
+                SPP bulanan &amp; administrasi santri
               </div>
             </div>
 
             <div style={{
-              width: '46px',
-              height: '46px',
-              borderRadius: '16px',
+              width: '38px',
+              height: '38px',
+              borderRadius: '12px',
               background: 'rgba(255, 255, 255, 0.2)',
-              border: '1.5px solid rgba(255, 255, 255, 0.35)',
+              border: '1px solid rgba(255, 255, 255, 0.35)',
               backdropFilter: 'blur(6px)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#ffffff',
-              fontSize: '1.5rem',
+              fontSize: '1.25rem',
               boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
             }}>
               💳
             </div>
           </div>
 
-          {/* 2 Mini Counters with Crisp White Cards */}
+          {/* 2 Mini Counters */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
@@ -412,31 +412,31 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
             zIndex: 2
           }}>
             <div style={{
-              background: '#ffffff',
-              padding: '9px 12px',
+              background: 'rgba(255, 255, 255, 0.95)',
+              padding: '8px 10px',
               borderRadius: '12px',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.14)',
-              border: '1px solid rgba(255, 255, 255, 0.9)'
+              boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
+              border: '1px solid #ffffff'
             }}>
-              <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
-                Tunggakan SPP Bulanan
+              <div style={{ fontSize: '0.58rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
+                Tunggakan SPP
               </div>
-              <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#1d4ed8', marginTop: '3px' }}>
+              <div style={{ fontSize: '0.86rem', fontWeight: 900, color: '#1d4ed8', marginTop: '2px' }}>
                 {summary.formattedBulanan || 'Rp 0'}
               </div>
             </div>
 
             <div style={{
-              background: '#ffffff',
-              padding: '9px 12px',
+              background: 'rgba(255, 255, 255, 0.95)',
+              padding: '8px 10px',
               borderRadius: '12px',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.14)',
-              border: '1px solid rgba(255, 255, 255, 0.9)'
+              boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
+              border: '1px solid #ffffff'
             }}>
-              <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
-                Sisa Biaya Awal Masuk
+              <div style={{ fontSize: '0.58rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
+                Sisa Biaya Awal
               </div>
-              <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#d97706', marginTop: '3px' }}>
+              <div style={{ fontSize: '0.86rem', fontWeight: 900, color: '#d97706', marginTop: '2px' }}>
                 {summary.formattedSisaBiayaMasuk || 'Rp 0'}
               </div>
             </div>
@@ -450,53 +450,53 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
           gap: '4px',
           background: '#e2e8f0',
           padding: '3px',
-          borderRadius: '14px',
-          marginBottom: '4px'
+          borderRadius: '12px',
+          marginBottom: '2px'
         }}>
           <button
             type="button"
             onClick={() => setActiveSubTab('tagihan')}
             style={{
-              padding: '9px 12px',
-              borderRadius: '11px',
+              padding: '7px 10px',
+              borderRadius: '9px',
               border: 'none',
-              fontSize: '0.78rem',
+              fontSize: '0.72rem',
               fontWeight: activeSubTab === 'tagihan' ? 800 : 600,
               cursor: 'pointer',
               background: activeSubTab === 'tagihan' ? '#ffffff' : 'transparent',
               color: activeSubTab === 'tagihan' ? '#0f172a' : '#64748b',
-              boxShadow: activeSubTab === 'tagihan' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+              boxShadow: activeSubTab === 'tagihan' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
               transition: 'all 0.2s ease',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '6px'
+              gap: '5px'
             }}
           >
-            <CreditCard size={14} color={activeSubTab === 'tagihan' ? '#0284c7' : '#64748b'} />
+            <CreditCard size={13} color={activeSubTab === 'tagihan' ? '#0284c7' : '#64748b'} />
             Tagihan
           </button>
           <button
             type="button"
             onClick={() => setActiveSubTab('riwayat')}
             style={{
-              padding: '9px 12px',
-              borderRadius: '11px',
+              padding: '7px 10px',
+              borderRadius: '9px',
               border: 'none',
-              fontSize: '0.78rem',
+              fontSize: '0.72rem',
               fontWeight: activeSubTab === 'riwayat' ? 800 : 600,
               cursor: 'pointer',
               background: activeSubTab === 'riwayat' ? '#ffffff' : 'transparent',
               color: activeSubTab === 'riwayat' ? '#0f172a' : '#64748b',
-              boxShadow: activeSubTab === 'riwayat' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+              boxShadow: activeSubTab === 'riwayat' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
               transition: 'all 0.2s ease',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '6px'
+              gap: '5px'
             }}
           >
-            <FileText size={14} color={activeSubTab === 'riwayat' ? '#0284c7' : '#64748b'} />
+            <FileText size={13} color={activeSubTab === 'riwayat' ? '#0284c7' : '#64748b'} />
             Riwayat
           </button>
         </div>
@@ -675,17 +675,17 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
           {/* SECTION 1: ADMINISTRASI BULANAN (SPP / SYAHRIAH) */}
           <div style={{
             background: '#ffffff',
-            borderRadius: '18px',
+            borderRadius: '16px',
             border: '1px solid #e2e8f0',
-            padding: '16px',
+            padding: '13px 14px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
               <div>
-                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>
                   Administrasi Bulanan (SPP)
                 </span>
-                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                <div style={{ fontSize: '0.67rem', color: '#64748b' }}>
                   Pilih 1 bulan, beberapa bulan, atau lunasi semua
                 </div>
               </div>
@@ -697,10 +697,10 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
                     background: '#ecfdf5',
                     border: '1px solid #a7f3d0',
                     color: '#059669',
-                    fontSize: '0.72rem',
+                    fontSize: '0.68rem',
                     fontWeight: 700,
-                    padding: '4px 8px',
-                    borderRadius: '8px',
+                    padding: '3px 7px',
+                    borderRadius: '7px',
                     cursor: 'pointer'
                   }}
                 >
@@ -709,7 +709,7 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
               )}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {tagihanBulanan.map(t => {
                 const sisa = parseFloat(t.sisa_tagihan);
                 const isLunas = sisa <= 0 || t.status === 'Lunas';
@@ -723,40 +723,40 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      padding: '12px',
-                      borderRadius: '12px',
-                      border: isSelected ? '2px solid #059669' : '1px solid #e2e8f0',
+                      padding: '10px 12px',
+                      borderRadius: '11px',
+                      border: isSelected ? '1.5px solid #059669' : '1px solid #e2e8f0',
                       background: isSelected ? '#f0fdf4' : (isLunas ? '#f8fafc' : '#ffffff'),
                       cursor: isLunas ? 'default' : 'pointer',
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <input
                         type="checkbox"
                         disabled={isLunas}
                         checked={isSelected || isLunas}
                         onChange={() => {}}
-                        style={{ width: '18px', height: '18px', accentColor: '#059669', cursor: isLunas ? 'default' : 'pointer' }}
+                        style={{ width: '16px', height: '16px', accentColor: '#059669', cursor: isLunas ? 'default' : 'pointer' }}
                       />
                       <div>
-                        <div style={{ fontSize: '0.84rem', fontWeight: 700, color: isLunas ? '#94a3b8' : '#0f172a' }}>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: isLunas ? '#94a3b8' : '#0f172a' }}>
                           {t.judul_tagihan}
                         </div>
-                        <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                        <div style={{ fontSize: '0.66rem', color: '#64748b' }}>
                           Jatuh Tempo: {t.jatuh_tempo ? new Date(t.jatuh_tempo).toLocaleDateString('id-ID') : '-'}
                         </div>
                       </div>
                     </div>
 
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: isLunas ? '#059669' : '#0f172a' }}>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 800, color: isLunas ? '#059669' : '#0f172a' }}>
                         {formatRp(t.total_tagihan)}
                       </div>
                       <span style={{
-                        fontSize: '0.66rem',
+                        fontSize: '0.6rem',
                         fontWeight: 800,
-                        padding: '2px 6px',
+                        padding: '1px 5px',
                         borderRadius: '999px',
                         background: isLunas ? '#dcfce7' : '#fee2e2',
                         color: isLunas ? '#166534' : '#991b1b'
@@ -769,7 +769,7 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
               })}
 
               {tagihanBulanan.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '16px', color: '#94a3b8', fontSize: '0.8rem' }}>
+                <div style={{ textAlign: 'center', padding: '16px', color: '#94a3b8', fontSize: '0.74rem' }}>
                   Tidak ada tagihan bulanan tercatat.
                 </div>
               )}
@@ -779,21 +779,21 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
           {/* SECTION 2: BIAYA AWAL MASUK PESANTREN (BERTARAF / CICILAN) */}
           <div style={{
             background: '#ffffff',
-            borderRadius: '18px',
+            borderRadius: '16px',
             border: '1px solid #e2e8f0',
-            padding: '16px',
+            padding: '13px 14px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
           }}>
-            <div style={{ marginBottom: '12px' }}>
-              <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>
+            <div style={{ marginBottom: '10px' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>
                 Biaya Awal Masuk Pesantren
               </span>
-              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+              <div style={{ fontSize: '0.67rem', color: '#64748b' }}>
                 Dapat dicicil per komponen (misal: bayar kaos rayon / seragam terlebih dahulu)
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {biayaAwalMasuk.map(item => {
                 const sisa = parseFloat(item.sisa_tagihan);
                 const isLunas = sisa <= 0 || item.status === 'Lunas';
@@ -805,40 +805,40 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
                     key={item.id}
                     onClick={() => !isLunas && handleToggleItem(item)}
                     style={{
-                      padding: '12px',
-                      borderRadius: '12px',
-                      border: isSelected ? '2px solid #059669' : '1px solid #e2e8f0',
+                      padding: '10px 12px',
+                      borderRadius: '11px',
+                      border: isSelected ? '1.5px solid #059669' : '1px solid #e2e8f0',
                       background: isSelected ? '#f0fdf4' : (isLunas ? '#f8fafc' : '#ffffff'),
                       cursor: isLunas ? 'default' : 'pointer'
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <input
                           type="checkbox"
                           disabled={isLunas}
                           checked={isSelected || isLunas}
                           onChange={() => {}}
-                          style={{ width: '18px', height: '18px', accentColor: '#059669', cursor: isLunas ? 'default' : 'pointer' }}
+                          style={{ width: '16px', height: '16px', accentColor: '#059669', cursor: isLunas ? 'default' : 'pointer' }}
                         />
                         <div>
-                          <div style={{ fontSize: '0.84rem', fontWeight: 700, color: isLunas ? '#94a3b8' : '#0f172a' }}>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: isLunas ? '#94a3b8' : '#0f172a' }}>
                             {item.judul_tagihan}
                           </div>
-                          <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                          <div style={{ fontSize: '0.66rem', color: '#64748b' }}>
                             Total Biaya: {formatRp(item.total_tagihan)}
                           </div>
                         </div>
                       </div>
 
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: isLunas ? '#059669' : '#dc2626' }}>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: isLunas ? '#059669' : '#dc2626' }}>
                           {isLunas ? 'Lunas' : `Sisa ${formatRp(sisa)}`}
                         </div>
                         <span style={{
-                          fontSize: '0.66rem',
+                          fontSize: '0.6rem',
                           fontWeight: 800,
-                          padding: '2px 6px',
+                          padding: '1px 5px',
                           borderRadius: '999px',
                           background: isLunas ? '#dcfce7' : (sudahBayar > 0 ? '#fef3c7' : '#fee2e2'),
                           color: isLunas ? '#166534' : (sudahBayar > 0 ? '#92400e' : '#991b1b')

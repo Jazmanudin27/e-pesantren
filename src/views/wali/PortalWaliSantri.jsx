@@ -246,15 +246,11 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
           setIsPendingModalOpen(true);
         }
 
-        // Deteksi tagihan lewat jatuh tempo (belum lunas & tanggal jatuh tempo < hari ini)
+        // Deteksi tagihan lewat jatuh tempo khusus SPP Bulanan (belum lunas & tanggal jatuh tempo < hari ini)
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const semuaTagihan = [
-          ...(res.data.data.tagihanBulanan || []),
-          ...(res.data.data.biayaAwalMasuk || []),
-          ...(res.data.data.tagihanLainnya || [])
-        ];
-        const overdue = semuaTagihan
+        const tagihanSppBulanan = res.data.data.tagihanBulanan || [];
+        const overdue = tagihanSppBulanan
           .filter(t => {
             if (parseFloat(t.sisa_tagihan || 0) <= 0 || t.status === 'Lunas' || !t.jatuh_tempo) return false;
             const jt = new Date(t.jatuh_tempo);
