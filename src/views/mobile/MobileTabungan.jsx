@@ -3,6 +3,7 @@ import axios from 'axios';
 import {
   Wallet,
   ArrowDownLeft,
+  ArrowDownRight,
   ArrowUpRight,
   Search,
   Plus,
