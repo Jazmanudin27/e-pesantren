@@ -180,7 +180,12 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     if (document.body) document.body.scrollTop = 0;
     if (document.documentElement) document.documentElement.scrollTop = 0;
-    if (selectedSantriId && ["beranda", "absensi", "perizinan", "praktek", "pelanggaran"].includes(currentTab)) {
+    if (
+      selectedSantriId &&
+      ["beranda", "absensi", "perizinan", "praktek", "pelanggaran"].includes(
+        currentTab,
+      )
+    ) {
       fetchWaliData(selectedSantriId, true);
     }
   }, [currentTab]);
@@ -251,8 +256,13 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
         today.setHours(0, 0, 0, 0);
         const tagihanSppBulanan = res.data.data.tagihanBulanan || [];
         const overdue = tagihanSppBulanan
-          .filter(t => {
-            if (parseFloat(t.sisa_tagihan || 0) <= 0 || t.status === 'Lunas' || !t.jatuh_tempo) return false;
+          .filter((t) => {
+            if (
+              parseFloat(t.sisa_tagihan || 0) <= 0 ||
+              t.status === "Lunas" ||
+              !t.jatuh_tempo
+            )
+              return false;
             const jt = new Date(t.jatuh_tempo);
             if (isNaN(jt.getTime())) return false;
             jt.setHours(0, 0, 0, 0);
@@ -261,13 +271,16 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
           .sort((a, b) => new Date(a.jatuh_tempo) - new Date(b.jatuh_tempo));
         setTagihanJatuhTempo(overdue);
 
-        // Tampilkan modal maksimal 1x per sesi per santri
+        // Tampilkan modal tagihan jika tidak ada pengumuman yang sedang muncul
         if (overdue.length > 0) {
           const todayKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
-          const storageKey = `jatuh_tempo_notif_${targetId || 'default'}`;
+          const storageKey = `jatuh_tempo_notif_${targetId || "default"}`;
           if (sessionStorage.getItem(storageKey) !== todayKey) {
-            setIsJatuhTempoModalOpen(true);
-            sessionStorage.setItem(storageKey, todayKey);
+            // Jika modal pengumuman aktif, biarkan onClose pengumuman yang memicunya
+            if (!isPengumumanModalOpen) {
+              setIsJatuhTempoModalOpen(true);
+              sessionStorage.setItem(storageKey, todayKey);
+            }
           }
         }
       }
@@ -374,7 +387,9 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
 
   const fetchLatestFeed = async () => {
     try {
-      const res = await axios.get("/api/informasi-kegiatan/feed?active_only=1&limit=15");
+      const res = await axios.get(
+        "/api/informasi-kegiatan/feed?active_only=1&limit=15",
+      );
       if (res.data?.success) {
         const rawFeed = res.data.data.feed || [];
         const todayStr = new Date().toISOString().slice(0, 10);
@@ -393,23 +408,40 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
           // Cek apakah halaman dibuka karena reload (refresh) atau awal buka aplikasi
           let isPageReload = false;
           try {
-            const navEntries = window.performance?.getEntriesByType?.("navigation");
-            if (navEntries && navEntries.length > 0 && navEntries[0].type === "reload") {
+            const navEntries =
+              window.performance?.getEntriesByType?.("navigation");
+            if (
+              navEntries &&
+              navEntries.length > 0 &&
+              navEntries[0].type === "reload"
+            ) {
               isPageReload = true;
             } else if (window.performance?.navigation?.type === 1) {
               isPageReload = true;
             }
           } catch (e) {}
 
-          const alreadyShownInSession = sessionStorage.getItem("nwf_wali_pengumuman_shown_session") === "true";
-          const maxId = Math.max(...validPengumuman.map((p) => Number(p.id) || 0));
-          const lastSeenMaxId = Number(sessionStorage.getItem("nwf_wali_last_pengumuman_id") || 0);
+          const alreadyShownInSession =
+            sessionStorage.getItem("nwf_wali_pengumuman_shown_session") ===
+            "true";
+          const maxId = Math.max(
+            ...validPengumuman.map((p) => Number(p.id) || 0),
+          );
+          const lastSeenMaxId = Number(
+            sessionStorage.getItem("nwf_wali_last_pengumuman_id") || 0,
+          );
 
           // Munculkan modal hanya saat awal buka aplikasi (bukan saat reload), atau jika ada pengumuman baru dari Admin
-          if ((!isPageReload && !alreadyShownInSession) || maxId > lastSeenMaxId) {
+          if (
+            (!isPageReload && !alreadyShownInSession) ||
+            maxId > lastSeenMaxId
+          ) {
             sessionStorage.setItem("nwf_wali_pengumuman_shown_session", "true");
             if (maxId > 0) {
-              sessionStorage.setItem("nwf_wali_last_pengumuman_id", String(maxId));
+              sessionStorage.setItem(
+                "nwf_wali_last_pengumuman_id",
+                String(maxId),
+              );
             }
             setIsPengumumanModalOpen(true);
           } else {
@@ -436,7 +468,12 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   };
 
   // Helper memicu Native System Notification di Bar Atas HP (Ala Shopee)
-  const triggerNativePhoneNotification = async (title, body, targetTab = "notifikasi", notifId = null) => {
+  const triggerNativePhoneNotification = async (
+    title,
+    body,
+    targetTab = "notifikasi",
+    notifId = null,
+  ) => {
     try {
       if (!("Notification" in window)) return;
       if (window.Notification.permission !== "granted") return;
@@ -480,13 +517,19 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   const handleRequestPushPermission = async () => {
     try {
       if (!("Notification" in window)) {
-        showError("Tidak Didukung", "Browser HP Anda belum mendukung notifikasi sistem.");
+        showError(
+          "Tidak Didukung",
+          "Browser HP Anda belum mendukung notifikasi sistem.",
+        );
         return;
       }
       const perm = await window.Notification.requestPermission();
       setPushPermission(perm);
       if (perm === "granted") {
-        toastSuccess("Notifikasi Aktif!", "Notifikasi aktivitas santri kini aktif di layar HP Anda.");
+        toastSuccess(
+          "Notifikasi Aktif!",
+          "Notifikasi aktivitas santri kini aktif di layar HP Anda.",
+        );
       }
     } catch (e) {}
   };
@@ -504,7 +547,10 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
       const gain = ctx.createGain();
       osc.type = "sine";
       osc.frequency.setValueAtTime(880, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(1174.66, ctx.currentTime + 0.12);
+      osc.frequency.exponentialRampToValueAtTime(
+        1174.66,
+        ctx.currentTime + 0.12,
+      );
       gain.gain.setValueAtTime(0.15, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
       osc.connect(gain);
@@ -525,7 +571,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
       notif.judul || "NWF Mobile • Info Santri",
       notif.pesan || "",
       notif.target_tab || "notifikasi",
-      notif.id
+      notif.id,
     );
   };
 
@@ -538,14 +584,18 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
     return () => clearTimeout(timer);
   }, [activeTopBannerNotif]);
 
-  const fetchNotifikasiWali = async (targetId = selectedSantriId, isBackgroundPoll = false) => {
+  const fetchNotifikasiWali = async (
+    targetId = selectedSantriId,
+    isBackgroundPoll = false,
+  ) => {
     if (!targetId) return;
     try {
       const storageKey = `nwf_last_notif_id_${targetId}`;
-      const lastSeenId = parseInt(sessionStorage.getItem(storageKey) || "0") || 0;
+      const lastSeenId =
+        parseInt(sessionStorage.getItem(storageKey) || "0") || 0;
 
       const res = await axios.get(
-        `/api/wali/notifikasi?santri_id=${targetId}&since_id=${lastSeenId}&limit=40`
+        `/api/wali/notifikasi?santri_id=${targetId}&since_id=${lastSeenId}&limit=40`,
       );
       if (res.data?.success && res.data.data) {
         const {
@@ -566,7 +616,9 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
           fetchWaliData(targetId, true);
         } else if (lastSeenId === 0 && notifications.length > 0) {
           // Pertama kali buka & ada notifikasi yang belum dibaca -> munculkan 1x di atas layar
-          const firstUnread = notifications.find((n) => Number(n.is_read) === 0);
+          const firstUnread = notifications.find(
+            (n) => Number(n.is_read) === 0,
+          );
           if (firstUnread) {
             showShopeeHeadsUpNotification(firstUnread);
           }
@@ -586,7 +638,9 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   const handleMarkAllNotifRead = async () => {
     if (!selectedSantriId) return;
     try {
-      await axios.put("/api/wali/notifikasi/read", { santri_id: selectedSantriId });
+      await axios.put("/api/wali/notifikasi/read", {
+        santri_id: selectedSantriId,
+      });
       setNotifikasiList((prev) => prev.map((n) => ({ ...n, is_read: 1 })));
       setUnreadNotifCount(0);
     } catch (e) {}
@@ -595,7 +649,9 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   const handleClearAllNotif = async () => {
     if (!selectedSantriId) return;
     try {
-      await axios.delete(`/api/wali/notifikasi/clear?santri_id=${selectedSantriId}`);
+      await axios.delete(
+        `/api/wali/notifikasi/clear?santri_id=${selectedSantriId}`,
+      );
       setNotifikasiList([]);
       setUnreadNotifCount(0);
       toastSuccess("Dibersihkan", "Riwayat notifikasi berhasil dihapus.");
@@ -608,7 +664,9 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
       if (Number(notif.is_read) === 0) {
         await axios.put("/api/wali/notifikasi/read", { notif_id: notif.id });
         setNotifikasiList((prev) =>
-          prev.map((item) => (item.id === notif.id ? { ...item, is_read: 1 } : item))
+          prev.map((item) =>
+            item.id === notif.id ? { ...item, is_read: 1 } : item,
+          ),
         );
         setUnreadNotifCount((prev) => Math.max(0, prev - 1));
       }
@@ -653,9 +711,14 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
 
     // Minta izin notifikasi secara halus setelah 4 detik jika masih default
     let permTimer = null;
-    if ("Notification" in window && window.Notification.permission === "default") {
+    if (
+      "Notification" in window &&
+      window.Notification.permission === "default"
+    ) {
       permTimer = setTimeout(() => {
-        window.Notification.requestPermission().then((p) => setPushPermission(p)).catch(() => {});
+        window.Notification.requestPermission()
+          .then((p) => setPushPermission(p))
+          .catch(() => {});
       }, 4000);
     }
 
@@ -996,11 +1059,18 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
 
   // Dewan Asatidz Pembina (Real data santri dari database)
   const asatidzList = [];
-  if (santri.pembina_asrama && String(santri.pembina_asrama).trim() && santri.pembina_asrama !== "-") {
+  if (
+    santri.pembina_asrama &&
+    String(santri.pembina_asrama).trim() &&
+    santri.pembina_asrama !== "-"
+  ) {
     asatidzList.push({
       nama: santri.pembina_asrama,
       peran: "Pembina Kobong & Asrama",
-      hp: santri.no_hp_pembina && santri.no_hp_pembina !== "-" ? santri.no_hp_pembina : "",
+      hp:
+        santri.no_hp_pembina && santri.no_hp_pembina !== "-"
+          ? santri.no_hp_pembina
+          : "",
     });
   }
 
@@ -1055,7 +1125,8 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               alignItems: "flex-start",
               gap: "11px",
               cursor: "pointer",
-              animation: "slideDownShopeeNotif 0.32s cubic-bezier(0.16, 1, 0.3, 1)",
+              animation:
+                "slideDownShopeeNotif 0.32s cubic-bezier(0.16, 1, 0.3, 1)",
             }}
             onClick={() => {
               const target = activeTopBannerNotif;
@@ -1103,7 +1174,9 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   marginBottom: "2px",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "5px" }}
+                >
                   <span
                     style={{
                       fontSize: "0.62rem",
@@ -1115,8 +1188,16 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
                   >
                     NWF MOBILE
                   </span>
-                  <span style={{ fontSize: "0.6rem", color: "#64748b" }}>•</span>
-                  <span style={{ fontSize: "0.62rem", color: "#94a3b8", fontWeight: 600 }}>
+                  <span style={{ fontSize: "0.6rem", color: "#64748b" }}>
+                    •
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "0.62rem",
+                      color: "#94a3b8",
+                      fontWeight: 600,
+                    }}
+                  >
                     Baru saja
                   </span>
                 </div>
@@ -1209,7 +1290,21 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
         {/* MODAL SLIDER PENGUMUMAN RESMI PESANTREN (BISA DIGESER & OTOMATIS HILANG JIKA KADALUARSA) */}
         <ModalPengumumanWali
           isOpen={isPengumumanModalOpen}
-          onClose={() => setIsPengumumanModalOpen(false)}
+          onClose={() => {
+            setIsPengumumanModalOpen(false);
+            // Munculkan modal tagihan jatuh tempo setelah modal pengumuman ditutup orang tua jika ada tagihan overdue
+            if (tagihanJatuhTempo && tagihanJatuhTempo.length > 0) {
+              const today = new Date();
+              const todayKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+              const storageKey = `jatuh_tempo_notif_${selectedSantriId || "default"}`;
+              if (sessionStorage.getItem(storageKey) !== todayKey) {
+                setTimeout(() => {
+                  setIsJatuhTempoModalOpen(true);
+                  sessionStorage.setItem(storageKey, todayKey);
+                }, 350);
+              }
+            }
+          }}
           pengumumanList={pengumumanAktifList}
         />
 
@@ -2538,6 +2633,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
         <ModalTagihanJatuhTempo
           open={
             isJatuhTempoModalOpen &&
+            !isPengumumanModalOpen &&
             currentTab !== "tagihan" &&
             !(isPendingModalOpen && transaksiPending)
           }
@@ -2547,7 +2643,10 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
           onClose={() => {
             const now = new Date();
             const todayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
-            localStorage.setItem(`jatuh_tempo_notif_${selectedSantriId || "default"}`, todayKey);
+            localStorage.setItem(
+              `jatuh_tempo_notif_${selectedSantriId || "default"}`,
+              todayKey,
+            );
             setIsJatuhTempoModalOpen(false);
           }}
           onBayar={() => {
