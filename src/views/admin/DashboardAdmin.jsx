@@ -29,20 +29,6 @@ export default function DashboardAdmin({ onNavigate }) {
     activeIzin: []
   });
 
-  const adminSession = (() => {
-    try {
-      return JSON.parse(
-        localStorage.getItem("desktop_session") ||
-        sessionStorage.getItem("desktop_session") ||
-        "{}"
-      );
-    } catch (e) {
-      return {};
-    }
-  })();
-
-  const adminName = adminSession.nama || adminSession.name || "Administrator Pesantren";
-
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -117,85 +103,6 @@ export default function DashboardAdmin({ onNavigate }) {
             boxShadow: "0 10px 25px -4px rgba(13, 118, 110, 0.14), 0 2px 6px rgba(0, 0, 0, 0.04)"
           }}
         >
-          {/* Header Profile Info: Nama Admin / Petugas */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "10px",
-              paddingBottom: "8px",
-              borderBottom: "1px solid #f1f5f9"
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0, flex: 1, paddingRight: "8px" }}>
-              <div
-                style={{
-                  width: "28px",
-                  height: "28px",
-                  borderRadius: "8px",
-                  background: "#ecfdf5",
-                  border: "1px solid #a7f3d0",
-                  color: "#059669",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0
-                }}
-              >
-                <User size={16} strokeWidth={2.5} />
-              </div>
-              <div style={{ minWidth: 0, overflow: "hidden" }}>
-                <div
-                  style={{
-                    fontSize: "0.82rem",
-                    fontWeight: 900,
-                    color: "#0f172a",
-                    letterSpacing: "-0.2px",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis"
-                  }}
-                >
-                  {adminName}
-                </div>
-                <div
-                  style={{
-                    fontSize: "0.62rem",
-                    fontWeight: 600,
-                    color: "#64748b",
-                    lineHeight: 1.1,
-                    marginTop: "1px"
-                  }}
-                >
-                  Status: Eksekutif Realtime • {data.stats.total_santri || 0} Santri
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => handleOpenPresensiWithStatus("Semua")}
-              style={{
-                background: "rgba(13, 148, 136, 0.08)",
-                border: "1px solid rgba(13, 148, 136, 0.2)",
-                borderRadius: "8px",
-                color: "#0d9488",
-                fontSize: "0.68rem",
-                fontWeight: 700,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "3px",
-                padding: "4px 8px",
-                flexShrink: 0,
-                transition: "all 0.15s ease"
-              }}
-            >
-              Rincian <ChevronRight size={12} />
-            </button>
-          </div>
-
           {/* 4 Cards Grid (Pastel Touchable Badges) */}
           <div
             style={{

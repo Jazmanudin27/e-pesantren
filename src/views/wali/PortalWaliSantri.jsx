@@ -57,7 +57,10 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   const [isPengumumanModalOpen, setIsPengumumanModalOpen] = useState(false);
   const [tagihanJatuhTempo, setTagihanJatuhTempo] = useState([]);
   const [isJatuhTempoModalOpen, setIsJatuhTempoModalOpen] = useState(false);
-  const [shouldShowJatuhTempoAfterPengumuman, setShouldShowJatuhTempoAfterPengumuman] = useState(false);
+  const [
+    shouldShowJatuhTempoAfterPengumuman,
+    setShouldShowJatuhTempoAfterPengumuman,
+  ] = useState(false);
   const [notifikasiList, setNotifikasiList] = useState([]);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
   const [activeTopBannerNotif, setActiveTopBannerNotif] = useState(null);
@@ -162,7 +165,12 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
       sessionStorage.setItem(storageKey, todayKey);
       setShouldShowJatuhTempoAfterPengumuman(false);
     }
-  }, [isPengumumanModalOpen, shouldShowJatuhTempoAfterPengumuman, tagihanJatuhTempo, selectedSantriId]);
+  }, [
+    isPengumumanModalOpen,
+    shouldShowJatuhTempoAfterPengumuman,
+    tagihanJatuhTempo,
+    selectedSantriId,
+  ]);
 
   // Pastikan browser selalu mulai dari posisi paling atas saat reload / mount
   useEffect(() => {
@@ -297,7 +305,9 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
               setShouldShowJatuhTempoAfterPengumuman(true);
             } else {
               // Cek apakah ada pengumuman aktif yang belum pernah dilihat sesi ini
-              const pengumumanShown = sessionStorage.getItem("nwf_wali_pengumuman_shown_session") === "true";
+              const pengumumanShown =
+                sessionStorage.getItem("nwf_wali_pengumuman_shown_session") ===
+                "true";
               if (pengumumanShown) {
                 setIsJatuhTempoModalOpen(true);
                 sessionStorage.setItem(storageKey, todayKey);
@@ -474,7 +484,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
             if (shouldShowJatuhTempoAfterPengumuman) {
               const today = new Date();
               const todayKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
-              const storageKey = `jatuh_tempo_notif_${selectedSantriId || 'default'}`;
+              const storageKey = `jatuh_tempo_notif_${selectedSantriId || "default"}`;
               setIsJatuhTempoModalOpen(true);
               sessionStorage.setItem(storageKey, todayKey);
               setShouldShowJatuhTempoAfterPengumuman(false);
@@ -485,7 +495,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
           if (shouldShowJatuhTempoAfterPengumuman) {
             const today = new Date();
             const todayKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
-            const storageKey = `jatuh_tempo_notif_${selectedSantriId || 'default'}`;
+            const storageKey = `jatuh_tempo_notif_${selectedSantriId || "default"}`;
             setIsJatuhTempoModalOpen(true);
             sessionStorage.setItem(storageKey, todayKey);
             setShouldShowJatuhTempoAfterPengumuman(false);

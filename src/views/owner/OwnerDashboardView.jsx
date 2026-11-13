@@ -104,7 +104,7 @@ const getInitialOwnerTab = () => {
 export default function OwnerDashboardView({ onLogout }) {
   // Navigation: 'beranda' | 'keuangan' | 'presensi' | 'perizinan' | 'santri' | 'profil'
   const [activeTab, setActiveTab] = useState(getInitialOwnerTab);
-  const [financeActiveTab, setFinanceActiveTab] = useState("kas"); // 'kas' | 'tagihan'
+  const [financeActiveTab, setFinanceActiveTab] = useState("tagihan"); // 'tagihan' (kiri) | 'kas' (kanan)
   const [presensiFilter, setPresensiFilter] = useState("Semua");
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [feedList, setFeedList] = useState([]);
@@ -137,6 +137,7 @@ export default function OwnerDashboardView({ onLogout }) {
     santriPutri: 0,
     totalIzinAktif: 0,
     totalKasMasuk: 0,
+    totalSaldoTabungan: 0,
     totalPiutang: 0,
     totalInfak: 0,
     presensiHariIni: {
@@ -936,7 +937,7 @@ export default function OwnerDashboardView({ onLogout }) {
                   }}
                 />
 
-                {/* Switcher Pill: Kas Masuk & Tagihan / Piutang */}
+                {/* Switcher Pill: Tagihan / SPP (Kiri) & Tabungan / Kas (Kanan) */}
                 <div
                   style={{
                     display: "grid",
@@ -952,45 +953,6 @@ export default function OwnerDashboardView({ onLogout }) {
                     zIndex: 2,
                   }}
                 >
-                  <button
-                    type="button"
-                    onClick={() => setFinanceActiveTab("kas")}
-                    style={{
-                      border: "none",
-                      background:
-                        financeActiveTab === "kas" ? "#ffffff" : "transparent",
-                      color:
-                        financeActiveTab === "kas"
-                          ? "#047857"
-                          : "rgba(255, 255, 255, 0.85)",
-                      fontWeight: 800,
-                      fontSize: "11.5px",
-                      padding: "4px 8px",
-                      borderRadius: "9px",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "5px",
-                      boxShadow:
-                        financeActiveTab === "kas"
-                          ? "0 2px 6px rgba(0,0,0,0.18)"
-                          : "none",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    <Wallet
-                      size={13}
-                      strokeWidth={2.4}
-                      color={
-                        financeActiveTab === "kas"
-                          ? "#047857"
-                          : "rgba(255, 255, 255, 0.85)"
-                      }
-                    />
-                    <span>Tabungan / Kas</span>
-                  </button>
-
                   <button
                     type="button"
                     onClick={() => setFinanceActiveTab("tagihan")}
@@ -1041,6 +1003,45 @@ export default function OwnerDashboardView({ onLogout }) {
                         }}
                       />
                     )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFinanceActiveTab("kas")}
+                    style={{
+                      border: "none",
+                      background:
+                        financeActiveTab === "kas" ? "#ffffff" : "transparent",
+                      color:
+                        financeActiveTab === "kas"
+                          ? "#047857"
+                          : "rgba(255, 255, 255, 0.85)",
+                      fontWeight: 800,
+                      fontSize: "11.5px",
+                      padding: "4px 8px",
+                      borderRadius: "9px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "5px",
+                      boxShadow:
+                        financeActiveTab === "kas"
+                          ? "0 2px 6px rgba(0,0,0,0.18)"
+                          : "none",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <Wallet
+                      size={13}
+                      strokeWidth={2.4}
+                      color={
+                        financeActiveTab === "kas"
+                          ? "#047857"
+                          : "rgba(255, 255, 255, 0.85)"
+                      }
+                    />
+                    <span>Tabungan / Kas</span>
                   </button>
                 </div>
 
@@ -1140,18 +1141,18 @@ export default function OwnerDashboardView({ onLogout }) {
                             textTransform: "uppercase",
                           }}
                         >
-                          TOTAL UANG MASUK
+                          TOTAL TABUNGAN
                         </div>
                         <div
                           style={{
                             fontSize: "0.86rem",
                             fontWeight: 900,
-                            color: "#059669",
+                            color: "#0d9488",
                             marginTop: "2px",
                             letterSpacing: "-0.2px",
                           }}
                         >
-                          +{formatRp(summary.totalKasMasuk)}
+                          {formatRp(summary.totalSaldoTabungan)}
                         </div>
                       </div>
 
@@ -1836,7 +1837,9 @@ export default function OwnerDashboardView({ onLogout }) {
             {/* Subview Container */}
             <div style={{ padding: "0 14px 20px" }}>
               <div>
-                {activeTab === "keuangan" && <OwnerLaporanKeuangan />}
+                {activeTab === "keuangan" && (
+                  <OwnerLaporanKeuangan onBackToHome={() => setActiveTab("beranda")} />
+                )}
                 {activeTab === "presensi" && (
                   <OwnerLaporanPresensi initialStatus={presensiFilter} />
                 )}

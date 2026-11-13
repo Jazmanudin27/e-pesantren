@@ -141,32 +141,42 @@ export const getOwnerSummary = async (req, res) => {
       WHERE status = 'Aktif Keluar'
     `).catch(() => [[{ total_izin_aktif: 0 }]]);
 
-    // Keuangan: Total Kas Masuk Berhasil & Total Piutang Tunggakan
-    const [[keuStats]] = await pool.query(`
-      SELECT 
-        COALESCE(SUM(total_bayar), 0) as total_kas_masuk
-      FROM keuangan_transaksi_pembayaran
-      WHERE status_pembayaran = 'Berhasil'
-    `).catch(() => [[{ total_kas_masuk: 0 }]]);
-
-    const [[tunggakanStats]] = await pool.query(`
-      SELECT 
-        COALESCE(SUM(sisa_tagihan), 0) as total_piutang
-      FROM keuangan_tagihan
-      WHERE status IN ('Belum Dibayar', 'Sebagian')
-        AND sisa_tagihan > 0
-        AND (
-          (jatuh_tempo IS NOT NULL AND DATE(jatuh_tempo) <= CURDATE())
-          OR (jatuh_tempo IS NULL AND DATE(COALESCE(tanggal_tagihan, created_at, NOW())) <= CURDATE())
-        )
-    `).catch(() => [[{ total_piutang: 0 }]]);
-
-    // Infak Masuk
-    const [[infakStats]] = await pool.query(`
-      SELECT COALESCE(SUM(nominal), 0) as total_infak
-      FROM pesantren_infak_transaksi
-      WHERE status = 'Berhasil' OR status = 'Lunas'
-    `).catch(() => [[{ total_infak: 0 }]]);
+    // Keuangan: Total Kas Masuk Sah (pokok efektif), Tabungan & Total Piutang Tunggakan
+    const [
+      [keuStats],
+      [tabStats],
+      [tunggakanStats],
+      [infakStats],
+      kantong
+    ] = await Promise.all([
+      pool.query(`
+        SELECT 
+          COALESCE(SUM(COALESCE(NULLIF(nominal_pokok, 0), total_bayar)), 0) as total_kas_masuk
+        FROM keuangan_transaksi_pembayaran
+        WHERE status_pembayaran = 'Berhasil'
+      `).catch(() => [[{ total_kas_masuk: 0 }]]),
+      pool.query(`
+        SELECT COALESCE(SUM(saldo), 0) as total_saldo_tabungan
+        FROM santri_tabungan
+      `).catch(() => [[{ total_saldo_tabungan: 0 }]]),
+      pool.query(`
+        SELECT 
+          COALESCE(SUM(sisa_tagihan), 0) as total_piutang
+        FROM keuangan_tagihan
+        WHERE status IN ('Belum Dibayar', 'Sebagian')
+          AND sisa_tagihan > 0
+          AND (
+            (jatuh_tempo IS NOT NULL AND DATE(jatuh_tempo) <= CURDATE())
+            OR (jatuh_tempo IS NULL AND DATE(COALESCE(tanggal_tagihan, created_at, NOW())) <= CURDATE())
+          )
+      `).catch(() => [[{ total_piutang: 0 }]]),
+      pool.query(`
+        SELECT COALESCE(SUM(nominal), 0) as total_infak
+        FROM pesantren_infak_transaksi
+        WHERE status = 'Berhasil' OR status = 'Lunas'
+      `).catch(() => [[{ total_infak: 0 }]]),
+      getRingkasanKantongKas().catch(() => ({}))
+    ]);
 
     // Presensi Hari Ini
     const [absensiRows] = await pool.query(`
@@ -200,9 +210,11 @@ export const getOwnerSummary = async (req, res) => {
       santriPutra: santriStats?.santri_putra || 0,
       santriPutri: santriStats?.santri_putri || 0,
       totalIzinAktif: izinStats?.total_izin_aktif || 0,
-      totalKasMasuk: Number(keuStats?.total_kas_masuk || 0),
-      totalPiutang: Number(tunggakanStats?.total_piutang || 0),
-      totalInfak: Number(infakStats?.total_infak || 0),
+      totalKasMasuk: Number(keuStats?.[0]?.total_kas_masuk || 0),
+      totalSaldoTabungan: Number(tabStats?.[0]?.total_saldo_tabungan || 0),
+      totalPiutang: Number(tunggakanStats?.[0]?.total_piutang || 0),
+      totalInfak: Number(infakStats?.[0]?.total_infak || 0),
+      kantong: kantong || {},
       presensiHariIni: {
         total: totalAbsen,
         hadir: absHadir,

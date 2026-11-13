@@ -1063,78 +1063,7 @@ export default function AdminLayout() {
           </div>
         </div>
 
-        {/* Pemisah Modul Desktop: Switcher Cepat Modul Absen vs Keuangan */}
-        {!isPureBendahara && !isPureAdminAbsen && (
-          <div style={{ padding: '0 12px 10px' }}>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr 1fr',
-                background: 'rgba(255, 255, 255, 0.07)',
-                borderRadius: '10px',
-                padding: '3px',
-                gap: '3px',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => handleSetDesktopModuleFilter('all')}
-                style={{
-                  padding: '6px 2px',
-                  borderRadius: '7px',
-                  border: 'none',
-                  fontSize: '0.68rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  background: desktopModuleFilter === 'all' ? '#059669' : 'transparent',
-                  color: desktopModuleFilter === 'all' ? '#ffffff' : '#94a3b8',
-                  transition: 'all 0.18s ease',
-                  textAlign: 'center',
-                }}
-              >
-                Semua
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSetDesktopModuleFilter('absen')}
-                style={{
-                  padding: '6px 2px',
-                  borderRadius: '7px',
-                  border: 'none',
-                  fontSize: '0.68rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  background: desktopModuleFilter === 'absen' ? '#0284c7' : 'transparent',
-                  color: desktopModuleFilter === 'absen' ? '#ffffff' : '#94a3b8',
-                  transition: 'all 0.18s ease',
-                  textAlign: 'center',
-                }}
-              >
-                Absen
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSetDesktopModuleFilter('keuangan')}
-                style={{
-                  padding: '6px 2px',
-                  borderRadius: '7px',
-                  border: 'none',
-                  fontSize: '0.68rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  background: desktopModuleFilter === 'keuangan' ? '#10b981' : 'transparent',
-                  color: desktopModuleFilter === 'keuangan' ? '#ffffff' : '#94a3b8',
-                  transition: 'all 0.18s ease',
-                  textAlign: 'center',
-                }}
-              >
-                Keuangan
-              </button>
-            </div>
-          </div>
-        )}
-
+        {/* Sidebar Nav */}
         {renderNavMenu(false)}
       </aside>
 
