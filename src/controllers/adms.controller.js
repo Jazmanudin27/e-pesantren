@@ -541,56 +541,22 @@ export const getDeviceUsers = async (req, res) => {
       }
     } catch (e) {}
 
-    const devLabel = `${deviceName} ${peruntukan}`.toLowerCase();
-    const isAkhwat = devLabel.includes('akhwat') || devLabel.includes('putri') || devLabel.includes('perempuan') || devLabel.includes('girl');
-    const isIkhwan = devLabel.includes('ikhwan') || devLabel.includes('putra') || devLabel.includes('laki') || devLabel.includes('boy');
-
-    // Query santri (prioritaskan filter gender sesuai mesin, jika return kosong otomatis fallback semua)
-    let queryFilter = '';
-    if (isAkhwat && !isIkhwan) {
-      queryFilter = ` AND (LOWER(COALESCE(s.jk, '')) LIKE 'p%' OR LOWER(COALESCE(s.jk, '')) LIKE 'akhwat%' OR LOWER(COALESCE(s.jk, '')) LIKE 'putri%')`;
-    } else if (isIkhwan && !isAkhwat) {
-      queryFilter = ` AND (LOWER(COALESCE(s.jk, '')) LIKE 'l%' OR LOWER(COALESCE(s.jk, '')) LIKE 'ikhwan%' OR LOWER(COALESCE(s.jk, '')) LIKE 'putra%')`;
-    }
-
-    let rows = [];
-    if (queryFilter !== '') {
-      const [qRows] = await pool.query(`
-        SELECT 
-          s.id, 
-          s.nis, 
-          s.nama_santri, 
-          COALESCE(s.jk, 'L') AS jk, 
-          COALESCE(s.nama_kelas, '-') AS nama_kelas, 
-          COALESCE(s.status, 'Aktif') AS status, 
-          s.fingerprint_pin,
-          s.foto,
-          ${selectAsrama}
-        FROM santri s
-        WHERE 1=1 ${queryFilter}
-        ORDER BY CASE WHEN s.status IN ('Alumni', 'Boyong') THEN 1 ELSE 0 END, s.nama_santri ASC
-      `).catch(() => [[]]);
-      rows = qRows || [];
-    }
-
-    // Jika filter gender menghasilkan 0 atau tidak ada filter, tampilkan seluruh santri
-    if (!rows || rows.length === 0) {
-      const [allRows] = await pool.query(`
-        SELECT 
-          s.id, 
-          s.nis, 
-          s.nama_santri, 
-          COALESCE(s.jk, 'L') AS jk, 
-          COALESCE(s.nama_kelas, '-') AS nama_kelas, 
-          COALESCE(s.status, 'Aktif') AS status, 
-          s.fingerprint_pin,
-          s.foto,
-          ${selectAsrama}
-        FROM santri s
-        ORDER BY CASE WHEN s.status IN ('Alumni', 'Boyong') THEN 1 ELSE 0 END, s.nama_santri ASC
-      `).catch(() => [[]]);
-      rows = allRows || [];
-    }
+    // Tampilkan seluruh santri (Putra & Putri) agar mesin fleksibel bisa digunakan silang saat darurat
+    const [allRows] = await pool.query(`
+      SELECT 
+        s.id, 
+        s.nis, 
+        s.nama_santri, 
+        COALESCE(s.jk, 'L') AS jk, 
+        COALESCE(s.nama_kelas, '-') AS nama_kelas, 
+        COALESCE(s.status, 'Aktif') AS status, 
+        s.fingerprint_pin,
+        s.foto,
+        ${selectAsrama}
+      FROM santri s
+      ORDER BY CASE WHEN s.status IN ('Alumni', 'Boyong') THEN 1 ELSE 0 END, s.nama_santri ASC
+    `).catch(() => [[]]);
+    const rows = allRows || [];
 
     // Jika belum ada catatan enrolled sama sekali, santri yang punya fingerprint_pin dianggap sudah terdaftar
     const isFirstTime = enrolledSet.size === 0 && enrolledPins.size === 0;
