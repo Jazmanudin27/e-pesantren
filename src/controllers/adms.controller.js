@@ -1,7 +1,10 @@
-import pool from '../config/database.js';
-import { createWaliNotification, buildAbsensiNotifText } from './notifikasi.controller.js';
-import { resolveActiveShalatBerjamaahSesi } from './absensi.controller.js';
-import { deactivateHaidForSantri } from './haid.controller.js';
+import pool from "../config/database.js";
+import {
+  createWaliNotification,
+  buildAbsensiNotifText,
+} from "./notifikasi.controller.js";
+import { resolveActiveShalatBerjamaahSesi } from "./absensi.controller.js";
+import { deactivateHaidForSantri } from "./haid.controller.js";
 
 /**
  * Controller Resmi untuk Integrasi Mesin Fingerprint (Protokol ADMS / Cloud Server ZKTeco & Solution)
@@ -41,40 +44,50 @@ export const ensureAdmsTables = async () => {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
   } catch (err) {
-    console.warn('[ADMS] Init table queue notice:', err.message);
+    console.warn("[ADMS] Init table queue notice:", err.message);
   }
 };
 
 // 1. Handshake & Inisialisasi Opsi Mesin
 export const handleAdmsHandshake = async (req, res) => {
   await ensureAdmsTables();
-  const sn = req.query.SN || req.query.sn || 'UNKNOWN';
+  const sn = req.query.SN || req.query.sn || "UNKNOWN";
   console.log(`[ADMS CLOUD] Handshake diterima dari mesin SN: ${sn}`);
 
   // Catat atau perbarui status mesin di database
   try {
-    const [existing] = await pool.query('SELECT id, nama_device FROM fingerprint_device WHERE sn_device = ?', [sn]);
+    const [existing] = await pool.query(
+      "SELECT id, nama_device FROM fingerprint_device WHERE sn_device = ?",
+      [sn],
+    );
     if (existing.length === 0) {
-      const [countRows] = await pool.query('SELECT COUNT(*) as total FROM fingerprint_device');
+      const [countRows] = await pool.query(
+        "SELECT COUNT(*) as total FROM fingerprint_device",
+      );
       const urutan = (countRows[0]?.total || 0) + 1;
-      await pool.query(`
+      await pool.query(
+        `
         INSERT INTO fingerprint_device (nama_device, sn_device, ip_address, port, lokasi, peruntukan, status_koneksi)
         VALUES (?, ?, ?, 80, 'Lokasi Pesantren', 'Semua', 'Online')
-      `, [`Mesin MP340 #${urutan} (${sn})`, sn, req.ip || 'Cloud ADMS']);
+      `,
+        [`Mesin MP340 #${urutan} (${sn})`, sn, req.ip || "Cloud ADMS"],
+      );
     } else {
-      await pool.query(`
+      await pool.query(
+        `
         UPDATE fingerprint_device 
         SET status_koneksi = 'Online', updated_at = NOW() 
         WHERE id = ?
-      `, [existing[0].id]);
+      `,
+        [existing[0].id],
+      );
     }
   } catch (err) {
-    console.warn('[ADMS] Notice check device:', err.message);
+    console.warn("[ADMS] Notice check device:", err.message);
   }
 
   // Response spesifikasi standar ZKTeco ADMS Push Protocol
-  const responseText = 
-`GET OPTION FROM: ${sn}
+  const responseText = `GET OPTION FROM: ${sn}
 ATTLOGStamp=None
 OPERLOGStamp=None
 ATTPHOTOStamp=None
@@ -87,71 +100,90 @@ Realtime=1
 Encrypt=0
 `;
 
-  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
   return res.status(200).send(responseText);
 };
 
 // 2. Menerima Log Absensi Realtime dari Mesin (Tabel ATTLOG)
 export const handleAdmsPushData = async (req, res) => {
-  const sn = req.query.SN || req.query.sn || 'UNKNOWN';
-  const table = (req.query.table || req.query.tablename || req.query.TableName || '').toUpperCase();
+  const sn = req.query.SN || req.query.sn || "UNKNOWN";
+  const table = (
+    req.query.table ||
+    req.query.tablename ||
+    req.query.TableName ||
+    ""
+  ).toUpperCase();
 
-  let rawBody = '';
-  if (typeof req.body === 'string') {
+  let rawBody = "";
+  if (typeof req.body === "string") {
     rawBody = req.body;
   } else if (Buffer.isBuffer(req.body)) {
-    rawBody = req.body.toString('utf8');
-  } else if (req.body && typeof req.body === 'object') {
+    rawBody = req.body.toString("utf8");
+  } else if (req.body && typeof req.body === "object") {
     const keys = Object.keys(req.body);
-    if (keys.length > 0 && req.body[keys[0]] === '') {
-      rawBody = keys.join('\n');
+    if (keys.length > 0 && req.body[keys[0]] === "") {
+      rawBody = keys.join("\n");
     } else {
-      rawBody = Object.entries(req.body).map(([k, v]) => v ? `${k}\t${v}` : k).join('\n');
+      rawBody = Object.entries(req.body)
+        .map(([k, v]) => (v ? `${k}\t${v}` : k))
+        .join("\n");
     }
   }
 
-  console.log(`[ADMS PUSH] Mesin ${sn} mengirim data (Tabel: ${table || 'DEFAULT'}, Length: ${rawBody.length})`);
+  console.log(
+    `[ADMS PUSH] Mesin ${sn} mengirim data (Tabel: ${table || "DEFAULT"}, Length: ${rawBody.length})`,
+  );
 
   // Jika eksplisit bukan ATTLOG (misal OPERLOG/config), balas OK
-  if (table && !table.includes('ATTLOG')) {
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    return res.status(200).send('OK\n');
+  if (table && !table.includes("ATTLOG")) {
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    return res.status(200).send("OK\n");
   }
 
-  if (!rawBody || rawBody.trim() === '') {
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    return res.status(200).send('OK\n');
+  if (!rawBody || rawBody.trim() === "") {
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    return res.status(200).send("OK\n");
   }
 
   // Ambil ID Device
   let deviceId = 1;
   try {
-    const [devRows] = await pool.query('SELECT id FROM fingerprint_device WHERE sn_device = ? LIMIT 1', [sn]);
+    const [devRows] = await pool.query(
+      "SELECT id FROM fingerprint_device WHERE sn_device = ? LIMIT 1",
+      [sn],
+    );
     if (devRows && devRows.length > 0) {
       deviceId = devRows[0].id;
     }
     // Update status mesin jadi Online
-    await pool.query("UPDATE fingerprint_device SET status_koneksi = 'Online', updated_at = NOW() WHERE sn_device = ?", [sn]).catch(() => {});
+    await pool
+      .query(
+        "UPDATE fingerprint_device SET status_koneksi = 'Online', updated_at = NOW() WHERE sn_device = ?",
+        [sn],
+      )
+      .catch(() => {});
   } catch (eDev) {}
 
   // Parse baris log absensi
-  const lines = rawBody.split(/\r?\n/).filter(l => l.trim().length > 0);
+  const lines = rawBody.split(/\r?\n/).filter((l) => l.trim().length > 0);
   let processedCount = 0;
 
   for (const line of lines) {
-    let pin = '';
-    let tanggalScan = '';
-    let waktuScan = '';
+    let pin = "";
+    let tanggalScan = "";
+    let waktuScan = "";
 
     // Regex mencocokkan format: PIN (angka/teks) lalu Tanggal (YYYY-MM-DD) lalu Jam (HH:mm:ss)
-    const match = line.match(/(\S+)\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})/);
+    const match = line.match(
+      /(\S+)\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})/,
+    );
     if (match) {
       pin = match[1].trim();
       tanggalScan = match[2].trim();
       waktuScan = match[3].trim();
     } else {
       const cols = line.split(/[\t\s]+/);
-      if (cols.length >= 3 && cols[1].includes('-') && cols[2].includes(':')) {
+      if (cols.length >= 3 && cols[1].includes("-") && cols[2].includes(":")) {
         pin = cols[0].trim();
         tanggalScan = cols[1].trim();
         waktuScan = cols[2].trim();
@@ -164,15 +196,20 @@ export const handleAdmsPushData = async (req, res) => {
 
     try {
       // 1. Cari santri berdasarkan fingerprint_pin, NIS, atau ID
-      const [santriRows] = await pool.query(`
+      const [santriRows] = await pool.query(
+        `
         SELECT id, nama_santri, nis, fingerprint_pin 
         FROM santri 
         WHERE fingerprint_pin = ? OR nis = ? OR id = ? 
         LIMIT 1
-      `, [pin, pin, pin]);
+      `,
+        [pin, pin, pin],
+      );
 
       if (!santriRows || santriRows.length === 0) {
-        console.warn(`[ADMS] PIN ${pin} dari mesin ${sn} tidak cocok dengan santri manapun di database.`);
+        console.warn(
+          `[ADMS] PIN ${pin} dari mesin ${sn} tidak cocok dengan santri manapun di database.`,
+        );
         continue;
       }
 
@@ -181,66 +218,126 @@ export const handleAdmsPushData = async (req, res) => {
       // 2. Otomatis Pilih Sesi Shalat Berjamaah Berdasarkan Jam Scan & Setting Jadwal Shalat Berjamaah
       const autoSesi = await resolveActiveShalatBerjamaahSesi(waktuScan);
       const sesiId = autoSesi?.id || 1;
-      const namaSesiAktif = autoSesi?.nama_sesi || 'Shalat Berjamaah';
-      const tipePresensi = 'Berjamaah';
-      let statusKehadiran = 'Hadir';
-      if (autoSesi?.jam_toleransi_telat && waktuScan > String(autoSesi.jam_toleransi_telat)) {
-        statusKehadiran = 'Hadir';
+      const namaSesiAktif = autoSesi?.nama_sesi || "Shalat Berjamaah";
+      const tipePresensi = "Berjamaah";
+      let statusKehadiran = "Hadir";
+      if (
+        autoSesi?.jam_toleransi_telat &&
+        waktuScan > String(autoSesi.jam_toleransi_telat)
+      ) {
+        statusKehadiran = "Hadir";
       }
 
       // 3. Cek apakah log untuk santri & tanggal ini sudah pernah dihapus oleh Admin
-      const [isDeleted] = await pool.query(`
+      const [isDeleted] = await pool
+        .query(
+          `
         SELECT id FROM absensi_deleted_logs 
         WHERE santri_id = ? AND tanggal = ? 
         LIMIT 1
-      `, [santri.id, tanggalScan]).catch(() => [[]]);
+      `,
+          [santri.id, tanggalScan],
+        )
+        .catch(() => [[]]);
 
       if (isDeleted && isDeleted.length > 0) {
-        console.log(`[ADMS SKIP] Log ${santri.nama_santri} (PIN: ${pin}) tanggal ${tanggalScan} jam ${waktuScan} dilewati karena telah dihapus oleh Admin.`);
+        console.log(
+          `[ADMS SKIP] Log ${santri.nama_santri} (PIN: ${pin}) tanggal ${tanggalScan} jam ${waktuScan} dilewati karena telah dihapus oleh Admin.`,
+        );
         continue;
       }
 
       // Otomatis nonaktifkan status haid jika santriwati scan di mesin fingerprint
-      deactivateHaidForSantri(santri.id, `Auto Mesin Fingerprint (SN: ${sn})`).catch(() => {});
+      deactivateHaidForSantri(
+        santri.id,
+        `Auto Mesin Fingerprint (SN: ${sn})`,
+      ).catch(() => {});
 
       // 4. Simpan atau Update ke Tabel absensi_jamaah_mengaji dengan Kategori Berjamaah Otomatis (Idempoten)
-      const [existingLog] = await pool.query(`
+      const [existingLog] = await pool.query(
+        `
         SELECT id FROM absensi_jamaah_mengaji 
         WHERE tanggal = ? AND santri_id = ? AND (
           sesi_id = ? OR LOWER(TRIM(COALESCE(nama_kegiatan, ''))) = LOWER(TRIM(?))
         )
         LIMIT 1
-      `, [tanggalScan, santri.id, sesiId, namaSesiAktif]);
+      `,
+        [tanggalScan, santri.id, sesiId, namaSesiAktif],
+      );
 
       const keterangan = `Scan Fingerprint Mesin MP340 (SN: ${sn}) - ${namaSesiAktif}`;
 
       if (existingLog && existingLog.length > 0) {
         try {
-          await pool.query(`
+          await pool.query(
+            `
             UPDATE absensi_jamaah_mengaji 
             SET status = ?, waktu_scan = ?, device_id = ?, metode_presensi = 'Fingerprint', nama_kegiatan = ?, tipe_presensi = ?, keterangan = ?
             WHERE id = ?
-          `, [statusKehadiran, waktuScan, deviceId, namaSesiAktif, tipePresensi, keterangan, existingLog[0].id]);
+          `,
+            [
+              statusKehadiran,
+              waktuScan,
+              deviceId,
+              namaSesiAktif,
+              tipePresensi,
+              keterangan,
+              existingLog[0].id,
+            ],
+          );
         } catch (errUp) {
-          await pool.query(`
+          await pool.query(
+            `
             UPDATE absensi_jamaah_mengaji 
             SET status = ?, waktu_scan = ?, device_id = ?, keterangan = ?
             WHERE id = ?
-          `, [statusKehadiran, waktuScan, deviceId, keterangan, existingLog[0].id]);
+          `,
+            [
+              statusKehadiran,
+              waktuScan,
+              deviceId,
+              keterangan,
+              existingLog[0].id,
+            ],
+          );
         }
       } else {
         try {
-          await pool.query(`
+          await pool.query(
+            `
             INSERT INTO absensi_jamaah_mengaji 
             (tanggal, sesi_id, nama_kegiatan, tipe_presensi, santri_id, waktu_scan, status, device_id, metode_presensi, keterangan)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Fingerprint', ?)
-          `, [tanggalScan, sesiId, namaSesiAktif, tipePresensi, santri.id, waktuScan, statusKehadiran, deviceId, keterangan]);
+          `,
+            [
+              tanggalScan,
+              sesiId,
+              namaSesiAktif,
+              tipePresensi,
+              santri.id,
+              waktuScan,
+              statusKehadiran,
+              deviceId,
+              keterangan,
+            ],
+          );
         } catch (errIns) {
-          await pool.query(`
+          await pool.query(
+            `
             INSERT INTO absensi_jamaah_mengaji 
             (tanggal, sesi_id, santri_id, waktu_scan, status, device_id, keterangan)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-          `, [tanggalScan, sesiId, santri.id, waktuScan, statusKehadiran, deviceId, keterangan]);
+          `,
+            [
+              tanggalScan,
+              sesiId,
+              santri.id,
+              waktuScan,
+              statusKehadiran,
+              deviceId,
+              keterangan,
+            ],
+          );
         }
       }
 
@@ -249,83 +346,105 @@ export const handleAdmsPushData = async (req, res) => {
         namaSantri: santri.nama_santri,
         kegiatan: namaSesiAktif,
         status: statusKehadiran,
-        waktu: waktuScan
+        waktu: waktuScan,
       });
       createWaliNotification({
         santri_id: santri.id,
-        kategori: 'absensi',
+        kategori: "absensi",
         judul: notifCopy.judul,
         pesan: notifCopy.pesan,
-        target_tab: 'absensi',
-        replaceRecentSameCategory: true
+        target_tab: "absensi",
+        replaceRecentSameCategory: true,
       });
-      console.log(`[ADMS SUCCESS] ${santri.nama_santri} (PIN: ${pin}) berhasil presensi jam ${waktuScan}!`);
+      console.log(
+        `[ADMS SUCCESS] ${santri.nama_santri} (PIN: ${pin}) berhasil presensi jam ${waktuScan}!`,
+      );
     } catch (lineErr) {
-      console.error(`[ADMS ERROR] Gagal proses baris "${line}":`, lineErr.message);
+      console.error(
+        `[ADMS ERROR] Gagal proses baris "${line}":`,
+        lineErr.message,
+      );
     }
   }
 
-  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
   return res.status(200).send(`OK: ${processedCount}\n`);
 };
 
 // 3. Heartbeat & Polling Perintah Mesin (Server kirim perintah / data santri ke mesin)
 export const handleAdmsGetRequest = async (req, res) => {
-  const sn = req.query.SN || req.query.sn || '';
+  const sn = req.query.SN || req.query.sn || "";
   try {
     await ensureAdmsTables();
     if (sn) {
-      await pool.query("UPDATE fingerprint_device SET status_koneksi = 'Online', updated_at = NOW() WHERE sn_device = ?", [sn]).catch(() => {});
+      await pool
+        .query(
+          "UPDATE fingerprint_device SET status_koneksi = 'Online', updated_at = NOW() WHERE sn_device = ?",
+          [sn],
+        )
+        .catch(() => {});
     }
     // Ambil antrean perintah pending untuk SN ini atau broadcast
-    const [pendingCmds] = await pool.query(`
+    const [pendingCmds] = await pool.query(
+      `
       SELECT id, command FROM adms_command_queue 
       WHERE status = 'PENDING' AND (sn_device = ? OR sn_device IS NULL OR sn_device = '')
       ORDER BY id ASC LIMIT 5
-    `, [sn]);
+    `,
+      [sn],
+    );
 
     if (pendingCmds && pendingCmds.length > 0) {
-      let responseBody = '';
+      let responseBody = "";
       const ids = [];
       for (const cmd of pendingCmds) {
         responseBody += `C:${cmd.id}:${cmd.command}\n`;
         ids.push(cmd.id);
       }
-      await pool.query(`UPDATE adms_command_queue SET status = 'SENT' WHERE id IN (?)`, [ids]);
-      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      await pool.query(
+        `UPDATE adms_command_queue SET status = 'SENT' WHERE id IN (?)`,
+        [ids],
+      );
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
       return res.status(200).send(responseBody);
     }
   } catch (err) {
-    console.error('[ADMS GETREQUEST ERR]', err.message);
+    console.error("[ADMS GETREQUEST ERR]", err.message);
   }
 
-  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-  return res.status(200).send('OK\n');
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
+  return res.status(200).send("OK\n");
 };
 
 // 4. Konfirmasi Penerimaan & Eksekusi Perintah oleh Mesin
 export const handleAdmsDeviceCmd = async (req, res) => {
-  const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+  const rawBody =
+    typeof req.body === "string" ? req.body : JSON.stringify(req.body);
   try {
     await ensureAdmsTables();
     const params = new URLSearchParams(rawBody.trim());
-    const cmdId = params.get('ID');
-    const retCode = params.get('Return');
+    const cmdId = params.get("ID");
+    const retCode = params.get("Return");
     if (cmdId) {
-      const status = (retCode === '0' || retCode === 0) ? 'SUCCESS' : 'FAILED';
-      await pool.query(`
+      const status = retCode === "0" || retCode === 0 ? "SUCCESS" : "FAILED";
+      await pool.query(
+        `
         UPDATE adms_command_queue 
         SET status = ?, return_code = ?, updated_at = NOW() 
         WHERE id = ?
-      `, [status, retCode || 0, cmdId]);
-      console.log(`[ADMS CMD ACK] Perintah ID ${cmdId} dieksekusi mesin dengan status: ${status} (Code: ${retCode})`);
+      `,
+        [status, retCode || 0, cmdId],
+      );
+      console.log(
+        `[ADMS CMD ACK] Perintah ID ${cmdId} dieksekusi mesin dengan status: ${status} (Code: ${retCode})`,
+      );
     }
   } catch (e) {
-    console.error('[ADMS DEVICECMD ERR]', e.message);
+    console.error("[ADMS DEVICECMD ERR]", e.message);
   }
 
-  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-  return res.status(200).send('OK\n');
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
+  return res.status(200).send("OK\n");
 };
 
 // 5. REST API: Antrekan Sinkronisasi Data Santri dari Server ke Mesin (Multi-Mesin / Banyak Mesin)
@@ -353,7 +472,12 @@ export const queuePushSantriToDevice = async (req, res) => {
 
     const [santriList] = await pool.query(query, params);
     if (!santriList || santriList.length === 0) {
-      return res.status(404).json({ success: false, message: 'Tidak ada data santri aktif untuk dikirim' });
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "Tidak ada data santri aktif untuk dikirim",
+        });
     }
 
     // Tentukan target Serial Number mesin (prioritaskan mesin yang berstatus Online)
@@ -368,14 +492,15 @@ export const queuePushSantriToDevice = async (req, res) => {
           AND status_koneksi = 'Online'
       `);
       if (onlineDevs && onlineDevs.length > 0) {
-        targetSNs = onlineDevs.map(d => d.sn_device);
+        targetSNs = onlineDevs.map((d) => d.sn_device);
       } else {
         const [allDevs] = await pool.query(`
           SELECT DISTINCT sn_device 
           FROM fingerprint_device 
           WHERE sn_device IS NOT NULL AND sn_device != ''
         `);
-        targetSNs = allDevs.length > 0 ? allDevs.map(d => d.sn_device) : [null];
+        targetSNs =
+          allDevs.length > 0 ? allDevs.map((d) => d.sn_device) : [null];
       }
     }
 
@@ -383,20 +508,30 @@ export const queuePushSantriToDevice = async (req, res) => {
     for (const targetSN of targetSNs) {
       for (const s of santriList) {
         const pin = s.fingerprint_pin || s.nis || String(s.id);
-        const cleanName = (s.nama_santri || 'Santri').replace(/[\t\r\n]/g, '').substring(0, 24);
+        const cleanName = (s.nama_santri || "Santri")
+          .replace(/[\t\r\n]/g, "")
+          .substring(0, 24);
         const command = `DATA USER PIN=${pin}\tName=${cleanName}\tPri=0\tPasswd=\tCard=\tGrp=1\tTZ=1`;
 
-        await pool.query(`
+        await pool.query(
+          `
           INSERT INTO adms_command_queue (sn_device, command, status)
           VALUES (?, ?, 'PENDING')
-        `, [targetSN, command]);
+        `,
+          [targetSN, command],
+        );
 
         if (targetSN) {
-          await pool.query(`
+          await pool
+            .query(
+              `
             INSERT INTO fingerprint_device_users (sn_device, santri_id, pin, status)
             VALUES (?, ?, ?, 'ENROLLED')
             ON DUPLICATE KEY UPDATE status = 'ENROLLED', pin = VALUES(pin)
-          `, [targetSN, s.id, pin]).catch(() => {});
+          `,
+              [targetSN, s.id, pin],
+            )
+            .catch(() => {});
         }
         queuedCount++;
       }
@@ -407,10 +542,10 @@ export const queuePushSantriToDevice = async (req, res) => {
       message: `Berhasil mengantrekan ${santriList.length} santri ke ${targetSNs.length} mesin (${queuedCount} total perintah)`,
       santri_count: santriList.length,
       device_count: targetSNs.length,
-      queued: queuedCount
+      queued: queuedCount,
     });
   } catch (err) {
-    console.error('[ADMS QUEUE USERS ERR]', err);
+    console.error("[ADMS QUEUE USERS ERR]", err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -432,7 +567,7 @@ export const getAdmsQueueStatus = async (req, res) => {
     return res.status(200).json({
       success: true,
       stats,
-      data: rows
+      data: rows,
     });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
@@ -454,17 +589,20 @@ export const queueClearUsersFromDevice = async (req, res) => {
         FROM fingerprint_device 
         WHERE sn_device IS NOT NULL AND sn_device != ''
       `);
-      targetSNs = allDevs.length > 0 ? allDevs.map(d => d.sn_device) : [null];
+      targetSNs = allDevs.length > 0 ? allDevs.map((d) => d.sn_device) : [null];
     }
 
     let queuedCount = 0;
     for (const targetSN of targetSNs) {
       // Perintah ADMS resmi untuk menghapus seluruh user & biometric template di mesin
-      const command = 'CLEAR DATA';
-      await pool.query(`
+      const command = "CLEAR DATA";
+      await pool.query(
+        `
         INSERT INTO adms_command_queue (sn_device, command, status)
         VALUES (?, ?, 'PENDING')
-      `, [targetSN, command]);
+      `,
+        [targetSN, command],
+      );
       queuedCount++;
     }
 
@@ -472,10 +610,10 @@ export const queueClearUsersFromDevice = async (req, res) => {
       success: true,
       message: `Perintah CLEAR DATA (hapus seluruh user di mesin) berhasil diantrekan ke ${targetSNs.length} mesin. Mesin akan mengeksekusi saat siklus getrequest berikutnya.`,
       device_count: targetSNs.length,
-      queued: queuedCount
+      queued: queuedCount,
     });
   } catch (err) {
-    console.error('[ADMS CLEAR USERS ERR]', err);
+    console.error("[ADMS CLEAR USERS ERR]", err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -485,16 +623,19 @@ export const getDeviceUsers = async (req, res) => {
   try {
     await ensureAdmsTables();
     const { sn } = req.query;
-    let peruntukan = 'Semua';
-    let deviceName = '';
+    let peruntukan = "Semua";
+    let deviceName = "";
     let deviceId = null;
 
     if (sn) {
-      const [dev] = await pool.query('SELECT id, nama_device, peruntukan FROM fingerprint_device WHERE sn_device = ? LIMIT 1', [sn]);
+      const [dev] = await pool.query(
+        "SELECT id, nama_device, peruntukan FROM fingerprint_device WHERE sn_device = ? LIMIT 1",
+        [sn],
+      );
       if (dev && dev.length > 0) {
         deviceId = dev[0].id;
-        peruntukan = dev[0].peruntukan || 'Semua';
-        deviceName = dev[0].nama_device || '';
+        peruntukan = dev[0].peruntukan || "Semua";
+        deviceName = dev[0].nama_device || "";
       }
     }
 
@@ -503,80 +644,155 @@ export const getDeviceUsers = async (req, res) => {
     const enrolledPins = new Set();
 
     if (sn) {
-      const [enrolledRows] = await pool.query(
-        `SELECT santri_id, pin FROM fingerprint_device_users WHERE sn_device = ? AND status = 'ENROLLED'`,
-        [sn]
-      ).catch(() => [[]]);
-      (enrolledRows || []).forEach(r => {
+      const [enrolledRows] = await pool
+        .query(
+          `SELECT santri_id, pin FROM fingerprint_device_users WHERE sn_device = ? AND status = 'ENROLLED'`,
+          [sn],
+        )
+        .catch(() => [[]]);
+      (enrolledRows || []).forEach((r) => {
         if (r.santri_id) enrolledSet.add(r.santri_id);
         if (r.pin) enrolledPins.add(String(r.pin));
       });
 
       // Ambil juga dari antrean perintah adms_command_queue untuk mesin ini
-      const [queuedRows] = await pool.query(
-        `SELECT command FROM adms_command_queue WHERE (sn_device = ? OR sn_device IS NULL OR sn_device = '') AND command LIKE 'DATA USER PIN=%'`,
-        [sn]
-      ).catch(() => [[]]);
-      (queuedRows || []).forEach(r => {
+      const [queuedRows] = await pool
+        .query(
+          `SELECT command FROM adms_command_queue WHERE (sn_device = ? OR sn_device IS NULL OR sn_device = '') AND command LIKE 'DATA USER PIN=%'`,
+          [sn],
+        )
+        .catch(() => [[]]);
+      (queuedRows || []).forEach((r) => {
         const m = r.command?.match(/PIN=([^\t\r\n]+)/);
         if (m && m[1]) enrolledPins.add(m[1].trim());
       });
 
       // Jika ada log presensi dari santri ini di device ini, berarti pasti ada di mesin
       if (deviceId) {
-        const [attRows] = await pool.query(
-          `SELECT DISTINCT santri_id FROM absensi_jamaah_mengaji WHERE device_id = ?`,
-          [deviceId]
-        ).catch(() => [[]]);
-        (attRows || []).forEach(r => { if (r.santri_id) enrolledSet.add(r.santri_id); });
+        const [attRows] = await pool
+          .query(
+            `SELECT DISTINCT santri_id FROM absensi_jamaah_mengaji WHERE device_id = ?`,
+            [deviceId],
+          )
+          .catch(() => [[]]);
+        (attRows || []).forEach((r) => {
+          if (r.santri_id) enrolledSet.add(r.santri_id);
+        });
       }
     }
 
-    // Ambil daftar santri langsung dan cepat (tanpa subquery yang lambat)
-    const [rows] = await pool.query(`
-      SELECT 
-        s.id, 
-        s.nis, 
-        s.nama_santri, 
-        COALESCE(s.jk, 'L') AS jk, 
-        COALESCE(s.nama_kelas, '-') AS nama_kelas, 
-        COALESCE(s.status, 'Aktif') AS status, 
-        s.fingerprint_pin,
-        s.foto
-      FROM santri s
-      ORDER BY CASE WHEN s.status IN ('Alumni', 'Boyong') THEN 1 ELSE 0 END, s.nama_santri ASC
-    `);
+    // Cek kolom yang aman di tabel santri
+    let selectAsrama = "'-' AS nama_asrama";
+    try {
+      const [colAsr] = await pool.query(
+        "SHOW COLUMNS FROM santri LIKE 'asrama_id'",
+      );
+      if (colAsr && colAsr.length > 0) {
+        selectAsrama =
+          "COALESCE((SELECT a.nama_asrama FROM asrama a WHERE a.id = s.asrama_id LIMIT 1), '-') AS nama_asrama";
+      }
+    } catch (e) {}
+
+    const devLabel = `${deviceName} ${peruntukan}`.toLowerCase();
+    const isAkhwat =
+      devLabel.includes("akhwat") ||
+      devLabel.includes("putri") ||
+      devLabel.includes("perempuan") ||
+      devLabel.includes("girl");
+    const isIkhwan =
+      devLabel.includes("ikhwan") ||
+      devLabel.includes("putra") ||
+      devLabel.includes("laki") ||
+      devLabel.includes("boy");
+
+    // Query santri (prioritaskan filter gender sesuai mesin, jika return kosong otomatis fallback semua)
+    let queryFilter = "";
+    if (isAkhwat && !isIkhwan) {
+      queryFilter = ` AND (LOWER(COALESCE(s.jk, '')) LIKE 'p%' OR LOWER(COALESCE(s.jk, '')) LIKE 'akhwat%' OR LOWER(COALESCE(s.jk, '')) LIKE 'putri%')`;
+    } else if (isIkhwan && !isAkhwat) {
+      queryFilter = ` AND (LOWER(COALESCE(s.jk, '')) LIKE 'l%' OR LOWER(COALESCE(s.jk, '')) LIKE 'ikhwan%' OR LOWER(COALESCE(s.jk, '')) LIKE 'putra%')`;
+    }
+
+    let rows = [];
+    if (queryFilter !== "") {
+      const [qRows] = await pool
+        .query(
+          `
+        SELECT 
+          s.id, 
+          s.nis, 
+          s.nama_santri, 
+          COALESCE(s.jk, 'L') AS jk, 
+          COALESCE(s.nama_kelas, '-') AS nama_kelas, 
+          COALESCE(s.status, 'Aktif') AS status, 
+          s.fingerprint_pin,
+          s.foto,
+          ${selectAsrama}
+        FROM santri s
+        WHERE 1=1 ${queryFilter}
+        ORDER BY CASE WHEN s.status IN ('Alumni', 'Boyong') THEN 1 ELSE 0 END, s.nama_santri ASC
+      `,
+        )
+        .catch(() => [[]]);
+      rows = qRows || [];
+    }
+
+    // Jika filter gender menghasilkan 0 atau tidak ada filter, tampilkan seluruh santri
+    if (!rows || rows.length === 0) {
+      const [allRows] = await pool
+        .query(
+          `
+        SELECT 
+          s.id, 
+          s.nis, 
+          s.nama_santri, 
+          COALESCE(s.jk, 'L') AS jk, 
+          COALESCE(s.nama_kelas, '-') AS nama_kelas, 
+          COALESCE(s.status, 'Aktif') AS status, 
+          s.fingerprint_pin,
+          s.foto,
+          ${selectAsrama}
+        FROM santri s
+        ORDER BY CASE WHEN s.status IN ('Alumni', 'Boyong') THEN 1 ELSE 0 END, s.nama_santri ASC
+      `,
+        )
+        .catch(() => [[]]);
+      rows = allRows || [];
+    }
 
     // Jika belum ada catatan enrolled sama sekali, santri yang punya fingerprint_pin dianggap sudah terdaftar
     const isFirstTime = enrolledSet.size === 0 && enrolledPins.size === 0;
 
-    const formatted = (rows || []).map(r => {
+    const formatted = (rows || []).map((r) => {
       const pin = r.fingerprint_pin || r.nis || String(r.id);
-      const isAlumni = r.status === 'Alumni' || r.status === 'Boyong';
-      
+      const isAlumni = r.status === "Alumni" || r.status === "Boyong";
+
       // Santri dianggap terdaftar di mesin jika ada di enrolledSet atau di enrolledPins atau punya fingerprint_pin
-      const isEnrolled = enrolledSet.has(r.id) || enrolledPins.has(String(pin)) || (isFirstTime && !!r.fingerprint_pin);
+      const isEnrolled =
+        enrolledSet.has(r.id) ||
+        enrolledPins.has(String(pin)) ||
+        (isFirstTime && !!r.fingerprint_pin);
 
       return {
         id: r.id,
         nis: r.nis,
         nama_santri: r.nama_santri,
         jk: r.jk,
-        nama_kelas: r.nama_kelas || '-',
-        nama_asrama: r.nama_asrama || '-',
-        status: r.status || 'Aktif',
+        nama_kelas: r.nama_kelas || "-",
+        nama_asrama: r.nama_asrama || "-",
+        status: r.status || "Aktif",
         pin: pin,
         is_alumni: isAlumni,
         is_enrolled: isEnrolled,
-        status_mesin: isEnrolled ? 'TERDAFTAR' : 'BELUM_TERDAFTAR',
-        foto: r.foto
+        status_mesin: isEnrolled ? "TERDAFTAR" : "BELUM_TERDAFTAR",
+        foto: r.foto,
       };
     });
 
     const total = formatted.length;
-    const enrolledCount = formatted.filter(x => x.is_enrolled).length;
+    const enrolledCount = formatted.filter((x) => x.is_enrolled).length;
     const notEnrolledCount = total - enrolledCount;
-    const alumniCount = formatted.filter(x => x.is_alumni).length;
+    const alumniCount = formatted.filter((x) => x.is_alumni).length;
     const aktifCount = total - alumniCount;
 
     return res.status(200).json({
@@ -585,19 +801,19 @@ export const getDeviceUsers = async (req, res) => {
         id: deviceId,
         sn_device: sn,
         nama_device: deviceName,
-        peruntukan: peruntukan
+        peruntukan: peruntukan,
       },
       counts: {
         total,
         enrolled: enrolledCount,
         not_enrolled: notEnrolledCount,
         aktif: aktifCount,
-        alumni: alumniCount
+        alumni: alumniCount,
       },
-      data: formatted
+      data: formatted,
     });
   } catch (err) {
-    console.error('[ADMS GET DEVICE USERS ERR]', err);
+    console.error("[ADMS GET DEVICE USERS ERR]", err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -609,50 +825,74 @@ export const registerSantriToDevice = async (req, res) => {
     const { sn_device, santri_id } = req.body;
 
     if (!santri_id) {
-      return res.status(400).json({ success: false, message: 'santri_id wajib diisi' });
+      return res
+        .status(400)
+        .json({ success: false, message: "santri_id wajib diisi" });
     }
 
-    const [sRows] = await pool.query('SELECT id, nis, nama_santri, fingerprint_pin FROM santri WHERE id = ? LIMIT 1', [santri_id]);
+    const [sRows] = await pool.query(
+      "SELECT id, nis, nama_santri, fingerprint_pin FROM santri WHERE id = ? LIMIT 1",
+      [santri_id],
+    );
     if (!sRows || sRows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Data santri tidak ditemukan' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Data santri tidak ditemukan" });
     }
 
     const s = sRows[0];
     const pin = s.fingerprint_pin || s.nis || String(s.id);
-    const cleanName = (s.nama_santri || 'Santri').replace(/[\t\r\n]/g, '').substring(0, 24);
+    const cleanName = (s.nama_santri || "Santri")
+      .replace(/[\t\r\n]/g, "")
+      .substring(0, 24);
     const command = `DATA USER PIN=${pin}\tName=${cleanName}\tPri=0\tPasswd=\tCard=\tGrp=1\tTZ=1`;
 
     let targetSNs = [];
     if (sn_device) {
       targetSNs = [sn_device];
     } else {
-      const [allDevs] = await pool.query("SELECT DISTINCT sn_device FROM fingerprint_device WHERE sn_device IS NOT NULL AND sn_device != ''");
-      targetSNs = allDevs.map(d => d.sn_device);
+      const [allDevs] = await pool.query(
+        "SELECT DISTINCT sn_device FROM fingerprint_device WHERE sn_device IS NOT NULL AND sn_device != ''",
+      );
+      targetSNs = allDevs.map((d) => d.sn_device);
     }
 
     for (const targetSN of targetSNs) {
-      await pool.query(`
+      await pool.query(
+        `
         INSERT INTO adms_command_queue (sn_device, command, status)
         VALUES (?, ?, 'PENDING')
-      `, [targetSN, command]);
+      `,
+        [targetSN, command],
+      );
 
-      await pool.query(`
+      await pool
+        .query(
+          `
         INSERT INTO fingerprint_device_users (sn_device, santri_id, pin, status)
         VALUES (?, ?, ?, 'ENROLLED')
         ON DUPLICATE KEY UPDATE status = 'ENROLLED', pin = VALUES(pin)
-      `, [targetSN, s.id, pin]).catch(() => {});
+      `,
+          [targetSN, s.id, pin],
+        )
+        .catch(() => {});
     }
 
     if (!s.fingerprint_pin) {
-      await pool.query('UPDATE santri SET fingerprint_pin = ? WHERE id = ?', [pin, s.id]).catch(() => {});
+      await pool
+        .query("UPDATE santri SET fingerprint_pin = ? WHERE id = ?", [
+          pin,
+          s.id,
+        ])
+        .catch(() => {});
     }
 
     return res.status(200).json({
       success: true,
-      message: `Santri ${s.nama_santri} (PIN: ${pin}) berhasil diantrekan untuk didaftarkan ke mesin.`
+      message: `Santri ${s.nama_santri} (PIN: ${pin}) berhasil diantrekan untuk didaftarkan ke mesin.`,
     });
   } catch (err) {
-    console.error('[ADMS REGISTER USER ERR]', err);
+    console.error("[ADMS REGISTER USER ERR]", err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -663,21 +903,32 @@ export const registerAllUnregisteredToDevice = async (req, res) => {
     await ensureAdmsTables();
     const { sn_device } = req.body;
 
-    let peruntukan = 'Semua';
-    let deviceName = '';
+    let peruntukan = "Semua";
+    let deviceName = "";
     if (sn_device) {
-      const [dev] = await pool.query('SELECT nama_device, peruntukan FROM fingerprint_device WHERE sn_device = ? LIMIT 1', [sn_device]);
+      const [dev] = await pool.query(
+        "SELECT nama_device, peruntukan FROM fingerprint_device WHERE sn_device = ? LIMIT 1",
+        [sn_device],
+      );
       if (dev && dev.length > 0) {
-        peruntukan = dev[0].peruntukan || 'Semua';
-        deviceName = dev[0].nama_device || '';
+        peruntukan = dev[0].peruntukan || "Semua";
+        deviceName = dev[0].nama_device || "";
       }
     }
 
     const devLabel = `${deviceName} ${peruntukan}`.toLowerCase();
-    const isAkhwat = devLabel.includes('akhwat') || devLabel.includes('putri') || devLabel.includes('perempuan') || devLabel.includes('girl');
-    const isIkhwan = devLabel.includes('ikhwan') || devLabel.includes('putra') || devLabel.includes('laki') || devLabel.includes('boy');
+    const isAkhwat =
+      devLabel.includes("akhwat") ||
+      devLabel.includes("putri") ||
+      devLabel.includes("perempuan") ||
+      devLabel.includes("girl");
+    const isIkhwan =
+      devLabel.includes("ikhwan") ||
+      devLabel.includes("putra") ||
+      devLabel.includes("laki") ||
+      devLabel.includes("boy");
 
-    let genderFilter = '';
+    let genderFilter = "";
     if (isAkhwat && !isIkhwan) {
       genderFilter = ` AND (LOWER(COALESCE(s.jk, '')) LIKE 'p%' OR LOWER(COALESCE(s.jk, '')) LIKE 'akhwat%' OR LOWER(COALESCE(s.jk, '')) LIKE 'putri%')`;
     } else if (isIkhwan && !isAkhwat) {
@@ -685,7 +936,9 @@ export const registerAllUnregisteredToDevice = async (req, res) => {
     }
 
     // Ambil santri aktif yang belum terdaftar di fingerprint_device_users untuk sn ini
-    let [unregistered] = await pool.query(`
+    let [unregistered] = await pool
+      .query(
+        `
       SELECT s.id, s.nis, s.nama_santri, s.fingerprint_pin 
       FROM santri s
       WHERE (s.status = 'Aktif' OR s.status IS NULL OR s.status = '')
@@ -694,11 +947,16 @@ export const registerAllUnregisteredToDevice = async (req, res) => {
         AND s.id NOT IN (
           SELECT santri_id FROM fingerprint_device_users WHERE sn_device = ? AND status = 'ENROLLED'
         )
-    `, [sn_device]).catch(() => [[]]);
+    `,
+        [sn_device],
+      )
+      .catch(() => [[]]);
 
-    if ((!unregistered || unregistered.length === 0) && genderFilter !== '') {
+    if ((!unregistered || unregistered.length === 0) && genderFilter !== "") {
       // Fallback tanpa filter gender jika kosong
-      const [allUnregistered] = await pool.query(`
+      const [allUnregistered] = await pool
+        .query(
+          `
         SELECT s.id, s.nis, s.nama_santri, s.fingerprint_pin 
         FROM santri s
         WHERE (s.status = 'Aktif' OR s.status IS NULL OR s.status = '')
@@ -706,37 +964,55 @@ export const registerAllUnregisteredToDevice = async (req, res) => {
           AND s.id NOT IN (
             SELECT santri_id FROM fingerprint_device_users WHERE sn_device = ? AND status = 'ENROLLED'
           )
-      `, [sn_device]).catch(() => [[]]);
+      `,
+          [sn_device],
+        )
+        .catch(() => [[]]);
       unregistered = allUnregistered || [];
     }
 
     if (!unregistered || unregistered.length === 0) {
       return res.status(200).json({
         success: true,
-        message: 'Seluruh santri aktif sudah terdaftar di mesin ini.',
-        count: 0
+        message: "Seluruh santri aktif sudah terdaftar di mesin ini.",
+        count: 0,
       });
     }
 
     let queuedCount = 0;
     for (const s of unregistered) {
       const pin = s.fingerprint_pin || s.nis || String(s.id);
-      const cleanName = (s.nama_santri || 'Santri').replace(/[\t\r\n]/g, '').substring(0, 24);
+      const cleanName = (s.nama_santri || "Santri")
+        .replace(/[\t\r\n]/g, "")
+        .substring(0, 24);
       const command = `DATA USER PIN=${pin}\tName=${cleanName}\tPri=0\tPasswd=\tCard=\tGrp=1\tTZ=1`;
 
-      await pool.query(`
+      await pool.query(
+        `
         INSERT INTO adms_command_queue (sn_device, command, status)
         VALUES (?, ?, 'PENDING')
-      `, [sn_device, command]);
+      `,
+        [sn_device, command],
+      );
 
-      await pool.query(`
+      await pool
+        .query(
+          `
         INSERT INTO fingerprint_device_users (sn_device, santri_id, pin, status)
         VALUES (?, ?, ?, 'ENROLLED')
         ON DUPLICATE KEY UPDATE status = 'ENROLLED', pin = VALUES(pin)
-      `, [sn_device, s.id, pin]).catch(() => {});
+      `,
+          [sn_device, s.id, pin],
+        )
+        .catch(() => {});
 
       if (!s.fingerprint_pin) {
-        await pool.query('UPDATE santri SET fingerprint_pin = ? WHERE id = ?', [pin, s.id]).catch(() => {});
+        await pool
+          .query("UPDATE santri SET fingerprint_pin = ? WHERE id = ?", [
+            pin,
+            s.id,
+          ])
+          .catch(() => {});
       }
       queuedCount++;
     }
@@ -744,10 +1020,10 @@ export const registerAllUnregisteredToDevice = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: `Berhasil mendaftarkan ${queuedCount} santri yang belum ada ke antrean mesin!`,
-      count: queuedCount
+      count: queuedCount,
     });
   } catch (err) {
-    console.error('[ADMS REGISTER ALL UNREGISTERED ERR]', err);
+    console.error("[ADMS REGISTER ALL UNREGISTERED ERR]", err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -759,43 +1035,59 @@ export const deleteUserFromDevice = async (req, res) => {
     const { sn_device, pin, santri_id, clear_pin } = req.body;
 
     if (!pin) {
-      return res.status(400).json({ success: false, message: 'PIN user wajib diisi' });
+      return res
+        .status(400)
+        .json({ success: false, message: "PIN user wajib diisi" });
     }
 
     let targetSNs = [];
     if (sn_device) {
       targetSNs = [sn_device];
     } else {
-      const [allDevs] = await pool.query("SELECT DISTINCT sn_device FROM fingerprint_device WHERE sn_device IS NOT NULL AND sn_device != ''");
-      targetSNs = allDevs.map(d => d.sn_device);
+      const [allDevs] = await pool.query(
+        "SELECT DISTINCT sn_device FROM fingerprint_device WHERE sn_device IS NOT NULL AND sn_device != ''",
+      );
+      targetSNs = allDevs.map((d) => d.sn_device);
     }
 
     const command = `DATA DELETE USER PIN=${pin}`;
     for (const targetSN of targetSNs) {
-      await pool.query(`
+      await pool.query(
+        `
         INSERT INTO adms_command_queue (sn_device, command, status)
         VALUES (?, ?, 'PENDING')
-      `, [targetSN, command]);
+      `,
+        [targetSN, command],
+      );
 
       if (santri_id) {
-        await pool.query(`
+        await pool
+          .query(
+            `
           UPDATE fingerprint_device_users 
           SET status = 'DELETED' 
           WHERE sn_device = ? AND santri_id = ?
-        `, [targetSN, santri_id]).catch(() => {});
+        `,
+            [targetSN, santri_id],
+          )
+          .catch(() => {});
       }
     }
 
     if (clear_pin && santri_id) {
-      await pool.query('UPDATE santri SET fingerprint_pin = NULL WHERE id = ?', [santri_id]).catch(() => {});
+      await pool
+        .query("UPDATE santri SET fingerprint_pin = NULL WHERE id = ?", [
+          santri_id,
+        ])
+        .catch(() => {});
     }
 
     return res.status(200).json({
       success: true,
-      message: `Perintah hapus user (PIN: ${pin}) berhasil diantrekan ke mesin.`
+      message: `Perintah hapus user (PIN: ${pin}) berhasil diantrekan ke mesin.`,
     });
   } catch (err) {
-    console.error('[ADMS DELETE USER ERR]', err);
+    console.error("[ADMS DELETE USER ERR]", err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -806,11 +1098,14 @@ export const deleteAlumniFromDevice = async (req, res) => {
     await ensureAdmsTables();
     const { sn_device } = req.body;
 
-    let peruntukan = 'Semua';
+    let peruntukan = "Semua";
     if (sn_device) {
-      const [dev] = await pool.query('SELECT peruntukan FROM fingerprint_device WHERE sn_device = ? LIMIT 1', [sn_device]);
+      const [dev] = await pool.query(
+        "SELECT peruntukan FROM fingerprint_device WHERE sn_device = ? LIMIT 1",
+        [sn_device],
+      );
       if (dev && dev.length > 0) {
-        peruntukan = dev[0].peruntukan || 'Semua';
+        peruntukan = dev[0].peruntukan || "Semua";
       }
     }
 
@@ -824,15 +1119,18 @@ export const deleteAlumniFromDevice = async (req, res) => {
     if (!alumniList || alumniList.length === 0) {
       return res.status(200).json({
         success: true,
-        message: 'Tidak ditemukan data santri berstatus Alumni/Boyong untuk dihapus.',
-        count: 0
+        message:
+          "Tidak ditemukan data santri berstatus Alumni/Boyong untuk dihapus.",
+        count: 0,
       });
     }
 
     let targetSNs = sn_device ? [sn_device] : [];
     if (targetSNs.length === 0) {
-      const [allDevs] = await pool.query("SELECT DISTINCT sn_device FROM fingerprint_device WHERE sn_device IS NOT NULL AND sn_device != ''");
-      targetSNs = allDevs.map(d => d.sn_device);
+      const [allDevs] = await pool.query(
+        "SELECT DISTINCT sn_device FROM fingerprint_device WHERE sn_device IS NOT NULL AND sn_device != ''",
+      );
+      targetSNs = allDevs.map((d) => d.sn_device);
     }
 
     let queuedCount = 0;
@@ -840,16 +1138,24 @@ export const deleteAlumniFromDevice = async (req, res) => {
       for (const s of alumniList) {
         const pin = s.fingerprint_pin || s.nis || String(s.id);
         const command = `DATA DELETE USER PIN=${pin}`;
-        await pool.query(`
+        await pool.query(
+          `
           INSERT INTO adms_command_queue (sn_device, command, status)
           VALUES (?, ?, 'PENDING')
-        `, [targetSN, command]);
+        `,
+          [targetSN, command],
+        );
 
-        await pool.query(`
+        await pool
+          .query(
+            `
           UPDATE fingerprint_device_users 
           SET status = 'DELETED' 
           WHERE sn_device = ? AND santri_id = ?
-        `, [targetSN, s.id]).catch(() => {});
+        `,
+            [targetSN, s.id],
+          )
+          .catch(() => {});
         queuedCount++;
       }
     }
@@ -858,27 +1164,31 @@ export const deleteAlumniFromDevice = async (req, res) => {
       success: true,
       message: `Berhasil mengantrekan penghapusan ${alumniList.length} santri alumni ke mesin (${queuedCount} perintah antrean).`,
       count: alumniList.length,
-      queued: queuedCount
+      queued: queuedCount,
     });
   } catch (err) {
-    console.error('[ADMS DELETE ALUMNI ERR]', err);
+    console.error("[ADMS DELETE ALUMNI ERR]", err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };
 
 // 5. Registry Mesin
 export const handleAdmsRegistry = async (req, res) => {
-  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-  return res.status(200).send('RegistryCode=12345\nRegistryState=1\n');
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
+  return res.status(200).send("RegistryCode=12345\nRegistryState=1\n");
 };
 
 // 6. Ping / Keep-Alive
 export const handleAdmsPing = async (req, res) => {
-  const sn = req.query.SN || req.query.sn || '';
+  const sn = req.query.SN || req.query.sn || "";
   if (sn) {
-    await pool.query("UPDATE fingerprint_device SET status_koneksi = 'Online', updated_at = NOW() WHERE sn_device = ?", [sn]).catch(() => {});
+    await pool
+      .query(
+        "UPDATE fingerprint_device SET status_koneksi = 'Online', updated_at = NOW() WHERE sn_device = ?",
+        [sn],
+      )
+      .catch(() => {});
   }
-  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-  return res.status(200).send('OK\n');
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
+  return res.status(200).send("OK\n");
 };
-
