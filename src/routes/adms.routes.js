@@ -10,6 +10,8 @@ import {
   queueClearUsersFromDevice,
   getAdmsQueueStatus,
   getDeviceUsers,
+  registerSantriToDevice,
+  registerAllUnregisteredToDevice,
   deleteUserFromDevice,
   deleteAlumniFromDevice
 } from '../controllers/adms.controller.js';
@@ -40,6 +42,8 @@ router.post('/sync-santri', queuePushSantriToDevice);
 router.post('/clear-users', queueClearUsersFromDevice);
 router.get('/queue-status', getAdmsQueueStatus);
 router.get('/device-users', getDeviceUsers);
+router.post('/register-santri', registerSantriToDevice);
+router.post('/register-all', registerAllUnregisteredToDevice);
 router.post('/delete-user', deleteUserFromDevice);
 router.post('/delete-alumni', deleteAlumniFromDevice);
 

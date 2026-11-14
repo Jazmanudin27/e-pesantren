@@ -19,6 +19,7 @@ import {
   Users,
   Send,
   AlertTriangle,
+  AlertCircle,
   UserMinus,
   UserCheck,
   CheckCircle2,
@@ -48,7 +49,9 @@ export default function FingerprintDeviceView() {
   const [userStatusFilter, setUserStatusFilter] = useState('Semua');
   const [deletingUserPin, setDeletingUserPin] = useState(null);
   const [deletingAlumni, setDeletingAlumni] = useState(false);
-  const [userCounts, setUserCounts] = useState({ total: 0, aktif: 0, alumni: 0 });
+  const [registeringSantriId, setRegisteringSantriId] = useState(null);
+  const [registeringAll, setRegisteringAll] = useState(false);
+  const [userCounts, setUserCounts] = useState({ total: 0, enrolled: 0, not_enrolled: 0, aktif: 0, alumni: 0 });
 
   // Modal Form (Add & Edit)
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -95,7 +98,7 @@ export default function FingerprintDeviceView() {
       const res = await axios.get(`/api/iclock/device-users?sn=${encodeURIComponent(sn || '')}`);
       if (res.data && res.data.success) {
         setDeviceUsers(res.data.data || []);
-        setUserCounts(res.data.counts || { total: 0, aktif: 0, alumni: 0 });
+        setUserCounts(res.data.counts || { total: 0, enrolled: 0, not_enrolled: 0, aktif: 0, alumni: 0 });
       } else {
         setDeviceUsers([]);
       }
@@ -170,6 +173,48 @@ export default function FingerprintDeviceView() {
       showError('Gagal Hapus Alumni', err.response?.data?.message || err.message);
     } finally {
       setDeletingAlumni(false);
+    }
+  };
+
+  const handleRegisterSingleSantri = async (santri) => {
+    try {
+      setRegisteringSantriId(santri.id);
+      const res = await axios.post('/api/iclock/register-santri', {
+        sn_device: selectedDevice?.sn_device,
+        santri_id: santri.id
+      });
+      toastSuccess(res.data?.message || `Santri ${santri.nama_santri} berhasil didaftarkan ke mesin!`);
+      fetchDeviceUsers(selectedDevice?.sn_device);
+      fetchDevices();
+    } catch (err) {
+      showError('Gagal Mendaftarkan', err.response?.data?.message || err.message);
+    } finally {
+      setRegisteringSantriId(null);
+    }
+  };
+
+  const handleRegisterAllUnregistered = async () => {
+    const count = userCounts.not_enrolled || 0;
+    const confirmed = await showConfirm(
+      `Daftarkan Semua Santri yang Belum Ada ke Mesin?`,
+      `Sistem akan mendaftarkan ${count} santri aktif yang belum terdaftar ke mesin "${selectedDevice?.nama_device || ''}". Perintah sinkronisasi akan langsung diantrekan ke mesin.`,
+      'Ya, Daftarkan Semua',
+      'Batal'
+    );
+    if (!confirmed) return;
+
+    try {
+      setRegisteringAll(true);
+      const res = await axios.post('/api/iclock/register-all', {
+        sn_device: selectedDevice?.sn_device
+      });
+      toastSuccess(res.data?.message || 'Seluruh santri yang belum ada berhasil diantrekan ke mesin!');
+      fetchDeviceUsers(selectedDevice?.sn_device);
+      fetchDevices();
+    } catch (err) {
+      showError('Gagal Mendaftarkan', err.response?.data?.message || err.message);
+    } finally {
+      setRegisteringAll(false);
     }
   };
 
@@ -328,7 +373,7 @@ export default function FingerprintDeviceView() {
   const totalEnrolled = devices.reduce((acc, d) => acc + (parseInt(d.total_enrolled) || 0), 0);
 
   const filteredDeviceUsers = deviceUsers.filter((u) => {
-    const q = userSearch.toLowerCase();
+    const q = userSearch.toLowerCase().trim();
     const matchSearch = 
       !q || 
       u.nama_santri?.toLowerCase().includes(q) ||
@@ -338,6 +383,8 @@ export default function FingerprintDeviceView() {
 
     const matchStatus = 
       userStatusFilter === 'Semua' ? true :
+      userStatusFilter === 'Enrolled' ? u.is_enrolled :
+      userStatusFilter === 'NotEnrolled' ? !u.is_enrolled :
       userStatusFilter === 'Aktif' ? !u.is_alumni :
       userStatusFilter === 'Alumni' ? u.is_alumni : true;
 
@@ -745,10 +792,10 @@ export default function FingerprintDeviceView() {
               {detailTab === 'santri' && (
                 <>
                   {/* Top Summary Stat Chips */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
                     <div style={{ background: '#ffffff', borderRadius: '8px', padding: '12px 16px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
                       <div>
-                        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>TOTAL SANTRI TERDAFTAR</div>
+                        <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>TOTAL SANTRI APLIKASI</div>
                         <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>{userCounts.total} <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#94a3b8' }}>Santri</span></div>
                       </div>
                       <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -756,19 +803,29 @@ export default function FingerprintDeviceView() {
                       </div>
                     </div>
 
-                    <div style={{ background: '#ffffff', borderRadius: '8px', padding: '12px 16px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                    <div style={{ background: '#ffffff', borderRadius: '8px', padding: '12px 16px', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
                       <div>
-                        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#16a34a', textTransform: 'uppercase' }}>SANTRI AKTIF</div>
-                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#16a34a' }}>{userCounts.aktif} <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#86efac' }}>Santri</span></div>
+                        <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#16a34a', textTransform: 'uppercase' }}>TERDAFTAR DI MESIN</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#16a34a' }}>{userCounts.enrolled} <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#86efac' }}>Santri</span></div>
                       </div>
                       <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <UserCheck size={18} />
+                        <CheckCircle2 size={18} />
+                      </div>
+                    </div>
+
+                    <div style={{ background: '#ffffff', borderRadius: '8px', padding: '12px 16px', border: userCounts.not_enrolled > 0 ? '1px solid #fed7aa' : '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                      <div>
+                        <div style={{ fontSize: '0.66rem', fontWeight: 700, color: userCounts.not_enrolled > 0 ? '#d97706' : '#64748b', textTransform: 'uppercase' }}>BELUM DI MESIN</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: userCounts.not_enrolled > 0 ? '#d97706' : '#0f172a' }}>{userCounts.not_enrolled} <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#94a3b8' }}>Santri</span></div>
+                      </div>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: userCounts.not_enrolled > 0 ? '#ffedd5' : '#f1f5f9', color: userCounts.not_enrolled > 0 ? '#d97706' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <AlertCircle size={18} />
                       </div>
                     </div>
 
                     <div style={{ background: '#ffffff', borderRadius: '8px', padding: '12px 16px', border: userCounts.alumni > 0 ? '1px solid #fecaca' : '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
                       <div>
-                        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: userCounts.alumni > 0 ? '#dc2626' : '#64748b', textTransform: 'uppercase' }}>SANTRI ALUMNI / LULUS</div>
+                        <div style={{ fontSize: '0.66rem', fontWeight: 700, color: userCounts.alumni > 0 ? '#dc2626' : '#64748b', textTransform: 'uppercase' }}>SANTRI ALUMNI / LULUS</div>
                         <div style={{ fontSize: '1.25rem', fontWeight: 800, color: userCounts.alumni > 0 ? '#dc2626' : '#0f172a' }}>{userCounts.alumni} <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#94a3b8' }}>Santri</span></div>
                       </div>
                       <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: userCounts.alumni > 0 ? '#fee2e2' : '#f1f5f9', color: userCounts.alumni > 0 ? '#dc2626' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -776,6 +833,58 @@ export default function FingerprintDeviceView() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Banner Notif jika ada Santri Belum Terdaftar ke Mesin */}
+                  {userCounts.not_enrolled > 0 && (
+                    <div style={{
+                      background: 'linear-gradient(90deg, #eff6ff 0%, #dbeafe 100%)',
+                      border: '1px solid #bfdbfe',
+                      borderRadius: '8px',
+                      padding: '12px 16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#dbeafe', color: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <AlertCircle size={18} />
+                        </div>
+                        <div>
+                          <strong style={{ fontSize: '0.82rem', color: '#1e40af', display: 'block' }}>
+                            Terdapat {userCounts.not_enrolled} santri aktif yang belum didaftarkan ke mesin fingerprint ini!
+                          </strong>
+                          <span style={{ fontSize: '0.74rem', color: '#2563eb' }}>
+                            Daftarkan santri ke mesin agar sidik jari dan NIS ananda dapat langsung digunakan untuk presensi.
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        className="btn btn-sm"
+                        style={{
+                          background: '#0284c7',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '7px 14px',
+                          fontSize: '0.76rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          whiteSpace: 'nowrap',
+                          boxShadow: '0 2px 4px rgba(2, 132, 199, 0.25)'
+                        }}
+                        disabled={registeringAll}
+                        onClick={handleRegisterAllUnregistered}
+                      >
+                        {registeringAll ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+                        <span>Daftarkan Semua yang Belum Ada ({userCounts.not_enrolled})</span>
+                      </button>
+                    </div>
+                  )}
 
                   {/* Warning Alert if Alumni users are detected */}
                   {userCounts.alumni > 0 && (
@@ -796,10 +905,10 @@ export default function FingerprintDeviceView() {
                         </div>
                         <div>
                           <strong style={{ fontSize: '0.82rem', color: '#92400e', display: 'block' }}>
-                            Terdapat {userCounts.alumni} santri yang sudah lulus (Alumni/Boyong) di mesin ini!
+                            Terdapat {userCounts.alumni} santri yang sudah lulus (Alumni/Boyong) di sistem!
                           </strong>
                           <span style={{ fontSize: '0.74rem', color: '#b45309' }}>
-                            Data santri yang sudah lulus tidak lagi diperlukan di mesin fingerprint dan dapat dibersihkan untuk menjaga kapasitas memori.
+                            Data santri yang sudah lulus dapat dibersihkan dari mesin untuk menjaga kapasitas memori sidik jari.
                           </span>
                         </div>
                       </div>
@@ -840,8 +949,8 @@ export default function FingerprintDeviceView() {
                     justifyContent: 'space-between',
                     gap: '10px'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '280px' }}>
-                      <div style={{ position: 'relative', flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: '280px', flexWrap: 'wrap' }}>
+                      <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
                         <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
                         <input
                           type="text"
@@ -854,7 +963,7 @@ export default function FingerprintDeviceView() {
                       </div>
 
                       {/* Status Filter Pills */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflowX: 'auto' }}>
                         <button
                           onClick={() => setUserStatusFilter('Semua')}
                           style={{
@@ -864,14 +973,14 @@ export default function FingerprintDeviceView() {
                             borderRadius: '6px',
                             border: 'none',
                             cursor: 'pointer',
-                            background: userStatusFilter === 'Semua' ? '#0284c7' : '#f1f5f9',
+                            background: userStatusFilter === 'Semua' ? '#0f172a' : '#f1f5f9',
                             color: userStatusFilter === 'Semua' ? '#ffffff' : '#64748b'
                           }}
                         >
                           Semua ({userCounts.total})
                         </button>
                         <button
-                          onClick={() => setUserStatusFilter('Aktif')}
+                          onClick={() => setUserStatusFilter('Enrolled')}
                           style={{
                             padding: '6px 12px',
                             fontSize: '0.74rem',
@@ -879,11 +988,26 @@ export default function FingerprintDeviceView() {
                             borderRadius: '6px',
                             border: 'none',
                             cursor: 'pointer',
-                            background: userStatusFilter === 'Aktif' ? '#16a34a' : '#f1f5f9',
-                            color: userStatusFilter === 'Aktif' ? '#ffffff' : '#64748b'
+                            background: userStatusFilter === 'Enrolled' ? '#16a34a' : '#dcfce7',
+                            color: userStatusFilter === 'Enrolled' ? '#ffffff' : '#15803d'
                           }}
                         >
-                          Aktif ({userCounts.aktif})
+                          Sudah di Mesin ({userCounts.enrolled})
+                        </button>
+                        <button
+                          onClick={() => setUserStatusFilter('NotEnrolled')}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '0.74rem',
+                            fontWeight: 700,
+                            borderRadius: '6px',
+                            border: 'none',
+                            cursor: 'pointer',
+                            background: userStatusFilter === 'NotEnrolled' ? '#d97706' : '#fef3c7',
+                            color: userStatusFilter === 'NotEnrolled' ? '#ffffff' : '#b45309'
+                          }}
+                        >
+                          Belum di Mesin ({userCounts.not_enrolled})
                         </button>
                         <button
                           onClick={() => setUserStatusFilter('Alumni')}
@@ -894,8 +1018,8 @@ export default function FingerprintDeviceView() {
                             borderRadius: '6px',
                             border: 'none',
                             cursor: 'pointer',
-                            background: userStatusFilter === 'Alumni' ? '#ea580c' : '#f1f5f9',
-                            color: userStatusFilter === 'Alumni' ? '#ffffff' : '#64748b'
+                            background: userStatusFilter === 'Alumni' ? '#dc2626' : '#fee2e2',
+                            color: userStatusFilter === 'Alumni' ? '#ffffff' : '#b91c1c'
                           }}
                         >
                           Alumni ({userCounts.alumni})
@@ -918,10 +1042,10 @@ export default function FingerprintDeviceView() {
                         className="btn btn-primary btn-sm"
                         onClick={handleSyncToThisDevice}
                         disabled={syncing}
-                        title="Kirim ulang data santri aktif ke mesin ini"
+                        title="Kirim seluruh santri aktif ke mesin ini"
                       >
                         {syncing ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
-                        <span>Kirim Santri Aktif ke Mesin</span>
+                        <span>Push Semua Santri</span>
                       </button>
                     </div>
                   </div>
@@ -931,14 +1055,14 @@ export default function FingerprintDeviceView() {
                     {loadingUsers ? (
                       <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
                         <Loader2 size={28} className="animate-spin" style={{ margin: '0 auto 10px', color: '#0284c7' }} />
-                        <p style={{ margin: 0, fontSize: '0.84rem', fontWeight: 600 }}>Memuat rincian data santri di mesin...</p>
+                        <p style={{ margin: 0, fontSize: '0.84rem', fontWeight: 600 }}>Memuat data santri aplikasi vs mesin...</p>
                       </div>
                     ) : filteredDeviceUsers.length === 0 ? (
                       <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
                         <Users size={32} style={{ margin: '0 auto 10px', color: '#cbd5e1' }} />
                         <p style={{ margin: 0, fontSize: '0.88rem', fontWeight: 700, color: '#334155' }}>Tidak ada data santri ditemukan</p>
                         <p style={{ margin: '4px 0 0', fontSize: '0.76rem', color: '#94a3b8' }}>
-                          {userSearch ? 'Coba ubah kata kunci pencarian Anda.' : 'Silakan klik tombol "Kirim Santri Aktif ke Mesin" untuk mendaftarkan data santri.'}
+                          {userSearch ? 'Coba ubah kata kunci pencarian Anda.' : 'Silakan klik tombol "Push Semua Santri" untuk sinkronisasi.'}
                         </p>
                       </div>
                     ) : (
@@ -946,11 +1070,11 @@ export default function FingerprintDeviceView() {
                         <table className="device-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                           <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', zIndex: 2 }}>
                             <tr>
-                              <th style={{ width: '50px', textAlign: 'center' }}>NO</th>
-                              <th style={{ width: '130px' }}>PIN / ID MESIN</th>
+                              <th style={{ width: '45px', textAlign: 'center' }}>NO</th>
+                              <th style={{ width: '110px' }}>PIN MESIN</th>
                               <th>NAMA SANTRI & NIS</th>
                               <th>KELAS & ASRAMA</th>
-                              <th style={{ width: '130px', textAlign: 'center' }}>STATUS SANTRI</th>
+                              <th style={{ width: '140px', textAlign: 'center' }}>STATUS DI MESIN</th>
                               <th style={{ width: '160px', textAlign: 'center' }}>AKSI</th>
                             </tr>
                           </thead>
@@ -964,10 +1088,10 @@ export default function FingerprintDeviceView() {
                                   <span style={{
                                     fontFamily: 'monospace',
                                     fontWeight: 800,
-                                    fontSize: '0.8rem',
+                                    fontSize: '0.78rem',
                                     background: '#f1f5f9',
                                     color: '#0f172a',
-                                    padding: '3px 8px',
+                                    padding: '3px 7px',
                                     borderRadius: '5px',
                                     border: '1px solid #cbd5e1'
                                   }}>
@@ -1009,49 +1133,83 @@ export default function FingerprintDeviceView() {
                                   </div>
                                 </td>
                                 <td style={{ textAlign: 'center' }}>
-                                  {u.is_alumni ? (
-                                    <span className="badge" style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', fontSize: '0.7rem', padding: '3px 8px' }}>
-                                      <GraduationCap size={12} />
-                                      <span>Alumni (Lulus)</span>
+                                  {u.is_enrolled ? (
+                                    <span className="badge badge-success" style={{ fontSize: '0.68rem', padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                      <CheckCircle2 size={11} />
+                                      <span>Sudah di Mesin</span>
                                     </span>
                                   ) : (
-                                    <span className="badge badge-success" style={{ fontSize: '0.7rem', padding: '3px 8px' }}>
-                                      <CheckCircle2 size={12} />
-                                      <span>Aktif</span>
+                                    <span className="badge" style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', fontSize: '0.68rem', padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                      <AlertCircle size={11} />
+                                      <span>Belum di Mesin</span>
                                     </span>
                                   )}
                                 </td>
                                 <td style={{ textAlign: 'center' }}>
-                                  <button
-                                    onClick={() => handleDeleteUserFromDevice(u)}
-                                    disabled={deletingUserPin === u.pin}
-                                    style={{
-                                      background: '#fee2e2',
-                                      color: '#dc2626',
-                                      border: '1px solid #fecaca',
-                                      borderRadius: '6px',
-                                      padding: '5px 10px',
-                                      fontSize: '0.72rem',
-                                      fontWeight: 700,
-                                      cursor: 'pointer',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '5px'
-                                    }}
-                                    title={`Hapus ${u.nama_santri} dari mesin ${selectedDevice.nama_device}`}
-                                  >
-                                    {deletingUserPin === u.pin ? (
-                                      <>
-                                        <Loader2 size={12} className="animate-spin" />
-                                        <span>Menghapus...</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Trash2 size={12} />
-                                        <span>Hapus dari Mesin</span>
-                                      </>
-                                    )}
-                                  </button>
+                                  {u.is_enrolled ? (
+                                    <button
+                                      onClick={() => handleDeleteUserFromDevice(u)}
+                                      disabled={deletingUserPin === u.pin}
+                                      style={{
+                                        background: '#fee2e2',
+                                        color: '#dc2626',
+                                        border: '1px solid #fecaca',
+                                        borderRadius: '6px',
+                                        padding: '5px 10px',
+                                        fontSize: '0.72rem',
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px'
+                                      }}
+                                      title={`Hapus ${u.nama_santri} dari memori mesin ${selectedDevice.nama_device}`}
+                                    >
+                                      {deletingUserPin === u.pin ? (
+                                        <>
+                                          <Loader2 size={12} className="animate-spin" />
+                                          <span>Menghapus...</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Trash2 size={12} />
+                                          <span>Hapus dari Mesin</span>
+                                        </>
+                                      )}
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleRegisterSingleSantri(u)}
+                                      disabled={registeringSantriId === u.id}
+                                      style={{
+                                        background: '#0284c7',
+                                        color: '#ffffff',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        padding: '5px 10px',
+                                        fontSize: '0.72rem',
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        boxShadow: '0 1px 3px rgba(2,132,199,0.25)'
+                                      }}
+                                      title={`Daftarkan ${u.nama_santri} ke mesin ${selectedDevice.nama_device}`}
+                                    >
+                                      {registeringSantriId === u.id ? (
+                                        <>
+                                          <Loader2 size={12} className="animate-spin" />
+                                          <span>Mendaftarkan...</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Plus size={12} />
+                                          <span>Daftarkan ke Mesin</span>
+                                        </>
+                                      )}
+                                    </button>
+                                  )}
                                 </td>
                               </tr>
                             ))}
