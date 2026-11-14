@@ -102,6 +102,13 @@ export const ensureAbsensiTablesAndColumns = async () => {
       await pool.query(`ALTER TABLE absensi_jamaah_mengaji MODIFY COLUMN metode_presensi VARCHAR(100) DEFAULT 'Fingerprint'`);
     } catch (e) {}
 
+    // 4b. Pastikan kolom metode_scan ada (alias/fallback untuk dashboard)
+    if (!colNames.includes('metode_scan')) {
+      try {
+        await pool.query(`ALTER TABLE absensi_jamaah_mengaji ADD COLUMN metode_scan VARCHAR(100) DEFAULT 'Fingerprint' AFTER metode_presensi`);
+      } catch (e) {}
+    }
+
     // 5. Normalisasi data lama yang nama_kegiatan masih null
     try {
       await pool.query(`

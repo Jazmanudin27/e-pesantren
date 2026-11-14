@@ -694,24 +694,38 @@ export const getDeviceUsers = async (req, res) => {
     } catch (e) {}
 
     // Ambil seluruh santri tanpa filter jenis kelamin (JK)
-    const [rows] = await pool
-      .query(
-        `
-      SELECT 
-        s.id, 
-        s.nis, 
-        s.nama_santri, 
-        COALESCE(s.jk, 'L') AS jk, 
-        COALESCE(s.nama_kelas, '-') AS nama_kelas, 
-        COALESCE(s.status, 'Aktif') AS status, 
-        s.fingerprint_pin,
-        s.foto,
-        ${selectAsrama}
-      FROM santri s
-      ORDER BY CASE WHEN s.status IN ('Alumni', 'Boyong') THEN 1 ELSE 0 END, s.nama_santri ASC
-    `,
-      )
-      .catch(() => [[]]);
+    let rows = [];
+    try {
+      const [qRows] = await pool.query(`
+        SELECT 
+          s.id, 
+          s.nis, 
+          s.nama_santri, 
+          COALESCE(s.jk, 'L') AS jk, 
+          COALESCE(s.nama_kelas, '-') AS nama_kelas, 
+          COALESCE(s.status, 'Aktif') AS status, 
+          s.fingerprint_pin,
+          s.foto,
+          ${selectAsrama}
+        FROM santri s
+        ORDER BY CASE WHEN s.status IN ('Alumni', 'Boyong') THEN 1 ELSE 0 END, s.nama_santri ASC
+      `);
+      rows = qRows || [];
+    } catch (qErr) {
+      console.error('[GET DEVICE USERS DB ERR]', qErr.message);
+      // Fallback query jika ada kolom yang tidak ditemukan
+      const [allRows] = await pool.query(`
+        SELECT 
+          s.id, 
+          s.nis, 
+          s.nama_santri, 
+          COALESCE(s.status, 'Aktif') AS status, 
+          s.fingerprint_pin
+        FROM santri s
+        ORDER BY s.nama_santri ASC
+      `);
+      rows = allRows || [];
+    }
 
     // Jika belum ada catatan enrolled sama sekali, santri yang punya fingerprint_pin dianggap sudah terdaftar
     const isFirstTime = enrolledSet.size === 0 && enrolledPins.size === 0;
