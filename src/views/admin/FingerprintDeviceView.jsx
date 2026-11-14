@@ -64,6 +64,7 @@ export default function FingerprintDeviceView() {
       }
     } catch (err) {
       console.error('Gagal mengambil data perangkat fingerprint:', err);
+      // Fallback jika API return error atau kosong
       setDevices([]);
     } finally {
       setLoading(false);

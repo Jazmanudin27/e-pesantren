@@ -1013,8 +1013,18 @@ export const deleteAbsensiFingerprint = async (req, res) => {
 
 export const getFingerprintDevices = async (req, res) => {
   try {
-    // Mesin dianggap Online jika ada aktivitas/heartbeat ADMS dalam 90 detik terakhir
-    // Jika lewat dari 90 detik tidak ada kontak/ping dari mesin, otomatis Offline
+    // 1. Pastikan kolom updated_at ada di tabel fingerprint_device
+    try {
+      const [colRows] = await pool.query(`
+        SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_NAME = 'fingerprint_device' AND COLUMN_NAME = 'updated_at' AND TABLE_SCHEMA = DATABASE()
+      `);
+      if (!colRows || colRows.length === 0) {
+        await pool.query(`ALTER TABLE fingerprint_device ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`);
+      }
+    } catch (eCol) {}
+
+    // 2. Mesin dianggap Online jika ada aktivitas/heartbeat ADMS dalam 90 detik terakhir
     try {
       await pool.query(`
         UPDATE fingerprint_device 
@@ -1027,20 +1037,11 @@ export const getFingerprintDevices = async (req, res) => {
       console.warn('[HEARTBEAT NOTICE]', eHeartbeat.message);
     }
 
-    const [rows] = await pool.query(`
-      SELECT 
-        id, nama_device, sn_device, ip_address, port, lokasi, peruntukan,
-        CASE 
-          WHEN updated_at IS NOT NULL AND updated_at >= NOW() - INTERVAL 90 SECOND THEN 'Online'
-          ELSE 'Offline'
-        END AS status_koneksi,
-        tipe_mesin, total_enrolled, created_at, updated_at
-      FROM fingerprint_device 
-      ORDER BY id ASC
-    `);
+    // 3. Ambil seluruh data perangkat
+    const [rows] = await pool.query('SELECT * FROM fingerprint_device ORDER BY id ASC');
     return sendSuccess(res, 'Data perangkat fingerprint berhasil diambil', { data: rows });
   } catch (err) {
-    console.error('[createAbsensiFingerprint Error]', err);
+    console.error('[getFingerprintDevices Error]', err);
     return sendError(res, err.message, 500);
   }
 };
