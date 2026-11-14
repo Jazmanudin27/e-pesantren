@@ -43,6 +43,26 @@ export const ensureAdmsTables = async () => {
         INDEX idx_status (status)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
+
+    // Tabel penyimpan biometric sidik jari (FP Template) yang didaftarkan santri di mesin manapun
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS santri_fingerprint_templates (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        santri_id INT DEFAULT NULL,
+        pin VARCHAR(50) NOT NULL,
+        finger_id INT DEFAULT 0,
+        size INT DEFAULT 0,
+        valid INT DEFAULT 1,
+        template_data MEDIUMTEXT NOT NULL,
+        source_sn VARCHAR(50) DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_pin_finger (pin, finger_id),
+        INDEX idx_pin (pin),
+        INDEX idx_santri (santri_id),
+        INDEX idx_source (source_sn)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
   } catch (err) {
     console.warn("[ADMS] Init table queue notice:", err.message);
   }
@@ -133,6 +153,86 @@ export const handleAdmsPushData = async (req, res) => {
   console.log(
     `[ADMS PUSH] Mesin ${sn} mengirim data (Tabel: ${table || "DEFAULT"}, Length: ${rawBody.length})`,
   );
+
+  // Tangkap payload pendaftaran Sidik Jari (FINGERPRINT TEMPLATE: FPTMP / BIODATA / FP)
+  if (table.includes("FPTMP") || table.includes("FP") || table.includes("BIODATA") || rawBody.includes("TMP=") || rawBody.includes("PIN=")) {
+    if (rawBody.includes("TMP=") || table.includes("FPTMP")) {
+      try {
+        const fpLines = rawBody.split(/\r?\n/).filter(l => l.trim().length > 0);
+        let syncedCount = 0;
+
+        for (const fLine of fpLines) {
+          // Format umum ZKTeco ADMS FP: PIN=2601180\tFID=0\tSize=512\tValid=1\tTMP=base64...
+          const pinMatch = fLine.match(/PIN=([^\t\r\n]+)/);
+          const fidMatch = fLine.match(/FID=(\d+)/);
+          const sizeMatch = fLine.match(/Size=(\d+)/);
+          const validMatch = fLine.match(/Valid=(\d+)/);
+          const tmpMatch = fLine.match(/TMP=([^\t\r\n]+)/);
+
+          if (pinMatch && tmpMatch) {
+            const pinVal = pinMatch[1].trim();
+            const fidVal = fidMatch ? parseInt(fidMatch[1], 10) : 0;
+            const sizeVal = sizeMatch ? parseInt(sizeMatch[1], 10) : 0;
+            const validVal = validMatch ? parseInt(validMatch[1], 10) : 1;
+            const tmpVal = tmpMatch[1].trim();
+
+            // Hubungkan dengan santri_id
+            const [sRow] = await pool.query(
+              "SELECT id FROM santri WHERE fingerprint_pin = ? OR nis = ? OR id = ? LIMIT 1",
+              [pinVal, pinVal, pinVal]
+            ).catch(() => [[]]);
+            const sId = (sRow && sRow.length > 0) ? sRow[0].id : null;
+
+            // Simpan ke santri_fingerprint_templates
+            await pool.query(`
+              INSERT INTO santri_fingerprint_templates 
+              (santri_id, pin, finger_id, size, valid, template_data, source_sn)
+              VALUES (?, ?, ?, ?, ?, ?, ?)
+              ON DUPLICATE KEY UPDATE 
+                santri_id = VALUES(santri_id),
+                size = VALUES(size),
+                valid = VALUES(valid),
+                template_data = VALUES(template_data),
+                source_sn = VALUES(source_sn),
+                updated_at = NOW()
+            `, [sId, pinVal, fidVal, sizeVal, validVal, tmpVal, sn]);
+
+            // OTOMATIS SINKRONKAN KE MESIN LAIN:
+            // Cari mesin lain yang terpasang di sistem (selain mesin pengirim)
+            const [otherDevs] = await pool.query(
+              "SELECT DISTINCT sn_device FROM fingerprint_device WHERE sn_device IS NOT NULL AND sn_device != '' AND sn_device != ?",
+              [sn]
+            ).catch(() => [[]]);
+
+            for (const oDev of otherDevs || []) {
+              const cmdFP = `DATA FP PIN=${pinVal}\tFID=${fidVal}\tSize=${sizeVal}\tValid=${validVal}\tTMP=${tmpVal}`;
+              await pool.query(
+                "INSERT INTO adms_command_queue (sn_device, command, status) VALUES (?, ?, 'PENDING')",
+                [oDev.sn_device, cmdFP]
+              ).catch(() => {});
+
+              if (sId) {
+                await pool.query(`
+                  INSERT INTO fingerprint_device_users (sn_device, santri_id, pin, status)
+                  VALUES (?, ?, ?, 'ENROLLED')
+                  ON DUPLICATE KEY UPDATE status = 'ENROLLED', pin = VALUES(pin)
+                `, [oDev.sn_device, sId, pinVal]).catch(() => {});
+              }
+            }
+            syncedCount++;
+          }
+        }
+
+        if (syncedCount > 0) {
+          console.log(`[ADMS AUTO-SYNC FP] Berhasil menangkap dan menyinkronkan ${syncedCount} sidik jari dari mesin ${sn} ke mesin lainnya.`);
+          res.setHeader("Content-Type", "text/plain; charset=utf-8");
+          return res.status(200).send(`OK: ${syncedCount}\n`);
+        }
+      } catch (fpErr) {
+        console.error("[ADMS FP SYNC ERR]", fpErr.message);
+      }
+    }
+  }
 
   // Jika eksplisit bukan ATTLOG (misal OPERLOG/config), balas OK
   if (table && !table.includes("ATTLOG")) {
