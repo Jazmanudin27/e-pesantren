@@ -603,6 +603,17 @@ export const queueClearUsersFromDevice = async (req, res) => {
       `,
         [targetSN, command],
       );
+
+      // Reset tabel tracking status user mesin di database aplikasi
+      if (targetSN) {
+        await pool.query("UPDATE fingerprint_device_users SET status = 'DELETED' WHERE sn_device = ?", [targetSN]).catch(() => {});
+        // Batalkan seluruh antrean DATA USER yang masih PENDING untuk mesin ini agar tidak di-push ulang
+        await pool.query("UPDATE adms_command_queue SET status = 'FAILED' WHERE sn_device = ? AND command LIKE 'DATA USER%' AND status = 'PENDING'", [targetSN]).catch(() => {});
+      } else {
+        await pool.query("UPDATE fingerprint_device_users SET status = 'DELETED'").catch(() => {});
+        await pool.query("UPDATE adms_command_queue SET status = 'FAILED' WHERE command LIKE 'DATA USER%' AND status = 'PENDING'").catch(() => {});
+      }
+
       queuedCount++;
     }
 
@@ -655,10 +666,10 @@ export const getDeviceUsers = async (req, res) => {
         if (r.pin) enrolledPins.add(String(r.pin));
       });
 
-      // Ambil juga dari antrean perintah adms_command_queue untuk mesin ini
+      // Ambil juga dari antrean perintah adms_command_queue yang aktif (STATUS PENDING/SENT/SUCCESS)
       const [queuedRows] = await pool
         .query(
-          `SELECT command FROM adms_command_queue WHERE (sn_device = ? OR sn_device IS NULL OR sn_device = '') AND command LIKE 'DATA USER PIN=%'`,
+          `SELECT command FROM adms_command_queue WHERE (sn_device = ? OR sn_device IS NULL OR sn_device = '') AND command LIKE 'DATA USER PIN=%' AND status IN ('PENDING', 'SENT', 'SUCCESS')`,
           [sn],
         )
         .catch(() => [[]]);
@@ -727,18 +738,24 @@ export const getDeviceUsers = async (req, res) => {
       rows = allRows || [];
     }
 
-    // Jika belum ada catatan enrolled sama sekali, santri yang punya fingerprint_pin dianggap sudah terdaftar
-    const isFirstTime = enrolledSet.size === 0 && enrolledPins.size === 0;
+    // Cek apakah ada perintah CLEAR DATA yang PENDING / SENT untuk mesin ini
+    let hasClearDataPending = false;
+    if (sn) {
+      const [clr] = await pool.query(
+        "SELECT id FROM adms_command_queue WHERE sn_device = ? AND command = 'CLEAR DATA' AND status IN ('PENDING', 'SENT') LIMIT 1",
+        [sn]
+      ).catch(() => [[]]);
+      if (clr && clr.length > 0) {
+        hasClearDataPending = true;
+      }
+    }
 
     const formatted = (rows || []).map((r) => {
       const pin = r.fingerprint_pin || r.nis || String(r.id);
       const isAlumni = r.status === "Alumni" || r.status === "Boyong";
 
-      // Santri dianggap terdaftar di mesin jika ada di enrolledSet atau di enrolledPins atau punya fingerprint_pin
-      const isEnrolled =
-        enrolledSet.has(r.id) ||
-        enrolledPins.has(String(pin)) ||
-        (isFirstTime && !!r.fingerprint_pin);
+      // Santri dianggap terdaftar di mesin jika ada di enrolledSet atau di enrolledPins (dan tidak sedang dalam proses CLEAR DATA)
+      const isEnrolled = !hasClearDataPending && (enrolledSet.has(r.id) || enrolledPins.has(String(pin)));
 
       return {
         id: r.id,
