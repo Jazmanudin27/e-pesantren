@@ -1013,14 +1013,17 @@ export const deleteAbsensiFingerprint = async (req, res) => {
 
 export const getFingerprintDevices = async (req, res) => {
   try {
-    // Mesin dianggap Online jika ada aktivitas/heartbeat ADMS dalam 3 menit terakhir
+    // Mesin dianggap Online jika ada aktivitas/heartbeat ADMS dalam 90 detik terakhir
+    // Jika lewat dari 90 detik tidak ada kontak/ping dari mesin, otomatis Offline
     try {
       await pool.query(`
         UPDATE fingerprint_device 
         SET status_koneksi = 'Offline' 
-        WHERE (updated_at IS NULL OR updated_at < NOW() - INTERVAL 3 MINUTE)
+        WHERE (updated_at IS NULL OR updated_at < NOW() - INTERVAL 90 SECOND)
       `);
-    } catch (eHeartbeat) {}
+    } catch (eHeartbeat) {
+      console.warn('[HEARTBEAT NOTICE]', eHeartbeat.message);
+    }
 
     const [rows] = await pool.query('SELECT * FROM fingerprint_device ORDER BY id ASC');
     return sendSuccess(res, 'Data perangkat fingerprint berhasil diambil', { data: rows });
