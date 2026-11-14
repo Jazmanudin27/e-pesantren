@@ -617,18 +617,6 @@ export const getDeviceUsers = async (req, res) => {
         foto: r.foto
       };
     });
-        nama_santri: r.nama_santri,
-        jk: r.jk,
-        nama_kelas: r.nama_kelas || '-',
-        nama_asrama: r.nama_asrama || '-',
-        status: r.status || 'Aktif',
-        pin: pin,
-        is_alumni: isAlumni,
-        is_enrolled: isEnrolled,
-        status_mesin: isEnrolled ? 'TERDAFTAR' : 'BELUM_TERDAFTAR',
-        foto: r.foto
-      };
-    });
 
     const total = formatted.length;
     const enrolledCount = formatted.filter(x => x.is_enrolled).length;
