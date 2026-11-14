@@ -542,21 +542,32 @@ export const getDeviceUsers = async (req, res) => {
     } catch (e) {}
 
     // Tampilkan seluruh santri (Putra & Putri) agar mesin fleksibel bisa digunakan silang saat darurat
-    const [allRows] = await pool.query(`
-      SELECT 
-        s.id, 
-        s.nis, 
-        s.nama_santri, 
-        COALESCE(s.jk, 'L') AS jk, 
-        COALESCE(s.nama_kelas, '-') AS nama_kelas, 
-        COALESCE(s.status, 'Aktif') AS status, 
-        s.fingerprint_pin,
-        s.foto,
-        ${selectAsrama}
-      FROM santri s
-      ORDER BY CASE WHEN s.status IN ('Alumni', 'Boyong') THEN 1 ELSE 0 END, s.nama_santri ASC
-    `).catch(() => [[]]);
-    const rows = allRows || [];
+    let rows = [];
+    try {
+      const [allRows] = await pool.query(`
+        SELECT 
+          s.id, 
+          s.nis, 
+          s.nama_santri, 
+          COALESCE(s.jk, 'L') AS jk, 
+          COALESCE(s.nama_kelas, '-') AS nama_kelas, 
+          COALESCE(s.status, 'Aktif') AS status, 
+          s.fingerprint_pin,
+          s.foto,
+          ${selectAsrama}
+        FROM santri s
+        ORDER BY CASE WHEN s.status IN ('Alumni', 'Boyong') THEN 1 ELSE 0 END, s.nama_santri ASC
+      `);
+      rows = allRows || [];
+    } catch (eQuery) {
+      console.error('[ADMS SANTRI QUERY FAIL, FALLBACK]', eQuery.message);
+      const [minRows] = await pool.query(`
+        SELECT id, nis, nama_santri, COALESCE(status, 'Aktif') AS status, fingerprint_pin 
+        FROM santri 
+        ORDER BY id ASC
+      `).catch(() => [[]]);
+      rows = minRows || [];
+    }
 
     // Jika belum ada catatan enrolled sama sekali, santri yang punya fingerprint_pin dianggap sudah terdaftar
     const isFirstTime = enrolledSet.size === 0 && enrolledPins.size === 0;
