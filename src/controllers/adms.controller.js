@@ -456,6 +456,202 @@ export const queueClearUsersFromDevice = async (req, res) => {
   }
 };
 
+// 8. REST API: Ambil Rincian Data Santri di Mesin
+export const getDeviceUsers = async (req, res) => {
+  try {
+    const { sn } = req.query;
+    let peruntukan = 'Semua';
+    let deviceName = '';
+
+    if (sn) {
+      const [dev] = await pool.query('SELECT nama_device, peruntukan FROM fingerprint_device WHERE sn_device = ? LIMIT 1', [sn]);
+      if (dev && dev.length > 0) {
+        peruntukan = dev[0].peruntukan || 'Semua';
+        deviceName = dev[0].nama_device || '';
+      }
+    }
+
+    let query = `
+      SELECT 
+        s.id, 
+        s.nis, 
+        s.nama_santri, 
+        s.jk, 
+        s.nama_kelas, 
+        s.status, 
+        s.fingerprint_pin,
+        s.foto,
+        COALESCE(a.nama_asrama, '-') AS nama_asrama
+      FROM santri s
+      LEFT JOIN asrama a ON s.asrama_id = a.id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (peruntukan === 'Ikhwan') {
+      query += ` AND s.jk = 'L'`;
+    } else if (peruntukan === 'Akhwat') {
+      query += ` AND s.jk = 'P'`;
+    }
+
+    query += ` ORDER BY CASE WHEN s.status IN ('Alumni', 'Boyong') THEN 0 ELSE 1 END, s.nama_santri ASC`;
+
+    const [rows] = await pool.query(query, params);
+
+    const formatted = rows.map(r => {
+      const pin = r.fingerprint_pin || r.nis || String(r.id);
+      const isAlumni = r.status === 'Alumni' || r.status === 'Boyong';
+      return {
+        id: r.id,
+        nis: r.nis,
+        nama_santri: r.nama_santri,
+        jk: r.jk,
+        nama_kelas: r.nama_kelas || '-',
+        nama_asrama: r.nama_asrama || '-',
+        status: r.status || 'Aktif',
+        pin: pin,
+        is_alumni: isAlumni,
+        foto: r.foto
+      };
+    });
+
+    const total = formatted.length;
+    const alumniCount = formatted.filter(x => x.is_alumni).length;
+    const aktifCount = total - alumniCount;
+
+    return res.status(200).json({
+      success: true,
+      device: {
+        sn_device: sn,
+        nama_device: deviceName,
+        peruntukan: peruntukan
+      },
+      counts: {
+        total,
+        aktif: aktifCount,
+        alumni: alumniCount
+      },
+      data: formatted
+    });
+  } catch (err) {
+    console.error('[ADMS GET DEVICE USERS ERR]', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// 9. REST API: Hapus User Tertentu dari Mesin (DATA DELETE USER PIN=...)
+export const deleteUserFromDevice = async (req, res) => {
+  try {
+    await ensureAdmsTables();
+    const { sn_device, pin, santri_id, clear_pin } = req.body;
+
+    if (!pin) {
+      return res.status(400).json({ success: false, message: 'PIN user wajib diisi' });
+    }
+
+    let targetSNs = [];
+    if (sn_device) {
+      targetSNs = [sn_device];
+    } else {
+      const [allDevs] = await pool.query(`
+        SELECT DISTINCT sn_device 
+        FROM fingerprint_device 
+        WHERE sn_device IS NOT NULL AND sn_device != ''
+      `);
+      targetSNs = allDevs.map(d => d.sn_device);
+    }
+
+    const command = `DATA DELETE USER PIN=${pin}`;
+    for (const targetSN of targetSNs) {
+      await pool.query(`
+        INSERT INTO adms_command_queue (sn_device, command, status)
+        VALUES (?, ?, 'PENDING')
+      `, [targetSN, command]);
+    }
+
+    if (clear_pin && santri_id) {
+      await pool.query('UPDATE santri SET fingerprint_pin = NULL WHERE id = ?', [santri_id]).catch(() => {});
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Perintah hapus user (PIN: ${pin}) berhasil diantrekan ke ${targetSNs.length} mesin.`
+    });
+  } catch (err) {
+    console.error('[ADMS DELETE USER ERR]', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// 10. REST API: Hapus Seluruh Santri Alumni dari Mesin
+export const deleteAlumniFromDevice = async (req, res) => {
+  try {
+    await ensureAdmsTables();
+    const { sn_device } = req.body;
+
+    let peruntukan = 'Semua';
+    if (sn_device) {
+      const [dev] = await pool.query('SELECT peruntukan FROM fingerprint_device WHERE sn_device = ? LIMIT 1', [sn_device]);
+      if (dev && dev.length > 0) {
+        peruntukan = dev[0].peruntukan || 'Semua';
+      }
+    }
+
+    let query = `
+      SELECT id, nis, nama_santri, fingerprint_pin, jk 
+      FROM santri 
+      WHERE status IN ('Alumni', 'Boyong')
+    `;
+    if (peruntukan === 'Ikhwan') {
+      query += ` AND jk = 'L'`;
+    } else if (peruntukan === 'Akhwat') {
+      query += ` AND jk = 'P'`;
+    }
+
+    const [alumniList] = await pool.query(query);
+    if (!alumniList || alumniList.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'Tidak ditemukan data santri berstatus Alumni/Boyong untuk dihapus.',
+        count: 0
+      });
+    }
+
+    let targetSNs = sn_device ? [sn_device] : [];
+    if (targetSNs.length === 0) {
+      const [allDevs] = await pool.query(`
+        SELECT DISTINCT sn_device 
+        FROM fingerprint_device 
+        WHERE sn_device IS NOT NULL AND sn_device != ''
+      `);
+      targetSNs = allDevs.map(d => d.sn_device);
+    }
+
+    let queuedCount = 0;
+    for (const targetSN of targetSNs) {
+      for (const s of alumniList) {
+        const pin = s.fingerprint_pin || s.nis || String(s.id);
+        const command = `DATA DELETE USER PIN=${pin}`;
+        await pool.query(`
+          INSERT INTO adms_command_queue (sn_device, command, status)
+          VALUES (?, ?, 'PENDING')
+        `, [targetSN, command]);
+        queuedCount++;
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Berhasil mengantrekan penghapusan ${alumniList.length} santri alumni ke mesin (${queuedCount} perintah antrean).`,
+      count: alumniList.length,
+      queued: queuedCount
+    });
+  } catch (err) {
+    console.error('[ADMS DELETE ALUMNI ERR]', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // 5. Registry Mesin
 export const handleAdmsRegistry = async (req, res) => {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');

@@ -135,7 +135,10 @@ export const getAdminPesanThreads = async (req, res) => {
         COALESCE(s.nama_santri, MAX(p.nama_santri), 'Santri') AS nama_santri,
         COALESCE(s.nis, '-') AS nis,
         COALESCE(s.nama_wali, MAX(p.nama_wali), 'Wali Santri') AS nama_wali,
+        COALESCE(s.nama_kelas, '-') AS nama_kelas,
         COALESCE(a.nama_asrama, '-') AS nama_asrama,
+        s.jk,
+        s.foto,
         MAX(p.id) AS last_message_id,
         MAX(p.created_at) AS last_time,
         SUM(CASE WHEN p.pengirim_role = 'wali' AND p.is_read_admin = 0 THEN 1 ELSE 0 END) AS unread_count,
@@ -145,7 +148,7 @@ export const getAdminPesanThreads = async (req, res) => {
       FROM pesantren_pesan_komunikasi p
       LEFT JOIN santri s ON p.santri_id = s.id
       LEFT JOIN asrama a ON s.asrama_id = a.id
-      GROUP BY p.santri_id, s.nama_santri, s.nis, s.nama_wali, a.nama_asrama
+      GROUP BY p.santri_id, s.nama_santri, s.nis, s.nama_wali, s.nama_kelas, a.nama_asrama, s.jk, s.foto
       ORDER BY unread_count DESC, last_message_id DESC
     `);
 
@@ -180,8 +183,29 @@ export const getAdminPesanDetail = async (req, res) => {
       [santri_id]
     );
 
+    const [sRows] = await pool.query(
+      `SELECT 
+         s.id, 
+         s.nama_santri, 
+         s.nis, 
+         s.nama_wali, 
+         COALESCE(s.no_hp_wali, s.telepon, s.no_telp, '-') AS no_hp_wali,
+         s.nama_kelas, 
+         s.status, 
+         s.jk,
+         s.foto,
+         COALESCE(a.nama_asrama, '-') AS nama_asrama,
+         COALESCE(k.nama_kamar, '-') AS nama_kamar
+       FROM santri s
+       LEFT JOIN asrama a ON s.asrama_id = a.id
+       LEFT JOIN kamar k ON s.kamar_id = k.id
+       WHERE s.id = ? LIMIT 1`,
+      [santri_id]
+    ).catch(() => [[]]);
+
     return sendSuccess(res, 'Detail percakapan berhasil diambil', {
-      messages: messages || []
+      messages: messages || [],
+      santri: sRows?.[0] || null
     });
   } catch (err) {
     return sendError(res, err.message, 500);

@@ -8,7 +8,10 @@ import {
   handleAdmsPing,
   queuePushSantriToDevice,
   queueClearUsersFromDevice,
-  getAdmsQueueStatus
+  getAdmsQueueStatus,
+  getDeviceUsers,
+  deleteUserFromDevice,
+  deleteAlumniFromDevice
 } from '../controllers/adms.controller.js';
 
 const router = express.Router();
@@ -36,6 +39,9 @@ router.post('/ping', handleAdmsPing);
 router.post('/sync-santri', queuePushSantriToDevice);
 router.post('/clear-users', queueClearUsersFromDevice);
 router.get('/queue-status', getAdmsQueueStatus);
+router.get('/device-users', getDeviceUsers);
+router.post('/delete-user', deleteUserFromDevice);
+router.post('/delete-alumni', deleteAlumniFromDevice);
 
 export default router;
 

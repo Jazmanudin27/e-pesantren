@@ -17,9 +17,15 @@ import {
   Radio, 
   Save,
   Users,
-  Send
+  Send,
+  AlertTriangle,
+  UserMinus,
+  UserCheck,
+  CheckCircle2,
+  RefreshCw,
+  GraduationCap
 } from 'lucide-react';
-import { showConfirm, toastSuccess } from '../../utils/alert.util';
+import { showConfirm, toastSuccess, showError, toastError } from '../../utils/alert.util';
 import SearchableSelect from '../../components/SearchableSelect';
 
 export default function FingerprintDeviceView() {
@@ -35,6 +41,14 @@ export default function FingerprintDeviceView() {
   // Modal Detail State
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [detailTab, setDetailTab] = useState('santri'); // 'santri' | 'spesifikasi'
+  const [deviceUsers, setDeviceUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [userSearch, setUserSearch] = useState('');
+  const [userStatusFilter, setUserStatusFilter] = useState('Semua');
+  const [deletingUserPin, setDeletingUserPin] = useState(null);
+  const [deletingAlumni, setDeletingAlumni] = useState(false);
+  const [userCounts, setUserCounts] = useState({ total: 0, aktif: 0, alumni: 0 });
 
   // Modal Form (Add & Edit)
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -75,14 +89,112 @@ export default function FingerprintDeviceView() {
     fetchDevices();
   }, []);
 
+  const fetchDeviceUsers = async (sn) => {
+    try {
+      setLoadingUsers(true);
+      const res = await axios.get(`/api/iclock/device-users?sn=${encodeURIComponent(sn || '')}`);
+      if (res.data && res.data.success) {
+        setDeviceUsers(res.data.data || []);
+        setUserCounts(res.data.counts || { total: 0, aktif: 0, alumni: 0 });
+      } else {
+        setDeviceUsers([]);
+      }
+    } catch (err) {
+      console.error('Gagal memuat santri di mesin:', err);
+      setDeviceUsers([]);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
   const openDetail = (d) => {
     setSelectedDevice(d);
     setIsModalOpen(true);
+    setDetailTab('santri');
+    setUserSearch('');
+    setUserStatusFilter('Semua');
+    fetchDeviceUsers(d.sn_device);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedDevice(null);
+    setDeviceUsers([]);
+  };
+
+  const handleDeleteUserFromDevice = async (santri) => {
+    const pin = santri.pin;
+    const confirmed = await showConfirm(
+      `Hapus Santri dari Mesin ${selectedDevice?.nama_device || ''}?`,
+      `Perintah "DATA DELETE USER PIN=${pin}" akan diantrekan ke mesin. Data user ${santri.nama_santri} (PIN: ${pin}) akan terhapus dari mesin saat mesin tersinkron online.`,
+      'Ya, Hapus dari Mesin',
+      'Batal'
+    );
+    if (!confirmed) return;
+
+    try {
+      setDeletingUserPin(pin);
+      const res = await axios.post('/api/iclock/delete-user', {
+        sn_device: selectedDevice?.sn_device,
+        pin: pin,
+        santri_id: santri.id
+      });
+      toastSuccess(res.data?.message || `Perintah hapus santri ${santri.nama_santri} berhasil diantrekan.`);
+      fetchDeviceUsers(selectedDevice?.sn_device);
+      fetchDevices();
+    } catch (err) {
+      showError('Gagal Hapus User', err.response?.data?.message || err.message);
+    } finally {
+      setDeletingUserPin(null);
+    }
+  };
+
+  const handleDeleteAlumniFromDevice = async () => {
+    const confirmed = await showConfirm(
+      `Hapus Seluruh Santri Alumni dari Mesin?`,
+      `Sistem akan mencari seluruh santri berstatus 'Alumni' atau 'Boyong' (${userCounts.alumni} santri) dan mengirimkan perintah penghapusan massal ke mesin ${selectedDevice?.nama_device || ''}. Data sidik jari alumni di mesin akan dibersihkan.`,
+      'Ya, Hapus Semua Alumni',
+      'Batal'
+    );
+    if (!confirmed) return;
+
+    try {
+      setDeletingAlumni(true);
+      const res = await axios.post('/api/iclock/delete-alumni', {
+        sn_device: selectedDevice?.sn_device
+      });
+      toastSuccess(res.data?.message || 'Perintah hapus alumni berhasil diantrekan ke mesin.');
+      fetchDeviceUsers(selectedDevice?.sn_device);
+      fetchDevices();
+    } catch (err) {
+      showError('Gagal Hapus Alumni', err.response?.data?.message || err.message);
+    } finally {
+      setDeletingAlumni(false);
+    }
+  };
+
+  const handleSyncToThisDevice = async () => {
+    if (!selectedDevice) return;
+    const confirmed = await showConfirm(
+      `Kirim Santri Aktif ke Mesin Ini?`,
+      `Sistem akan mengirimkan data Nama dan NIS seluruh santri aktif (${selectedDevice.peruntukan}) ke antrean Cloud ADMS mesin "${selectedDevice.nama_device}".`
+    );
+    if (!confirmed) return;
+
+    try {
+      setSyncing(true);
+      const res = await axios.post('/api/iclock/sync-santri', {
+        sn_device: selectedDevice.sn_device,
+        jk: selectedDevice.peruntukan === 'Ikhwan' ? 'L' : selectedDevice.peruntukan === 'Akhwat' ? 'P' : undefined
+      });
+      toastSuccess(res.data?.message || 'Data santri berhasil diantrekan ke mesin!');
+      fetchDeviceUsers(selectedDevice.sn_device);
+      fetchDevices();
+    } catch (err) {
+      showError('Gagal Kirim Data', err.response?.data?.message || err.message);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const handleSyncSantriToDevice = async () => {
@@ -214,6 +326,23 @@ export default function FingerprintDeviceView() {
   const countOnline = devices.filter(d => d.status_koneksi === 'Online').length;
   const countOffline = devices.filter(d => d.status_koneksi === 'Offline').length;
   const totalEnrolled = devices.reduce((acc, d) => acc + (parseInt(d.total_enrolled) || 0), 0);
+
+  const filteredDeviceUsers = deviceUsers.filter((u) => {
+    const q = userSearch.toLowerCase();
+    const matchSearch = 
+      !q || 
+      u.nama_santri?.toLowerCase().includes(q) ||
+      u.nis?.toLowerCase().includes(q) ||
+      String(u.pin)?.toLowerCase().includes(q) ||
+      u.nama_kelas?.toLowerCase().includes(q);
+
+    const matchStatus = 
+      userStatusFilter === 'Semua' ? true :
+      userStatusFilter === 'Aktif' ? !u.is_alumni :
+      userStatusFilter === 'Alumni' ? u.is_alumni : true;
+
+    return matchSearch && matchStatus;
+  });
 
   const filteredList = devices.filter((d) => {
     const q = search.toLowerCase();
@@ -444,10 +573,11 @@ export default function FingerprintDeviceView() {
                       <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
                         <button 
                           className="btn-action btn-action-view"
+                          style={{ background: '#e0f2fe', color: '#0284c7', borderColor: '#bae6fd' }}
                           onClick={() => openDetail(d)}
-                          title="Lihat Detail Konfigurasi Mesin"
+                          title="Lihat Rincian Santri di Mesin & Hapus User"
                         >
-                          <Eye size={13} />
+                          <Users size={13} />
                         </button>
                         <button 
                           className="btn-action btn-action-edit"
@@ -474,7 +604,7 @@ export default function FingerprintDeviceView() {
       </div>
 
       {/* ==================================================== */}
-      {/* MODAL DETAIL MESIN FINGERPRINT                      */}
+      {/* MODAL DETAIL MESIN FINGERPRINT & RINCIAN DATA SANTRI */}
       {/* ==================================================== */}
       {isModalOpen && selectedDevice && (
         <div style={{
@@ -489,95 +619,509 @@ export default function FingerprintDeviceView() {
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 9999,
-          padding: 0
+          padding: '16px'
         }}>
           <div style={{
             background: '#ffffff',
-            borderRadius: 0,
-            width: '100vw',
-            height: '100vh',
-            maxWidth: '100%',
-            maxHeight: '100vh',
-            overflowY: 'auto',
-            boxShadow: 'none',
+            borderRadius: '12px',
+            width: 'min(1100px, 96vw)',
+            height: 'min(860px, 94vh)',
+            maxHeight: '94vh',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            overflow: 'hidden',
+            border: '1px solid #cbd5e1'
           }}>
             {/* Modal Header */}
             <div style={{
-              padding: '14px 18px',
+              padding: '14px 20px',
               borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-              color: '#ffffff'
+              color: '#ffffff',
+              flexShrink: 0
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(56, 189, 248, 0.35)' }}>
-                  <Fingerprint size={18} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(56, 189, 248, 0.35)' }}>
+                  <Fingerprint size={20} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '0.94rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
-                    {selectedDevice.nama_device}
-                  </h3>
-                  <p style={{ fontSize: '0.68rem', color: '#94a3b8', margin: 0 }}>
-                    Serial Number: {selectedDevice.sn_device}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
+                      {selectedDevice.nama_device}
+                    </h3>
+                    <span className={`badge ${selectedDevice.status_koneksi === 'Online' ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
+                      {selectedDevice.status_koneksi === 'Online' ? <Wifi size={10} /> : <WifiOff size={10} />}
+                      <span>{selectedDevice.status_koneksi}</span>
+                    </span>
+                    <span className={`badge ${selectedDevice.peruntukan === 'Akhwat' ? 'badge-pink' : selectedDevice.peruntukan === 'Ikhwan' ? 'badge-info' : 'badge-primary'}`} style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
+                      {selectedDevice.peruntukan === 'Akhwat' ? 'Akhwat (Putri)' : selectedDevice.peruntukan === 'Ikhwan' ? 'Ikhwan (Putra)' : 'Semua / Umum'}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.72rem', color: '#94a3b8', margin: '2px 0 0 0' }}>
+                    Serial Number: <strong style={{ color: '#e2e8f0' }}>{selectedDevice.sn_device}</strong> • IP: {selectedDevice.ip_address}:{selectedDevice.port || 4370} • Lokasi: {selectedDevice.lokasi}
                   </p>
                 </div>
               </div>
               <button 
                 onClick={closeModal}
-                style={{ background: 'rgba(255, 255, 255, 0.12)', border: 'none', color: '#ffffff', cursor: 'pointer', padding: '5px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{ background: 'rgba(255, 255, 255, 0.12)', border: 'none', color: '#ffffff', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 title="Tutup Modal"
               >
                 <X size={18} />
               </button>
             </div>
 
-            {/* Modal Body */}
-            <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px', background: '#f1f5f9' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: '#ffffff', padding: '14px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>IP ADDRESS & PORT</div>
-                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>{selectedDevice.ip_address}:{selectedDevice.port || 4370}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>STATUS KONEKSI</div>
-                  <span className={`badge ${selectedDevice.status_koneksi === 'Online' ? 'badge-success' : 'badge-danger'}`}>
-                    {selectedDevice.status_koneksi === 'Online' ? <Wifi size={11} /> : <WifiOff size={11} />}
-                    <span>{selectedDevice.status_koneksi}</span>
-                  </span>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>LOKASI INSTALASI</div>
-                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#059669' }}>{selectedDevice.lokasi}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>TEMPLATE ENROLLED</div>
-                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0284c7' }}>{selectedDevice.total_enrolled || 180} Santri & Asatidz</div>
-                </div>
-              </div>
+            {/* Sub-header Navigation Tabs */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              borderBottom: '1px solid #e2e8f0',
+              background: '#f8fafc',
+              padding: '0 20px',
+              gap: '8px',
+              flexShrink: 0
+            }}>
+              <button
+                onClick={() => setDetailTab('santri')}
+                style={{
+                  padding: '10px 16px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  border: 'none',
+                  borderBottom: detailTab === 'santri' ? '3px solid #0284c7' : '3px solid transparent',
+                  background: 'transparent',
+                  color: detailTab === 'santri' ? '#0284c7' : '#64748b',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Users size={16} />
+                <span>Rincian Santri di Mesin</span>
+                <span style={{
+                  padding: '1px 7px',
+                  borderRadius: '999px',
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  background: detailTab === 'santri' ? '#e0f2fe' : '#e2e8f0',
+                  color: detailTab === 'santri' ? '#0284c7' : '#64748b'
+                }}>
+                  {userCounts.total}
+                </span>
+              </button>
 
-              <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                <h4 style={{ fontSize: '0.76rem', fontWeight: 800, color: '#334155', marginBottom: '10px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Activity size={14} color="#0284c7" /> Spesifikasi & Log Sinkronisasi
-                </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem' }}>
-                    <span style={{ color: '#64748b' }}>Model / Tipe:</span>
-                    <strong style={{ color: '#0f172a' }}>{selectedDevice.tipe_mesin || 'ZKTeco Standalone Biometric'}</strong>
+              <button
+                onClick={() => setDetailTab('spesifikasi')}
+                style={{
+                  padding: '10px 16px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  border: 'none',
+                  borderBottom: detailTab === 'spesifikasi' ? '3px solid #0284c7' : '3px solid transparent',
+                  background: 'transparent',
+                  color: detailTab === 'spesifikasi' ? '#0284c7' : '#64748b',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Server size={16} />
+                <span>Spesifikasi & Hardware Mesin</span>
+              </button>
+            </div>
+
+            {/* Modal Body Container */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '18px 20px', background: '#f1f5f9', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              
+              {/* TAB 1: RINCIAN DATA SANTRI DI MESIN */}
+              {detailTab === 'santri' && (
+                <>
+                  {/* Top Summary Stat Chips */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                    <div style={{ background: '#ffffff', borderRadius: '8px', padding: '12px 16px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                      <div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>TOTAL SANTRI TERDAFTAR</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>{userCounts.total} <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#94a3b8' }}>Santri</span></div>
+                      </div>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Users size={18} />
+                      </div>
+                    </div>
+
+                    <div style={{ background: '#ffffff', borderRadius: '8px', padding: '12px 16px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                      <div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#16a34a', textTransform: 'uppercase' }}>SANTRI AKTIF</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#16a34a' }}>{userCounts.aktif} <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#86efac' }}>Santri</span></div>
+                      </div>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <UserCheck size={18} />
+                      </div>
+                    </div>
+
+                    <div style={{ background: '#ffffff', borderRadius: '8px', padding: '12px 16px', border: userCounts.alumni > 0 ? '1px solid #fecaca' : '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                      <div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: userCounts.alumni > 0 ? '#dc2626' : '#64748b', textTransform: 'uppercase' }}>SANTRI ALUMNI / LULUS</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: userCounts.alumni > 0 ? '#dc2626' : '#0f172a' }}>{userCounts.alumni} <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#94a3b8' }}>Santri</span></div>
+                      </div>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: userCounts.alumni > 0 ? '#fee2e2' : '#f1f5f9', color: userCounts.alumni > 0 ? '#dc2626' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <GraduationCap size={18} />
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem' }}>
-                    <span style={{ color: '#64748b' }}>Waktu Terakhir Sinkron:</span>
-                    <strong style={{ color: '#0f172a' }}>{selectedDevice.last_sync || 'Baru saja'}</strong>
+
+                  {/* Warning Alert if Alumni users are detected */}
+                  {userCounts.alumni > 0 && (
+                    <div style={{
+                      background: 'linear-gradient(90deg, #fffbeb 0%, #fef3c7 100%)',
+                      border: '1px solid #fde68a',
+                      borderRadius: '8px',
+                      padding: '12px 16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fef3c7', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <AlertTriangle size={18} />
+                        </div>
+                        <div>
+                          <strong style={{ fontSize: '0.82rem', color: '#92400e', display: 'block' }}>
+                            Terdapat {userCounts.alumni} santri yang sudah lulus (Alumni/Boyong) di mesin ini!
+                          </strong>
+                          <span style={{ fontSize: '0.74rem', color: '#b45309' }}>
+                            Data santri yang sudah lulus tidak lagi diperlukan di mesin fingerprint dan dapat dibersihkan untuk menjaga kapasitas memori.
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        className="btn btn-sm"
+                        style={{
+                          background: '#dc2626',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '7px 14px',
+                          fontSize: '0.76rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          whiteSpace: 'nowrap'
+                        }}
+                        disabled={deletingAlumni}
+                        onClick={handleDeleteAlumniFromDevice}
+                      >
+                        {deletingAlumni ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                        <span>Hapus Semua Santri Alumni ({userCounts.alumni})</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Controls Toolbar: Search & Action Buttons */}
+                  <div style={{
+                    background: '#ffffff',
+                    borderRadius: '8px',
+                    padding: '12px 16px',
+                    border: '1px solid #e2e8f0',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '280px' }}>
+                      <div style={{ position: 'relative', flex: 1 }}>
+                        <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                        <input
+                          type="text"
+                          placeholder="Cari Nama Santri, NIS, atau PIN Mesin..."
+                          value={userSearch}
+                          onChange={(e) => setUserSearch(e.target.value)}
+                          className="filter-select"
+                          style={{ width: '100%', paddingLeft: '32px', height: '36px', fontSize: '0.8rem' }}
+                        />
+                      </div>
+
+                      {/* Status Filter Pills */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <button
+                          onClick={() => setUserStatusFilter('Semua')}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '0.74rem',
+                            fontWeight: 700,
+                            borderRadius: '6px',
+                            border: 'none',
+                            cursor: 'pointer',
+                            background: userStatusFilter === 'Semua' ? '#0284c7' : '#f1f5f9',
+                            color: userStatusFilter === 'Semua' ? '#ffffff' : '#64748b'
+                          }}
+                        >
+                          Semua ({userCounts.total})
+                        </button>
+                        <button
+                          onClick={() => setUserStatusFilter('Aktif')}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '0.74rem',
+                            fontWeight: 700,
+                            borderRadius: '6px',
+                            border: 'none',
+                            cursor: 'pointer',
+                            background: userStatusFilter === 'Aktif' ? '#16a34a' : '#f1f5f9',
+                            color: userStatusFilter === 'Aktif' ? '#ffffff' : '#64748b'
+                          }}
+                        >
+                          Aktif ({userCounts.aktif})
+                        </button>
+                        <button
+                          onClick={() => setUserStatusFilter('Alumni')}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '0.74rem',
+                            fontWeight: 700,
+                            borderRadius: '6px',
+                            border: 'none',
+                            cursor: 'pointer',
+                            background: userStatusFilter === 'Alumni' ? '#ea580c' : '#f1f5f9',
+                            color: userStatusFilter === 'Alumni' ? '#ffffff' : '#64748b'
+                          }}
+                        >
+                          Alumni ({userCounts.alumni})
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={() => fetchDeviceUsers(selectedDevice.sn_device)}
+                        disabled={loadingUsers}
+                        title="Segarkan Data"
+                      >
+                        <RotateCw size={13} className={loadingUsers ? 'animate-spin' : ''} />
+                        <span>Refresh</span>
+                      </button>
+
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={handleSyncToThisDevice}
+                        disabled={syncing}
+                        title="Kirim ulang data santri aktif ke mesin ini"
+                      >
+                        {syncing ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                        <span>Kirim Santri Aktif ke Mesin</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Santri Data Table */}
+                  <div style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+                    {loadingUsers ? (
+                      <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                        <Loader2 size={28} className="animate-spin" style={{ margin: '0 auto 10px', color: '#0284c7' }} />
+                        <p style={{ margin: 0, fontSize: '0.84rem', fontWeight: 600 }}>Memuat rincian data santri di mesin...</p>
+                      </div>
+                    ) : filteredDeviceUsers.length === 0 ? (
+                      <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                        <Users size={32} style={{ margin: '0 auto 10px', color: '#cbd5e1' }} />
+                        <p style={{ margin: 0, fontSize: '0.88rem', fontWeight: 700, color: '#334155' }}>Tidak ada data santri ditemukan</p>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.76rem', color: '#94a3b8' }}>
+                          {userSearch ? 'Coba ubah kata kunci pencarian Anda.' : 'Silakan klik tombol "Kirim Santri Aktif ke Mesin" untuk mendaftarkan data santri.'}
+                        </p>
+                      </div>
+                    ) : (
+                      <div style={{ overflowX: 'auto', maxHeight: '420px' }}>
+                        <table className="device-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                          <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', zIndex: 2 }}>
+                            <tr>
+                              <th style={{ width: '50px', textAlign: 'center' }}>NO</th>
+                              <th style={{ width: '130px' }}>PIN / ID MESIN</th>
+                              <th>NAMA SANTRI & NIS</th>
+                              <th>KELAS & ASRAMA</th>
+                              <th style={{ width: '130px', textAlign: 'center' }}>STATUS SANTRI</th>
+                              <th style={{ width: '160px', textAlign: 'center' }}>AKSI</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredDeviceUsers.map((u, idx) => (
+                              <tr key={u.id || idx} style={{ background: u.is_alumni ? '#fffbeb' : undefined }}>
+                                <td style={{ textAlign: 'center', fontSize: '0.76rem', color: '#64748b' }}>
+                                  {idx + 1}
+                                </td>
+                                <td>
+                                  <span style={{
+                                    fontFamily: 'monospace',
+                                    fontWeight: 800,
+                                    fontSize: '0.8rem',
+                                    background: '#f1f5f9',
+                                    color: '#0f172a',
+                                    padding: '3px 8px',
+                                    borderRadius: '5px',
+                                    border: '1px solid #cbd5e1'
+                                  }}>
+                                    #{u.pin}
+                                  </span>
+                                </td>
+                                <td>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div style={{
+                                      width: '28px',
+                                      height: '28px',
+                                      borderRadius: '6px',
+                                      background: u.jk === 'P' ? '#fce7f3' : '#e0f2fe',
+                                      color: u.jk === 'P' ? '#ec4899' : '#0284c7',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 800
+                                    }}>
+                                      {u.nama_santri?.charAt(0) || 'S'}
+                                    </div>
+                                    <div>
+                                      <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#0f172a' }}>
+                                        {u.nama_santri}
+                                      </div>
+                                      <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                                        NIS: {u.nis || '-'} • {u.jk === 'P' ? 'Santriwati (P)' : 'Santri (L)'}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td>
+                                  <div style={{ fontSize: '0.78rem', color: '#334155', fontWeight: 600 }}>
+                                    {u.nama_kelas}
+                                  </div>
+                                  <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                                    Asrama: {u.nama_asrama}
+                                  </div>
+                                </td>
+                                <td style={{ textAlign: 'center' }}>
+                                  {u.is_alumni ? (
+                                    <span className="badge" style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', fontSize: '0.7rem', padding: '3px 8px' }}>
+                                      <GraduationCap size={12} />
+                                      <span>Alumni (Lulus)</span>
+                                    </span>
+                                  ) : (
+                                    <span className="badge badge-success" style={{ fontSize: '0.7rem', padding: '3px 8px' }}>
+                                      <CheckCircle2 size={12} />
+                                      <span>Aktif</span>
+                                    </span>
+                                  )}
+                                </td>
+                                <td style={{ textAlign: 'center' }}>
+                                  <button
+                                    onClick={() => handleDeleteUserFromDevice(u)}
+                                    disabled={deletingUserPin === u.pin}
+                                    style={{
+                                      background: '#fee2e2',
+                                      color: '#dc2626',
+                                      border: '1px solid #fecaca',
+                                      borderRadius: '6px',
+                                      padding: '5px 10px',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 700,
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '5px'
+                                    }}
+                                    title={`Hapus ${u.nama_santri} dari mesin ${selectedDevice.nama_device}`}
+                                  >
+                                    {deletingUserPin === u.pin ? (
+                                      <>
+                                        <Loader2 size={12} className="animate-spin" />
+                                        <span>Menghapus...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Trash2 size={12} />
+                                        <span>Hapus dari Mesin</span>
+                                      </>
+                                    )}
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* TAB 2: SPESIFIKASI & HARDWARE MESIN */}
+              {detailTab === 'spesifikasi' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: '#ffffff', padding: '16px', borderRadius: '8px', border: '1px solid #cbd5e1', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                    <div>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>IP ADDRESS & PORT</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{selectedDevice.ip_address}:{selectedDevice.port || 4370}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>STATUS KONEKSI</div>
+                      <div style={{ marginTop: '2px' }}>
+                        <span className={`badge ${selectedDevice.status_koneksi === 'Online' ? 'badge-success' : 'badge-danger'}`}>
+                          {selectedDevice.status_koneksi === 'Online' ? <Wifi size={11} /> : <WifiOff size={11} />}
+                          <span>{selectedDevice.status_koneksi}</span>
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>LOKASI INSTALASI</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#059669', marginTop: '2px' }}>{selectedDevice.lokasi}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>TEMPLATE ENROLLED</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0284c7', marginTop: '2px' }}>{userCounts.total} Santri Terdaftar</div>
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                    <h4 style={{ fontSize: '0.8rem', fontWeight: 800, color: '#334155', marginBottom: '12px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Activity size={15} color="#0284c7" /> Spesifikasi & Log Sinkronisasi
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                        <span style={{ color: '#64748b' }}>Model / Tipe:</span>
+                        <strong style={{ color: '#0f172a' }}>{selectedDevice.tipe_mesin || 'ZKTeco Standalone Biometric'}</strong>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                        <span style={{ color: '#64748b' }}>Serial Number:</span>
+                        <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{selectedDevice.sn_device}</strong>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                        <span style={{ color: '#64748b' }}>Peruntukan Santri:</span>
+                        <strong style={{ color: '#0f172a' }}>{selectedDevice.peruntukan || 'Semua'}</strong>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                        <span style={{ color: '#64748b' }}>Waktu Terakhir Sinkron:</span>
+                        <strong style={{ color: '#0f172a' }}>{selectedDevice.last_sync || 'Baru saja'}</strong>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Modal Footer */}
-            <div style={{ padding: '12px 18px', borderTop: '1px solid #cbd5e1', background: '#ffffff', display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ padding: '12px 20px', borderTop: '1px solid #e2e8f0', background: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+              <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                Mesin: <strong>{selectedDevice.nama_device}</strong> ({selectedDevice.sn_device})
+              </div>
               <button className="btn btn-outline btn-sm" onClick={closeModal}>
                 Tutup
               </button>
