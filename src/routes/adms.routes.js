@@ -7,6 +7,7 @@ import {
   handleAdmsRegistry,
   handleAdmsPing,
   queuePushSantriToDevice,
+  queueClearUsersFromDevice,
   getAdmsQueueStatus
 } from '../controllers/adms.controller.js';
 
@@ -33,6 +34,7 @@ router.post('/ping', handleAdmsPing);
 
 // 7. REST API Admin: Kirim data nama & NIS santri ke mesin
 router.post('/sync-santri', queuePushSantriToDevice);
+router.post('/clear-users', queueClearUsersFromDevice);
 router.get('/queue-status', getAdmsQueueStatus);
 
 export default router;

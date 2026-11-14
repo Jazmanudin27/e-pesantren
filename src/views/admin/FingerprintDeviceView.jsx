@@ -26,6 +26,7 @@ export default function FingerprintDeviceView() {
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const [activeFilterTab, setActiveFilterTab] = useState('semua');
   const [search, setSearch] = useState('');
   const [filterPeruntukan, setFilterPeruntukan] = useState('Semua Peruntukan');
@@ -99,6 +100,27 @@ export default function FingerprintDeviceView() {
       alert('Gagal mengirim data santri: ' + (err.response?.data?.message || err.message));
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleClearUsersFromDevice = async () => {
+    const confirmed = await showConfirm(
+      'Hapus Seluruh Data Santri di Mesin?',
+      'PERINGATAN: Perintah ini akan menghapus seluruh data user dan template sidik jari/wajah di memori mesin fingerprint! Setelah bersih, Anda dapat menekan tombol "Kirim Santri ke Mesin" untuk push data baru dari aplikasi.',
+      'Ya, Bersihkan Mesin',
+      'Batal'
+    );
+    if (!confirmed) return;
+
+    try {
+      setClearing(true);
+      const res = await axios.post('/api/iclock/clear-users');
+      toastSuccess(res.data.message || 'Perintah hapus data user berhasil diantrekan ke mesin!');
+      fetchDevices();
+    } catch (err) {
+      alert('Gagal mengantrekan hapus data: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setClearing(false);
     }
   };
 
@@ -270,11 +292,21 @@ export default function FingerprintDeviceView() {
             <p>Konfigurasi koneksi TCP/IP, Port 4370, Serial Number mesin biometric pos gerbang & lobi asrama</p>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button 
+            className="btn btn-outline" 
+            onClick={handleClearUsersFromDevice} 
+            disabled={clearing || syncing}
+            style={{ color: '#e11d48', borderColor: '#fecdd3', background: '#fff1f2' }}
+            title="Kosongkan seluruh data santri/user di mesin fingerprint"
+          >
+            {clearing ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+            {clearing ? ' Mengosongkan...' : ' Kosongkan User di Mesin'}
+          </button>
           <button 
             className="btn btn-outline" 
             onClick={handleSyncSantriToDevice} 
-            disabled={syncing}
+            disabled={syncing || clearing}
             style={{ color: '#0284c7', borderColor: '#38bdf8' }}
             title="Kirim nama & NIS santri aktif ke mesin melalui koneksi Cloud ADMS"
           >

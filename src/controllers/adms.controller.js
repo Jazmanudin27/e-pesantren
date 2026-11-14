@@ -415,6 +415,47 @@ export const getAdmsQueueStatus = async (req, res) => {
   }
 };
 
+// 7. REST API: Hapus Seluruh Data User/Santri di Mesin Fingerprint (CLEAR DATA USER)
+export const queueClearUsersFromDevice = async (req, res) => {
+  try {
+    await ensureAdmsTables();
+    const { sn_device } = req.body;
+
+    let targetSNs = [];
+    if (sn_device) {
+      targetSNs = [sn_device];
+    } else {
+      const [allDevs] = await pool.query(`
+        SELECT DISTINCT sn_device 
+        FROM fingerprint_device 
+        WHERE sn_device IS NOT NULL AND sn_device != ''
+      `);
+      targetSNs = allDevs.length > 0 ? allDevs.map(d => d.sn_device) : [null];
+    }
+
+    let queuedCount = 0;
+    for (const targetSN of targetSNs) {
+      // Perintah ADMS resmi untuk menghapus seluruh user & biometric template di mesin
+      const command = 'CLEAR DATA';
+      await pool.query(`
+        INSERT INTO adms_command_queue (sn_device, command, status)
+        VALUES (?, ?, 'PENDING')
+      `, [targetSN, command]);
+      queuedCount++;
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Perintah CLEAR DATA (hapus seluruh user di mesin) berhasil diantrekan ke ${targetSNs.length} mesin. Mesin akan mengeksekusi saat siklus getrequest berikutnya.`,
+      device_count: targetSNs.length,
+      queued: queuedCount
+    });
+  } catch (err) {
+    console.error('[ADMS CLEAR USERS ERR]', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // 5. Registry Mesin
 export const handleAdmsRegistry = async (req, res) => {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');

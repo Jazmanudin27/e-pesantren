@@ -68,7 +68,7 @@ import PortalWaliSantri from '../views/wali/PortalWaliSantri';
 import WhatsAppGatewayView from '../views/admin/WhatsAppGatewayView';
 import OwnerDashboardView from '../views/owner/OwnerDashboardView';
 import PengajarDashboardView from '../views/pengajar/PengajarDashboardView';
-import MobileHaid from '../views/mobile/MobileHaid';
+import HaidSantriwatiAdminView from '../views/admin/HaidSantriwatiAdminView';
 import { canAccessKeuangan, canAccessAbsensi, isPureKeuangan, isPureAbsen } from '../utils/authRole.util';
 import { showConfirm, toastSuccess } from '../utils/alert.util';
 
@@ -428,7 +428,7 @@ export default function AdminLayout() {
         return <AbsensiFingerprintView initialType="berjamaah" />;
       case 'haid-santriwati':
       case 'haid':
-        return <MobileHaid />;
+        return <HaidSantriwatiAdminView />;
       case 'perizinan':
         return <PerizinanView />;
       case 'tata-tertib':
@@ -550,7 +550,20 @@ export default function AdminLayout() {
   const isAbsensiActive = ['absensi-berjamaah', 'presensi-berjamaah', 'presensi', 'absensi-mengaji', 'presensi-kegiatan'].includes(activeTab);
   const isPengembanganActive = isPengembanganTab(activeTab);
   const isMasterActive = ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-materi', 'kurikulum-pengajian', 'jadwal-mengajar', 'setting-shalat', 'setting-kegiatan', 'master-kegiatan'].includes(activeTab);
-  const isSettingsActive = ['master-device', 'manajemen-user', 'users', 'whatsapp-gateway', 'whatsapp', 'wa-broadcast'].includes(activeTab);
+  const isSettingsActive = [
+    'master-device',
+    'manajemen-user',
+    'users',
+    'pesan-komunikasi',
+    'pesan-admin',
+    'pesan',
+    'informasi-kegiatan',
+    'berita-pesantren',
+    'pengumuman',
+    'whatsapp-gateway',
+    'whatsapp',
+    'wa-broadcast'
+  ].includes(activeTab);
   const isLaporanActive = ['laporan-presensi', 'laporan-tahfidz'].includes(activeTab);
   const isKeuanganActive = isKeuanganTab(activeTab);
 
@@ -668,14 +681,6 @@ export default function AdminLayout() {
             </button>
 
             <button 
-              className={`nav-sublink ${activeTab === 'laporan-presensi' ? 'active' : ''}`}
-              onClick={() => handleTabClick('laporan-presensi')}
-            >
-              <BarChart3 size={13} style={{ marginRight: '6px', color: '#38bdf8' }} />
-              <span>Rekap Presensi Harian</span>
-            </button>
-
-            <button 
               className={`nav-sublink ${['haid-santriwati', 'haid'].includes(activeTab) ? 'active' : ''}`}
               onClick={() => handleTabClick('haid-santriwati')}
             >
@@ -742,7 +747,7 @@ export default function AdminLayout() {
         {/* 7. SETTINGS */}
         <div className="menu-category" style={{ color: '#94a3b8', fontWeight: 800 }}>SETTINGS</div>
 
-        {/* Settings (User Management) */}
+        {/* Settings Dropdown Accordion */}
         <button 
           className={`nav-link has-dropdown ${isSettingsActive ? 'active' : ''}`}
           onClick={() => setIsSettingsOpen(!isSettingsOpen)}
@@ -756,6 +761,7 @@ export default function AdminLayout() {
 
         {isSettingsOpen && (
           <div className="nav-submenu">
+            {/* Kelola Pengguna */}
             <button 
               className={`nav-sublink ${activeTab === 'manajemen-user' || activeTab === 'users' ? 'active' : ''}`}
               onClick={() => handleTabClick('manajemen-user')}
@@ -763,41 +769,35 @@ export default function AdminLayout() {
               <UserCog size={13} style={{ marginRight: '6px' }} />
               <span>Kelola Pengguna (Users)</span>
             </button>
+
+            {/* Pesan Wali Santri */}
+            <button 
+              className={`nav-sublink ${['pesan-komunikasi', 'pesan-admin', 'pesan'].includes(activeTab) ? 'active' : ''}`}
+              onClick={() => handleTabClick('pesan-komunikasi')}
+            >
+              <MessageSquare size={13} style={{ marginRight: '6px', color: '#0d9488' }} />
+              <span>Pesan Wali Santri</span>
+            </button>
+
+            {/* Informasi & Pengumuman */}
+            <button 
+              className={`nav-sublink ${['informasi-kegiatan', 'berita-pesantren', 'pengumuman'].includes(activeTab) ? 'active' : ''}`}
+              onClick={() => handleTabClick('informasi-kegiatan')}
+            >
+              <Bell size={13} style={{ marginRight: '6px', color: '#f59e0b' }} />
+              <span>Informasi &amp; Pengumuman</span>
+            </button>
+
+            {/* Mesin Fingerprint (ADMS) */}
+            <button 
+              className={`nav-sublink ${activeTab === 'master-device' ? 'active' : ''}`}
+              onClick={() => handleTabClick('master-device')}
+            >
+              <HardDrive size={13} style={{ marginRight: '6px', color: '#a855f7' }} />
+              <span>Mesin Fingerprint (ADMS)</span>
+            </button>
           </div>
         )}
-
-        {/* Pesan Wali Santri */}
-        <button 
-          className={`nav-link ${['pesan-komunikasi', 'pesan-admin', 'pesan'].includes(activeTab) ? 'active' : ''}`}
-          onClick={() => handleTabClick('pesan-komunikasi')}
-        >
-          <div className="nav-link-left">
-            <MessageSquare size={15} style={{ color: '#0d9488' }} />
-            <span>Pesan Wali Santri</span>
-          </div>
-        </button>
-
-        {/* Informasi & Pengumuman */}
-        <button 
-          className={`nav-link ${['informasi-kegiatan', 'berita-pesantren', 'pengumuman'].includes(activeTab) ? 'active' : ''}`}
-          onClick={() => handleTabClick('informasi-kegiatan')}
-        >
-          <div className="nav-link-left">
-            <Bell size={15} style={{ color: '#f59e0b' }} />
-            <span>Informasi &amp; Pengumuman</span>
-          </div>
-        </button>
-
-        {/* Mesin Fingerprint (ADMS) */}
-        <button 
-          className={`nav-link ${activeTab === 'master-device' ? 'active' : ''}`}
-          onClick={() => handleTabClick('master-device')}
-        >
-          <div className="nav-link-left">
-            <HardDrive size={15} style={{ color: '#a855f7' }} />
-            <span>Mesin Fingerprint (ADMS)</span>
-          </div>
-        </button>
 
         {/* 8. Laporan */}
         <div className="menu-category" style={{ color: '#94a3b8', fontWeight: 800 }}>Laporan</div>

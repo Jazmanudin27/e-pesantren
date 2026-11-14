@@ -6,13 +6,14 @@ import {
   RotateCw,
   Send,
   User,
-  ShieldCheck,
   Clock,
   CheckCheck,
-  HelpCircle,
   Inbox,
   Sparkles,
-  PhoneCall
+  PhoneCall,
+  ChevronRight,
+  Smile,
+  Paperclip
 } from 'lucide-react';
 import { toastSuccess, showError } from '../../utils/alert.util';
 
@@ -42,7 +43,6 @@ export default function PesanKomunikasiAdminView() {
       if (res.data?.success && res.data.data) {
         const threadList = res.data.data.threads || [];
         setThreads(threadList);
-        // Jika belum ada thread aktif dan ada data, pilih yang pertama
         if (!activeSantriId && threadList.length > 0) {
           setActiveSantriId(threadList[0].santri_id);
           setActiveThreadData(threadList[0]);
@@ -83,15 +83,13 @@ export default function PesanKomunikasiAdminView() {
   useEffect(() => {
     fetchThreads();
     const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        fetchThreads(true);
-        if (activeSantriId) {
-          fetchMessagesForSantri(activeSantriId, true);
-        }
+      fetchThreads(true);
+      if (activeSantriId) {
+        fetchMessagesForSantri(activeSantriId, true);
       }
-    }, 10000);
+    }, 8000);
     return () => clearInterval(interval);
-  }, []);
+  }, [activeSantriId]);
 
   useEffect(() => {
     if (activeSantriId) {
@@ -103,39 +101,32 @@ export default function PesanKomunikasiAdminView() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSelectThread = (th) => {
-    setActiveSantriId(th.santri_id);
-    setActiveThreadData(th);
-    // Reset unread count lokal
-    setThreads((prev) =>
-      prev.map((item) => (item.santri_id === th.santri_id ? { ...item, unread_admin: 0 } : item))
-    );
+  const handleSelectThread = (thread) => {
+    setActiveSantriId(thread.santri_id);
+    setActiveThreadData(thread);
   };
 
   const handleSendReply = async (e) => {
     e?.preventDefault();
-    const cleanText = replyText.trim();
-    if (!cleanText || sendingReply || !activeSantriId) return;
+    if (!replyText.trim() || !activeSantriId) return;
 
     try {
       setSendingReply(true);
       const res = await axios.post('/api/pesan/admin/reply', {
         santri_id: activeSantriId,
-        admin_nama: 'Admin Pesantren Nurul Wafa',
         topik: replyTopik,
-        isi_pesan: cleanText
+        isi_pesan: replyText.trim()
       });
 
       if (res.data?.success) {
         setReplyText('');
-        toastSuccess('Terkirim', 'Pesan balasan Anda telah terkirim dan ternotifikasi ke Orang Tua.');
-        await fetchMessagesForSantri(activeSantriId, true);
-        await fetchThreads(true);
+        fetchMessagesForSantri(activeSantriId, true);
+        fetchThreads(true);
       } else {
-        showError('Gagal', res.data?.message || 'Gagal mengirim balasan.');
+        showError('Gagal Kirim', res.data?.message || 'Gagal mengirim balasan.');
       }
     } catch (err) {
-      showError('Gagal', err.response?.data?.message || err.message || 'Koneksi terganggu.');
+      showError('Gagal Kirim', err.response?.data?.message || err.message);
     } finally {
       setSendingReply(false);
     }
@@ -147,6 +138,7 @@ export default function PesanKomunikasiAdminView() {
     return (
       (th.nama_santri || '').toLowerCase().includes(q) ||
       (th.nama_wali || '').toLowerCase().includes(q) ||
+      (th.nis || '').toLowerCase().includes(q) ||
       (th.last_pesan || '').toLowerCase().includes(q)
     );
   });
@@ -172,49 +164,51 @@ export default function PesanKomunikasiAdminView() {
   };
 
   return (
-    <div className="admin-content-inner" style={{ padding: '20px' }}>
-      {/* 1. TOP HEADER (DISAMAKAN PERSIS DENGAN INFORMASI & TABUNGAN) */}
+    <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 80px)', boxSizing: 'border-box' }}>
+      {/* 1. TOP HEADER BANNER */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '18px',
+        marginBottom: '14px',
         flexWrap: 'wrap',
         gap: '12px',
         background: '#ffffff',
-        padding: '18px 20px',
-        borderRadius: '18px',
+        padding: '14px 18px',
+        borderRadius: '16px',
         border: '1px solid #e2e8f0',
-        boxShadow: '0 4px 14px rgba(0,0,0,0.03)'
+        boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+        flexShrink: 0
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '14px',
+            width: '44px',
+            height: '44px',
+            borderRadius: '12px',
             background: 'linear-gradient(135deg, #0d766e, #059669)',
-            color: '#fff',
+            color: '#ffffff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 6px 16px rgba(13, 118, 110, 0.3)'
+            boxShadow: '0 6px 14px rgba(13, 118, 110, 0.28)'
           }}>
-            <MessageSquare size={24} />
+            <MessageSquare size={22} />
           </div>
           <div>
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h1 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span>Pusat Pesan &amp; Komunikasi Orang Tua</span>
-              <span style={{ fontSize: '0.68rem', background: '#ccfbf1', color: '#0f766e', border: '1px solid #99f6e4', padding: '2px 8px', borderRadius: '999px', fontWeight: 800 }}>
+              <span style={{ fontSize: '0.64rem', background: '#ccfbf1', color: '#0f766e', border: '1px solid #99f6e4', padding: '2px 8px', borderRadius: '999px', fontWeight: 800 }}>
                 Resmi Pesantren
               </span>
             </h1>
-            <p style={{ color: '#64748b', fontSize: '0.8rem', margin: '3px 0 0' }}>
-              Kelola pertanyaan, konsultasi, dan komunikasi dua arah dengan wali santri dalam satu platform.
+            <p style={{ color: '#64748b', fontSize: '0.74rem', margin: '2px 0 0' }}>
+              Kelola pertanyaan, konsultasi, dan komunikasi dua arah dengan wali santri secara real-time.
             </p>
           </div>
         </div>
 
         <button
+          type="button"
           onClick={() => {
             fetchThreads();
             if (activeSantriId) fetchMessagesForSantri(activeSantriId);
@@ -225,44 +219,83 @@ export default function PesanKomunikasiAdminView() {
             gap: '6px',
             background: '#f8fafc',
             border: '1px solid #cbd5e1',
-            padding: '8px 14px',
+            padding: '7px 13px',
             borderRadius: '10px',
             cursor: 'pointer',
-            fontSize: '0.8rem',
+            fontSize: '0.74rem',
             fontWeight: 700,
             color: '#334155'
           }}
           title="Segarkan Chat"
         >
-          <RotateCw size={14} className={loadingThreads ? 'animate-spin' : ''} /> Refresh
+          <RotateCw size={13} className={loadingThreads ? 'animate-spin' : ''} />
+          <span>Refresh</span>
         </button>
       </div>
 
-      {/* 2. CHAT WORKSPACE (SPLIT 2 COLUMNS) */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[580px] max-h-[75vh]">
-        {/* LEFT COLUMN: THREAD LIST (4 COLS) */}
-        <div className="md:col-span-4 border-r border-slate-200 flex flex-col bg-slate-50">
-          <div className="p-3 border-b border-slate-200 bg-white">
-            <div className="relative">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      {/* 2. CHAT WORKSPACE (SPLIT 2 COLUMNS MODERN INLINE LAYOUT) */}
+      <div style={{
+        display: 'flex',
+        flex: 1,
+        minHeight: 0,
+        background: '#ffffff',
+        borderRadius: '18px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.04)',
+        overflow: 'hidden'
+      }}>
+        {/* ========================================================
+            KOLOM KIRI: DAFTAR KONTAK / PERCAKAPAN (WIDTH: 320px)
+        ======================================================== */}
+        <div style={{
+          width: '320px',
+          minWidth: '280px',
+          maxWidth: '360px',
+          borderRight: '1px solid #e2e8f0',
+          display: 'flex',
+          flexDirection: 'column',
+          background: '#f8fafc'
+        }}>
+          {/* Search Box Kontak */}
+          <div style={{ padding: '12px 14px', borderBottom: '1px solid #e2e8f0', background: '#ffffff' }}>
+            <div style={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              background: '#f1f5f9',
+              borderRadius: '12px',
+              border: '1px solid #e2e8f0',
+              padding: '0 10px'
+            }}>
+              <Search size={14} color="#94a3b8" />
               <input
                 type="text"
                 value={searchThread}
                 onChange={(e) => setSearchThread(e.target.value)}
                 placeholder="Cari santri / wali..."
-                className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-100 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-teal-500 font-medium"
+                style={{
+                  border: 'none',
+                  outline: 'none',
+                  background: 'transparent',
+                  padding: '8px 8px',
+                  fontSize: '0.74rem',
+                  color: '#1e293b',
+                  fontWeight: 600,
+                  width: '100%'
+                }}
               />
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+          {/* List Percakapan Kontak */}
+          <div style={{ flex: 1, overflowY: 'auto' }}>
             {loadingThreads && threads.length === 0 ? (
-              <div className="p-6 text-center text-xs text-slate-400">
+              <div style={{ padding: '24px', textAlign: 'center', fontSize: '0.74rem', color: '#94a3b8' }}>
                 Memuat percakapan...
               </div>
             ) : filteredThreads.length === 0 ? (
-              <div className="p-8 text-center text-slate-400 text-xs">
-                <Inbox size={32} className="mx-auto mb-2 text-slate-300" />
+              <div style={{ padding: '36px 16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.74rem' }}>
+                <Inbox size={32} color="#cbd5e1" style={{ margin: '0 auto 8px', display: 'block' }} />
                 Tidak ada pesan komunikasi ditemukan.
               </div>
             ) : (
@@ -274,35 +307,67 @@ export default function PesanKomunikasiAdminView() {
                   <div
                     key={th.santri_id}
                     onClick={() => handleSelectThread(th)}
-                    className={`p-3.5 cursor-pointer transition flex items-start gap-3 ${
-                      isActive ? 'bg-teal-50 border-l-4 border-teal-600' : 'hover:bg-slate-100'
-                    }`}
+                    style={{
+                      padding: '12px 14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      borderBottom: '1px solid #f1f5f9',
+                      background: isActive ? '#f0fdfa' : 'transparent',
+                      borderLeft: isActive ? '4px solid #0d766e' : '4px solid transparent',
+                      transition: 'all 0.15s ease'
+                    }}
                   >
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-emerald-700 text-white flex items-center justify-center font-bold text-xs shadow-sm flex-shrink-0">
+                    {/* Avatar Initials */}
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #0d766e, #059669)',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 800,
+                      fontSize: '0.8rem',
+                      boxShadow: '0 2px 6px rgba(13, 118, 110, 0.25)',
+                      flexShrink: 0
+                    }}>
                       {String(th.nama_santri || 'S').substring(0, 2).toUpperCase()}
                     </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1 mb-0.5">
-                        <div className="font-extrabold text-xs text-slate-800 truncate">
+                    {/* Meta Santri & Pesan Terakhir */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.78rem', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {th.nama_santri}
                         </div>
-                        <span className="text-[10px] text-slate-400 whitespace-nowrap">
+                        <span style={{ fontSize: '0.62rem', color: '#94a3b8', flexShrink: 0, marginLeft: '6px' }}>
                           {formatDate(th.last_time)}
                         </span>
                       </div>
 
-                      <div className="text-[11px] font-semibold text-teal-700 truncate">
-                        {th.nama_wali || 'Orang Tua'}
+                      <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0d766e', marginBottom: '2px' }}>
+                        {th.nama_wali || 'Orang Tua Santri'}
                       </div>
 
-                      <div className="text-xs text-slate-500 truncate mt-1 leading-snug">
-                        {th.last_pesan}
+                      <div style={{ fontSize: '0.7rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {th.last_pesan || 'Percakapan baru'}
                       </div>
                     </div>
 
+                    {/* Unread Badge */}
                     {hasUnread && (
-                      <span className="bg-emerald-500 text-white font-extrabold text-[10px] w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm animate-pulse">
+                      <span style={{
+                        background: '#10b981',
+                        color: '#ffffff',
+                        fontSize: '0.6rem',
+                        fontWeight: 900,
+                        padding: '2px 6px',
+                        borderRadius: '10px',
+                        flexShrink: 0
+                      }}>
                         {th.unread_admin}
                       </span>
                     )}
@@ -313,53 +378,96 @@ export default function PesanKomunikasiAdminView() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: ACTIVE CONVERSATION + REPLY BOX (8 COLS) */}
-        <div className="md:col-span-8 flex flex-col bg-slate-100 min-h-[500px]">
+        {/* ========================================================
+            KOLOM KANAN: CHAT ACTIVE STREAM & INPUT FORM
+        ======================================================== */}
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          background: '#f1f5f9',
+          minWidth: 0
+        }}>
           {!activeSantriId ? (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400">
-              <MessageSquare size={48} className="text-slate-300 mb-2" />
-              <p className="font-bold text-sm text-slate-600">Pilih Percakapan Wali Santri</p>
-              <p className="text-xs text-slate-400 max-w-sm mt-1">
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '30px', color: '#94a3b8' }}>
+              <MessageSquare size={48} color="#cbd5e1" style={{ marginBottom: '12px' }} />
+              <div style={{ fontWeight: 800, fontSize: '0.94rem', color: '#475569' }}>Pilih Percakapan Wali Santri</div>
+              <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '4px', maxWidth: '340px', textAlign: 'center' }}>
                 Pilih salah satu kontak santri di kolom kiri untuk melihat riwayat pesan dan mengirimkan balasan.
-              </p>
+              </div>
             </div>
           ) : (
             <>
-              {/* Active Header */}
-              <div className="p-3.5 bg-white border-b border-slate-200 flex items-center justify-between shadow-sm z-10">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-teal-100 text-teal-800 flex items-center justify-center font-extrabold text-xs">
+              {/* Header Kontak Aktif */}
+              <div style={{
+                padding: '12px 18px',
+                background: '#ffffff',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                zIndex: 10
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '12px',
+                    background: '#f0fdfa',
+                    border: '1px solid #ccfbf1',
+                    color: '#0d766e',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 800
+                  }}>
                     <User size={18} />
                   </div>
                   <div>
-                    <div className="font-black text-sm text-slate-800 flex items-center gap-2">
+                    <div style={{ fontWeight: 800, fontSize: '0.86rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span>{activeThreadData?.nama_santri || 'Santri'}</span>
-                      <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono font-bold">
+                      <span style={{ fontSize: '0.62rem', background: '#f1f5f9', color: '#475569', padding: '1px 6px', borderRadius: '6px', fontFamily: 'monospace' }}>
                         NIS: {activeThreadData?.nis || '-'}
                       </span>
                     </div>
-                    <div className="text-xs text-slate-500">
-                      Wali: <span className="font-semibold text-slate-700">{activeThreadData?.nama_wali || 'Orang Tua'}</span>
+                    <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '1px' }}>
+                      Wali: <strong style={{ color: '#334155' }}>{activeThreadData?.nama_wali || 'Orang Tua Santri'}</strong>
                       {activeThreadData?.nama_kamar ? ` • Kamar ${activeThreadData.nama_kamar}` : ''}
                     </div>
                   </div>
                 </div>
 
-                <div className="text-right hidden sm:block">
-                  <span className="text-xs bg-emerald-50 text-emerald-700 font-bold px-3 py-1 rounded-full border border-emerald-200">
-                    Kanal Komunikasi Terhubung
-                  </span>
-                </div>
+                <span style={{
+                  fontSize: '0.66rem',
+                  fontWeight: 800,
+                  color: '#059669',
+                  background: '#ecfdf5',
+                  border: '1px solid #a7f3d0',
+                  padding: '4px 10px',
+                  borderRadius: '12px'
+                }}>
+                  ● Kanal Komunikasi Terhubung
+                </span>
               </div>
 
-              {/* Chat Message Stream */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {/* Message Stream Area */}
+              <div style={{
+                flex: 1,
+                overflowY: 'auto',
+                padding: '16px 20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                backgroundImage: 'radial-gradient(#cbd5e1 0.75px, transparent 0.75px)',
+                backgroundSize: '16px 16px'
+              }}>
                 {loadingMessages && messages.length === 0 ? (
-                  <div className="text-center py-10 text-xs text-slate-400">
+                  <div style={{ textAlign: 'center', padding: '30px 0', fontSize: '0.74rem', color: '#94a3b8' }}>
                     Memuat riwayat percakapan...
                   </div>
                 ) : messages.length === 0 ? (
-                  <div className="text-center py-12 text-slate-400 text-xs">
+                  <div style={{ textAlign: 'center', padding: '40px 0', fontSize: '0.76rem', color: '#94a3b8' }}>
                     Belum ada riwayat pesan untuk santri ini.
                   </div>
                 ) : (
@@ -371,60 +479,105 @@ export default function PesanKomunikasiAdminView() {
                     return (
                       <React.Fragment key={m.id || idx}>
                         {showDateHeader && (
-                          <div className="text-center my-2">
-                            <span className="bg-slate-200 text-slate-600 text-[10px] font-bold px-3 py-1 rounded-full">
+                          <div style={{ textAlign: 'center', margin: '8px 0' }}>
+                            <span style={{
+                              background: '#e2e8f0',
+                              color: '#475569',
+                              fontSize: '0.62rem',
+                              fontWeight: 800,
+                              padding: '2px 10px',
+                              borderRadius: '12px'
+                            }}>
                               {formatDate(m.created_at)}
                             </span>
                           </div>
                         )}
 
-                        <div className={`flex gap-2.5 items-end ${isAdmin ? 'justify-end' : 'justify-start'}`}>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: isAdmin ? 'flex-end' : 'flex-start',
+                          alignItems: 'flex-end',
+                          gap: '8px'
+                        }}>
                           {!isAdmin && (
-                            <div className="w-7 h-7 rounded-full bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-[10px] flex-shrink-0">
+                            <div style={{
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '50%',
+                              background: '#e2e8f0',
+                              color: '#475569',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.68rem',
+                              fontWeight: 800,
+                              flexShrink: 0
+                            }}>
                               {String(m.pengirim_nama || 'W').substring(0, 1)}
                             </div>
                           )}
 
-                          <div
-                            className={`max-w-[78%] p-3 rounded-2xl shadow-sm text-xs ${
-                              isAdmin
-                                ? 'bg-gradient-to-r from-teal-700 to-emerald-700 text-white rounded-br-none'
-                                : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'
-                            }`}
-                          >
-                            {/* Topik / Header Tag */}
+                          <div style={{
+                            maxWidth: '72%',
+                            padding: '10px 14px',
+                            borderRadius: isAdmin ? '16px 16px 2px 16px' : '16px 16px 16px 2px',
+                            background: isAdmin
+                              ? 'linear-gradient(135deg, #0d766e 0%, #047857 100%)'
+                              : '#ffffff',
+                            color: isAdmin ? '#ffffff' : '#0f172a',
+                            border: isAdmin ? 'none' : '1px solid #e2e8f0',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                            wordBreak: 'break-word'
+                          }}>
+                            {/* Topik Badge */}
                             {m.topik && (
-                              <div
-                                className={`text-[10px] font-extrabold uppercase tracking-wider mb-1 ${
-                                  isAdmin ? 'text-teal-200' : 'text-teal-700'
-                                }`}
-                              >
-                                🏷️ {m.topik}
+                              <div style={{
+                                fontSize: '0.62rem',
+                                fontWeight: 800,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.4px',
+                                marginBottom: '4px',
+                                color: isAdmin ? '#a7f3d0' : '#0d766e',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '3px'
+                              }}>
+                                <span>🏷️</span>
+                                <span>{m.topik}</span>
                               </div>
                             )}
 
-                            {/* Sender Name */}
-                            <div
-                              className={`text-[11px] font-extrabold mb-1 ${
-                                isAdmin ? 'text-emerald-100' : 'text-slate-900'
-                              }`}
-                            >
+                            {/* Nama Pengirim */}
+                            <div style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              color: isAdmin ? '#d1fae5' : '#1e293b',
+                              marginBottom: '3px'
+                            }}>
                               {m.pengirim_nama}
                             </div>
 
-                            {/* Message Content */}
-                            <div className="leading-relaxed whitespace-pre-wrap break-words">
+                            {/* Isi Pesan */}
+                            <div style={{
+                              fontSize: '0.78rem',
+                              lineHeight: 1.45,
+                              whiteSpace: 'pre-wrap'
+                            }}>
                               {m.isi_pesan}
                             </div>
 
-                            {/* Time & Double Check */}
-                            <div
-                              className={`flex items-center justify-end gap-1 mt-1.5 text-[10px] ${
-                                isAdmin ? 'text-teal-200' : 'text-slate-400'
-                              }`}
-                            >
+                            {/* Waktu Pesan */}
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'flex-end',
+                              gap: '4px',
+                              marginTop: '4px',
+                              fontSize: '0.6rem',
+                              color: isAdmin ? 'rgba(255,255,255,0.75)' : '#94a3b8'
+                            }}>
                               <span>{formatTime(m.created_at)}</span>
-                              {isAdmin && <CheckCheck size={13} className="text-emerald-200" />}
+                              {isAdmin && <CheckCheck size={12} color="#a7f3d0" />}
                             </div>
                           </div>
                         </div>
@@ -435,14 +588,35 @@ export default function PesanKomunikasiAdminView() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Reply Form */}
-              <form onSubmit={handleSendReply} className="p-3 bg-white border-t border-slate-200 space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold text-slate-500">Kategori Balasan:</span>
+              {/* Form Balas Pesan */}
+              <form
+                onSubmit={handleSendReply}
+                style={{
+                  background: '#ffffff',
+                  padding: '12px 18px',
+                  borderTop: '1px solid #e2e8f0',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>
+                    Kategori Balasan:
+                  </span>
                   <select
                     value={replyTopik}
                     onChange={(e) => setReplyTopik(e.target.value)}
-                    className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 font-semibold text-slate-700 outline-none"
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      background: '#f8fafc',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      color: '#334155',
+                      outline: 'none'
+                    }}
                   >
                     <option value="Tanggapan Admin">Tanggapan Admin</option>
                     <option value="Informasi Kesehatan">Informasi Kesehatan</option>
@@ -452,22 +626,48 @@ export default function PesanKomunikasiAdminView() {
                   </select>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <input
                     type="text"
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     placeholder={`Tulis balasan resmi untuk ${activeThreadData?.nama_wali || 'Orang Tua'}...`}
                     disabled={sendingReply}
-                    className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-4 py-2 text-xs text-slate-800 outline-none focus:bg-white focus:border-teal-600 font-medium"
+                    style={{
+                      flex: 1,
+                      padding: '10px 14px',
+                      borderRadius: '12px',
+                      border: '1.5px solid #cbd5e1',
+                      background: '#f8fafc',
+                      fontSize: '0.78rem',
+                      outline: 'none',
+                      color: '#0f172a'
+                    }}
                   />
 
                   <button
                     type="submit"
                     disabled={!replyText.trim() || sendingReply}
-                    className="px-4 py-2 bg-gradient-to-r from-teal-600 to-emerald-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md hover:from-teal-700 hover:to-emerald-800 disabled:opacity-50 transition"
+                    style={{
+                      padding: '10px 18px',
+                      borderRadius: '12px',
+                      border: 'none',
+                      background: !replyText.trim() || sendingReply
+                        ? '#cbd5e1'
+                        : 'linear-gradient(135deg, #0d766e 0%, #059669 100%)',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.76rem',
+                      cursor: !replyText.trim() || sendingReply ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      boxShadow: '0 4px 10px rgba(13, 118, 110, 0.25)',
+                      transition: 'all 0.15s ease'
+                    }}
                   >
-                    <Send size={15} /> Balas
+                    <Send size={14} />
+                    <span>Balas</span>
                   </button>
                 </div>
               </form>
@@ -478,4 +678,3 @@ export default function PesanKomunikasiAdminView() {
     </div>
   );
 }
-
