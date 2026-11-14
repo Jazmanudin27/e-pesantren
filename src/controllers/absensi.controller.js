@@ -1018,14 +1018,26 @@ export const getFingerprintDevices = async (req, res) => {
     try {
       await pool.query(`
         UPDATE fingerprint_device 
-        SET status_koneksi = 'Offline' 
-        WHERE (updated_at IS NULL OR updated_at < NOW() - INTERVAL 90 SECOND)
+        SET status_koneksi = CASE 
+          WHEN updated_at IS NOT NULL AND updated_at >= NOW() - INTERVAL 90 SECOND THEN 'Online'
+          ELSE 'Offline'
+        END
       `);
     } catch (eHeartbeat) {
       console.warn('[HEARTBEAT NOTICE]', eHeartbeat.message);
     }
 
-    const [rows] = await pool.query('SELECT * FROM fingerprint_device ORDER BY id ASC');
+    const [rows] = await pool.query(`
+      SELECT 
+        id, nama_device, sn_device, ip_address, port, lokasi, peruntukan,
+        CASE 
+          WHEN updated_at IS NOT NULL AND updated_at >= NOW() - INTERVAL 90 SECOND THEN 'Online'
+          ELSE 'Offline'
+        END AS status_koneksi,
+        tipe_mesin, total_enrolled, created_at, updated_at
+      FROM fingerprint_device 
+      ORDER BY id ASC
+    `);
     return sendSuccess(res, 'Data perangkat fingerprint berhasil diambil', { data: rows });
   } catch (err) {
     console.error('[createAbsensiFingerprint Error]', err);
