@@ -126,10 +126,10 @@ export default function FingerprintDeviceView() {
   };
 
   const handleDeleteUserFromDevice = async (santri) => {
-    const pin = santri.pin;
+    const pin = santri.pin || String(santri.id);
     const confirmed = await showConfirm(
       `Hapus Santri dari Mesin ${selectedDevice?.nama_device || ''}?`,
-      `Perintah "DATA DELETE USER PIN=${pin}" akan diantrekan ke mesin. Data user ${santri.nama_santri} (PIN: ${pin}) akan terhapus dari mesin saat mesin tersinkron online.`,
+      `Perintah "DATA DELETE USER PIN=${pin}" akan diantrekan ke mesin. Data user ${santri.nama_santri} (ID: ${pin}) akan dihapus dari mesin.`,
       'Ya, Hapus dari Mesin',
       'Batal'
     );
@@ -143,6 +143,10 @@ export default function FingerprintDeviceView() {
         santri_id: santri.id
       });
       toastSuccess(res.data?.message || `Perintah hapus santri ${santri.nama_santri} berhasil diantrekan.`);
+      // Optimistic instant update di UI
+      setDeviceUsers((prev) =>
+        prev.map((u) => (u.id === santri.id ? { ...u, is_enrolled: false, status_mesin: 'BELUM_TERDAFTAR' } : u))
+      );
       fetchDeviceUsers(selectedDevice?.sn_device);
       fetchDevices();
     } catch (err) {

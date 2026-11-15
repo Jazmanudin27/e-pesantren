@@ -752,46 +752,50 @@ export const getDeviceUsers = async (req, res) => {
       }
     }
 
-    // Ambil daftar santri_id dan PIN yang tercatat sudah terdaftar di mesin ini
+    // Ambil daftar santri_id dan PIN yang tercatat terdaftar atau telah dihapus di mesin ini
     const enrolledSet = new Set();
     const enrolledPins = new Set();
+    const deletedSet = new Set();
+    const deletedPins = new Set();
 
     if (sn) {
-      const [enrolledRows] = await pool
+      const [deviceUserRows] = await pool
         .query(
-          `SELECT santri_id, pin FROM fingerprint_device_users WHERE sn_device = ? AND status = 'ENROLLED'`,
+          `SELECT santri_id, pin, status FROM fingerprint_device_users WHERE sn_device = ?`,
           [sn],
         )
         .catch(() => [[]]);
-      (enrolledRows || []).forEach((r) => {
-        if (r.santri_id) enrolledSet.add(r.santri_id);
-        if (r.pin) enrolledPins.add(String(r.pin));
+
+      (deviceUserRows || []).forEach((r) => {
+        if (r.status === 'DELETED') {
+          if (r.santri_id) deletedSet.add(r.santri_id);
+          if (r.pin) deletedPins.add(String(r.pin));
+        } else if (r.status === 'ENROLLED') {
+          if (r.santri_id) enrolledSet.add(r.santri_id);
+          if (r.pin) enrolledPins.add(String(r.pin));
+        }
       });
 
-      // Ambil juga dari antrean perintah adms_command_queue yang aktif (STATUS PENDING/SENT/SUCCESS)
+      // Cek antrean aktif di adms_command_queue (hanya yang PENDING atau SENT)
       const [queuedRows] = await pool
         .query(
-          `SELECT command FROM adms_command_queue WHERE (sn_device = ? OR sn_device IS NULL OR sn_device = '') AND command LIKE 'DATA USER PIN=%' AND status IN ('PENDING', 'SENT', 'SUCCESS')`,
+          `SELECT command, status FROM adms_command_queue 
+           WHERE (sn_device = ? OR sn_device IS NULL OR sn_device = '') 
+             AND status IN ('PENDING', 'SENT')`,
           [sn],
         )
         .catch(() => [[]]);
-      (queuedRows || []).forEach((r) => {
-        const m = r.command?.match(/PIN=([^\t\r\n]+)/);
-        if (m && m[1]) enrolledPins.add(m[1].trim());
-      });
 
-      // Jika ada log presensi dari santri ini di device ini, berarti pasti ada di mesin
-      if (deviceId) {
-        const [attRows] = await pool
-          .query(
-            `SELECT DISTINCT santri_id FROM absensi_jamaah_mengaji WHERE device_id = ?`,
-            [deviceId],
-          )
-          .catch(() => [[]]);
-        (attRows || []).forEach((r) => {
-          if (r.santri_id) enrolledSet.add(r.santri_id);
-        });
-      }
+      (queuedRows || []).forEach((r) => {
+        const mDel = r.command?.match(/DATA DELETE USER PIN=([^\t\r\n]+)/);
+        if (mDel && mDel[1]) {
+          deletedPins.add(mDel[1].trim());
+        }
+        const mAdd = r.command?.match(/DATA USER PIN=([^\t\r\n]+)/);
+        if (mAdd && mAdd[1] && !deletedPins.has(mAdd[1].trim())) {
+          enrolledPins.add(mAdd[1].trim());
+        }
+      });
     }
 
     // Cek kolom yang aman di tabel santri
@@ -857,8 +861,13 @@ export const getDeviceUsers = async (req, res) => {
       const pin = String(r.id);
       const isAlumni = r.status === "Alumni" || r.status === "Boyong";
 
-      // Santri dianggap terdaftar di mesin jika ada di enrolledSet atau di enrolledPins (dan tidak sedang dalam proses CLEAR DATA)
-      const isEnrolled = !hasClearDataPending && (enrolledSet.has(r.id) || enrolledPins.has(String(pin)));
+      // Santri dianggap terdaftar di mesin jika ada di enrolledSet atau di enrolledPins, dan TIDAK sedang dalam proses DELETED / CLEAR DATA
+      const isExplicitlyDeleted = deletedSet.has(r.id) || deletedPins.has(String(r.id)) || (r.fingerprint_pin && deletedPins.has(String(r.fingerprint_pin)));
+      const isEnrolled = !hasClearDataPending && !isExplicitlyDeleted && (
+        enrolledSet.has(r.id) || 
+        enrolledPins.has(String(r.id)) || 
+        (r.fingerprint_pin && enrolledPins.has(String(r.fingerprint_pin)))
+      );
 
       return {
         id: r.id,
@@ -1121,10 +1130,11 @@ export const deleteUserFromDevice = async (req, res) => {
     await ensureAdmsTables();
     const { sn_device, pin, santri_id, clear_pin } = req.body;
 
-    if (!pin) {
+    const finalPin = pin || (santri_id ? String(santri_id) : null);
+    if (!finalPin) {
       return res
         .status(400)
-        .json({ success: false, message: "PIN user wajib diisi" });
+        .json({ success: false, message: "PIN / ID user wajib diisi" });
     }
 
     let targetSNs = [];
@@ -1137,8 +1147,21 @@ export const deleteUserFromDevice = async (req, res) => {
       targetSNs = allDevs.map((d) => d.sn_device);
     }
 
-    const command = `DATA DELETE USER PIN=${pin}`;
+    const sId = santri_id || parseInt(finalPin, 10) || null;
+
     for (const targetSN of targetSNs) {
+      // 1. Batalkan antrean DATA USER yang masih PENDING agar tidak dikirim ulang
+      await pool.query(
+        `UPDATE adms_command_queue 
+         SET status = 'FAILED' 
+         WHERE (sn_device = ? OR sn_device IS NULL) 
+           AND (command LIKE ? OR command LIKE ?) 
+           AND status = 'PENDING'`,
+        [targetSN, `DATA USER PIN=${finalPin}\t%`, `DATA USER PIN=${finalPin}\n%`]
+      ).catch(() => {});
+
+      // 2. Masukkan perintah penghapusan ke antrean mesin
+      const command = `DATA DELETE USER PIN=${finalPin}`;
       await pool.query(
         `
         INSERT INTO adms_command_queue (sn_device, command, status)
@@ -1147,31 +1170,32 @@ export const deleteUserFromDevice = async (req, res) => {
         [targetSN, command],
       );
 
-      if (santri_id) {
+      // 3. Simpan status DELETED di fingerprint_device_users
+      if (sId) {
         await pool
           .query(
             `
-          UPDATE fingerprint_device_users 
-          SET status = 'DELETED' 
-          WHERE sn_device = ? AND santri_id = ?
+          INSERT INTO fingerprint_device_users (sn_device, santri_id, pin, status)
+          VALUES (?, ?, ?, 'DELETED')
+          ON DUPLICATE KEY UPDATE status = 'DELETED', pin = VALUES(pin)
         `,
-            [targetSN, santri_id],
+            [targetSN, sId, finalPin],
           )
           .catch(() => {});
       }
     }
 
-    if (clear_pin && santri_id) {
+    if (clear_pin && sId) {
       await pool
         .query("UPDATE santri SET fingerprint_pin = NULL WHERE id = ?", [
-          santri_id,
+          sId,
         ])
         .catch(() => {});
     }
 
     return res.status(200).json({
       success: true,
-      message: `Perintah hapus user (PIN: ${pin}) berhasil diantrekan ke mesin.`,
+      message: `Perintah hapus user (ID / PIN: ${finalPin}) berhasil diantrekan ke mesin.`,
     });
   } catch (err) {
     console.error("[ADMS DELETE USER ERR]", err);
