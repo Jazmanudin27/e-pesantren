@@ -222,7 +222,7 @@ export default function FingerprintDeviceView() {
     if (!selectedDevice) return;
     const confirmed = await showConfirm(
       `Kirim Santri Aktif ke Mesin Ini?`,
-      `Sistem akan mengirimkan data Nama dan NIS seluruh santri aktif (${selectedDevice.peruntukan}) ke antrean Cloud ADMS mesin "${selectedDevice.nama_device}".`
+      `Sistem akan mengirimkan data Nama dan ID Santri seluruh santri aktif (${selectedDevice.peruntukan}) ke antrean Cloud ADMS mesin "${selectedDevice.nama_device}".`
     );
     if (!confirmed) return;
 
@@ -245,7 +245,7 @@ export default function FingerprintDeviceView() {
   const handleSyncSantriToDevice = async () => {
     const confirmed = await showConfirm(
       'Kirim Data Santri ke Mesin Fingerprint?',
-      `Sistem akan mengirimkan data Nama dan NIS seluruh santri aktif ke antrean Cloud ADMS seluruh mesin yang terhubung (${devices.length} mesin).`
+      `Sistem akan mengirimkan data Nama dan ID Santri seluruh santri aktif ke antrean Cloud ADMS seluruh mesin yang terhubung (${devices.length} mesin).`
     );
     if (!confirmed) return;
 
@@ -856,7 +856,7 @@ export default function FingerprintDeviceView() {
                             Terdapat {userCounts.not_enrolled} santri aktif yang belum didaftarkan ke mesin fingerprint ini!
                           </strong>
                           <span style={{ fontSize: '0.74rem', color: '#2563eb' }}>
-                            Daftarkan santri ke mesin agar sidik jari dan NIS ananda dapat langsung digunakan untuk presensi.
+                            Daftarkan santri ke mesin agar sidik jari dan ID ananda dapat langsung digunakan untuk presensi.
                           </span>
                         </div>
                       </div>
@@ -1071,7 +1071,7 @@ export default function FingerprintDeviceView() {
                           <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', zIndex: 2 }}>
                             <tr>
                               <th style={{ width: '45px', textAlign: 'center' }}>NO</th>
-                              <th style={{ width: '110px' }}>PIN MESIN</th>
+                              <th style={{ width: '110px' }}>ID MESIN</th>
                               <th>NAMA SANTRI & NIS</th>
                               <th>KELAS & ASRAMA</th>
                               <th style={{ width: '140px', textAlign: 'center' }}>STATUS DI MESIN</th>

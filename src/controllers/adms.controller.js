@@ -295,15 +295,16 @@ export const handleAdmsPushData = async (req, res) => {
     if (!pin) continue;
 
     try {
-      // 1. Cari santri berdasarkan fingerprint_pin, NIS, atau ID
+      // 1. Cari santri berdasarkan ID santri (prioritas utama), fingerprint_pin, atau NIS
       const [santriRows] = await pool.query(
         `
         SELECT id, nama_santri, nis, fingerprint_pin 
         FROM santri 
-        WHERE fingerprint_pin = ? OR nis = ? OR id = ? 
+        WHERE id = ? OR fingerprint_pin = ? OR nis = ? 
+        ORDER BY CASE WHEN id = ? THEN 1 ELSE 2 END
         LIMIT 1
       `,
-        [pin, pin, pin],
+        [pin, pin, pin, pin],
       );
 
       if (!santriRows || santriRows.length === 0) {
@@ -607,7 +608,8 @@ export const queuePushSantriToDevice = async (req, res) => {
     let queuedCount = 0;
     for (const targetSN of targetSNs) {
       for (const s of santriList) {
-        const pin = s.fingerprint_pin || s.nis || String(s.id);
+        // ID di mesin fingerprint selalu menggunakan ID murni santri (bukan NIS / NISN)
+        const pin = String(s.id);
         const cleanName = (s.nama_santri || "Santri")
           .replace(/[\t\r\n]/g, "")
           .substring(0, 24);
@@ -851,7 +853,8 @@ export const getDeviceUsers = async (req, res) => {
     }
 
     const formatted = (rows || []).map((r) => {
-      const pin = r.fingerprint_pin || r.nis || String(r.id);
+      // ID PIN mesin murni ID Santri
+      const pin = String(r.id);
       const isAlumni = r.status === "Alumni" || r.status === "Boyong";
 
       // Santri dianggap terdaftar di mesin jika ada di enrolledSet atau di enrolledPins (dan tidak sedang dalam proses CLEAR DATA)
@@ -925,7 +928,7 @@ export const registerSantriToDevice = async (req, res) => {
     }
 
     const s = sRows[0];
-    const pin = s.fingerprint_pin || s.nis || String(s.id);
+    const pin = String(s.id);
     const cleanName = (s.nama_santri || "Santri")
       .replace(/[\t\r\n]/g, "")
       .substring(0, 24);
@@ -1065,7 +1068,7 @@ export const registerAllUnregisteredToDevice = async (req, res) => {
 
     let queuedCount = 0;
     for (const s of unregistered) {
-      const pin = s.fingerprint_pin || s.nis || String(s.id);
+      const pin = String(s.id);
       const cleanName = (s.nama_santri || "Santri")
         .replace(/[\t\r\n]/g, "")
         .substring(0, 24);
@@ -1220,7 +1223,7 @@ export const deleteAlumniFromDevice = async (req, res) => {
     let queuedCount = 0;
     for (const targetSN of targetSNs) {
       for (const s of alumniList) {
-        const pin = s.fingerprint_pin || s.nis || String(s.id);
+        const pin = String(s.id);
         const command = `DATA DELETE USER PIN=${pin}`;
         await pool.query(
           `

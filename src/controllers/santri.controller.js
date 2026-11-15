@@ -307,6 +307,11 @@ export const createSantri = async (req, res) => {
       insertVals
     );
 
+    // Pastikan default fingerprint_pin otomatis menggunakan ID santri jika tidak diisi khusus
+    if (!fingerprint_pin && result.insertId) {
+      await pool.query('UPDATE santri SET fingerprint_pin = id WHERE id = ?', [result.insertId]).catch(() => {});
+    }
+
     return sendSuccess(res, 'Data santri berhasil ditambahkan', { id: result.insertId }, 201);
   } catch (err) {
     return sendError(res, err.message, 500);
