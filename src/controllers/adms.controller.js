@@ -155,10 +155,18 @@ export const handleAdmsPushData = async (req, res) => {
   );
 
   // Tangkap payload pendaftaran Sidik Jari (FINGERPRINT TEMPLATE: FPTMP / BIODATA / FP)
-  if (table.includes("FPTMP") || table.includes("FP") || table.includes("BIODATA") || rawBody.includes("TMP=") || rawBody.includes("PIN=")) {
+  if (
+    table.includes("FPTMP") ||
+    table.includes("FP") ||
+    table.includes("BIODATA") ||
+    rawBody.includes("TMP=") ||
+    rawBody.includes("PIN=")
+  ) {
     if (rawBody.includes("TMP=") || table.includes("FPTMP")) {
       try {
-        const fpLines = rawBody.split(/\r?\n/).filter(l => l.trim().length > 0);
+        const fpLines = rawBody
+          .split(/\r?\n/)
+          .filter((l) => l.trim().length > 0);
         let syncedCount = 0;
 
         for (const fLine of fpLines) {
@@ -177,14 +185,17 @@ export const handleAdmsPushData = async (req, res) => {
             const tmpVal = tmpMatch[1].trim();
 
             // Hubungkan dengan santri_id
-            const [sRow] = await pool.query(
-              "SELECT id FROM santri WHERE fingerprint_pin = ? OR nis = ? OR id = ? LIMIT 1",
-              [pinVal, pinVal, pinVal]
-            ).catch(() => [[]]);
-            const sId = (sRow && sRow.length > 0) ? sRow[0].id : null;
+            const [sRow] = await pool
+              .query(
+                "SELECT id FROM santri WHERE fingerprint_pin = ? OR nis = ? OR id = ? LIMIT 1",
+                [pinVal, pinVal, pinVal],
+              )
+              .catch(() => [[]]);
+            const sId = sRow && sRow.length > 0 ? sRow[0].id : null;
 
             // Simpan ke santri_fingerprint_templates
-            await pool.query(`
+            await pool.query(
+              `
               INSERT INTO santri_fingerprint_templates 
               (santri_id, pin, finger_id, size, valid, template_data, source_sn)
               VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -195,28 +206,39 @@ export const handleAdmsPushData = async (req, res) => {
                 template_data = VALUES(template_data),
                 source_sn = VALUES(source_sn),
                 updated_at = NOW()
-            `, [sId, pinVal, fidVal, sizeVal, validVal, tmpVal, sn]);
+            `,
+              [sId, pinVal, fidVal, sizeVal, validVal, tmpVal, sn],
+            );
 
             // OTOMATIS SINKRONKAN KE MESIN LAIN:
             // Cari mesin lain yang terpasang di sistem (selain mesin pengirim)
-            const [otherDevs] = await pool.query(
-              "SELECT DISTINCT sn_device FROM fingerprint_device WHERE sn_device IS NOT NULL AND sn_device != '' AND sn_device != ?",
-              [sn]
-            ).catch(() => [[]]);
+            const [otherDevs] = await pool
+              .query(
+                "SELECT DISTINCT sn_device FROM fingerprint_device WHERE sn_device IS NOT NULL AND sn_device != '' AND sn_device != ?",
+                [sn],
+              )
+              .catch(() => [[]]);
 
             for (const oDev of otherDevs || []) {
               const cmdFP = `DATA FP PIN=${pinVal}\tFID=${fidVal}\tSize=${sizeVal}\tValid=${validVal}\tTMP=${tmpVal}`;
-              await pool.query(
-                "INSERT INTO adms_command_queue (sn_device, command, status) VALUES (?, ?, 'PENDING')",
-                [oDev.sn_device, cmdFP]
-              ).catch(() => {});
+              await pool
+                .query(
+                  "INSERT INTO adms_command_queue (sn_device, command, status) VALUES (?, ?, 'PENDING')",
+                  [oDev.sn_device, cmdFP],
+                )
+                .catch(() => {});
 
               if (sId) {
-                await pool.query(`
+                await pool
+                  .query(
+                    `
                   INSERT INTO fingerprint_device_users (sn_device, santri_id, pin, status)
                   VALUES (?, ?, ?, 'ENROLLED')
                   ON DUPLICATE KEY UPDATE status = 'ENROLLED', pin = VALUES(pin)
-                `, [oDev.sn_device, sId, pinVal]).catch(() => {});
+                `,
+                    [oDev.sn_device, sId, pinVal],
+                  )
+                  .catch(() => {});
               }
             }
             syncedCount++;
@@ -224,7 +246,9 @@ export const handleAdmsPushData = async (req, res) => {
         }
 
         if (syncedCount > 0) {
-          console.log(`[ADMS AUTO-SYNC FP] Berhasil menangkap dan menyinkronkan ${syncedCount} sidik jari dari mesin ${sn} ke mesin lainnya.`);
+          console.log(
+            `[ADMS AUTO-SYNC FP] Berhasil menangkap dan menyinkronkan ${syncedCount} sidik jari dari mesin ${sn} ke mesin lainnya.`,
+          );
           res.setHeader("Content-Type", "text/plain; charset=utf-8");
           return res.status(200).send(`OK: ${syncedCount}\n`);
         }
@@ -573,12 +597,10 @@ export const queuePushSantriToDevice = async (req, res) => {
 
     const [santriList] = await pool.query(query, params);
     if (!santriList || santriList.length === 0) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "Tidak ada data santri aktif untuk dikirim",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "Tidak ada data santri aktif untuk dikirim",
+      });
     }
 
     // Tentukan target Serial Number mesin (prioritaskan mesin yang berstatus Online)
@@ -708,12 +730,28 @@ export const queueClearUsersFromDevice = async (req, res) => {
 
       // Reset tabel tracking status user mesin di database aplikasi
       if (targetSN) {
-        await pool.query("UPDATE fingerprint_device_users SET status = 'DELETED' WHERE sn_device = ?", [targetSN]).catch(() => {});
+        await pool
+          .query(
+            "UPDATE fingerprint_device_users SET status = 'DELETED' WHERE sn_device = ?",
+            [targetSN],
+          )
+          .catch(() => {});
         // Batalkan seluruh antrean DATA USER yang masih PENDING untuk mesin ini agar tidak di-push ulang
-        await pool.query("UPDATE adms_command_queue SET status = 'FAILED' WHERE sn_device = ? AND command LIKE 'DATA USER%' AND status = 'PENDING'", [targetSN]).catch(() => {});
+        await pool
+          .query(
+            "UPDATE adms_command_queue SET status = 'FAILED' WHERE sn_device = ? AND command LIKE 'DATA USER%' AND status = 'PENDING'",
+            [targetSN],
+          )
+          .catch(() => {});
       } else {
-        await pool.query("UPDATE fingerprint_device_users SET status = 'DELETED'").catch(() => {});
-        await pool.query("UPDATE adms_command_queue SET status = 'FAILED' WHERE command LIKE 'DATA USER%' AND status = 'PENDING'").catch(() => {});
+        await pool
+          .query("UPDATE fingerprint_device_users SET status = 'DELETED'")
+          .catch(() => {});
+        await pool
+          .query(
+            "UPDATE adms_command_queue SET status = 'FAILED' WHERE command LIKE 'DATA USER%' AND status = 'PENDING'",
+          )
+          .catch(() => {});
       }
 
       queuedCount++;
@@ -767,10 +805,10 @@ export const getDeviceUsers = async (req, res) => {
         .catch(() => [[]]);
 
       (deviceUserRows || []).forEach((r) => {
-        if (r.status === 'DELETED') {
+        if (r.status === "DELETED") {
           if (r.santri_id) deletedSet.add(r.santri_id);
           if (r.pin) deletedPins.add(String(r.pin));
-        } else if (r.status === 'ENROLLED') {
+        } else if (r.status === "ENROLLED") {
           if (r.santri_id) enrolledSet.add(r.santri_id);
           if (r.pin) enrolledPins.add(String(r.pin));
         }
@@ -797,6 +835,42 @@ export const getDeviceUsers = async (req, res) => {
         }
       });
     }
+
+    // Ambil data santri yang sudah memiliki sidik jari tersimpan (Biometric Templates)
+    const fpTemplateMap = new Map();
+    try {
+      const [fpRows] = await pool.query(
+        `SELECT santri_id, pin, COUNT(*) as fp_count 
+         FROM santri_fingerprint_templates 
+         WHERE template_data IS NOT NULL AND template_data != ''
+         GROUP BY santri_id, pin`,
+      );
+      (fpRows || []).forEach((r) => {
+        if (r.santri_id)
+          fpTemplateMap.set(
+            Number(r.santri_id),
+            (fpTemplateMap.get(Number(r.santri_id)) || 0) + Number(r.fp_count),
+          );
+        if (r.pin)
+          fpTemplateMap.set(
+            String(r.pin),
+            (fpTemplateMap.get(String(r.pin)) || 0) + Number(r.fp_count),
+          );
+      });
+    } catch (eFp) {
+      console.warn("[ADMS] Check fp templates notice:", eFp.message);
+    }
+
+    // Ambil santri yang sudah pernah berhasil scan fingerprint di absensi
+    const fpScannedSet = new Set();
+    try {
+      const [scanRows] = await pool.query(
+        `SELECT DISTINCT santri_id FROM absensi_jamaah_mengaji WHERE metode_presensi = 'Fingerprint'`,
+      );
+      (scanRows || []).forEach((r) => {
+        if (r.santri_id) fpScannedSet.add(Number(r.santri_id));
+      });
+    } catch (eScan) {}
 
     // Cek kolom yang aman di tabel santri
     let selectAsrama = "'-' AS nama_asrama";
@@ -829,7 +903,7 @@ export const getDeviceUsers = async (req, res) => {
       `);
       rows = qRows || [];
     } catch (qErr) {
-      console.error('[GET DEVICE USERS DB ERR]', qErr.message);
+      console.error("[GET DEVICE USERS DB ERR]", qErr.message);
       // Fallback query jika ada kolom yang tidak ditemukan
       const [allRows] = await pool.query(`
         SELECT 
@@ -847,10 +921,12 @@ export const getDeviceUsers = async (req, res) => {
     // Cek apakah ada perintah CLEAR DATA yang PENDING / SENT untuk mesin ini
     let hasClearDataPending = false;
     if (sn) {
-      const [clr] = await pool.query(
-        "SELECT id FROM adms_command_queue WHERE sn_device = ? AND command = 'CLEAR DATA' AND status IN ('PENDING', 'SENT') LIMIT 1",
-        [sn]
-      ).catch(() => [[]]);
+      const [clr] = await pool
+        .query(
+          "SELECT id FROM adms_command_queue WHERE sn_device = ? AND command = 'CLEAR DATA' AND status IN ('PENDING', 'SENT') LIMIT 1",
+          [sn],
+        )
+        .catch(() => [[]]);
       if (clr && clr.length > 0) {
         hasClearDataPending = true;
       }
@@ -862,12 +938,26 @@ export const getDeviceUsers = async (req, res) => {
       const isAlumni = r.status === "Alumni" || r.status === "Boyong";
 
       // Santri dianggap terdaftar di mesin jika ada di enrolledSet atau di enrolledPins, dan TIDAK sedang dalam proses DELETED / CLEAR DATA
-      const isExplicitlyDeleted = deletedSet.has(r.id) || deletedPins.has(String(r.id)) || (r.fingerprint_pin && deletedPins.has(String(r.fingerprint_pin)));
-      const isEnrolled = !hasClearDataPending && !isExplicitlyDeleted && (
-        enrolledSet.has(r.id) || 
-        enrolledPins.has(String(r.id)) || 
-        (r.fingerprint_pin && enrolledPins.has(String(r.fingerprint_pin)))
-      );
+      const isExplicitlyDeleted =
+        deletedSet.has(r.id) ||
+        deletedPins.has(String(r.id)) ||
+        (r.fingerprint_pin && deletedPins.has(String(r.fingerprint_pin)));
+      const isEnrolled =
+        !hasClearDataPending &&
+        !isExplicitlyDeleted &&
+        (enrolledSet.has(r.id) ||
+          enrolledPins.has(String(r.id)) ||
+          (r.fingerprint_pin && enrolledPins.has(String(r.fingerprint_pin))));
+
+      // Status Biometrik Fisik: apakah template sidik jari sudah pernah terekam / tersimpan
+      const countFP =
+        fpTemplateMap.get(r.id) ||
+        (r.fingerprint_pin
+          ? fpTemplateMap.get(String(r.fingerprint_pin))
+          : 0) ||
+        0;
+      const hasScanned = fpScannedSet.has(r.id);
+      const hasFingerprint = countFP > 0 || hasScanned;
 
       return {
         id: r.id,
@@ -881,6 +971,12 @@ export const getDeviceUsers = async (req, res) => {
         is_alumni: isAlumni,
         is_enrolled: isEnrolled,
         status_mesin: isEnrolled ? "TERDAFTAR" : "BELUM_TERDAFTAR",
+        has_fingerprint: Boolean(hasFingerprint),
+        fp_count: countFP,
+        has_scanned: hasScanned,
+        status_biometrik: hasFingerprint
+          ? "SUDAH_FINGERPRINT"
+          : "BELUM_FINGERPRINT",
         foto: r.foto,
       };
     });
@@ -890,6 +986,12 @@ export const getDeviceUsers = async (req, res) => {
     const notEnrolledCount = total - enrolledCount;
     const alumniCount = formatted.filter((x) => x.is_alumni).length;
     const aktifCount = total - alumniCount;
+    const withFingerprintCount = formatted.filter(
+      (x) => !x.is_alumni && x.has_fingerprint,
+    ).length;
+    const withoutFingerprintCount = formatted.filter(
+      (x) => !x.is_alumni && !x.has_fingerprint,
+    ).length;
 
     return res.status(200).json({
       success: true,
@@ -905,6 +1007,8 @@ export const getDeviceUsers = async (req, res) => {
         not_enrolled: notEnrolledCount,
         aktif: aktifCount,
         alumni: alumniCount,
+        with_fingerprint: withFingerprintCount,
+        without_fingerprint: withoutFingerprintCount,
       },
       data: formatted,
     });
@@ -1151,14 +1255,20 @@ export const deleteUserFromDevice = async (req, res) => {
 
     for (const targetSN of targetSNs) {
       // 1. Batalkan antrean DATA USER yang masih PENDING agar tidak dikirim ulang
-      await pool.query(
-        `UPDATE adms_command_queue 
+      await pool
+        .query(
+          `UPDATE adms_command_queue 
          SET status = 'FAILED' 
          WHERE (sn_device = ? OR sn_device IS NULL) 
            AND (command LIKE ? OR command LIKE ?) 
            AND status = 'PENDING'`,
-        [targetSN, `DATA USER PIN=${finalPin}\t%`, `DATA USER PIN=${finalPin}\n%`]
-      ).catch(() => {});
+          [
+            targetSN,
+            `DATA USER PIN=${finalPin}\t%`,
+            `DATA USER PIN=${finalPin}\n%`,
+          ],
+        )
+        .catch(() => {});
 
       // 2. Masukkan perintah penghapusan ke antrean mesin
       const command = `DATA DELETE USER PIN=${finalPin}`;
@@ -1187,9 +1297,7 @@ export const deleteUserFromDevice = async (req, res) => {
 
     if (clear_pin && sId) {
       await pool
-        .query("UPDATE santri SET fingerprint_pin = NULL WHERE id = ?", [
-          sId,
-        ])
+        .query("UPDATE santri SET fingerprint_pin = NULL WHERE id = ?", [sId])
         .catch(() => {});
     }
 
@@ -1302,4 +1410,56 @@ export const handleAdmsPing = async (req, res) => {
   }
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
   return res.status(200).send("OK\n");
+};
+
+// 13. REST API: Antrekan Permintaan Tarik Template Sidik Jari dari Mesin (DATA QUERY FPTMP / CHECK)
+export const queuePullDeviceFingerprints = async (req, res) => {
+  try {
+    await ensureAdmsTables();
+    const { sn_device } = req.body;
+
+    let targetSNs = [];
+    if (sn_device) {
+      targetSNs = [sn_device];
+    } else {
+      const [allDevs] = await pool.query(
+        "SELECT DISTINCT sn_device FROM fingerprint_device WHERE sn_device IS NOT NULL AND sn_device != ''",
+      );
+      targetSNs = allDevs.map((d) => d.sn_device);
+    }
+
+    if (targetSNs.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Tidak ada perangkat fingerprint ditemukan.",
+      });
+    }
+
+    let queuedCount = 0;
+    for (const targetSN of targetSNs) {
+      // Perintah ADMS resmi untuk meminta mesin mengirim seluruh template sidik jari santri
+      const cmdFp = "DATA QUERY FPTMP";
+      const cmdCheck = "CHECK";
+
+      await pool.query(
+        "INSERT INTO adms_command_queue (sn_device, command, status) VALUES (?, ?, 'PENDING')",
+        [targetSN, cmdFp],
+      );
+      await pool.query(
+        "INSERT INTO adms_command_queue (sn_device, command, status) VALUES (?, ?, 'PENDING')",
+        [targetSN, cmdCheck],
+      );
+      queuedCount += 2;
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Perintah sinkronisasi sidik jari berhasil diantrekan ke ${targetSNs.length} mesin. Mesin akan mengunggah data sidik jari pada siklus koneksi berikutnya.`,
+      target_devices: targetSNs.length,
+      queued: queuedCount,
+    });
+  } catch (err) {
+    console.error("[ADMS PULL FINGERPRINT ERR]", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
 };

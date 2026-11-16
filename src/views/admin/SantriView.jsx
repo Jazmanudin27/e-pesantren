@@ -774,8 +774,11 @@ export default function SantriView() {
 
         <div className="stat-card-colored stat-card-purple">
           <div>
-            <div className="stat-colored-title">FINGERPRINT ENROLLED</div>
-            <div className="stat-colored-number">{stats.totalAll || 619}</div>
+            <div className="stat-colored-title">FINGERPRINT BIOMETRIK</div>
+            <div className="stat-colored-number">
+              {stats.totalWithFingerprint || 0}
+              <span style={{ fontSize: '0.78rem', fontWeight: 600, opacity: 0.85, marginLeft: '6px' }}>/ {stats.totalAll || 0}</span>
+            </div>
           </div>
           <div className="stat-colored-icon-box">
             <Fingerprint size={22} />
@@ -839,6 +842,20 @@ export default function SantriView() {
           onClick={() => { setActiveFilterTab('semua'); setPage(1); }}
         >
           <Users size={14} /> Semua Santri ({stats.totalAll || totalRecords})
+        </button>
+        <button 
+          className={`tab-btn ${activeFilterTab === 'has_fingerprint' ? 'active' : ''}`}
+          onClick={() => { setActiveFilterTab('has_fingerprint'); setPage(1); }}
+          style={activeFilterTab === 'has_fingerprint' ? { background: '#15803d', color: '#ffffff' } : { color: '#15803d', borderColor: '#86efac' }}
+        >
+          <Fingerprint size={14} /> Sudah Sidik Jari ({stats.totalWithFingerprint || 0})
+        </button>
+        <button 
+          className={`tab-btn ${activeFilterTab === 'no_fingerprint' ? 'active' : ''}`}
+          onClick={() => { setActiveFilterTab('no_fingerprint'); setPage(1); }}
+          style={activeFilterTab === 'no_fingerprint' ? { background: '#c2410c', color: '#ffffff' } : { color: '#c2410c', borderColor: '#fed7aa' }}
+        >
+          <AlertCircle size={14} /> Belum Sidik Jari ({stats.totalWithoutFingerprint || 0})
         </button>
         <button 
           className={`tab-btn ${activeFilterTab === 'boys' || activeFilterTab === 'L' ? 'active' : ''}`}
@@ -929,6 +946,7 @@ export default function SantriView() {
                   <th className="td-center">SEKOLAH FORMAL</th>
                   <th className="td-center">GENDER</th>
                   <th>ASRAMA & KOBONG</th>
+                  <th className="td-center" style={{ width: '130px' }}>SIDIK JARI</th>
                   <th className="td-center">STATUS</th>
                   <th className="td-center" style={{ width: '130px' }}>AKSI</th>
                 </tr>
@@ -936,7 +954,7 @@ export default function SantriView() {
               <tbody>
                 {santriList.length === 0 ? (
                   <tr>
-                    <td colSpan="8" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
+                    <td colSpan="9" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
                       <Users size={32} style={{ margin: '0 auto 8px', opacity: 0.4 }} />
                       <div style={{ fontWeight: 600, color: '#334155' }}>Tidak ada data santri yang cocok</div>
                       <div style={{ fontSize: '0.75rem', marginTop: '2px' }}>Silakan periksa kata kunci pencarian atau reset filter.</div>
@@ -978,6 +996,19 @@ export default function SantriView() {
                         <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
                           {row.nama_kamar || 'Kobong Santri'}
                         </div>
+                      </td>
+                      <td className="td-center">
+                        {row.has_fingerprint ? (
+                          <span className="badge" style={{ background: '#dcfce7', color: '#15803d', border: '1px solid #86efac', fontWeight: 800, fontSize: '0.68rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                            <Fingerprint size={11} />
+                            <span>{row.fp_count > 0 ? `${row.fp_count} Jari` : 'Sudah Rekam'}</span>
+                          </span>
+                        ) : (
+                          <span className="badge" style={{ background: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa', fontWeight: 700, fontSize: '0.68rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                            <AlertCircle size={10} />
+                            <span>Belum Rekam</span>
+                          </span>
+                        )}
                       </td>
                       <td className="td-center">
                         <span className={`badge ${row.status_santri === 'Mukim' ? 'badge-success' : 'badge-warning'}`}>

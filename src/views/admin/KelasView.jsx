@@ -302,145 +302,232 @@ export default function KelasView() {
         </button>
       </div>
 
-      {/* 4. SEARCH & DROPDOWN FILTER BAR */}
-      <div className="filter-search-row">
-        <div className="search-input-wrapper">
-          <Search size={14} className="search-icon" />
+      {/* 4. SEARCH & DROPDOWN FILTER BAR (DESKTOP OPTIMIZED) */}
+      <div className="filter-search-box" style={{ 
+        background: '#ffffff', 
+        border: '1px solid #cbd5e1', 
+        borderRadius: '8px', 
+        padding: '8px 12px', 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '10px', 
+        marginBottom: '14px',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+        flexWrap: 'wrap'
+      }}>
+        <div className="filter-search-input" style={{ flex: '1 1 260px', minWidth: '220px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Search size={15} color="#94a3b8" />
           <input 
             type="text" 
-            className="search-input" 
-            placeholder="Cari nama kelas, mustahiq, munawwib, tingkat..." 
+            placeholder="Cari nama kelas, kode, mustahiq, munawwib, tingkat..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            style={{ width: '100%', border: 'none', outline: 'none', fontSize: '0.8rem', color: '#0f172a', background: 'transparent' }}
+          />
+          {search && (
+            <button 
+              type="button" 
+              onClick={() => setSearch('')}
+              style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer', color: '#94a3b8' }}
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        <div style={{ width: '160px', flexShrink: 0 }}>
+          <SearchableSelect
+            options={[
+              { value: 'Semua Gender', label: 'Semua Gender' },
+              { value: 'Ikhwan', label: 'Ikhwan (Putra)' },
+              { value: 'Akhwat', label: 'Akhwat (Putri)' },
+            ]}
+            value={filterGender}
+            onChange={(val) => setFilterGender(val || 'Semua Gender')}
+            placeholder="Semua Gender"
+            searchPlaceholder="Cari gender..."
           />
         </div>
 
-        <SearchableSelect
-          options={[
-            { value: 'Semua Gender', label: 'Semua Gender' },
-            { value: 'Ikhwan', label: 'Ikhwan (Putra)' },
-            { value: 'Akhwat', label: 'Akhwat (Putri)' },
-          ]}
-          value={filterGender}
-          onChange={(val) => setFilterGender(val || 'Semua Gender')}
-          placeholder="-- Filter Gender --"
-          searchPlaceholder="Cari gender..."
-          triggerStyle={{ width: '170px' }}
-        />
-
-        <SearchableSelect
-          options={[
-            { value: 'Semua Tingkat', label: 'Semua Tingkat' },
-            { value: 'Ula', label: 'Tingkat: Ula' },
-            { value: 'Wustho', label: 'Tingkat: Wustho' },
-            { value: 'Ulya', label: 'Tingkat: Ulya' },
-            { value: 'Kelas 1', label: 'Tingkat: Kelas 1' },
-            { value: 'Kelas 2', label: 'Tingkat: Kelas 2' },
-            { value: 'Kelas 3', label: 'Tingkat: Kelas 3' },
-            { value: 'Kelas 4', label: 'Tingkat: Kelas 4' },
-          ]}
-          value={filterTingkat}
-          onChange={(val) => setFilterTingkat(val || 'Semua Tingkat')}
-          placeholder="-- Filter Tingkat --"
-          searchPlaceholder="Cari tingkat..."
-          triggerStyle={{ width: '180px' }}
-        />
+        <div style={{ width: '180px', flexShrink: 0 }}>
+          <SearchableSelect
+            options={[
+              { value: 'Semua Tingkat', label: 'Semua Tingkat' },
+              { value: '1', label: 'Tingkat 1' },
+              { value: '2', label: 'Tingkat 2' },
+              { value: '3', label: 'Tingkat 3' },
+              { value: '4', label: 'Tingkat 4' },
+              { value: '5', label: 'Tingkat 5' },
+              { value: '6', label: 'Tingkat 6' },
+              { value: 'Takhoshus', label: 'Takhoshus' },
+              { value: 'Ula', label: 'Ula' },
+              { value: 'Wustho', label: 'Wustho' },
+              { value: 'Ulya', label: 'Ulya' },
+            ]}
+            value={filterTingkat}
+            onChange={(val) => setFilterTingkat(val || 'Semua Tingkat')}
+            placeholder="Semua Tingkat"
+            searchPlaceholder="Cari tingkat..."
+          />
+        </div>
       </div>
 
-      {/* 5. DATA TABLE */}
-      <div className="table-container-card">
+      {/* 5. DATA TABLE (DESKTOP EXPANDED & CRISP) */}
+      <div className="table-container-card" style={{ 
+        background: '#ffffff', 
+        borderRadius: '8px', 
+        border: '1px solid #cbd5e1', 
+        overflow: 'hidden', 
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)' 
+      }}>
         {loading ? (
-          <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
-            <Loader2 size={24} className="animate-spin" /> Memuat data kelas...
+          <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+            <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 8px', color: '#0284c7' }} />
+            <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Memuat data kelas...</span>
           </div>
         ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th className="td-center" style={{ width: '40px' }}>NO</th>
-                <th>NAMA KELAS</th>
-                <th className="td-center">TINGKAT</th>
-                <th className="td-center">GENDER</th>
-                <th>MUSTAHIQ</th>
-                <th>MUNAWWIB</th>
-                <th className="td-center">TOTAL SANTRI</th>
-                <th className="td-center" style={{ width: '130px' }}>AKSI</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredList.length === 0 ? (
+          <div style={{ overflowX: 'auto', width: '100%' }}>
+            <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead style={{ background: '#f8fafc', borderBottom: '1px solid #cbd5e1' }}>
                 <tr>
-                  <td colSpan="8" style={{ textAlign: 'center', padding: '40px 20px', color: '#64748b' }}>
-                    <BookOpen size={36} style={{ margin: '0 auto 10px', opacity: 0.4 }} />
-                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#334155' }}>Belum ada data kelas di database</div>
-                    <div style={{ fontSize: '0.75rem', marginTop: '4px' }}>Silakan klik tombol "Tambah Kelas Baru".</div>
-                  </td>
+                  <th className="td-center" style={{ width: '45px', fontSize: '0.74rem', padding: '10px 8px' }}>NO</th>
+                  <th style={{ fontSize: '0.74rem', padding: '10px 12px' }}>NAMA KELAS</th>
+                  <th className="td-center" style={{ width: '100px', fontSize: '0.74rem', padding: '10px 8px' }}>TINGKAT</th>
+                  <th className="td-center" style={{ width: '130px', fontSize: '0.74rem', padding: '10px 8px' }}>GENDER</th>
+                  <th style={{ fontSize: '0.74rem', padding: '10px 12px' }}>MUSTAHIQ (PENGAMPU)</th>
+                  <th style={{ fontSize: '0.74rem', padding: '10px 12px' }}>MUNAWWIB (BADAL)</th>
+                  <th className="td-center" style={{ width: '130px', fontSize: '0.74rem', padding: '10px 8px' }}>TOTAL SANTRI</th>
+                  <th className="td-center" style={{ width: '120px', fontSize: '0.74rem', padding: '10px 8px' }}>AKSI</th>
                 </tr>
-              ) : (
-                filteredList.map((k, idx) => (
-                  <tr key={k.id || idx}>
-                    <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
-                      {idx + 1}
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.85rem' }}>{k.nama_kelas}</div>
-                      <div style={{ fontSize: '0.68rem', color: '#64748b' }}>{k.kode_kelas || k.nama_kelas}</div>
-                    </td>
-                    <td className="td-center">
-                      <span className="badge" style={{ background: '#f1f5f9', color: '#334155', fontWeight: 700, fontSize: '0.7rem' }}>
-                        {k.tingkat || '-'}
-                      </span>
-                    </td>
-                    <td className="td-center">
-                      <span className={`badge ${k.gender === 'L' ? 'badge-info' : 'badge-purple'}`}>
-                        {k.gender === 'L' ? 'Boys (Putra)' : 'Girls (Putri)'}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 700, color: '#047857', fontSize: '0.78rem' }}>
-                        {k.mustahiq || '-'}
+              </thead>
+              <tbody>
+                {filteredList.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" style={{ textAlign: 'center', padding: '50px 20px', color: '#64748b' }}>
+                      <BookOpen size={40} style={{ margin: '0 auto 10px', opacity: 0.35, color: '#0284c7' }} />
+                      <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#334155' }}>Tidak ada data kelas ditemukan</div>
+                      <div style={{ fontSize: '0.76rem', marginTop: '4px', color: '#94a3b8' }}>
+                        {search || filterGender !== 'Semua Gender' || filterTingkat !== 'Semua Tingkat' 
+                          ? 'Coba sesuaikan kata kunci pencarian atau reset filter di atas.' 
+                          : 'Silakan klik tombol "Tambah Kelas Baru" untuk menambahkan kelas.'}
                       </div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600, color: '#0284c7', fontSize: '0.74rem' }}>
-                        {k.munawwib || '-'}
-                      </div>
-                    </td>
-                    <td className="td-center">
-                      <span className="badge badge-success" style={{ fontWeight: 800 }}>
-                        {k.total_santri || 0} Santri
-                      </span>
-                    </td>
-                    <td className="td-center">
-                      <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
-                        <button 
-                          className="btn-action btn-action-view"
-                          onClick={() => openDetail(k)}
-                          title="Lihat Detail Kelas"
+                      {(search || filterGender !== 'Semua Gender' || filterTingkat !== 'Semua Tingkat') && (
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-sm"
+                          style={{ marginTop: '12px' }}
+                          onClick={() => {
+                            setSearch('');
+                            setFilterGender('Semua Gender');
+                            setFilterTingkat('Semua Tingkat');
+                            setActiveFilterTab('semua');
+                          }}
                         >
-                          <Eye size={13} />
+                          Reset Filter Pencarian
                         </button>
-                        <button 
-                          className="btn-action btn-action-edit"
-                          onClick={() => openEditForm(k)}
-                          title="Edit Kelas"
-                        >
-                          <Edit3 size={13} />
-                        </button>
-                        <button 
-                          className="btn-action btn-action-delete"
-                          onClick={() => handleDeleteKelas(k.id, k.nama_kelas)}
-                          title="Hapus Kelas"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
+                      )}
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  filteredList.map((k, idx) => (
+                    <tr 
+                      key={k.id || idx}
+                      style={{ 
+                        borderBottom: '1px solid #f1f5f9',
+                        transition: 'background-color 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <td className="td-center" style={{ fontWeight: 600, color: '#64748b', fontSize: '0.76rem' }}>
+                        {idx + 1}
+                      </td>
+                      <td style={{ padding: '9px 12px' }}>
+                        <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.84rem' }}>{k.nama_kelas}</div>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b', fontFamily: 'monospace', fontWeight: 600 }}>
+                          {k.kode_kelas || k.nama_kelas}
+                        </div>
+                      </td>
+                      <td className="td-center" style={{ padding: '9px 8px' }}>
+                        <span className="badge" style={{ 
+                          background: '#f1f5f9', 
+                          color: '#334155', 
+                          fontWeight: 700, 
+                          fontSize: '0.72rem',
+                          border: '1px solid #e2e8f0',
+                          padding: '3px 8px'
+                        }}>
+                          {k.tingkat || '-'}
+                        </span>
+                      </td>
+                      <td className="td-center" style={{ padding: '9px 8px' }}>
+                        <span className={`badge ${k.gender === 'L' ? 'badge-info' : 'badge-purple'}`} style={{ fontSize: '0.7rem', padding: '3px 8px' }}>
+                          {k.gender === 'L' ? 'Boys (Putra)' : 'Girls (Putri)'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '9px 12px' }}>
+                        {k.mustahiq && k.mustahiq !== '-' ? (
+                          <div style={{ fontWeight: 700, color: '#047857', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <UserCheck size={13} style={{ flexShrink: 0 }} />
+                            <span>{k.mustahiq}</span>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#94a3b8', fontSize: '0.74rem', fontStyle: 'italic' }}>-</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '9px 12px' }}>
+                        {k.munawwib && k.munawwib !== '-' ? (
+                          <div style={{ fontWeight: 600, color: '#0284c7', fontSize: '0.76rem' }}>
+                            {k.munawwib}
+                          </div>
+                        ) : (
+                          <span style={{ color: '#94a3b8', fontSize: '0.74rem', fontStyle: 'italic' }}>-</span>
+                        )}
+                      </td>
+                      <td className="td-center" style={{ padding: '9px 8px' }}>
+                        <span className="badge badge-success" style={{ 
+                          fontWeight: 800, 
+                          fontSize: '0.72rem', 
+                          padding: '3px 8px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}>
+                          <Users size={11} />
+                          <span>{k.total_santri || 0} Santri</span>
+                        </span>
+                      </td>
+                      <td className="td-center" style={{ padding: '9px 8px' }}>
+                        <div style={{ display: 'inline-flex', gap: '5px', alignItems: 'center', justifyContent: 'center' }}>
+                          <button 
+                            className="btn-action btn-action-view"
+                            onClick={() => openDetail(k)}
+                            title="Lihat Detail Kelas"
+                          >
+                            <Eye size={13} />
+                          </button>
+                          <button 
+                            className="btn-action btn-action-edit"
+                            onClick={() => openEditForm(k)}
+                            title="Edit Kelas"
+                          >
+                            <Edit3 size={13} />
+                          </button>
+                          <button 
+                            className="btn-action btn-action-delete"
+                            onClick={() => handleDeleteKelas(k.id, k.nama_kelas)}
+                            title="Hapus Kelas"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

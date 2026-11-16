@@ -71,6 +71,18 @@ export const getAllSantri = async (req, res) => {
       whereConditions.push("s.status_santri = 'Kalong'");
     } else if (tab === 'alumni') {
       whereConditions.push("s.status IN ('Alumni', 'Boyong')");
+    } else if (tab === 'has_fingerprint') {
+      whereConditions.push(`(
+        s.id IN (SELECT santri_id FROM santri_fingerprint_templates WHERE template_data IS NOT NULL AND template_data != '') 
+        OR s.fingerprint_pin IN (SELECT pin FROM santri_fingerprint_templates WHERE template_data IS NOT NULL AND template_data != '')
+        OR s.id IN (SELECT DISTINCT santri_id FROM absensi_jamaah_mengaji WHERE metode_presensi = 'Fingerprint')
+      )`);
+    } else if (tab === 'no_fingerprint') {
+      whereConditions.push(`(
+        s.id NOT IN (SELECT santri_id FROM santri_fingerprint_templates WHERE template_data IS NOT NULL AND template_data != '') 
+        AND (s.fingerprint_pin IS NULL OR s.fingerprint_pin NOT IN (SELECT pin FROM santri_fingerprint_templates WHERE template_data IS NOT NULL AND template_data != ''))
+        AND s.id NOT IN (SELECT DISTINCT santri_id FROM absensi_jamaah_mengaji WHERE metode_presensi = 'Fingerprint')
+      )`);
     }
 
     // Asrama filter
@@ -144,12 +156,33 @@ export const getAllSantri = async (req, res) => {
              COALESCE(kl.mustahiq, s.mustahiq) as mustahiq,
              COALESCE(kl.munawwib, s.munawwib) as munawwib,
              COALESCE(sk.nama_sekolah, s.nama_sekolah) as nama_sekolah,
-             sk.jenjang as sekolah_jenjang
+             sk.jenjang as sekolah_jenjang,
+             COALESCE(sfp.fp_count, 0) as fp_count,
+             COALESCE(sdev.dev_enrolled, 0) as dev_enrolled,
+             COALESCE(sscan.scan_count, 0) as scan_count
       FROM santri s
       LEFT JOIN asrama a ON s.asrama_id = a.id
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
       LEFT JOIN kelas kl ON (s.kelas_id = kl.id OR s.nama_kelas = kl.nama_kelas)
       LEFT JOIN sekolah sk ON s.sekolah_id = sk.id
+      LEFT JOIN (
+        SELECT COALESCE(santri_id, pin) as sid, COUNT(*) as fp_count 
+        FROM santri_fingerprint_templates 
+        WHERE template_data IS NOT NULL AND template_data != ''
+        GROUP BY COALESCE(santri_id, pin)
+      ) sfp ON (sfp.sid = s.id OR (s.fingerprint_pin IS NOT NULL AND sfp.sid = s.fingerprint_pin))
+      LEFT JOIN (
+        SELECT santri_id, 1 as dev_enrolled
+        FROM fingerprint_device_users
+        WHERE status = 'ENROLLED'
+        GROUP BY santri_id
+      ) sdev ON sdev.santri_id = s.id
+      LEFT JOIN (
+        SELECT santri_id, 1 as scan_count
+        FROM absensi_jamaah_mengaji
+        WHERE metode_presensi = 'Fingerprint'
+        GROUP BY santri_id
+      ) sscan ON sscan.santri_id = s.id
       ${whereClause}
       ORDER BY s.id ASC
     `;
@@ -173,6 +206,7 @@ export const getAllSantri = async (req, res) => {
       const rawWa = r.no_wa_wali ? String(r.no_wa_wali).trim() : '';
       const hasPhoto = !!(r.foto && String(r.foto).trim() !== '');
       const hasFace = !!(r.face_descriptor && String(r.face_descriptor).trim() !== '' && r.face_descriptor !== '[]');
+      const hasFp = (Number(r.fp_count) > 0 || Number(r.scan_count) > 0);
 
       const item = {
         ...r,
@@ -180,7 +214,10 @@ export const getAllSantri = async (req, res) => {
         nama_wali: isDummyWali ? '' : rawWali,
         no_wa_wali: rawWa === '-' ? '' : rawWa,
         has_photo: hasPhoto ? 1 : 0,
-        has_face_descriptor: hasFace ? 1 : 0
+        has_face_descriptor: hasFace ? 1 : 0,
+        has_fingerprint: hasFp ? 1 : 0,
+        fp_count: Number(r.fp_count) || 0,
+        is_enrolled_device: Number(r.dev_enrolled) || 0
       };
 
       if (!shouldIncludePhoto) {
@@ -203,13 +240,31 @@ export const getAllSantri = async (req, res) => {
       FROM santri
     `);
 
-    const stats = statsRows[0] || {
-      totalAll: 0,
-      totalBoys: 0,
-      totalGirls: 0,
-      totalMukim: 0,
-      totalKalong: 0,
-      totalAlumni: 0
+    let totalWithFingerprint = 0;
+    try {
+      const [fpTotalRows] = await pool.query(`
+        SELECT COUNT(DISTINCT s.id) as totalWithFp
+        FROM santri s
+        WHERE s.id IN (SELECT santri_id FROM santri_fingerprint_templates WHERE template_data IS NOT NULL AND template_data != '')
+           OR (s.fingerprint_pin IS NOT NULL AND s.fingerprint_pin IN (SELECT pin FROM santri_fingerprint_templates WHERE template_data IS NOT NULL AND template_data != ''))
+           OR s.id IN (SELECT DISTINCT santri_id FROM absensi_jamaah_mengaji WHERE metode_presensi = 'Fingerprint')
+      `);
+      totalWithFingerprint = fpTotalRows[0]?.totalWithFp || 0;
+    } catch (eFpCount) {}
+
+    const totalAllVal = statsRows[0]?.totalAll || 0;
+    const totalWithoutFingerprint = Math.max(0, totalAllVal - totalWithFingerprint);
+
+    const stats = {
+      ...(statsRows[0] || {}),
+      totalAll: totalAllVal,
+      totalBoys: statsRows[0]?.totalBoys || 0,
+      totalGirls: statsRows[0]?.totalGirls || 0,
+      totalMukim: statsRows[0]?.totalMukim || 0,
+      totalKalong: statsRows[0]?.totalKalong || 0,
+      totalAlumni: statsRows[0]?.totalAlumni || 0,
+      totalWithFingerprint,
+      totalWithoutFingerprint
     };
 
     return sendSuccess(res, 'Data santri berhasil diambil', { 

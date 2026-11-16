@@ -13,7 +13,8 @@ import {
   registerSantriToDevice,
   registerAllUnregisteredToDevice,
   deleteUserFromDevice,
-  deleteAlumniFromDevice
+  deleteAlumniFromDevice,
+  queuePullDeviceFingerprints
 } from '../controllers/adms.controller.js';
 
 const router = express.Router();
@@ -46,6 +47,7 @@ router.post('/register-santri', registerSantriToDevice);
 router.post('/register-all', registerAllUnregisteredToDevice);
 router.post('/delete-user', deleteUserFromDevice);
 router.post('/delete-alumni', deleteAlumniFromDevice);
+router.post('/pull-fingerprints', queuePullDeviceFingerprints);
 
 export default router;
 

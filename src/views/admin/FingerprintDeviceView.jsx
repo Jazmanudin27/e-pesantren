@@ -51,7 +51,8 @@ export default function FingerprintDeviceView() {
   const [deletingAlumni, setDeletingAlumni] = useState(false);
   const [registeringSantriId, setRegisteringSantriId] = useState(null);
   const [registeringAll, setRegisteringAll] = useState(false);
-  const [userCounts, setUserCounts] = useState({ total: 0, enrolled: 0, not_enrolled: 0, aktif: 0, alumni: 0 });
+  const [pullingTemplates, setPullingTemplates] = useState(false);
+  const [userCounts, setUserCounts] = useState({ total: 0, enrolled: 0, not_enrolled: 0, aktif: 0, alumni: 0, with_fingerprint: 0, without_fingerprint: 0 });
 
   // Modal Form (Add & Edit)
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -246,6 +247,28 @@ export default function FingerprintDeviceView() {
     }
   };
 
+  const handlePullFingerprints = async () => {
+    try {
+      setPullingTemplates(true);
+      const res = await axios.post('/api/iclock/pull-fingerprints', {
+        sn_device: selectedDevice?.sn_device
+      });
+      if (res.data && res.data.success) {
+        toastSuccess(res.data.message || 'Perintah sinkronisasi sidik jari berhasil diantrekan ke mesin.');
+        setTimeout(() => {
+          if (selectedDevice?.sn_device) fetchDeviceUsers(selectedDevice.sn_device);
+        }, 3000);
+      } else {
+        toastError(res.data?.message || 'Gagal mengirim perintah sinkronisasi');
+      }
+    } catch (err) {
+      console.error('Gagal tarik sidik jari:', err);
+      toastError(err.response?.data?.message || 'Gagal mengirim perintah sinkronisasi');
+    } finally {
+      setPullingTemplates(false);
+    }
+  };
+
   const handleSyncSantriToDevice = async () => {
     const confirmed = await showConfirm(
       'Kirim Data Santri ke Mesin Fingerprint?',
@@ -387,6 +410,8 @@ export default function FingerprintDeviceView() {
 
     const matchStatus = 
       userStatusFilter === 'Semua' ? true :
+      userStatusFilter === 'HasFP' ? u.has_fingerprint :
+      userStatusFilter === 'NoFP' ? !u.has_fingerprint :
       userStatusFilter === 'Enrolled' ? u.is_enrolled :
       userStatusFilter === 'NotEnrolled' ? !u.is_enrolled :
       userStatusFilter === 'Aktif' ? !u.is_alumni :
@@ -476,20 +501,10 @@ export default function FingerprintDeviceView() {
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button 
             className="btn btn-outline" 
-            onClick={handleClearUsersFromDevice} 
-            disabled={clearing || syncing}
-            style={{ color: '#e11d48', borderColor: '#fecdd3', background: '#fff1f2' }}
-            title="Kosongkan seluruh data santri/user di mesin fingerprint"
-          >
-            {clearing ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
-            {clearing ? ' Mengosongkan...' : ' Kosongkan User di Mesin'}
-          </button>
-          <button 
-            className="btn btn-outline" 
             onClick={handleSyncSantriToDevice} 
             disabled={syncing || clearing}
             style={{ color: '#0284c7', borderColor: '#38bdf8' }}
-            title="Kirim nama & NIS santri aktif ke mesin melalui koneksi Cloud ADMS"
+            title="Kirim nama & ID santri aktif ke mesin melalui koneksi Cloud ADMS"
           >
             {syncing ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
             {syncing ? ' Mengirim...' : ' Kirim Santri ke Mesin (ADMS)'}
@@ -796,44 +811,64 @@ export default function FingerprintDeviceView() {
               {detailTab === 'santri' && (
                 <>
                   {/* Top Summary Stat Chips */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
-                    <div style={{ background: '#ffffff', borderRadius: '8px', padding: '12px 16px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' }}>
+                    <div style={{ background: '#ffffff', borderRadius: '8px', padding: '10px 14px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
                       <div>
-                        <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>TOTAL SANTRI APLIKASI</div>
-                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>{userCounts.total} <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#94a3b8' }}>Santri</span></div>
+                        <div style={{ fontSize: '0.64rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>TOTAL SANTRI</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>{userCounts.total} <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#94a3b8' }}>Santri</span></div>
                       </div>
-                      <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Users size={18} />
+                      <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Users size={17} />
                       </div>
                     </div>
 
-                    <div style={{ background: '#ffffff', borderRadius: '8px', padding: '12px 16px', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                    <div style={{ background: '#ffffff', borderRadius: '8px', padding: '10px 14px', border: '1px solid #86efac', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
                       <div>
-                        <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#16a34a', textTransform: 'uppercase' }}>TERDAFTAR DI MESIN</div>
-                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#16a34a' }}>{userCounts.enrolled} <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#86efac' }}>Santri</span></div>
+                        <div style={{ fontSize: '0.64rem', fontWeight: 700, color: '#15803d', textTransform: 'uppercase' }}>SUDAH ADA SIDIK JARI</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#15803d' }}>{userCounts.with_fingerprint || 0} <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#86efac' }}>Santri</span></div>
                       </div>
-                      <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <CheckCircle2 size={18} />
+                      <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#dcfce7', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Fingerprint size={17} />
                       </div>
                     </div>
 
-                    <div style={{ background: '#ffffff', borderRadius: '8px', padding: '12px 16px', border: userCounts.not_enrolled > 0 ? '1px solid #fed7aa' : '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                    <div style={{ background: '#ffffff', borderRadius: '8px', padding: '10px 14px', border: (userCounts.without_fingerprint || 0) > 0 ? '1px solid #fed7aa' : '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
                       <div>
-                        <div style={{ fontSize: '0.66rem', fontWeight: 700, color: userCounts.not_enrolled > 0 ? '#d97706' : '#64748b', textTransform: 'uppercase' }}>BELUM DI MESIN</div>
-                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: userCounts.not_enrolled > 0 ? '#d97706' : '#0f172a' }}>{userCounts.not_enrolled} <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#94a3b8' }}>Santri</span></div>
+                        <div style={{ fontSize: '0.64rem', fontWeight: 700, color: (userCounts.without_fingerprint || 0) > 0 ? '#c2410c' : '#64748b', textTransform: 'uppercase' }}>BELUM REKAM JARI</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 800, color: (userCounts.without_fingerprint || 0) > 0 ? '#c2410c' : '#0f172a' }}>{userCounts.without_fingerprint || 0} <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#94a3b8' }}>Santri</span></div>
                       </div>
-                      <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: userCounts.not_enrolled > 0 ? '#ffedd5' : '#f1f5f9', color: userCounts.not_enrolled > 0 ? '#d97706' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <AlertCircle size={18} />
+                      <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: (userCounts.without_fingerprint || 0) > 0 ? '#ffedd5' : '#f1f5f9', color: (userCounts.without_fingerprint || 0) > 0 ? '#c2410c' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <AlertCircle size={17} />
                       </div>
                     </div>
 
-                    <div style={{ background: '#ffffff', borderRadius: '8px', padding: '12px 16px', border: userCounts.alumni > 0 ? '1px solid #fecaca' : '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                    <div style={{ background: '#ffffff', borderRadius: '8px', padding: '10px 14px', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
                       <div>
-                        <div style={{ fontSize: '0.66rem', fontWeight: 700, color: userCounts.alumni > 0 ? '#dc2626' : '#64748b', textTransform: 'uppercase' }}>SANTRI ALUMNI / LULUS</div>
-                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: userCounts.alumni > 0 ? '#dc2626' : '#0f172a' }}>{userCounts.alumni} <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#94a3b8' }}>Santri</span></div>
+                        <div style={{ fontSize: '0.64rem', fontWeight: 700, color: '#0369a1', textTransform: 'uppercase' }}>AKUN DI MESIN</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0369a1' }}>{userCounts.enrolled} <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#93c5fd' }}>Santri</span></div>
                       </div>
-                      <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: userCounts.alumni > 0 ? '#fee2e2' : '#f1f5f9', color: userCounts.alumni > 0 ? '#dc2626' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <GraduationCap size={18} />
+                      <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#e0f2fe', color: '#0369a1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <CheckCircle2 size={17} />
+                      </div>
+                    </div>
+
+                    <div style={{ background: '#ffffff', borderRadius: '8px', padding: '10px 14px', border: userCounts.not_enrolled > 0 ? '1px solid #fde68a' : '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                      <div>
+                        <div style={{ fontSize: '0.64rem', fontWeight: 700, color: userCounts.not_enrolled > 0 ? '#b45309' : '#64748b', textTransform: 'uppercase' }}>BELUM DI MESIN</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 800, color: userCounts.not_enrolled > 0 ? '#b45309' : '#0f172a' }}>{userCounts.not_enrolled} <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#94a3b8' }}>Santri</span></div>
+                      </div>
+                      <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: userCounts.not_enrolled > 0 ? '#fef3c7' : '#f1f5f9', color: userCounts.not_enrolled > 0 ? '#b45309' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <AlertCircle size={17} />
+                      </div>
+                    </div>
+
+                    <div style={{ background: '#ffffff', borderRadius: '8px', padding: '10px 14px', border: userCounts.alumni > 0 ? '1px solid #fecaca' : '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                      <div>
+                        <div style={{ fontSize: '0.64rem', fontWeight: 700, color: userCounts.alumni > 0 ? '#dc2626' : '#64748b', textTransform: 'uppercase' }}>ALUMNI / LULUS</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 800, color: userCounts.alumni > 0 ? '#dc2626' : '#0f172a' }}>{userCounts.alumni} <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#94a3b8' }}>Santri</span></div>
+                      </div>
+                      <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: userCounts.alumni > 0 ? '#fee2e2' : '#f1f5f9', color: userCounts.alumni > 0 ? '#dc2626' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <GraduationCap size={17} />
                       </div>
                     </div>
                   </div>
@@ -967,12 +1002,12 @@ export default function FingerprintDeviceView() {
                       </div>
 
                       {/* Status Filter Pills */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflowX: 'auto' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflowX: 'auto', flexWrap: 'wrap' }}>
                         <button
                           onClick={() => setUserStatusFilter('Semua')}
                           style={{
-                            padding: '6px 12px',
-                            fontSize: '0.74rem',
+                            padding: '6px 11px',
+                            fontSize: '0.73rem',
                             fontWeight: 700,
                             borderRadius: '6px',
                             border: 'none',
@@ -984,30 +1019,68 @@ export default function FingerprintDeviceView() {
                           Semua ({userCounts.total})
                         </button>
                         <button
-                          onClick={() => setUserStatusFilter('Enrolled')}
+                          onClick={() => setUserStatusFilter('HasFP')}
                           style={{
-                            padding: '6px 12px',
-                            fontSize: '0.74rem',
+                            padding: '6px 11px',
+                            fontSize: '0.73rem',
                             fontWeight: 700,
                             borderRadius: '6px',
                             border: 'none',
                             cursor: 'pointer',
-                            background: userStatusFilter === 'Enrolled' ? '#16a34a' : '#dcfce7',
-                            color: userStatusFilter === 'Enrolled' ? '#ffffff' : '#15803d'
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: userStatusFilter === 'HasFP' ? '#15803d' : '#dcfce7',
+                            color: userStatusFilter === 'HasFP' ? '#ffffff' : '#15803d'
                           }}
                         >
-                          Sudah di Mesin ({userCounts.enrolled})
+                          <Fingerprint size={12} />
+                          <span>Sudah Sidik Jari ({userCounts.with_fingerprint || 0})</span>
+                        </button>
+                        <button
+                          onClick={() => setUserStatusFilter('NoFP')}
+                          style={{
+                            padding: '6px 11px',
+                            fontSize: '0.73rem',
+                            fontWeight: 700,
+                            borderRadius: '6px',
+                            border: 'none',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: userStatusFilter === 'NoFP' ? '#c2410c' : '#ffedd5',
+                            color: userStatusFilter === 'NoFP' ? '#ffffff' : '#c2410c'
+                          }}
+                        >
+                          <AlertCircle size={12} />
+                          <span>Belum Sidik Jari ({userCounts.without_fingerprint || 0})</span>
+                        </button>
+                        <button
+                          onClick={() => setUserStatusFilter('Enrolled')}
+                          style={{
+                            padding: '6px 11px',
+                            fontSize: '0.73rem',
+                            fontWeight: 700,
+                            borderRadius: '6px',
+                            border: 'none',
+                            cursor: 'pointer',
+                            background: userStatusFilter === 'Enrolled' ? '#0369a1' : '#e0f2fe',
+                            color: userStatusFilter === 'Enrolled' ? '#ffffff' : '#0369a1'
+                          }}
+                        >
+                          Akun di Mesin ({userCounts.enrolled})
                         </button>
                         <button
                           onClick={() => setUserStatusFilter('NotEnrolled')}
                           style={{
-                            padding: '6px 12px',
-                            fontSize: '0.74rem',
+                            padding: '6px 11px',
+                            fontSize: '0.73rem',
                             fontWeight: 700,
                             borderRadius: '6px',
                             border: 'none',
                             cursor: 'pointer',
-                            background: userStatusFilter === 'NotEnrolled' ? '#d97706' : '#fef3c7',
+                            background: userStatusFilter === 'NotEnrolled' ? '#b45309' : '#fef3c7',
                             color: userStatusFilter === 'NotEnrolled' ? '#ffffff' : '#b45309'
                           }}
                         >
@@ -1016,8 +1089,8 @@ export default function FingerprintDeviceView() {
                         <button
                           onClick={() => setUserStatusFilter('Alumni')}
                           style={{
-                            padding: '6px 12px',
-                            fontSize: '0.74rem',
+                            padding: '6px 11px',
+                            fontSize: '0.73rem',
                             fontWeight: 700,
                             borderRadius: '6px',
                             border: 'none',
@@ -1031,7 +1104,23 @@ export default function FingerprintDeviceView() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={handlePullFingerprints}
+                        disabled={pullingTemplates}
+                        style={{
+                          borderColor: '#059669',
+                          color: '#059669',
+                          background: '#ecfdf5',
+                          fontWeight: 700
+                        }}
+                        title="Minta mesin mengirimkan seluruh data sidik jari santri ke server"
+                      >
+                        {pullingTemplates ? <Loader2 size={13} className="animate-spin" /> : <Fingerprint size={13} />}
+                        <span>{pullingTemplates ? 'Menarik Sidik Jari...' : 'Tarik Sidik Jari dari Mesin'}</span>
+                      </button>
+
                       <button
                         className="btn btn-outline btn-sm"
                         onClick={() => fetchDeviceUsers(selectedDevice.sn_device)}
@@ -1075,11 +1164,12 @@ export default function FingerprintDeviceView() {
                           <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', zIndex: 2 }}>
                             <tr>
                               <th style={{ width: '45px', textAlign: 'center' }}>NO</th>
-                              <th style={{ width: '110px' }}>ID MESIN</th>
+                              <th style={{ width: '90px' }}>ID MESIN</th>
                               <th>NAMA SANTRI & NIS</th>
                               <th>KELAS & ASRAMA</th>
-                              <th style={{ width: '140px', textAlign: 'center' }}>STATUS DI MESIN</th>
-                              <th style={{ width: '160px', textAlign: 'center' }}>AKSI</th>
+                              <th style={{ width: '155px', textAlign: 'center' }}>SIDIK JARI (BIOMETRIK)</th>
+                              <th style={{ width: '125px', textAlign: 'center' }}>AKUN DI MESIN</th>
+                              <th style={{ width: '150px', textAlign: 'center' }}>AKSI</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1137,13 +1227,26 @@ export default function FingerprintDeviceView() {
                                   </div>
                                 </td>
                                 <td style={{ textAlign: 'center' }}>
-                                  {u.is_enrolled ? (
-                                    <span className="badge badge-success" style={{ fontSize: '0.68rem', padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                      <CheckCircle2 size={11} />
-                                      <span>Sudah di Mesin</span>
+                                  {u.has_fingerprint ? (
+                                    <span className="badge" style={{ fontSize: '0.68rem', padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#dcfce7', color: '#15803d', border: '1px solid #86efac', fontWeight: 800 }}>
+                                      <Fingerprint size={12} />
+                                      <span>{u.fp_count > 0 ? `${u.fp_count} Sidik Jari` : 'Sudah Rekam'}</span>
                                     </span>
                                   ) : (
-                                    <span className="badge" style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', fontSize: '0.68rem', padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                    <span className="badge" style={{ fontSize: '0.68rem', padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa', fontWeight: 700 }}>
+                                      <AlertCircle size={11} />
+                                      <span>Belum Rekam Jari</span>
+                                    </span>
+                                  )}
+                                </td>
+                                <td style={{ textAlign: 'center' }}>
+                                  {u.is_enrolled ? (
+                                    <span className="badge badge-info" style={{ fontSize: '0.68rem', padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                      <CheckCircle2 size={11} />
+                                      <span>Akun di Mesin</span>
+                                    </span>
+                                  ) : (
+                                    <span className="badge" style={{ background: '#f1f5f9', color: '#64748b', border: '1px solid #cbd5e1', fontSize: '0.68rem', padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                                       <AlertCircle size={11} />
                                       <span>Belum di Mesin</span>
                                     </span>
