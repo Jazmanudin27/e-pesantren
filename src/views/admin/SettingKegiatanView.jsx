@@ -701,7 +701,7 @@ export default function SettingKegiatanView() {
                 <th className="td-center">JADWAL SCAN</th>
                 <th>HARI AKTIF</th>
                 <th className="td-center">STATUS</th>
-                <th className="td-center" style={{ width: '190px' }}>AKSI</th>
+                <th className="td-center" style={{ width: '90px' }}>AKSI</th>
               </tr>
             </thead>
             <tbody>
@@ -816,35 +816,23 @@ export default function SettingKegiatanView() {
                         </button>
                       </td>
                       <td className="td-center">
-                        <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: '5px', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
                           {/* TOMBOL EDIT */}
                           <button 
-                            className="btn btn-outline btn-sm" 
-                            title="Edit Kegiatan Ini"
+                            className="btn-action btn-action-edit" 
+                            title="Edit Jadwal Shalat Ini"
                             onClick={() => openEditForm(keg)}
-                            style={{ padding: '3px 7px', color: '#0284c7', borderColor: '#bae6fd' }}
                           >
-                            <Edit3 size={12} /> Edit
-                          </button>
-
-                          {/* TOMBOL SALIN / DUPLIKASI */}
-                          <button 
-                            className="btn btn-outline btn-sm" 
-                            title="Duplikasi Kegiatan Ini ke Jadwal Lain"
-                            onClick={() => duplicateKegiatan(keg)}
-                            style={{ padding: '3px 6px', color: '#d97706', borderColor: '#fde68a' }}
-                          >
-                            <Copy size={12} />
+                            <Edit3 size={13} />
                           </button>
 
                           {/* TOMBOL HAPUS */}
                           <button 
-                            className="btn btn-danger btn-sm" 
-                            title="Hapus Kegiatan Ini"
+                            className="btn-action btn-action-delete" 
+                            title="Hapus Jadwal Shalat Ini"
                             onClick={() => handleDeleteKegiatan(keg)}
-                            style={{ padding: '3px 6px' }}
                           >
-                            <Trash2 size={12} />
+                            <Trash2 size={13} />
                           </button>
 
                           {/* KELOLA PESERTA KHUSUS */}
@@ -853,7 +841,7 @@ export default function SettingKegiatanView() {
                               className="btn btn-outline btn-sm" 
                               title="Atur Santri yang Mengikuti Kegiatan"
                               onClick={() => openPesertaModal(keg)}
-                              style={{ padding: '3px 6px', color: '#7c3aed', borderColor: '#c4b5fd', width: '100%', marginTop: '2px', fontSize: '0.68rem' }}
+                              style={{ padding: '2px 5px', color: '#7c3aed', borderColor: '#c4b5fd', width: '100%', marginTop: '2px', fontSize: '0.68rem' }}
                             >
                               <UserCheck size={11} /> Peserta ({jumlahPeserta})
                             </button>
