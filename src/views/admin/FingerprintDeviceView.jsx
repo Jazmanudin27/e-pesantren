@@ -638,8 +638,8 @@ export default function FingerprintDeviceView() {
                     <td className="td-center">
                       <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
                         <button 
+                          type="button"
                           className="btn-action btn-action-view"
-                          style={{ background: '#e0f2fe', color: '#0284c7', borderColor: '#bae6fd' }}
                           onClick={() => openDetail(d)}
                           title="Lihat Rincian Santri di Mesin & Hapus User"
                         >

@@ -1039,70 +1039,78 @@ body {
   gap: 3px;
 }
 
-/* BOOTSTRAP 5 STYLE COMPACT ACTION ICON BUTTONS (AKSI TABEL) */
+/* BOOTSTRAP 5 STYLE COMPACT ACTION ICON BUTTONS (AKSI TABEL STANDAR) */
 .btn-action {
-  width: 25px;
-  height: 25px;
-  min-width: 25px;
-  min-height: 25px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  border: none;
-  cursor: pointer;
-  transition: all 0.15s ease-in-out;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  width: 25px !important;
+  height: 25px !important;
+  min-width: 25px !important;
+  min-height: 25px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 4px !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease-in-out !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08) !important;
+  color: #ffffff !important;
+}
+
+.btn-action svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
 }
 
 .btn-action:hover {
   transform: translateY(-1px);
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.18) !important;
 }
 
 .btn-action:active {
   transform: translateY(0);
 }
 
-.btn-action-edit, .btn-action-primary {
-  background: #0284c7 !important;
+/* 1. EDIT: SOLID ORANGE SEMUA */
+.btn-action-edit, 
+.btn-action-warning {
+  background: #ea580c !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+.btn-action-edit:hover, 
+.btn-action-warning:hover {
+  background: #c2410c !important;
   color: #ffffff !important;
 }
 
-.btn-action-edit:hover, .btn-action-primary:hover {
-  background: #0369a1 !important;
-  color: #ffffff !important;
-}
-
-.btn-action-delete, .btn-action-danger {
+/* 2. HAPUS: SOLID MERAH SEMUA */
+.btn-action-delete, 
+.btn-action-danger {
   background: #ef4444 !important;
   color: #ffffff !important;
+  border: none !important;
 }
 
-.btn-action-delete:hover, .btn-action-danger:hover {
+.btn-action-delete:hover, 
+.btn-action-danger:hover {
   background: #dc2626 !important;
   color: #ffffff !important;
 }
 
-.btn-action-view, .btn-action-success {
-  background: #10b981;
-  color: #ffffff;
+/* 3. SHOW / VIEW / DETAIL: SOLID HIJAU SEMUA */
+.btn-action-view, 
+.btn-action-success {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  border: none !important;
 }
 
-.btn-action-view:hover, .btn-action-success:hover {
-  background: #059669;
-  color: #ffffff;
-}
-
-.btn-action-warning {
-  background: #f59e0b;
-  color: #ffffff;
-}
-
-.btn-action-warning:hover {
-  background: #d97706;
-  color: #ffffff;
+.btn-action-view:hover, 
+.btn-action-success:hover {
+  background: #059669 !important;
+  color: #ffffff !important;
 }
 
 .btn-primary {

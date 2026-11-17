@@ -586,38 +586,16 @@ export default function AbsensiFingerprintView({ initialType }) {
                         }}
                       >
                         <button
+                          type="button"
                           className="btn-action btn-action-view"
-                          style={{
-                            width: "30px",
-                            height: "30px",
-                            borderRadius: "6px",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            background: "#ecfdf5",
-                            color: "#059669",
-                            border: "1px solid #a7f3d0",
-                            cursor: "pointer",
-                          }}
                           title="Detail Presensi"
                           onClick={() => setSelectedDetail(row)}
                         >
                           <Eye size={13} />
                         </button>
                         <button
+                          type="button"
                           className="btn-action btn-action-delete"
-                          style={{
-                            width: "30px",
-                            height: "30px",
-                            borderRadius: "6px",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            background: "#fef2f2",
-                            color: "#dc2626",
-                            border: "1px solid #fecaca",
-                            cursor: "pointer",
-                          }}
                           title="Hapus Presensi"
                           onClick={() => handleDelete(row)}
                         >

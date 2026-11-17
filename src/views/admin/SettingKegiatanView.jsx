@@ -817,50 +817,24 @@ export default function SettingKegiatanView() {
                       </td>
                       <td className="td-center">
                         <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
-                          {/* TOMBOL EDIT (SOLID BIRU PERSIS DATA KEGIATAN) */}
+                          {/* TOMBOL EDIT (SOLID ORANGE STANDAR SISTEM) */}
                           <button 
                             type="button"
                             className="btn-action btn-action-edit" 
                             title="Edit Jadwal Shalat Ini"
                             onClick={() => openEditForm(keg)}
-                            style={{
-                              background: '#0284c7',
-                              color: '#ffffff',
-                              border: 'none',
-                              width: '26px',
-                              height: '26px',
-                              borderRadius: '5px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              cursor: 'pointer',
-                              boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                            }}
                           >
-                            <Edit3 size={13} color="#ffffff" />
+                            <Edit3 size={13} />
                           </button>
 
-                          {/* TOMBOL HAPUS (SOLID MERAH PERSIS DATA KEGIATAN) */}
+                          {/* TOMBOL HAPUS (SOLID MERAH STANDAR SISTEM) */}
                           <button 
                             type="button"
                             className="btn-action btn-action-delete" 
                             title="Hapus Jadwal Shalat Ini"
                             onClick={() => handleDeleteKegiatan(keg)}
-                            style={{
-                              background: '#ef4444',
-                              color: '#ffffff',
-                              border: 'none',
-                              width: '26px',
-                              height: '26px',
-                              borderRadius: '5px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              cursor: 'pointer',
-                              boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                            }}
                           >
-                            <Trash2 size={13} color="#ffffff" />
+                            <Trash2 size={13} />
                           </button>
                         </div>
 
