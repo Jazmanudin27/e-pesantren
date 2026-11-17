@@ -37,7 +37,8 @@ import {
   Heart,
   MessageSquare,
   Smartphone,
-  Send
+  Send,
+  Search
 } from 'lucide-react';
 import DashboardAdmin from '../views/admin/DashboardAdmin';
 import SantriView from '../views/admin/SantriView';
@@ -107,17 +108,13 @@ export default function AdminLayout() {
     } catch (e) {}
     return isKeuanganTab(initialTab);
   });
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMenuModalOpen, setIsMenuModalOpen] = useState(false);
+  const [menuSearch, setMenuSearch] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentTime, setCurrentTime] = useState('');
 
   const toggleSidebar = () => {
-    if (window.innerWidth <= 768) {
-      setIsMobileMenuOpen(!isMobileMenuOpen);
-    } else {
-      setIsSidebarCollapsed(!isSidebarCollapsed);
-    }
+    setIsMenuModalOpen(prev => !prev);
   };
 
   const toggleFullscreen = () => {
@@ -217,6 +214,8 @@ export default function AdminLayout() {
     };
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
+        setIsMenuModalOpen(false);
+        setMenuSearch('');
         setIsUserDropdownOpen(false);
         setIsProfileModalOpen(false);
         setIsPasswordModalOpen(false);
@@ -570,8 +569,72 @@ export default function AdminLayout() {
   const renderNavMenu = (isMobile = false) => {
     const handleTabClick = (tab) => {
       changeTab(tab);
-      if (isMobile) setIsMobileMenuOpen(false);
+      setIsMenuModalOpen(false);
+      setMenuSearch('');
     };
+
+    if (menuSearch && menuSearch.trim()) {
+      const q = menuSearch.toLowerCase().trim();
+      const allSearchable = [
+        { tab: 'dashboard', label: 'Dashboard Utama', cat: 'Menu Utama', icon: <LayoutDashboard size={14} style={{ color: '#0284c7' }} /> },
+        { tab: 'master-santri', label: 'Data Santri', cat: 'Data Master', icon: <Users size={14} style={{ color: '#0284c7' }} /> },
+        { tab: 'master-asrama', label: 'Asrama & Kamar Kobong', cat: 'Data Master', icon: <Building size={14} style={{ color: '#10b981' }} /> },
+        { tab: 'master-kelas', label: 'Kelas Santri', cat: 'Data Master', icon: <GraduationCap size={14} style={{ color: '#6366f1' }} /> },
+        { tab: 'master-asatidz', label: 'Asatidz & Pengajar', cat: 'Data Master', icon: <Users size={14} style={{ color: '#f59e0b' }} /> },
+        { tab: 'master-materi', label: 'Kegiatan & Materi', cat: 'Data Master', icon: <BookOpen size={14} style={{ color: '#059669' }} /> },
+        { tab: 'setting-shalat', label: 'Setting Shalat & Jadwal', cat: 'Data Master', icon: <CalendarCheck size={14} style={{ color: '#0284c7' }} /> },
+        { tab: 'absensi-berjamaah', label: 'Absensi Berjamaah', cat: 'Absensi Santri', icon: <Fingerprint size={14} style={{ color: '#0284c7' }} /> },
+        { tab: 'absensi-mengaji', label: 'Absensi Mengaji', cat: 'Absensi Santri', icon: <BookOpen size={14} style={{ color: '#059669' }} /> },
+        { tab: 'haid-santriwati', label: 'Haid Santriwati', cat: 'Absensi Santri', icon: <Heart size={14} style={{ color: '#ec4899' }} /> },
+        { tab: 'perizinan', label: 'Perizinan Santri', cat: 'Perizinan', icon: <DoorOpen size={14} style={{ color: '#f59e0b' }} /> },
+        { tab: 'tata-tertib', label: 'Tata Tertib & Ta\'zir', cat: 'Kedisiplinan', icon: <ShieldAlert size={14} style={{ color: '#ef4444' }} /> },
+        { tab: 'perkembangan-santri-laki', label: 'Pengembangan (L)', cat: 'Pengembangan', icon: <Users size={14} style={{ color: '#0284c7' }} /> },
+        { tab: 'perkembangan-santri-perempuan', label: 'Pengembangan (P)', cat: 'Pengembangan', icon: <Users size={14} style={{ color: '#db2777' }} /> },
+        { tab: 'manajemen-user', label: 'Kelola Pengguna (Users)', cat: 'Settings', icon: <UserCog size={14} style={{ color: '#94a3b8' }} /> },
+        { tab: 'pesan-komunikasi', label: 'Pesan Wali Santri', cat: 'Settings', icon: <MessageSquare size={14} style={{ color: '#0d9488' }} /> },
+        { tab: 'informasi-kegiatan', label: 'Informasi & Pengumuman', cat: 'Settings', icon: <Bell size={14} style={{ color: '#f59e0b' }} /> },
+        { tab: 'master-device', label: 'Mesin Fingerprint (ADMS)', cat: 'Settings', icon: <HardDrive size={14} style={{ color: '#a855f7' }} /> },
+        { tab: 'laporan-perkembangan', label: 'Laporan Perkembangan', cat: 'Laporan', icon: <FileText size={14} style={{ color: '#0284c7' }} /> },
+        { tab: 'keuangan-admin', label: 'Keuangan & Kasir SPP', cat: 'Keuangan', icon: <CreditCard size={14} style={{ color: '#10b981' }} /> },
+        { tab: 'keuangan-rekap', label: 'Rekap & Laporan Keuangan', cat: 'Keuangan', icon: <BarChart3 size={14} style={{ color: '#059669' }} /> },
+        { tab: 'buku-kas', label: 'Buku Kas & Kantong Saldo', cat: 'Keuangan', icon: <Wallet size={14} style={{ color: '#0284c7' }} /> },
+        { tab: 'tabungan-santri', label: 'Tabungan Santri', cat: 'Keuangan', icon: <HeartHandshake size={14} style={{ color: '#065f46' }} /> },
+        { tab: 'laporan-infak', label: 'Laporan Infak', cat: 'Keuangan', icon: <FileText size={14} style={{ color: '#f59e0b' }} /> },
+      ].filter(item => 
+        item.label.toLowerCase().includes(q) || 
+        item.cat.toLowerCase().includes(q) || 
+        item.tab.toLowerCase().includes(q)
+      );
+
+      return (
+        <div style={{ padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+          <div style={{ fontSize: '0.65rem', color: '#64748b', padding: '4px 8px', textTransform: 'uppercase', fontWeight: 700 }}>
+            Hasil Pencarian Menu ({allSearchable.length})
+          </div>
+          {allSearchable.length === 0 ? (
+            <div style={{ padding: '24px 12px', textAlign: 'center', color: '#64748b', fontSize: '0.76rem' }}>
+              Tidak ada menu yang sesuai dengan "{menuSearch}"
+            </div>
+          ) : (
+            allSearchable.map((item) => (
+              <button
+                key={item.tab}
+                type="button"
+                className={`nav-link ${activeTab === item.tab ? 'active' : ''}`}
+                onClick={() => handleTabClick(item.tab)}
+                style={{ justifyContent: 'flex-start', gap: '10px' }}
+              >
+                {item.icon}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '0.78rem', color: activeTab === item.tab ? '#ffffff' : '#e2e8f0', fontWeight: 600 }}>{item.label}</span>
+                  <span style={{ fontSize: '0.64rem', color: '#64748b' }}>{item.cat}</span>
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+      );
+    }
 
     return (
       <nav className="sidebar-menu">
@@ -882,70 +945,37 @@ export default function AdminLayout() {
 
   return (
     <div className="admin-layout">
-      {/* Sidebar Desktop (Dark Navy Aspartech Style) */}
-      <aside className={`admin-sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
-        <div className="sidebar-brand">
-          <img src="/nwf.png" alt="Logo" style={{ width: '34px', height: '34px', objectFit: 'contain' }} />
-          <div className="brand-title">
-            <h2>RUANG PONPES</h2>
-            <p>SISTEM PESANTREN</p>
-          </div>
-        </div>
-
-        <div className="tenant-card">
-          <div className="tenant-logo" style={{ background: '#ffffff', padding: '2px', border: 'none' }}>
-            <img src="/nwf.png" alt="Logo" style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
-          </div>
-          <div className="tenant-info">
-            <div className="tenant-name">PP. NURUL WAFA</div>
-            <span 
-              className="tenant-badge"
-              style={
-                isPureBendahara 
-                  ? { background: '#059669', color: '#ffffff', borderColor: '#10b981' } 
-                  : isPureAdminAbsen 
-                  ? { background: '#0284c7', color: '#ffffff', borderColor: '#38bdf8' } 
-                  : {}
-              }
-            >
-              {isPureBendahara ? 'ADMIN KEUANGAN' : isPureAdminAbsen ? 'ADMIN ABSEN' : 'SUPER ADMIN'}
-            </span>
-          </div>
-        </div>
-
-        {/* Sidebar Nav */}
-        {renderNavMenu(false)}
-      </aside>
-
-      {/* Mobile Sidebar Overlay Drawer */}
-      {isMobileMenuOpen && (
+      {/* Menu Sistem Modal (Overlay Drawer dengan Backdrop Blur) */}
+      {isMenuModalOpen && (
         <div 
-          className="mobile-drawer-overlay"
-          onClick={() => setIsMobileMenuOpen(false)}
+          className="menu-modal-overlay"
+          onClick={() => { setIsMenuModalOpen(false); setMenuSearch(''); }}
         >
           <div 
-            className="mobile-drawer-content"
+            className="menu-modal-content"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="sidebar-brand" style={{ justifyContent: 'space-between' }}>
+            <div className="sidebar-brand" style={{ justifyContent: 'space-between', padding: '14px 16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <img src="/logo.png" alt="Logo" style={{ width: '34px', height: '34px', objectFit: 'contain' }} />
+                <img src="/nwf.png" alt="Logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
                 <div className="brand-title">
                   <h2>RUANG PONPES</h2>
                   <p>SISTEM PESANTREN</p>
                 </div>
               </div>
               <button 
-                onClick={() => setIsMobileMenuOpen(false)}
-                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+                type="button"
+                onClick={() => { setIsMenuModalOpen(false); setMenuSearch(''); }}
+                className="btn-close-menu-modal"
+                title="Tutup Menu Sistem (Esc)"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
             <div className="tenant-card">
               <div className="tenant-logo" style={{ background: '#ffffff', padding: '2px', border: 'none' }}>
-                <img src="/logo.png" alt="Logo" style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
+                <img src="/nwf.png" alt="Logo" style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
               </div>
               <div className="tenant-info">
                 <div className="tenant-name">PP. NURUL WAFA</div>
@@ -959,19 +989,20 @@ export default function AdminLayout() {
                       : {}
                   }
                 >
-                  {isPureBendahara ? 'ADMIN KEUANGAN' : isPureAdminAbsen ? 'ADMIN ABSEN' : 'ADMIN'}
+                  {isPureBendahara ? 'ADMIN KEUANGAN' : isPureAdminAbsen ? 'ADMIN ABSEN' : 'SUPER ADMIN'}
                 </span>
               </div>
             </div>
 
+            {/* Filter Modul: Semua / Absen / Keuangan */}
             {!isPureBendahara && !isPureAdminAbsen && (
-              <div style={{ padding: '0 12px 10px' }}>
+              <div style={{ padding: '0 12px 8px' }}>
                 <div
                   style={{
                     display: 'grid',
                     gridTemplateColumns: '1fr 1fr 1fr',
                     background: 'rgba(255, 255, 255, 0.07)',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     padding: '3px',
                     gap: '3px',
                     border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -981,8 +1012,8 @@ export default function AdminLayout() {
                     type="button"
                     onClick={() => handleSetDesktopModuleFilter('all')}
                     style={{
-                      padding: '6px 2px',
-                      borderRadius: '7px',
+                      padding: '5px 2px',
+                      borderRadius: '6px',
                       border: 'none',
                       fontSize: '0.68rem',
                       fontWeight: 700,
@@ -998,8 +1029,8 @@ export default function AdminLayout() {
                     type="button"
                     onClick={() => handleSetDesktopModuleFilter('absen')}
                     style={{
-                      padding: '6px 2px',
-                      borderRadius: '7px',
+                      padding: '5px 2px',
+                      borderRadius: '6px',
                       border: 'none',
                       fontSize: '0.68rem',
                       fontWeight: 700,
@@ -1015,8 +1046,8 @@ export default function AdminLayout() {
                     type="button"
                     onClick={() => handleSetDesktopModuleFilter('keuangan')}
                     style={{
-                      padding: '6px 2px',
-                      borderRadius: '7px',
+                      padding: '5px 2px',
+                      borderRadius: '6px',
                       border: 'none',
                       fontSize: '0.68rem',
                       fontWeight: 700,
@@ -1032,20 +1063,56 @@ export default function AdminLayout() {
               </div>
             )}
 
-            {renderNavMenu(true)}
+            {/* Quick Search Menu Input */}
+            <div style={{ padding: '0 12px 8px' }}>
+              <div style={{ position: 'relative' }}>
+                <Search size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+                <input 
+                  type="text"
+                  placeholder="Cari menu... (santri, haid, asrama, dll)"
+                  value={menuSearch}
+                  onChange={(e) => setMenuSearch(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '6px 26px 6px 28px',
+                    borderRadius: '7px',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    color: '#ffffff',
+                    fontSize: '0.74rem',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                {menuSearch && (
+                  <button 
+                    type="button" 
+                    onClick={() => setMenuSearch('')}
+                    style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Navigation Menu */}
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              {renderNavMenu()}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Main Container */}
-      <div className={`admin-main ${isSidebarCollapsed ? 'expanded' : ''}`}>
+      {/* Main Container - Selalu Full Screen Width 100% */}
+      <div className="admin-main">
         {/* Top Header */}
         <header className="admin-header">
           <div className="header-left">
             <button 
               className="btn-hamburger"
               onClick={toggleSidebar}
-              title={isSidebarCollapsed ? "Tampilkan Menu Sistem" : "Sembunyikan Menu Sistem"}
+              title="Tampilkan Menu Sistem (Modal)"
             >
               <Menu size={18} />
             </button>
