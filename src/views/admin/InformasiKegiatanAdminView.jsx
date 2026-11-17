@@ -8,6 +8,7 @@ import {
   Search, 
   Trash2, 
   Edit3,
+  Eye,
   Pin, 
   Image, 
   Calendar, 
@@ -17,9 +18,14 @@ import {
   AlertCircle,
   X,
   Save,
-  Send
+  Send,
+  Loader2,
+  Sparkles,
+  LayoutList,
+  Grid
 } from 'lucide-react';
 import { toastSuccess, showError, showConfirm } from '../../utils/alert.util';
+import SearchableSelect from '../../components/SearchableSelect';
 
 const KATEGORI_RESMI = [
   'Pengumuman Pesantren',
@@ -37,6 +43,9 @@ export default function InformasiKegiatanAdminView() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formMode, setFormMode] = useState('add');
   const [submitting, setSubmitting] = useState(false);
+  const [viewMode, setViewMode] = useState('table');
+  const [selectedPreview, setSelectedPreview] = useState(null);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
 
   const getDefaultExpireDate = () => {
     const d = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
@@ -114,6 +123,11 @@ export default function InformasiKegiatanAdminView() {
     setIsModalOpen(true);
   };
 
+  const openPreviewModal = (post) => {
+    setSelectedPreview(post);
+    setPreviewModalOpen(true);
+  };
+
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -182,8 +196,11 @@ export default function InformasiKegiatanAdminView() {
     return true;
   });
 
+  const totalCount = feed.length;
   const activeCount = feed.filter(p => !isExpired(p.tgl_kadaluarsa)).length;
   const expiredCount = feed.filter(p => isExpired(p.tgl_kadaluarsa)).length;
+  const popupCount = feed.filter(p => !isExpired(p.tgl_kadaluarsa) && (p.is_popup === true || Number(p.is_popup) === 1)).length;
+  const pinnedCount = feed.filter(p => Number(p.is_pinned) === 1).length;
 
   const getCategoryStyle = (kat = '') => {
     const k = kat.toLowerCase();
@@ -203,291 +220,568 @@ export default function InformasiKegiatanAdminView() {
   };
 
   return (
-    <div className="admin-content-inner" style={{ padding: '20px' }}>
-      {/* Header Banner */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '18px',
-        flexWrap: 'wrap',
-        gap: '12px',
-        background: '#ffffff',
-        padding: '18px 20px',
-        borderRadius: '18px',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 4px 14px rgba(0,0,0,0.03)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '14px',
-            background: 'linear-gradient(135deg, #0d766e, #059669)',
-            color: '#fff',
+    <div>
+      {/* 1. TOP 4 COLORED STATS CARDS */}
+      <div className="top-stats-grid">
+        <div className="stat-card-colored stat-card-blue">
+          <div>
+            <div className="stat-colored-title">TOTAL INFORMASI & PENGUMUMAN</div>
+            <div className="stat-colored-number">{totalCount}</div>
+          </div>
+          <div className="stat-colored-icon-box">
+            <Megaphone size={22} />
+          </div>
+        </div>
+
+        <div className="stat-card-colored stat-card-green">
+          <div>
+            <div className="stat-colored-title">AKTIF TAYANG RESMI</div>
+            <div className="stat-colored-number">{activeCount}</div>
+          </div>
+          <div className="stat-colored-icon-box">
+            <CheckCircle2 size={22} />
+          </div>
+        </div>
+
+        <div className="stat-card-colored stat-card-amber">
+          <div>
+            <div className="stat-colored-title">POPUP MODAL ORTU</div>
+            <div className="stat-colored-number">{popupCount}</div>
+          </div>
+          <div className="stat-colored-icon-box">
+            <Bell size={22} />
+          </div>
+        </div>
+
+        <div className="stat-card-colored stat-card-purple">
+          <div>
+            <div className="stat-colored-title">PRIORITAS / PINNED</div>
+            <div className="stat-colored-number">{pinnedCount}</div>
+          </div>
+          <div className="stat-colored-icon-box">
+            <Pin size={22} />
+          </div>
+        </div>
+      </div>
+
+      {/* 2. TITLE STRIP */}
+      <div className="page-title-strip">
+        <div className="page-title-left">
+          <Megaphone size={22} className="page-title-icon" style={{ color: '#0284c7' }} />
+          <div>
+            <h2>Data Master Informasi & Pengumuman Pesantren</h2>
+            <p>Kelola pengumuman resmi, jadwal kegiatan, info liburan/kepulangan santri, serta broadcast popup otomatis ke orang tua</p>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="btn btn-outline" onClick={fetchFeed}>
+            <RotateCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
+          </button>
+          <button className="btn btn-primary" onClick={openAddModal}>
+            <Plus size={14} /> Buat Pengumuman Baru
+          </button>
+        </div>
+      </div>
+
+      {/* 3. TAB FILTER BAR */}
+      <div className="tab-filter-bar">
+        {[
+          { id: 'Semua', label: `Semua Info (${totalCount})` },
+          ...KATEGORI_RESMI.map(kat => ({
+            id: kat,
+            label: kat
+          }))
+        ].map(tab => (
+          <button
+            key={tab.id}
+            className={`tab-btn ${selectedKategori === tab.id ? 'active' : ''}`}
+            onClick={() => setSelectedKategori(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 4. FILTER SEARCH BOX */}
+      <div className="filter-search-box">
+        <div className="filter-search-input">
+          <Search size={15} color="#94a3b8" />
+          <input
+            type="text"
+            placeholder="Cari judul, ringkasan, atau isi pengumuman..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        <SearchableSelect
+          style={{ minWidth: '220px', flex: '1 1 200px', maxWidth: '300px' }}
+          value={selectedKategori}
+          onChange={(val) => setSelectedKategori(val || 'Semua')}
+          placeholder="Semua Kategori"
+          options={[
+            { value: 'Semua', label: 'Semua Kategori Informasi' },
+            ...KATEGORI_RESMI.map(k => ({ value: k, label: k }))
+          ]}
+        />
+
+        <div style={{ display: 'flex', gap: '4px', background: '#f1f5f9', padding: '3px', borderRadius: '8px' }}>
+          <button
+            type="button"
+            onClick={() => setViewMode('table')}
+            title="Tampilan Tabel"
+            style={{
+              padding: '5px 10px',
+              borderRadius: '6px',
+              border: 'none',
+              background: viewMode === 'table' ? '#fff' : 'transparent',
+              color: viewMode === 'table' ? '#0f172a' : '#64748b',
+              fontWeight: 700,
+              fontSize: '0.74rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              boxShadow: viewMode === 'table' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+            }}
+          >
+            <LayoutList size={14} /> Tabel
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('cards')}
+            title="Tampilan Kartu / Grid"
+            style={{
+              padding: '5px 10px',
+              borderRadius: '6px',
+              border: 'none',
+              background: viewMode === 'cards' ? '#fff' : 'transparent',
+              color: viewMode === 'cards' ? '#0f172a' : '#64748b',
+              fontWeight: 700,
+              fontSize: '0.74rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              boxShadow: viewMode === 'cards' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+            }}
+          >
+            <Grid size={14} /> Kartu
+          </button>
+        </div>
+      </div>
+
+      {/* 5. DATA TABLE & CONTAINER CARD */}
+      <div className="table-container-card">
+        {loading ? (
+          <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
+            <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 8px', display: 'block' }} />
+            Memuat data pengumuman & informasi kegiatan...
+          </div>
+        ) : filteredFeed.length === 0 ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+            <Megaphone size={36} style={{ margin: '0 auto 10px', color: '#cbd5e1' }} />
+            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155' }}>Tidak Ada Informasi</div>
+            <div style={{ fontSize: '0.75rem', marginTop: '4px' }}>Belum ada pengumuman yang sesuai dengan pencarian atau kategori ini.</div>
+          </div>
+        ) : viewMode === 'cards' ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px', padding: '16px' }}>
+            {filteredFeed.map(post => {
+              const expired = isExpired(post.tgl_kadaluarsa);
+              const catStyle = getCategoryStyle(post.kategori);
+
+              return (
+                <div 
+                  key={post.id}
+                  style={{
+                    background: '#ffffff',
+                    borderRadius: '16px',
+                    border: expired ? '1px dashed #cbd5e1' : post.is_pinned ? '2px solid #f59e0b' : '1px solid #e2e8f0',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
+                    position: 'relative',
+                    opacity: expired ? 0.78 : 1
+                  }}
+                >
+                  <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '6px', zIndex: 2 }}>
+                    {Number(post.is_pinned) === 1 && (
+                      <span style={{
+                        background: '#f59e0b',
+                        color: '#fff',
+                        fontSize: '0.65rem',
+                        fontWeight: 800,
+                        padding: '3px 8px',
+                        borderRadius: '999px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                      }}>
+                        <Pin size={11} /> PRIORITAS
+                      </span>
+                    )}
+                    <span style={{
+                      background: expired ? '#ef4444' : '#10b981',
+                      color: '#fff',
+                      fontSize: '0.65rem',
+                      fontWeight: 800,
+                      padding: '3px 8px',
+                      borderRadius: '999px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                    }}>
+                      {expired ? 'Kadaluarsa' : 'Aktif'}
+                    </span>
+                  </div>
+
+                  {post.foto_url ? (
+                    <div style={{ width: '100%', height: '150px', overflow: 'hidden', background: '#f1f5f9' }}>
+                      <img 
+                        src={post.foto_url} 
+                        alt={post.judul} 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    </div>
+                  ) : (
+                    <div style={{
+                      width: '100%',
+                      padding: '20px 16px',
+                      background: catStyle.gradient,
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px'
+                    }}>
+                      <Megaphone size={20} color="#ffffff" />
+                      <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        {post.kategori || 'Pengumuman Pesantren'}
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                      <span style={{
+                        background: catStyle.bg,
+                        color: catStyle.color,
+                        border: `1px solid ${catStyle.border}`,
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        padding: '2px 8px',
+                        borderRadius: '999px'
+                      }}>
+                        {post.kategori}
+                      </span>
+                      <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Calendar size={11} />
+                        {post.tanggal_publikasi ? new Date(post.tanggal_publikasi).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                      </span>
+                    </div>
+
+                    <h3 style={{ fontSize: '0.94rem', fontWeight: 800, color: '#0f172a', margin: '0 0 6px', lineHeight: 1.35 }}>
+                      {post.judul}
+                    </h3>
+
+                    <p style={{ fontSize: '0.78rem', color: '#475569', margin: '0 0 10px', lineHeight: 1.5, flex: 1, whiteSpace: 'pre-line' }}>
+                      {post.konten ? (post.konten.length > 120 ? `${post.konten.slice(0, 120)}...` : post.konten) : '-'}
+                    </p>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '8px', marginTop: 'auto' }}>
+                      <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>
+                        👤 {post.penulis || 'Humas'}
+                      </span>
+                      <div style={{ display: 'flex', gap: '5px' }}>
+                        <button
+                          className="btn-action btn-action-view"
+                          onClick={() => openPreviewModal(post)}
+                          title="Lihat Detail"
+                        >
+                          <Eye size={12} />
+                        </button>
+                        <button
+                          className="btn-action btn-action-edit"
+                          onClick={() => openEditModal(post)}
+                          title="Edit"
+                        >
+                          <Edit3 size={12} />
+                        </button>
+                        <button
+                          className="btn-action btn-action-delete"
+                          onClick={() => handleHapus(post)}
+                          title="Hapus"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th className="td-center" style={{ width: '40px' }}>NO</th>
+                <th>JUDUL INFORMASI & PENULIS</th>
+                <th>KATEGORI</th>
+                <th>PUBLIKASI & KADALUARSA</th>
+                <th>STATUS TAYANG</th>
+                <th>MODAL ORTU</th>
+                <th className="td-center" style={{ width: '120px' }}>AKSI</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredFeed.map((post, index) => {
+                const expired = isExpired(post.tgl_kadaluarsa);
+                const catStyle = getCategoryStyle(post.kategori);
+
+                return (
+                  <tr key={post.id || index}>
+                    <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
+                      {index + 1}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+                        {post.foto_url ? (
+                          <img
+                            src={post.foto_url}
+                            alt=""
+                            style={{ width: '36px', height: '36px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0, border: '1px solid #e2e8f0' }}
+                            onError={(e) => { e.target.style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div style={{
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '6px',
+                            background: catStyle.bg,
+                            color: catStyle.color,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            border: `1px solid ${catStyle.border}`
+                          }}>
+                            <Megaphone size={16} />
+                          </div>
+                        )}
+                        <div>
+                          <div style={{ fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {post.judul}
+                            {Number(post.is_pinned) === 1 && (
+                              <span style={{
+                                background: '#f59e0b',
+                                color: '#fff',
+                                fontSize: '0.62rem',
+                                fontWeight: 800,
+                                padding: '1px 6px',
+                                borderRadius: '4px'
+                              }}>
+                                PINNED
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: '0.68rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                            <span>Penulis: <strong>{post.penulis || 'Humas Pesantren'}</strong></span>
+                            {post.ringkasan && (
+                              <span style={{ color: '#475569' }}>• {post.ringkasan.slice(0, 45)}{post.ringkasan.length > 45 ? '...' : ''}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span
+                        className="badge"
+                        style={{
+                          background: catStyle.bg,
+                          color: catStyle.color,
+                          border: `1px solid ${catStyle.border}`,
+                          fontWeight: 700
+                        }}
+                      >
+                        {post.kategori || 'Pengumuman'}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ fontSize: '0.74rem', color: '#0f172a', fontWeight: 600 }}>
+                        {post.tanggal_publikasi ? new Date(post.tanggal_publikasi).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                      </div>
+                      <div style={{ fontSize: '0.66rem', color: expired ? '#dc2626' : '#64748b', fontWeight: expired ? 700 : 500 }}>
+                        Kadaluarsa: {post.tgl_kadaluarsa ? new Date(post.tgl_kadaluarsa).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Selamanya'}
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`badge ${expired ? 'badge-danger' : 'badge-success'}`} style={{ fontWeight: 700 }}>
+                        {expired ? 'Kadaluarsa' : 'Aktif Tayang'}
+                      </span>
+                    </td>
+                    <td>
+                      {post.is_popup && !expired ? (
+                        <span className="badge badge-info" style={{ fontWeight: 700 }}>
+                          🔔 Pop-up Aktif
+                        </span>
+                      ) : (
+                        <span className="badge badge-secondary" style={{ fontWeight: 600 }}>
+                          Nonaktif
+                        </span>
+                      )}
+                    </td>
+                    <td className="td-center">
+                      <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
+                        <button
+                          className="btn-action btn-action-view"
+                          onClick={() => openPreviewModal(post)}
+                          title="Lihat Detail"
+                        >
+                          <Eye size={13} />
+                        </button>
+                        <button
+                          className="btn-action btn-action-edit"
+                          onClick={() => openEditModal(post)}
+                          title="Edit Pengumuman"
+                        >
+                          <Edit3 size={13} />
+                        </button>
+                        <button
+                          className="btn-action btn-action-delete"
+                          onClick={() => handleHapus(post)}
+                          title="Hapus Pengumuman"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Detail Preview Modal */}
+      {previewModalOpen && selectedPreview && (
+        <div
+          onClick={() => setPreviewModalOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 9999,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 6px 16px rgba(13, 118, 110, 0.3)'
-          }}>
-            <Megaphone size={24} />
-          </div>
-          <div>
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-              Informasi &amp; Pengumuman Resmi Pesantren
-            </h1>
-            <p style={{ color: '#64748b', fontSize: '0.8rem', margin: '3px 0 0' }}>
-              Kelola pengumuman pesantren, jadwal kegiatan, info liburan/kepulangan santri, serta popup modal otomatis di Portal Orang Tua
-            </p>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '6px 12px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 800 }}>
-            Aktif Tayang: {activeCount}
-          </span>
-          {expiredCount > 0 && (
-            <span style={{ background: '#f1f5f9', color: '#64748b', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 700 }}>
-              Kadaluarsa: {expiredCount}
-            </span>
-          )}
-          <button 
-            onClick={fetchFeed}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, color: '#334155' }}
-          >
-            <RotateCw size={14} /> Refresh
-          </button>
-          <button 
-            onClick={openAddModal}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, #0d766e, #059669)', color: '#fff', border: 'none', padding: '9px 16px', borderRadius: '10px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 800, boxShadow: '0 6px 16px rgba(5, 150, 105, 0.3)' }}
-          >
-            <Plus size={16} /> Buat Pengumuman Baru
-          </button>
-        </div>
-      </div>
-
-      {/* Search & Kategori Filter Bar */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '18px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px', flex: 1 }}>
-          {['Semua', ...KATEGORI_RESMI].map(kat => (
-            <button
-              key={kat}
-              onClick={() => setSelectedKategori(kat)}
-              style={{
-                padding: '7px 14px',
-                borderRadius: '999px',
-                fontSize: '0.76rem',
-                fontWeight: 700,
-                border: selectedKategori === kat ? 'none' : '1px solid #e2e8f0',
-                background: selectedKategori === kat ? '#0d766e' : '#ffffff',
-                color: selectedKategori === kat ? '#ffffff' : '#475569',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                boxShadow: selectedKategori === kat ? '0 4px 10px rgba(13, 118, 110, 0.25)' : 'none'
-              }}
-            >
-              {kat}
-            </button>
-          ))}
-        </div>
-
-        <div style={{ position: 'relative', minWidth: '240px' }}>
-          <Search size={15} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-          <input
-            type="text"
-            placeholder="Cari judul atau isi pengumuman..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            padding: '16px'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
             style={{
+              background: '#fff',
               width: '100%',
-              padding: '8px 12px 8px 34px',
-              borderRadius: '10px',
-              border: '1px solid #cbd5e1',
-              fontSize: '0.8rem',
-              background: '#ffffff',
-              outline: 'none'
+              maxWidth: '580px',
+              borderRadius: '20px',
+              padding: '22px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)'
             }}
-          />
-        </div>
-      </div>
-
-      {/* Daftar Pengumuman Cards Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '18px' }}>
-        {filteredFeed.map(post => {
-          const expired = isExpired(post.tgl_kadaluarsa);
-          const catStyle = getCategoryStyle(post.kategori);
-
-          return (
-            <div 
-              key={post.id}
-              style={{
-                background: '#ffffff',
-                borderRadius: '18px',
-                border: expired ? '1px dashed #cbd5e1' : post.is_pinned ? '2px solid #f59e0b' : '1px solid #e2e8f0',
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
-                position: 'relative',
-                opacity: expired ? 0.78 : 1
-              }}
-            >
-              {/* Status Badges Top Right */}
-              <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '6px', zIndex: 2 }}>
-                {Number(post.is_pinned) === 1 && (
-                  <span style={{
-                    background: '#f59e0b',
-                    color: '#fff',
-                    fontSize: '0.65rem',
-                    fontWeight: 800,
-                    padding: '3px 8px',
-                    borderRadius: '999px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
-                  }}>
-                    <Pin size={11} /> PRIORITAS
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span
+                  className="badge"
+                  style={{
+                    ...getCategoryStyle(selectedPreview.kategori),
+                    fontSize: '0.74rem',
+                    fontWeight: 700
+                  }}
+                >
+                  {selectedPreview.kategori}
+                </span>
+                {Number(selectedPreview.is_pinned) === 1 && (
+                  <span style={{ background: '#f59e0b', color: '#fff', fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', borderRadius: '999px' }}>
+                    PRIORITAS
                   </span>
                 )}
-                <span style={{
-                  background: expired ? '#ef4444' : '#10b981',
-                  color: '#fff',
-                  fontSize: '0.65rem',
-                  fontWeight: 800,
-                  padding: '3px 8px',
-                  borderRadius: '999px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
-                }}>
-                  {expired ? 'Kadaluarsa (Sembunyi)' : 'Aktif di Modal Ortu'}
-                </span>
               </div>
-
-              {/* Banner Visual */}
-              {post.foto_url ? (
-                <div style={{ width: '100%', height: '160px', overflow: 'hidden', background: '#f1f5f9' }}>
-                  <img 
-                    src={post.foto_url} 
-                    alt={post.judul} 
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                    onError={(e) => { e.target.style.display = 'none'; }}
-                  />
-                </div>
-              ) : (
-                <div style={{
-                  width: '100%',
-                  padding: '22px 18px 16px',
-                  background: catStyle.gradient,
-                  color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px'
-                }}>
-                  <div style={{
-                    width: '38px',
-                    height: '38px',
-                    borderRadius: '12px',
-                    background: 'rgba(255,255,255,0.2)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    <Megaphone size={20} color="#ffffff" />
-                  </div>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', opacity: 0.95 }}>
-                    {post.kategori || 'Pengumuman Pesantren'}
-                  </div>
-                </div>
-              )}
-
-              <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                  <span style={{
-                    background: catStyle.bg,
-                    color: catStyle.color,
-                    border: `1px solid ${catStyle.border}`,
-                    fontSize: '0.68rem',
-                    fontWeight: 800,
-                    padding: '2px 8px',
-                    borderRadius: '999px'
-                  }}>
-                    {post.kategori}
-                  </span>
-                  <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <Calendar size={11} />
-                    Posting: {post.tanggal_publikasi ? new Date(post.tanggal_publikasi).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
-                  </span>
-                </div>
-
-                <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', margin: '0 0 8px', lineHeight: 1.35 }}>
-                  {post.judul}
-                </h3>
-
-                <p style={{ fontSize: '0.8rem', color: '#475569', margin: '0 0 12px', lineHeight: 1.5, flex: 1, whiteSpace: 'pre-line' }}>
-                  {post.konten}
-                </p>
-
-                {/* Info Tanggal Kadaluarsa */}
-                <div style={{
-                  background: expired ? '#fef2f2' : '#f8fafc',
-                  border: `1px solid ${expired ? '#fecdd3' : '#e2e8f0'}`,
-                  borderRadius: '10px',
-                  padding: '7px 10px',
-                  fontSize: '0.7rem',
-                  color: expired ? '#dc2626' : '#475569',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: '12px',
-                  fontWeight: 600
-                }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                    <Clock size={12} />
-                    Batas Tayang (Kadaluarsa):
-                  </span>
-                  <strong>
-                    {post.tgl_kadaluarsa
-                      ? new Date(post.tgl_kadaluarsa).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
-                      : 'Tanpa Batas Waktu'}
-                  </strong>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '10px', marginTop: 'auto' }}>
-                  <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
-                    <User size={12} /> {post.penulis || 'Humas Pesantren'}
-                  </span>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      onClick={() => openEditModal(post)}
-                      style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '5px 10px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      <Edit3 size={12} /> Edit
-                    </button>
-                    <button
-                      onClick={() => handleHapus(post)}
-                      style={{ background: '#fef2f2', border: '1px solid #fecdd3', color: '#dc2626', padding: '5px 10px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      <Trash2 size={12} /> Hapus
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewModalOpen(false)}
+                style={{ width: '30px', height: '30px', borderRadius: '50%', border: 'none', background: '#f1f5f9', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <X size={16} />
+              </button>
             </div>
-          );
-        })}
 
-        {filteredFeed.length === 0 && (
-          <div style={{ gridColumn: '1 / -1', padding: '48px 20px', textAlign: 'center', background: '#fff', borderRadius: '16px', border: '1px dashed #cbd5e1', color: '#64748b' }}>
-            <Megaphone size={36} color="#94a3b8" style={{ margin: '0 auto 10px' }} />
-            <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '0.95rem' }}>Belum Ada Pengumuman pada Kategori Ini</div>
-            <div style={{ fontSize: '0.8rem', marginTop: '4px' }}>Klik tombol "Buat Pengumuman Baru" untuk menerbitkan pengumuman resmi ke orang tua santri.</div>
+            {selectedPreview.foto_url && (
+              <div style={{ width: '100%', maxHeight: '240px', overflow: 'hidden', borderRadius: '12px', marginBottom: '14px', background: '#f8fafc' }}>
+                <img src={selectedPreview.foto_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
+            )}
+
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: '0 0 8px', lineHeight: 1.35 }}>
+              {selectedPreview.judul}
+            </h2>
+
+            <div style={{ display: 'flex', gap: '12px', fontSize: '0.72rem', color: '#64748b', marginBottom: '14px', flexWrap: 'wrap' }}>
+              <span>👤 {selectedPreview.penulis || 'Humas Pesantren'}</span>
+              <span>📅 {selectedPreview.tanggal_publikasi ? new Date(selectedPreview.tanggal_publikasi).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}</span>
+              <span>⏰ Exp: {selectedPreview.tgl_kadaluarsa ? new Date(selectedPreview.tgl_kadaluarsa).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Tanpa batas'}</span>
+            </div>
+
+            {selectedPreview.ringkasan && (
+              <div style={{ fontSize: '0.78rem', color: '#0284c7', background: '#f0f9ff', border: '1px solid #bae6fd', padding: '10px 12px', borderRadius: '10px', marginBottom: '12px', fontWeight: 600 }}>
+                💡 <em>Ringkasan:</em> {selectedPreview.ringkasan}
+              </div>
+            )}
+
+            <div style={{ fontSize: '0.82rem', color: '#334155', lineHeight: 1.6, whiteSpace: 'pre-line', background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              {selectedPreview.konten}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setPreviewModalOpen(false);
+                  openEditModal(selectedPreview);
+                }}
+                className="btn btn-primary"
+                style={{ padding: '8px 16px', fontSize: '0.78rem' }}
+              >
+                <Edit3 size={13} /> Edit Pengumuman
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewModalOpen(false)}
+                className="btn btn-secondary"
+                style={{ padding: '8px 16px', fontSize: '0.78rem' }}
+              >
+                Tutup
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Modal Tambah / Edit Pengumuman */}
       {isModalOpen && (
