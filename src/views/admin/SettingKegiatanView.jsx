@@ -816,37 +816,68 @@ export default function SettingKegiatanView() {
                         </button>
                       </td>
                       <td className="td-center">
-                        <div style={{ display: 'flex', gap: '5px', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
-                          {/* TOMBOL EDIT */}
+                        <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
+                          {/* TOMBOL EDIT (SOLID BIRU PERSIS DATA KEGIATAN) */}
                           <button 
+                            type="button"
                             className="btn-action btn-action-edit" 
                             title="Edit Jadwal Shalat Ini"
                             onClick={() => openEditForm(keg)}
+                            style={{
+                              background: '#0284c7',
+                              color: '#ffffff',
+                              border: 'none',
+                              width: '26px',
+                              height: '26px',
+                              borderRadius: '5px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                            }}
                           >
-                            <Edit3 size={13} />
+                            <Edit3 size={13} color="#ffffff" />
                           </button>
 
-                          {/* TOMBOL HAPUS */}
+                          {/* TOMBOL HAPUS (SOLID MERAH PERSIS DATA KEGIATAN) */}
                           <button 
+                            type="button"
                             className="btn-action btn-action-delete" 
                             title="Hapus Jadwal Shalat Ini"
                             onClick={() => handleDeleteKegiatan(keg)}
+                            style={{
+                              background: '#ef4444',
+                              color: '#ffffff',
+                              border: 'none',
+                              width: '26px',
+                              height: '26px',
+                              borderRadius: '5px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                            }}
                           >
-                            <Trash2 size={13} />
+                            <Trash2 size={13} color="#ffffff" />
                           </button>
+                        </div>
 
-                          {/* KELOLA PESERTA KHUSUS */}
-                          {!isWajib && (
+                        {/* KELOLA PESERTA KHUSUS */}
+                        {!isWajib && (
+                          <div style={{ marginTop: '3px' }}>
                             <button 
+                              type="button"
                               className="btn btn-outline btn-sm" 
                               title="Atur Santri yang Mengikuti Kegiatan"
                               onClick={() => openPesertaModal(keg)}
-                              style={{ padding: '2px 5px', color: '#7c3aed', borderColor: '#c4b5fd', width: '100%', marginTop: '2px', fontSize: '0.68rem' }}
+                              style={{ padding: '2px 6px', color: '#7c3aed', borderColor: '#c4b5fd', fontSize: '0.68rem', fontWeight: 700 }}
                             >
                               <UserCheck size={11} /> Peserta ({jumlahPeserta})
                             </button>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );
