@@ -26,6 +26,7 @@ import {
   VideoOff,
   Check,
   X,
+  Upload,
 } from "lucide-react";
 import { showConfirm, toastSuccess, showError } from "../../utils/alert.util";
 import SearchableSelect from "../../components/SearchableSelect";
@@ -135,6 +136,69 @@ export default function ScanBarcodeView() {
   const [enrollSearch, setEnrollSearch] = useState("");
   const [enrollFilterUnregisteredOnly, setEnrollFilterUnregisteredOnly] =
     useState(true);
+  const [isSavingFace, setIsSavingFace] = useState(false);
+  const enrollFileInputRef = useRef(null);
+
+  // Kompresi & Resize Foto ke Resolusi Standar AI (Max 640px, JPEG 0.82)
+  const compressImageToDataUrl = (fileOrDataUrl, maxWidth = 640, quality = 0.82) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth || height > maxWidth) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxWidth) / height);
+            height = maxWidth;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = (err) => reject(err);
+
+      if (typeof fileOrDataUrl === "string") {
+        img.src = fileOrDataUrl;
+      } else {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          img.src = e.target.result;
+        };
+        reader.onerror = (err) => reject(err);
+        reader.readAsDataURL(fileOrDataUrl);
+      }
+    });
+  };
+
+  // Upload file foto dari laptop / komputer / HP
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      showError("Format File Salah", "Silakan pilih file gambar (JPG, PNG, atau WEBP).");
+      return;
+    }
+
+    try {
+      const compressedDataUrl = await compressImageToDataUrl(file, 640, 0.85);
+      setEnrollSnapshot(compressedDataUrl);
+    } catch (err) {
+      showError("Gagal Membaca File", "Terjadi kesalahan saat memproses file gambar.");
+    } finally {
+      if (enrollFileInputRef.current) {
+        enrollFileInputRef.current.value = "";
+      }
+    }
+  };
 
   // Live scan feedback
   const [lastScanned, setLastScanned] = useState(null);
@@ -198,7 +262,7 @@ export default function ScanBarcodeView() {
   const fetchSantriData = async () => {
     try {
       const [resSantri, resAbs, resSesi] = await Promise.all([
-        axios.get("/api/santri?all=true"),
+        axios.get("/api/santri?all=true&include_photo=true"),
         axios
           .get("/api/absensi/fingerprint")
           .catch(() => ({ data: { data: [] } })),
@@ -262,18 +326,37 @@ export default function ScanBarcodeView() {
 
           for (const s of fetchedSantris) {
             const photoUrl = s.foto || s.foto_santri;
-            if (photoUrl && (!currentLocalProfiles[s.id] || !currentLocalProfiles[s.id].foto)) {
+            if (photoUrl) {
+              let parsedDesc = null;
+              if (s.face_descriptor) {
+                try {
+                  parsedDesc =
+                    typeof s.face_descriptor === "string"
+                      ? JSON.parse(s.face_descriptor)
+                      : s.face_descriptor;
+                  if (
+                    parsedDesc &&
+                    typeof parsedDesc === "object" &&
+                    !Array.isArray(parsedDesc)
+                  ) {
+                    parsedDesc = Object.values(parsedDesc);
+                  }
+                  if (Array.isArray(parsedDesc)) {
+                    parsedDesc = new Float32Array(parsedDesc);
+                  }
+                } catch (e) {}
+              }
               currentLocalProfiles[s.id] = {
                 santri_id: s.id,
                 nama: s.nama_santri,
                 nis: s.nis,
-                asrama: s.nama_asrama || '',
-                kamar: s.nama_kamar || '',
+                asrama: s.nama_asrama || "",
+                kamar: s.nama_kamar || "",
                 foto: photoUrl,
-                descriptor: null,
+                descriptor: parsedDesc,
                 biometricGrid: [],
                 biometricFeature: null,
-                registered_at: new Date().toISOString()
+                registered_at: new Date().toISOString(),
               };
               profileChanged = true;
             }
@@ -318,10 +401,6 @@ export default function ScanBarcodeView() {
   };
 
   useEffect(() => {
-    try {
-      localStorage.removeItem("epesantren_face_profiles");
-      localStorage.removeItem("epesantren_live_scan_logs");
-    } catch (e) {}
     fetchSantriData();
     // Keep focus on input for USB gun barcode reader
     barcodeInputRef.current?.focus();
@@ -1032,7 +1111,7 @@ export default function ScanBarcodeView() {
     }, 120);
   };
 
-  // Simpan / Daftarkan Wajah Santri (Dengan Face-api Descriptor + Fallback)
+  // Simpan / Daftarkan Wajah Santri (Langsung Disimpan ke Database MySQL)
   const handleSaveEnrollFace = async () => {
     if (!enrollSantriId) {
       showError("Pilih Santri", "Silakan pilih santri yang akan didaftarkan.");
@@ -1049,86 +1128,192 @@ export default function ScanBarcodeView() {
       return;
     }
 
-    const snap = enrollSnapshot || captureFaceSnapshot();
+    let snap = enrollSnapshot || captureFaceSnapshot();
     if (!snap) {
       showError(
         "Gagal Mengambil Foto",
-        "Pastikan kamera aktif dan wajah santri terlihat jelas.",
+        "Pastikan Anda mengambil foto dari kamera atau mengupload file foto wajah santri.",
       );
       return;
     }
 
-    const isAlreadyEnrolled = !!registeredFaces[found.id];
+    setIsSavingFace(true);
 
-    // Ekstraksi 128-D Deep Learning Descriptor via face-api.js
-    let descriptor = null;
-    if (isFaceModelReady()) {
-      try {
-        const liveRes = await detectFaceDescriptor(faceVideoRef.current);
-        if (liveRes) descriptor = liveRes.descriptor;
-      } catch (e) {}
-      if (!descriptor && snap) {
-        try {
-          descriptor = await extractDescriptorFromDataUrl(snap);
-        } catch (e) {}
-      }
-    }
-
-    // Ekstraksi fitur biometrik fallback
-    let feature = extractCurrentLiveFeature();
-    if (!feature && snap) {
-      feature = await extractFeatureFromDataUrl(snap);
-    }
-
-    const updatedProfiles = {
-      ...registeredFaces,
-      [found.id]: {
-        santri_id: found.id,
-        nama: found.nama_santri,
-        nis: found.nis,
-        asrama: found.nama_asrama || "",
-        kamar: found.nama_kamar || "",
-        foto: snap,
-        descriptor: descriptor,
-        biometricGrid: feature ? feature.rawGrid : [],
-        biometricFeature: feature,
-        registered_at: new Date().toISOString(),
-      },
-    };
-
-    setRegisteredFaces(updatedProfiles);
     try {
-      localStorage.setItem(
-        "epesantren_face_profiles",
-        JSON.stringify(updatedProfiles),
-      );
-    } catch (e) {}
+      // Kompres foto ke resolusi optimal AI agar hemat database dan cepat
+      snap = await compressImageToDataUrl(snap, 640, 0.85);
 
-    if (isAlreadyEnrolled) {
-      toastSuccess(
-        "Profil Wajah Diperbarui!",
-        `Foto wajah ${found.nama_santri} berhasil diperbarui.`,
+      const isAlreadyEnrolled = !!registeredFaces[found.id];
+
+      // Ekstraksi 128-D Deep Learning Descriptor via face-api.js / mediapipe
+      let descriptor = null;
+      if (isFaceModelReady()) {
+        try {
+          if (faceVideoRef.current && !enrollSnapshot) {
+            const liveRes = await detectFaceDescriptor(faceVideoRef.current);
+            if (liveRes) descriptor = liveRes.descriptor;
+          }
+        } catch (e) {}
+        if (!descriptor && snap) {
+          try {
+            descriptor = await extractDescriptorFromDataUrl(snap);
+          } catch (e) {}
+        }
+      }
+
+      // Ekstraksi fitur biometrik fallback
+      let feature = extractCurrentLiveFeature();
+      if (!feature && snap) {
+        feature = await extractFeatureFromDataUrl(snap);
+      }
+
+      // 1. Simpan Foto dan 128-D Face Descriptor ke Database MySQL via API Backend
+      const cleanDescriptor = descriptor
+        ? Array.isArray(descriptor)
+          ? descriptor
+          : Array.from(descriptor)
+        : null;
+
+      await axios.patch(`/api/santri/${found.id}/foto`, {
+        foto: snap,
+        face_descriptor: cleanDescriptor,
+        descriptor: cleanDescriptor,
+      });
+
+      // 2. Perbarui state lokal santriList
+      setSantriList((prev) =>
+        prev.map((s) =>
+          String(s.id) === String(found.id)
+            ? {
+                ...s,
+                foto: snap,
+                face_descriptor: cleanDescriptor
+                  ? JSON.stringify(cleanDescriptor)
+                  : null,
+              }
+            : s,
+        ),
       );
-    } else {
-      toastSuccess(
-        "Wajah Santri Berhasil Didaftarkan!",
-        `${found.nama_santri} kini aktif untuk presensi wajah otomatis.`,
+
+      // 3. Perbarui profil wajah di memori aplikasi
+      const updatedProfiles = {
+        ...registeredFaces,
+        [found.id]: {
+          santri_id: found.id,
+          nama: found.nama_santri,
+          nis: found.nis,
+          asrama: found.nama_asrama || "",
+          kamar: found.nama_kamar || "",
+          foto: snap,
+          descriptor: descriptor,
+          biometricGrid: feature ? feature.rawGrid : [],
+          biometricFeature: feature,
+          registered_at: new Date().toISOString(),
+        },
+      };
+
+      setRegisteredFaces(updatedProfiles);
+      try {
+        localStorage.setItem(
+          "epesantren_face_profiles",
+          JSON.stringify(updatedProfiles),
+        );
+      } catch (e) {}
+
+      if (isAlreadyEnrolled) {
+        toastSuccess(
+          "Tersimpan ke Database!",
+          `Foto wajah ${found.nama_santri} berhasil diperbarui di database.`,
+        );
+      } else {
+        toastSuccess(
+          "Tersimpan ke Database!",
+          `Wajah ${found.nama_santri} berhasil didaftarkan & disimpan permanen ke database.`,
+        );
+      }
+
+      setIsEnrollModalOpen(false);
+      setEnrollSnapshot(null);
+
+      // Cari santri berikutnya yang BELUM memiliki foto untuk memudahkan input beruntun
+      const nextUnregistered = santriList.find(
+        (s) =>
+          String(s.id) !== String(found.id) &&
+          !s.foto &&
+          !updatedProfiles[s.id],
       );
+      if (nextUnregistered) {
+        setEnrollSantriId(String(nextUnregistered.id));
+      }
+
+      // Langsung catat presensi kegiatan saat pendaftaran berhasil
+      recordAttendance(found, "Pendaftaran & Absen Wajah AI", snap);
+    } catch (err) {
+      console.error("Gagal simpan foto santri ke DB:", err);
+      showError(
+        "Gagal Menyimpan ke Database",
+        err.response?.data?.message ||
+          err.message ||
+          "Terjadi kesalahan saat menyimpan foto ke database.",
+      );
+    } finally {
+      setIsSavingFace(false);
     }
+  };
 
-    setIsEnrollModalOpen(false);
-    setEnrollSnapshot(null);
-
-    // Cari santri berikutnya yang BELUM memiliki foto untuk memudahkan input beruntun
-    const nextUnregistered = santriList.find(
-      (s) => String(s.id) !== String(found.id) && !updatedProfiles[s.id],
+  // Hapus Foto Wajah & Biometrik Santri dari Database MySQL
+  const handleDeleteFacePhoto = async () => {
+    if (!enrollSantriId) return;
+    const found = santriList.find(
+      (s) => String(s.id) === String(enrollSantriId),
     );
-    if (nextUnregistered) {
-      setEnrollSantriId(String(nextUnregistered.id));
-    }
+    if (!found) return;
 
-    // Langsung catat presensi kegiatan saat pendaftaran berhasil
-    recordAttendance(found, "Pendaftaran & Absen Wajah AI", snap);
+    const ok = await showConfirm(
+      "Hapus Foto Wajah?",
+      `Hapus foto dan data biometrik wajah ${found.nama_santri} dari database?`,
+    );
+    if (!ok) return;
+
+    setIsSavingFace(true);
+    try {
+      await axios.patch(`/api/santri/${found.id}/foto`, {
+        clear_face: true,
+      });
+
+      setSantriList((prev) =>
+        prev.map((s) =>
+          String(s.id) === String(found.id)
+            ? { ...s, foto: null, face_descriptor: null }
+            : s,
+        ),
+      );
+
+      setRegisteredFaces((prev) => {
+        const next = { ...prev };
+        delete next[found.id];
+        try {
+          localStorage.setItem(
+            "epesantren_face_profiles",
+            JSON.stringify(next),
+          );
+        } catch (e) {}
+        return next;
+      });
+
+      setEnrollSnapshot(null);
+      toastSuccess(
+        "Foto Dihapus",
+        `Foto wajah ${found.nama_santri} berhasil dihapus dari database.`,
+      );
+    } catch (err) {
+      showError(
+        "Gagal Menghapus Foto",
+        err.response?.data?.message || err.message || "Gagal menghapus foto.",
+      );
+    } finally {
+      setIsSavingFace(false);
+    }
   };
 
   // Validasi Pemindaian Wajah di Kamera (Jika Wajah Belum Terdaftar)
@@ -1396,8 +1581,15 @@ export default function ScanBarcodeView() {
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <button
             onClick={() => {
+              const firstUnregistered = (
+                Array.isArray(santriList) ? santriList : []
+              ).find((s) => !s.foto && !registeredFaces[s.id]);
+              if (firstUnregistered) {
+                setEnrollSantriId(String(firstUnregistered.id));
+              }
+              setEnrollFilterUnregisteredOnly(true);
+              setEnrollSnapshot(null);
               setIsEnrollModalOpen(true);
-              setEnrollSnapshot(captureFaceSnapshot());
             }}
             style={{
               display: "flex",
@@ -1617,14 +1809,14 @@ export default function ScanBarcodeView() {
                 <button
                   type="button"
                   onClick={() => {
-                    const firstUnregistered = santriList.find(
-                      (s) => !registeredFaces[s.id],
-                    );
+                    const firstUnregistered = (
+                      Array.isArray(santriList) ? santriList : []
+                    ).find((s) => !s.foto && !registeredFaces[s.id]);
                     if (firstUnregistered) {
                       setEnrollSantriId(String(firstUnregistered.id));
                     }
                     setEnrollFilterUnregisteredOnly(true);
-                    setEnrollSnapshot(captureFaceSnapshot());
+                    setEnrollSnapshot(null);
                     setIsEnrollModalOpen(true);
                   }}
                   style={{
@@ -2627,7 +2819,25 @@ export default function ScanBarcodeView() {
                 />
                 <select
                   value={enrollSantriId}
-                  onChange={(e) => setEnrollSantriId(e.target.value)}
+                  onChange={(e) => {
+                    const newId = e.target.value;
+                    setEnrollSantriId(newId);
+                    const selSantri = (
+                      Array.isArray(santriList) ? santriList : []
+                    ).find((s) => String(s.id) === String(newId));
+                    if (
+                      selSantri &&
+                      (selSantri.foto || selSantri.foto_santri)
+                    ) {
+                      setEnrollSnapshot(
+                        selSantri.foto || selSantri.foto_santri,
+                      );
+                    } else if (registeredFaces[newId]?.foto) {
+                      setEnrollSnapshot(registeredFaces[newId].foto);
+                    } else {
+                      setEnrollSnapshot(null);
+                    }
+                  }}
                   style={{
                     width: "100%",
                     padding: "10px 12px",
@@ -2645,7 +2855,11 @@ export default function ScanBarcodeView() {
                     -- Pilih Santri ({filteredEnrollSantri.length} Ditemukan) --
                   </option>
                   {filteredEnrollSantri.map((s) => {
-                    const isEnrolled = !!registeredFaces[s.id];
+                    const isEnrolled = !!(
+                      s.foto ||
+                      s.foto_santri ||
+                      registeredFaces[s.id]
+                    );
                     return (
                       <option key={s.id} value={s.id}>
                         {isEnrolled ? "✅" : "📷"}{" "}
@@ -2659,19 +2873,50 @@ export default function ScanBarcodeView() {
                 </select>
               </div>
 
-              {/* Step 2: Ambil Foto Wajah */}
+              {/* Step 2: Ambil Foto Wajah atau Upload File Foto */}
               <div>
-                <label
+                <input
+                  type="file"
+                  ref={enrollFileInputRef}
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={handleFileUpload}
+                />
+
+                <div
                   style={{
-                    display: "block",
-                    fontSize: "0.78rem",
-                    fontWeight: 800,
-                    color: "#334155",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
                     marginBottom: "6px",
                   }}
                 >
-                  2. Ambil Foto Sampel Wajah:
-                </label>
+                  <label
+                    style={{
+                      fontSize: "0.78rem",
+                      fontWeight: 800,
+                      color: "#334155",
+                      margin: 0,
+                    }}
+                  >
+                    2. Foto Wajah Santri (Kamera atau Upload File):
+                  </label>
+                  {enrollSnapshot && (
+                    <span
+                      style={{
+                        fontSize: "0.7rem",
+                        fontWeight: 700,
+                        color: "#059669",
+                        background: "#ecfdf5",
+                        padding: "2px 8px",
+                        borderRadius: "6px",
+                      }}
+                    >
+                      ✓ Siap Disimpan ke Database
+                    </span>
+                  )}
+                </div>
+
                 <div
                   style={{
                     background: "#090d16",
@@ -2682,6 +2927,7 @@ export default function ScanBarcodeView() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    border: "1.5px solid #334155",
                   }}
                 >
                   {enrollSnapshot ? (
@@ -2691,7 +2937,7 @@ export default function ScanBarcodeView() {
                       style={{
                         width: "100%",
                         height: "100%",
-                        objectFit: "cover",
+                        objectFit: "contain",
                       }}
                     />
                   ) : (
@@ -2709,17 +2955,25 @@ export default function ScanBarcodeView() {
                       />
                       <p
                         style={{
-                          margin: 0,
-                          fontSize: "0.8rem",
+                          margin: "0 0 6px",
+                          fontSize: "0.82rem",
                           fontWeight: 600,
                         }}
                       >
-                        Pastikan santri menghadap kamera live
+                        Pilih santri lalu ambil foto dari kamera atau upload file gambar
                       </p>
+                      <span
+                        style={{
+                          fontSize: "0.72rem",
+                          color: "#64748b",
+                        }}
+                      >
+                        Mendukung foto JPG, PNG, WEBP langsung dari HP / Komputer
+                      </span>
                     </div>
                   )}
 
-                  {/* Floating snap button */}
+                  {/* Floating Action Buttons */}
                   <div
                     style={{
                       position: "absolute",
@@ -2729,55 +2983,146 @@ export default function ScanBarcodeView() {
                       display: "flex",
                       justifyContent: "center",
                       gap: "8px",
+                      padding: "0 10px",
+                      flexWrap: "wrap",
                     }}
                   >
                     {enrollSnapshot ? (
-                      <button
-                        onClick={() => setEnrollSnapshot(null)}
-                        style={{
-                          padding: "6px 14px",
-                          borderRadius: "8px",
-                          border: "none",
-                          background: "rgba(239, 68, 68, 0.9)",
-                          color: "#ffffff",
-                          fontSize: "0.78rem",
-                          fontWeight: 700,
-                          cursor: "pointer",
-                        }}
-                      >
-                        Ambil Ulang Foto
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const snap = captureFaceSnapshot();
+                            if (snap) {
+                              setEnrollSnapshot(snap);
+                            } else {
+                              showError(
+                                "Kamera Belum Siap",
+                                "Nyalakan kamera live scanner terlebih dahulu.",
+                              );
+                            }
+                          }}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: "8px",
+                            border: "none",
+                            background: "rgba(15, 23, 42, 0.85)",
+                            color: "#ffffff",
+                            fontSize: "0.76rem",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            backdropFilter: "blur(4px)",
+                          }}
+                        >
+                          <Camera size={14} />
+                          <span>Ambil Kamera</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => enrollFileInputRef.current?.click()}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: "8px",
+                            border: "none",
+                            background: "#0284c7",
+                            color: "#ffffff",
+                            fontSize: "0.76rem",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            boxShadow: "0 2px 6px rgba(2, 132, 199, 0.3)",
+                          }}
+                        >
+                          <Upload size={14} />
+                          <span>Ganti File Foto</span>
+                        </button>
+                        {(registeredFaces[enrollSantriId] ||
+                          santriList.find(
+                            (s) => String(s.id) === String(enrollSantriId),
+                          )?.foto) && (
+                          <button
+                            type="button"
+                            onClick={handleDeleteFacePhoto}
+                            disabled={isSavingFace}
+                            style={{
+                              padding: "6px 12px",
+                              borderRadius: "8px",
+                              border: "none",
+                              background: "rgba(239, 68, 68, 0.9)",
+                              color: "#ffffff",
+                              fontSize: "0.76rem",
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "5px",
+                            }}
+                          >
+                            <Trash2 size={14} />
+                            <span>Hapus Foto DB</span>
+                          </button>
+                        )}
+                      </>
                     ) : (
-                      <button
-                        onClick={() => {
-                          const snap = captureFaceSnapshot();
-                          if (snap) {
-                            setEnrollSnapshot(snap);
-                          } else {
-                            showError(
-                              "Kamera Belum Siap",
-                              "Nyalakan kamera live terlebih dahulu.",
-                            );
-                          }
-                        }}
-                        style={{
-                          padding: "8px 18px",
-                          borderRadius: "8px",
-                          border: "none",
-                          background: "#059669",
-                          color: "#ffffff",
-                          fontSize: "0.82rem",
-                          fontWeight: 800,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
-                        }}
-                      >
-                        <Camera size={16} />
-                        <span>Ambil Foto Wajah Sekarang</span>
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const snap = captureFaceSnapshot();
+                            if (snap) {
+                              setEnrollSnapshot(snap);
+                            } else {
+                              showError(
+                                "Kamera Belum Siap",
+                                "Nyalakan kamera live scanner terlebih dahulu.",
+                              );
+                            }
+                          }}
+                          style={{
+                            padding: "8px 14px",
+                            borderRadius: "8px",
+                            border: "none",
+                            background: "#059669",
+                            color: "#ffffff",
+                            fontSize: "0.78rem",
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
+                          }}
+                        >
+                          <Camera size={15} />
+                          <span>Ambil Foto Kamera</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => enrollFileInputRef.current?.click()}
+                          style={{
+                            padding: "8px 14px",
+                            borderRadius: "8px",
+                            border: "none",
+                            background: "#0284c7",
+                            color: "#ffffff",
+                            fontSize: "0.78rem",
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            boxShadow: "0 4px 10px rgba(2, 132, 199, 0.3)",
+                          }}
+                        >
+                          <Upload size={15} />
+                          <span>Upload File Foto</span>
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -2797,10 +3142,12 @@ export default function ScanBarcodeView() {
               }}
             >
               <button
+                type="button"
                 onClick={() => {
                   setIsEnrollModalOpen(false);
                   setEnrollSnapshot(null);
                 }}
+                disabled={isSavingFace}
                 style={{
                   padding: "9px 16px",
                   borderRadius: "8px",
@@ -2815,24 +3162,38 @@ export default function ScanBarcodeView() {
                 Batal
               </button>
               <button
+                type="button"
                 onClick={handleSaveEnrollFace}
+                disabled={isSavingFace}
                 style={{
                   padding: "9px 20px",
                   borderRadius: "8px",
                   border: "none",
-                  background: "#059669",
+                  background: isSavingFace ? "#94a3b8" : "#059669",
                   color: "#ffffff",
                   fontSize: "0.84rem",
                   fontWeight: 800,
-                  cursor: "pointer",
+                  cursor: isSavingFace ? "not-allowed" : "pointer",
                   display: "flex",
                   alignItems: "center",
                   gap: "6px",
                   boxShadow: "0 2px 6px rgba(5, 150, 105, 0.3)",
                 }}
               >
-                <Check size={16} />
-                <span>Simpan & Daftarkan Wajah</span>
+                {isSavingFace ? (
+                  <>
+                    <RotateCw
+                      size={16}
+                      style={{ animation: "spin 1s linear infinite" }}
+                    />
+                    <span>Menyimpan ke Database...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check size={16} />
+                    <span>Simpan & Daftarkan ke DB</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
