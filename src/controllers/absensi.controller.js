@@ -28,6 +28,18 @@ export const ensureAbsensiTablesAndColumns = async () => {
           INDEX idx_santri_tgl (santri_id, tanggal)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
       `);
+
+      const [delCols] = await pool.query(`
+        SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_NAME = 'absensi_deleted_logs' AND TABLE_SCHEMA = DATABASE()
+      `);
+      const delColNames = (delCols || []).map((c) => c.COLUMN_NAME.toLowerCase());
+      if (!delColNames.includes("sesi_id")) {
+        await pool.query(`ALTER TABLE absensi_deleted_logs ADD COLUMN sesi_id INT DEFAULT NULL`);
+      }
+      if (!delColNames.includes("nama_kegiatan")) {
+        await pool.query(`ALTER TABLE absensi_deleted_logs ADD COLUMN nama_kegiatan VARCHAR(150) DEFAULT NULL`);
+      }
     } catch (eDelTable) {}
 
     const [cols] = await pool.query(`
@@ -36,6 +48,15 @@ export const ensureAbsensiTablesAndColumns = async () => {
       WHERE TABLE_NAME = 'absensi_jamaah_mengaji' AND TABLE_SCHEMA = DATABASE()
     `);
     const colNames = (cols || []).map((c) => c.COLUMN_NAME.toLowerCase());
+
+    // 0. Pastikan kolom device_id ada di absensi_jamaah_mengaji
+    if (!colNames.includes("device_id")) {
+      try {
+        await pool.query(
+          `ALTER TABLE absensi_jamaah_mengaji ADD COLUMN device_id INT NULL AFTER sesi_id`,
+        );
+      } catch (e) {}
+    }
 
     // 1. Tambah kolom nama_kegiatan jika belum ada
     if (!colNames.includes("nama_kegiatan")) {
@@ -508,8 +529,7 @@ export const getAbsensiFingerprint = async (req, res) => {
         )
       )
       WHERE adl.id IS NULL ${dateWhere}
-      ORDER BY aj.tanggal DESC, aj.waktu_scan DESC
-      LIMIT 1000
+      ORDER BY aj.tanggal DESC, aj.waktu_scan DESC, aj.id DESC
     `,
       params,
     );
@@ -528,6 +548,7 @@ export const getAbsensiFingerprint = async (req, res) => {
       data: finalRows,
     });
   } catch (err) {
+    console.error('[GET ABSENSI FINGERPRINT PRIMARY QUERY FAILED]:', err.message);
     try {
       const [rows] = await pool.query(`
         SELECT aj.*, 
@@ -537,7 +558,7 @@ export const getAbsensiFingerprint = async (req, res) => {
                COALESCE(s.nama_kelas, '') as nama_kelas
         FROM absensi_jamaah_mengaji aj 
         JOIN santri s ON aj.santri_id = s.id 
-        ORDER BY aj.id DESC LIMIT 500
+        ORDER BY aj.tanggal DESC, aj.waktu_scan DESC, aj.id DESC
       `);
       return sendSuccess(res, "Data absensi berhasil diambil", { data: rows });
     } catch (e2) {

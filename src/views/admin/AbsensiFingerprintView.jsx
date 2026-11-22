@@ -16,6 +16,8 @@ import {
   Calendar,
   CalendarCheck,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { showConfirm, toastSuccess, showError } from "../../utils/alert.util";
 
@@ -39,6 +41,20 @@ export default function AbsensiFingerprintView({ initialType }) {
   });
   const [selectedStatus, setSelectedStatus] = useState("semua");
   const [selectedDetail, setSelectedDetail] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    search,
+    selectedKegiatan,
+    selectedGender,
+    selectedKelas,
+    selectedDate,
+    selectedStatus,
+    activeTabType,
+  ]);
 
   useEffect(() => {
     if (initialType) {
@@ -259,6 +275,12 @@ export default function AbsensiFingerprintView({ initialType }) {
     (x.status || "").toLowerCase().includes("terlambat"),
   ).length;
   const totalSantriHadir = new Set(filteredList.map((x) => x.nis || x.nama_santri)).size;
+
+  // Pagination 25 items per page
+  const totalPages = Math.max(1, Math.ceil(filteredList.length / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, filteredList.length);
+  const paginatedList = filteredList.slice(startIndex, endIndex);
 
   return (
     <div>
@@ -513,13 +535,13 @@ export default function AbsensiFingerprintView({ initialType }) {
                   </td>
                 </tr>
               ) : (
-                filteredList.map((row, idx) => (
+                paginatedList.map((row, idx) => (
                   <tr key={row.id || idx}>
                     <td
                       className="td-center"
                       style={{ fontWeight: 600, color: "#64748b" }}
                     >
-                      {idx + 1}
+                      {startIndex + idx + 1}
                     </td>
                     <td>
                       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -655,6 +677,132 @@ export default function AbsensiFingerprintView({ initialType }) {
               )}
             </tbody>
           </table>
+        )}
+
+        {/* PAGINATION BAR (25 DATA PER HALAMAN) */}
+        {!loading && filteredList.length > 0 && (
+          <div
+            style={{
+              padding: "12px 18px",
+              borderTop: "1px solid #e2e8f0",
+              background: "#ffffff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "12px",
+            }}
+          >
+            {/* Info Jumlah Data */}
+            <div style={{ fontSize: "0.78rem", color: "#475569" }}>
+              Menampilkan <strong>{filteredList.length === 0 ? 0 : startIndex + 1}</strong> s/d{" "}
+              <strong>{endIndex}</strong> dari total <strong>{filteredList.length}</strong> log presensi
+              {search && (
+                <span style={{ color: "#0284c7", marginLeft: "6px" }}>
+                  (pencarian: "{search}")
+                </span>
+              )}
+            </div>
+
+            {/* Navigasi Tombol Pagination */}
+            <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+              <button
+                type="button"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  padding: "6px 12px",
+                  borderRadius: "6px",
+                  border: "1px solid #cbd5e1",
+                  background: currentPage <= 1 ? "#f8fafc" : "#ffffff",
+                  color: currentPage <= 1 ? "#94a3b8" : "#0f172a",
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                  cursor: currentPage <= 1 ? "not-allowed" : "pointer",
+                }}
+              >
+                <ChevronLeft size={14} /> Sebelumnya
+              </button>
+
+              {/* Halaman Buttons */}
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(
+                  (p) =>
+                    p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1,
+                )
+                .reduce((acc, p, idx, arr) => {
+                  if (idx > 0 && p - arr[idx - 1] > 1) {
+                    acc.push("ellipsis-" + p);
+                  }
+                  acc.push(p);
+                  return acc;
+                }, [])
+                .map((p) => {
+                  if (typeof p === "string") {
+                    return (
+                      <span
+                        key={p}
+                        style={{
+                          padding: "0 4px",
+                          color: "#94a3b8",
+                          fontSize: "0.75rem",
+                        }}
+                      >
+                        ...
+                      </span>
+                    );
+                  }
+                  const isActive = p === currentPage;
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setCurrentPage(p)}
+                      style={{
+                        minWidth: "32px",
+                        height: "32px",
+                        padding: "0 6px",
+                        borderRadius: "6px",
+                        border: isActive
+                          ? "1px solid #0284c7"
+                          : "1px solid #e2e8f0",
+                        background: isActive ? "#0284c7" : "#ffffff",
+                        color: isActive ? "#ffffff" : "#334155",
+                        fontSize: "0.78rem",
+                        fontWeight: isActive ? 800 : 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+
+              <button
+                type="button"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  padding: "6px 12px",
+                  borderRadius: "6px",
+                  border: "1px solid #cbd5e1",
+                  background: currentPage >= totalPages ? "#f8fafc" : "#ffffff",
+                  color: currentPage >= totalPages ? "#94a3b8" : "#0f172a",
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                  cursor: currentPage >= totalPages ? "not-allowed" : "pointer",
+                }}
+              >
+                Selanjutnya <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
