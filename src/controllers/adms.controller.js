@@ -106,8 +106,18 @@ export const handleAdmsHandshake = async (req, res) => {
     console.warn("[ADMS] Notice check device:", err.message);
   }
 
-  // Response spesifikasi standar ZKTeco ADMS Push Protocol
+  // Waktu WIB server (UTC+7)
+  const now = new Date();
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const wibDate = new Date(utc + (7 * 3600000));
+  const pad = (n) => String(n).padStart(2, "0");
+  const nowWibStr = `${wibDate.getFullYear()}-${pad(wibDate.getMonth() + 1)}-${pad(wibDate.getDate())} ${pad(wibDate.getHours())}:${pad(wibDate.getMinutes())}:${pad(wibDate.getSeconds())}`;
+
+  // Response spesifikasi standar ZKTeco ADMS Push Protocol dengan Sinkronisasi Waktu WIB
   const responseText = `GET OPTION FROM: ${sn}
+DateTime=${nowWibStr}
+ServerVersion=3.1.1
+TimeZone=7
 ATTLOGStamp=None
 OPERLOGStamp=None
 ATTPHOTOStamp=None
@@ -1460,6 +1470,64 @@ export const queuePullDeviceFingerprints = async (req, res) => {
     });
   } catch (err) {
     console.error("[ADMS PULL FINGERPRINT ERR]", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// 12. REST API Admin: Sinkronisasi Jam/Waktu Mesin Fingerprint ke Waktu Server (WIB)
+export const queueSyncTimeDevice = async (req, res) => {
+  try {
+    await ensureAdmsTables();
+    const { sn_device } = req.body || {};
+
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const wibDate = new Date(utc + (7 * 3600000));
+    const pad = (n) => String(n).padStart(2, "0");
+    const nowWibStr = `${wibDate.getFullYear()}-${pad(wibDate.getMonth() + 1)}-${pad(wibDate.getDate())} ${pad(wibDate.getHours())}:${pad(wibDate.getMinutes())}:${pad(wibDate.getSeconds())}`;
+
+    let targetSNs = [];
+    if (sn_device) {
+      targetSNs = [sn_device];
+    } else {
+      const [allDevs] = await pool.query(
+        "SELECT DISTINCT sn_device FROM fingerprint_device WHERE sn_device IS NOT NULL AND sn_device != ''",
+      );
+      targetSNs = allDevs.length > 0 ? allDevs.map((d) => d.sn_device) : [];
+    }
+
+    if (targetSNs.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Tidak ada perangkat fingerprint ditemukan.",
+      });
+    }
+
+    let queuedCount = 0;
+    for (const targetSN of targetSNs) {
+      const cmdTime = `SET OPTION DateTime=${nowWibStr}`;
+      const cmdTz = `SET OPTION TimeZone=7`;
+
+      await pool.query(
+        "INSERT INTO adms_command_queue (sn_device, command, status) VALUES (?, ?, 'PENDING')",
+        [targetSN, cmdTime],
+      );
+      await pool.query(
+        "INSERT INTO adms_command_queue (sn_device, command, status) VALUES (?, ?, 'PENDING')",
+        [targetSN, cmdTz],
+      );
+      queuedCount += 2;
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Perintah sinkronisasi jam mesin (${nowWibStr} WIB) berhasil diantrekan ke ${targetSNs.length} mesin fingerprint.`,
+      target_devices: targetSNs.length,
+      time: nowWibStr,
+      queued: queuedCount,
+    });
+  } catch (err) {
+    console.error("[ADMS SYNC TIME ERR]", err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };

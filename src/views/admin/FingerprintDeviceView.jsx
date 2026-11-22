@@ -24,7 +24,8 @@ import {
   UserCheck,
   CheckCircle2,
   RefreshCw,
-  GraduationCap
+  GraduationCap,
+  Clock
 } from 'lucide-react';
 import { showConfirm, toastSuccess, showError, toastError } from '../../utils/alert.util';
 import SearchableSelect from '../../components/SearchableSelect';
@@ -33,6 +34,7 @@ export default function FingerprintDeviceView() {
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [syncingTime, setSyncingTime] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [activeFilterTab, setActiveFilterTab] = useState('semua');
   const [search, setSearch] = useState('');
@@ -244,6 +246,18 @@ export default function FingerprintDeviceView() {
       showError('Gagal Kirim Data', err.response?.data?.message || err.message);
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleSyncTimeDevice = async () => {
+    try {
+      setSyncingTime(true);
+      const res = await axios.post('/api/iclock/sync-time');
+      toastSuccess(res.data.message || 'Perintah sinkronisasi jam mesin berhasil dikirim!');
+    } catch (err) {
+      toastError('Gagal sinkronisasi jam: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setSyncingTime(false);
     }
   };
 
@@ -502,12 +516,22 @@ export default function FingerprintDeviceView() {
           <button 
             className="btn btn-outline" 
             onClick={handleSyncSantriToDevice} 
-            disabled={syncing || clearing}
+            disabled={syncing || clearing || syncingTime}
             style={{ color: '#0284c7', borderColor: '#38bdf8' }}
             title="Kirim nama & ID santri aktif ke mesin melalui koneksi Cloud ADMS"
           >
             {syncing ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
             {syncing ? ' Mengirim...' : ' Kirim Santri ke Mesin (ADMS)'}
+          </button>
+          <button 
+            className="btn btn-outline" 
+            onClick={handleSyncTimeDevice} 
+            disabled={syncing || clearing || syncingTime}
+            style={{ color: '#059669', borderColor: '#34d399' }}
+            title="Kirim perintah ke mesin untuk menyamakan jam mesin dengan waktu server WIB"
+          >
+            {syncingTime ? <Loader2 size={13} className="animate-spin" /> : <Clock size={13} />}
+            {syncingTime ? ' Sinkron Jam...' : ' Sinkron Jam Mesin (WIB)'}
           </button>
           <button className="btn btn-outline" onClick={fetchDevices}>
             <RotateCw size={13} /> Refresh Status

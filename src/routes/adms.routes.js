@@ -14,7 +14,8 @@ import {
   registerAllUnregisteredToDevice,
   deleteUserFromDevice,
   deleteAlumniFromDevice,
-  queuePullDeviceFingerprints
+  queuePullDeviceFingerprints,
+  queueSyncTimeDevice
 } from '../controllers/adms.controller.js';
 
 const router = express.Router();
@@ -48,6 +49,7 @@ router.post('/register-all', registerAllUnregisteredToDevice);
 router.post('/delete-user', deleteUserFromDevice);
 router.post('/delete-alumni', deleteAlumniFromDevice);
 router.post('/pull-fingerprints', queuePullDeviceFingerprints);
+router.post('/sync-time', queueSyncTimeDevice);
 
 export default router;
 
