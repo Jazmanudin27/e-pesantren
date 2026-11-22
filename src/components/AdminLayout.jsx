@@ -331,6 +331,7 @@ export default function AdminLayout() {
     setIsMasterOpen(isMasterTab(tab));
     setIsSettingsOpen(isSettingsTab(tab));
     setIsLaporanOpen(isLaporanTab(tab));
+    setIsKeuanganOpen(isKeuanganTab(tab));
   };
 
   // Listen to hash changes (back/forward browser buttons)
@@ -345,6 +346,7 @@ export default function AdminLayout() {
       setIsMasterOpen(isMasterTab(current));
       setIsSettingsOpen(isSettingsTab(current));
       setIsLaporanOpen(isLaporanTab(current));
+      setIsKeuanganOpen(isKeuanganTab(current));
     };
 
     window.addEventListener('hashchange', handleHashChange);
@@ -807,7 +809,59 @@ export default function AdminLayout() {
           </div>
         )}
 
-        {/* 7. SETTINGS */}
+        {/* 7. KEUANGAN & SPP */}
+        {canAccessKeuangan(currentUser) && (
+          <>
+            <button 
+              className={`nav-link has-dropdown ${isKeuanganActive ? 'active' : ''}`}
+              onClick={() => setIsKeuanganOpen(!isKeuanganOpen)}
+            >
+              <div className="nav-link-left">
+                <CreditCard size={15} style={{ color: '#10b981' }} />
+                <span>Keuangan &amp; SPP</span>
+              </div>
+              <ChevronDown size={13} className={`nav-chevron ${isKeuanganOpen ? 'open' : ''}`} />
+            </button>
+
+            {isKeuanganOpen && (
+              <div className="nav-submenu">
+                <button 
+                  className={`nav-sublink ${activeTab === 'keuangan-admin' || activeTab === 'keuangan' ? 'active' : ''}`}
+                  onClick={() => handleTabClick('keuangan-admin')}
+                >
+                  <CreditCard size={13} style={{ marginRight: '6px', color: '#10b981' }} />
+                  <span>Kasir &amp; SPP Santri</span>
+                </button>
+
+                <button 
+                  className={`nav-sublink ${activeTab === 'buku-kas' || activeTab === 'kantong-kas' ? 'active' : ''}`}
+                  onClick={() => handleTabClick('buku-kas')}
+                >
+                  <Wallet size={13} style={{ marginRight: '6px', color: '#0284c7' }} />
+                  <span>Buku Kas &amp; Saldo</span>
+                </button>
+
+                <button 
+                  className={`nav-sublink ${activeTab === 'tabungan-santri' || activeTab === 'tabungan' ? 'active' : ''}`}
+                  onClick={() => handleTabClick('tabungan-santri')}
+                >
+                  <HeartHandshake size={13} style={{ marginRight: '6px', color: '#065f46' }} />
+                  <span>Tabungan Santri</span>
+                </button>
+
+                <button 
+                  className={`nav-sublink ${activeTab === 'laporan-infak' || activeTab === 'infak' ? 'active' : ''}`}
+                  onClick={() => handleTabClick('laporan-infak')}
+                >
+                  <FileText size={13} style={{ marginRight: '6px', color: '#f59e0b' }} />
+                  <span>Laporan Infak</span>
+                </button>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* 8. SETTINGS */}
         <div className="menu-category" style={{ color: '#94a3b8', fontWeight: 800 }}>SETTINGS</div>
 
         {/* Settings Dropdown Accordion */}
@@ -993,75 +1047,6 @@ export default function AdminLayout() {
                 </span>
               </div>
             </div>
-
-            {/* Filter Modul: Semua / Absen / Keuangan */}
-            {!isPureBendahara && !isPureAdminAbsen && (
-              <div style={{ padding: '0 12px 8px' }}>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr 1fr',
-                    background: 'rgba(255, 255, 255, 0.07)',
-                    borderRadius: '8px',
-                    padding: '3px',
-                    gap: '3px',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => handleSetDesktopModuleFilter('all')}
-                    style={{
-                      padding: '5px 2px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      fontSize: '0.68rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      background: desktopModuleFilter === 'all' ? '#059669' : 'transparent',
-                      color: desktopModuleFilter === 'all' ? '#ffffff' : '#94a3b8',
-                      textAlign: 'center',
-                    }}
-                  >
-                    Semua
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSetDesktopModuleFilter('absen')}
-                    style={{
-                      padding: '5px 2px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      fontSize: '0.68rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      background: desktopModuleFilter === 'absen' ? '#0284c7' : 'transparent',
-                      color: desktopModuleFilter === 'absen' ? '#ffffff' : '#94a3b8',
-                      textAlign: 'center',
-                    }}
-                  >
-                    Absen
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSetDesktopModuleFilter('keuangan')}
-                    style={{
-                      padding: '5px 2px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      fontSize: '0.68rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      background: desktopModuleFilter === 'keuangan' ? '#10b981' : 'transparent',
-                      color: desktopModuleFilter === 'keuangan' ? '#ffffff' : '#94a3b8',
-                      textAlign: 'center',
-                    }}
-                  >
-                    Keuangan
-                  </button>
-                </div>
-              </div>
-            )}
 
             {/* Quick Search Menu Input */}
             <div style={{ padding: '0 12px 8px' }}>

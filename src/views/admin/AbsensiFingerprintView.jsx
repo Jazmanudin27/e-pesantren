@@ -32,7 +32,8 @@ export default function AbsensiFingerprintView({ initialType }) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedKegiatan, setSelectedKegiatan] = useState("semua");
-  const [selectedSantri, setSelectedSantri] = useState("semua");
+  const [selectedGender, setSelectedGender] = useState("semua");
+  const [selectedKelas, setSelectedKelas] = useState("semua");
   const [selectedDate, setSelectedDate] = useState(() => {
     return new Date().toISOString().split("T")[0];
   });
@@ -87,6 +88,8 @@ export default function AbsensiFingerprintView({ initialType }) {
             santri_id: item.santri_id || null,
             nama_santri: item.nama_santri || "Santri",
             nis: item.nis || "-",
+            jk: item.jk || item.jenis_kelamin || item.asrama_gender || "L",
+            nama_kelas: item.nama_kelas || item.kelas || "-",
             kegiatan: namaKegiatan,
             tipe_presensi: tipePresensi,
             tanggal: item.tanggal
@@ -198,14 +201,20 @@ export default function AbsensiFingerprintView({ initialType }) {
       }
     }
 
-    // 3. Filter Tipe Santri
-    if (selectedSantri && selectedSantri !== "semua") {
-      const tipe = (item.tipe_santri || "").toLowerCase();
-      if (!tipe.includes(selectedSantri.toLowerCase().replace("santri ", "")))
-        return false;
+    // 3. Filter Gender
+    if (selectedGender && selectedGender !== "semua") {
+      const g = String(item.jk || "L").toUpperCase();
+      if (selectedGender === "L" && !g.startsWith("L")) return false;
+      if (selectedGender === "P" && !g.startsWith("P")) return false;
     }
 
-    // 4. Filter Per Tanggal
+    // 4. Filter Kelas
+    if (selectedKelas && selectedKelas !== "semua") {
+      const kls = String(item.nama_kelas || "").toLowerCase();
+      if (kls !== selectedKelas.toLowerCase()) return false;
+    }
+
+    // 5. Filter Per Tanggal
     if (selectedDate) {
       const itemDate = item.tanggal
         ? typeof item.tanggal === "string" && item.tanggal.includes("T")
@@ -237,6 +246,10 @@ export default function AbsensiFingerprintView({ initialType }) {
   const distinctKegiatan = Array.from(
     new Set(listForActiveTab.map((a) => a.kegiatan).filter(Boolean))
   );
+
+  const distinctKelas = Array.from(
+    new Set(listForActiveTab.map((a) => a.nama_kelas).filter(k => k && k !== "-"))
+  ).sort();
 
   const totalLog = filteredList.length;
   const hadirTepat = filteredList.filter(
@@ -375,15 +388,31 @@ export default function AbsensiFingerprintView({ initialType }) {
           ))}
         </select>
 
-        {/* SELECT SANTRI MUKIM / KALONG */}
+        {/* SELECT GENDER */}
         <select
           className="filter-select"
-          value={selectedSantri}
-          onChange={(e) => setSelectedSantri(e.target.value)}
+          value={selectedGender}
+          onChange={(e) => setSelectedGender(e.target.value)}
+          title="Filter Jenis Kelamin"
         >
-          <option value="semua">Semua Santri</option>
-          <option value="Santri Mukim">Santri Mukim</option>
-          <option value="Santri Kalong">Santri Kalong</option>
+          <option value="semua">Semua Gender</option>
+          <option value="L">Ikhwan (L)</option>
+          <option value="P">Akhwat (P)</option>
+        </select>
+
+        {/* SELECT KELAS */}
+        <select
+          className="filter-select"
+          value={selectedKelas}
+          onChange={(e) => setSelectedKelas(e.target.value)}
+          title="Filter Kelas Santri"
+        >
+          <option value="semua">Semua Kelas</option>
+          {distinctKelas.map((kls) => (
+            <option key={kls} value={kls}>
+              {kls}
+            </option>
+          ))}
         </select>
 
         {/* PER TANGGAL */}
@@ -493,13 +522,31 @@ export default function AbsensiFingerprintView({ initialType }) {
                       {idx + 1}
                     </td>
                     <td>
-                      <div style={{ fontWeight: 700, color: "#0f172a" }}>
-                        {row.nama_santri}
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span style={{ fontWeight: 700, color: "#0f172a" }}>
+                          {row.nama_santri}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: "0.62rem",
+                            fontWeight: 800,
+                            padding: "1px 5px",
+                            borderRadius: "4px",
+                            background: String(row.jk || "L").toUpperCase().startsWith("L") ? "#eff6ff" : "#fdf2f8",
+                            color: String(row.jk || "L").toUpperCase().startsWith("L") ? "#1d4ed8" : "#be185d",
+                            border: `1px solid ${String(row.jk || "L").toUpperCase().startsWith("L") ? "#bfdbfe" : "#fbcfe8"}`,
+                            lineHeight: 1.2
+                          }}
+                          title={String(row.jk || "L").toUpperCase().startsWith("L") ? "Laki-laki (Ikhwan)" : "Perempuan (Akhwat)"}
+                        >
+                          {String(row.jk || "L").toUpperCase().startsWith("L") ? "L" : "P"}
+                        </span>
                       </div>
-                      <div style={{ fontSize: "0.68rem", color: "#64748b" }}>
-                        NIS: {row.nis} •{" "}
-                        <span style={{ color: "#0284c7" }}>
-                          {row.tipe_santri || "Santri Mukim"}
+                      <div style={{ fontSize: "0.68rem", color: "#64748b", display: "flex", alignItems: "center", gap: "5px", marginTop: "2px" }}>
+                        <span>NIS: {row.nis || "-"}</span>
+                        <span>•</span>
+                        <span style={{ color: "#0284c7", fontWeight: 600 }}>
+                          {row.nama_kelas && row.nama_kelas !== "-" ? row.nama_kelas : "Semua Kelas"}
                         </span>
                       </div>
                     </td>
@@ -723,6 +770,32 @@ export default function AbsensiFingerprintView({ initialType }) {
               >
                 <span style={{ color: "#64748b" }}>NIS Santri</span>
                 <span style={{ fontWeight: 700, color: "#0284c7" }}>{selectedDetail.nis}</span>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  borderBottom: "1px solid #f1f5f9",
+                  paddingBottom: "8px",
+                }}
+              >
+                <span style={{ color: "#64748b" }}>Jenis Kelamin</span>
+                <span style={{ fontWeight: 700, color: String(selectedDetail.jk || "L").toUpperCase().startsWith("L") ? "#0284c7" : "#db2777" }}>
+                  {String(selectedDetail.jk || "L").toUpperCase().startsWith("L") ? "Laki-laki (Ikhwan)" : "Perempuan (Akhwat)"}
+                </span>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  borderBottom: "1px solid #f1f5f9",
+                  paddingBottom: "8px",
+                }}
+              >
+                <span style={{ color: "#64748b" }}>Kelas Santri</span>
+                <span style={{ fontWeight: 700, color: "#0f172a" }}>
+                  {selectedDetail.nama_kelas && selectedDetail.nama_kelas !== "-" ? selectedDetail.nama_kelas : "Semua Kelas"}
+                </span>
               </div>
               <div
                 style={{

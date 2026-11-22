@@ -488,13 +488,15 @@ export const getAbsensiFingerprint = async (req, res) => {
                ELSE COALESCE(aj.tipe_presensi, 'Berjamaah')
              END as tipe_presensi,
              s.nama_santri, s.nis, s.fingerprint_pin, s.tipe_santri,
-             COALESCE(s.nama_kelas, '') as nama_kelas,
+             COALESCE(s.jk, a.gender, 'L') as jk,
+             COALESCE(NULLIF(s.nama_kelas, ''), NULLIF(kl.nama_kelas, ''), '-') as nama_kelas,
              a.nama_asrama, k.nama_kamar,
              ks.kategori, fd.nama_device
       FROM absensi_jamaah_mengaji aj
       JOIN santri s ON aj.santri_id = s.id
       LEFT JOIN asrama a ON s.asrama_id = a.id
       LEFT JOIN kamar_kobong k ON s.kamar_id = k.id
+      LEFT JOIN kelas kl ON (s.kelas_id = kl.id)
       LEFT JOIN kegiatan_sesi ks ON aj.sesi_id = ks.id
       LEFT JOIN fingerprint_device fd ON aj.device_id = fd.id
       LEFT JOIN absensi_deleted_logs adl ON (
@@ -530,7 +532,9 @@ export const getAbsensiFingerprint = async (req, res) => {
       const [rows] = await pool.query(`
         SELECT aj.*, 
                DATE_FORMAT(aj.tanggal, '%Y-%m-%d') as tanggal,
-               s.nama_santri, s.nis 
+               s.nama_santri, s.nis,
+               COALESCE(s.jk, 'L') as jk,
+               COALESCE(s.nama_kelas, '') as nama_kelas
         FROM absensi_jamaah_mengaji aj 
         JOIN santri s ON aj.santri_id = s.id 
         ORDER BY aj.id DESC LIMIT 500
