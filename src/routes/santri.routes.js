@@ -523,8 +523,6 @@ router.post('/:id/face-descriptor', async (req, res) => {
       success: true, 
       message: `Biometrik wajah santri ID ${id} (${rows[0]?.nama_santri || 'Santri'}) berhasil disimpan di database MySQL & folder server`, 
       santri: rows[0] 
-    }); 
-      santri: rows[0] 
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
