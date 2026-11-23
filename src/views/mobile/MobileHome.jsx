@@ -40,6 +40,7 @@ import {
   Wallet,
   Zap,
   RotateCw,
+  RefreshCw,
   ArrowRight,
   ArrowLeft,
   Receipt,

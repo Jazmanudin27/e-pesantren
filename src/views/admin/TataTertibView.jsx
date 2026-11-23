@@ -45,6 +45,7 @@ export default function TataTertibView() {
     santri_id: '',
     tanggal: new Date().toISOString().split('T')[0],
     kategori: 'Ringan',
+    jenis_pelanggaran: '',
     bentuk_tazir: 'Membaca Surat Yasin dan menyapu serambi masjid',
     status_tazir: 'Belum Dikerjakan',
     musyrif_pencatat: 'Ust. Bilal Mansur (Biro Keamanan)',
@@ -101,6 +102,7 @@ export default function TataTertibView() {
       santri_id: firstSantri?.id || '',
       tanggal: new Date().toISOString().split('T')[0],
       kategori: 'Ringan',
+      jenis_pelanggaran: '',
       bentuk_tazir: 'Membaca Surat Yasin dan menyapu serambi masjid',
       status_tazir: 'Belum Dikerjakan',
       musyrif_pencatat: 'Ust. Bilal Mansur (Biro Keamanan)',
@@ -116,6 +118,7 @@ export default function TataTertibView() {
       santri_id: item.santri_id || '',
       tanggal: item.tanggal ? item.tanggal.split('T')[0] : new Date().toISOString().split('T')[0],
       kategori: item.kategori || 'Ringan',
+      jenis_pelanggaran: item.jenis_pelanggaran || item.keterangan || '',
       bentuk_tazir: item.bentuk_tazir || '',
       status_tazir: item.status_tazir || 'Belum Dikerjakan',
       musyrif_pencatat: item.musyrif_pencatat || '',
@@ -132,6 +135,10 @@ export default function TataTertibView() {
     e.preventDefault();
     if (!formData.santri_id) {
       showError('Validasi Gagal', 'Pilih santri terlebih dahulu!');
+      return;
+    }
+    if (!formData.jenis_pelanggaran || !formData.jenis_pelanggaran.trim()) {
+      showError('Validasi Gagal', 'Keterangan pelanggaran wajib diisi!');
       return;
     }
     try {
@@ -367,6 +374,7 @@ export default function TataTertibView() {
                 <th className="td-center" style={{ width: '95px' }}>TANGGAL</th>
                 <th>NAMA SANTRI & ASRAMA</th>
                 <th className="td-center">KATEGORI</th>
+                <th>KETERANGAN PELANGGARAN</th>
                 <th>BENTUK TA'ZIR</th>
                 <th className="td-center">STATUS TA'ZIR</th>
                 <th>MUSYRIF PENCATAT</th>
@@ -402,6 +410,11 @@ export default function TataTertibView() {
                     }`}>
                       {row.kategori}
                     </span>
+                  </td>
+                  <td>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', lineHeight: 1.4 }}>
+                      {row.jenis_pelanggaran || row.keterangan || '-'}
+                    </div>
                   </td>
                   <td>
                     <div style={{ fontSize: '0.78rem', color: '#334155', lineHeight: 1.5 }}>
@@ -576,6 +589,16 @@ export default function TataTertibView() {
                 </div>
               </div>
 
+              {/* Keterangan Pelanggaran Card */}
+              <div style={{ border: '1px solid #fecaca', borderRadius: '8px', padding: '14px 16px', background: '#fff5f5', marginBottom: '14px' }}>
+                <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#b91c1c', fontWeight: 800, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <AlertTriangle size={14} color="#dc2626" /> Keterangan Pelanggaran
+                </div>
+                <div style={{ fontSize: '0.84rem', color: '#7f1d1d', fontWeight: 700, lineHeight: 1.4 }}>
+                  {selectedItem.jenis_pelanggaran || selectedItem.keterangan || '-'}
+                </div>
+              </div>
+
               {/* Sanksi Ta'zir Card */}
               <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '14px 16px', background: '#ffffff' }}>
                 <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0f172a', fontWeight: 800, marginBottom: '6px' }}>
@@ -716,6 +739,20 @@ export default function TataTertibView() {
                         value={formData.kategori}
                         onChange={(val) => setFormData({ ...formData, kategori: val })}
                         placeholder="-- Pilih Kategori --"
+                      />
+                    </div>
+
+                    <div style={{ gridColumn: 'span 2' }}>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '3px' }}>
+                        Keterangan Pelanggaran *
+                      </label>
+                      <textarea 
+                        rows="2"
+                        placeholder="Contoh: Terlambat bangun shalat shubuh, bermain HP saat jam wajib mengaji, keluar asrama tanpa izin..."
+                        style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.78rem' }}
+                        value={formData.jenis_pelanggaran}
+                        onChange={(e) => setFormData({ ...formData, jenis_pelanggaran: e.target.value })}
+                        required
                       />
                     </div>
 

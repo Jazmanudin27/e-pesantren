@@ -5,8 +5,25 @@ import { createWaliNotification } from './notifikasi.controller.js';
 
 export const getPelanggaran = async (req, res) => {
   try {
+    try {
+      const [cols] = await pool.query(`
+        SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_NAME = 'tata_tertib_pelanggaran' AND TABLE_SCHEMA = DATABASE()
+      `);
+      const colNames = (cols || []).map((c) => c.COLUMN_NAME.toLowerCase());
+      if (!colNames.includes('jenis_pelanggaran')) {
+        await pool.query(`ALTER TABLE tata_tertib_pelanggaran ADD COLUMN jenis_pelanggaran TEXT NULL AFTER kategori`);
+      }
+      if (!colNames.includes('keterangan')) {
+        await pool.query(`ALTER TABLE tata_tertib_pelanggaran ADD COLUMN keterangan TEXT NULL AFTER jenis_pelanggaran`);
+      }
+    } catch (eCols) {}
+
     const [rows] = await pool.query(`
-      SELECT tp.*, s.nama_santri, s.nis, s.no_wa_wali, a.nama_asrama, k.nama_kamar
+      SELECT tp.*, 
+             COALESCE(NULLIF(TRIM(tp.jenis_pelanggaran), ''), NULLIF(TRIM(tp.keterangan), ''), 'Pelanggaran Tata Tertib') as jenis_pelanggaran,
+             COALESCE(NULLIF(TRIM(tp.keterangan), ''), NULLIF(TRIM(tp.jenis_pelanggaran), ''), 'Pelanggaran Tata Tertib') as keterangan,
+             s.nama_santri, s.nis, s.no_wa_wali, a.nama_asrama, k.nama_kamar
       FROM tata_tertib_pelanggaran tp
       JOIN santri s ON tp.santri_id = s.id
       LEFT JOIN asrama a ON s.asrama_id = a.id
@@ -22,16 +39,15 @@ export const getPelanggaran = async (req, res) => {
 export const createPelanggaran = async (req, res) => {
   try {
     const {
-      santri_id, tanggal, kategori, jenis_pelanggaran, poin_pelanggaran,
+      santri_id, tanggal, kategori, jenis_pelanggaran, keterangan, keterangan_pelanggaran, poin_pelanggaran,
       bentuk_tazir, status_tazir, musyrif_pencatat, wa_notif_wali
     } = req.body;
 
     if (!santri_id) {
       return sendError(res, 'Santri wajib dipilih', 400);
     }
-    if (!jenis_pelanggaran || String(jenis_pelanggaran).trim() === '') {
-      return sendError(res, 'Jenis pelanggaran wajib diisi', 400);
-    }
+
+    const finalJenis = String(jenis_pelanggaran || keterangan_pelanggaran || keterangan || 'Pelanggaran Tata Tertib').trim();
 
     const [result] = await pool.query(`
       INSERT INTO tata_tertib_pelanggaran (
@@ -42,7 +58,7 @@ export const createPelanggaran = async (req, res) => {
       santri_id,
       tanggal || new Date().toISOString().split('T')[0],
       kategori || 'Ringan',
-      String(jenis_pelanggaran).trim(),
+      finalJenis,
       parseInt(poin_pelanggaran, 10) || 0,
       bentuk_tazir ? String(bentuk_tazir).trim() : '-',
       status_tazir || 'Belum Dikerjakan',
@@ -101,13 +117,15 @@ export const updatePelanggaran = async (req, res) => {
   try {
     const { id } = req.params;
     const {
-      santri_id, tanggal, kategori, jenis_pelanggaran, poin_pelanggaran,
+      santri_id, tanggal, kategori, jenis_pelanggaran, keterangan, keterangan_pelanggaran, poin_pelanggaran,
       bentuk_tazir, status_tazir, musyrif_pencatat, wa_notif_wali
     } = req.body;
 
-    if (!santri_id || !jenis_pelanggaran) {
-      return sendError(res, 'Santri dan jenis pelanggaran wajib diisi', 400);
+    if (!santri_id) {
+      return sendError(res, 'Santri wajib dipilih', 400);
     }
+
+    const finalJenis = String(jenis_pelanggaran || keterangan_pelanggaran || keterangan || 'Pelanggaran Tata Tertib').trim();
 
     await pool.query(`
       UPDATE tata_tertib_pelanggaran SET
@@ -119,7 +137,7 @@ export const updatePelanggaran = async (req, res) => {
       santri_id,
       tanggal || new Date().toISOString().split('T')[0],
       kategori || 'Ringan',
-      String(jenis_pelanggaran).trim(),
+      finalJenis,
       parseInt(poin_pelanggaran, 10) || 0,
       bentuk_tazir ? String(bentuk_tazir).trim() : '-',
       status_tazir || 'Belum Dikerjakan',

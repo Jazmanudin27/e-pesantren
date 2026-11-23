@@ -147,6 +147,9 @@ const TabTataTertibWali = ({ pelanggaran = [], onBack }) => {
                   </span>
                   <span style={{ fontSize: '0.64rem', color: '#64748b' }}>{row.tanggal ? String(row.tanggal).split('T')[0] : '-'}</span>
                 </div>
+                <div style={{ fontSize: '0.74rem', color: '#b91c1c', fontWeight: 800, marginBottom: '4px' }}>
+                  Pelanggaran: <span style={{ fontWeight: 600, color: '#0f172a' }}>{row.jenis_pelanggaran || row.keterangan || 'Pelanggaran Tata Tertib'}</span>
+                </div>
                 <div style={{ fontSize: '0.74rem', color: '#1e293b', fontWeight: 700, marginBottom: '3px' }}>
                   Bentuk Ta'zir Mendidik:
                 </div>
