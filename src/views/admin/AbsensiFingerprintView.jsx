@@ -24,7 +24,9 @@ import { showConfirm, toastSuccess, showError } from "../../utils/alert.util";
 export default function AbsensiFingerprintView({ initialType }) {
   const getInitialTabType = () => {
     if (initialType) return initialType;
-    const hash = (typeof window !== "undefined" ? window.location.hash : "").toLowerCase();
+    const hash = (
+      typeof window !== "undefined" ? window.location.hash : ""
+    ).toLowerCase();
     if (hash.includes("kegiatan")) return "kegiatan";
     return "berjamaah";
   };
@@ -94,10 +96,18 @@ export default function AbsensiFingerprintView({ initialType }) {
       if (fetched && Array.isArray(fetched) && fetched.length > 0) {
         const normalized = fetched.map((item, idx) => {
           // Tampilkan nama kegiatan spesifik (contoh: Shalat Shubuh vs Pegon)
-          const namaKegiatan = item.nama_kegiatan || item.kegiatan || item.nama_sesi || item.kategori || "Shalat Berjamaah";
-          const isShalat = /shalat|sholat|subuh|dzuhur|ashar|maghrib|isya/i.test(namaKegiatan);
-          const rawTipe = item.tipe_presensi || (isShalat ? "Berjamaah" : "Kegiatan");
-          const tipePresensi = rawTipe === "Semua" ? "Semua" : (isShalat ? "Berjamaah" : "Kegiatan");
+          const namaKegiatan =
+            item.nama_kegiatan ||
+            item.kegiatan ||
+            item.nama_sesi ||
+            item.kategori ||
+            "Shalat Berjamaah";
+          const isShalat =
+            /shalat|sholat|subuh|dzuhur|ashar|maghrib|isya/i.test(namaKegiatan);
+          const rawTipe =
+            item.tipe_presensi || (isShalat ? "Berjamaah" : "Kegiatan");
+          const tipePresensi =
+            rawTipe === "Semua" ? "Semua" : isShalat ? "Berjamaah" : "Kegiatan";
 
           return {
             id: item.id || idx + 1,
@@ -120,8 +130,13 @@ export default function AbsensiFingerprintView({ initialType }) {
             tipe_santri:
               item.tipe_santri || item.status_santri || "Santri Mukim",
             lat_lng: item.lat_lng || "-7.325374, 108.208331",
-            metode_scan: item.metode_scan || item.metode_presensi || (tipePresensi === "Berjamaah" ? "Fingerprint" : "Wajah AI"),
-            nama_device: item.nama_device || (tipePresensi === "Berjamaah" ? "Mesin MP340" : "NWF Mobile"),
+            metode_scan:
+              item.metode_scan ||
+              item.metode_presensi ||
+              (tipePresensi === "Berjamaah" ? "Fingerprint" : "Wajah AI"),
+            nama_device:
+              item.nama_device ||
+              (tipePresensi === "Berjamaah" ? "Mesin MP340" : "NWF Mobile"),
             is_perizinan_auto: item.is_perizinan_auto || false,
           };
         });
@@ -142,7 +157,7 @@ export default function AbsensiFingerprintView({ initialType }) {
     if (row.is_perizinan_auto || String(row.id).startsWith("izin-")) {
       showError(
         "Perizinan Otomatis",
-        "Data presensi ini tersambung otomatis dari modul Perizinan. Hapus data pada menu Perizinan jika ingin membatalkannya."
+        "Data presensi ini tersambung otomatis dari modul Perizinan. Hapus data pada menu Perizinan jika ingin membatalkannya.",
       );
       return;
     }
@@ -151,7 +166,7 @@ export default function AbsensiFingerprintView({ initialType }) {
       "Hapus Data Presensi",
       `Yakin ingin menghapus riwayat presensi ${row.nama_santri || "santri"} (${row.kegiatan || "kegiatan"}) pada tanggal ${row.tanggal || "-"}?`,
       "Ya, Hapus",
-      "Batal"
+      "Batal",
     );
 
     if (ok) {
@@ -174,13 +189,18 @@ export default function AbsensiFingerprintView({ initialType }) {
           toastSuccess("Riwayat presensi berhasil dihapus");
           fetchAbsensi();
         } else {
-          showError("Gagal", res.data?.message || "Gagal menghapus riwayat presensi");
+          showError(
+            "Gagal",
+            res.data?.message || "Gagal menghapus riwayat presensi",
+          );
           fetchAbsensi();
         }
       } catch (err) {
         showError(
           "Gagal Menghapus",
-          err.response?.data?.message || err.message || "Terjadi kesalahan saat menghapus data"
+          err.response?.data?.message ||
+            err.message ||
+            "Terjadi kesalahan saat menghapus data",
         );
         fetchAbsensi();
       }
@@ -194,9 +214,19 @@ export default function AbsensiFingerprintView({ initialType }) {
   const filteredList = absensiList.filter((item) => {
     // 0. Filter Kategori Tab: Presensi Berjamaah (Shalat 5 Waktu) VS Presensi Kegiatan (NWF Mobile)
     if (activeTabType === "berjamaah") {
-      if (item.tipe_presensi !== "Berjamaah" && item.tipe_presensi !== "Semua" && !item.is_perizinan_auto) return false;
+      if (
+        item.tipe_presensi !== "Berjamaah" &&
+        item.tipe_presensi !== "Semua" &&
+        !item.is_perizinan_auto
+      )
+        return false;
     } else if (activeTabType === "kegiatan") {
-      if (item.tipe_presensi !== "Kegiatan" && item.tipe_presensi !== "Semua" && !item.is_perizinan_auto) return false;
+      if (
+        item.tipe_presensi !== "Kegiatan" &&
+        item.tipe_presensi !== "Semua" &&
+        !item.is_perizinan_auto
+      )
+        return false;
     }
 
     // 1. Filter Search
@@ -254,27 +284,37 @@ export default function AbsensiFingerprintView({ initialType }) {
 
   // Ambil daftar nama kegiatan unik untuk filter dropdown SESUAI TAB YANG AKTIF
   const listForActiveTab = absensiList.filter((item) => {
-    if (activeTabType === "berjamaah") return item.tipe_presensi === "Berjamaah" || item.tipe_presensi === "Semua";
-    if (activeTabType === "kegiatan") return item.tipe_presensi === "Kegiatan" || item.tipe_presensi === "Semua";
+    if (activeTabType === "berjamaah")
+      return (
+        item.tipe_presensi === "Berjamaah" || item.tipe_presensi === "Semua"
+      );
+    if (activeTabType === "kegiatan")
+      return (
+        item.tipe_presensi === "Kegiatan" || item.tipe_presensi === "Semua"
+      );
     return true;
   });
 
   const distinctKegiatan = Array.from(
-    new Set(listForActiveTab.map((a) => a.kegiatan).filter(Boolean))
+    new Set(listForActiveTab.map((a) => a.kegiatan).filter(Boolean)),
   );
 
   const distinctKelas = Array.from(
-    new Set(listForActiveTab.map((a) => a.nama_kelas).filter(k => k && k !== "-"))
+    new Set(
+      listForActiveTab.map((a) => a.nama_kelas).filter((k) => k && k !== "-"),
+    ),
   ).sort();
 
   const totalLog = filteredList.length;
   const hadirTepat = filteredList.filter(
-    (x) => !((x.status || "").toLowerCase().includes("terlambat")),
+    (x) => !(x.status || "").toLowerCase().includes("terlambat"),
   ).length;
   const terlambat = filteredList.filter((x) =>
     (x.status || "").toLowerCase().includes("terlambat"),
   ).length;
-  const totalSantriHadir = new Set(filteredList.map((x) => x.nis || x.nama_santri)).size;
+  const totalSantriHadir = new Set(
+    filteredList.map((x) => x.nis || x.nama_santri),
+  ).size;
 
   // Pagination 25 items per page
   const totalPages = Math.max(1, Math.ceil(filteredList.length / itemsPerPage));
@@ -331,9 +371,17 @@ export default function AbsensiFingerprintView({ initialType }) {
       <div className="page-title-strip">
         <div className="page-title-left">
           {activeTabType === "berjamaah" ? (
-            <Fingerprint size={22} className="page-title-icon" style={{ color: "#0284c7" }} />
+            <Fingerprint
+              size={22}
+              className="page-title-icon"
+              style={{ color: "#0284c7" }}
+            />
           ) : (
-            <BookOpen size={22} className="page-title-icon" style={{ color: "#059669" }} />
+            <BookOpen
+              size={22}
+              className="page-title-icon"
+              style={{ color: "#059669" }}
+            />
           )}
           <div>
             <h2>
@@ -373,7 +421,7 @@ export default function AbsensiFingerprintView({ initialType }) {
                 alignItems: "center",
                 gap: "6px",
                 background: "#059669",
-                borderColor: "#059669"
+                borderColor: "#059669",
               }}
             >
               <BookOpen size={13} /> Data Master Kegiatan
@@ -544,7 +592,13 @@ export default function AbsensiFingerprintView({ initialType }) {
                       {startIndex + idx + 1}
                     </td>
                     <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                        }}
+                      >
                         <span style={{ fontWeight: 700, color: "#0f172a" }}>
                           {row.nama_santri}
                         </span>
@@ -554,21 +608,56 @@ export default function AbsensiFingerprintView({ initialType }) {
                             fontWeight: 800,
                             padding: "1px 5px",
                             borderRadius: "4px",
-                            background: String(row.jk || "L").toUpperCase().startsWith("L") ? "#eff6ff" : "#fdf2f8",
-                            color: String(row.jk || "L").toUpperCase().startsWith("L") ? "#1d4ed8" : "#be185d",
-                            border: `1px solid ${String(row.jk || "L").toUpperCase().startsWith("L") ? "#bfdbfe" : "#fbcfe8"}`,
-                            lineHeight: 1.2
+                            background: String(row.jk || "L")
+                              .toUpperCase()
+                              .startsWith("L")
+                              ? "#eff6ff"
+                              : "#fdf2f8",
+                            color: String(row.jk || "L")
+                              .toUpperCase()
+                              .startsWith("L")
+                              ? "#1d4ed8"
+                              : "#be185d",
+                            border: `1px solid ${
+                              String(row.jk || "L")
+                                .toUpperCase()
+                                .startsWith("L")
+                                ? "#bfdbfe"
+                                : "#fbcfe8"
+                            }`,
+                            lineHeight: 1.2,
                           }}
-                          title={String(row.jk || "L").toUpperCase().startsWith("L") ? "Laki-laki (Ikhwan)" : "Perempuan (Akhwat)"}
+                          title={
+                            String(row.jk || "L")
+                              .toUpperCase()
+                              .startsWith("L")
+                              ? "Laki-laki (Ikhwan)"
+                              : "Perempuan (Akhwat)"
+                          }
                         >
-                          {String(row.jk || "L").toUpperCase().startsWith("L") ? "L" : "P"}
+                          {String(row.jk || "L")
+                            .toUpperCase()
+                            .startsWith("L")
+                            ? "L"
+                            : "P"}
                         </span>
                       </div>
-                      <div style={{ fontSize: "0.68rem", color: "#64748b", display: "flex", alignItems: "center", gap: "5px", marginTop: "2px" }}>
+                      <div
+                        style={{
+                          fontSize: "0.68rem",
+                          color: "#64748b",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "5px",
+                          marginTop: "2px",
+                        }}
+                      >
                         <span>NIS: {row.nis || "-"}</span>
                         <span>•</span>
                         <span style={{ color: "#0284c7", fontWeight: 600 }}>
-                          {row.nama_kelas && row.nama_kelas !== "-" ? row.nama_kelas : "Semua Kelas"}
+                          {row.nama_kelas && row.nama_kelas !== "-"
+                            ? row.nama_kelas
+                            : "Semua Kelas"}
                         </span>
                       </div>
                     </td>
@@ -617,13 +706,17 @@ export default function AbsensiFingerprintView({ initialType }) {
                         </span>
                         <span
                           className={`badge ${
-                            (row.status || "").toLowerCase().includes("terlambat")
+                            (row.status || "")
+                              .toLowerCase()
+                              .includes("terlambat")
                               ? "badge-danger"
                               : "badge-success"
                           }`}
                           style={{ fontSize: "0.66rem", padding: "2px 6px" }}
                         >
-                          {(row.status || "").toLowerCase().includes("terlambat")
+                          {(row.status || "")
+                            .toLowerCase()
+                            .includes("terlambat")
                             ? "Terlambat"
                             : "Tepat Waktu"}
                         </span>
@@ -695,8 +788,10 @@ export default function AbsensiFingerprintView({ initialType }) {
           >
             {/* Info Jumlah Data */}
             <div style={{ fontSize: "0.78rem", color: "#475569" }}>
-              Menampilkan <strong>{filteredList.length === 0 ? 0 : startIndex + 1}</strong> s/d{" "}
-              <strong>{endIndex}</strong> dari total <strong>{filteredList.length}</strong> log presensi
+              Menampilkan{" "}
+              <strong>{filteredList.length === 0 ? 0 : startIndex + 1}</strong>{" "}
+              s/d <strong>{endIndex}</strong> dari total{" "}
+              <strong>{filteredList.length}</strong> log presensi
               {search && (
                 <span style={{ color: "#0284c7", marginLeft: "6px" }}>
                   (pencarian: "{search}")
@@ -731,7 +826,9 @@ export default function AbsensiFingerprintView({ initialType }) {
               {Array.from({ length: totalPages }, (_, i) => i + 1)
                 .filter(
                   (p) =>
-                    p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1,
+                    p === 1 ||
+                    p === totalPages ||
+                    Math.abs(p - currentPage) <= 1,
                 )
                 .reduce((acc, p, idx, arr) => {
                   if (idx > 0 && p - arr[idx - 1] > 1) {
@@ -784,7 +881,9 @@ export default function AbsensiFingerprintView({ initialType }) {
               <button
                 type="button"
                 disabled={currentPage >= totalPages}
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -808,7 +907,7 @@ export default function AbsensiFingerprintView({ initialType }) {
 
       {/* MODAL DETAIL */}
       {selectedDetail && (
-        <div 
+        <div
           className="modal-overlay"
           style={{
             position: "fixed",
@@ -819,7 +918,7 @@ export default function AbsensiFingerprintView({ initialType }) {
             alignItems: "center",
             justifyContent: "center",
             zIndex: 9999,
-            padding: "16px"
+            padding: "16px",
           }}
           onClick={(e) => {
             if (e.target === e.currentTarget) setSelectedDetail(null);
@@ -834,10 +933,10 @@ export default function AbsensiFingerprintView({ initialType }) {
               borderRadius: "16px",
               boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
               border: "1px solid #cbd5e1",
-              overflow: "hidden"
+              overflow: "hidden",
             }}
           >
-            <div 
+            <div
               className="modal-header"
               style={{
                 padding: "16px 20px",
@@ -845,10 +944,11 @@ export default function AbsensiFingerprintView({ initialType }) {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                background: activeTabType === "berjamaah" 
-                  ? "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)" 
-                  : "linear-gradient(135deg, #059669 0%, #047857 100%)",
-                color: "#ffffff"
+                background:
+                  activeTabType === "berjamaah"
+                    ? "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)"
+                    : "linear-gradient(135deg, #059669 0%, #047857 100%)",
+                color: "#ffffff",
               }}
             >
               <div
@@ -860,10 +960,23 @@ export default function AbsensiFingerprintView({ initialType }) {
                   <BookOpen size={20} color="#ffffff" />
                 )}
                 <div>
-                  <h3 style={{ margin: 0, fontSize: "0.98rem", fontWeight: 800, color: "#ffffff" }}>
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: "0.98rem",
+                      fontWeight: 800,
+                      color: "#ffffff",
+                    }}
+                  >
                     Detail Presensi Santri
                   </h3>
-                  <p style={{ margin: 0, fontSize: "0.72rem", color: "rgba(255, 255, 255, 0.85)" }}>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: "0.72rem",
+                      color: "rgba(255, 255, 255, 0.85)",
+                    }}
+                  >
                     {selectedDetail.kegiatan} • {selectedDetail.tanggal}
                   </p>
                 </div>
@@ -879,7 +992,7 @@ export default function AbsensiFingerprintView({ initialType }) {
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center"
+                  justifyContent: "center",
                 }}
               >
                 <X size={18} />
@@ -917,7 +1030,9 @@ export default function AbsensiFingerprintView({ initialType }) {
                 }}
               >
                 <span style={{ color: "#64748b" }}>NIS Santri</span>
-                <span style={{ fontWeight: 700, color: "#0284c7" }}>{selectedDetail.nis}</span>
+                <span style={{ fontWeight: 700, color: "#0284c7" }}>
+                  {selectedDetail.nis}
+                </span>
               </div>
               <div
                 style={{
@@ -928,8 +1043,21 @@ export default function AbsensiFingerprintView({ initialType }) {
                 }}
               >
                 <span style={{ color: "#64748b" }}>Jenis Kelamin</span>
-                <span style={{ fontWeight: 700, color: String(selectedDetail.jk || "L").toUpperCase().startsWith("L") ? "#0284c7" : "#db2777" }}>
-                  {String(selectedDetail.jk || "L").toUpperCase().startsWith("L") ? "Laki-laki (Ikhwan)" : "Perempuan (Akhwat)"}
+                <span
+                  style={{
+                    fontWeight: 700,
+                    color: String(selectedDetail.jk || "L")
+                      .toUpperCase()
+                      .startsWith("L")
+                      ? "#0284c7"
+                      : "#db2777",
+                  }}
+                >
+                  {String(selectedDetail.jk || "L")
+                    .toUpperCase()
+                    .startsWith("L")
+                    ? "Laki-laki (Ikhwan)"
+                    : "Perempuan (Akhwat)"}
                 </span>
               </div>
               <div
@@ -942,7 +1070,10 @@ export default function AbsensiFingerprintView({ initialType }) {
               >
                 <span style={{ color: "#64748b" }}>Kelas Santri</span>
                 <span style={{ fontWeight: 700, color: "#0f172a" }}>
-                  {selectedDetail.nama_kelas && selectedDetail.nama_kelas !== "-" ? selectedDetail.nama_kelas : "Semua Kelas"}
+                  {selectedDetail.nama_kelas &&
+                  selectedDetail.nama_kelas !== "-"
+                    ? selectedDetail.nama_kelas
+                    : "Semua Kelas"}
                 </span>
               </div>
               <div
@@ -983,7 +1114,13 @@ export default function AbsensiFingerprintView({ initialType }) {
                 }}
               >
                 <span style={{ color: "#64748b" }}>Waktu / Jam Scan</span>
-                <span style={{ fontWeight: 800, color: "#0284c7", fontSize: "0.95rem" }}>
+                <span
+                  style={{
+                    fontWeight: 800,
+                    color: "#0284c7",
+                    fontSize: "0.95rem",
+                  }}
+                >
                   {selectedDetail.jam_scan || selectedDetail.jam_masuk || "-"}
                 </span>
               </div>
@@ -997,7 +1134,9 @@ export default function AbsensiFingerprintView({ initialType }) {
               >
                 <span style={{ color: "#64748b" }}>Perangkat / Mesin</span>
                 <span style={{ fontWeight: 700, color: "#0f172a" }}>
-                  {selectedDetail.nama_device || selectedDetail.metode_scan || "Mesin MP340"}
+                  {selectedDetail.nama_device ||
+                    selectedDetail.metode_scan ||
+                    "Mesin MP340"}
                 </span>
               </div>
               <div
@@ -1031,7 +1170,13 @@ export default function AbsensiFingerprintView({ initialType }) {
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "#64748b" }}>Lokasi / Geotag</span>
-                <span style={{ color: "#0284c7", fontSize: "0.76rem", fontWeight: 600 }}>
+                <span
+                  style={{
+                    color: "#0284c7",
+                    fontSize: "0.76rem",
+                    fontWeight: 600,
+                  }}
+                >
                   {selectedDetail.lat_lng}
                 </span>
               </div>
@@ -1044,7 +1189,7 @@ export default function AbsensiFingerprintView({ initialType }) {
                 justifyContent: "space-between",
                 alignItems: "center",
                 borderTop: "1px solid #f1f5f9",
-                background: "#f8fafc"
+                background: "#f8fafc",
               }}
             >
               <button
@@ -1060,7 +1205,7 @@ export default function AbsensiFingerprintView({ initialType }) {
                   fontWeight: 700,
                   cursor: "pointer",
                   padding: "8px 14px",
-                  borderRadius: "8px"
+                  borderRadius: "8px",
                 }}
                 onClick={() => handleDelete(selectedDetail)}
               >
@@ -1069,7 +1214,11 @@ export default function AbsensiFingerprintView({ initialType }) {
               <button
                 className="btn btn-outline"
                 onClick={() => setSelectedDetail(null)}
-                style={{ padding: "8px 16px", borderRadius: "8px", fontWeight: 600 }}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "8px",
+                  fontWeight: 600,
+                }}
               >
                 Tutup
               </button>
