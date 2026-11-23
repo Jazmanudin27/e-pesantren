@@ -1,8 +1,45 @@
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
 import pool from '../config/database.js';
 import { getAllSantri, createSantri, updateSantri, deleteSantri, importSantri } from '../controllers/santri.controller.js';
 
 const router = express.Router();
+
+// Helper simpan fisik foto santri ke folder public/uploads/santri
+const savePhotoToFolder = (santriId, dataUrl) => {
+  if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) return null;
+  try {
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'santri');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    const matches = dataUrl.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+    if (!matches || matches.length < 3) return null;
+    const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+    const base64Data = matches[2];
+    const fileName = `santri-${santriId}.${ext}`;
+    const filePath = path.join(uploadDir, fileName);
+    fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+    return `/uploads/santri/${fileName}`;
+  } catch (err) {
+    console.warn('[UPLOAD DISK ERROR]', err.message);
+    return null;
+  }
+};
+
+const deletePhotoFromFolder = (santriId) => {
+  try {
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'santri');
+    const exts = ['jpg', 'jpeg', 'png', 'webp'];
+    for (const ext of exts) {
+      const f = path.join(uploadDir, `santri-${santriId}.${ext}`);
+      if (fs.existsSync(f)) {
+        try { fs.unlinkSync(f); } catch (e) {}
+      }
+    }
+  } catch (e) {}
+};
 
 // Cache kolom santri agar tidak SHOW COLUMNS berulang-ulang di setiap request
 let santriColsCache = null;
@@ -128,10 +165,8 @@ router.get('/:id/photo-thumb', async (req, res) => {
   try {
     const { id } = req.params;
     const [rows] = await pool.query('SELECT foto FROM santri WHERE id = ?', [id]);
-    if (!rows.length || !rows[0].foto) {
-      return res.status(404).send('No photo');
-    }
-    const rawFoto = rows[0].foto;
+    const rawFoto = rows.length > 0 ? rows[0].foto : null;
+
     if (typeof rawFoto === 'string' && rawFoto.startsWith('data:image/')) {
       const parts = rawFoto.split(',');
       const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
@@ -139,11 +174,26 @@ router.get('/:id/photo-thumb', async (req, res) => {
       res.setHeader('Content-Type', mime);
       res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
       return res.send(imgBuffer);
-    } else if (typeof rawFoto === 'string' && (rawFoto.startsWith('http://') || rawFoto.startsWith('https://'))) {
+    } else if (typeof rawFoto === 'string' && (rawFoto.startsWith('http://') || rawFoto.startsWith('https://') || rawFoto.startsWith('/uploads/'))) {
+      if (rawFoto.startsWith('/uploads/')) {
+        const filePath = path.join(process.cwd(), 'public', rawFoto);
+        if (fs.existsSync(filePath)) {
+          return res.sendFile(filePath);
+        }
+      }
       return res.redirect(rawFoto);
-    } else {
-      return res.status(404).send('Invalid photo format');
     }
+
+    // Fallback: cek apakah file fisik ada di folder public/uploads/santri
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'santri');
+    for (const ext of ['jpg', 'jpeg', 'png', 'webp']) {
+      const f = path.join(uploadDir, `santri-${id}.${ext}`);
+      if (fs.existsSync(f)) {
+        return res.sendFile(f);
+      }
+    }
+
+    return res.status(404).send('No photo');
   } catch (err) {
     return res.status(500).send('Server error');
   }
@@ -365,19 +415,29 @@ router.patch('/:id/foto', async (req, res) => {
       await pool.query("ALTER TABLE santri ADD COLUMN foto LONGTEXT NULL AFTER nama_santri");
     } catch (e) {}
     try {
+      await pool.query("ALTER TABLE santri MODIFY COLUMN foto LONGTEXT NULL");
+    } catch (e) {}
+    try {
       await pool.query("ALTER TABLE santri ADD COLUMN face_descriptor LONGTEXT NULL AFTER foto");
+    } catch (e) {}
+    try {
+      await pool.query("ALTER TABLE santri MODIFY COLUMN face_descriptor LONGTEXT NULL");
     } catch (e) {}
 
     // Jika clear_face true atau foto dikirim null/kosong: hapus foto DAN biometrik sekaligus!
     if (clear_face || finalFoto === null || finalFoto === '') {
+      deletePhotoFromFolder(id);
       await pool.query("UPDATE santri SET foto = NULL, face_descriptor = NULL WHERE id = ?", [id]).catch(async () => {
         await pool.query("UPDATE santri SET foto = NULL WHERE id = ?", [id]).catch(() => {});
       });
       return res.json({ 
         success: true, 
-        message: 'Foto wajah dan biometrik santri berhasil dihapus dari database' 
+        message: 'Foto wajah dan biometrik santri berhasil dihapus dari database & folder' 
       });
     }
+
+    // 1. Simpan salinan fisik file gambar ke folder server (public/uploads/santri)
+    savePhotoToFolder(id, finalFoto);
 
     let rawDesc = face_descriptor || descriptor;
     let finalDescriptor = null;
@@ -385,6 +445,7 @@ router.patch('/:id/foto', async (req, res) => {
       finalDescriptor = typeof rawDesc === 'string' ? rawDesc : JSON.stringify(rawDesc);
     }
 
+    // 2. Simpan ke database MySQL
     if (finalDescriptor !== null) {
       await pool.query("UPDATE santri SET foto = COALESCE(?, foto), face_descriptor = ? WHERE id = ?", [finalFoto, finalDescriptor, id]);
     } else {
@@ -393,7 +454,7 @@ router.patch('/:id/foto', async (req, res) => {
 
     return res.json({ 
       success: true, 
-      message: 'Foto wajah & biometrik santri berhasil disimpan ke database' 
+      message: 'Foto wajah & biometrik santri berhasil disimpan ke database & folder server' 
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message, message: err.message });
@@ -404,6 +465,7 @@ router.patch('/:id/foto', async (req, res) => {
 const deleteFaceHandler = async (req, res) => {
   try {
     const { id } = req.params;
+    deletePhotoFromFolder(id);
     try {
       await pool.query("UPDATE santri SET face_descriptor = NULL, foto = NULL WHERE id = ?", [id]);
     } catch (eSql) {
@@ -411,7 +473,7 @@ const deleteFaceHandler = async (req, res) => {
     }
     return res.json({ 
       success: true, 
-      message: `Data biometrik & foto wajah santri ID ${id} berhasil dihapus dari database` 
+      message: `Data biometrik & foto wajah santri ID ${id} berhasil dihapus dari database & folder` 
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -428,13 +490,29 @@ router.post('/:id/face-descriptor', async (req, res) => {
     const { face_descriptor, descriptor, foto } = req.body;
     const desc = face_descriptor || descriptor;
     if (!desc && (!foto || foto === null)) {
+      deletePhotoFromFolder(id);
       await pool.query("UPDATE santri SET face_descriptor = NULL, foto = NULL WHERE id = ?", [id]);
       return res.json({ success: true, message: 'Biometrik dan foto wajah berhasil dihapus' });
     }
     const strDesc = typeof desc === 'string' ? desc : JSON.stringify(desc);
     try {
+      await pool.query("ALTER TABLE santri ADD COLUMN foto LONGTEXT NULL AFTER nama_santri");
+    } catch (e) {}
+    try {
+      await pool.query("ALTER TABLE santri MODIFY COLUMN foto LONGTEXT NULL");
+    } catch (e) {}
+    try {
       await pool.query("ALTER TABLE santri ADD COLUMN face_descriptor LONGTEXT NULL AFTER foto");
     } catch (e) {}
+    try {
+      await pool.query("ALTER TABLE santri MODIFY COLUMN face_descriptor LONGTEXT NULL");
+    } catch (e) {}
+
+    // Simpan fisik file gambar ke folder server (public/uploads/santri)
+    if (foto) {
+      savePhotoToFolder(id, foto);
+    }
+
     if (foto) {
       await pool.query("UPDATE santri SET face_descriptor = ?, foto = COALESCE(?, foto) WHERE id = ?", [strDesc, foto, id]);
     } else {
@@ -443,7 +521,9 @@ router.post('/:id/face-descriptor', async (req, res) => {
     const [rows] = await pool.query("SELECT id, nama_santri, nis, face_descriptor FROM santri WHERE id = ?", [id]);
     return res.json({ 
       success: true, 
-      message: `Biometrik wajah santri ID ${id} (${rows[0]?.nama_santri || 'Santri'}) berhasil disimpan di database MySQL`, 
+      message: `Biometrik wajah santri ID ${id} (${rows[0]?.nama_santri || 'Santri'}) berhasil disimpan di database MySQL & folder server`, 
+      santri: rows[0] 
+    }); 
       santri: rows[0] 
     });
   } catch (err) {

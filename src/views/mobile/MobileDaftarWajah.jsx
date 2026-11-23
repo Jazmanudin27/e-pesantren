@@ -22,6 +22,7 @@ import {
   Zap,
   Loader2,
   RefreshCw,
+  Upload,
 } from "lucide-react";
 import { toastSuccess, showError, showConfirm } from "../../utils/alert.util";
 import {
@@ -72,10 +73,12 @@ export default function MobileDaftarWajah() {
   const [faceScore, setFaceScore] = useState(0);
   const [isCheckingFace, setIsCheckingFace] = useState(false);
   const [capturedDescriptor, setCapturedDescriptor] = useState(null);
+  const [existingPhoto, setExistingPhoto] = useState(null);
   const [aiModelStatus, setAiModelStatus] = useState("idle"); // 'idle' | 'loading' | 'ready' | 'error'
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const fileInputRef = useRef(null);
   const detectTimeoutRef = useRef(null);
   const isDetectingRef = useRef(false);
   const isCameraActiveRef = useRef(false);
@@ -345,19 +348,104 @@ export default function MobileDaftarWajah() {
     }
   };
 
+  // Helper kompresi gambar client-side (agar hemat memori & cepat disimpan ke MySQL)
+  const compressImageToDataUrl = (fileOrDataUrl, maxWidth = 640, quality = 0.85) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.naturalWidth || img.width || 320;
+        let height = img.naturalHeight || img.height || 320;
+        if (width > maxWidth || height > maxWidth) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxWidth) / height);
+            height = maxWidth;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = (err) => reject(err);
+
+      if (typeof fileOrDataUrl === "string") {
+        img.src = fileOrDataUrl;
+      } else {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          img.src = e.target.result;
+        };
+        reader.onerror = (err) => reject(err);
+        reader.readAsDataURL(fileOrDataUrl);
+      }
+    });
+  };
+
+  // Upload file foto langsung dari berkas/galeri HP
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      showError("Format File Salah", "Silakan pilih file gambar (JPG, PNG, atau WEBP).");
+      return;
+    }
+
+    setIsCheckingFace(true);
+    try {
+      const compressedDataUrl = await compressImageToDataUrl(file, 640, 0.85);
+      stopCamera();
+      setSnapshot(compressedDataUrl);
+
+      await ensureAiModelsReady();
+      const descriptor = await extractDescriptorFromDataUrl(compressedDataUrl);
+      if (descriptor) {
+        setCapturedDescriptor(descriptor);
+        setIsFaceDetected(true);
+        setFaceScore(95);
+      } else {
+        setCapturedDescriptor(null);
+        setIsFaceDetected(false);
+      }
+    } catch (err) {
+      console.warn("Upload file error:", err);
+      showError("Gagal Membaca File", "Terjadi kesalahan saat memproses file gambar.");
+    } finally {
+      setIsCheckingFace(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
   // 5. Open Modal & Save
-  const handleOpenEnrollModal = async (santri) => {
+  const handleOpenEnrollModal = async (santri, mode = "camera") => {
     setSelectedSantri(santri);
     const isEnrolled = checkSantriEnrolled(santri);
     const hasPhoto = checkSantriHasPhoto(santri);
-
-    // Initial thumbnail preview if exists
     const initialPhoto =
       isEnrolled || hasPhoto ? `/api/santri/${santri.id}/photo-thumb` : null;
-    setSnapshot(initialPhoto);
+    setExistingPhoto(initialPhoto);
+    setSnapshot(null);
+    setCapturedDescriptor(null);
+    setIsFaceDetected(false);
+    setFaceScore(0);
 
-    // Prepare camera & models
-    startCamera(facingMode);
+    if (mode === "upload") {
+      stopCamera();
+      setTimeout(() => {
+        if (fileInputRef.current) {
+          fileInputRef.current.click();
+        }
+      }, 120);
+    } else {
+      startCamera(facingMode);
+    }
   };
 
   const handleCloseModal = () => {
@@ -365,11 +453,15 @@ export default function MobileDaftarWajah() {
     setSelectedSantri(null);
     setSnapshot(null);
     setCapturedDescriptor(null);
+    setExistingPhoto(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleSaveFace = async () => {
     if (!selectedSantri || !snapshot) {
-      showError("Foto Kosong", "Silakan ambil foto wajah terlebih dahulu.");
+      showError("Foto Kosong", "Silakan ambil atau upload foto wajah terlebih dahulu.");
       return;
     }
 
@@ -381,19 +473,9 @@ export default function MobileDaftarWajah() {
         descriptor = await extractDescriptorFromDataUrl(snapshot);
       }
 
-      if (!descriptor) {
-        showError(
-          "Wajah Tidak Terdeteksi!",
-          'Sistem AI menolak foto ini karena bukan wajah manusia. Harap klik "Ambil Ulang" dan pastikan wajah santri menghadap kamera.',
-        );
-        setSaving(false);
-        return;
-      }
-
-      const cleanDesc =
-        descriptor instanceof Float32Array
-          ? Array.from(descriptor)
-          : descriptor;
+      const cleanDesc = descriptor
+        ? (descriptor instanceof Float32Array ? Array.from(descriptor) : descriptor)
+        : null;
 
       try {
         await axios.post(`/api/santri/${selectedSantri.id}/face-descriptor`, {
@@ -412,20 +494,20 @@ export default function MobileDaftarWajah() {
       setSantriList((prev) =>
         prev.map((s) =>
           s.id === selectedSantri.id
-            ? { ...s, has_face_descriptor: 1, has_photo: 1 }
+            ? { ...s, has_face_descriptor: cleanDesc ? 1 : 0, has_photo: 1 }
             : s,
         ),
       );
 
-      toastSuccess(`Wajah ${selectedSantri.nama_santri} berhasil didaftarkan!`);
+      toastSuccess(`Foto wajah ${selectedSantri.nama_santri} berhasil disimpan ke database!`);
       handleCloseModal();
     } catch (err) {
       console.error("[SIMPAN WAJAH ERROR]", err);
       showError(
-        "Gagal Menyimpan",
+        "Gagal Menyimpan ke Database",
         err?.response?.data?.message ||
           err?.message ||
-          "Gagal menyimpan data wajah.",
+          "Gagal menyimpan data foto ke database.",
       );
     } finally {
       setSaving(false);
@@ -1321,33 +1403,55 @@ export default function MobileDaftarWajah() {
                     </span>
                   </button>
                 ) : (
-                  <button
-                    onClick={() => handleOpenEnrollModal(santri)}
-                    style={{
-                      width: "100%",
-                      marginTop: "auto",
-                      padding: "7px 6px",
-                      borderRadius: "11px",
-                      background: isEnrolled
-                        ? "#f0fdf4"
-                        : "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
-                      color: isEnrolled ? "#059669" : "#ffffff",
-                      border: isEnrolled ? "1.5px solid #a7f3d0" : "none",
-                      fontSize: "0.72rem",
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "4px",
-                      boxShadow: isEnrolled
-                        ? "none"
-                        : "0 3px 8px rgba(2, 132, 199, 0.22)",
-                    }}
-                  >
-                    <Camera size={13} />
-                    <span>{isEnrolled ? "Ubah" : "Ambil Foto"}</span>
-                  </button>
+                  <div style={{ display: "flex", gap: "4px", width: "100%", marginTop: "auto" }}>
+                    <button
+                      onClick={() => handleOpenEnrollModal(santri, 'camera')}
+                      style={{
+                        flex: 1,
+                        padding: "7px 4px",
+                        borderRadius: "10px",
+                        background: isEnrolled
+                          ? "#f0fdf4"
+                          : "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+                        color: isEnrolled ? "#059669" : "#ffffff",
+                        border: isEnrolled ? "1.5px solid #a7f3d0" : "none",
+                        fontSize: "0.7rem",
+                        fontWeight: 800,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "3px",
+                        boxShadow: isEnrolled
+                          ? "none"
+                          : "0 3px 8px rgba(2, 132, 199, 0.22)",
+                      }}
+                    >
+                      <Camera size={12} />
+                      <span>{isEnrolled ? "Kamera" : "Foto"}</span>
+                    </button>
+                    <button
+                      onClick={() => handleOpenEnrollModal(santri, 'upload')}
+                      title="Upload File Foto"
+                      style={{
+                        padding: "7px 8px",
+                        borderRadius: "10px",
+                        background: "#f0f9ff",
+                        color: "#0284c7",
+                        border: "1.5px solid #bae6fd",
+                        fontSize: "0.7rem",
+                        fontWeight: 800,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "3px",
+                      }}
+                    >
+                      <Upload size={12} />
+                      <span>Upload</span>
+                    </button>
+                  </div>
                 )}
               </div>
             );
@@ -1583,14 +1687,14 @@ export default function MobileDaftarWajah() {
                     </button>
                   )}
                   <button
-                    onClick={() => handleOpenEnrollModal(santri)}
+                    onClick={() => handleOpenEnrollModal(santri, 'camera')}
                     style={{
-                      padding: "7px 12px",
+                      padding: "7px 10px",
                       borderRadius: "10px",
                       background: isEnrolled ? "#f0fdf4" : "#0284c7",
                       color: isEnrolled ? "#059669" : "#ffffff",
                       border: isEnrolled ? "1px solid #a7f3d0" : "none",
-                      fontSize: "0.74rem",
+                      fontSize: "0.72rem",
                       fontWeight: 800,
                       cursor: "pointer",
                       display: "flex",
@@ -1599,7 +1703,27 @@ export default function MobileDaftarWajah() {
                     }}
                   >
                     <Camera size={13} />
-                    <span>{isEnrolled ? "Ubah" : "Ambil Foto"}</span>
+                    <span>{isEnrolled ? "Kamera" : "Foto"}</span>
+                  </button>
+                  <button
+                    onClick={() => handleOpenEnrollModal(santri, 'upload')}
+                    title="Upload File Foto"
+                    style={{
+                      padding: "7px 10px",
+                      borderRadius: "10px",
+                      background: "#f0f9ff",
+                      color: "#0284c7",
+                      border: "1.5px solid #bae6fd",
+                      fontSize: "0.72rem",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    <Upload size={13} />
+                    <span>Upload</span>
                   </button>
                 </div>
               </div>
@@ -1919,6 +2043,52 @@ export default function MobileDaftarWajah() {
                   marginBottom: "14px",
                 }}
               >
+                {/* Hidden File Input for Image Upload */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  style={{ display: "none" }}
+                />
+
+                {/* Loading / Analisis Wajah Overlay */}
+                {isCheckingFace && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      background: "rgba(15, 23, 42, 0.78)",
+                      backdropFilter: "blur(4px)",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#ffffff",
+                      zIndex: 30,
+                    }}
+                  >
+                    <Loader2
+                      size={34}
+                      color="#38bdf8"
+                      className="animate-spin"
+                      style={{ marginBottom: "10px" }}
+                    />
+                    <span style={{ fontSize: "0.85rem", fontWeight: 800 }}>
+                      Menganalisis Wajah AI...
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "0.72rem",
+                        color: "#94a3b8",
+                        marginTop: "4px",
+                      }}
+                    >
+                      Memeriksa kecocokan biometrik foto
+                    </span>
+                  </div>
+                )}
+
                 {snapshot ? (
                   <img
                     src={snapshot}
@@ -1932,7 +2102,7 @@ export default function MobileDaftarWajah() {
                       e.target.src = "";
                     }}
                   />
-                ) : (
+                ) : isCameraActive ? (
                   <video
                     ref={videoRef}
                     playsInline
@@ -1945,10 +2115,88 @@ export default function MobileDaftarWajah() {
                       transform: facingMode === "user" ? "scaleX(-1)" : "none",
                     }}
                   />
+                ) : (
+                  /* Upload Zone when Camera is inactive */
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "24px 16px",
+                      textAlign: "center",
+                      cursor: "pointer",
+                      color: "#64748b",
+                      width: "100%",
+                      height: "100%",
+                      background: "#f8fafc",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "56px",
+                        height: "56px",
+                        borderRadius: "50%",
+                        background: "#e0f2fe",
+                        color: "#0284c7",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginBottom: "10px",
+                        boxShadow: "0 4px 12px rgba(2, 132, 199, 0.18)",
+                      }}
+                    >
+                      <Upload size={26} />
+                    </div>
+                    <div
+                      style={{
+                        fontWeight: 800,
+                        fontSize: "0.88rem",
+                        color: "#0f172a",
+                      }}
+                    >
+                      Upload File Foto Santri
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "0.72rem",
+                        color: "#64748b",
+                        marginTop: "4px",
+                        maxWidth: "240px",
+                      }}
+                    >
+                      Klik di sini untuk memilih foto dari galeri HP (JPG, PNG, WEBP)
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startCamera(facingMode);
+                      }}
+                      style={{
+                        marginTop: "14px",
+                        padding: "7px 14px",
+                        borderRadius: "9px",
+                        border: "1px solid #cbd5e1",
+                        background: "#ffffff",
+                        color: "#334155",
+                        fontSize: "0.74rem",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <Camera size={14} />
+                      <span>Gunakan Kamera Langsung</span>
+                    </button>
+                  </div>
                 )}
 
                 {/* Reticle guide frame dengan status warna real-time */}
-                {!snapshot && (
+                {!snapshot && isCameraActive && (
                   <div
                     style={{
                       position: "absolute",
@@ -1968,7 +2216,7 @@ export default function MobileDaftarWajah() {
                 )}
 
                 {/* Floating Status Guide Pill (Real-Time Wajah vs Meja/Benda) */}
-                {!snapshot && (
+                {!snapshot && isCameraActive && (
                   <div
                     style={{
                       position: "absolute",
@@ -2004,7 +2252,9 @@ export default function MobileDaftarWajah() {
                       bottom: "12px",
                       left: "14px",
                       right: "14px",
-                      background: "rgba(5, 150, 105, 0.92)",
+                      background: isFaceDetected
+                        ? "rgba(5, 150, 105, 0.92)"
+                        : "rgba(217, 119, 6, 0.92)",
                       backdropFilter: "blur(6px)",
                       color: "#ffffff",
                       padding: "6px 12px",
@@ -2015,7 +2265,9 @@ export default function MobileDaftarWajah() {
                       boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
                     }}
                   >
-                    ✓ Wajah Manusia Terverifikasi AI Biometrik
+                    {isFaceDetected
+                      ? "✓ Wajah Terverifikasi AI Biometrik"
+                      : "⚠️ Foto Siap Disimpan"}
                   </div>
                 )}
               </div>
@@ -2029,16 +2281,167 @@ export default function MobileDaftarWajah() {
                 }}
               >
                 {!snapshot ? (
-                  <>
+                  isCameraActive ? (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "auto auto 1fr",
+                        gap: "6px",
+                        width: "100%",
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={toggleFacingMode}
+                        title="Putar Kamera"
+                        style={{
+                          padding: "9px 12px",
+                          borderRadius: "10px",
+                          border: "1px solid #cbd5e1",
+                          background: "#ffffff",
+                          color: "#475569",
+                          fontSize: "0.76rem",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        <RotateCcw size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        style={{
+                          padding: "9px 12px",
+                          borderRadius: "10px",
+                          border: "1.5px solid #0284c7",
+                          background: "#f0f9ff",
+                          color: "#0284c7",
+                          fontSize: "0.76rem",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "5px",
+                        }}
+                      >
+                        <Upload size={14} />
+                        <span>Upload File</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!isFaceDetected || isCheckingFace}
+                        onClick={() => {
+                          if (!isFaceDetected) {
+                            showError(
+                              "Wajah Tidak Terdeteksi!",
+                              "Kamera belum mendeteksi wajah manusia secara jelas. Silakan arahkan kamera tepat ke wajah santri di tempat yang cukup terang.",
+                            );
+                            return;
+                          }
+                          captureSnapshot();
+                        }}
+                        style={{
+                          padding: "10px 12px",
+                          borderRadius: "10px",
+                          border: "none",
+                          background:
+                            !isFaceDetected || isCheckingFace
+                              ? "#94a3b8"
+                              : "linear-gradient(135deg, #059669 0%, #047857 100%)",
+                          color: "#ffffff",
+                          fontSize: "0.78rem",
+                          fontWeight: 800,
+                          cursor:
+                            !isFaceDetected || isCheckingFace
+                              ? "not-allowed"
+                              : "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "6px",
+                          boxShadow:
+                            isFaceDetected && !isCheckingFace
+                              ? "0 4px 12px rgba(5, 150, 105, 0.4)"
+                              : "none",
+                        }}
+                      >
+                        <Camera size={15} />
+                        <span>
+                          {isCheckingFace
+                            ? "Memeriksa..."
+                            : isFaceDetected
+                              ? "Ambil Foto"
+                              : "Arahkan ke Wajah"}
+                        </span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", gap: "8px", width: "100%" }}>
+                      <button
+                        type="button"
+                        onClick={() => startCamera(facingMode)}
+                        style={{
+                          flex: 1,
+                          padding: "10px 14px",
+                          borderRadius: "10px",
+                          border: "1px solid #cbd5e1",
+                          background: "#ffffff",
+                          color: "#334155",
+                          fontSize: "0.78rem",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "6px",
+                        }}
+                      >
+                        <Camera size={15} />
+                        <span>Buka Kamera</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        style={{
+                          flex: 1.2,
+                          padding: "10px 14px",
+                          borderRadius: "10px",
+                          border: "none",
+                          background:
+                            "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+                          color: "#ffffff",
+                          fontSize: "0.78rem",
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "6px",
+                          boxShadow: "0 3px 8px rgba(2, 132, 199, 0.28)",
+                        }}
+                      >
+                        <Upload size={15} />
+                        <span>Pilih File Galeri</span>
+                      </button>
+                    </div>
+                  )
+                ) : (
+                  <div style={{ display: "flex", gap: "6px", width: "100%" }}>
                     <button
-                      onClick={toggleFacingMode}
+                      type="button"
+                      onClick={() => startCamera(facingMode)}
                       style={{
                         padding: "9px 12px",
                         borderRadius: "10px",
                         border: "1px solid #cbd5e1",
                         background: "#ffffff",
-                        color: "#0284c7",
-                        fontSize: "0.78rem",
+                        color: "#475569",
+                        fontSize: "0.74rem",
                         fontWeight: 700,
                         cursor: "pointer",
                         display: "flex",
@@ -2046,98 +2449,65 @@ export default function MobileDaftarWajah() {
                         gap: "4px",
                       }}
                     >
-                      <RotateCcw size={14} /> Putar Kamera
+                      <RotateCcw size={13} />
+                      <span>Kamera</span>
                     </button>
                     <button
-                      disabled={!isFaceDetected || isCheckingFace}
-                      onClick={() => {
-                        if (!isFaceDetected) {
-                          showError(
-                            "Wajah Tidak Terdeteksi!",
-                            "Kamera belum mendeteksi wajah manusia secara jelas. Silakan arahkan kamera tepat ke wajah santri di tempat yang cukup terang.",
-                          );
-                          return;
-                        }
-                        captureSnapshot();
-                      }}
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
                       style={{
-                        flex: 1,
-                        padding: "10px 16px",
+                        padding: "9px 12px",
                         borderRadius: "10px",
-                        border: "none",
-                        background:
-                          !isFaceDetected || isCheckingFace
-                            ? "#94a3b8"
-                            : "linear-gradient(135deg, #059669 0%, #047857 100%)",
-                        color: "#ffffff",
-                        fontSize: "0.8rem",
-                        fontWeight: 800,
-                        cursor:
-                          !isFaceDetected || isCheckingFace
-                            ? "not-allowed"
-                            : "pointer",
+                        border: "1px solid #bae6fd",
+                        background: "#f0f9ff",
+                        color: "#0284c7",
+                        fontSize: "0.74rem",
+                        fontWeight: 700,
+                        cursor: "pointer",
                         display: "flex",
                         alignItems: "center",
-                        justifyContent: "center",
-                        gap: "6px",
-                        boxShadow:
-                          isFaceDetected && !isCheckingFace
-                            ? "0 4px 12px rgba(5, 150, 105, 0.4)"
-                            : "none",
-                        transition: "all 0.2s ease",
+                        gap: "4px",
                       }}
                     >
-                      <Camera size={16} />
-                      <span>
-                        {isCheckingFace
-                          ? "Memeriksa Wajah..."
-                          : isFaceDetected
-                            ? "Ambil Foto Wajah"
-                            : "Arahkan ke Wajah"}
-                      </span>
+                      <Upload size={13} />
+                      <span>Ganti File</span>
                     </button>
-                  </>
-                ) : (
-                  <>
                     <button
-                      onClick={() => startCamera(facingMode)}
+                      type="button"
+                      disabled={saving}
+                      onClick={handleSaveFace}
                       style={{
                         flex: 1,
                         padding: "9px 14px",
                         borderRadius: "10px",
-                        border: "1px solid #fecdd3",
-                        background: "#fff1f2",
-                        color: "#e11d48",
-                        fontSize: "0.78rem",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                      }}
-                    >
-                      Ambil Ulang
-                    </button>
-                    <button
-                      disabled={saving}
-                      onClick={handleSaveFace}
-                      style={{
-                        flex: 1.5,
-                        padding: "9px 16px",
-                        borderRadius: "10px",
                         border: "none",
-                        background: "#059669",
+                        background: saving ? "#94a3b8" : "#059669",
                         color: "#ffffff",
-                        fontSize: "0.8rem",
+                        fontSize: "0.78rem",
                         fontWeight: 800,
-                        cursor: "pointer",
+                        cursor: saving ? "not-allowed" : "pointer",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         gap: "6px",
+                        boxShadow: saving
+                          ? "none"
+                          : "0 3px 8px rgba(5, 150, 105, 0.3)",
                       }}
                     >
-                      <Check size={16} />{" "}
-                      {saving ? "Menyimpan..." : "Simpan Wajah"}
+                      {saving ? (
+                        <>
+                          <Loader2 size={15} className="animate-spin" />
+                          <span>Menyimpan...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check size={16} />
+                          <span>Simpan ke DB</span>
+                        </>
+                      )}
                     </button>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
