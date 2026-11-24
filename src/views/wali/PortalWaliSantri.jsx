@@ -1147,7 +1147,7 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
           boxShadow: "0 0 40px rgba(0,0,0,0.12)",
           display: "flex",
           flexDirection: "column",
-          paddingBottom: "80px",
+          paddingBottom: currentTab === "pesan" ? "0px" : "80px",
           boxSizing: "border-box",
         }}
       >
@@ -2708,87 +2708,89 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
         {/* =========================================================================
             ELEVATED FLOATING WHITE BOTTOM NAVIGATION BAR
         ========================================================================= */}
-        <nav className="mobile-bottom-nav">
-          {/* 1. Beranda */}
-          <button
-            className={`mobile-nav-item ${["beranda", "praktek", "pelanggaran", "notifikasi"].includes(currentTab) ? "active" : ""}`}
-            onClick={() => {
-              setCurrentTab("beranda");
-              fetchKeuanganOverview();
-            }}
-          >
-            <div
-              className={`nav-icon-wrapper ${["beranda", "praktek", "pelanggaran", "notifikasi"].includes(currentTab) ? "active" : ""}`}
+        {currentTab !== "pesan" && (
+          <nav className="mobile-bottom-nav">
+            {/* 1. Beranda */}
+            <button
+              className={`mobile-nav-item ${["beranda", "praktek", "pelanggaran", "notifikasi"].includes(currentTab) ? "active" : ""}`}
+              onClick={() => {
+                setCurrentTab("beranda");
+                fetchKeuanganOverview();
+              }}
             >
-              <Home size={20} />
-            </div>
-            <span>Beranda</span>
-          </button>
+              <div
+                className={`nav-icon-wrapper ${["beranda", "praktek", "pelanggaran", "notifikasi"].includes(currentTab) ? "active" : ""}`}
+              >
+                <Home size={20} />
+              </div>
+              <span>Beranda</span>
+            </button>
 
-          {/* 2. Tagihan & Bayar */}
-          <button
-            className={`mobile-nav-item ${currentTab === "tagihan" ? "active" : ""}`}
-            onClick={() => setCurrentTab("tagihan")}
-          >
-            <div
-              className={`nav-icon-wrapper ${currentTab === "tagihan" ? "active" : ""}`}
+            {/* 2. Tagihan & Bayar */}
+            <button
+              className={`mobile-nav-item ${currentTab === "tagihan" ? "active" : ""}`}
+              onClick={() => setCurrentTab("tagihan")}
             >
-              <CreditCard size={20} />
-              {(keuanganSummary?.totalBelumBayar || 0) > 0 && (
-                <span
-                  style={{
-                    position: "absolute",
-                    top: "1px",
-                    right: "1px",
-                    width: "8px",
-                    height: "8px",
-                    borderRadius: "50%",
-                    background: "#ef4444",
-                    border: "1.5px solid #fff",
-                  }}
-                />
-              )}
-            </div>
-            <span>Tagihan</span>
-          </button>
+              <div
+                className={`nav-icon-wrapper ${currentTab === "tagihan" ? "active" : ""}`}
+              >
+                <CreditCard size={20} />
+                {(keuanganSummary?.totalBelumBayar || 0) > 0 && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: "1px",
+                      right: "1px",
+                      width: "8px",
+                      height: "8px",
+                      borderRadius: "50%",
+                      background: "#ef4444",
+                      border: "1.5px solid #fff",
+                    }}
+                  />
+                )}
+              </div>
+              <span>Tagihan</span>
+            </button>
 
-          {/* 3. Center Floating Fingerprint FAB (Presensi Sholat) */}
-          <button
-            className="mobile-fab-center"
-            onClick={() => setCurrentTab("absensi")}
-            title="Presensi Sholat & Ibadah Santri"
-          >
-            <div className="fab-inner-glow">
-              <Fingerprint size={28} color="#ffffff" strokeWidth={2.4} />
-            </div>
-          </button>
-
-          {/* 4. Tabungan Santri (Uang Saku) */}
-          <button
-            className={`mobile-nav-item ${currentTab === "tabungan" ? "active" : ""}`}
-            onClick={() => setCurrentTab("tabungan")}
-          >
-            <div
-              className={`nav-icon-wrapper ${currentTab === "tabungan" ? "active" : ""}`}
+            {/* 3. Center Floating Fingerprint FAB (Presensi Sholat) */}
+            <button
+              className="mobile-fab-center"
+              onClick={() => setCurrentTab("absensi")}
+              title="Presensi Sholat & Ibadah Santri"
             >
-              <Wallet size={20} />
-            </div>
-            <span>Tabungan</span>
-          </button>
+              <div className="fab-inner-glow">
+                <Fingerprint size={28} color="#ffffff" strokeWidth={2.4} />
+              </div>
+            </button>
 
-          {/* 5. Profil & Pengaturan */}
-          <button
-            className={`mobile-nav-item ${currentTab === "profile" ? "active" : ""}`}
-            onClick={() => setCurrentTab("profile")}
-          >
-            <div
-              className={`nav-icon-wrapper ${currentTab === "profile" ? "active" : ""}`}
+            {/* 4. Tabungan Santri (Uang Saku) */}
+            <button
+              className={`mobile-nav-item ${currentTab === "tabungan" ? "active" : ""}`}
+              onClick={() => setCurrentTab("tabungan")}
             >
-              <User size={20} />
-            </div>
-            <span>Profil</span>
-          </button>
-        </nav>
+              <div
+                className={`nav-icon-wrapper ${currentTab === "tabungan" ? "active" : ""}`}
+              >
+                <Wallet size={20} />
+              </div>
+              <span>Tabungan</span>
+            </button>
+
+            {/* 5. Profil & Pengaturan */}
+            <button
+              className={`mobile-nav-item ${currentTab === "profile" ? "active" : ""}`}
+              onClick={() => setCurrentTab("profile")}
+            >
+              <div
+                className={`nav-icon-wrapper ${currentTab === "profile" ? "active" : ""}`}
+              >
+                <User size={20} />
+              </div>
+              <span>Profil</span>
+            </button>
+          </nav>
+        )}
       </div>
     </div>
   );

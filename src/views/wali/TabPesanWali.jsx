@@ -122,8 +122,9 @@ export default function TabPesanWali({
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      height: '100vh',
-      maxHeight: '100vh',
+      height: '100dvh',
+      maxHeight: '100dvh',
+      minHeight: '100vh',
       background: '#f1f5f9',
       fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif"
     }}>
@@ -398,7 +399,7 @@ export default function TabPesanWali({
         style={{
           background: '#ffffff',
           borderTop: '1px solid #e2e8f0',
-          padding: '8px 10px',
+          padding: '8px 10px calc(8px + env(safe-area-inset-bottom, 0px))',
           display: 'flex',
           alignItems: 'center',
           gap: '6px',
