@@ -31,8 +31,10 @@ export default function App() {
     const hash = window.location.hash;
     const pathname = window.location.pathname;
 
-    // Domain khusus Mobile: mnurulwafa.ruangtech.com / mpesantren
+    // Domain khusus Mobile: mnurulwafa.ruangtech.com / app.nurulwafa.com / mpesantren
     const isMobileDomain = 
+      hostname === 'app.nurulwafa.com' ||
+      hostname.startsWith('app.nurulwafa.') ||
       hostname === 'mnurulwafa.ruangtech.com' ||
       hostname === 'm.nurulwafa.ruangtech.com' ||
       hostname.startsWith('mnurulwafa.') ||
