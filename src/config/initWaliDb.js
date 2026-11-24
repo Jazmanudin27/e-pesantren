@@ -1,4 +1,11 @@
 import pool from './database.js';
+import bcrypt from 'bcryptjs';
+
+const hashBcrypt2y = (plain) => {
+  const salt = bcrypt.genSaltSync(10);
+  const hash = bcrypt.hashSync(String(plain).trim(), salt);
+  return hash.replace(/^\$2[ab]\$/, '$2y$');
+};
 
 /**
  * Otomatis memastikan kolom username dan password tersedia di tabel santri
@@ -78,12 +85,29 @@ export async function ensureSantriCredentialsColumns() {
           AND nisn IS NOT NULL AND TRIM(nisn) != ''
       `);
 
-      // Set default password = 123456 untuk semua santri yang masih kosong
+      // Set password default hash $2y$10$... untuk santri yang masih kosong atau masih plaintext '123456'
+      const defaultHash = hashBcrypt2y('123456');
       await pool.query(`
         UPDATE santri 
-        SET password = '123456'
-        WHERE (password IS NULL OR TRIM(password) = '')
-      `);
+        SET password = ?
+        WHERE (password IS NULL OR TRIM(password) = '' OR TRIM(password) = '123456')
+      `, [defaultHash]);
+
+      // Hashing semua santri yang masih memiliki password plaintext lainnya (tidak diawali $2)
+      try {
+        const [plainSantris] = await pool.query(`
+          SELECT id, password FROM santri 
+          WHERE password IS NOT NULL 
+            AND TRIM(password) != '' 
+            AND password NOT LIKE '$2%'
+        `);
+        for (const s of plainSantris) {
+          if (s.password) {
+            const h = hashBcrypt2y(s.password);
+            await pool.query('UPDATE santri SET password = ? WHERE id = ?', [h, s.id]);
+          }
+        }
+      } catch (eHash) {}
 
       // Bersihkan nilai dummy default pada alamat_asal, nama_wali, no_wa_wali agar sesuai data riil database
       try {

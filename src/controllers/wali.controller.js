@@ -354,8 +354,9 @@ export const updateWaliPassword = async (req, res) => {
       return sendError(res, 'Password baru minimal 4 karakter', 400);
     }
 
+    const hashedPassword = bcrypt.hashSync(password_baru.trim(), 10).replace(/^\$2[ab]\$/, '$2y$');
     const updates = ['password = ?'];
-    const params = [password_baru.trim()];
+    const params = [hashedPassword];
 
     if (username_baru && username_baru.trim() !== '') {
       updates.push('username = ?');

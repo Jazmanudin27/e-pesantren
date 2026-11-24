@@ -1,5 +1,16 @@
+import bcrypt from 'bcryptjs';
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
+
+const hashPassword2y = (plain) => {
+  const raw = String(plain || '123456').trim();
+  if (raw.startsWith('$2y$') || raw.startsWith('$2a$') || raw.startsWith('$2b$')) {
+    return raw.replace(/^\$2[ab]\$/, '$2y$');
+  }
+  const salt = bcrypt.genSaltSync(10);
+  const hash = bcrypt.hashSync(raw, salt);
+  return hash.replace(/^\$2[ab]\$/, '$2y$');
+};
 
 let hasCheckedFaceDescriptorCol = false;
 
@@ -299,7 +310,7 @@ export const createSantri = async (req, res) => {
 
     const finalNis = nis || Date.now().toString().slice(-6);
     const finalUsername = username ? String(username).trim() : (nisn ? String(nisn).trim() : finalNis);
-    const finalPassword = password ? String(password).trim() : '123456';
+    const finalPassword = hashPassword2y(password || '123456');
     const finalFoto = foto || foto_santri || null;
 
     // Pastikan kolom-kolom baru tersedia di database secara dinamis
@@ -449,7 +460,7 @@ export const updateSantri = async (req, res) => {
       }
     }
     if (username !== undefined && String(username).trim() !== '') addIfColExists('username', String(username).trim());
-    if (password !== undefined && String(password).trim() !== '') addIfColExists('password', String(password).trim());
+    if (password !== undefined && String(password).trim() !== '') addIfColExists('password', hashPassword2y(password));
 
     if (fieldsToUpdate.length > 0) {
       params.push(id);
@@ -523,7 +534,7 @@ export const importSantri = async (req, res) => {
       const nisn = String(row.nisn || row.NISN || '').trim() || null;
       const kodeSantri = String(row.kode_santri || row['Kode Santri'] || `STR-${nis}`).trim();
       const username = String(row.username || nisn || nis).trim();
-      const password = String(row.password || '123456').trim();
+      const password = hashPassword2y(row.password || '123456');
 
       // Normalisasi Gender (L/P)
       const rawJk = String(row.jk || row.gender || row['Jenis Kelamin'] || 'L').toUpperCase().trim();

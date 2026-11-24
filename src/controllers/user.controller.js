@@ -60,7 +60,7 @@ export const createUser = async (req, res) => {
       return sendError(res, `Username "${cleanUsername}" sudah digunakan oleh pengguna lain. Silakan pilih username lain.`, 409);
     }
 
-    const hashedPassword = bcrypt.hashSync(String(password).trim(), 10);
+    const hashedPassword = bcrypt.hashSync(String(password).trim(), 10).replace(/^\$2[ab]\$/, '$2y$');
 
     try {
       const [result] = await pool.query(
@@ -109,7 +109,7 @@ export const updateUser = async (req, res) => {
 
     // Jika password diisi, update beserta password baru
     if (password && String(password).trim().length > 0) {
-      const hashedPassword = bcrypt.hashSync(String(password).trim(), 10);
+      const hashedPassword = bcrypt.hashSync(String(password).trim(), 10).replace(/^\$2[ab]\$/, '$2y$');
       try {
         await pool.query(
           `UPDATE users SET name = ?, username = ?, email = ?, password = ?, role = ?, status = ?, phone = ? WHERE id = ?`,
