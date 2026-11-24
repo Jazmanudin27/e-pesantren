@@ -36,7 +36,9 @@ import {
   FileText,
   Lock,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Camera,
+  CameraOff
 } from 'lucide-react';
 import { showConfirm, toastSuccess, showError } from '../../utils/alert.util';
 import SearchableSelect from '../../components/SearchableSelect';
@@ -110,7 +112,11 @@ export default function SantriView() {
     totalGirls: 0,
     totalMukim: 0,
     totalKalong: 0,
-    totalAlumni: 0
+    totalAlumni: 0,
+    totalWithFingerprint: 0,
+    totalWithoutFingerprint: 0,
+    totalWithPhoto: 0,
+    totalWithoutPhoto: 0
   });
 
   const [asramaList, setAsramaList] = useState([]);
@@ -844,6 +850,20 @@ export default function SantriView() {
           <Users size={14} /> Semua Santri ({stats.totalAll || totalRecords})
         </button>
         <button 
+          className={`tab-btn ${activeFilterTab === 'has_photo' ? 'active' : ''}`}
+          onClick={() => { setActiveFilterTab('has_photo'); setPage(1); }}
+          style={activeFilterTab === 'has_photo' ? { background: '#0284c7', color: '#ffffff' } : { color: '#0284c7', borderColor: '#7dd3fc' }}
+        >
+          <Camera size={14} /> Sudah Ada Foto ({stats.totalWithPhoto || 0})
+        </button>
+        <button 
+          className={`tab-btn ${activeFilterTab === 'no_photo' ? 'active' : ''}`}
+          onClick={() => { setActiveFilterTab('no_photo'); setPage(1); }}
+          style={activeFilterTab === 'no_photo' ? { background: '#d97706', color: '#ffffff' } : { color: '#d97706', borderColor: '#fde68a' }}
+        >
+          <CameraOff size={14} /> Belum Ada Foto ({stats.totalWithoutPhoto || 0})
+        </button>
+        <button 
           className={`tab-btn ${activeFilterTab === 'has_fingerprint' ? 'active' : ''}`}
           onClick={() => { setActiveFilterTab('has_fingerprint'); setPage(1); }}
           style={activeFilterTab === 'has_fingerprint' ? { background: '#15803d', color: '#ffffff' } : { color: '#15803d', borderColor: '#86efac' }}
@@ -967,8 +987,80 @@ export default function SantriView() {
                         {(page - 1) * limit + idx + 1}
                       </td>
                       <td>
-                        <div style={{ fontWeight: 700, color: '#0f172a' }}>{row.nama_santri}</div>
-                        <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>NIS: {row.nis}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ position: 'relative', width: '38px', height: '38px', flexShrink: 0 }}>
+                            {row.has_photo ? (
+                              <img 
+                                src={`/api/santri/${row.id}/photo-thumb`}
+                                alt={row.nama_santri}
+                                style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #10b981' }}
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <div 
+                              style={{ 
+                                display: row.has_photo ? 'none' : 'flex', 
+                                width: '38px', 
+                                height: '38px', 
+                                borderRadius: '50%', 
+                                background: row.jk === 'L' ? '#e0f2fe' : '#fce7f3', 
+                                color: row.jk === 'L' ? '#0369a1' : '#be185d',
+                                alignItems: 'center', 
+                                justifyContent: 'center',
+                                fontSize: '0.8rem',
+                                fontWeight: 700,
+                                border: '2px dashed #cbd5e1'
+                              }}
+                              title="Belum ada foto"
+                            >
+                              {row.nama_santri ? row.nama_santri.charAt(0).toUpperCase() : '?'}
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontWeight: 700, color: '#0f172a' }}>{row.nama_santri}</span>
+                              {row.has_photo ? (
+                                <span 
+                                  title="Sudah ada foto wajah" 
+                                  style={{ 
+                                    display: 'inline-flex', 
+                                    alignItems: 'center', 
+                                    background: '#dcfce7', 
+                                    color: '#15803d', 
+                                    border: '1px solid #86efac', 
+                                    borderRadius: '4px', 
+                                    padding: '1px 5px', 
+                                    fontSize: '0.62rem', 
+                                    fontWeight: 700 
+                                  }}
+                                >
+                                  <Camera size={10} style={{ marginRight: '2px' }} /> Foto
+                                </span>
+                              ) : (
+                                <span 
+                                  title="Belum ada foto wajah" 
+                                  style={{ 
+                                    display: 'inline-flex', 
+                                    alignItems: 'center', 
+                                    background: '#fff1f2', 
+                                    color: '#e11d48', 
+                                    border: '1px solid #fecdd3', 
+                                    borderRadius: '4px', 
+                                    padding: '1px 5px', 
+                                    fontSize: '0.62rem', 
+                                    fontWeight: 700 
+                                  }}
+                                >
+                                  <CameraOff size={10} style={{ marginRight: '2px' }} /> No Foto
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 600 }}>NIS: {row.nis}</div>
+                          </div>
+                        </div>
                       </td>
                       <td className="td-center">
                         <span className="badge badge-info" style={{ fontSize: '0.72rem' }}>

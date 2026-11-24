@@ -94,6 +94,10 @@ export const getAllSantri = async (req, res) => {
         AND (s.fingerprint_pin IS NULL OR s.fingerprint_pin NOT IN (SELECT pin FROM santri_fingerprint_templates WHERE template_data IS NOT NULL AND template_data != ''))
         AND s.id NOT IN (SELECT DISTINCT santri_id FROM absensi_jamaah_mengaji WHERE metode_presensi = 'Fingerprint')
       )`);
+    } else if (tab === 'has_photo' || tab === 'with_photo') {
+      whereConditions.push("(s.foto IS NOT NULL AND TRIM(s.foto) != '')");
+    } else if (tab === 'no_photo' || tab === 'without_photo') {
+      whereConditions.push("(s.foto IS NULL OR TRIM(s.foto) = '')");
     }
 
     // Asrama filter
@@ -266,6 +270,15 @@ export const getAllSantri = async (req, res) => {
     const totalAllVal = statsRows[0]?.totalAll || 0;
     const totalWithoutFingerprint = Math.max(0, totalAllVal - totalWithFingerprint);
 
+    let totalWithPhoto = 0;
+    try {
+      const [photoTotalRows] = await pool.query(
+        "SELECT COUNT(*) as totalWithPhoto FROM santri WHERE foto IS NOT NULL AND TRIM(foto) != ''"
+      );
+      totalWithPhoto = photoTotalRows[0]?.totalWithPhoto || 0;
+    } catch (ePhotoCount) {}
+    const totalWithoutPhoto = Math.max(0, totalAllVal - totalWithPhoto);
+
     const stats = {
       ...(statsRows[0] || {}),
       totalAll: totalAllVal,
@@ -275,7 +288,9 @@ export const getAllSantri = async (req, res) => {
       totalKalong: statsRows[0]?.totalKalong || 0,
       totalAlumni: statsRows[0]?.totalAlumni || 0,
       totalWithFingerprint,
-      totalWithoutFingerprint
+      totalWithoutFingerprint,
+      totalWithPhoto,
+      totalWithoutPhoto
     };
 
     return sendSuccess(res, 'Data santri berhasil diambil', { 
