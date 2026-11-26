@@ -385,7 +385,7 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
                 {summary.formattedTotalBelumBayar || 'Rp 0'}
               </div>
               <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.85)', marginTop: '2px' }}>
-                SPP bulanan &amp; administrasi santri
+                Biaya makan bulanan &amp; administrasi santri
               </div>
             </div>
 
@@ -423,7 +423,7 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
               border: '1px solid #ffffff'
             }}>
               <div style={{ fontSize: '0.58rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
-                Tunggakan SPP
+                Tunggakan Biaya Makan
               </div>
               <div style={{ fontSize: '0.86rem', fontWeight: 900, color: '#1d4ed8', marginTop: '2px' }}>
                 {summary.formattedBulanan || 'Rp 0'}
@@ -687,7 +687,7 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
               <div>
                 <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>
-                  Administrasi Bulanan (SPP)
+                  Biaya Makan Bulanan
                 </span>
                 <div style={{ fontSize: '0.67rem', color: '#64748b' }}>
                   Pilih 1 bulan, beberapa bulan, atau lunasi semua
@@ -772,7 +772,7 @@ export default function TabTagihanKeuangan({ santriId, onBack }) {
                           alignItems: 'center',
                           gap: '5px'
                         }}>
-                          <span>{t.judul_tagihan}</span>
+                          <span>{String(t.judul_tagihan || '').replace(/SPP Bulanan/gi, 'Biaya Makan Bulanan')}</span>
                           {isLewatTempo && (
                             <span style={{
                               fontSize: '0.58rem',

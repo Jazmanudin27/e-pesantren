@@ -5,10 +5,16 @@ import crypto from 'crypto';
  * Konfigurasi Akun Midtrans (Sandbox / Production)
  */
 export const getMidtransConfig = () => {
-  const isProd = process.env.MIDTRANS_IS_PRODUCTION === 'true';
+  const serverKey = process.env.MIDTRANS_SERVER_KEY || '';
+  const clientKey = process.env.MIDTRANS_CLIENT_KEY || 'Mid-client-viWhJmAdrDh27a2X';
+  const merchantId = process.env.MIDTRANS_MERCHANT_ID || 'G826233250';
+  // Jika serverKey diawali 'Mid-server-' (tanpa SB-), otomatis aktifkan mode Production
+  const isProd = process.env.MIDTRANS_IS_PRODUCTION !== 'false' && (process.env.MIDTRANS_IS_PRODUCTION === 'true' || (serverKey && serverKey.startsWith('Mid-server-')));
+
   return {
-    serverKey: process.env.MIDTRANS_SERVER_KEY || 'SB-Mid-server-oRFj2p6jrFzxUVGwO6Tj6w8B',
-    clientKey: process.env.MIDTRANS_CLIENT_KEY || 'SB-Mid-client-gtkZiSrCZjZHYwwZ',
+    serverKey,
+    clientKey,
+    merchantId,
     isProd,
     snapUrl: isProd 
       ? 'https://app.midtrans.com/snap/v1/transactions' 

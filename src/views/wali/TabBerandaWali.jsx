@@ -908,7 +908,7 @@ const TabBerandaWali = ({
                     letterSpacing: '0.03em',
                     textTransform: 'uppercase'
                   }}>
-                    SPP BULANAN
+                    BIAYA MAKAN BULANAN
                   </div>
                   <div style={{
                     fontSize: '0.86rem',

@@ -50,6 +50,21 @@ export const ensureSiklusSppTable = async () => {
         VALUES (1, 5, 10, 1, 4440, 0.78, 1)
       `);
     }
+
+    // Ubah nama SPP Bulanan menjadi Biaya Makan Bulanan di database
+    try {
+      await pool.query(`
+        UPDATE keuangan_tagihan 
+        SET judul_tagihan = REPLACE(judul_tagihan, 'SPP Bulanan', 'Biaya Makan Bulanan')
+        WHERE judul_tagihan LIKE '%SPP Bulanan%'
+      `);
+      await pool.query(`
+        UPDATE keuangan_komponen_biaya 
+        SET nama_komponen = REPLACE(nama_komponen, 'SPP Bulanan', 'Biaya Makan Bulanan')
+        WHERE nama_komponen LIKE '%SPP Bulanan%'
+      `);
+    } catch (_) {}
+
     isSiklusSppTableInitialized = true;
     await ensureSekolahTablesAndMapping();
     ensureKeuanganIndexes();
@@ -749,7 +764,7 @@ const ensureAutoTagihanForSantri = async (santriId, connectionOrPool = pool) => 
   // SMK: SPP Rp 565.000 | Biaya Awal Rp 2.400.000
   const nominalSpp = jenjang === 'SMP' ? 505000 : 565000;
   const nominalAwal = jenjang === 'SMP' ? 1890000 : jenjang === 'SMA' ? 2040000 : 2400000;
-  const judulSpp = `SPP Bulanan ${jenjang}`;
+  const judulSpp = `Biaya Makan Bulanan ${jenjang}`;
   const judulAwal = `Biaya Awal Masuk ${jenjang} (Adm Sekolah & Pesantren)`;
 
   // Cari komponen ID di keuangan_komponen_biaya
@@ -945,7 +960,7 @@ export const getDashboardKeuanganWali = async (req, res) => {
     }
 
     // 1. Ambil Seluruh Tagihan Santri
-    const [tagihanRows] = await pool.query(`
+    const [rawTagihanRows] = await pool.query(`
       SELECT 
         t.*,
         k.nama_komponen,
@@ -955,6 +970,12 @@ export const getDashboardKeuanganWali = async (req, res) => {
       WHERE t.santri_id = ?
       ORDER BY t.jatuh_tempo ASC, t.id ASC
     `, [santriId]);
+
+    const tagihanRows = (rawTagihanRows || []).map(t => ({
+      ...t,
+      judul_tagihan: t.judul_tagihan ? t.judul_tagihan.replace(/SPP Bulanan/gi, 'Biaya Makan Bulanan') : t.judul_tagihan,
+      nama_komponen: t.nama_komponen ? t.nama_komponen.replace(/SPP Bulanan/gi, 'Biaya Makan Bulanan') : t.nama_komponen
+    }));
 
     // Rincian per Kategori
     const tagihanBulanan = tagihanRows.filter(t => t.kategori === 'Bulanan');

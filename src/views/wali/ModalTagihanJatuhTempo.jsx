@@ -166,7 +166,7 @@ export default function ModalTagihanJatuhTempo({
                   color: "#ffffff",
                 }}
               >
-                Tagihan SPP
+                Tagihan Biaya Makan
               </div>
               <div
                 style={{
@@ -209,7 +209,7 @@ export default function ModalTagihanJatuhTempo({
                   letterSpacing: "0.05em",
                 }}
               >
-                Total SPP Tertunggak
+                Total Biaya Makan Tertunggak
               </div>
               <div
                 style={{
@@ -272,7 +272,7 @@ export default function ModalTagihanJatuhTempo({
                       textOverflow: "ellipsis",
                     }}
                   >
-                    {t.judul_tagihan || t.nama_komponen || "Tagihan Santri"}
+                    {(t.judul_tagihan || t.nama_komponen || "Tagihan Santri").replace(/SPP Bulanan/gi, 'Biaya Makan Bulanan')}
                   </div>
                   <div
                     style={{
