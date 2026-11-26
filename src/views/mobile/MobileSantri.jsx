@@ -26,6 +26,8 @@ import {
   Check,
   ChevronRight,
   Filter,
+  Eye,
+  Lock,
 } from "lucide-react";
 import { showConfirm, toastSuccess, showError } from "../../utils/alert.util";
 import MobileLoadingState from "../../components/MobileLoadingState";
@@ -48,6 +50,15 @@ export default function MobileSantri() {
   const [formMode, setFormMode] = useState("add"); // 'add' | 'edit'
   const [formTab, setFormTab] = useState("identitas"); // 'identitas' | 'asrama_kelas' | 'wali' | 'akun_device'
   const [submitting, setSubmitting] = useState(false);
+
+  // Modal Detail / Show Santri State
+  const [selectedDetailSantri, setSelectedDetailSantri] = useState(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  const handleOpenDetail = (santri) => {
+    setSelectedDetailSantri(santri);
+    setIsDetailModalOpen(true);
+  };
 
   const initialForm = {
     id: null,
@@ -229,7 +240,7 @@ export default function MobileSantri() {
       fingerprint_pin: santri.fingerprint_pin || "",
       rfid_card_uid: santri.rfid_card_uid || "",
       username: santri.username || santri.nisn || santri.nis || "",
-      password: santri.password || "",
+      password: "******",
     });
     setIsModalOpen(true);
   };
@@ -319,6 +330,10 @@ export default function MobileSantri() {
           ? String(formData.password).trim()
           : null,
     };
+
+    if (formMode === "edit") {
+      delete payload.password; // Password tidak boleh diubah saat edit santri
+    }
 
     try {
       if (formMode === "add") {
@@ -578,6 +593,12 @@ export default function MobileSantri() {
                   padding: "14px",
                   border: "1px solid #e2e8f0",
                   boxShadow: "0 2px 5px rgba(0,0,0,0.03)",
+                  cursor: "pointer",
+                }}
+                onClick={(e) => {
+                  if (!e.target.closest("button") && !e.target.closest("a")) {
+                    handleOpenDetail(s);
+                  }
                 }}
               >
                 {/* Header Card: Nama & Badge */}
@@ -685,6 +706,26 @@ export default function MobileSantri() {
 
                   {/* Actions CRUD */}
                   <div style={{ display: "flex", gap: "6px" }}>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenDetail(s)}
+                      style={{
+                        background: "#ecfdf5",
+                        color: "#059669",
+                        border: "1px solid #a7f3d0",
+                        padding: "5px 9px",
+                        borderRadius: "8px",
+                        fontSize: "0.72rem",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                      }}
+                      title="Lihat Detail Santri"
+                    >
+                      <Eye size={13} /> Detail
+                    </button>
                     <button
                       onClick={() => handleOpenEdit(s)}
                       style={{
@@ -1287,13 +1328,29 @@ export default function MobileSantri() {
                           <label style={{ fontSize: "0.68rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: "2px" }}>
                             PASSWORD
                           </label>
-                          <input
-                            type="text"
-                            placeholder="Password login"
-                            value={formData.password}
-                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                            style={{ width: "100%", padding: "8px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.78rem", boxSizing: "border-box" }}
-                          />
+                          {formMode === "edit" ? (
+                            <>
+                              <input
+                                type="password"
+                                disabled
+                                readOnly
+                                placeholder="******"
+                                value="******"
+                                style={{ width: "100%", padding: "8px", borderRadius: "8px", border: "1px solid #cbd5e1", background: "#f1f5f9", color: "#64748b", fontSize: "0.78rem", boxSizing: "border-box", cursor: "not-allowed" }}
+                              />
+                              <span style={{ fontSize: "0.62rem", color: "#64748b", display: "block", marginTop: "2px" }}>
+                                🔒 Password terenkripsi (******) & tidak diubah saat edit santri.
+                              </span>
+                            </>
+                          ) : (
+                            <input
+                              type="text"
+                              placeholder="Default: 123456"
+                              value={formData.password}
+                              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                              style={{ width: "100%", padding: "8px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.78rem", boxSizing: "border-box" }}
+                            />
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1385,6 +1442,309 @@ export default function MobileSantri() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* =========================================================================
+          MODAL DETAIL / SHOW SANTRI (MOBILE POPUP INTERAKTIF)
+      ========================================================================= */}
+      {isDetailModalOpen && selectedDetailSantri && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 99999,
+            background: "rgba(15, 23, 42, 0.72)",
+            backdropFilter: "blur(5px)",
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "center",
+          }}
+          onClick={() => setIsDetailModalOpen(false)}
+        >
+          <div
+            style={{
+              background: "#ffffff",
+              width: "100%",
+              maxWidth: "480px",
+              borderTopLeftRadius: "26px",
+              borderTopRightRadius: "26px",
+              maxHeight: "92vh",
+              overflowY: "auto",
+              padding: "18px 20px 30px",
+              boxShadow: "0 -10px 30px rgba(0,0,0,0.2)",
+              animation: "slideUp 0.25s ease-out",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Handle Drag bar */}
+            <div
+              style={{
+                width: "40px",
+                height: "4px",
+                background: "#cbd5e1",
+                borderRadius: "4px",
+                margin: "0 auto 14px",
+              }}
+            />
+
+            {/* Header Detail Modal */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div
+                  style={{
+                    width: "34px",
+                    height: "34px",
+                    borderRadius: "10px",
+                    background: "#ecfdf5",
+                    color: "#059669",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Eye size={18} strokeWidth={2.4} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 800, color: "#0f172a" }}>
+                    Detail Profil Santri
+                  </h3>
+                  <p style={{ margin: "1px 0 0", fontSize: "0.7rem", color: "#64748b" }}>
+                    Informasi lengkap biodata &amp; akun santri
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsDetailModalOpen(false)}
+                style={{
+                  background: "#f1f5f9",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: "32px",
+                  height: "32px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#64748b",
+                  cursor: "pointer",
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Card Hero Profil Santri */}
+            <div
+              style={{
+                background: "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)",
+                borderRadius: "18px",
+                padding: "14px 16px",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                gap: "14px",
+                marginBottom: "14px",
+                boxShadow: "0 6px 18px rgba(13, 148, 136, 0.28)",
+              }}
+            >
+              <div
+                style={{
+                  width: "56px",
+                  height: "56px",
+                  borderRadius: "50%",
+                  background: "#ffffff",
+                  color: "#0f766e",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "1.3rem",
+                  fontWeight: 900,
+                  flexShrink: 0,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                }}
+              >
+                {(selectedDetailSantri.nama_santri || selectedDetailSantri.nama || "S").charAt(0).toUpperCase()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: "1.05rem", fontWeight: 800, lineHeight: 1.2 }}>
+                  {selectedDetailSantri.nama_santri || selectedDetailSantri.nama || "Tanpa Nama"}
+                </div>
+                <div style={{ fontSize: "0.74rem", opacity: 0.9, marginTop: "3px" }}>
+                  NIS: <strong>{selectedDetailSantri.nis || "-"}</strong> {selectedDetailSantri.nisn && `• NISN: ${selectedDetailSantri.nisn}`}
+                </div>
+                <div style={{ display: "flex", gap: "5px", marginTop: "6px" }}>
+                  <span
+                    style={{
+                      fontSize: "0.62rem",
+                      padding: "2px 7px",
+                      borderRadius: "6px",
+                      background: "rgba(255,255,255,0.22)",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {String(selectedDetailSantri.jk || "L").toUpperCase().startsWith("L") ? "Santri Putra (L)" : "Santri Putri (P)"}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "0.62rem",
+                      padding: "2px 7px",
+                      borderRadius: "6px",
+                      background: "#ffffff",
+                      color: "#0f766e",
+                      fontWeight: 800,
+                    }}
+                  >
+                    {selectedDetailSantri.status_santri || "Mukim"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Grid Informasi Rinci */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {/* 1. Asrama, Kamar & Kelas */}
+              <div style={{ background: "#f8fafc", borderRadius: "14px", padding: "12px", border: "1px solid #e2e8f0" }}>
+                <div style={{ fontSize: "0.72rem", fontWeight: 800, color: "#0f766e", textTransform: "uppercase", marginBottom: "8px", display: "flex", alignItems: "center", gap: "5px" }}>
+                  <Building size={13} /> Penempatan &amp; Kelas
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "0.76rem" }}>
+                  <div>
+                    <span style={{ color: "#64748b", fontSize: "0.66rem", display: "block" }}>Asrama &amp; Kamar:</span>
+                    <strong>{selectedDetailSantri.nama_asrama || "-"} ({selectedDetailSantri.nama_kamar || "-"})</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: "#64748b", fontSize: "0.66rem", display: "block" }}>Kelas Diniyah:</span>
+                    <strong>{selectedDetailSantri.nama_kelas || "-"} • {selectedDetailSantri.tingkat_diniyah || "Wustho"}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: "#64748b", fontSize: "0.66rem", display: "block" }}>Sekolah Formal:</span>
+                    <strong>{selectedDetailSantri.nama_sekolah || "SMP Nurul Wafa"} ({selectedDetailSantri.tingkat_sekolah || "Kls 7"})</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: "#64748b", fontSize: "0.66rem", display: "block" }}>Capaian Tahfidz:</span>
+                    <strong style={{ color: "#059669" }}>{selectedDetailSantri.capaian_hafalan_juz || 0} Juz Al-Qur'an</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Orang Tua / Wali */}
+              <div style={{ background: "#f8fafc", borderRadius: "14px", padding: "12px", border: "1px solid #e2e8f0" }}>
+                <div style={{ fontSize: "0.72rem", fontWeight: 800, color: "#0284c7", textTransform: "uppercase", marginBottom: "8px", display: "flex", alignItems: "center", gap: "5px" }}>
+                  <User size={13} /> Data Orang Tua (Wali)
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "0.76rem" }}>
+                  <div>
+                    <span style={{ color: "#64748b", fontSize: "0.66rem", display: "block" }}>Nama Wali:</span>
+                    <strong>{selectedDetailSantri.nama_wali || "-"}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: "#64748b", fontSize: "0.66rem", display: "block" }}>No. WhatsApp:</span>
+                    {selectedDetailSantri.no_wa_wali ? (
+                      <a
+                        href={`https://wa.me/${String(selectedDetailSantri.no_wa_wali).replace(/[^0-9]/g, "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: "#059669", fontWeight: 800, textDecoration: "none" }}
+                      >
+                        📱 {selectedDetailSantri.no_wa_wali}
+                      </a>
+                    ) : (
+                      <strong>-</strong>
+                    )}
+                  </div>
+                  <div style={{ gridColumn: "span 2" }}>
+                    <span style={{ color: "#64748b", fontSize: "0.66rem", display: "block" }}>Alamat Asal:</span>
+                    <span>{selectedDetailSantri.alamat_asal || "-"}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Perangkat & Biometrik Presensi */}
+              <div style={{ background: "#f8fafc", borderRadius: "14px", padding: "12px", border: "1px solid #e2e8f0" }}>
+                <div style={{ fontSize: "0.72rem", fontWeight: 800, color: "#d97706", textTransform: "uppercase", marginBottom: "8px", display: "flex", alignItems: "center", gap: "5px" }}>
+                  <Fingerprint size={13} /> Data Biometrik &amp; Mesin
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "0.76rem" }}>
+                  <div>
+                    <span style={{ color: "#64748b", fontSize: "0.66rem", display: "block" }}>PIN Mesin Fingerprint:</span>
+                    <strong style={{ color: "#d97706" }}>{selectedDetailSantri.fingerprint_pin || "Belum diset"}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: "#64748b", fontSize: "0.66rem", display: "block" }}>UID Kartu RFID Tap:</span>
+                    <strong style={{ color: "#0284c7" }}>{selectedDetailSantri.rfid_card_uid || "Belum didaftarkan"}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Kredensial Akun Portal Wali (Password Masked) */}
+              <div style={{ background: "#eff6ff", borderRadius: "14px", padding: "12px", border: "1.5px solid #bfdbfe" }}>
+                <div style={{ fontSize: "0.72rem", fontWeight: 800, color: "#1e40af", textTransform: "uppercase", marginBottom: "8px", display: "flex", alignItems: "center", gap: "5px" }}>
+                  <Lock size={13} /> Kredensial Login Portal Wali
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "0.76rem" }}>
+                  <div style={{ background: "#ffffff", padding: "8px 10px", borderRadius: "8px", border: "1px solid #dbeafe" }}>
+                    <span style={{ color: "#64748b", fontSize: "0.66rem", display: "block" }}>Username Wali:</span>
+                    <strong style={{ color: "#0f172a", fontSize: "0.82rem" }}>
+                      {selectedDetailSantri.username || selectedDetailSantri.nisn || selectedDetailSantri.nis || "-"}
+                    </strong>
+                  </div>
+                  <div style={{ background: "#ffffff", padding: "8px 10px", borderRadius: "8px", border: "1px solid #dbeafe" }}>
+                    <span style={{ color: "#64748b", fontSize: "0.66rem", display: "block" }}>Password Wali:</span>
+                    <strong style={{ color: "#059669", fontSize: "0.85rem", letterSpacing: "2px" }}>
+                      ******
+                    </strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tombol Aksi di Modal Detail */}
+            <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
+              <button
+                type="button"
+                onClick={() => {
+                  const s = selectedDetailSantri;
+                  setIsDetailModalOpen(false);
+                  handleOpenEdit(s);
+                }}
+                style={{
+                  flex: 1,
+                  padding: "11px",
+                  borderRadius: "12px",
+                  border: "none",
+                  background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+                  color: "#ffffff",
+                  fontSize: "0.82rem",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                  boxShadow: "0 4px 12px rgba(2, 132, 199, 0.3)",
+                }}
+              >
+                <Edit3 size={15} /> Edit Data Ini
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsDetailModalOpen(false)}
+                style={{
+                  flex: 1,
+                  padding: "11px",
+                  borderRadius: "12px",
+                  border: "1.5px solid #cbd5e1",
+                  background: "#ffffff",
+                  color: "#475569",
+                  fontSize: "0.82rem",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                Tutup
+              </button>
             </div>
           </div>
         </div>

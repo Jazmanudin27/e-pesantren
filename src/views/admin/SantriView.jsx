@@ -628,7 +628,7 @@ export default function SantriView() {
       tingkat_sekolah: santri.tingkat_sekolah || 'Kelas 7',
       foto: santri.foto || santri.foto_santri || '',
       username: santri.username || santri.nisn || santri.nis || '',
-      password: santri.password || '123456'
+      password: '******'
     });
     setIsFormOpen(true);
   };
@@ -704,11 +704,13 @@ export default function SantriView() {
           setSantriList([...santriList, { ...formData, id: Date.now() }]);
         }
       } else {
-        const res = await axios.put(`/api/santri/${formData.id}`, formData);
+        const payload = { ...formData };
+        delete payload.password; // Password tidak boleh diubah saat edit data santri
+        const res = await axios.put(`/api/santri/${formData.id}`, payload);
         if (res.data && res.data.success) {
           fetchSantri();
         } else {
-          setSantriList(santriList.map(s => s.id === formData.id ? formData : s));
+          setSantriList(santriList.map(s => s.id === formData.id ? { ...formData, ...payload } : s));
         }
       }
 
@@ -982,7 +984,17 @@ export default function SantriView() {
                   </tr>
                 ) : (
                   santriList.map((row, idx) => (
-                    <tr key={row.id || idx}>
+                    <tr 
+                      key={row.id || idx}
+                      style={{ cursor: 'pointer' }}
+                      onClick={(e) => {
+                        // Jangan trigger modal jika klik tombol aksi atau link
+                        if (!e.target.closest('button') && !e.target.closest('a')) {
+                          openDetail(row);
+                        }
+                      }}
+                      title="Klik untuk melihat detail lengkap santri"
+                    >
                       <td className="td-center" style={{ fontWeight: 600, color: '#64748b' }}>
                         {(page - 1) * limit + idx + 1}
                       </td>
@@ -1547,7 +1559,7 @@ export default function SantriView() {
                     </div>
                     <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
                       <span style={{ color: '#64748b', fontSize: '0.68rem', display: 'block' }}>Password Login Wali:</span>
-                      <strong style={{ color: '#059669', fontSize: '0.85rem' }}>{selectedSantri.password || '123456'}</strong>
+                      <strong style={{ color: '#059669', fontSize: '0.85rem' }}>******</strong>
                     </div>
                   </div>
                 </div>
@@ -2212,14 +2224,31 @@ export default function SantriView() {
                       <label style={{ fontSize: '0.68rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '2px' }}>
                         PASSWORD WALI
                       </label>
-                      <input
-                        type="text"
-                        placeholder="Default: 123456"
-                        className="filter-select"
-                        style={{ width: '100%', padding: '6px 8px', background: '#ffffff', fontSize: '0.82rem' }}
-                        value={formData.password}
-                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      />
+                      {formMode === 'edit' ? (
+                        <>
+                          <input
+                            type="password"
+                            disabled
+                            readOnly
+                            placeholder="******"
+                            className="filter-select"
+                            style={{ width: '100%', padding: '6px 8px', background: '#f1f5f9', color: '#64748b', fontSize: '0.82rem', cursor: 'not-allowed' }}
+                            value="******"
+                          />
+                          <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '2px' }}>
+                            🔒 Password dienkripsi (******) & tidak diubah saat edit data santri.
+                          </div>
+                        </>
+                      ) : (
+                        <input
+                          type="text"
+                          placeholder="Default: 123456"
+                          className="filter-select"
+                          style={{ width: '100%', padding: '6px 8px', background: '#ffffff', fontSize: '0.82rem' }}
+                          value={formData.password}
+                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        />
+                      )}
                     </div>
 
                     <div style={{ fontSize: '0.66rem', color: '#0d9488', marginTop: '2px', lineHeight: 1.3 }}>

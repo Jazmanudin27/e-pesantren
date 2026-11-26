@@ -228,6 +228,7 @@ export const getAllSantri = async (req, res) => {
         alamat_asal: isDummyAlamat ? '' : rawAlamat,
         nama_wali: isDummyWali ? '' : rawWali,
         no_wa_wali: rawWa === '-' ? '' : rawWa,
+        password: '******',
         has_photo: hasPhoto ? 1 : 0,
         has_face_descriptor: hasFace ? 1 : 0,
         has_fingerprint: hasFp ? 1 : 0,
@@ -475,7 +476,10 @@ export const updateSantri = async (req, res) => {
       }
     }
     if (username !== undefined && String(username).trim() !== '') addIfColExists('username', String(username).trim());
-    if (password !== undefined && String(password).trim() !== '') addIfColExists('password', hashPassword2y(password));
+    // Password tidak boleh diperbarui dari menu edit santri jika masked (******) atau kosong
+    if (password !== undefined && String(password).trim() !== '' && !String(password).includes('*')) {
+      addIfColExists('password', hashPassword2y(password));
+    }
 
     if (fieldsToUpdate.length > 0) {
       params.push(id);
