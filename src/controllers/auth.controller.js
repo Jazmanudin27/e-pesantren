@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import pool from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/response.util.js';
 import { JWT_SECRET } from '../middleware/auth.middleware.js';
+import { isRoleInMaintenance } from './maintenance.controller.js';
 
 export const login = async (req, res, next) => {
   try {
@@ -319,6 +320,32 @@ export const login = async (req, res, next) => {
         : isPengajarAccount
           ? 'Ustadz / Guru'
           : userType;
+
+    // CEK MAINTENANCE ROLE: Jika role sedang dalam perbaikan, tolak login dengan status 503 & pesan perbaikan
+    const isSuperAdmin = (account.id === 1 || cleanUser.toLowerCase() === 'admin' || resolvedRole === 'super admin' || resolvedRole === 'admin');
+    if (!isSuperAdmin) {
+      if (isWali) {
+        const checkMaint = await isRoleInMaintenance('wali');
+        if (checkMaint.active) {
+          return sendError(res, checkMaint.message || 'Layanan Portal Orang Tua sedang dalam perbaikan sistem.', 503);
+        }
+      } else if (isPengajarAccount) {
+        const checkMaint = await isRoleInMaintenance('pengajar');
+        if (checkMaint.active) {
+          return sendError(res, checkMaint.message || 'Portal Pengajar / Ustadz sedang dalam pemeliharaan sistem.', 503);
+        }
+      } else if (resolvedRole.includes('keuangan') || resolvedRole.includes('bendahara')) {
+        const checkMaint = await isRoleInMaintenance('keuangan');
+        if (checkMaint.active) {
+          return sendError(res, checkMaint.message || 'Layanan Keuangan sedang dalam pemeliharaan sistem.', 503);
+        }
+      } else if (userType === 'Asrama' || resolvedRole.includes('asrama')) {
+        const checkMaint = await isRoleInMaintenance('asrama');
+        if (checkMaint.active) {
+          return sendError(res, checkMaint.message || 'Portal Asrama sedang dalam pemeliharaan sistem.', 503);
+        }
+      }
+    }
 
     const tokenPayload = {
       id: account.id,

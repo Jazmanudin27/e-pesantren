@@ -27,6 +27,7 @@ import {
   Power,
   CreditCard,
   Clock,
+  Wrench,
 } from "lucide-react";
 import { showConfirm, toastSuccess, showError } from "../../utils/alert.util";
 import SearchableSelect from "../../components/SearchableSelect";
@@ -529,6 +530,15 @@ export default function UserManagementView() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button 
+            type="button" 
+            className="btn btn-outline" 
+            onClick={() => { window.location.hash = '#maintenance-setting'; }}
+            style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
+            title="Kelola Status & Maintenance Per Role"
+          >
+            <Wrench size={14} /> Setting Maintenance Role
+          </button>
           <button 
             type="button" 
             className="btn btn-outline" 

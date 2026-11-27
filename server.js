@@ -18,6 +18,7 @@ import { ensureSiklusSppTable } from './src/controllers/keuangan.controller.js';
 import { ensureOwnerAccount } from './src/controllers/owner.controller.js';
 import { ensureDatabaseIndexes } from './src/config/ensureDatabaseIndexes.js';
 import { ensureKelasColumns } from './src/controllers/kelas.controller.js';
+import { ensureMaintenanceTable } from './src/controllers/maintenance.controller.js';
 
 dotenv.config();
 
@@ -89,6 +90,7 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
     await ensureOwnerAccount();
     await ensureDatabaseIndexes();
     await ensureKelasColumns();
+    await ensureMaintenanceTable();
   } catch (e) {
     console.warn('[E-PESANTREN] Init DB notice:', e.message);
   }

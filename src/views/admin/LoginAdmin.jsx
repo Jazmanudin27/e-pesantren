@@ -121,6 +121,7 @@ export default function LoginAdmin({ onLoginSuccess }) {
       }
     } catch (err) {
       setLoading(false);
+      const isMaint = err.response?.status === 503;
       const serverMsg = err.response?.data?.error || err.response?.data?.message;
       let displayMsg = 'Login gagal. Periksa username dan password Anda.';
       if (serverMsg) {
@@ -129,7 +130,7 @@ export default function LoginAdmin({ onLoginSuccess }) {
         displayMsg = 'Koneksi ke server database gagal. Pastikan service backend aktif.';
       }
       setError(displayMsg);
-      showError('Login Gagal', displayMsg);
+      showError(isMaint ? 'Sistem Sedang Diperbaiki' : 'Login Gagal', displayMsg);
     }
   };
 

@@ -29,6 +29,7 @@ import TabInfakSedekahWali from "./TabInfakSedekahWali";
 import TabPesanWali from "./TabPesanWali";
 import ModalTagihanJatuhTempo from "./ModalTagihanJatuhTempo";
 import ModalPengumumanWali from "./ModalPengumumanWali";
+import MaintenanceScreen from "../../components/MaintenanceScreen";
 
 import {
   showConfirm,
@@ -39,6 +40,7 @@ import {
 
 export default function PortalWaliSantri({ onLogout, customSantriId }) {
   const [loading, setLoading] = useState(true);
+  const [maintenanceInfo, setMaintenanceInfo] = useState(null);
   const [data, setData] = useState(null);
   const [santriList, setSantriList] = useState([]);
   const [keuanganSummary, setKeuanganSummary] = useState(null);
@@ -218,6 +220,19 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
   const fetchWaliData = async (targetId = selectedSantriId, silent = false) => {
     try {
       if (!silent) setLoading(true);
+
+      // Cek status maintenance role wali
+      try {
+        const maintRes = await axios.get("/api/maintenance/status");
+        if (maintRes.data?.data?.wali?.is_maintenance) {
+          setMaintenanceInfo(maintRes.data.data.wali);
+          if (!silent) setLoading(false);
+          return;
+        } else {
+          setMaintenanceInfo(null);
+        }
+      } catch (eMaint) {}
+
       let sessionNisn = "";
       let sessionNama = "";
       try {
@@ -253,6 +268,12 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
         }
       }
     } catch (err) {
+      if (err.response?.status === 503) {
+        setMaintenanceInfo({
+          is_maintenance: true,
+          message: err.response.data?.message || err.response.data?.error || "Portal Orang Tua sedang dalam perbaikan sistem."
+        });
+      }
       if (!silent) console.warn("Gagal memuat data portal wali:", err.message);
     } finally {
       if (!silent) setLoading(false);
@@ -1121,6 +1142,23 @@ export default function PortalWaliSantri({ onLogout, customSantriId }) {
           ? santri.no_hp_pembina
           : "",
     });
+  }
+
+  // Jika role wali sedang dalam pemeliharaan sistem
+  if (maintenanceInfo?.is_maintenance) {
+    return (
+      <MaintenanceScreen
+        roleKey="wali"
+        roleName="Orang Tua / Wali Santri"
+        message={maintenanceInfo.message}
+        estimatedTime={maintenanceInfo.estimated_time}
+        onRefresh={() => {
+          setMaintenanceInfo(null);
+          fetchWaliData();
+        }}
+        onLogout={handleLogoutAction}
+      />
+    );
   }
 
   return (

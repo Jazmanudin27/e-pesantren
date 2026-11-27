@@ -7,6 +7,8 @@ import OwnerDashboardView from './views/owner/OwnerDashboardView';
 import PengajarDashboardView from './views/pengajar/PengajarDashboardView';
 import SplashScreen from './components/SplashScreen';
 import PWAInstallModal from './components/PWAInstallModal';
+import MaintenanceScreen from './components/MaintenanceScreen';
+import axios from 'axios';
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(() => {
@@ -111,9 +113,26 @@ export default function App() {
   };
 
   const [mode, setMode] = useState(getMode);
+  const [maintenanceStatus, setMaintenanceStatus] = useState(null);
+
+  const fetchMaintenanceStatus = async () => {
+    try {
+      const res = await axios.get('/api/maintenance/status');
+      if (res.data?.success && res.data.data) {
+        setMaintenanceStatus(res.data.data);
+      }
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    fetchMaintenanceStatus();
+    const interval = setInterval(fetchMaintenanceStatus, 25000); // Polling status pemeliharaan tiap 25 detik
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const handleLocationChange = () => {
+      fetchMaintenanceStatus();
       const currentMode = getMode();
       setMode(currentMode);
       if (currentMode === 'owner') {
@@ -162,20 +181,74 @@ export default function App() {
           }} 
         />
       ) : mode === 'pengajar' ? (
-        <PengajarDashboardView
-          onLogout={() => {
-            localStorage.removeItem('desktop_session');
-            localStorage.removeItem('mobile_session');
-            localStorage.removeItem('token');
-            sessionStorage.clear();
-            window.location.hash = '#login';
-            window.location.reload();
-          }}
-        />
+        maintenanceStatus?.pengajar?.is_maintenance ? (
+          <MaintenanceScreen 
+            roleKey="pengajar"
+            roleName="Ustadz / Pengajar"
+            message={maintenanceStatus.pengajar.message}
+            estimatedTime={maintenanceStatus.pengajar.estimated_time}
+            onRefresh={fetchMaintenanceStatus}
+            onLogout={() => {
+              localStorage.removeItem('desktop_session');
+              localStorage.removeItem('mobile_session');
+              localStorage.removeItem('token');
+              sessionStorage.clear();
+              window.location.hash = '#login';
+              window.location.reload();
+            }}
+          />
+        ) : (
+          <PengajarDashboardView
+            onLogout={() => {
+              localStorage.removeItem('desktop_session');
+              localStorage.removeItem('mobile_session');
+              localStorage.removeItem('token');
+              sessionStorage.clear();
+              window.location.hash = '#login';
+              window.location.reload();
+            }}
+          />
+        )
       ) : mode === 'wali' ? (
-        <PortalWaliSantri onLogout={() => { window.location.hash = '#login'; setMode(getMode()); }} />
+        maintenanceStatus?.wali?.is_maintenance ? (
+          <MaintenanceScreen 
+            roleKey="wali"
+            roleName="Orang Tua / Wali Santri"
+            message={maintenanceStatus.wali.message}
+            estimatedTime={maintenanceStatus.wali.estimated_time}
+            onRefresh={fetchMaintenanceStatus}
+            onLogout={() => {
+              localStorage.removeItem('desktop_session');
+              localStorage.removeItem('mobile_session');
+              localStorage.removeItem('token');
+              sessionStorage.clear();
+              window.location.hash = '#login';
+              setMode(getMode());
+            }}
+          />
+        ) : (
+          <PortalWaliSantri onLogout={() => { window.location.hash = '#login'; setMode(getMode()); }} />
+        )
       ) : mode === 'keuangan-mobile' ? (
-        <MobileKeuanganLayout />
+        maintenanceStatus?.keuangan?.is_maintenance ? (
+          <MaintenanceScreen 
+            roleKey="keuangan"
+            roleName="Keuangan & Bendahara"
+            message={maintenanceStatus.keuangan.message}
+            estimatedTime={maintenanceStatus.keuangan.estimated_time}
+            onRefresh={fetchMaintenanceStatus}
+            onLogout={() => {
+              localStorage.removeItem('desktop_session');
+              localStorage.removeItem('mobile_session');
+              localStorage.removeItem('token');
+              sessionStorage.clear();
+              window.location.hash = '#login';
+              window.location.reload();
+            }}
+          />
+        ) : (
+          <MobileKeuanganLayout />
+        )
       ) : mode === 'mobile' ? (
         <MobileLayout />
       ) : (

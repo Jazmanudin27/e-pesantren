@@ -70,6 +70,7 @@ import WhatsAppGatewayView from '../views/admin/WhatsAppGatewayView';
 import OwnerDashboardView from '../views/owner/OwnerDashboardView';
 import PengajarDashboardView from '../views/pengajar/PengajarDashboardView';
 import HaidSantriwatiAdminView from '../views/admin/HaidSantriwatiAdminView';
+import MaintenanceRoleView from '../views/admin/MaintenanceRoleView';
 import { canAccessKeuangan, canAccessAbsensi, isPureKeuangan, isPureAbsen } from '../utils/authRole.util';
 import { showConfirm, toastSuccess } from '../utils/alert.util';
 
@@ -77,7 +78,7 @@ export default function AdminLayout() {
   const isAbsensiTab = (tab) => ['absensi-berjamaah', 'presensi-berjamaah', 'presensi', 'absensi-mengaji', 'presensi-kegiatan', 'haid-santriwati', 'haid'].includes(tab);
   const isPengembanganTab = (tab) => ['perkembangan-santri-laki', 'perkembangan-ikhwan', 'perkembangan-santri-perempuan', 'perkembangan-santriwati', 'perkembangan-akhwat'].includes(tab);
   const isMasterTab = (tab) => ['master-santri', 'master-asrama', 'master-kelas', 'master-asatidz', 'master-materi', 'setting-shalat', 'setting-kegiatan', 'master-kegiatan'].includes(tab);
-  const isSettingsTab = (tab) => ['master-device', 'manajemen-user', 'users', 'whatsapp-gateway', 'whatsapp', 'wa-broadcast'].includes(tab);
+  const isSettingsTab = (tab) => ['master-device', 'manajemen-user', 'users', 'whatsapp-gateway', 'whatsapp', 'wa-broadcast', 'maintenance-setting', 'setting-maintenance', 'maintenance'].includes(tab);
   const isLaporanTab = (tab) => ['laporan-presensi'].includes(tab);
   const isKeuanganTab = (tab) => ['keuangan-admin', 'keuangan', 'keuangan-kasir', 'keuangan-rekap', 'keuangan-spp', 'tagihan', 'buku-kas', 'kantong-kas', 'kantong-saldo', 'tabungan-santri', 'tabungan', 'laporan-infak', 'infak'].includes(tab);
 
@@ -277,6 +278,11 @@ export default function AdminLayout() {
         return;
       }
     } catch (err) {
+      if (err.response?.status === 503) {
+        setLoginLoading(false);
+        setLoginError(err.response?.data?.error || err.response?.data?.message || 'Layanan sedang dalam pemeliharaan sistem.');
+        return;
+      }
       // Fallback offline support
       const isNetwork = !err.response || err.code === 'ERR_NETWORK';
       if (isNetwork) {
@@ -535,6 +541,10 @@ export default function AdminLayout() {
       case 'whatsapp':
       case 'wa-broadcast':
         return <WhatsAppGatewayView />;
+      case 'maintenance-setting':
+      case 'setting-maintenance':
+      case 'maintenance':
+        return <MaintenanceRoleView />;
       case 'portal-wali':
       case 'wali-santri':
       case 'wali':
@@ -912,6 +922,15 @@ export default function AdminLayout() {
             >
               <HardDrive size={13} style={{ marginRight: '6px', color: '#a855f7' }} />
               <span>Mesin Fingerprint (ADMS)</span>
+            </button>
+
+            {/* Status & Maintenance Role */}
+            <button 
+              className={`nav-sublink ${['maintenance-setting', 'setting-maintenance', 'maintenance'].includes(activeTab) ? 'active' : ''}`}
+              onClick={() => handleTabClick('maintenance-setting')}
+            >
+              <Wrench size={13} style={{ marginRight: '6px', color: '#ef4444' }} />
+              <span>Status &amp; Maintenance Role</span>
             </button>
           </div>
         )}

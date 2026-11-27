@@ -27,6 +27,7 @@ import sekolahRoutes from './sekolah.routes.js';
 import ownerRoutes from './owner.routes.js';
 import pengajarRoutes from './pengajar.routes.js';
 import haidRoutes from './haid.routes.js';
+import maintenanceRoutes from './maintenance.routes.js';
 
 const router = express.Router();
 
@@ -59,5 +60,6 @@ router.use('/sekolah', sekolahRoutes); // /api/sekolah, /api/sekolah/rincian-bia
 router.use('/owner', ownerRoutes); // /api/owner/summary, /api/owner/keuangan, /api/owner/presensi, dll
 router.use('/pengajar', pengajarRoutes); // /api/pengajar (Absen Mengaji, Teguran, Praktek, Perkembangan)
 router.use('/haid', haidRoutes); // /api/haid (Pencatatan Haid Santriwati & Otomasi Presensi)
+router.use('/maintenance', maintenanceRoutes); // /api/maintenance/status, /api/maintenance/toggle, /api/maintenance/settings
 
 export default router;
