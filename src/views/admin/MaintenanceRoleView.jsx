@@ -529,105 +529,249 @@ export default function MaintenanceRoleView() {
         )}
       </div>
 
-      {/* MODAL EDIT PENGATURAN MAINTENANCE (SEPERTI FORM MODAL MASTER DATA) */}
+      {/* MODAL EDIT PENGATURAN MAINTENANCE (PREMIUM SOLID MODAL) */}
       {isEditModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsEditModalOpen(false)}>
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 99999,
+            background: 'rgba(15, 23, 42, 0.78)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+            animation: 'fadeIn 0.2s ease'
+          }}
+          onClick={() => setIsEditModalOpen(false)}
+        >
           <div 
-            className="modal-container" 
-            style={{ maxWidth: "560px", width: "95%" }}
+            style={{
+              background: '#ffffff',
+              borderRadius: '24px',
+              maxWidth: '600px',
+              width: '100%',
+              maxHeight: '92vh',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 25px 60px -15px rgba(15, 23, 42, 0.45), 0 0 0 1px rgba(226, 232, 240, 0.8)',
+              animation: 'slideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="modal-header">
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "#fef2f2", color: "#dc2626", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Wrench size={18} />
+            {/* Header */}
+            <div
+              style={{
+                padding: '20px 24px',
+                background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                position: 'relative'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div
+                  style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '12px',
+                    background: editFormData.is_maintenance ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #10b981, #059669)',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+                    flexShrink: 0
+                  }}
+                >
+                  {editFormData.is_maintenance ? <Wrench size={22} /> : <CheckCircle2 size={22} />}
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 800 }}>
-                    Pengaturan Maintenance: {editFormData.role_name}
-                  </h3>
-                  <div style={{ fontSize: "0.72rem", color: "#64748b" }}>
-                    Modul Key: <code>{editFormData.role_key}</code>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', letterSpacing: '-0.3px' }}>
+                      {editFormData.role_name}
+                    </h3>
+                    <span
+                      style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        background: 'rgba(255, 255, 255, 0.15)',
+                        color: '#e2e8f0',
+                        letterSpacing: '0.04em'
+                      }}
+                    >
+                      KEY: {editFormData.role_key}
+                    </span>
                   </div>
+                  <p style={{ margin: '3px 0 0', fontSize: '0.74rem', color: '#94a3b8' }}>
+                    Konfigurasi status pemeliharaan sistem &amp; teks notifikasi resmi portal
+                  </p>
                 </div>
               </div>
-              <button 
-                type="button" 
-                className="modal-close" 
+
+              <button
+                type="button"
                 onClick={() => setIsEditModalOpen(false)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.12)',
+                  border: 'none',
+                  color: '#ffffff',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)'}
               >
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveEditModal}>
-              <div className="modal-body" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                
+            <form onSubmit={handleSaveEditModal} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+              <div 
+                style={{ 
+                  padding: '22px 24px', 
+                  overflowY: 'auto', 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '18px', 
+                  background: '#ffffff' 
+                }}
+              >
                 {/* Status Toggle Box */}
                 <div 
+                  onClick={() => setEditFormData({ ...editFormData, is_maintenance: !editFormData.is_maintenance })}
                   style={{ 
-                    padding: "14px 16px", 
-                    borderRadius: "12px", 
-                    background: editFormData.is_maintenance ? "#fef2f2" : "#ecfdf5", 
-                    border: editFormData.is_maintenance ? "1.5px solid #fecaca" : "1.5px solid #a7f3d0",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between"
+                    cursor: 'pointer',
+                    padding: '16px 18px', 
+                    borderRadius: '16px', 
+                    background: editFormData.is_maintenance 
+                      ? 'linear-gradient(135deg, #fff1f2 0%, #fee2e2 100%)' 
+                      : 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+                    border: editFormData.is_maintenance ? '2px solid #f87171' : '2px solid #6ee7b7',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    boxShadow: editFormData.is_maintenance ? '0 4px 14px rgba(239, 68, 68, 0.12)' : '0 4px 14px rgba(16, 185, 129, 0.12)',
+                    transition: 'all 0.2s ease'
                   }}
                 >
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: "0.85rem", color: editFormData.is_maintenance ? "#991b1b" : "#065f46" }}>
-                      {editFormData.is_maintenance ? "MODE MAINTENANCE DIAKTIFKAN" : "OPERASIONAL NORMAL"}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div
+                      style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '12px',
+                        background: editFormData.is_maintenance ? '#ef4444' : '#10b981',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
+                        flexShrink: 0
+                      }}
+                    >
+                      <Power size={20} />
                     </div>
-                    <div style={{ fontSize: "0.74rem", color: editFormData.is_maintenance ? "#b91c1c" : "#047857", marginTop: "2px" }}>
-                      {editFormData.is_maintenance 
-                        ? "Akses pengguna role ini DIBLOKIR sementara." 
-                        : "Akses login dan fitur portal role ini terbuka normal."}
+                    <div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 900, color: editFormData.is_maintenance ? '#991b1b' : '#065f46' }}>
+                        {editFormData.is_maintenance ? 'MODE PEMELIHARAAN AKTIF' : 'OPERASIONAL NORMAL'}
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: editFormData.is_maintenance ? '#b91c1c' : '#047857', marginTop: '2px' }}>
+                        {editFormData.is_maintenance 
+                          ? 'Portal ditutup. Pengguna diarahkan ke layar perbaikan sistem.' 
+                          : 'Portal terbuka penuh. Pengguna dapat login dan beraktivitas normal.'}
+                      </div>
                     </div>
                   </div>
 
-                  <label style={{ position: "relative", display: "inline-block", width: "48px", height: "26px", cursor: "pointer" }}>
-                    <input 
-                      type="checkbox" 
-                      checked={editFormData.is_maintenance}
-                      onChange={(e) => setEditFormData({ ...editFormData, is_maintenance: e.target.checked })}
-                      style={{ opacity: 0, width: 0, height: 0 }}
-                    />
-                    <span 
+                  {/* Toggle Switch */}
+                  <div
+                    style={{
+                      width: '52px',
+                      height: '28px',
+                      borderRadius: '99px',
+                      background: editFormData.is_maintenance ? '#ef4444' : '#cbd5e1',
+                      padding: '3px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: editFormData.is_maintenance ? 'flex-end' : 'flex-start',
+                      transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                      boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.15)'
+                    }}
+                  >
+                    <div
                       style={{
-                        position: "absolute",
-                        cursor: "pointer",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        backgroundColor: editFormData.is_maintenance ? "#ef4444" : "#cbd5e1",
-                        transition: ".2s",
-                        borderRadius: "34px"
+                        width: '22px',
+                        height: '22px',
+                        borderRadius: '50%',
+                        background: '#ffffff',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
                       }}
                     />
-                    <span 
-                      style={{
-                        position: "absolute",
-                        content: '""',
-                        height: "20px",
-                        width: "20px",
-                        left: editFormData.is_maintenance ? "24px" : "3px",
-                        bottom: "3px",
-                        backgroundColor: "white",
-                        transition: ".2s",
-                        borderRadius: "50%",
-                        boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
-                      }}
-                    />
-                  </label>
+                  </div>
                 </div>
 
                 {/* Pesan Notifikasi */}
                 <div>
-                  <label style={{ display: "block", fontSize: "0.76rem", fontWeight: 700, color: "#334155", marginBottom: "6px" }}>
-                    Pesan Pemberitahuan Resmi ke Pengguna <span style={{ color: "#ef4444" }}>*</span>
-                  </label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 800, color: '#1e293b' }}>
+                      Pesan Pemberitahuan Resmi ke Pengguna <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setEditFormData({
+                          ...editFormData,
+                          message: `Mohon maaf, layanan ${editFormData.role_name} saat ini sedang dalam pemeliharaan atau perbaikan sistem. Silakan coba beberapa saat lagi.`
+                        })}
+                        style={{
+                          background: '#f1f5f9',
+                          border: '1px solid #cbd5e1',
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.68rem',
+                          color: '#475569',
+                          cursor: 'pointer',
+                          fontWeight: 700
+                        }}
+                      >
+                        Default
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditFormData({
+                          ...editFormData,
+                          message: `Sedang dilakukan peningkatan server & sinkronisasi data pada portal ${editFormData.role_name}. Akses akan segera dipulihkan.`
+                        })}
+                        style={{
+                          background: '#f1f5f9',
+                          border: '1px solid #cbd5e1',
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.68rem',
+                          color: '#475569',
+                          cursor: 'pointer',
+                          fontWeight: 700
+                        }}
+                      >
+                        Sinkronisasi
+                      </button>
+                    </div>
+                  </div>
+
                   <textarea
                     rows={4}
                     value={editFormData.message}
@@ -635,68 +779,151 @@ export default function MaintenanceRoleView() {
                     placeholder="Tuliskan pesan penjelasan perbaikan sistem..."
                     required
                     style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      borderRadius: "8px",
-                      border: "1.5px solid #cbd5e1",
-                      fontSize: "0.8rem",
-                      lineHeight: 1.45,
-                      color: "#0f172a",
-                      outline: "none",
-                      boxSizing: "border-box",
-                      resize: "vertical"
+                      width: '100%',
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '0.82rem',
+                      lineHeight: 1.5,
+                      color: '#0f172a',
+                      background: '#ffffff',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                      resize: 'none',
+                      boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)'
                     }}
+                    onFocus={(e) => e.target.style.borderColor = '#0284c7'}
+                    onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
                   />
-                  <div style={{ fontSize: "0.7rem", color: "#64748b", marginTop: "4px" }}>
-                    Pesan ini akan tampil di kotak pengumuman saat pengguna membuka portal.
+                  <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '4px' }}>
+                    Pesan ini akan ditampilkan di kotak pengumuman saat pengguna membuka portal.
                   </div>
                 </div>
 
                 {/* Estimasi Selesai */}
                 <div>
-                  <label style={{ display: "block", fontSize: "0.76rem", fontWeight: 700, color: "#334155", marginBottom: "6px" }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#1e293b', marginBottom: '6px' }}>
                     Estimasi Selesai (Opsional)
                   </label>
-                  <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-                    <div style={{ position: "absolute", left: "10px", color: "#94a3b8" }}>
-                      <Clock size={15} />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <div style={{ position: 'absolute', left: '12px', color: '#64748b' }}>
+                      <Clock size={16} />
                     </div>
                     <input
                       type="text"
                       value={editFormData.estimated_time}
                       onChange={(e) => setEditFormData({ ...editFormData, estimated_time: e.target.value })}
-                      placeholder="Contoh: Hari ini pukul 21:00 WIB / Segera kembali normal"
+                      placeholder="Contoh: Segera kembali normal / Pukul 21:00 WIB"
                       style={{
-                        width: "100%",
-                        padding: "9px 12px 9px 34px",
-                        borderRadius: "8px",
-                        border: "1.5px solid #cbd5e1",
-                        fontSize: "0.8rem",
-                        color: "#0f172a",
-                        outline: "none",
-                        boxSizing: "border-box"
+                        width: '100%',
+                        padding: '10px 14px 10px 38px',
+                        borderRadius: '12px',
+                        border: '1.5px solid #cbd5e1',
+                        fontSize: '0.82rem',
+                        color: '#0f172a',
+                        background: '#ffffff',
+                        outline: 'none',
+                        boxSizing: 'border-box'
                       }}
+                      onFocus={(e) => e.target.style.borderColor = '#0284c7'}
+                      onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
                     />
                   </div>
+
+                  {/* Quick Chip Suggestions */}
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
+                    {['Segera kembali normal', 'Kurang lebih 30 menit', 'Pukul 21:00 WIB', 'Besok Pagi 08:00 WIB'].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setEditFormData({ ...editFormData, estimated_time: preset })}
+                        style={{
+                          background: editFormData.estimated_time === preset ? '#eff6ff' : '#f8fafc',
+                          border: editFormData.estimated_time === preset ? '1px solid #93c5fd' : '1px solid #e2e8f0',
+                          color: editFormData.estimated_time === preset ? '#1d4ed8' : '#64748b',
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.7rem',
+                          cursor: 'pointer',
+                          fontWeight: 600
+                        }}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Live Preview Box */}
+                <div
+                  style={{
+                    background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                    border: '1px dashed #cbd5e1',
+                    borderRadius: '14px',
+                    padding: '12px 14px'
+                  }}
+                >
+                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Eye size={12} color="#0284c7" /> Pratinjau Teks Pengguna
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#334155', lineHeight: 1.45, fontStyle: 'italic' }}>
+                    "{editFormData.message || 'Pesan belum diisi'}"
+                  </div>
+                  {editFormData.estimated_time && (
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '6px', fontSize: '0.72rem', color: '#047857', background: '#dcfce7', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                      <Clock size={11} /> Estimasi: {editFormData.estimated_time}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="modal-footer" style={{ display: "flex", justifyContent: "flex-end", gap: "8px", padding: "14px 20px" }}>
+              {/* Footer */}
+              <div 
+                style={{ 
+                  display: "flex", 
+                  justifyContent: "flex-end", 
+                  gap: "10px", 
+                  padding: "16px 24px",
+                  background: "#f8fafc",
+                  borderTop: "1px solid #e2e8f0"
+                }}
+              >
                 <button 
                   type="button" 
-                  className="btn btn-outline" 
                   onClick={() => setIsEditModalOpen(false)}
                   disabled={isSubmittingEdit}
+                  style={{
+                    padding: '10px 18px',
+                    borderRadius: '12px',
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
+                    color: '#475569',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
                 >
                   Batal
                 </button>
                 <button 
                   type="submit" 
-                  className="btn btn-primary"
                   disabled={isSubmittingEdit}
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                    color: '#ffffff',
+                    fontSize: '0.82rem',
+                    fontWeight: 800,
+                    cursor: isSubmittingEdit ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '7px',
+                    boxShadow: '0 4px 12px rgba(2, 132, 199, 0.35)'
+                  }}
                 >
-                  <Save size={14} />
+                  <Save size={15} />
                   <span>{isSubmittingEdit ? "Menyimpan..." : "Simpan Pengaturan"}</span>
                 </button>
               </div>
