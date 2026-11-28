@@ -16,6 +16,10 @@ import {
   Building, 
   Smartphone,
   X,
+  Search,
+  Edit3,
+  Shield,
+  Check,
   Info
 } from 'lucide-react';
 import { toastSuccess, showError, showConfirm } from '../../utils/alert.util';
@@ -25,8 +29,23 @@ export default function MaintenanceRoleView() {
   const [settings, setSettings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState(null);
-  const [previewRole, setPreviewRole] = useState(null);
+  const [search, setSearch] = useState('');
   const [filterMode, setFilterMode] = useState('all'); // 'all' | 'maintenance' | 'normal'
+
+  // Modal Preview State
+  const [previewRole, setPreviewRole] = useState(null);
+
+  // Modal Edit Detail State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    role_key: '',
+    role_name: '',
+    description: '',
+    is_maintenance: false,
+    message: '',
+    estimated_time: ''
+  });
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
 
   const fetchSettings = async () => {
     try {
@@ -35,7 +54,6 @@ export default function MaintenanceRoleView() {
       if (res.data?.success && Array.isArray(res.data.data)) {
         setSettings(res.data.data);
       } else {
-        // Fallback default jika tabel baru
         const statusRes = await axios.get('/api/maintenance/status');
         if (statusRes.data?.success && statusRes.data.data) {
           const arr = Object.values(statusRes.data.data);
@@ -55,15 +73,12 @@ export default function MaintenanceRoleView() {
 
   const handleToggle = async (item) => {
     const nextState = !item.is_maintenance;
-    const actionText = nextState ? 'MENGAKTIFKAN maintenance' : 'MENONAKTIFKAN maintenance (Buka kembali akses)';
+    const actionTitle = nextState ? 'Aktifkan Mode Maintenance?' : 'Buka Akses Normal?';
     const confirmMsg = nextState 
-      ? `Yakin ingin mengaktifkan mode maintenance untuk "${item.role_name}"? Semua pengguna dengan role ini TIDAK BISA menggunakan sistem dan akan diarahkan ke halaman perbaikan.`
-      : `Buka kembali akses untuk "${item.role_name}"? Pengguna akan dapat login dan menggunakan portal kembali secara normal.`;
+      ? `Yakin ingin mengaktifkan mode maintenance untuk "${item.role_name}"? Pengguna dengan role ini akan langsung dialihkan ke layar perbaikan dan tidak dapat mengakses fitur portal.`
+      : `Buka kembali akses untuk "${item.role_name}"? Pengguna dapat login dan menggunakan portal kembali secara normal.`;
 
-    const confirmed = await showConfirm(
-      nextState ? 'Aktifkan Maintenance Role?' : 'Kembalikan Operasional Normal?',
-      confirmMsg
-    );
+    const confirmed = await showConfirm(actionTitle, confirmMsg);
     if (!confirmed) return;
 
     try {
@@ -77,12 +92,12 @@ export default function MaintenanceRoleView() {
 
       if (res.data?.success) {
         toastSuccess(
-          nextState ? 'Maintenance Aktif!' : 'Operasional Normal!',
-          res.data.message
+          nextState ? 'Maintenance Diaktifkan!' : 'Akses Normal Dibuka!',
+          res.data.message || `Status role ${item.role_name} berhasil diperbarui.`
         );
         setSettings(prev => prev.map(s => s.role_key === item.role_key ? { ...s, is_maintenance: nextState } : s));
       } else {
-        showError('Gagal', res.data?.message || 'Gagal mengubah status');
+        showError('Gagal', res.data?.message || 'Gagal mengubah status maintenance');
       }
     } catch (err) {
       showError('Gagal Mengubah Status', err.response?.data?.message || err.message);
@@ -91,408 +106,604 @@ export default function MaintenanceRoleView() {
     }
   };
 
-  const handleSaveDetail = async (item) => {
+  const handleOpenEditModal = (item) => {
+    setEditFormData({
+      role_key: item.role_key,
+      role_name: item.role_name,
+      description: item.description || '',
+      is_maintenance: Boolean(item.is_maintenance),
+      message: item.message || '',
+      estimated_time: item.estimated_time || ''
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEditModal = async (e) => {
+    if (e) e.preventDefault();
     try {
-      setSavingKey(item.role_key);
+      setIsSubmittingEdit(true);
       const res = await axios.post('/api/maintenance/toggle', {
-        role_key: item.role_key,
-        is_maintenance: item.is_maintenance,
-        message: item.message,
-        estimated_time: item.estimated_time
+        role_key: editFormData.role_key,
+        is_maintenance: editFormData.is_maintenance,
+        message: editFormData.message,
+        estimated_time: editFormData.estimated_time
       });
 
       if (res.data?.success) {
-        toastSuccess('Tersimpan!', `Pesan & estimasi maintenance untuk ${item.role_name} berhasil disimpan.`);
+        toastSuccess('Berhasil Disimpan!', `Pengaturan maintenance untuk ${editFormData.role_name} berhasil disimpan.`);
+        setSettings(prev => prev.map(s => s.role_key === editFormData.role_key ? {
+          ...s,
+          is_maintenance: editFormData.is_maintenance,
+          message: editFormData.message,
+          estimated_time: editFormData.estimated_time
+        } : s));
+        setIsEditModalOpen(false);
       } else {
-        showError('Gagal', res.data?.message || 'Gagal menyimpan data');
+        showError('Gagal', res.data?.message || 'Gagal menyimpan pengaturan.');
       }
     } catch (err) {
       showError('Gagal Menyimpan', err.response?.data?.message || err.message);
     } finally {
-      setSavingKey(null);
+      setIsSubmittingEdit(false);
     }
-  };
-
-  const handleChangeField = (roleKey, field, value) => {
-    setSettings(prev => prev.map(s => s.role_key === roleKey ? { ...s, [field]: value } : s));
   };
 
   const getRoleIcon = (roleKey) => {
     switch (roleKey) {
       case 'wali':
-        return <Users size={20} color="#0284c7" />;
+        return <Users size={16} color="#0284c7" />;
       case 'pengajar':
-        return <GraduationCap size={20} color="#059669" />;
+        return <GraduationCap size={16} color="#059669" />;
       case 'keuangan':
-        return <CreditCard size={20} color="#d97706" />;
+        return <CreditCard size={16} color="#d97706" />;
       case 'asrama':
-        return <Building size={20} color="#8b5cf6" />;
+        return <Building size={16} color="#8b5cf6" />;
       case 'santri':
-        return <Smartphone size={20} color="#0d9488" />;
+        return <Smartphone size={16} color="#0d9488" />;
       default:
-        return <Wrench size={20} color="#64748b" />;
+        return <Wrench size={16} color="#64748b" />;
     }
   };
 
+  // Filter List
   const filteredSettings = settings.filter(item => {
-    if (filterMode === 'maintenance') return item.is_maintenance;
-    if (filterMode === 'normal') return !item.is_maintenance;
-    return true;
+    const s = search.toLowerCase();
+    const matchSearch = 
+      (item.role_name && item.role_name.toLowerCase().includes(s)) ||
+      (item.role_key && item.role_key.toLowerCase().includes(s)) ||
+      (item.description && item.description.toLowerCase().includes(s)) ||
+      (item.message && item.message.toLowerCase().includes(s));
+
+    let matchFilter = true;
+    if (filterMode === 'maintenance') matchFilter = Boolean(item.is_maintenance);
+    if (filterMode === 'normal') matchFilter = !item.is_maintenance;
+
+    return matchSearch && matchFilter;
   });
 
+  const totalRoles = settings.length;
   const countMaintenance = settings.filter(s => s.is_maintenance).length;
+  const countNormal = totalRoles - countMaintenance;
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: '1280px', margin: '0 auto' }}>
-      {/* Header Banner */}
-      <div
-        style={{
-          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-          borderRadius: '20px',
-          padding: '24px 28px',
-          color: '#ffffff',
-          marginBottom: '24px',
-          boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.3)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '16px'
-        }}
-      >
-        <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(255, 255, 255, 0.12)', padding: '4px 12px', borderRadius: '99px', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-            <Wrench size={13} color="#f59e0b" /> Pusat Kontrol Pemeliharaan Sistem
+    <div>
+      {/* 1. TOP 4 COLORED STATS CARDS (SEPERTI DATA MASTER USER/SANTRI) */}
+      <div className="top-stats-grid">
+        <div className="stat-card-colored stat-card-blue">
+          <div>
+            <div className="stat-colored-title">TOTAL ROLE SISTEM</div>
+            <div className="stat-colored-number">{totalRoles} Role</div>
           </div>
-          <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-0.4px' }}>
-            Pengaturan Maintenance Per Role
-          </h1>
-          <p style={{ margin: '6px 0 0', fontSize: '0.84rem', color: '#94a3b8', maxWidth: '640px', lineHeight: 1.5 }}>
-            Kendalikan akses per role. Jika role diaktifkan maintenance, pengguna role tersebut otomatis diblokir dan muncul pemberitahuan resmi sistem sedang diperbaiki.
-          </p>
+          <div className="stat-colored-icon-box">
+            <Users size={22} />
+          </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button
-            onClick={fetchSettings}
-            disabled={loading}
-            style={{
-              padding: '10px 16px',
-              borderRadius: '12px',
-              border: '1px solid rgba(255, 255, 255, 0.25)',
-              background: 'rgba(255, 255, 255, 0.1)',
-              color: '#ffffff',
-              fontSize: '0.82rem',
-              fontWeight: 700,
-              cursor: loading ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
+        <div className="stat-card-colored stat-card-green">
+          <div>
+            <div className="stat-colored-title">OPERASIONAL NORMAL</div>
+            <div className="stat-colored-number">{countNormal} Role</div>
+          </div>
+          <div className="stat-colored-icon-box">
+            <CheckCircle2 size={22} />
+          </div>
+        </div>
+
+        <div className={`stat-card-colored ${countMaintenance > 0 ? 'stat-card-amber' : 'stat-card-purple'}`}>
+          <div>
+            <div className="stat-colored-title">SEDANG MAINTENANCE</div>
+            <div className="stat-colored-number">{countMaintenance} Role</div>
+          </div>
+          <div className="stat-colored-icon-box">
+            <Wrench size={22} />
+          </div>
+        </div>
+
+        <div className="stat-card-colored stat-card-purple">
+          <div>
+            <div className="stat-colored-title">STATUS AKSES PORTAL</div>
+            <div className="stat-colored-number" style={{ fontSize: '1.05rem', marginTop: '4px' }}>
+              {countMaintenance > 0 ? 'Sebagian Dibatasi' : 'Semua Normal'}
+            </div>
+          </div>
+          <div className="stat-colored-icon-box">
+            <Power size={22} />
+          </div>
+        </div>
+      </div>
+
+      {/* 2. TITLE STRIP (SEPERTI DATA MASTER USER/SANTRI) */}
+      <div className="page-title-strip">
+        <div className="page-title-left">
+          <Wrench size={22} className="page-title-icon" style={{ color: '#0284c7' }} />
+          <div>
+            <h2>Pengaturan Maintenance Per Role</h2>
+            <p>Kendalikan izin akses dan status pemeliharaan portal sistem terpadu per modul &amp; hak akses pengguna</p>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button 
+            type="button" 
+            className="btn btn-outline" 
+            onClick={() => { window.location.hash = '#users'; }}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
           >
-            <RotateCw size={15} className={loading ? 'animate-spin' : ''} />
-            <span>Segarkan</span>
+            <Users size={14} /> Data Pengguna
+          </button>
+          <button 
+            type="button" 
+            className="btn btn-primary" 
+            onClick={fetchSettings} 
+            disabled={loading}
+          >
+            <RotateCw size={13} className={loading ? "animate-spin" : ""} /> Refresh Data
           </button>
         </div>
       </div>
 
-      {/* Status Highlights & Filter Tabs */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', gap: '8px', background: '#f1f5f9', padding: '4px', borderRadius: '12px' }}>
-          <button
-            type="button"
-            onClick={() => setFilterMode('all')}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '9px',
-              border: 'none',
-              fontSize: '0.78rem',
-              fontWeight: filterMode === 'all' ? 800 : 600,
-              cursor: 'pointer',
-              background: filterMode === 'all' ? '#ffffff' : 'transparent',
-              color: filterMode === 'all' ? '#0f172a' : '#64748b',
-              boxShadow: filterMode === 'all' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'
-            }}
-          >
-            Semua Role ({settings.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilterMode('maintenance')}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '9px',
-              border: 'none',
-              fontSize: '0.78rem',
-              fontWeight: filterMode === 'maintenance' ? 800 : 600,
-              cursor: 'pointer',
-              background: filterMode === 'maintenance' ? '#fef2f2' : 'transparent',
-              color: filterMode === 'maintenance' ? '#dc2626' : '#64748b',
-              boxShadow: filterMode === 'maintenance' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'
-            }}
-          >
-            Sedang Maintenance ({countMaintenance})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilterMode('normal')}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '9px',
-              border: 'none',
-              fontSize: '0.78rem',
-              fontWeight: filterMode === 'normal' ? 800 : 600,
-              cursor: 'pointer',
-              background: filterMode === 'normal' ? '#ecfdf5' : 'transparent',
-              color: filterMode === 'normal' ? '#059669' : '#64748b',
-              boxShadow: filterMode === 'normal' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'
-            }}
-          >
-            Operasional Normal ({settings.length - countMaintenance})
-          </button>
-        </div>
+      {/* 3. TAB FILTER BAR (SEPERTI DATA MASTER USER/SANTRI) */}
+      <div className="tab-filter-bar">
+        <button 
+          type="button"
+          className={`tab-btn ${filterMode === 'all' ? 'active' : ''}`}
+          onClick={() => setFilterMode('all')}
+        >
+          <Users size={14} /> Semua Role ({totalRoles})
+        </button>
+        <button 
+          type="button"
+          className={`tab-btn ${filterMode === 'normal' ? 'active' : ''}`}
+          onClick={() => setFilterMode('normal')}
+        >
+          <CheckCircle2 size={14} /> Operasional Normal ({countNormal})
+        </button>
+        <button 
+          type="button"
+          className={`tab-btn ${filterMode === 'maintenance' ? 'active' : ''}`}
+          onClick={() => setFilterMode('maintenance')}
+          style={{
+            color: filterMode === 'maintenance' ? '#ffffff' : (countMaintenance > 0 ? '#b91c1c' : undefined),
+            backgroundColor: filterMode === 'maintenance' ? '#dc2626' : (countMaintenance > 0 ? '#fef2f2' : undefined),
+            borderColor: countMaintenance > 0 ? '#fecaca' : undefined
+          }}
+        >
+          <AlertTriangle size={14} /> Sedang Maintenance ({countMaintenance})
+        </button>
+      </div>
 
-        {countMaintenance > 0 && (
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#fef2f2', border: '1px solid #fecaca', padding: '6px 14px', borderRadius: '10px', fontSize: '0.78rem', color: '#b91c1c', fontWeight: 700 }}>
-            <AlertTriangle size={16} />
-            <span>Perhatian: Ada <strong>{countMaintenance} role</strong> dalam kondisi maintenance (akses ditutup).</span>
+      {/* 4. FILTER SEARCH BOX (SEPERTI DATA MASTER USER/SANTRI) */}
+      <div className="filter-search-box">
+        <div className="filter-search-input">
+          <Search size={15} color="#94a3b8" />
+          <input
+            type="text"
+            placeholder="Cari role, key modul, cakupan portal, atau pesan maintenance..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              style={{
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                color: "#94a3b8",
+                padding: 0,
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* 5. DATA TABLE (SEPERTI DATA MASTER USER/SANTRI) */}
+      <div className="table-container-card">
+        {loading ? (
+          <div style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>
+            <RotateCw size={26} className="animate-spin" style={{ margin: "0 auto 8px" }} />
+            <div>Memuat data konfigurasi maintenance...</div>
           </div>
+        ) : (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th className="td-center" style={{ width: "45px" }}>NO</th>
+                <th style={{ width: "230px" }}>ROLE &amp; MODUL</th>
+                <th style={{ width: "220px" }}>CAKUPAN AKSES / PORTAL</th>
+                <th className="td-center" style={{ width: "170px" }}>STATUS OPERASIONAL</th>
+                <th>PESAN NOTIFIKASI PENGGUNA</th>
+                <th className="td-center" style={{ width: "170px" }}>ESTIMASI SELESAI</th>
+                <th className="td-center" style={{ width: "130px" }}>AKSI</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredSettings.length === 0 ? (
+                <tr>
+                  <td colSpan="7" style={{ padding: "40px 20px", textAlign: "center", color: "#64748b" }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+                      <Wrench size={32} color="#94a3b8" />
+                      <span style={{ fontWeight: 600 }}>Tidak ada data role yang sesuai pencarian.</span>
+                      <span style={{ fontSize: "0.76rem", color: "#94a3b8" }}>Coba periksa kata kunci pencarian atau ubah filter tab.</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredSettings.map((item, idx) => {
+                  const isMaint = Boolean(item.is_maintenance);
+                  const isSaving = savingKey === item.role_key;
+
+                  return (
+                    <tr
+                      key={item.role_key}
+                      style={{
+                        borderBottom: "1px solid #f1f5f9",
+                        backgroundColor: isMaint ? "#fef2f2" : "#ffffff",
+                        transition: "background 0.15s"
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isMaint) e.currentTarget.style.backgroundColor = "#f8fafc";
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isMaint) e.currentTarget.style.backgroundColor = "#ffffff";
+                      }}
+                    >
+                      {/* NO */}
+                      <td className="td-center" style={{ color: "#64748b", fontWeight: 600 }}>
+                        {idx + 1}
+                      </td>
+
+                      {/* ROLE & MODUL */}
+                      <td>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          <div
+                            style={{
+                              width: "36px",
+                              height: "36px",
+                              borderRadius: "10px",
+                              background: isMaint ? "#fee2e2" : "#f1f5f9",
+                              border: isMaint ? "1px solid #fca5a5" : "1px solid #e2e8f0",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0
+                            }}
+                          >
+                            {getRoleIcon(item.role_key)}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 800, color: isMaint ? "#991b1b" : "#0f172a", fontSize: "0.86rem" }}>
+                              {item.role_name}
+                            </div>
+                            <div style={{ fontSize: "0.74rem", color: "#64748b", marginTop: "2px", display: "flex", alignItems: "center", gap: "4px" }}>
+                              <span>Key:</span>
+                              <code style={{ background: "#e2e8f0", padding: "1px 5px", borderRadius: "4px", fontWeight: 700, color: "#0f172a", fontSize: "0.7rem" }}>
+                                {item.role_key}
+                              </code>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* CAKUPAN AKSES */}
+                      <td>
+                        <div style={{ fontSize: "0.78rem", color: "#334155", lineHeight: 1.4 }}>
+                          {item.description || 'Layanan modul terpadu'}
+                        </div>
+                      </td>
+
+                      {/* STATUS OPERASIONAL */}
+                      <td className="td-center">
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            padding: "4px 10px",
+                            borderRadius: "12px",
+                            fontSize: "0.74rem",
+                            fontWeight: 800,
+                            backgroundColor: isMaint ? "#fee2e2" : "#ecfdf5",
+                            color: isMaint ? "#b91c1c" : "#047857",
+                            border: isMaint ? "1px solid #fca5a5" : "1px solid #a7f3d0"
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: "7px",
+                              height: "7px",
+                              borderRadius: "50%",
+                              backgroundColor: isMaint ? "#ef4444" : "#10b981",
+                              boxShadow: isMaint ? "0 0 6px rgba(239, 68, 68, 0.6)" : "0 0 6px rgba(16, 185, 129, 0.6)"
+                            }}
+                          />
+                          {isMaint ? "SEDANG MAINTENANCE" : "OPERASIONAL NORMAL"}
+                        </span>
+                      </td>
+
+                      {/* PESAN NOTIFIKASI PENGGUNA */}
+                      <td>
+                        <div style={{ fontSize: "0.76rem", color: isMaint ? "#b91c1c" : "#475569", lineHeight: 1.45, fontStyle: isMaint ? "normal" : "italic" }}>
+                          "{item.message || '-'}"
+                        </div>
+                      </td>
+
+                      {/* ESTIMASI SELESAI */}
+                      <td className="td-center">
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            padding: "3px 8px",
+                            borderRadius: "6px",
+                            fontSize: "0.74rem",
+                            fontWeight: 600,
+                            backgroundColor: "#f8fafc",
+                            color: "#475569",
+                            border: "1px solid #e2e8f0"
+                          }}
+                        >
+                          <Clock size={12} color="#64748b" />
+                          {item.estimated_time || 'Segera normal'}
+                        </span>
+                      </td>
+
+                      {/* AKSI */}
+                      <td className="td-center">
+                        <div
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          {/* Toggle Power Switch */}
+                          <button
+                            type="button"
+                            className="btn-action"
+                            onClick={() => handleToggle(item)}
+                            disabled={isSaving}
+                            style={{
+                              backgroundColor: isMaint ? "#10b981" : "#ef4444",
+                              opacity: isSaving ? 0.6 : 1
+                            }}
+                            title={isMaint ? "Buka Akses Kembali (Operasional Normal)" : "Aktifkan Mode Maintenance (Kunci Akses)"}
+                          >
+                            <Power size={13} />
+                          </button>
+
+                          {/* Edit Detail Modal */}
+                          <button
+                            type="button"
+                            className="btn-action btn-action-edit"
+                            onClick={() => handleOpenEditModal(item)}
+                            title="Edit Pesan & Estimasi Maintenance"
+                          >
+                            <Edit3 size={13} />
+                          </button>
+
+                          {/* Preview View */}
+                          <button
+                            type="button"
+                            className="btn-action btn-action-view"
+                            onClick={() => setPreviewRole(item)}
+                            title="Lihat Pratinjau Layar Pemeliharaan"
+                            style={{ backgroundColor: "#0284c7" }}
+                          >
+                            <Eye size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         )}
       </div>
 
-      {/* Role Maintenance Grid Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '20px' }}>
-        {filteredSettings.map((item) => {
-          const isMaint = Boolean(item.is_maintenance);
-          const isSaving = savingKey === item.role_key;
+      {/* MODAL EDIT PENGATURAN MAINTENANCE (SEPERTI FORM MODAL MASTER DATA) */}
+      {isEditModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsEditModalOpen(false)}>
+          <div 
+            className="modal-container" 
+            style={{ maxWidth: "560px", width: "95%" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "#fef2f2", color: "#dc2626", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Wrench size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 800 }}>
+                    Pengaturan Maintenance: {editFormData.role_name}
+                  </h3>
+                  <div style={{ fontSize: "0.72rem", color: "#64748b" }}>
+                    Modul Key: <code>{editFormData.role_key}</code>
+                  </div>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                className="modal-close" 
+                onClick={() => setIsEditModalOpen(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
 
-          return (
-            <div
-              key={item.role_key}
-              style={{
-                background: '#ffffff',
-                borderRadius: '18px',
-                border: isMaint ? '2px solid #ef4444' : '1px solid #e2e8f0',
-                boxShadow: isMaint ? '0 10px 25px -5px rgba(239, 68, 68, 0.2)' : '0 4px 12px rgba(0,0,0,0.04)',
-                padding: '20px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                transition: 'all 0.2s ease',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              {/* Top Accent Strip */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: '4px',
-                  background: isMaint ? 'linear-gradient(90deg, #ef4444, #f87171)' : 'linear-gradient(90deg, #10b981, #059669)'
-                }}
-              />
-
-              <div>
-                {/* Header Role Card */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div
-                      style={{
-                        width: '44px',
-                        height: '44px',
-                        borderRadius: '12px',
-                        background: isMaint ? '#fee2e2' : '#f8fafc',
-                        border: '1px solid #e2e8f0',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0
-                      }}
-                    >
-                      {getRoleIcon(item.role_key)}
+            <form onSubmit={handleSaveEditModal}>
+              <div className="modal-body" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                
+                {/* Status Toggle Box */}
+                <div 
+                  style={{ 
+                    padding: "14px 16px", 
+                    borderRadius: "12px", 
+                    background: editFormData.is_maintenance ? "#fef2f2" : "#ecfdf5", 
+                    border: editFormData.is_maintenance ? "1.5px solid #fecaca" : "1.5px solid #a7f3d0",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between"
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: "0.85rem", color: editFormData.is_maintenance ? "#991b1b" : "#065f46" }}>
+                      {editFormData.is_maintenance ? "MODE MAINTENANCE DIAKTIFKAN" : "OPERASIONAL NORMAL"}
                     </div>
-                    <div>
-                      <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
-                        {item.role_name}
-                      </h3>
-                      <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
-                        Key: <code style={{ background: '#f1f5f9', padding: '1px 5px', borderRadius: '4px', fontWeight: 700, color: '#0284c7' }}>{item.role_key}</code>
-                      </div>
+                    <div style={{ fontSize: "0.74rem", color: editFormData.is_maintenance ? "#b91c1c" : "#047857", marginTop: "2px" }}>
+                      {editFormData.is_maintenance 
+                        ? "Akses pengguna role ini DIBLOKIR sementara." 
+                        : "Akses login dan fitur portal role ini terbuka normal."}
                     </div>
                   </div>
 
-                  {/* Operational Status Pill */}
-                  <span
-                    style={{
-                      fontSize: '0.68rem',
-                      fontWeight: 800,
-                      padding: '4px 10px',
-                      borderRadius: '99px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                      background: isMaint ? '#fee2e2' : '#dcfce7',
-                      color: isMaint ? '#b91c1c' : '#15803d',
-                      border: isMaint ? '1px solid #fca5a5' : '1px solid #86efac',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px'
-                    }}
-                  >
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isMaint ? '#ef4444' : '#10b981' }} />
-                    {isMaint ? 'Maintenance' : 'Aktif Normal'}
-                  </span>
+                  <label style={{ position: "relative", display: "inline-block", width: "48px", height: "26px", cursor: "pointer" }}>
+                    <input 
+                      type="checkbox" 
+                      checked={editFormData.is_maintenance}
+                      onChange={(e) => setEditFormData({ ...editFormData, is_maintenance: e.target.checked })}
+                      style={{ opacity: 0, width: 0, height: 0 }}
+                    />
+                    <span 
+                      style={{
+                        position: "absolute",
+                        cursor: "pointer",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: editFormData.is_maintenance ? "#ef4444" : "#cbd5e1",
+                        transition: ".2s",
+                        borderRadius: "34px"
+                      }}
+                    />
+                    <span 
+                      style={{
+                        position: "absolute",
+                        content: '""',
+                        height: "20px",
+                        width: "20px",
+                        left: editFormData.is_maintenance ? "24px" : "3px",
+                        bottom: "3px",
+                        backgroundColor: "white",
+                        transition: ".2s",
+                        borderRadius: "50%",
+                        boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
+                      }}
+                    />
+                  </label>
                 </div>
 
-                {/* Description */}
-                {item.description && (
-                  <div style={{ fontSize: '0.74rem', color: '#64748b', background: '#f8fafc', padding: '8px 10px', borderRadius: '8px', marginBottom: '14px', lineHeight: 1.4 }}>
-                    {item.description}
-                  </div>
-                )}
-
-                {/* Form Message & Estimasi */}
-                <div style={{ marginBottom: '14px' }}>
-                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    Pesan Notifikasi Pengguna:
+                {/* Pesan Notifikasi */}
+                <div>
+                  <label style={{ display: "block", fontSize: "0.76rem", fontWeight: 700, color: "#334155", marginBottom: "6px" }}>
+                    Pesan Pemberitahuan Resmi ke Pengguna <span style={{ color: "#ef4444" }}>*</span>
                   </label>
                   <textarea
-                    rows={3}
-                    value={item.message || ''}
-                    onChange={(e) => handleChangeField(item.role_key, 'message', e.target.value)}
-                    placeholder="Tuliskan pesan perbaikan untuk ditampilkan ke pengguna..."
+                    rows={4}
+                    value={editFormData.message}
+                    onChange={(e) => setEditFormData({ ...editFormData, message: e.target.value })}
+                    placeholder="Tuliskan pesan penjelasan perbaikan sistem..."
+                    required
                     style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      borderRadius: '10px',
-                      border: '1.5px solid #cbd5e1',
-                      fontSize: '0.78rem',
+                      width: "100%",
+                      padding: "10px 12px",
+                      borderRadius: "8px",
+                      border: "1.5px solid #cbd5e1",
+                      fontSize: "0.8rem",
                       lineHeight: 1.45,
-                      color: '#0f172a',
-                      background: '#ffffff',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                      resize: 'none'
+                      color: "#0f172a",
+                      outline: "none",
+                      boxSizing: "border-box",
+                      resize: "vertical"
                     }}
                   />
+                  <div style={{ fontSize: "0.7rem", color: "#64748b", marginTop: "4px" }}>
+                    Pesan ini akan tampil di kotak pengumuman saat pengguna membuka portal.
+                  </div>
                 </div>
 
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    Estimasi Selesai (Opsional):
+                {/* Estimasi Selesai */}
+                <div>
+                  <label style={{ display: "block", fontSize: "0.76rem", fontWeight: 700, color: "#334155", marginBottom: "6px" }}>
+                    Estimasi Selesai (Opsional)
                   </label>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <div style={{ position: 'absolute', left: '10px', color: '#94a3b8' }}>
-                      <Clock size={14} />
+                  <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                    <div style={{ position: "absolute", left: "10px", color: "#94a3b8" }}>
+                      <Clock size={15} />
                     </div>
                     <input
                       type="text"
-                      value={item.estimated_time || ''}
-                      onChange={(e) => handleChangeField(item.role_key, 'estimated_time', e.target.value)}
-                      placeholder="Contoh: Hari ini pukul 21:00 WIB"
+                      value={editFormData.estimated_time}
+                      onChange={(e) => setEditFormData({ ...editFormData, estimated_time: e.target.value })}
+                      placeholder="Contoh: Hari ini pukul 21:00 WIB / Segera kembali normal"
                       style={{
-                        width: '100%',
-                        padding: '8px 10px 8px 30px',
-                        borderRadius: '10px',
-                        border: '1.5px solid #cbd5e1',
-                        fontSize: '0.78rem',
-                        color: '#0f172a',
-                        outline: 'none',
-                        boxSizing: 'border-box'
+                        width: "100%",
+                        padding: "9px 12px 9px 34px",
+                        borderRadius: "8px",
+                        border: "1.5px solid #cbd5e1",
+                        fontSize: "0.8rem",
+                        color: "#0f172a",
+                        outline: "none",
+                        boxSizing: "border-box"
                       }}
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {/* Toggle Maintenance Main Button */}
-                  <button
-                    type="button"
-                    onClick={() => handleToggle(item)}
-                    disabled={isSaving}
-                    style={{
-                      flex: 2,
-                      padding: '10px 14px',
-                      borderRadius: '10px',
-                      border: 'none',
-                      background: isMaint 
-                        ? 'linear-gradient(135deg, #059669 0%, #047857 100%)' 
-                        : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                      color: '#ffffff',
-                      fontSize: '0.78rem',
-                      fontWeight: 800,
-                      cursor: isSaving ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      boxShadow: isMaint ? '0 4px 12px rgba(5, 150, 105, 0.3)' : '0 4px 12px rgba(239, 68, 68, 0.3)'
-                    }}
-                  >
-                    <Power size={14} />
-                    <span>{isMaint ? 'Buka Akses (Normal)' : 'Aktifkan Maintenance'}</span>
-                  </button>
-
-                  {/* Simpan Pesan */}
-                  <button
-                    type="button"
-                    onClick={() => handleSaveDetail(item)}
-                    disabled={isSaving}
-                    style={{
-                      flex: 1,
-                      padding: '10px 12px',
-                      borderRadius: '10px',
-                      border: '1.5px solid #cbd5e1',
-                      background: '#ffffff',
-                      color: '#334155',
-                      fontSize: '0.78rem',
-                      fontWeight: 700,
-                      cursor: isSaving ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '4px'
-                    }}
-                    title="Simpan perubahan teks pesan & estimasi"
-                  >
-                    <Save size={14} />
-                    <span>Simpan</span>
-                  </button>
-                </div>
-
-                {/* Preview Button */}
-                <button
-                  type="button"
-                  onClick={() => setPreviewRole(item)}
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    borderRadius: '8px',
-                    border: '1px dashed #cbd5e1',
-                    background: '#f8fafc',
-                    color: '#64748b',
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '5px'
-                  }}
+              <div className="modal-footer" style={{ display: "flex", justifyContent: "flex-end", gap: "8px", padding: "14px 20px" }}>
+                <button 
+                  type="button" 
+                  className="btn btn-outline" 
+                  onClick={() => setIsEditModalOpen(false)}
+                  disabled={isSubmittingEdit}
                 >
-                  <Eye size={13} />
-                  <span>Lihat Tampilan Notifikasi Pengguna (Preview)</span>
+                  Batal
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary"
+                  disabled={isSubmittingEdit}
+                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
+                >
+                  <Save size={14} />
+                  <span>{isSubmittingEdit ? "Menyimpan..." : "Simpan Pengaturan"}</span>
                 </button>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* MODAL PREVIEW NOTIFIKASI PENGGUNA */}
       {previewRole && (
